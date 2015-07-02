@@ -1,0 +1,39 @@
+{% extends "panoramix/base.html" %}
+{% block content %}
+<div class="container">
+    <div class="col-md-3">
+        <h3>{{ datasource }}</h3>
+        <form method="GET">
+            <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2") }}</div>
+            <div>{{ form.since.label }}: {{ form.since(class_="form-control select2") }}</div>
+            <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
+            <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2_tags") }}</div>
+            <hr>
+            <h4>Filters</h4>
+            <div>
+                <span style="width: 100px;">{{ form.flt_col_1(class_="form-control select2") }}</span>
+                <span>{{ form.flt_op_1(class_="form-control select2 input-sm") }}</span>
+                <span>{{ form.flt_eq_1(class_="form-control") }}</span>
+            </div>
+            <hr>
+            <input type="submit" class="btn btn-primary">
+        </form><br>
+    </div>
+
+    <div class="col-md-9">
+
+        <h3>Tabular Data</h3>
+        {{ table|safe  }}
+
+        <h3>Results</h3>
+        <pre>
+           {{ results }} 
+        </pre>
+
+        <h3>Latest Segment Metadata</h3>
+        <pre>
+           {{ latest_metadata }} 
+        </pre>
+    </div>
+</div>
+{% endblock %}
