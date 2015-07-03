@@ -1,6 +1,7 @@
+flask
+flask-bootstrap
+pandas
+pandas-highcharts
 pydruid
 python-dateutil
-flask
-pandas
 wtforms
-flask-bootstrap

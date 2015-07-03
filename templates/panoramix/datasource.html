@@ -4,6 +4,7 @@
     <div class="col-md-3">
         <h3>{{ datasource }}</h3>
         <form method="GET">
+            <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
             <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2") }}</div>
             <div>{{ form.since.label }}: {{ form.since(class_="form-control select2") }}</div>
             <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
@@ -16,24 +17,28 @@
                 <span>{{ form.flt_eq_1(class_="form-control") }}</span>
             </div>
             <hr>
-            <input type="submit" class="btn btn-primary">
+            <input type="submit" class="btn btn-primary" value="Druidify!">
+            <hr>
+            <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
         </form><br>
     </div>
 
     <div class="col-md-9">
+        <h3>{{ verbose_viz_type }}</h3>
+        {% block viz %}
+        {% endblock %}
 
-        <h3>Tabular Data</h3>
-        {{ table|safe  }}
+        {% if debug %}
+            <h3>Results</h3>
+            <pre>
+               {{ results }} 
+            </pre>
 
-        <h3>Results</h3>
-        <pre>
-           {{ results }} 
-        </pre>
-
-        <h3>Latest Segment Metadata</h3>
-        <pre>
-           {{ latest_metadata }} 
-        </pre>
+            <h3>Latest Segment Metadata</h3>
+            <pre>
+               {{ latest_metadata }} 
+            </pre>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

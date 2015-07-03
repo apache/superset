@@ -2,19 +2,42 @@ from pydruid import client
 from pydruid.utils.filters import Dimension
 from dateutil.parser import parse
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, flash
 from flask_bootstrap import Bootstrap
 import json
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import pandas as pd
+from pandas_highcharts.core import serialize
+
 pd.set_option('display.max_colwidth', -1)
 
 ROW_LIMIT = 10000
 PORT = 8088
+CHART_ARGS = {
+    'figsize': (None, 700),
+    'title': None,
+}
 query = client.PyDruid("http://10.181.47.80:8080", 'druid/v2')
 
 app = Flask(__name__)
 Bootstrap(app)
+
+
+class BaseViz(object):
+    template = "panoramix/datasource.html"
+    def __init__(self):
+        pass
+
+    def form_class(self):
+        pass
+
+
+viz_types = {
+    'table': 'Table',
+    'line': 'Time Series - Line',
+    'bar': 'Time Series - Bar',
+    'bar_distro': 'Distribution - Bar',
+}
 
 def latest_metadata(datasource):
     max_time = query.time_boundary(datasource=datasource)[0]['result']['maxTime']
@@ -47,6 +70,8 @@ def datasource(datasource):
     except:
         pass
     class QueryForm(Form):
+        viz_type = SelectField(
+            'Viz', choices=[v for v in viz_types.items()])
         groupby = SelectMultipleField(
             'Group by', choices=[(m, m) for m in sorted(metadata.keys())])
         granularity = SelectField(
@@ -63,6 +88,7 @@ def datasource(datasource):
 
     groupby = request.args.getlist("groupby") or []
     granularity = request.args.get("granularity")
+    metric = "count"
     limit = int(request.args.get("limit", ROW_LIMIT)) or ROW_LIMIT
     since = request.args.get("since", "all")
     from_dttm = (datetime.now() - since_l[since]).isoformat()
@@ -81,7 +107,6 @@ def datasource(datasource):
         else:
             break
         i += 1
-    print filters
 
     results=[]
     results = query.groupby(
@@ -89,33 +114,64 @@ def datasource(datasource):
         granularity=granularity or 'all',
         intervals=from_dttm + '/' + datetime.now().isoformat(),
         dimensions=groupby,
-        aggregations={"count": client.doublesum("count")},
-        filter=filters,
+        aggregations={"count": client.doublesum(metric)},
+        #filter=filters,
         limit_spec={
             "type": "default",
             "limit": limit,
             "columns": [{
-                "dimension" : "count",
+                "dimension" : metric,
                 "direction" : "descending",
             },],
         },
     )
 
+    viz_type = request.args.get("viz_type", "table")
+
+    chart_js = None
+    table = None
     df = query.export_pandas()
-    if df is not None and not df.empty:
+    template = 'panoramix/viz_highcharts.html'
+    if df is None or df.empty:
+        flash("No data", "error")
+    elif viz_type == "table":
+        template = 'panoramix/viz_table.html'
         df = df.sort(df.columns[0], ascending=False)
         if granularity == 'all':
             del df['timestamp']
 
         table = df.to_html(
             classes=["table", "table-striped", 'table-bordered'], index=False)
-    else:
-        table = None
+    elif viz_type == "line":
+        df = df.pivot_table(
+            index="timestamp",
+            columns=[
+                col for col in df.columns if col not in ["timestamp", metric]],
+            values=[metric])
+        chart_js = serialize(
+            df, render_to="chart", kind="line", **CHART_ARGS)
+    elif viz_type == "bar":
+        df = df.pivot_table(
+            index="timestamp",
+            columns=[
+                col for col in df.columns if col not in ["timestamp", metric]],
+            values=[metric])
+        chart_js = serialize(df, render_to="chart", kind="bar", **CHART_ARGS)
+    elif viz_type == "bar_distro":
+        df = df.pivot_table(
+            index=[
+                col for col in df.columns if col not in ["timestamp", metric]],
+            values=[metric])
+        df = df.sort(metric, ascending=False)
+        chart_js = serialize(df, render_to="chart", kind="bar", **CHART_ARGS)
 
     return render_template(
-        'panoramix/datasource.html',
+        template,
         table=table,
+        verbose_viz_type=viz_types[viz_type],
+        viz_type=viz_type,
         datasource=datasource,
+        chart_js=chart_js,
         latest_metadata=json.dumps(
             metadata,
             sort_keys=True,
@@ -124,7 +180,7 @@ def datasource(datasource):
             results,
             sort_keys=True,
             indent=2),
-        form=QueryForm(request.args),
+        form=QueryForm(request.args, id="queryform"),
     )
 
 if __name__ == '__main__':
