@@ -12,6 +12,9 @@ CHART_ARGS = {
     'render_to': 'chart',
 }
 
+# temp hack
+metric = "count"
+
 
 class BaseViz(object):
     verbose_name = "Base Viz"
