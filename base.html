@@ -1,0 +1,86 @@
+{% import 'admin/layout.html' as layout with context -%}
+{% import 'admin/static.html' as admin_static with context %}
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>{% block title %}{% if admin_view.category %}{{ admin_view.category }} - {% endif %}{{ admin_view.name }} - {{ admin_view.admin.name }}{% endblock %}</title>
+    {% block head_meta %}
+	<meta charset="UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="">
+        <meta name="author" content="">
+    {% endblock %}
+    {% block head_css %}
+        <link href="{{ admin_static.url(filename='bootstrap/bootstrap3/css/bootstrap.min.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='bootstrap-theme.css') }}" rel="stylesheet">
+        <link href="{{ url_for('static', filename='main.css') }}" rel="stylesheet">
+        <link href="{{ admin_static.url(filename='admin/css/bootstrap3/admin.css') }}" rel="stylesheet">
+        <link rel="stylesheet" href="{{url_for('static', filename='select2-bootstrap.css')}}">
+        <link rel="stylesheet" href="{{url_for('static', filename='select2.min.css')}}">
+    {% endblock %}
+    {% block head %}
+    {% endblock %}
+    {% block head_tail %}
+    {% endblock %}
+  </head>
+  <body>
+    {% block page_body %}
+    <div class="container">
+      <nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+          <div class="container">
+            <!-- Brand and toggle get grouped for better mobile display -->
+            <div class="navbar-header">
+              <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#admin-navbar-collapse">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+              </button>
+              {% block brand %}
+              <a class="navbar-brand" href="#">{{ admin_view.admin.name }}</a>
+              {% endblock %}
+            </div>
+            <!-- navbar content -->
+            <div class="collapse navbar-collapse" id="admin-navbar-collapse">
+              {% block main_menu %}
+              <ul class="nav navbar-nav">
+                {{ layout.menu() }}
+              </ul>
+              {% endblock %}
+
+              {% block menu_links %}
+              <ul class="nav navbar-right">
+                {{ layout.menu_links() }}
+              </ul>
+              {% endblock %}
+              {% block access_control %}
+              {% endblock %}
+                <ul class="nav navbar-nav navbar-right">
+                </ul>
+            </div>
+            </div>
+      </nav>
+
+      {% block messages %}
+      {{ layout.messages() }}
+      {% endblock %}
+
+      {% set render_ctx = h.resolve_ctx() %}
+
+      {% block body %}{% endblock %}
+    </div>
+    {% endblock %}
+
+    {% block tail_js %}
+    <script src="{{ admin_static.url(filename='vendor/jquery-2.1.1.min.js') }}" type="text/javascript"></script>
+    <script src="{{ admin_static.url(filename='bootstrap/bootstrap3/js/bootstrap.min.js') }}" type="text/javascript"></script>
+    <script src="{{ admin_static.url(filename='vendor/moment-2.8.4.min.js') }}" type="text/javascript"></script>
+    <script src="{{ admin_static.url(filename='vendor/select2/select2.min.js') }}" type="text/javascript"></script>
+
+    {% endblock %}
+
+    {% block tail %}
+    {% endblock %}
+  </body>
+</html>

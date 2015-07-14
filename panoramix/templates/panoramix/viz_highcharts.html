@@ -3,7 +3,7 @@
     <div id="chart"></div>
 {% endblock %}
 
-{% block scripts %}
+{% block tail %}
 {{ super() }}
 <script src="{{ url_for("static", filename="highcharts.js") }}"></script>
 <script>

@@ -1,9 +1,11 @@
-from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 from datetime import datetime
 from flask import render_template, flash
 import pandas as pd
 from pandas_highcharts.core import serialize
+from panoramix import settings
+from pydruid.utils import aggregators as agg
+from collections import OrderedDict
 
 
 CHART_ARGS = {
@@ -12,33 +14,24 @@ CHART_ARGS = {
     'render_to': 'chart',
 }
 
-# temp hack
-metric = "count"
-
 
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = "panoramix/datasource.html"
-    def __init__(self, datasource, form_class, form_data):
+    def __init__(self, datasource, form_class, form_data, admin_view):
         self.datasource = datasource
         self.form_class = form_class
         self.form_data = form_data
+        self.metric = form_data.get('metric')
+        self.admin_view = admin_view
         self.df = self.bake_query()
         if self.df is not None:
             self.df.timestamp = pd.to_datetime(self.df.timestamp)
             self.df_prep()
             self.form_prep()
 
-    def bake_query(self):
-        ds = self.datasource
+    def query_filters(self):
         args = self.form_data
-        groupby = args.getlist("groupby") or []
-        granularity = args.get("granularity")
-        metric = "count"
-        limit = int(args.get("limit", ROW_LIMIT)) or ROW_LIMIT
-        since = args.get("since", "all")
-        from_dttm = (datetime.now() - since_l[since]).isoformat()
-
         # Building filters
         i = 1
         filters = None
@@ -57,8 +50,7 @@ class BaseViz(object):
                     for s in eq.split(','):
                         s = s.strip()
                         fields.append(Filter.build_filter(Dimension(col)==s))
-                    cond = Filter(type="or", fields=fields)
-
+                    cond = Filter(type="and", fields=fields)
 
                 if filters:
                     filters = cond and filters
@@ -67,29 +59,42 @@ class BaseViz(object):
             else:
                 break
             i += 1
+        return filters
 
-        kw = {}
-        if filters:
-            kw['filter'] = filters
-        query.groupby(
-            datasource=ds.name,
-            granularity=granularity or 'all',
-            intervals=from_dttm + '/' + datetime.now().isoformat(),
-            dimensions=groupby,
-            aggregations={"count": client.doublesum(metric)},
-            #filter=filters,
-            limit_spec={
+    def query_obj(self):
+        ds = self.datasource
+        args = self.form_data
+        groupby = args.getlist("groupby") or []
+        granularity = args.get("granularity")
+        metric = "count"
+        limit = int(
+            args.get("limit", settings.ROW_LIMIT)) or settings.ROW_LIMIT
+        since = args.get("since", "all")
+        from_dttm = (datetime.now() - settings.since_l[since]).isoformat()
+        d = {
+            'datasource': ds.name,
+            'granularity': granularity or 'all',
+            'intervals': from_dttm + '/' + datetime.now().isoformat(),
+            'dimensions': groupby,
+            'aggregations': {"count": agg.doublesum(metric)},
+            'limit_spec': {
                 "type": "default",
                 "limit": limit,
                 "columns": [{
-                    "dimension" : metric,
-                    "direction" : "descending",
-                },],
+                    "dimension": metric,
+                    "direction": "descending",
+                }],
             },
-            **kw
-        )
-        return query.export_pandas()
+        }
+        filters = self.query_filters()
+        if filters:
+            d['filter'] = filters
+        return d
 
+    def bake_query(self):
+        client = settings.get_pydruid_client()
+        client.groupby(**self.query_obj())
+        return client.export_pandas()
 
     def df_prep(self, ):
         pass
@@ -97,17 +102,21 @@ class BaseViz(object):
     def form_prep(self):
         pass
 
+    def render_no_data(self):
+        self.template = "panoramix/no_data.html"
+        return BaseViz.render(self)
+
     def render(self, *args, **kwargs):
         form = self.form_class(self.form_data)
-        return render_template(
-            self.template, form=form)
+        return self.admin_view.render(
+            self.template, form=form, viz=self, datasource=self.datasource,
+            *args, **kwargs)
 
 
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     def render(self):
-        form = self.form_class(self.form_data)
         if self.df is None or self.df.empty:
             flash("No data.", "error")
             table = None
@@ -115,42 +124,62 @@ class TableViz(BaseViz):
             if self.form_data.get("granularity") == "all":
                 del self.df['timestamp']
             table = self.df.to_html(
-                classes=["table", "table-striped", 'table-bordered'],
+                classes=[
+                    'table', 'table-striped', 'table-bordered',
+                    'table-condensed'],
                 index=False)
-        return render_template(
-            self.template, form=form, table=table)
+        return super(TableViz, self).render(table=table)
 
 
 class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
     chart_kind = 'line'
-    def render(self, *args, **kwargs):
-        form = self.form_class(self.form_data)
-        if self.df is None or self.df.empty:
-            flash("No data.", "error")
-        else:
-            table = self.df.to_html(
-                classes=["table", "table-striped", 'table-bordered'],
-                index=False)
-        return render_template(
-            self.template, form=form, table=table,
-            *args, **kwargs)
 
 
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
     chart_kind = "line"
+
     def render(self):
+        metric = self.metric
         df = self.df
         df = df.pivot_table(
             index="timestamp",
             columns=[
                 col for col in df.columns if col not in ["timestamp", metric]],
             values=[metric])
-        chart_js = serialize(
-            df, kind=self.chart_kind, **CHART_ARGS)
+        chart_js = serialize(df, kind=self.chart_kind, **CHART_ARGS)
         return super(TimeSeriesViz, self).render(chart_js=chart_js)
+
+    def bake_query(self):
+        """
+        Doing a 2 phase query where we limit the number of series.
+        """
+        client = settings.get_pydruid_client()
+        qry = self.query_obj()
+        qry['granularity'] = "all"
+        client.groupby(**qry)
+        df = client.export_pandas()
+        dims =  qry['dimensions']
+        filters = []
+        for index, row in df.iterrows():
+            fields = []
+            for dim in dims:
+                f = Filter.build_filter(Dimension(dim) == row[dim])
+                fields.append(f)
+            if len(fields) > 1:
+                filters.append(Filter.build_filter(Filter(type="and", fields=fields)))
+            elif fields:
+                filters.append(fields[0])
+
+        qry = self.query_obj()
+        if filters:
+            ff = Filter(type="or", fields=filters)
+            qry['filter'] = ff
+        del qry['limit_spec']
+        client.groupby(**qry)
+        return client.export_pandas()
 
 
 class TimeSeriesAreaViz(TimeSeriesViz):
@@ -158,10 +187,22 @@ class TimeSeriesAreaViz(TimeSeriesViz):
     chart_kind = "area"
 
 
+class TimeSeriesBarViz(TimeSeriesViz):
+    verbose_name = "Time Series - Bar Chart"
+    chart_kind = "bar"
+
+
 class DistributionBarViz(HighchartsViz):
     verbose_name = "Distribution - Bar Chart"
     chart_kind = "bar"
+
+    def query_obj(self):
+        d = super(DistributionBarViz, self).query_obj()
+        d['granularity'] = "all"
+        return d
+
     def render(self):
+        metric = self.metric
         df = self.df
         df = df.pivot_table(
             index=[
@@ -172,9 +213,33 @@ class DistributionBarViz(HighchartsViz):
             df, kind=self.chart_kind, **CHART_ARGS)
         return super(DistributionBarViz, self).render(chart_js=chart_js)
 
-viz_types = {
-    'table': TableViz,
-    'line': TimeSeriesViz,
-    'area': TimeSeriesAreaViz,
-    'dist_bar': DistributionBarViz,
-}
+
+class DistributionPieViz(HighchartsViz):
+    verbose_name = "Distribution - Pie Chart"
+    chart_kind = "pie"
+
+    def query_obj(self):
+        d = super(DistributionPieViz, self).query_obj()
+        d['granularity'] = "all"
+        return d
+
+    def render(self):
+        metric = self.metric
+        df = self.df
+        df = df.pivot_table(
+            index=[
+                col for col in df.columns if col not in ['timestamp', metric]],
+            values=[metric])
+        df = df.sort(metric, ascending=False)
+        chart_js = serialize(
+            df, kind=self.chart_kind, **CHART_ARGS)
+        return super(DistributionPieViz, self).render(chart_js=chart_js)
+
+viz_types = OrderedDict([
+    ['table', TableViz],
+    ['line', TimeSeriesViz],
+    ['area', TimeSeriesAreaViz],
+    ['bar', TimeSeriesBarViz],
+    ['dist_bar', DistributionBarViz],
+    ['pie', DistributionPieViz],
+])
