@@ -29,51 +29,6 @@ class OmgWtForm(Form):
         return fields
 
 
-class DruidDataSource(object):
-
-    def __init__(self, name):
-        self.name = name
-        self.cols = self.latest_metadata()
-        self.col_names = sorted([
-            col for col in self.cols.keys()
-            if not col.startswith("_") and col not in self.metrics])
-
-    def latest_metadata(self):
-        results = client.time_boundary(datasource=self.name)
-        max_time = results[0]['result']['maxTime']
-        max_time = parse(max_time)
-        intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'
-        intervals += (max_time + timedelta(seconds=1)).isoformat()
-        segment_metadata = client.segment_metadata(
-            datasource=self.name,
-            intervals=intervals)
-        return segment_metadata[-1]['columns']
-
-    @property
-    def metrics(self):
-        return [
-            k for k, v in self.cols.items()
-            if v['type'] != 'STRING' and not k.startswith('_')]
-
-    def sync_to_db(self):
-        DS = Datasource
-        datasource = DS.query.filter_by(datasource_name=self.name).first()
-        if not datasource:
-            db.session.add(DS(datasource_name=self.name))
-        for col in self.cols:
-            col_obj = Column.query.filter_by(datasource_name=self.name, column_name=col).first()
-            datatype = self.cols[col]['type']
-            if not col_obj:
-                col_obj = Column(datasource_name=self.name, column_name=col)
-                db.session.add(col_obj)
-                if datatype == "STRING":
-                    col_obj.groupby = True
-            if col_obj:
-                col_obj.type = self.cols[col]['type']
-
-        db.session.commit()
-
-
 def form_factory(datasource, form_args=None):
     grain = ['all', 'none', 'minute', 'hour', 'day']
     limits = [0, 5, 10, 25, 50, 100, 500]
@@ -95,9 +50,10 @@ def form_factory(datasource, form_args=None):
         metric = SelectField(
             'Metric', choices=[(m, m) for m in datasource.metrics])
         groupby = SelectMultipleField(
-            'Group by', choices=[(m, m) for m in datasource.col_names])
+            'Group by', choices=[
+                (s, s) for s in datasource.groupby_column_names])
         granularity = SelectField(
-            'Granularity', choices=[(g, g) for g in grain])
+            'Time Granularity', choices=[(g, g) for g in grain])
         since = SelectField(
             'Since', choices=[(s, s) for s in settings.since_l.keys()],
             default="all")
@@ -105,7 +61,7 @@ def form_factory(datasource, form_args=None):
             'Limit', choices=[(s, s) for s in limits])
     for i in range(10):
         setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-            'Filter 1', choices=[(m, m) for m in datasource.col_names]))
+            'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
         setattr(QueryForm, 'flt_op_' + str(i), SelectField(
             'Filter 1', choices=[(m, m) for m in ['==', '!=', 'in',]]))
         setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
@@ -141,6 +97,55 @@ class Datasource(db.Model):
     description = db.Column(db.Text)
     created_dttm = db.Column(db.DateTime, default=db.func.now())
 
+    @property
+    def metrics(self):
+        return [col.column_name for col in self.columns if not col.groupby]
+
+    @classmethod
+    def latest_metadata(cls, name):
+        results = client.time_boundary(datasource=name)
+        max_time = results[0]['result']['maxTime']
+        max_time = parse(max_time)
+        intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'
+        intervals += (max_time + timedelta(seconds=1)).isoformat()
+        segment_metadata = client.segment_metadata(
+            datasource=name,
+            intervals=intervals)
+        return segment_metadata[-1]['columns']
+
+    @classmethod
+    def sync_to_db(cls, name):
+        datasource = cls.query.filter_by(datasource_name=name).first()
+        if not datasource:
+            db.session.add(cls(datasource_name=name))
+        cols = cls.latest_metadata(name)
+        for col in cols:
+            col_obj = Column.query.filter_by(datasource_name=name, column_name=col).first()
+            datatype = cols[col]['type']
+            if not col_obj:
+                col_obj = Column(datasource_name=name, column_name=col)
+                db.session.add(col_obj)
+            if datatype == "STRING":
+                col_obj.groupby = True
+                col_obj.filterable = True
+            if col_obj:
+                col_obj.type = cols[col]['type']
+
+        db.session.commit()
+
+    @property
+    def column_names(self):
+        return sorted([c.column_name for c in self.columns])
+
+    @property
+    def groupby_column_names(self):
+        return sorted([c.column_name for c in self.columns if c.groupby])
+
+    @property
+    def filterable_column_names(self):
+        return sorted([c.column_name for c in self.columns if c.filterable])
+
+
 
 class Column(db.Model):
     __tablename__ = 'columns'
@@ -156,6 +161,7 @@ class Column(db.Model):
     sum = db.Column(db.Boolean, default=False)
     max = db.Column(db.Boolean, default=False)
     min = db.Column(db.Boolean, default=False)
+    filterable = db.Column(db.Boolean, default=False)
     datasource = db.relationship('Datasource',
         backref=db.backref('columns', lazy='dynamic'))
 
@@ -193,7 +199,12 @@ class DatasourceView(BaseView):
     @expose("/datasource/<datasource_name>/")
     def datasource(self, datasource_name):
         viz_type = request.args.get("viz_type", "table")
-        datasource = DruidDataSource(datasource_name)
+        datasource = (
+            Datasource
+            .query
+            .filter_by(datasource_name=datasource_name)
+            .first()
+        )
         obj = viz.viz_types[viz_type](
             datasource,
             form_class=form_factory(datasource, request.args),
@@ -205,7 +216,7 @@ class DatasourceView(BaseView):
 
 
     @expose("/datasources/")
-    def datasources():
+    def datasources(self):
         import requests
         import json
         endpoint = (
@@ -214,8 +225,7 @@ class DatasourceView(BaseView):
         ).format(**settings.__dict__)
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
-            ds = DruidDataSource(datasource)
-            ds.sync_to_db()
+            Datasource.sync_to_db(datasource)
 
         return json.dumps(datasources, indent=4)
 

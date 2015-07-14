@@ -72,7 +72,7 @@ class BaseViz(object):
         since = args.get("since", "all")
         from_dttm = (datetime.now() - settings.since_l[since]).isoformat()
         d = {
-            'datasource': ds.name,
+            'datasource': ds.datasource_name,
             'granularity': granularity or 'all',
             'intervals': from_dttm + '/' + datetime.now().isoformat(),
             'dimensions': groupby,
@@ -135,6 +135,7 @@ class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
     chart_kind = 'line'
+    stacked = False
 
 
 class TimeSeriesViz(HighchartsViz):
@@ -149,7 +150,9 @@ class TimeSeriesViz(HighchartsViz):
             columns=[
                 col for col in df.columns if col not in ["timestamp", metric]],
             values=[metric])
-        chart_js = serialize(df, kind=self.chart_kind, **CHART_ARGS)
+        chart_js = serialize(
+            df, kind=self.chart_kind, stacked=self.stacked, **CHART_ARGS)
+        print self.stacked
         return super(TimeSeriesViz, self).render(chart_js=chart_js)
 
     def bake_query(self):
@@ -183,13 +186,19 @@ class TimeSeriesViz(HighchartsViz):
 
 
 class TimeSeriesAreaViz(TimeSeriesViz):
-    verbose_name = "Time Series - Area Chart"
+    verbose_name = "Time Series - Stacked Area Chart"
+    stacked=True
     chart_kind = "area"
 
 
 class TimeSeriesBarViz(TimeSeriesViz):
     verbose_name = "Time Series - Bar Chart"
     chart_kind = "bar"
+
+class TimeSeriesStackedBarViz(TimeSeriesViz):
+    verbose_name = "Time Series - Stacked Bar Chart"
+    chart_kind = "bar"
+    stacked = True
 
 
 class DistributionBarViz(HighchartsViz):
@@ -242,4 +251,5 @@ viz_types = OrderedDict([
     ['bar', TimeSeriesBarViz],
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
+    ['stacked_ts_bar', TimeSeriesStackedBarViz],
 ])
