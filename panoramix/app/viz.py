@@ -3,9 +3,10 @@ from datetime import datetime
 from flask import render_template, flash
 import pandas as pd
 from pandas_highcharts.core import serialize
-from panoramix import settings
 from pydruid.utils import aggregators as agg
 from collections import OrderedDict
+from app import utils
+import config
 
 
 CHART_ARGS = {
@@ -18,13 +19,13 @@ CHART_ARGS = {
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = "panoramix/datasource.html"
-    def __init__(self, datasource, form_class, form_data, admin_view):
+    def __init__(self, datasource, form_class, form_data, view):
         self.datasource = datasource
         self.form_class = form_class
         self.form_data = form_data
         self.metric = form_data.get('metric')
-        self.admin_view = admin_view
         self.df = self.bake_query()
+        self.view = view
         if self.df is not None:
             self.df.timestamp = pd.to_datetime(self.df.timestamp)
             self.df_prep()
@@ -68,9 +69,9 @@ class BaseViz(object):
         granularity = args.get("granularity")
         metric = "count"
         limit = int(
-            args.get("limit", settings.ROW_LIMIT)) or settings.ROW_LIMIT
+            args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
         since = args.get("since", "all")
-        from_dttm = (datetime.now() - settings.since_l[since]).isoformat()
+        from_dttm = (datetime.now() - utils.since_l[since]).isoformat()
         d = {
             'datasource': ds.datasource_name,
             'granularity': granularity or 'all',
@@ -92,7 +93,7 @@ class BaseViz(object):
         return d
 
     def bake_query(self):
-        client = settings.get_pydruid_client()
+        client = utils.get_pydruid_client()
         client.groupby(**self.query_obj())
         return client.export_pandas()
 
@@ -108,7 +109,7 @@ class BaseViz(object):
 
     def render(self, *args, **kwargs):
         form = self.form_class(self.form_data)
-        return self.admin_view.render(
+        return self.view.render_template(
             self.template, form=form, viz=self, datasource=self.datasource,
             *args, **kwargs)
 
@@ -159,29 +160,30 @@ class TimeSeriesViz(HighchartsViz):
         """
         Doing a 2 phase query where we limit the number of series.
         """
-        client = settings.get_pydruid_client()
+        client = utils.get_pydruid_client()
         qry = self.query_obj()
         qry['granularity'] = "all"
         client.groupby(**qry)
         df = client.export_pandas()
-        dims =  qry['dimensions']
-        filters = []
-        for index, row in df.iterrows():
-            fields = []
-            for dim in dims:
-                f = Filter.build_filter(Dimension(dim) == row[dim])
-                fields.append(f)
-            if len(fields) > 1:
-                filters.append(Filter.build_filter(Filter(type="and", fields=fields)))
-            elif fields:
-                filters.append(fields[0])
+        if not df is None:
+            dims =  qry['dimensions']
+            filters = []
+            for index, row in df.iterrows():
+                fields = []
+                for dim in dims:
+                    f = Filter.build_filter(Dimension(dim) == row[dim])
+                    fields.append(f)
+                if len(fields) > 1:
+                    filters.append(Filter.build_filter(Filter(type="and", fields=fields)))
+                elif fields:
+                    filters.append(fields[0])
 
-        qry = self.query_obj()
-        if filters:
-            ff = Filter(type="or", fields=filters)
-            qry['filter'] = ff
-        del qry['limit_spec']
-        client.groupby(**qry)
+            qry = self.query_obj()
+            if filters:
+                ff = Filter(type="or", fields=filters)
+                qry['filter'] = ff
+            del qry['limit_spec']
+            client.groupby(**qry)
         return client.export_pandas()
 
 

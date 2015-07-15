@@ -1,5 +1,5 @@
 {% extends "panoramix/base.html" %}
-{% block styles %}
+{% block head_css %}
 {{super()}}
 <style>
 form .row {
@@ -12,22 +12,22 @@ form .col {
 }
 </style>
 {% endblock %}
-{% block body %}
+{% block content %}
 <div class="container">
   <div class="col-md-3">
     <h3>
       {{ datasource.datasource_name }}
-      <a href="/admin/datasource/edit/?id={{ datasource.id }}"><span class="glyphicon glyphicon-edit"></span></a>
+      <a href="/datasourcemodelview/edit/{{ datasource.id }}"><span class="glyphicon glyphicon-edit"></span></a>
     </h3>
 
     <hr>
     <form method="GET">
-      <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control") }}</div>
+      <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
       <div>{{ form.metric.label }}: {{ form.metric(class_="form-control select2") }}</div>
-      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control") }}</div>
-      <div>{{ form.since.label }}: {{ form.since(class_="form-control") }}</div>
-      <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control") }}</div>
-      <div>{{ form.limit.label }}: {{ form.limit(class_="form-control") }}</div>
+      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2") }}</div>
+      <div>{{ form.since.label }}: {{ form.since(class_="form-control select2") }}</div>
+      <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
+      <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
       <hr>
       <h4>Filters</h4>
       <div id="filters">
@@ -78,12 +78,12 @@ form .col {
 </div>
 {% endblock %}
 
-{% block tail %}
+{% block tail_js %}
 {{ super() }}
 <script>
 $( document ).ready(function() {
-    //`:$(".select2").select2();
-   // $(".select2_tags").select2({tags: true});
+  $(".select2").select2();
+  $(".select2_tags").select2({tags: true});
 });
 </script>
 {% endblock %}

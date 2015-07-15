@@ -1,0 +1,9 @@
+*.pyc
+app.db
+./tmp
+./build/*
+./.idea
+./.idea/*
+env
+venv
+*.sublime*
