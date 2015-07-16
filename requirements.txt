@@ -1,6 +1,5 @@
 pydruid
 python-dateutil
 flask
+flask-appbuilder
 pandas
-wtforms
-flask-bootstrap
