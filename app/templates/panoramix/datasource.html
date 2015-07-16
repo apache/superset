@@ -1,0 +1,89 @@
+{% extends "panoramix/base.html" %}
+{% block head_css %}
+{{super()}}
+<style>
+form .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+form .col {
+    padding-right:0px;
+    padding-left:0px;
+}
+</style>
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="col-md-3">
+    <h3>
+      {{ datasource.datasource_name }}
+      <a href="/datasourcemodelview/edit/{{ datasource.id }}"><span class="glyphicon glyphicon-edit"></span></a>
+    </h3>
+
+    <hr>
+    <form method="GET">
+      <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
+      <div>{{ form.metric.label }}: {{ form.metric(class_="form-control select2") }}</div>
+      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2") }}</div>
+      <div>{{ form.since.label }}: {{ form.since(class_="form-control select2") }}</div>
+      <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
+      <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
+      <hr>
+      <h4>Filters</h4>
+      <div id="filters">
+        {% for i in range(10) %}
+          <div id="flt{{ i }}" class="{{ "hidden" if i != 1 }}">
+            <div class="row">
+              <span class="" style="width: 100px;">{{ form['flt_col_' ~ i](class_="form-control select2 inc") }}</span>
+            </div>
+            <div class="row">
+              <span class="col col-md-3">{{ form['flt_op_' ~ i](class_="form-control select2 input-sm inc") }}</span>
+              <span class="col col-md-7">{{ form['flt_eq_' ~ i](class_="form-control inc") }}</span>
+              <button type="col col-md-2" class="btn btn-sm" aria-label="Delete filter">
+                <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
+              </button>
+            </div>
+            <hr/>
+          </div>
+        {% endfor %}
+      </div>
+      <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
+        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+      </button>
+      <hr>
+      <input type="submit" class="btn btn-primary" value="Druidify!">
+      <hr style="margin-bottom: 0px;">
+      <img src="{{ url_for("static", filename="panoramix.png") }}" width=250>
+    </form><br>
+  </div>
+
+  <div class="col-md-9">
+    <h3>{{ viz.verbose_name }}</h3>
+    <hr/>
+    {% block viz %}
+    {% endblock %}
+
+    {% if debug %}
+    <h3>Results</h3>
+    <pre>
+      {{ results }} 
+    </pre>
+
+    <h3>Latest Segment Metadata</h3>
+    <pre>
+               {{ latest_metadata }} 
+    </pre>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script>
+$( document ).ready(function() {
+  $(".select2").select2();
+  $(".select2_tags").select2({tags: true});
+});
+</script>
+{% endblock %}

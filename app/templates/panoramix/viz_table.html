@@ -1,0 +1,11 @@
+{% extends "panoramix/datasource.html" %}
+{% block viz %}
+    {{ table|safe  }}
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $('table').css('background-color', 'white');
+</script>
+{% endblock %}

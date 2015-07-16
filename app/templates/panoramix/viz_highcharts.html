@@ -1,0 +1,25 @@
+{% extends "panoramix/datasource.html" %}
+{% block viz %}
+    <div id="chart"></div>
+{% endblock %}
+
+{% block tail %}
+{{ super() }}
+<script src="{{ url_for("static", filename="highcharts.js") }}"></script>
+<script>
+$( document ).ready(function() {
+    Highcharts.setOptions({
+        colors: [
+            "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
+            "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
+        ],
+    });
+    $("#viz_type").click(function(){
+        $("#queryform").submit();
+    })
+    {% if chart_js %}
+        {{ chart_js|safe }}
+    {% endif %}
+});
+</script>
+{% endblock %}

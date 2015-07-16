@@ -1,0 +1,90 @@
+body { padding-top: 70px; }
+a.navbar-brand span {
+    color: white;
+}
+nav{
+    -webkit-box-shadow: 0px 3px 3px #AAA;
+    -moz-box-shadow:    0px 3px 3px #AAA;
+    box-shadow:         0px 3px 3px #AAA;
+    z-index:999;
+}
+a.navbar-brand {
+    cursor: default;
+}
+td>span.glyphicon{
+    padding-left: 3px;
+    padding-top: 3px;
+}
+button.btn {
+    border: 1px solid black;
+}
+
+.tooltip-inner {
+    text-align:left !important;
+    font-size: 12px;
+}
+div.linenodiv {
+    padding-right: 1px !important;
+}
+.linenos {
+    width: 50px;
+    border: none;
+}
+div.linenodiv  pre {
+    padding-left: 4px;
+    padding-right: 4px;
+    color: #AAA;
+    background-color: #FCFCFC;
+    text-align:right;
+}
+
+pre {
+  overflow: auto;
+  word-wrap: normal;
+  white-space: pre;
+}
+pre code {
+    overflow-wrap: normal;
+    white-space: pre;
+}
+input, select {
+    margin: 0px;
+}
+.code {
+    font-family: monospace;
+}
+
+table.dataframe {
+    font-size: 12px;
+}
+table.dataframe tbody tr td {
+    padding: 2px;
+}
+table thead th {
+    background-color: #F3F3F3;
+}
+table.dataframe.dataTable thead > tr > th {
+    padding: 10px 20px 10px 10px;
+}
+table.dataTable.dataframe thead .sorting {
+    background: url('sort_both.png') no-repeat center right
+}
+table.dataTable.dataframe thead .sorting_desc {
+    background: url('sort_desc.png') no-repeat center right
+}
+table.dataTable.dataframe thead .sorting_asc {
+    background: url('sort_asc.png') no-repeat center right
+}
+.no-wrap {
+    white-space: nowrap;
+}
+div.form-inline{
+    margin-bottom: 5px;
+}
+
+body div.panel {
+    padding: 0px;
+}
+.blur { 
+    filter:url(#blur-effect-1); 
+}
