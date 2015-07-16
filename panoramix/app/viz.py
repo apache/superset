@@ -23,7 +23,7 @@ class BaseViz(object):
         self.datasource = datasource
         self.form_class = form_class
         self.form_data = form_data
-        self.metric = form_data.get('metric')
+        self.metric = form_data.get('metric', 'count')
         self.df = self.bake_query()
         self.view = view
         if self.df is not None:
@@ -67,7 +67,10 @@ class BaseViz(object):
         args = self.form_data
         groupby = args.getlist("groupby") or []
         granularity = args.get("granularity")
-        metric = "count"
+        aggregations = {
+            m.metric_name: m.json_obj
+            for m in ds.metrics if m.metric_name == self.metric
+        }
         limit = int(
             args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
         since = args.get("since", "all")
@@ -77,12 +80,12 @@ class BaseViz(object):
             'granularity': granularity or 'all',
             'intervals': from_dttm + '/' + datetime.now().isoformat(),
             'dimensions': groupby,
-            'aggregations': {"count": agg.doublesum(metric)},
+            'aggregations': aggregations,
             'limit_spec': {
                 "type": "default",
                 "limit": limit,
                 "columns": [{
-                    "dimension": metric,
+                    "dimension": self.metric,
                     "direction": "descending",
                 }],
             },
@@ -151,9 +154,9 @@ class TimeSeriesViz(HighchartsViz):
             columns=[
                 col for col in df.columns if col not in ["timestamp", metric]],
             values=[metric])
+
         chart_js = serialize(
             df, kind=self.chart_kind, stacked=self.stacked, **CHART_ARGS)
-        print self.stacked
         return super(TimeSeriesViz, self).render(chart_js=chart_js)
 
     def bake_query(self):

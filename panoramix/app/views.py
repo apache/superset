@@ -38,8 +38,7 @@ def form_factory(datasource, form_args=None):
         viz_type = SelectField(
             'Viz',
             choices=[(k, v.verbose_name) for k, v in viz.viz_types.items()])
-        metric = SelectField(
-            'Metric', choices=[(m, m) for m in datasource.metrics])
+        metric = SelectField('Metric', choices=datasource.metrics_combo)
         groupby = SelectMultipleField(
             'Group by', choices=[
                 (s, s) for s in datasource.groupby_column_names])
@@ -61,22 +60,33 @@ def form_factory(datasource, form_args=None):
 
 class ColumnInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Column)
-    edit_columns = ['column_name', 'groupby', 'count_distinct', 'sum', 'min', 'max']
-    list_columns = ['column_name', 'groupby', 'count_distinct', 'sum', 'min', 'max']
+    edit_columns = [
+        'column_name', 'datasource', 'groupby', 'count_distinct',
+        'sum', 'min', 'max']
+    list_columns = [
+        'column_name', 'type', 'groupby', 'count_distinct',
+        'sum', 'min', 'max']
     can_delete = False
 appbuilder.add_view_no_menu(ColumnInlineView)
 
-class JavascriptUdfInlineView(CompactCRUDMixin, ModelView):
-    datamodel = SQLAInterface(models.JavascriptUdf)
-    edit_columns = ['udf_name', 'column_list', 'code']
-appbuilder.add_view_no_menu(JavascriptUdfInlineView)
+
+class MetricInlineView(CompactCRUDMixin, ModelView):
+    datamodel = SQLAInterface(models.Metric)
+    list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
+    edit_columns = [
+        'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+    add_columns = [
+        'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+appbuilder.add_view_no_menu(MetricInlineView)
 
 
 class DatasourceModelView(ModelView):
     datamodel = SQLAInterface(models.Datasource)
-    list_columns = ['datasource_link', 'is_featured' ]
-    related_views = [ColumnInlineView, JavascriptUdfInlineView]
-    edit_columns = ['datasource_name', 'description', 'is_featured', 'is_hidden']
+    list_columns = ['datasource_link', 'is_featured', 'is_hidden']
+    related_views = [ColumnInlineView, MetricInlineView]
+    edit_columns = [
+        'datasource_name', 'description', 'is_featured', 'is_hidden',
+        'default_endpoint']
     page_size = 100
 
 
@@ -90,13 +100,18 @@ appbuilder.add_view(
 class Panoramix(BaseView):
     @expose("/datasource/<datasource_name>/")
     def datasource(self, datasource_name):
-        viz_type = request.args.get("viz_type", "table")
+        viz_type = request.args.get("viz_type")
+
         datasource = (
             db.session
             .query(models.Datasource)
             .filter_by(datasource_name=datasource_name)
             .first()
         )
+        if not viz_type and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
+        if not viz_type:
+            viz_type = "table"
         obj = viz.viz_types[viz_type](
             datasource,
             form_class=form_factory(datasource, request.args),
@@ -107,7 +122,7 @@ class Panoramix(BaseView):
 
 
     @expose("/refresh_datasources/")
-    def datasources(self):
+    def refresh_datasources(self):
         import requests
         import json
         endpoint = (
@@ -126,4 +141,6 @@ appbuilder.add_link(
     href='/panoramix/refresh_datasources/',
     category='Admin',
     icon="fa-cogs")
+
+#models.Metric.__table__.drop(db.engine)
 db.create_all()
