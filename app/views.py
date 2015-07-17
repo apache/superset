@@ -9,6 +9,7 @@ import config
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 from wtforms.fields import Field
 
+
 class OmgWtForm(Form):
     field_order = (
         'viz_type', 'granularity', 'since', 'group_by', 'limit')
@@ -44,11 +45,14 @@ def form_factory(datasource, form_args=None):
         groupby = SelectMultipleField(
             'Group by', choices=[
                 (s, s) for s in datasource.groupby_column_names])
-        granularity = SelectField(
-            'Time Granularity', choices=[(g, g) for g in grain])
-        since = SelectField(
-            'Since', choices=[(s, s) for s in utils.since_l.keys()],
-            default="all")
+        #granularity = SelectField(
+        #    'Time Granularity', choices=[(g, g) for g in grain])
+        #since = SelectField(
+        #    'Since', choices=[(s, s) for s in utils.since_l.keys()],
+        #    default="all")
+        granularity = TextField('Time Granularity', default="one day")
+        since = TextField('Since', default="one day ago")
+        until = TextField('Until', default="now")
         limit = SelectField(
             'Limit', choices=[(s, s) for s in limits])
     for i in range(10):

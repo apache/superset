@@ -66,19 +66,28 @@ class BaseViz(object):
         ds = self.datasource
         args = self.form_data
         groupby = args.getlist("groupby") or []
-        granularity = args.get("granularity")
+        granularity = args.get("granularity", "1 day")
+        granularity = utils.parse_human_timedelta(granularity).total_seconds() * 1000
         aggregations = {
             m.metric_name: m.json_obj
             for m in ds.metrics if m.metric_name == self.metric
         }
         limit = int(
             args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
-        since = args.get("since", "all")
-        from_dttm = (datetime.now() - utils.since_l[since]).isoformat()
+        since = args.get("since", "1 year ago")
+        from_dttm = utils.parse_human_datetime(since)
+        if from_dttm > datetime.now():
+            from_dttm = datetime.now() - (from_dttm-datetime.now())
+        from_dttm = from_dttm.isoformat()
+        until = args.get("until", "now")
+        to_dttm = utils.parse_human_datetime(until).isoformat()
+        if from_dttm >= to_dttm:
+            flash("The date range doesn't seem right.", "danger")
+            from_dttm = to_dttm  # Making them identicial to not raise
         d = {
             'datasource': ds.datasource_name,
-            'granularity': granularity or 'all',
-            'intervals': from_dttm + '/' + datetime.now().isoformat(),
+            'granularity': {"type": "duration", "duration": granularity},
+            'intervals': from_dttm + '/' + to_dttm,
             'dimensions': groupby,
             'aggregations': aggregations,
             'limit_spec': {

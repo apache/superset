@@ -21,7 +21,9 @@ class Datasource(Model, AuditMixin):
 
     @property
     def metrics_combo(self):
-        return [(m.metric_name, m.verbose_name) for m in self.metrics]
+        return sorted(
+            [(m.metric_name, m.verbose_name) for m in self.metrics],
+            key=lambda x: x[1])
 
     def __repr__(self):
         return self.datasource_name

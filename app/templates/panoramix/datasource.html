@@ -2,13 +2,9 @@
 {% block head_css %}
 {{super()}}
 <style>
-form .row {
-    margin-left: 0;
-    margin-right: 0;
-}
-form .col {
-    padding-right:0px;
-    padding-left:0px;
+.select2-container-multi .select2-choices {
+  height: 70px; 
+  overflow: auto;
 }
 </style>
 {% endblock %}
@@ -24,8 +20,13 @@ form .col {
     <form method="GET">
       <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
       <div>{{ form.metric.label }}: {{ form.metric(class_="form-control select2") }}</div>
-      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2") }}</div>
-      <div>{{ form.since.label }}: {{ form.since(class_="form-control select2") }}</div>
+      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
+      <div class="row">
+        <div class="form-group">
+          <div class="col-xs-6">{{ form.since.label }}: {{ form.since(class_="form-control select2_free_since") }}</div>
+          <div class="col-xs-6">{{ form.until.label }}: {{ form.until(class_="form-control select2_free_until") }}</div>
+        </div>
+      </div>
       <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
       <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
       <hr>
@@ -33,9 +34,7 @@ form .col {
       <div id="filters">
         {% for i in range(10) %}
           <div id="flt{{ i }}" class="{{ "hidden" if i != 1 }}">
-            <div class="row">
               <span class="" style="width: 100px;">{{ form['flt_col_' ~ i](class_="form-control select2 inc") }}</span>
-            </div>
             <div class="row">
               <span class="col col-md-3">{{ form['flt_op_' ~ i](class_="form-control select2 input-sm inc") }}</span>
               <span class="col col-md-7">{{ form['flt_eq_' ~ i](class_="form-control inc") }}</span>
@@ -83,7 +82,51 @@ form .col {
 <script>
 $( document ).ready(function() {
   $(".select2").select2();
-  $(".select2_tags").select2({tags: true});
+
+  function create_choices (term, data) { 
+      if ($(data).filter(function() { 
+          return this.text.localeCompare(term)===0; 
+      }).length===0) 
+      {return {id:term, text:term};} 
+  }
+  $(".select2_free_since").select2({
+      createSearchChoice: create_choices,
+      multiple: false,
+      data: [
+        {id: '-1 hour', text: '-1 hour'},
+        {id: '-12 hours', text: '-12 hours'},
+        {id: '-1 day', text: '-1 day'},
+        {id: '-7 days', text: '-7 days'},
+        {id: '-28 days', text: '-28 days'},
+        {id: '-90 days', text: '-90 days'},
+        {id: '{{ form.data.since }}', text: '{{ form.data.since }}'},
+      ]
+  });
+  $(".select2_free_until").select2({
+      createSearchChoice: create_choices,
+      multiple: false,
+      data: [
+        {id: '{{ form.data.until }}', text: '{{ form.data.until }}'},
+        {id: 'now', text: 'now'},
+        {id: '-1 day', text: '-1 day'},
+        {id: '-7 days', text: '-7 days'},
+        {id: '-28 days', text: '-28 days'},
+        {id: '-90 days', text: '-90 days'},
+      ]
+  });
+  $(".select2_free_granularity").select2({
+      createSearchChoice: create_choices,
+      multiple: false,
+      data: [
+        {id: '{{ form.data.granularity }}', text: '{{ form.data.granularity }}'},
+        {id: '5 seconds', text: '5 seconds'},
+        {id: '30 seconds', text: '30 seconds'},
+        {id: '1 minute', text: '1 minute'},
+        {id: '5 minutes', text: '5 minutes'},
+        {id: '1 day', text: '1 day'},
+        {id: '7 days', text: '7 days'},
+      ]
+  });
 });
 </script>
 {% endblock %}
