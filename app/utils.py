@@ -1,5 +1,6 @@
 import config
-from datetime import timedelta
+from datetime import timedelta, datetime
+import parsedatetime
 
 since_l = {
     '1hour': timedelta(hours=1),
@@ -16,3 +17,15 @@ def get_pydruid_client():
         config.DRUID_BASE_ENDPOINT)
 
 
+def parse_human_datetime(s):
+    """
+    Use the parsedatetime lib to return ``datetime.datetime`` from human
+    generated strings
+
+    >>> parse_human_datetime("now") <= datetime.now()
+    True
+    """
+    cal = parsedatetime.Calendar()
+    d = cal.parse(s)[0]
+    return datetime(
+        d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)

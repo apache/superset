@@ -43,7 +43,7 @@ class Datasource(Model, AuditMixin):
         print "---" * 100
         print name
         print results
-        max_time = results[0]['result']['maxTime']
+        max_time = results[0]['result']['minTime']
         max_time = parse(max_time)
         intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'
         intervals += (max_time + timedelta(seconds=1)).isoformat()

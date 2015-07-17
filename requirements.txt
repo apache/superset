@@ -1,4 +1,5 @@
 pydruid
+parsedatetime
 python-dateutil
 flask
 flask-appbuilder

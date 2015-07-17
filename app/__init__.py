@@ -1,6 +1,6 @@
 import logging
 from flask import Flask
-from flask.ext.appbuilder import SQLA, AppBuilder
+from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 
 """
  Logging configuration
@@ -12,8 +12,13 @@ logging.getLogger().setLevel(logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object('config')
 db = SQLA(app)
+
+class MyIndexView(IndexView):
+    index_template = 'index.html'
+
 appbuilder = AppBuilder(
-    app, db.session, base_template='panoramix/base.html')
+    app, db.session, base_template='panoramix/base.html',
+    indexview=MyIndexView)
 #appbuilder.app_name = 'Panoramix'
 
 
@@ -31,4 +36,3 @@ def set_sqlite_pragma(dbapi_connection, connection_record):
 """
 
 from app import views
-

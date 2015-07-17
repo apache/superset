@@ -1,3 +1,6 @@
+from datetime import timedelta
+import logging
+
 from flask import request, redirect, flash
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
@@ -5,7 +8,6 @@ from app import appbuilder, db, models, viz, utils
 import config
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 from wtforms.fields import Field
-from datetime import timedelta
 
 class OmgWtForm(Form):
     field_order = (
@@ -131,7 +133,11 @@ class Panoramix(BaseView):
         ).format(**config.__dict__)
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
-            models.Datasource.sync_to_db(datasource)
+            try:
+                models.Datasource.sync_to_db(datasource)
+            except Exception as e:
+                logging.exception(e)
+                logging.error("Failed at syncing " + datasource)
         flash("Refreshed metadata from Druid!", 'info')
         return redirect("/datasourcemodelview/list/")
 

@@ -200,6 +200,7 @@ class TimeSeriesBarViz(TimeSeriesViz):
     verbose_name = "Time Series - Bar Chart"
     chart_kind = "bar"
 
+
 class TimeSeriesStackedBarViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Bar Chart"
     chart_kind = "bar"
