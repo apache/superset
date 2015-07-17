@@ -41,7 +41,7 @@ def form_factory(datasource, form_args=None):
         viz_type = SelectField(
             'Viz',
             choices=[(k, v.verbose_name) for k, v in viz.viz_types.items()])
-        metric = SelectField('Metric', choices=datasource.metrics_combo)
+        metrics = SelectMultipleField('Metrics', choices=datasource.metrics_combo)
         groupby = SelectMultipleField(
             'Group by', choices=[
                 (s, s) for s in datasource.groupby_column_names])

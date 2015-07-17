@@ -23,7 +23,9 @@ class BaseViz(object):
         self.datasource = datasource
         self.form_class = form_class
         self.form_data = form_data
-        self.metric = form_data.get('metric', 'count')
+        self.metrics = form_data.getlist('metrics') or ['count']
+        self.groupby = form_data.getlist('groupby') or []
+
         self.df = self.bake_query()
         self.view = view
         if self.df is not None:
@@ -70,7 +72,7 @@ class BaseViz(object):
         granularity = utils.parse_human_timedelta(granularity).total_seconds() * 1000
         aggregations = {
             m.metric_name: m.json_obj
-            for m in ds.metrics if m.metric_name == self.metric
+            for m in ds.metrics if m.metric_name in self.metrics
         }
         limit = int(
             args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
@@ -94,7 +96,7 @@ class BaseViz(object):
                 "type": "default",
                 "limit": limit,
                 "columns": [{
-                    "dimension": self.metric,
+                    "dimension": self.metrics[0],
                     "direction": "descending",
                 }],
             },
@@ -156,13 +158,12 @@ class TimeSeriesViz(HighchartsViz):
     chart_kind = "line"
 
     def render(self):
-        metric = self.metric
+        metrics = self.metrics
         df = self.df
         df = df.pivot_table(
             index="timestamp",
-            columns=[
-                col for col in df.columns if col not in ["timestamp", metric]],
-            values=[metric])
+            columns=self.groupby,
+            values=metrics)
 
         chart_js = serialize(
             df, kind=self.chart_kind, stacked=self.stacked, **CHART_ARGS)
@@ -226,13 +227,11 @@ class DistributionBarViz(HighchartsViz):
         return d
 
     def render(self):
-        metric = self.metric
         df = self.df
         df = df.pivot_table(
-            index=[
-                col for col in df.columns if col not in ['timestamp', metric]],
-            values=[metric])
-        df = df.sort(metric, ascending=False)
+            index=self.groupby,
+            values=self.metrics)
+        df = df.sort(self.metrics[0], ascending=False)
         chart_js = serialize(
             df, kind=self.chart_kind, **CHART_ARGS)
         return super(DistributionBarViz, self).render(chart_js=chart_js)
@@ -248,13 +247,11 @@ class DistributionPieViz(HighchartsViz):
         return d
 
     def render(self):
-        metric = self.metric
         df = self.df
         df = df.pivot_table(
-            index=[
-                col for col in df.columns if col not in ['timestamp', metric]],
-            values=[metric])
-        df = df.sort(metric, ascending=False)
+            index=self.groupby,
+            values=[self.metrics[0]])
+        df = df.sort(self.metrics[0], ascending=False)
         chart_js = serialize(
             df, kind=self.chart_kind, **CHART_ARGS)
         return super(DistributionPieViz, self).render(chart_js=chart_js)
