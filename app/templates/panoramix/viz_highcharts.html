@@ -5,7 +5,11 @@
 
 {% block tail %}
 {{ super() }}
+{% if viz.chart_type == "stock" %}
+<script src="{{ url_for("static", filename="highstock.js") }}"></script>
+{% else %}
 <script src="{{ url_for("static", filename="highcharts.js") }}"></script>
+{% endif %}
 <script>
 $( document ).ready(function() {
     Highcharts.setOptions({
@@ -13,6 +17,11 @@ $( document ).ready(function() {
             "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
             "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
         ],
+        global: {
+          useUTC: false
+        },
+  
+
     });
     $("#viz_type").click(function(){
         $("#queryform").submit();

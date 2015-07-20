@@ -1,7 +1,8 @@
 from datetime import timedelta
 import logging
+import json
 
-from flask import request, redirect, flash
+from flask import request, redirect, flash, Response
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from app import appbuilder, db, models, viz, utils
@@ -59,7 +60,7 @@ def form_factory(datasource, form_args=None):
         setattr(QueryForm, 'flt_col_' + str(i), SelectField(
             'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
         setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-            'Filter 1', choices=[(m, m) for m in ['==', '!=', 'in',]]))
+            'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
         setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
     return QueryForm
 
@@ -122,6 +123,11 @@ class Panoramix(BaseView):
             datasource,
             form_class=form_factory(datasource, request.args),
             form_data=request.args, view=self)
+        if request.args.get("json"):
+            return Response(
+                json.dumps(obj.get_query(), indent=4),
+                status=200,
+                mimetype="application/json")
         if obj.df is None or obj.df.empty:
             return obj.render_no_data()
         return obj.render()
@@ -130,7 +136,6 @@ class Panoramix(BaseView):
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         import requests
-        import json
         endpoint = (
             "http://{COORDINATOR_HOST}:{COORDINATOR_PORT}/"
             "{COORDINATOR_BASE_ENDPOINT}/datasources"

@@ -6,10 +6,17 @@
   height: 70px; 
   overflow: auto;
 }
+.no-gutter > [class*='col-'] {
+    padding-right:0;
+    padding-left:0;
+}
+form div.select2-container.form-control {
+  margin-bottom: 5px;
+}
 </style>
 {% endblock %}
 {% block content %}
-<div class="container">
+<div class="container-fluid">
   <div class="col-md-3">
     <h3>
       {{ datasource.datasource_name }}
@@ -17,7 +24,7 @@
     </h3>
 
     <hr>
-    <form method="GET">
+    <form id="query" method="GET" style="display: none;">
       <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
       <div>{{ form.metrics.label }}: {{ form.metrics(class_="form-control select2") }}</div>
       <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
@@ -31,26 +38,23 @@
       <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
       <hr>
       <h4>Filters</h4>
-      <div id="filters">
-        {% for i in range(10) %}
-          <div id="flt{{ i }}" class="{{ "hidden" if i != 1 }}">
-              <span class="" style="width: 100px;">{{ form['flt_col_' ~ i](class_="form-control select2 inc") }}</span>
-            <div class="row">
-              <span class="col col-md-3">{{ form['flt_op_' ~ i](class_="form-control select2 input-sm inc") }}</span>
-              <span class="col col-md-7">{{ form['flt_eq_' ~ i](class_="form-control inc") }}</span>
-              <button type="col col-md-2" class="btn btn-sm" aria-label="Delete filter">
-                <span class="glyphicon glyphicon-minus" aria-hidden="true"></span>
-              </button>
-            </div>
-            <hr/>
+        <div id="flt0" style="display: none;">
+            <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+          <div class="row">
+            <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+            <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+            <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
+              <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+            </button>
           </div>
-        {% endfor %}
-      </div>
+          <hr style="margin: 5px 0px;"/>
+        </div>
+      <div id="filters"></div>
       <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
       </button>
       <hr>
-      <input type="submit" class="btn btn-primary" value="Druidify!">
+      <button type="button" class="btn btn-primary" id="druidify">Druidify!</button>
       <hr style="margin-bottom: 0px;">
       <img src="{{ url_for("static", filename="panoramix.png") }}" width=250>
     </form><br>
@@ -81,7 +85,68 @@
 {{ super() }}
 <script>
 $( document ).ready(function() {
+  function getParam(name) {
+      name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+      var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+          results = regex.exec(location.search);
+      return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
+
   $(".select2").select2();
+  $("form").slideDown("slow");
+
+  function set_filters(){
+    for (var i=1; i<10; i++){
+      var eq = getParam("flt_eq_" + i);
+      if (eq !=''){
+        add_filter(i);
+      }
+    }
+  }
+  set_filters();
+
+  function add_filter(i) {
+      cp = $("#flt0").clone();
+      $(cp).appendTo("#filters");  
+      $(cp).slideDown("slow");
+      if (i != undefined){
+        $(cp).find("#flt_eq_0").val(getParam("flt_eq_" + i));
+        $(cp).find("#flt_op_0").val(getParam("flt_op_" + i));
+        $(cp).find("#flt_col_0").val(getParam("flt_col_" + i));
+      }
+
+      $(cp).find('select').select2();
+      $(cp).find('.remove').click(function() {
+        $(this).parent().parent().slideUp("slow", function(){$(this).remove()});
+      });
+  }
+  $("#plus").click(add_filter);
+  add_filter();
+  $("#druidify").click(function () {
+    var i = 1;
+
+    // removing empty filters
+    $("#filters > div").each(function(){
+      if ($(this).find("#flt_eq_0").val() == '')
+        $(this).slideUp();
+    });
+
+    // Assigning the right id to form elements in filters
+    $("#filters > div").each(function(){
+      $(this).attr("id", function(){return "flt_" + i;})
+      $(this).find("#flt_col_0")
+        .attr("id", function(){return "flt_col_" + i;})
+        .attr("name", function(){return "flt_col_" + i;});
+      $(this).find("#flt_op_0")
+        .attr("id", function(){return "flt_op_" + i;})
+        .attr("name", function(){return "flt_op_" + i;});
+      $(this).find("#flt_eq_0")
+        .attr("id", function(){return "flt_eq_" + i;})
+        .attr("name", function(){return "flt_eq_" + i;});
+      i++;
+    });
+    $("#query").submit();
+  });
 
   function create_choices (term, data) { 
       if ($(data).filter(function() { 

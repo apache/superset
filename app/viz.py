@@ -36,9 +36,8 @@ class BaseViz(object):
     def query_filters(self):
         args = self.form_data
         # Building filters
-        i = 1
         filters = None
-        while True:
+        for i in range(1, 10):
             col = args.get("flt_col_" + str(i))
             op = args.get("flt_op_" + str(i))
             eq = args.get("flt_eq_" + str(i))
@@ -48,20 +47,25 @@ class BaseViz(object):
                     cond = Dimension(col)==eq
                 elif op == '!=':
                     cond = ~(Dimension(col)==eq)
-                elif op == 'in':
+                elif op in ('in', 'not in'):
                     fields = []
-                    for s in eq.split(','):
-                        s = s.strip()
-                        fields.append(Filter.build_filter(Dimension(col)==s))
-                    cond = Filter(type="and", fields=fields)
-
+                    splitted = eq.split(',')
+                    if len(splitted) > 1:
+                        for s in eq.split(','):
+                            s = s.strip()
+                            fields.append(Filter.build_filter(Dimension(col)==s))
+                        cond = Filter(type="or", fields=fields)
+                    else:
+                        cond = Dimension(col)==eq
+                    if op == 'not in':
+                        cond = ~cond
                 if filters:
-                    filters = cond and filters
+                    filters = Filter(type="and", fields=[
+                        Filter.build_filter(cond),
+                        Filter.build_filter(filters)
+                    ])
                 else:
                     filters = cond
-            else:
-                break
-            i += 1
         return filters
 
     def query_obj(self):
@@ -111,6 +115,11 @@ class BaseViz(object):
         client.groupby(**self.query_obj())
         return client.export_pandas()
 
+    def get_query(self):
+        client = utils.get_pydruid_client()
+        client.groupby(**self.query_obj())
+        return client.query_dict
+
     def df_prep(self, ):
         pass
 
@@ -151,11 +160,14 @@ class HighchartsViz(BaseViz):
     template = 'panoramix/viz_highcharts.html'
     chart_kind = 'line'
     stacked = False
+    chart_type = 'not_stock'
+    compare = False
 
 
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
-    chart_kind = "line"
+    chart_kind = "spline"
+    chart_type = 'stock'
 
     def render(self):
         metrics = self.metrics
@@ -166,7 +178,10 @@ class TimeSeriesViz(HighchartsViz):
             values=metrics)
 
         chart_js = serialize(
-            df, kind=self.chart_kind, stacked=self.stacked, **CHART_ARGS)
+            df, kind=self.chart_kind,
+            viz=self,
+            compare=self.compare,
+            chart_type=self.chart_type, stacked=self.stacked, **CHART_ARGS)
         return super(TimeSeriesViz, self).render(chart_js=chart_js)
 
     def bake_query(self):
@@ -199,6 +214,9 @@ class TimeSeriesViz(HighchartsViz):
             client.groupby(**qry)
         return client.export_pandas()
 
+class TimeSeriesCompareViz(TimeSeriesViz):
+    verbose_name = "Time Series - Percent Change"
+    compare = 'percent'
 
 class TimeSeriesAreaViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Area Chart"
@@ -259,9 +277,10 @@ class DistributionPieViz(HighchartsViz):
 viz_types = OrderedDict([
     ['table', TableViz],
     ['line', TimeSeriesViz],
+    ['compare', TimeSeriesCompareViz],
     ['area', TimeSeriesAreaViz],
     ['bar', TimeSeriesBarViz],
+    ['stacked_ts_bar', TimeSeriesStackedBarViz],
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
-    ['stacked_ts_bar', TimeSeriesStackedBarViz],
 ])
