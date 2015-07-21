@@ -3,7 +3,7 @@ Panoramix
 
 Panoramix is a web UI to slice and dice data out of Druid.io
 
-![img](https://descubrirlahistoria.es/wp-content/uploads/2014/03/panoramix.jpg)
+![img](http://i.imgur.com/aOaH0ty.png)
 
 What's Druid?
 -------------
