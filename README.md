@@ -18,9 +18,12 @@ power analytic dashboards and applications.*
 
 Panoramix
 ---------
-Panoramix started as a hackathon project at Airbnb while running a POC
-(proof of concept) on Druid. The main goal is to provide an easy to 
-leverage Druid's speed to power analytics **at the speed of thought**.
+Panoramix's main goal is to make it easy to slice, dice and visualize data
+out of Druid. It empowers its user to perform **analytics 
+at the speed of thought**.
+
+Panoramix started as a hackathon project at Airbnb in while running a POC
+(proof of concept) on using Druid. 
 
 Panoramix provides:
 * A way to query intuitively a Druid dataset, allowing for grouping, filtering
@@ -30,6 +33,7 @@ Panoramix provides:
 * An extensible, high granularity security model allowing intricate rules
     on who can access which features, and integration with major 
     authentication providers (through Flask AppBuiler)
-* An easy way to control how Druid datasources are displayed in the UI,
-    by defining which fields should show up in which drop down and which
+* A simple semantic layer, allowing to control how Druid datasources are 
+    displayed in the UI,
+    by defining which fields should show up in which dropdown and which
     aggregation and function (metrics) are made available to the user
