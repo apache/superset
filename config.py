@@ -2,16 +2,23 @@ import os
 from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
 basedir = os.path.abspath(os.path.dirname(__file__))
 
+"""
+All configuration in this file can be overridden by providing a local_config
+in your PYTHONPATH.
+
+There' a ``from local_config import *`` at the end of this file.
+"""
+
 #---------------------------------------------------------
 # Panoramix specifix config
 #---------------------------------------------------------
 ROW_LIMIT = 5000
 
-DRUID_HOST = '10.181.47.80'
+DRUID_HOST = '0.0.0.0'
 DRUID_PORT = 8080
 DRUID_BASE_ENDPOINT = 'druid/v2'
 
-COORDINATOR_HOST = '10.168.176.249'
+COORDINATOR_HOST = '0.0.0.0'
 COORDINATOR_PORT = '8080'
 COORDINATOR_BASE_ENDPOINT = 'druid/coordinator/v1'
 #---------------------------------------------------------
@@ -118,3 +125,7 @@ IMG_UPLOAD_URL = '/static/uploads/'
 #APP_THEME = "united.css"
 #APP_THEME = "yeti.css"
 
+try:
+    from local_config import *
+except:
+    pass

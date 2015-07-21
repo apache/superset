@@ -1,11 +1,12 @@
 from pydruid.utils.filters import Dimension, Filter
 from datetime import datetime
-from flask import render_template, flash
+from flask import render_template, flash, request
 import pandas as pd
 from pandas_highcharts.core import serialize
 from pydruid.utils import aggregators as agg
 from collections import OrderedDict
 from app import utils
+from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
 
 
@@ -15,13 +16,63 @@ CHART_ARGS = {
     'render_to': 'chart',
 }
 
+class OmgWtForm(Form):
+    field_order = (
+        'viz_type', 'granularity', 'since', 'group_by', 'limit')
+    def fields(self):
+        fields = []
+        for field in self.field_order:
+            if hasattr(self, field):
+                obj = getattr(self, field)
+                if isinstance(obj, Field):
+                    fields.append(getattr(self, field))
+        return fields
+
+
+def form_factory(datasource, form_args=None, extra_fields_dict=None):
+    extra_fields_dict = extra_fields_dict or {}
+    limits = [0, 5, 10, 25, 50, 100, 500]
+
+    if form_args:
+        limit = form_args.get("limit")
+        try:
+            limit = int(limit)
+            if limit not in limits:
+                limits.append(limit)
+                limits = sorted(limits)
+        except:
+            pass
+
+    class QueryForm(OmgWtForm):
+        viz_type = SelectField(
+            'Viz',
+            choices=[(k, v.verbose_name) for k, v in viz_types.items()])
+        metrics = SelectMultipleField('Metrics', choices=datasource.metrics_combo)
+        groupby = SelectMultipleField(
+            'Group by', choices=[
+                (s, s) for s in datasource.groupby_column_names])
+        granularity = TextField('Time Granularity', default="one day")
+        since = TextField('Since', default="one day ago")
+        until = TextField('Until', default="now")
+        limit = SelectField(
+            'Limit', choices=[(s, s) for s in limits])
+    for i in range(10):
+        setattr(QueryForm, 'flt_col_' + str(i), SelectField(
+            'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
+        setattr(QueryForm, 'flt_op_' + str(i), SelectField(
+            'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
+        setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
+    for k, v in extra_fields_dict.items():
+        setattr(QueryForm, k, v)
+    return QueryForm
+
 
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = "panoramix/datasource.html"
-    def __init__(self, datasource, form_class, form_data, view):
+    def __init__(self, datasource, form_data, view):
         self.datasource = datasource
-        self.form_class = form_class
+        self.form_class = self.form_class()
         self.form_data = form_data
         self.metrics = form_data.getlist('metrics') or ['count']
         self.groupby = form_data.getlist('groupby') or []
@@ -32,6 +83,9 @@ class BaseViz(object):
             self.df.timestamp = pd.to_datetime(self.df.timestamp)
             self.df_prep()
             self.form_prep()
+
+    def form_class(self):
+        return form_factory(self.datasource, request.args)
 
     def query_filters(self):
         args = self.form_data
@@ -177,12 +231,28 @@ class TimeSeriesViz(HighchartsViz):
             columns=self.groupby,
             values=metrics)
 
+        rolling_periods = request.args.get("rolling_periods")
+        rolling_type = request.args.get("rolling_type")
+        if rolling_periods and rolling_type:
+            if rolling_type == 'mean':
+                df = pd.rolling_mean(df, int(rolling_periods))
+
         chart_js = serialize(
             df, kind=self.chart_kind,
             viz=self,
             compare=self.compare,
             chart_type=self.chart_type, stacked=self.stacked, **CHART_ARGS)
         return super(TimeSeriesViz, self).render(chart_js=chart_js)
+
+    def form_class(self):
+        return form_factory(self.datasource, request.args,
+            extra_fields_dict={
+                'compare': TextField('Period Compare',),
+                'rolling_type': SelectField(
+                    'Rolling',
+                    choices=[(s, s) for s in ['mean', 'sum', 'std']]),
+                'rolling_periods': TextField('Periods',),
+            })
 
     def bake_query(self):
         """

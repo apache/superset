@@ -1,3 +1,4 @@
+flask-alembic
 pydruid
 parsedatetime
 python-dateutil

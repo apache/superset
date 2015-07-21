@@ -3,6 +3,18 @@
     <div id="chart"></div>
 {% endblock %}
 
+{% block extra_fields %}
+  {% if form.compare %}
+    <div>{{ form.compare.label }}: {{ form.compare(class_="form-control") }}</div>
+  {% endif %}
+  {% if form.compare %}
+    <div class="row">
+      <span  class="col col-sm-5">{{ form.rolling_type.label }}: {{ form.rolling_type(class_="form-control select2") }}</span>
+      <span class="col col-sm-4">{{ form.rolling_periods.label }}: {{ form.rolling_periods(class_="form-control") }}</span>
+    </div>
+  {% endif %}
+{% endblock %}
+
 {% block tail %}
 {{ super() }}
 {% if viz.chart_type == "stock" %}
@@ -20,8 +32,6 @@ $( document ).ready(function() {
         global: {
           useUTC: false
         },
-  
-
     });
     $("#viz_type").click(function(){
         $("#queryform").submit();

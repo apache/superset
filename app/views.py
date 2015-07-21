@@ -7,69 +7,14 @@ from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from app import appbuilder, db, models, viz, utils
 import config
-from wtforms import Form, SelectMultipleField, SelectField, TextField
 from wtforms.fields import Field
-
-
-class OmgWtForm(Form):
-    field_order = (
-        'viz_type', 'granularity', 'since', 'group_by', 'limit')
-    def fields(self):
-        fields = []
-        for field in self.field_order:
-            if hasattr(self, field):
-                obj = getattr(self, field)
-                if isinstance(obj, Field):
-                    fields.append(getattr(self, field))
-        return fields
-
-
-def form_factory(datasource, form_args=None):
-    grain = ['all', 'none', 'minute', 'hour', 'day']
-    limits = [0, 5, 10, 25, 50, 100, 500]
-
-    if form_args:
-        limit = form_args.get("limit")
-        try:
-            limit = int(limit)
-            if limit not in limits:
-                limits.append(limit)
-                limits = sorted(limits)
-        except:
-            pass
-
-    class QueryForm(OmgWtForm):
-        viz_type = SelectField(
-            'Viz',
-            choices=[(k, v.verbose_name) for k, v in viz.viz_types.items()])
-        metrics = SelectMultipleField('Metrics', choices=datasource.metrics_combo)
-        groupby = SelectMultipleField(
-            'Group by', choices=[
-                (s, s) for s in datasource.groupby_column_names])
-        #granularity = SelectField(
-        #    'Time Granularity', choices=[(g, g) for g in grain])
-        #since = SelectField(
-        #    'Since', choices=[(s, s) for s in utils.since_l.keys()],
-        #    default="all")
-        granularity = TextField('Time Granularity', default="one day")
-        since = TextField('Since', default="one day ago")
-        until = TextField('Until', default="now")
-        limit = SelectField(
-            'Limit', choices=[(s, s) for s in limits])
-    for i in range(10):
-        setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-            'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
-        setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-            'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
-        setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
-    return QueryForm
 
 
 class ColumnInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Column)
     edit_columns = [
-        'column_name', 'datasource', 'groupby', 'count_distinct',
-        'sum', 'min', 'max']
+        'column_name', 'description', 'datasource', 'groupby',
+        'count_distinct', 'sum', 'min', 'max']
     list_columns = [
         'column_name', 'type', 'groupby', 'count_distinct',
         'sum', 'min', 'max']
@@ -81,7 +26,8 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Metric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
     edit_columns = [
-        'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+        'metric_name', 'description', 'verbose_name', 'metric_type',
+        'datasource', 'json']
     add_columns = [
         'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
 appbuilder.add_view_no_menu(MetricInlineView)
@@ -89,12 +35,13 @@ appbuilder.add_view_no_menu(MetricInlineView)
 
 class DatasourceModelView(ModelView):
     datamodel = SQLAInterface(models.Datasource)
-    list_columns = ['datasource_link', 'is_featured', 'is_hidden']
+    list_columns = ['datasource_link', 'owner', 'is_featured', 'is_hidden']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
-        'datasource_name', 'description', 'is_featured', 'is_hidden',
+        'datasource_name', 'description', 'owner', 'is_featured', 'is_hidden',
         'default_endpoint']
     page_size = 100
+    order_columns = ['datasource_name']
 
 
 appbuilder.add_view(
@@ -121,7 +68,6 @@ class Panoramix(BaseView):
             viz_type = "table"
         obj = viz.viz_types[viz_type](
             datasource,
-            form_class=form_factory(datasource, request.args),
             form_data=request.args, view=self)
         if request.args.get("json"):
             return Response(

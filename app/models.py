@@ -1,6 +1,7 @@
 from flask.ext.appbuilder import Model
 from datetime import datetime, timedelta
 from flask.ext.appbuilder.models.mixins import AuditMixin, FileColumn, ImageColumn
+from flask.ext.appbuilder.security.sqla.models import User
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from app import db, utils
@@ -18,6 +19,9 @@ class Datasource(Model, AuditMixin):
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
     default_endpoint = Column(Text)
+    user_id = Column(Integer,
+        ForeignKey('ab_user.id'))
+    owner = relationship('User', backref='datasources', foreign_keys=[user_id])
 
     @property
     def metrics_combo(self):
@@ -111,6 +115,7 @@ class Metric(Model):
         ForeignKey('datasources.datasource_name'))
     datasource = relationship('Datasource', backref='metrics')
     json = Column(Text)
+    description = Column(Text)
 
     @property
     def json_obj(self):
@@ -132,6 +137,7 @@ class Column(Model, AuditMixin):
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
+    description = Column(Text)
 
     def __repr__(self):
         return self.column_name
@@ -150,8 +156,6 @@ class Column(Model, AuditMixin):
             json=json.dumps({
                 'type': 'count', 'name': 'count'})
         ))
-        if self.datasource.datasource_name == 'platform' and self.column_name=='subject_id':
-            print((self.column_name, self.type, self.isnum))
 
         if self.sum and self.isnum:
             mt = self.type.lower() + 'Sum'

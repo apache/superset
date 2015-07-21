@@ -1,3 +1,4 @@
 *.pyc
 *.db
 tmp
+local_config

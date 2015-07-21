@@ -11,7 +11,7 @@
         </header>
     {% endblock %}
 
-    <div class="container-fluid">
+    <div class="container">
       <div class="row">
           {% block messages %}
             {% include 'appbuilder/flash.html' %}
@@ -19,6 +19,10 @@
           {% block content %}
           {% endblock %}
       </div>
+    </div>
+    <div class="container-fluid">
+        {% block content_fluid %}
+        {% endblock %}
     </div>
 
     {% block footer %}

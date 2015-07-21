@@ -10,12 +10,15 @@
     padding-right:0;
     padding-left:0;
 }
-form div.select2-container.form-control {
-  margin-bottom: 5px;
+form div.form-control {
+  margin-bottom: 5px !important;
+}
+form input.form-control {
+  margin-bottom: 5px !important;
 }
 </style>
 {% endblock %}
-{% block content %}
+{% block content_fluid %}
 <div class="container-fluid">
   <div class="col-md-3">
     <h3>
@@ -36,6 +39,7 @@ form div.select2-container.form-control {
       </div>
       <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
       <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
+      {% block extra_fields %}{% endblock %}
       <hr>
       <h4>Filters</h4>
         <div id="flt0" style="display: none;">

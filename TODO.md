@@ -1,8 +1,5 @@
 # TODO
-* STOCK CHART + compare time ranges
-* Save a chart
-* Datasource + Owner 
-* Column description
+* compare time ranges
 * Label
 * CSV
-* Bookmarks / url shortener
+* Save / bookmark / url shortener
