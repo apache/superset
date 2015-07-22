@@ -19,6 +19,7 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
         'column_name', 'type', 'groupby', 'count_distinct',
         'sum', 'min', 'max']
     can_delete = False
+    page_size = 100
 appbuilder.add_view_no_menu(ColumnInlineView)
 
 
@@ -30,6 +31,7 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
         'datasource', 'json']
     add_columns = [
         'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+    page_size = 100
 appbuilder.add_view_no_menu(MetricInlineView)
 
 

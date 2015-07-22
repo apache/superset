@@ -260,6 +260,7 @@ class TimeSeriesViz(HighchartsViz):
         """
         client = utils.get_pydruid_client()
         qry = self.query_obj()
+        orig_filter = qry['filter'] if 'filter' in qry else ''
         qry['granularity'] = "all"
         client.groupby(**qry)
         df = client.export_pandas()
@@ -279,7 +280,12 @@ class TimeSeriesViz(HighchartsViz):
             qry = self.query_obj()
             if filters:
                 ff = Filter(type="or", fields=filters)
-                qry['filter'] = ff
+                if not orig_filter:
+                    qry['filter'] = ff
+                else:
+                    qry['filter'] = Filter(type="and", fields=[
+                        Filter.build_filter(ff),
+                        Filter.build_filter(orig_filter)])
             del qry['limit_spec']
             client.groupby(**qry)
         return client.export_pandas()
