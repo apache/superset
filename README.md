@@ -71,7 +71,7 @@ vim config.py
 fabmanager create-admin
 
 # Start the web server
-python app.py
+python run.py
 ```
 
 After installation, you should be able to point your browser to the right
