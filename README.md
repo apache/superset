@@ -58,6 +58,18 @@ cd panoramix
 # If you don't use a virtualenv, you'll have to sudo to install the reqs
 sudo pip install -r requirements.txt
 
+# I needed a feature added to pydruid, and it got merged into their 
+# master branch but isn't on pypi yet, so you'll need the latest.
+git clone https://github.com/metamx/pydruid.git
+cd pydruid
+python setup.py install
+
+# Same for pandas-highchart, I added features to the lib, so take it
+# from my fork until it gets merged...
+git clone https://github.com/mistercrunch/pandas-highcharts.git
+cd pandas-highcharts
+python setup.py install
+
 # Edit config.py, and read through the settings
 # Note that alternatively, you can create a ``local_config.py`` and put it
 # somewhere in your PYTHONPATH. The variables declared local_config.py
