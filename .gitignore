@@ -2,3 +2,4 @@
 *.db
 tmp
 local_config.py
+app.db

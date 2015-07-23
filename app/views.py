@@ -6,6 +6,7 @@ from flask import request, redirect, flash, Response
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from app import appbuilder, db, models, viz, utils
+from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
 from wtforms.fields import Field
 
@@ -54,6 +55,8 @@ appbuilder.add_view(
 
 
 class Panoramix(BaseView):
+    @has_access
+    @permission_name('datasources')
     @expose("/datasource/<datasource_name>/")
     def datasource(self, datasource_name):
         viz_type = request.args.get("viz_type")
@@ -80,7 +83,8 @@ class Panoramix(BaseView):
             return obj.render_no_data()
         return obj.render()
 
-
+    @has_access
+    @permission_name('refresh_datasources')
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         import requests
