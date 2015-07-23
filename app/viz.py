@@ -1,19 +1,18 @@
 from pydruid.utils.filters import Dimension, Filter
 from datetime import datetime
-from flask import render_template, flash, request
+from flask import flash, request
 import pandas as pd
-from pandas_highcharts.core import serialize
-from pydruid.utils import aggregators as agg
 from collections import OrderedDict
 from app import utils
+from app.highchart import Highchart
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
 
 
 CHART_ARGS = {
-    'figsize': (None, 700),
+    'height': 700,
     'title': None,
-    'render_to': 'chart',
+    'target_div': 'chart',
 }
 
 class OmgWtForm(Form):
@@ -220,8 +219,8 @@ class HighchartsViz(BaseViz):
 
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
-    chart_kind = "spline"
-    chart_type = 'stock'
+    chart_type = "spline"
+    highstock = True
 
     def render(self):
         metrics = self.metrics
@@ -237,12 +236,13 @@ class TimeSeriesViz(HighchartsViz):
             if rolling_type == 'mean':
                 df = pd.rolling_mean(df, int(rolling_periods))
 
-        chart_js = serialize(
-            df, kind=self.chart_kind,
-            viz=self,
+        chart = Highchart(
+            df,
             compare=self.compare,
-            chart_type=self.chart_type, stacked=self.stacked, **CHART_ARGS)
-        return super(TimeSeriesViz, self).render(chart_js=chart_js)
+            chart_type=self.chart_type,
+            stacked=self.stacked,
+            **CHART_ARGS)
+        return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
 
     def form_class(self):
         return form_factory(self.datasource, request.args,
@@ -297,23 +297,23 @@ class TimeSeriesCompareViz(TimeSeriesViz):
 class TimeSeriesAreaViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Area Chart"
     stacked=True
-    chart_kind = "area"
+    chart_type = "area"
 
 
 class TimeSeriesBarViz(TimeSeriesViz):
     verbose_name = "Time Series - Bar Chart"
-    chart_kind = "bar"
+    chart_type = "bar"
 
 
 class TimeSeriesStackedBarViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Bar Chart"
-    chart_kind = "bar"
+    chart_type = "bar"
     stacked = True
 
 
 class DistributionBarViz(HighchartsViz):
     verbose_name = "Distribution - Bar Chart"
-    chart_kind = "bar"
+    chart_type = "bar"
 
     def query_obj(self):
         d = super(DistributionBarViz, self).query_obj()

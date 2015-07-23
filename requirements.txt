@@ -2,7 +2,6 @@ flask
 flask-alembic
 flask-appbuilder
 pandas
-pandas-highcharts
 parsedatetime
 pydruid
 python-dateutil
