@@ -12,7 +12,7 @@ class Highchart(object):
             width=None,
             height=None,
             show_legend=True,
-            stockchart=True,
+            stockchart=False,
             title=None,
             tooltip=None,
             sort_columns=False,
@@ -41,6 +41,7 @@ class Highchart(object):
         self.zoom = zoom
         self.polar = polar
         self.grid = grid
+        self.stacked = stacked
 
         chart['chart'] = {}
         chart['chart']["type"] = chart_type
@@ -56,8 +57,8 @@ class Highchart(object):
         chart["legend"] = {
             "enabled": show_legend
         }
-        if title:
-            chart["title"] = {"text": title}
+        chart["title"] = {"text": title}
+
         if tooltip:
             chart['tooltip'] = tooltip
         if self.zoom:
@@ -89,7 +90,7 @@ class Highchart(object):
                 d['data'] = [v for k, v in d['data']]
             if self.compare:
                 d['compare'] = self.compare  # either `value` or `percent`
-            if self.chart_type in ("area", "bar") and self.stacked:
+            if self.chart_type in ("area", "column", "bar") and self.stacked:
                 d["stacking"] = 'normal'
             #if kwargs.get("style"):
             #    d["dashStyle"] = pd2hc_linestyle(kwargs["style"].get(name, "-"))
@@ -103,7 +104,8 @@ class Highchart(object):
         if df.index.dtype.kind in "M":
             x_axis["type"] = "datetime"
         if df.index.dtype.kind == 'O':
-            chart['xAxis']['categories'] = sorted(list(df.index)) if self.sort_columns else list(df.index)
+            x_axis['categories'] = sorted(list(df.index)) if self.sort_columns else list(df.index)
+            print list(df.index)
         if self.grid:
             x_axis["gridLineWidth"] = 1
             x_axis["gridLineDashStyle"] = "Dot"
@@ -120,7 +122,7 @@ class Highchart(object):
         if "xticks" in kwargs:
             x_axis["tickPositions"] = kwargs["xticks"]
         '''
-        self.x_axis = x_axis
+        self.chart['xAxis'] = x_axis
 
     def serialize_yaxis(self):
         yAxis = {}
@@ -152,5 +154,5 @@ class Highchart(object):
     def javascript_cmd(self):
         js = dumps(self.chart)
         if self.stockchart:
-            return "new Highcharts.StockChart({});".format(js)
-        return "new Highcharts.Chart({});".format(js)
+            return "new Highcharts.StockChart(%s);" % js
+        return "new Highcharts.Chart(%s);" %js
