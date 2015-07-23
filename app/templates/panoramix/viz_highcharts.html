@@ -17,7 +17,7 @@
 
 {% block tail %}
 {{ super() }}
-{% if viz.chart_type == "stock" %}
+{% if viz.stockchart %}
 <script src="{{ url_for("static", filename="highstock.js") }}"></script>
 {% else %}
 <script src="{{ url_for("static", filename="highcharts.js") }}"></script>
