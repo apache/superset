@@ -5,7 +5,7 @@ import json
 from flask import request, redirect, flash, Response
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
-from app import appbuilder, db, models, viz, utils
+from app import appbuilder, db, models, viz, utils, app
 from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
 from pydruid.client import doublesum
@@ -52,6 +52,16 @@ appbuilder.add_view(
     "Datasources",
     icon="fa-cube",
     category_icon='fa-envelope')
+
+
+@app.route('/health')
+def health():
+    return "OK"
+
+
+@app.route('/ping')
+def ping():
+    return "OK"
 
 
 class Panoramix(BaseView):
