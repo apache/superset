@@ -46,9 +46,6 @@ class Datasource(Model, AuditMixin):
     @classmethod
     def latest_metadata(cls, name):
         results = client.time_boundary(datasource=name)
-        print "---" * 100
-        print name
-        print results
         max_time = results[0]['result']['minTime']
         max_time = parse(max_time)
         intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'
@@ -56,7 +53,6 @@ class Datasource(Model, AuditMixin):
         segment_metadata = client.segment_metadata(
             datasource=name,
             intervals=intervals)
-        print segment_metadata
         if segment_metadata:
             return segment_metadata[-1]['columns']
 
