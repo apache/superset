@@ -24,6 +24,7 @@ class Highchart(object):
             logy=False,
             xlim=None,
             ylim=None,
+            sort_legend_y=False,
             grid=False,
             zoom=None):
         self.df = df
@@ -42,6 +43,7 @@ class Highchart(object):
         self.polar = polar
         self.grid = grid
         self.stacked = stacked
+        self.sort_legend_y = sort_legend_y
 
         chart['chart'] = {}
         chart['chart']["type"] = chart_type
@@ -61,6 +63,11 @@ class Highchart(object):
 
         if tooltip:
             chart['tooltip'] = tooltip
+        if sort_legend_y:
+            if 'tooltip' not in chart:
+                chart['tooltip'] = {
+                    'formatter': "{{TOOLTIP_FORMATTER}}"
+                }
         if self.zoom:
             chart["zoomType"] = self.zoom
 
@@ -69,6 +76,39 @@ class Highchart(object):
         self.serialize_yaxis()
 
         self.chart = chart
+
+    @property
+    def tooltip_formatter(self):
+        if self.compare == 'percent':
+            tf = """
+            function() {
+               var s = '<b>' + Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', new Date(this.x))+'</b><br/>';
+               var sortedPoints = this.points.sort(function(a, b){
+                     return ((a.point.change > b.point.change) ? -1 : ((a.point.change < b.point.change) ? 1 : 0));
+               });
+               $.each(sortedPoints , function(i, point) {
+               s += '<span style="color:'+ point.series.color +'">\u25CF</span> ' + point.series.name + ': ' + f(point.y) + ' (<b>' + Highcharts.numberFormat(point.point.change, 2) + '%</b>)' + '<br/>';
+               });
+
+               return s;
+            }
+            """
+        else:
+            tf = """
+            function() {
+               var s = '<b>' + Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', new Date(this.x))+'</b><br/>';
+               var sortedPoints = this.points.sort(function(a, b){
+                     return ((a.y > b.y) ? -1 : ((a.y < b.y) ? 1 : 0));
+               });
+               $.each(sortedPoints , function(i, point) {
+               s += '<span style="color:'+ point.series.color +'">\u25CF</span> ' + point.series.name + ': ' + f(point.y) + '<br/>';
+               });
+
+               return s;
+            }
+            """
+        return tf
+
 
     def serialize_series(self):
         df = self.df
@@ -114,14 +154,6 @@ class Highchart(object):
         if self.xlim:
             x_axis["min"] = self.xlim[0]
             x_axis["max"] = self.xlim[1]
-        '''
-        if "rot" in kwargs:
-            x_axis["labels"] = {"rotation": kwargs["rot"]}
-        if "fontsize" in kwargs:
-            x_axis.setdefault("labels", {})["style"] = {"fontSize": kwargs["fontsize"]}
-        if "xticks" in kwargs:
-            x_axis["tickPositions"] = kwargs["xticks"]
-        '''
         self.chart['xAxis'] = x_axis
 
     def serialize_yaxis(self):
@@ -135,14 +167,6 @@ class Highchart(object):
         if self.ylim:
             yAxis["min"] = self.ylim[0]
             yAxis["max"] = self.ylim[1]
-        '''
-        if "rot" in kwargs:
-            yAxis["labels"] = {"rotation": kwargs["rot"]}
-        if "fontsize" in kwargs:
-            yAxis.setdefault("labels", {})["style"] = {"fontSize": kwargs["fontsize"]}
-        if "yticks" in kwargs:
-            yAxis["tickPositions"] = kwargs["yticks"]
-        '''
         chart["yAxis"] = [yAxis]
         if self.secondary_y:
             yAxis2 = copy.deepcopy(yAxis)
@@ -153,6 +177,7 @@ class Highchart(object):
     @property
     def javascript_cmd(self):
         js = dumps(self.chart)
+        js = js.replace('"{{TOOLTIP_FORMATTER}}"', self.tooltip_formatter).replace("\n", " ")
         if self.stockchart:
             return "new Highcharts.StockChart(%s);" % js
         return "new Highcharts.Chart(%s);" %js

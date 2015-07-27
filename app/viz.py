@@ -221,6 +221,7 @@ class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
     chart_type = "spline"
     stockchart = True
+    sort_legend_y = True
 
     def render(self):
         metrics = self.metrics
@@ -228,13 +229,17 @@ class TimeSeriesViz(HighchartsViz):
         df = df.pivot_table(
             index="timestamp",
             columns=self.groupby,
-            values=metrics)
+            values=metrics,)
 
         rolling_periods = request.args.get("rolling_periods")
         rolling_type = request.args.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
                 df = pd.rolling_mean(df, int(rolling_periods))
+            elif rolling_type == 'std':
+                df = pd.rolling_std(df, int(rolling_periods))
+            elif rolling_type == 'sum':
+                df = pd.rolling_sum(df, int(rolling_periods))
 
         chart = Highchart(
             df,
@@ -242,6 +247,7 @@ class TimeSeriesViz(HighchartsViz):
             chart_type=self.chart_type,
             stacked=self.stacked,
             stockchart=self.stockchart,
+            sort_legend_y=self.sort_legend_y,
             **CHART_ARGS)
         return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
 

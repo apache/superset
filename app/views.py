@@ -8,7 +8,7 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from app import appbuilder, db, models, viz, utils
 from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
-from wtforms.fields import Field
+from pydruid.client import doublesum
 
 
 class ColumnInlineView(CompactCRUDMixin, ModelView):
@@ -44,7 +44,7 @@ class DatasourceModelView(ModelView):
         'datasource_name', 'description', 'owner', 'is_featured', 'is_hidden',
         'default_endpoint']
     page_size = 100
-    order_columns = ['datasource_name']
+    base_order = ('datasource_name', 'asc')
 
 
 appbuilder.add_view(
@@ -101,6 +101,21 @@ class Panoramix(BaseView):
                 logging.error("Failed at syncing " + datasource)
         flash("Refreshed metadata from Druid!", 'info')
         return redirect("/datasourcemodelview/list/")
+
+    @expose("/autocomplete/<datasource>/<column>/")
+    def autocomplete(self, datasource, column):
+        client = utils.get_pydruid_client()
+        top = client.topn(
+            datasource=datasource,
+            granularity='all',
+            intervals='2013-10-04/2020-10-10',
+            aggregations={"count": doublesum("count")},
+            dimension=column,
+            metric='count',
+            threshold=1000,
+        )
+        values = sorted([d[column] for d in top[0]['result']])
+        return json.dumps(values)
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(

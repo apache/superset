@@ -23,7 +23,12 @@ form input.form-control {
   <div class="col-md-3">
     <h3>
       {{ datasource.datasource_name }}
-      <a href="/datasourcemodelview/edit/{{ datasource.id }}"><span class="glyphicon glyphicon-edit"></span></a>
+      {% if datasource.description %}
+        <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
+      {% endif %}
+      <a href="/datasourcemodelview/edit/{{ datasource.id }}">
+        <i class="fa fa-edit"></i>
+      </a>
     </h3>
 
     <hr>
@@ -59,6 +64,7 @@ form input.form-control {
       </button>
       <hr>
       <button type="button" class="btn btn-primary" id="druidify">Druidify!</button>
+      <button type="button" class="btn btn-default" id="bookmark">Bookmark</button>
       <hr style="margin-bottom: 0px;">
       <img src="{{ url_for("static", filename="panoramix.png") }}" width=250>
     </form><br>
@@ -87,8 +93,10 @@ form input.form-control {
 
 {% block tail_js %}
 {{ super() }}
+<script src="{{ url_for("static", filename="d3.min.js") }}"></script>
 <script>
 $( document ).ready(function() {
+  f = d3.format(".4s");
   function getParam(name) {
       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
@@ -98,6 +106,7 @@ $( document ).ready(function() {
 
   $(".select2").select2();
   $("form").slideDown("slow");
+  $('[data-toggle="tooltip"]').tooltip();
 
   function set_filters(){
     for (var i=1; i<10; i++){
@@ -125,6 +134,7 @@ $( document ).ready(function() {
       });
   }
   $("#plus").click(add_filter);
+  $("#bookmark").click(function () {alert("Not implemented yet...");})
   add_filter();
   $("#druidify").click(function () {
     var i = 1;
