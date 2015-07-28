@@ -9,6 +9,14 @@ from app import appbuilder, db, models, viz, utils, app
 from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
 from pydruid.client import doublesum
+from wtforms.validators import ValidationError
+
+
+def validate_json(form, field):
+    try:
+        json.loads(field.data)
+    except Exception as e:
+        raise ValidationError("Json isn't valid")
 
 
 class ColumnInlineView(CompactCRUDMixin, ModelView):
@@ -21,6 +29,13 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
         'sum', 'min', 'max']
     can_delete = False
     page_size = 100
+
+    def post_update(self, col):
+        col.generate_metrics()
+
+    def post_update(self, col):
+        col.generate_metrics()
+
 appbuilder.add_view_no_menu(ColumnInlineView)
 
 
@@ -33,6 +48,9 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
     add_columns = [
         'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
     page_size = 100
+    validators_columns = {
+        'json': [validate_json],
+    }
 appbuilder.add_view_no_menu(MetricInlineView)
 
 
@@ -45,6 +63,12 @@ class DatasourceModelView(ModelView):
         'default_endpoint']
     page_size = 100
     base_order = ('datasource_name', 'asc')
+
+    def post_insert(self, datasource):
+        datasource.generate_metrics()
+
+    def post_update(self, datasource):
+        datasource.generate_metrics()
 
 
 appbuilder.add_view(
