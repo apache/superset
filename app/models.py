@@ -115,7 +115,12 @@ class Metric(Model):
 
     @property
     def json_obj(self):
-        return json.loads(self.json)
+        try:
+            obj = json.loads(self.json)
+        except Exception as e:
+            obj = {}
+        return obj
+
 
 class Column(Model, AuditMixin):
     __tablename__ = 'columns'
