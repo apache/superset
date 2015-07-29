@@ -10,6 +10,7 @@ from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
 from pydruid.client import doublesum
 from wtforms.validators import ValidationError
+from flask.ext.appbuilder.actions import action
 
 
 def validate_json(form, field):
@@ -17,6 +18,13 @@ def validate_json(form, field):
         json.loads(field.data)
     except Exception as e:
         raise ValidationError("Json isn't valid")
+
+class DeleteMixin(object):
+    @action("muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
+    def muldelete(self, items):
+        self.datamodel.delete_all(items)
+        self.update_redirect()
+        return redirect(self.get_redirect())
 
 
 class ColumnInlineView(CompactCRUDMixin, ModelView):
@@ -54,7 +62,7 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(MetricInlineView)
 
 
-class DatasourceModelView(ModelView):
+class DatasourceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = ['datasource_link', 'owner', 'is_featured', 'is_hidden']
     related_views = [ColumnInlineView, MetricInlineView]
