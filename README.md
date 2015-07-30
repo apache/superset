@@ -72,6 +72,7 @@ fabmanager create-admin
 
 # Start the web server
 python run.py
+
 ```
 
 After installation, you should be able to point your browser to the right
@@ -80,3 +81,13 @@ the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of 
 your datasources for Panoramix to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
+
+Configuration
+-------------
+* From the UI, enter the information about your clusters in the 
+``Admin->Clusters`` menu by hitting the + sign. 
+
+* Once the Druid cluster connection information is entered, hit the 
+``Admin->Refresh Metadata`` menu item to populate
+
+* Navigate to your datasources

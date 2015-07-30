@@ -1,13 +1,9 @@
 import config
-from datetime import timedelta, datetime
+from datetime import datetime
 import parsedatetime
+from app import db
 
 
-def get_pydruid_client():
-    from pydruid import client
-    return client.PyDruid(
-        "http://{0}:{1}/".format(config.DRUID_HOST, config.DRUID_PORT),
-        config.DRUID_BASE_ENDPOINT)
 
 
 def parse_human_datetime(s):
