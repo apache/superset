@@ -164,12 +164,12 @@ class BaseViz(object):
         return d
 
     def bake_query(self):
-        client = utils.get_pydruid_client()
+        client = self.datasource.cluster.get_pydruid_client()
         client.groupby(**self.query_obj())
         return client.export_pandas()
 
     def get_query(self):
-        client = utils.get_pydruid_client()
+        client = self.datasource.cluster.get_pydruid_client()
         client.groupby(**self.query_obj())
         return client.query_dict
 
@@ -265,7 +265,7 @@ class TimeSeriesViz(HighchartsViz):
         """
         Doing a 2 phase query where we limit the number of series.
         """
-        client = utils.get_pydruid_client()
+        client = self.datasource.cluster.get_pydruid_client()
         qry = self.query_obj()
         orig_filter = qry['filter'] if 'filter' in qry else ''
         qry['granularity'] = "all"

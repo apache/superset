@@ -1,11 +1,11 @@
-from datetime import timedelta
+from datetime import datetime
 import logging
 import json
 
 from flask import request, redirect, flash, Response
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
-from app import appbuilder, db, models, viz, utils, app
+from app import appbuilder, db, models, viz, utils, app, get_session
 from flask.ext.appbuilder.security.decorators import has_access, permission_name
 import config
 from pydruid.client import doublesum
@@ -62,13 +62,32 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(MetricInlineView)
 
 
+class ClusterModelView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Cluster)
+    add_columns = [
+        'cluster_name',
+        'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
+        'broker_host', 'broker_port', 'broker_endpoint',
+    ]
+    edit_columns = add_columns
+    list_columns = ['cluster_name', 'metadata_last_refreshed']
+
+appbuilder.add_view(
+    ClusterModelView,
+    "Clusters",
+    icon="fa-server",
+    category="Admin",
+    category_icon='fa-envelope')
+
+
 class DatasourceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
-    list_columns = ['datasource_link', 'owner', 'is_featured', 'is_hidden']
+    list_columns = [
+        'datasource_link', 'cluster', 'owner', 'is_featured', 'is_hidden']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
-        'datasource_name', 'description', 'owner', 'is_featured', 'is_hidden',
-        'default_endpoint']
+        'datasource_name', 'cluster', 'description', 'owner',
+        'is_featured', 'is_hidden', 'default_endpoint']
     page_size = 100
     base_order = ('datasource_name', 'asc')
 
@@ -129,19 +148,15 @@ class Panoramix(BaseView):
     @permission_name('refresh_datasources')
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
-        import requests
-        endpoint = (
-            "http://{COORDINATOR_HOST}:{COORDINATOR_PORT}/"
-            "{COORDINATOR_BASE_ENDPOINT}/datasources"
-        ).format(**config.__dict__)
-        datasources = json.loads(requests.get(endpoint).text)
-        for datasource in datasources:
-            try:
-                models.Datasource.sync_to_db(datasource)
-            except Exception as e:
-                logging.exception(e)
-                logging.error("Failed at syncing " + datasource)
-        flash("Refreshed metadata from Druid!", 'info')
+        session = db.session()
+        for cluster in session.query(models.Cluster).all():
+            cluster.refresh_datasources()
+            cluster.metadata_last_refreshed = datetime.now()
+            flash(
+                "Refreshed metadata from cluster "
+                "[" + cluster.cluster_name + "]",
+                'info')
+        session.commit()
         return redirect("/datasourcemodelview/list/")
 
     @expose("/autocomplete/<datasource>/<column>/")

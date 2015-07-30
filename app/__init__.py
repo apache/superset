@@ -20,4 +20,6 @@ appbuilder = AppBuilder(
     app, db.session, base_template='panoramix/base.html',
     indexview=MyIndexView)
 
+get_session = appbuilder.get_session
+
 from app import views

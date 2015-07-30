@@ -14,14 +14,6 @@ There' a ``from local_config import *`` at the end of this file.
 #---------------------------------------------------------
 ROW_LIMIT = 5000
 
-DRUID_HOST = '0.0.0.0'
-DRUID_PORT = '8084'
-DRUID_BASE_ENDPOINT = 'druid/v2'
-
-COORDINATOR_HOST = '0.0.0.0'
-COORDINATOR_PORT = '8081'
-COORDINATOR_BASE_ENDPOINT = 'druid/coordinator/v1'
-
 PANORAMIX_WEBSERVER_PORT = 8088
 #---------------------------------------------------------
 
