@@ -2,7 +2,7 @@ from flask.ext.appbuilder import Model
 from datetime import datetime, timedelta
 from flask.ext.appbuilder.models.mixins import AuditMixin, FileColumn, ImageColumn
 from flask.ext.appbuilder.security.sqla.models import User
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
 from sqlalchemy.orm import relationship
 from app import db, utils
 from dateutil.parser import parse
@@ -10,6 +10,20 @@ import json
 
 
 client = utils.get_pydruid_client()
+
+
+class Cluster(Model, AuditMixin):
+    __tablename__ = 'clusters'
+    id = Column(Integer, primary_key=True)
+    cluster_name = Column(String(256), unique=True)
+    coordinator_host = Column(String(256))
+    coordinator_port = Column(Integer)
+    coordinator_endpoint = Column(String(256))
+    broker_host = Column(String(256))
+    broker_port = Column(Integer)
+    broker_endpoint = Column(String(256))
+    metadata_last_refreshed = Column(DateTime)
+
 
 class Datasource(Model, AuditMixin):
     __tablename__ = 'datasources'
@@ -22,6 +36,9 @@ class Datasource(Model, AuditMixin):
     user_id = Column(Integer,
         ForeignKey('ab_user.id'))
     owner = relationship('User', backref='datasources', foreign_keys=[user_id])
+    cluster_name = Column(Integer,
+        ForeignKey('clusters.cluster_name'))
+    cluster = relationship('Cluster', backref='datasources', foreign_keys=[cluster_name])
 
     @property
     def metrics_combo(self):
