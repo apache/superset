@@ -254,7 +254,7 @@ class TimeSeriesViz(HighchartsViz):
     def form_class(self):
         return form_factory(self.datasource, request.args,
             extra_fields_dict={
-                'compare': TextField('Period Compare',),
+                #'compare': TextField('Period Compare',),
                 'rolling_type': SelectField(
                     'Rolling',
                     choices=[(s, s) for s in ['mean', 'sum', 'std']]),

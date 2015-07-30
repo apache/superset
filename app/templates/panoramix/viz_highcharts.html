@@ -7,7 +7,7 @@
   {% if form.compare %}
     <div>{{ form.compare.label }}: {{ form.compare(class_="form-control") }}</div>
   {% endif %}
-  {% if form.compare %}
+  {% if form.rolling_type %}
     <div class="row">
       <span  class="col col-sm-5">{{ form.rolling_type.label }}: {{ form.rolling_type(class_="form-control select2") }}</span>
       <span class="col col-sm-4">{{ form.rolling_periods.label }}: {{ form.rolling_periods(class_="form-control") }}</span>
