@@ -187,7 +187,7 @@ class Column(Model, AuditMixin):
 
     @property
     def isnum(self):
-        return self.type in ('LONG', 'DOUBLE')
+        return self.type in ('LONG', 'DOUBLE', 'FLOAT')
 
     def generate_metrics(self):
         M = Metric
@@ -198,9 +198,11 @@ class Column(Model, AuditMixin):
             metric_type='count',
             json=json.dumps({'type': 'count', 'name': 'count'})
         ))
+        # Somehow we need to reassign this for UDAFs
+        corrected_type = 'DOUBLE' if self.type in ('DOUBLE', 'FLOAT') else 'self.type'
 
         if self.sum and self.isnum:
-            mt = self.type.lower() + 'Sum'
+            mt = corrected_type.lower() + 'Sum'
             name='sum__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
@@ -210,7 +212,7 @@ class Column(Model, AuditMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.min and self.isnum:
-            mt = self.type.lower() + 'Min'
+            mt = corrected_type.lower() + 'Min'
             name='min__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
@@ -220,7 +222,7 @@ class Column(Model, AuditMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.max and self.isnum:
-            mt = self.type.lower() + 'Max'
+            mt = corrected_type.lower() + 'Max'
             name='max__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
@@ -245,8 +247,9 @@ class Column(Model, AuditMixin):
         for metric in metrics:
             m = (
                 session.query(M)
-                .filter(M.datasource_name==self.datasource_name)
                 .filter(M.metric_name==metric.metric_name)
+                .filter(M.datasource_name==self.datasource_name)
+                .filter(Cluster.cluster_name==self.datasource.cluster_name)
                 .first()
             )
             metric.datasource_name = self.datasource_name
