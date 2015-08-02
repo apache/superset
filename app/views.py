@@ -74,10 +74,10 @@ class ClusterModelView(ModelView, DeleteMixin):
 
 appbuilder.add_view(
     ClusterModelView,
-    "Clusters",
+    "Druid Clusters",
     icon="fa-server",
     category="Admin",
-    category_icon='fa-envelope')
+    category_icon='fa-cogs',)
 
 
 class DatasourceModelView(ModelView, DeleteMixin):
@@ -100,7 +100,7 @@ class DatasourceModelView(ModelView, DeleteMixin):
 
 appbuilder.add_view(
     DatasourceModelView,
-    "Datasources",
+    "Druid Datasources",
     icon="fa-cube",
     category_icon='fa-envelope')
 
@@ -176,10 +176,11 @@ class Panoramix(BaseView):
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(
-    "Refresh Metadata",
+    "Refresh Druid Metadata",
     href='/panoramix/refresh_datasources/',
     category='Admin',
-    icon="fa-cogs")
+    category_icon='fa-cogs',
+    icon="fa-cog")
 
 #models.Metric.__table__.drop(db.engine)
 db.create_all()

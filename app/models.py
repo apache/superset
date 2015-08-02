@@ -126,6 +126,7 @@ class Datasource(Model, AuditMixin):
                 col_obj.filterable = True
             if col_obj:
                 col_obj.type = cols[col]['type']
+            col_obj.datasource = datasource
             col_obj.generate_metrics()
         #session.commit()
 
@@ -199,7 +200,7 @@ class Column(Model, AuditMixin):
             json=json.dumps({'type': 'count', 'name': 'count'})
         ))
         # Somehow we need to reassign this for UDAFs
-        corrected_type = 'DOUBLE' if self.type in ('DOUBLE', 'FLOAT') else 'self.type'
+        corrected_type = 'DOUBLE' if self.type in ('DOUBLE', 'FLOAT') else self.type
 
         if self.sum and self.isnum:
             mt = corrected_type.lower() + 'Sum'
