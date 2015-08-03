@@ -15,6 +15,31 @@ CHART_ARGS = {
     'target_div': 'chart',
 }
 
+class BaseQuery(object):
+    def __init__(
+        self, groupby, metrics, filters,
+        is_timeseries,
+        timeseries_limit=15, row_limit=None):
+        self.groupby = groupby
+        self.metrics = metrics
+        self.filters = filters
+        self.is_timeseries = is_timeseries
+        self.timeseries_limit = timeseries_limit
+        self.row_limit = row_limit
+
+    def run(self):
+        start = datetime.now()
+        self._execute()
+        self.duration = (datetime.now() - start).total_seconds()
+
+    def _execution(self):
+        raise NotImplemented()
+
+    def pandas_df(self):
+        raise NotImplemented()
+
+
+
 class OmgWtForm(Form):
     field_order = (
         'viz_type', 'granularity', 'since', 'group_by', 'limit')
