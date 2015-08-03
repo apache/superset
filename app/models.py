@@ -3,6 +3,8 @@ from pydruid import client
 from datetime import timedelta
 from flask.ext.appbuilder.models.mixins import AuditMixin, FileColumn
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
+from sqlalchemy import create_engine, MetaData
+from sqlalchemy import Table as sqlaTable
 from sqlalchemy.orm import relationship
 from app import get_session
 from dateutil.parser import parse
@@ -10,6 +12,102 @@ from dateutil.parser import parse
 import logging
 import json
 import requests
+
+from app import db
+
+class Queryable(object):
+    @property
+    def column_names(self):
+        return sorted([c.column_name for c in self.columns])
+
+    @property
+    def groupby_column_names(self):
+        return sorted([c.column_name for c in self.columns if c.groupby])
+
+    @property
+    def filterable_column_names(self):
+        return sorted([c.column_name for c in self.columns if c.filterable])
+
+class Database(Model, AuditMixin):
+    __tablename__ = 'databases'
+    id = Column(Integer, primary_key=True)
+    database_name = Column(String(256), unique=True)
+    sqlalchemy_uri = Column(String(1024))
+
+    def __repr__(self):
+        return self.database_name
+
+
+class Table(Model, AuditMixin, Queryable):
+    __tablename__ = 'tables'
+    id = Column(Integer, primary_key=True)
+    table_name = Column(String(256), unique=True)
+    default_endpoint = Column(Text)
+    database_id = Column(
+        String(256), ForeignKey('databases.id'))
+    database = relationship(
+        'Database', backref='tables', foreign_keys=[database_id])
+
+    @property
+    def table_link(self):
+        url = "/panoramix/table/{}/".format(self.id)
+        return '<a href="{url}">{self.table_name}</a>'.format(**locals())
+
+    @property
+    def metrics_combo(self):
+        return sorted(
+            [
+                (
+                    'sum__{}'.format(m.column_name),
+                    'SUM({})'.format(m.column_name),
+                )
+                for m in self.columns if m.sum],
+            key=lambda x: x[1])
+
+    def fetch_metadata(self):
+        engine = create_engine(self.database.sqlalchemy_uri)
+        meta = MetaData()
+        table = sqlaTable(
+            self.table_name, meta, autoload=True, autoload_with=engine)
+        TC = TableColumn
+        for col in table.columns:
+            dbcol = (
+                db.session
+                .query(TC)
+                .filter(TC.table==self)
+                .filter(TC.column_name==col.name)
+                .first()
+            )
+            db.session.flush()
+            if not dbcol:
+                dbcol = TableColumn(column_name=col.name)
+                if str(col.type) in ('VARCHAR', 'STRING'):
+                    dbcol.groupby = True
+                    dbcol.filterable = True
+                self.columns.append(dbcol)
+
+            dbcol.type = str(col.type)
+            db.session.commit()
+
+
+class TableColumn(Model, AuditMixin):
+    __tablename__ = 'table_columns'
+    id = Column(Integer, primary_key=True)
+    table_id = Column(
+        String(256),
+        ForeignKey('tables.id'))
+    table = relationship('Table', backref='columns')
+    column_name = Column(String(256))
+    is_dttm = Column(Boolean, default=True)
+    is_active = Column(Boolean, default=True)
+    type = Column(String(32), default='')
+    groupby = Column(Boolean, default=False)
+    count_distinct = Column(Boolean, default=False)
+    sum = Column(Boolean, default=False)
+    max = Column(Boolean, default=False)
+    min = Column(Boolean, default=False)
+    filterable = Column(Boolean, default=False)
+    description = Column(Text, default='')
 
 
 class Cluster(Model, AuditMixin):
@@ -46,7 +144,7 @@ class Cluster(Model, AuditMixin):
             #    logging.exception(e)
             #    logging.error("Failed at syncing " + datasource)
 
-class Datasource(Model, AuditMixin):
+class Datasource(Model, AuditMixin, Queryable):
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(String(256), unique=True)
@@ -130,17 +228,6 @@ class Datasource(Model, AuditMixin):
             col_obj.generate_metrics()
         #session.commit()
 
-    @property
-    def column_names(self):
-        return sorted([c.column_name for c in self.columns])
-
-    @property
-    def groupby_column_names(self):
-        return sorted([c.column_name for c in self.columns if c.groupby])
-
-    @property
-    def filterable_column_names(self):
-        return sorted([c.column_name for c in self.columns if c.filterable])
 
 
 class Metric(Model):
