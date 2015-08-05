@@ -15,30 +15,6 @@ CHART_ARGS = {
     'target_div': 'chart',
 }
 
-class BaseQuery(object):
-    def __init__(
-        self, groupby, metrics, filters,
-        is_timeseries,
-        timeseries_limit=15, row_limit=None):
-        self.groupby = groupby
-        self.metrics = metrics
-        self.filters = filters
-        self.is_timeseries = is_timeseries
-        self.timeseries_limit = timeseries_limit
-        self.row_limit = row_limit
-
-    def run(self):
-        start = datetime.now()
-        self._execute()
-        self.duration = (datetime.now() - start).total_seconds()
-
-    def _execution(self):
-        raise NotImplemented()
-
-    def pandas_df(self):
-        raise NotImplemented()
-
-
 
 class OmgWtForm(Form):
     field_order = (
@@ -146,39 +122,39 @@ class BaseViz(object):
                     filters = cond
         return filters
 
+    def bake_query(self):
+        return self.datasource.query(**self.query_obj())
+
     def query_obj(self):
         ds = self.datasource
         args = self.form_data
         groupby = args.getlist("groupby") or []
+        metrics = args.getlist("metrics") or ['count']
         granularity = args.get("granularity", "1 day")
-        granularity = utils.parse_human_timedelta(granularity).total_seconds() * 1000
-        aggregations = {
-            m.metric_name: m.json_obj
-            for m in ds.metrics if m.metric_name in self.metrics
-        }
+        granularity = utils.parse_human_timedelta(
+            granularity).total_seconds() * 1000
         limit = int(
             args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
         since = args.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
         if from_dttm > datetime.now():
             from_dttm = datetime.now() - (from_dttm-datetime.now())
-        from_dttm = from_dttm.isoformat()
         until = args.get("until", "now")
-        to_dttm = utils.parse_human_datetime(until).isoformat()
+        to_dttm = utils.parse_human_datetime(until)
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identicial to not raise
         d = {
-            'datasource': ds.datasource_name,
-            'granularity': {"type": "duration", "duration": granularity},
-            'intervals': from_dttm + '/' + to_dttm,
-            'dimensions': groupby,
-            'aggregations': aggregations,
+            'granularity': granularity,
+            'from_dttm': from_dttm,
+            'to_dttm': to_dttm,
+            'groupby': groupby,
+            'metrics': metrics,
             'limit_spec': {
                 "type": "default",
                 "limit": limit,
                 "columns": [{
-                    "dimension": self.metrics[0],
+                    "dimension": metrics[0] if metrics else self.metrics[0],
                     "direction": "descending",
                 }],
             },
@@ -188,17 +164,7 @@ class BaseViz(object):
             d['filter'] = filters
         return d
 
-    def bake_query(self):
-        client = self.datasource.cluster.get_pydruid_client()
-        client.groupby(**self.query_obj())
-        return client.export_pandas()
-
-    def get_query(self):
-        client = self.datasource.cluster.get_pydruid_client()
-        client.groupby(**self.query_obj())
-        return client.query_dict
-
-    def df_prep(self, ):
+    def df_prep(self):
         pass
 
     def form_prep(self):
@@ -290,14 +256,12 @@ class TimeSeriesViz(HighchartsViz):
         """
         Doing a 2 phase query where we limit the number of series.
         """
-        client = self.datasource.cluster.get_pydruid_client()
         qry = self.query_obj()
         orig_filter = qry['filter'] if 'filter' in qry else ''
         qry['granularity'] = "all"
-        client.groupby(**qry)
-        df = client.export_pandas()
+        df = self.datasource.query(**qry)
         if not df is None:
-            dims =  qry['dimensions']
+            dims = qry['groupby']
             filters = []
             for index, row in df.iterrows():
                 fields = []
@@ -318,9 +282,8 @@ class TimeSeriesViz(HighchartsViz):
                     qry['filter'] = Filter(type="and", fields=[
                         Filter.build_filter(ff),
                         Filter.build_filter(orig_filter)])
-            del qry['limit_spec']
-            client.groupby(**qry)
-        return client.export_pandas()
+            qry['limit_spec'] = None
+        return self.datasource.query(**qry)
 
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"

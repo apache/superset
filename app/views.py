@@ -62,6 +62,16 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
 
 appbuilder.add_view_no_menu(ColumnInlineView)
 
+class SqlMetricInlineView(CompactCRUDMixin, ModelView):
+    datamodel = SQLAInterface(models.SqlMetric)
+    list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
+    edit_columns = [
+        'metric_name', 'description', 'verbose_name', 'metric_type',
+        'table', 'expression']
+    add_columns = edit_columns
+    page_size = 100
+appbuilder.add_view_no_menu(SqlMetricInlineView)
+
 
 class MetricInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Metric)
@@ -115,7 +125,7 @@ class TableView(ModelView, DeleteMixin):
     list_columns = ['table_link', 'database']
     add_columns = ['table_name', 'database']
     edit_columns = add_columns
-    related_views = [TableColumnInlineView]
+    related_views = [TableColumnInlineView, SqlMetricInlineView]
 
     def post_insert(self, table):
         table.fetch_metadata()

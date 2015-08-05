@@ -37,6 +37,16 @@ class Database(Model, AuditMixin):
     def __repr__(self):
         return self.database_name
 
+    def get_sqla_engine(self):
+        return create_engine(self.sqlalchemy_uri)
+
+    def get_table(self):
+        meta = MetaData()
+        return sqlaTable(
+            self.table_name, meta,
+            autoload=True,
+            autoload_with=self.get_sqla_engine())
+
 
 class Table(Model, AuditMixin, Queryable):
     __tablename__ = 'tables'
@@ -49,6 +59,10 @@ class Table(Model, AuditMixin, Queryable):
         'Database', backref='tables', foreign_keys=[database_id])
 
     @property
+    def name(self):
+        return self.table_name
+
+    @property
     def table_link(self):
         url = "/panoramix/table/{}/".format(self.id)
         return '<a href="{url}">{self.table_name}</a>'.format(**locals())
@@ -57,18 +71,62 @@ class Table(Model, AuditMixin, Queryable):
     def metrics_combo(self):
         return sorted(
             [
-                (
-                    'sum__{}'.format(m.column_name),
-                    'SUM({})'.format(m.column_name),
-                )
-                for m in self.columns if m.sum],
+                (m.metric_name, m.verbose_name)
+                for m in self.metrics],
             key=lambda x: x[1])
 
+    def query(
+            self, groupby, metrics,
+            granularity,
+            from_dttm, to_dttm,
+            limit_spec=None,
+            filter=None,
+            is_timeseries=True,
+            timeseries_limit=15, row_limit=None):
+        from pandas import read_sql_query
+        metrics_exprs = [
+            "{} AS {}".format(m.expression, m.metric_name)
+            for m in self.metrics if m.metric_name in metrics]
+        from_dttm_iso = from_dttm.isoformat()
+        to_dttm_iso = to_dttm.isoformat()
+
+        select_exprs = []
+        groupby_exprs = []
+
+        if groupby:
+            select_exprs = groupby
+            groupby_exprs = [s for s in groupby]
+        select_exprs += metrics_exprs
+        if granularity != "all":
+            select_exprs += ['ds as timestamp']
+            groupby_exprs += ['ds']
+
+        select_exprs = ",\n".join(select_exprs)
+        groupby_exprs = ",\n".join(groupby_exprs)
+
+        where_clause = [
+            "ds >= '{from_dttm_iso}'",
+            "ds < '{to_dttm_iso}'"
+        ]
+        where_clause = " AND\n".join(where_clause).format(**locals())
+        sql = """
+        SELECT
+            {select_exprs}
+        FROM {self.table_name}
+        WHERE
+            {where_clause}
+        GROUP BY
+            {groupby_exprs}
+        """.format(**locals())
+        df = read_sql_query(
+            sql=sql,
+            con=self.database.get_sqla_engine()
+        )
+        return df
+
+
     def fetch_metadata(self):
-        engine = create_engine(self.database.sqlalchemy_uri)
-        meta = MetaData()
-        table = sqlaTable(
-            self.table_name, meta, autoload=True, autoload_with=engine)
+        table = self.database.get_table(self.table_name)
         TC = TableColumn
         for col in table.columns:
             dbcol = (
@@ -90,13 +148,28 @@ class Table(Model, AuditMixin, Queryable):
             db.session.commit()
 
 
+class SqlMetric(Model):
+    __tablename__ = 'sql_metrics'
+    id = Column(Integer, primary_key=True)
+    metric_name = Column(String(512))
+    verbose_name = Column(String(1024))
+    metric_type = Column(String(32))
+    table_id = Column(
+        String(256),
+        ForeignKey('tables.id'))
+    table = relationship(
+        'Table', backref='metrics', foreign_keys=[table_id])
+    expression = Column(Text)
+    description = Column(Text)
+
+
 class TableColumn(Model, AuditMixin):
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
     table_id = Column(
         String(256),
         ForeignKey('tables.id'))
-    table = relationship('Table', backref='columns')
+    table = relationship('Table', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
     is_dttm = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)
@@ -138,11 +211,8 @@ class Cluster(Model, AuditMixin):
         ).format(self=self)
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
-            #try:
-                Datasource.sync_to_db(datasource, self)
-            #except Exception as e:
-            #    logging.exception(e)
-            #    logging.error("Failed at syncing " + datasource)
+            Datasource.sync_to_db(datasource, self)
+
 
 class Datasource(Model, AuditMixin, Queryable):
     __tablename__ = 'datasources'
@@ -164,6 +234,10 @@ class Datasource(Model, AuditMixin, Queryable):
         return sorted(
             [(m.metric_name, m.verbose_name) for m in self.metrics],
             key=lambda x: x[1])
+
+    @property
+    def name(self):
+        return self.datasource_name
 
     def __repr__(self):
         return self.datasource_name
@@ -227,7 +301,37 @@ class Datasource(Model, AuditMixin, Queryable):
             col_obj.datasource = datasource
             col_obj.generate_metrics()
         #session.commit()
+    def query(
+        self, groupby, metrics,
+        granularity,
+        from_dttm, to_dttm,
+        limit_spec=None,
+        filter=None,
+        is_timeseries=True,
+        timeseries_limit=15, row_limit=None):
 
+        aggregations = {
+            m.metric_name: m.json_obj
+            for m in self.metrics if m.metric_name in metrics
+        }
+        if not isinstance(granularity, basestring):
+            granularity = {"type": "duration", "duration": granularity}
+
+        qry = dict(
+            datasource=self.datasource_name,
+            dimensions=groupby,
+            aggregations=aggregations,
+            granularity=granularity,
+            intervals= from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+        )
+        if filter:
+            qry['filter'] = filter
+        if limit_spec:
+            qry['limit_spec'] = limit_spec
+        client = self.cluster.get_pydruid_client()
+        client.groupby(**qry)
+        df = client.export_pandas()
+        return df
 
 
 class Metric(Model):
