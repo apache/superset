@@ -123,7 +123,7 @@ appbuilder.add_view(
 class TableView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Table)
     list_columns = ['table_link', 'database']
-    add_columns = ['table_name', 'database']
+    add_columns = ['table_name', 'database', 'default_endpoint']
     edit_columns = add_columns
     related_views = [TableColumnInlineView, SqlMetricInlineView]
 

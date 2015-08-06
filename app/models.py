@@ -41,10 +41,10 @@ class Database(Model, AuditMixin):
     def get_sqla_engine(self):
         return create_engine(self.sqlalchemy_uri)
 
-    def get_table(self):
+    def get_table(self, table_name):
         meta = MetaData()
         return sqlaTable(
-            self.table_name, meta,
+            table_name, meta,
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
@@ -109,7 +109,26 @@ class Table(Model, AuditMixin, Queryable):
             "ds >= '{from_dttm_iso}'",
             "ds < '{to_dttm_iso}'"
         ]
+        for col, op, eq in filter:
+            if op in ('in', 'not in'):
+                l = ["'{}'".format(s) for s in eq.split(",")]
+                l = ", ".join(l)
+                op = op.upper()
+                where_clause.append(
+                    "{col} {op} ({l})".format(**locals())
+                )
         where_clause = " AND\n".join(where_clause).format(**locals())
+        if timeseries_limit:
+            limiting_join = """
+            JOIN (
+                SELECT {groupby_exprs}
+                FROM {self.table_name}
+                GROUP BY {groupby_exprs}
+                ORDER BY {metric} DESC
+                LIMIT {timeseries_limit}
+            ) z ON
+            """
+
         sql = """
         SELECT
             {select_exprs}
@@ -326,17 +345,51 @@ class Datasource(Model, AuditMixin, Queryable):
             granularity=granularity,
             intervals= from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
-        if filter:
-            qry['filter'] = filter
-        if limit_spec:
-            qry['limit_spec'] = limit_spec
+        filters = None
+        for col, op, eq in filter:
+            cond = None
+            if op == '==':
+                cond = Dimension(col)==eq
+            elif op == '!=':
+                cond = ~(Dimension(col)==eq)
+            elif op in ('in', 'not in'):
+                fields = []
+                splitted = eq.split(',')
+                if len(splitted) > 1:
+                    for s in eq.split(','):
+                        s = s.strip()
+                        fields.append(Filter.build_filter(Dimension(col)==s))
+                    cond = Filter(type="or", fields=fields)
+                else:
+                    cond = Dimension(col)==eq
+                if op == 'not in':
+                    cond = ~cond
+            if filters:
+                filters = Filter(type="and", fields=[
+                    Filter.build_filter(cond),
+                    Filter.build_filter(filters)
+                ])
+            else:
+                filters = cond
+
+        if filters:
+            qry['filter'] = filters
 
         client = self.cluster.get_pydruid_client()
+        orig_filters = filters
         if timeseries_limit:
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
             pre_qry['granularity'] = "all"
-            client.groupby(**qry)
+            pre_qry['limit_spec'] = {
+                "type": "default",
+                "limit": timeseries_limit,
+                "columns": [{
+                    "dimension": metrics[0] if metrics else self.metrics[0],
+                    "direction": "descending",
+                }],
+            }
+            client.groupby(**pre_qry)
             df = client.export_pandas()
             if not df is None and not df.empty:
                 dims = qry['dimensions']
@@ -354,12 +407,12 @@ class Datasource(Model, AuditMixin, Queryable):
 
                 if filters:
                     ff = Filter(type="or", fields=filters)
-                    if not filter:
+                    if not orig_filters:
                         qry['filter'] = ff
                     else:
                         qry['filter'] = Filter(type="and", fields=[
                             Filter.build_filter(ff),
-                            Filter.build_filter(filter)])
+                            Filter.build_filter(orig_filters)])
                 qry['limit_spec'] = None
 
         client.groupby(**qry)

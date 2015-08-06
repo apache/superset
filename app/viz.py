@@ -90,36 +90,13 @@ class BaseViz(object):
     def query_filters(self):
         args = self.form_data
         # Building filters
-        filters = None
+        filters = []
         for i in range(1, 10):
             col = args.get("flt_col_" + str(i))
             op = args.get("flt_op_" + str(i))
             eq = args.get("flt_eq_" + str(i))
             if col and op and eq:
-                cond = None
-                if op == '==':
-                    cond = Dimension(col)==eq
-                elif op == '!=':
-                    cond = ~(Dimension(col)==eq)
-                elif op in ('in', 'not in'):
-                    fields = []
-                    splitted = eq.split(',')
-                    if len(splitted) > 1:
-                        for s in eq.split(','):
-                            s = s.strip()
-                            fields.append(Filter.build_filter(Dimension(col)==s))
-                        cond = Filter(type="or", fields=fields)
-                    else:
-                        cond = Dimension(col)==eq
-                    if op == 'not in':
-                        cond = ~cond
-                if filters:
-                    filters = Filter(type="and", fields=[
-                        Filter.build_filter(cond),
-                        Filter.build_filter(filters)
-                    ])
-                else:
-                    filters = cond
+                filters.append((col, op, eq))
         return filters
 
     def bake_query(self):
@@ -150,18 +127,9 @@ class BaseViz(object):
             'to_dttm': to_dttm,
             'groupby': groupby,
             'metrics': metrics,
-            'limit_spec': {
-                "type": "default",
-                "limit": limit,
-                "columns": [{
-                    "dimension": metrics[0] if metrics else self.metrics[0],
-                    "direction": "descending",
-                }],
-            },
+            'filter': self.query_filters(),
+            'timeseries_limit': limit,
         }
-        filters = self.query_filters()
-        if filters:
-            d['filter'] = filters
         return d
 
     def df_prep(self):
