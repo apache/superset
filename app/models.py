@@ -30,7 +30,7 @@ class Queryable(object):
         return sorted([c.column_name for c in self.columns if c.filterable])
 
 class Database(Model, AuditMixin):
-    __tablename__ = 'databases'
+    __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     database_name = Column(String(256), unique=True)
     sqlalchemy_uri = Column(String(1024))
@@ -49,13 +49,12 @@ class Database(Model, AuditMixin):
             autoload_with=self.get_sqla_engine())
 
 
-class Table(Model, AuditMixin, Queryable):
+class Table(Model, Queryable):
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     table_name = Column(String(256), unique=True)
     default_endpoint = Column(Text)
-    database_id = Column(
-        String(256), ForeignKey('databases.id'))
+    database_id = Column(Integer, ForeignKey('dbs.id'))
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
 
@@ -187,9 +186,7 @@ class SqlMetric(Model):
     metric_name = Column(String(512))
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
-    table_id = Column(
-        String(256),
-        ForeignKey('tables.id'))
+    table_id = Column(Integer,ForeignKey('tables.id'))
     table = relationship(
         'Table', backref='metrics', foreign_keys=[table_id])
     expression = Column(Text)
@@ -199,9 +196,7 @@ class SqlMetric(Model):
 class TableColumn(Model, AuditMixin):
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
-    table_id = Column(
-        String(256),
-        ForeignKey('tables.id'))
+    table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship('Table', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
     is_dttm = Column(Boolean, default=True)
@@ -255,10 +250,9 @@ class Datasource(Model, AuditMixin, Queryable):
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
     default_endpoint = Column(Text)
-    user_id = Column(Integer,
-        ForeignKey('ab_user.id'))
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='datasources', foreign_keys=[user_id])
-    cluster_name = Column(Integer,
+    cluster_name = Column(String(256),
         ForeignKey('clusters.cluster_name'))
     cluster = relationship('Cluster', backref='datasources', foreign_keys=[cluster_name])
 
