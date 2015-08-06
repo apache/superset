@@ -9,7 +9,7 @@ from dateutil.parser import parse
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 
-from copy import deepcopy
+from copy import deepcopy, copy
 import logging
 import json
 import requests
@@ -91,12 +91,18 @@ class Table(Model, AuditMixin, Queryable):
         from_dttm_iso = from_dttm.isoformat()
         to_dttm_iso = to_dttm.isoformat()
 
+        if metrics:
+            main_metric_expr = [m.expression for m in self.metrics if m.metric_name == metrics[0]][0]
+        else:
+            main_metric_expr = "COUNT(*)"
+
         select_exprs = []
         groupby_exprs = []
 
         if groupby:
-            select_exprs = groupby
+            select_exprs = copy(groupby)
             groupby_exprs = [s for s in groupby]
+            inner_groupby_exprs = [s for s in groupby]
         select_exprs += metrics_exprs
         if granularity != "all":
             select_exprs += ['ds as timestamp']
@@ -118,21 +124,28 @@ class Table(Model, AuditMixin, Queryable):
                     "{col} {op} ({l})".format(**locals())
                 )
         where_clause = " AND\n".join(where_clause).format(**locals())
-        if timeseries_limit:
+        on_clause = " AND ".join(["{g} = __{g}".format(g=g) for g in groupby])
+        limiting_join = ""
+        if timeseries_limit and groupby:
+            inner_select = ", ".join(["{g} as __{g}".format(g=g) for g in inner_groupby_exprs])
+            inner_groupby_exprs = ", ".join(inner_groupby_exprs)
             limiting_join = """
             JOIN (
-                SELECT {groupby_exprs}
+                SELECT {inner_select}
                 FROM {self.table_name}
-                GROUP BY {groupby_exprs}
-                ORDER BY {metric} DESC
+                WHERE
+                    {where_clause}
+                GROUP BY {inner_groupby_exprs}
+                ORDER BY {main_metric_expr} DESC
                 LIMIT {timeseries_limit}
-            ) z ON
-            """
+            ) z ON {on_clause}
+            """.format(**locals())
 
         sql = """
         SELECT
             {select_exprs}
         FROM {self.table_name}
+        {limiting_join}
         WHERE
             {where_clause}
         GROUP BY

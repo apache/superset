@@ -80,7 +80,8 @@ class BaseViz(object):
         self.df = self.bake_query()
         self.view = view
         if self.df is not None:
-            self.df.timestamp = pd.to_datetime(self.df.timestamp)
+            if 'timestamp' in self.df.columns:
+                self.df.timestamp = pd.to_datetime(self.df.timestamp)
             self.df_prep()
             self.form_prep()
 
