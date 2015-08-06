@@ -1,4 +1,3 @@
-from pydruid.utils.filters import Dimension, Filter
 from datetime import datetime
 from flask import flash, request
 import pandas as pd
@@ -7,6 +6,7 @@ from app import utils
 from app.highchart import Highchart
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
+from pydruid.utils.filters import Dimension, Filter
 
 
 CHART_ARGS = {
@@ -14,6 +14,7 @@ CHART_ARGS = {
     'title': None,
     'target_div': 'chart',
 }
+
 
 class OmgWtForm(Form):
     field_order = (
@@ -79,7 +80,8 @@ class BaseViz(object):
         self.df = self.bake_query()
         self.view = view
         if self.df is not None:
-            self.df.timestamp = pd.to_datetime(self.df.timestamp)
+            if 'timestamp' in self.df.columns:
+                self.df.timestamp = pd.to_datetime(self.df.timestamp)
             self.df_prep()
             self.form_prep()
 
@@ -89,91 +91,49 @@ class BaseViz(object):
     def query_filters(self):
         args = self.form_data
         # Building filters
-        filters = None
+        filters = []
         for i in range(1, 10):
             col = args.get("flt_col_" + str(i))
             op = args.get("flt_op_" + str(i))
             eq = args.get("flt_eq_" + str(i))
             if col and op and eq:
-                cond = None
-                if op == '==':
-                    cond = Dimension(col)==eq
-                elif op == '!=':
-                    cond = ~(Dimension(col)==eq)
-                elif op in ('in', 'not in'):
-                    fields = []
-                    splitted = eq.split(',')
-                    if len(splitted) > 1:
-                        for s in eq.split(','):
-                            s = s.strip()
-                            fields.append(Filter.build_filter(Dimension(col)==s))
-                        cond = Filter(type="or", fields=fields)
-                    else:
-                        cond = Dimension(col)==eq
-                    if op == 'not in':
-                        cond = ~cond
-                if filters:
-                    filters = Filter(type="and", fields=[
-                        Filter.build_filter(cond),
-                        Filter.build_filter(filters)
-                    ])
-                else:
-                    filters = cond
+                filters.append((col, op, eq))
         return filters
+
+    def bake_query(self):
+        return self.datasource.query(**self.query_obj())
 
     def query_obj(self):
         ds = self.datasource
         args = self.form_data
         groupby = args.getlist("groupby") or []
+        metrics = args.getlist("metrics") or ['count']
         granularity = args.get("granularity", "1 day")
-        granularity = utils.parse_human_timedelta(granularity).total_seconds() * 1000
-        aggregations = {
-            m.metric_name: m.json_obj
-            for m in ds.metrics if m.metric_name in self.metrics
-        }
+        granularity = utils.parse_human_timedelta(
+            granularity).total_seconds() * 1000
         limit = int(
             args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
         since = args.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
         if from_dttm > datetime.now():
             from_dttm = datetime.now() - (from_dttm-datetime.now())
-        from_dttm = from_dttm.isoformat()
         until = args.get("until", "now")
-        to_dttm = utils.parse_human_datetime(until).isoformat()
+        to_dttm = utils.parse_human_datetime(until)
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identicial to not raise
         d = {
-            'datasource': ds.datasource_name,
-            'granularity': {"type": "duration", "duration": granularity},
-            'intervals': from_dttm + '/' + to_dttm,
-            'dimensions': groupby,
-            'aggregations': aggregations,
-            'limit_spec': {
-                "type": "default",
-                "limit": limit,
-                "columns": [{
-                    "dimension": self.metrics[0],
-                    "direction": "descending",
-                }],
-            },
+            'granularity': granularity,
+            'from_dttm': from_dttm,
+            'to_dttm': to_dttm,
+            'groupby': groupby,
+            'metrics': metrics,
+            'filter': self.query_filters(),
+            'timeseries_limit': limit,
         }
-        filters = self.query_filters()
-        if filters:
-            d['filter'] = filters
         return d
 
-    def bake_query(self):
-        client = self.datasource.cluster.get_pydruid_client()
-        client.groupby(**self.query_obj())
-        return client.export_pandas()
-
-    def get_query(self):
-        client = self.datasource.cluster.get_pydruid_client()
-        client.groupby(**self.query_obj())
-        return client.query_dict
-
-    def df_prep(self, ):
+    def df_prep(self):
         pass
 
     def form_prep(self):
@@ -265,37 +225,8 @@ class TimeSeriesViz(HighchartsViz):
         """
         Doing a 2 phase query where we limit the number of series.
         """
-        client = self.datasource.cluster.get_pydruid_client()
         qry = self.query_obj()
-        orig_filter = qry['filter'] if 'filter' in qry else ''
-        qry['granularity'] = "all"
-        client.groupby(**qry)
-        df = client.export_pandas()
-        if not df is None:
-            dims =  qry['dimensions']
-            filters = []
-            for index, row in df.iterrows():
-                fields = []
-                for dim in dims:
-                    f = Filter.build_filter(Dimension(dim) == row[dim])
-                    fields.append(f)
-                if len(fields) > 1:
-                    filters.append(Filter.build_filter(Filter(type="and", fields=fields)))
-                elif fields:
-                    filters.append(fields[0])
-
-            qry = self.query_obj()
-            if filters:
-                ff = Filter(type="or", fields=filters)
-                if not orig_filter:
-                    qry['filter'] = ff
-                else:
-                    qry['filter'] = Filter(type="and", fields=[
-                        Filter.build_filter(ff),
-                        Filter.build_filter(orig_filter)])
-            del qry['limit_spec']
-            client.groupby(**qry)
-        return client.export_pandas()
+        return self.datasource.query(**qry)
 
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"

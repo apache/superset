@@ -27,6 +27,22 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
+class TableColumnInlineView(CompactCRUDMixin, ModelView):
+    datamodel = SQLAInterface(models.TableColumn)
+    can_delete = False
+    edit_columns = [
+        'column_name', 'description', 'table', 'groupby', 'filterable',
+        'count_distinct', 'sum', 'min', 'max']
+    list_columns = [
+        'column_name', 'type', 'groupby', 'count_distinct',
+        'sum', 'min', 'max']
+    page_size = 100
+    list_columns = [
+        'column_name', 'type', 'groupby', 'count_distinct',
+        'sum', 'min', 'max']
+appbuilder.add_view_no_menu(TableColumnInlineView)
+
+
 class ColumnInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Column)
     edit_columns = [
@@ -45,6 +61,16 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
         col.generate_metrics()
 
 appbuilder.add_view_no_menu(ColumnInlineView)
+
+class SqlMetricInlineView(CompactCRUDMixin, ModelView):
+    datamodel = SQLAInterface(models.SqlMetric)
+    list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
+    edit_columns = [
+        'metric_name', 'description', 'verbose_name', 'metric_type',
+        'table', 'expression']
+    add_columns = edit_columns
+    page_size = 100
+appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class MetricInlineView(CompactCRUDMixin, ModelView):
@@ -80,6 +106,39 @@ appbuilder.add_view(
     category_icon='fa-cogs',)
 
 
+class DatabaseView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Database)
+    list_columns = ['database_name']
+    add_columns = ['database_name', 'sqlalchemy_uri']
+    edit_columns = add_columns
+
+appbuilder.add_view(
+    DatabaseView,
+    "Databases",
+    icon="fa-database",
+    category="Admin",
+    category_icon='fa-cogs',)
+
+
+class TableView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Table)
+    list_columns = ['table_link', 'database']
+    add_columns = ['table_name', 'database', 'default_endpoint']
+    edit_columns = add_columns
+    related_views = [TableColumnInlineView, SqlMetricInlineView]
+
+    def post_insert(self, table):
+        table.fetch_metadata()
+
+    def post_update(self, table):
+        table.fetch_metadata()
+
+appbuilder.add_view(
+    TableView,
+    "Tables",
+    icon='fa-table',)
+
+
 class DatasourceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = [
@@ -101,8 +160,7 @@ class DatasourceModelView(ModelView, DeleteMixin):
 appbuilder.add_view(
     DatasourceModelView,
     "Druid Datasources",
-    icon="fa-cube",
-    category_icon='fa-envelope')
+    icon="fa-cube")
 
 
 @app.route('/health')
@@ -116,6 +174,34 @@ def ping():
 
 
 class Panoramix(BaseView):
+    @has_access
+    @permission_name('tables')
+    @expose("/table/<table_id>/")
+    def table(self, table_id):
+
+        table = (
+            db.session
+            .query(models.Table)
+            .filter_by(id=table_id)
+            .first()
+        )
+        viz_type = request.args.get("viz_type")
+        if not viz_type and table.default_endpoint:
+            return redirect(table.default_endpoint)
+        if not viz_type:
+            viz_type = "table"
+        obj = viz.viz_types[viz_type](
+            table,
+            form_data=request.args, view=self)
+        if request.args.get("json"):
+            return Response(
+                json.dumps(obj.get_query(), indent=4),
+                status=200,
+                mimetype="application/json")
+        if obj.df is None or obj.df.empty:
+            return obj.render_no_data()
+        return obj.render()
+
     @has_access
     @permission_name('datasources')
     @expose("/datasource/<datasource_name>/")
