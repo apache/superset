@@ -1,4 +1,3 @@
-from pydruid.utils.filters import Dimension, Filter
 from datetime import datetime
 from flask import flash, request
 import pandas as pd
@@ -7,6 +6,7 @@ from app import utils
 from app.highchart import Highchart
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
+from pydruid.utils.filters import Dimension, Filter
 
 
 CHART_ARGS = {
@@ -257,32 +257,6 @@ class TimeSeriesViz(HighchartsViz):
         Doing a 2 phase query where we limit the number of series.
         """
         qry = self.query_obj()
-        orig_filter = qry['filter'] if 'filter' in qry else ''
-        qry['granularity'] = "all"
-        df = self.datasource.query(**qry)
-        if not df is None:
-            dims = qry['groupby']
-            filters = []
-            for index, row in df.iterrows():
-                fields = []
-                for dim in dims:
-                    f = Filter.build_filter(Dimension(dim) == row[dim])
-                    fields.append(f)
-                if len(fields) > 1:
-                    filters.append(Filter.build_filter(Filter(type="and", fields=fields)))
-                elif fields:
-                    filters.append(fields[0])
-
-            qry = self.query_obj()
-            if filters:
-                ff = Filter(type="or", fields=filters)
-                if not orig_filter:
-                    qry['filter'] = ff
-                else:
-                    qry['filter'] = Filter(type="and", fields=[
-                        Filter.build_filter(ff),
-                        Filter.build_filter(orig_filter)])
-            qry['limit_spec'] = None
         return self.datasource.query(**qry)
 
 class TimeSeriesCompareViz(TimeSeriesViz):

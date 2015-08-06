@@ -1,19 +1,20 @@
 from flask.ext.appbuilder import Model
-from pydruid import client
 from datetime import timedelta
-from flask.ext.appbuilder.models.mixins import AuditMixin, FileColumn
+from flask.ext.appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table as sqlaTable
 from sqlalchemy.orm import relationship
-from app import get_session
 from dateutil.parser import parse
+from pydruid import client
+from pydruid.utils.filters import Dimension, Filter
 
+from copy import deepcopy
 import logging
 import json
 import requests
 
-from app import db
+from app import db, get_session
 
 class Queryable(object):
     @property
@@ -301,6 +302,7 @@ class Datasource(Model, AuditMixin, Queryable):
             col_obj.datasource = datasource
             col_obj.generate_metrics()
         #session.commit()
+
     def query(
         self, groupby, metrics,
         granularity,
@@ -328,7 +330,38 @@ class Datasource(Model, AuditMixin, Queryable):
             qry['filter'] = filter
         if limit_spec:
             qry['limit_spec'] = limit_spec
+
         client = self.cluster.get_pydruid_client()
+        if timeseries_limit:
+            # Limit on the number of timeseries, doing a two-phases query
+            pre_qry = deepcopy(qry)
+            pre_qry['granularity'] = "all"
+            client.groupby(**qry)
+            df = client.export_pandas()
+            if not df is None and not df.empty:
+                dims = qry['dimensions']
+                filters = []
+                for index, row in df.iterrows():
+                    fields = []
+                    for dim in dims:
+                        f = Filter.build_filter(Dimension(dim) == row[dim])
+                        fields.append(f)
+                    if len(fields) > 1:
+                        filt = Filter(type="and", fields=fields)
+                        filters.append(Filter.build_filter(filt))
+                    elif fields:
+                        filters.append(fields[0])
+
+                if filters:
+                    ff = Filter(type="or", fields=filters)
+                    if not filter:
+                        qry['filter'] = ff
+                    else:
+                        qry['filter'] = Filter(type="and", fields=[
+                            Filter.build_filter(ff),
+                            Filter.build_filter(filter)])
+                qry['limit_spec'] = None
+
         client.groupby(**qry)
         df = client.export_pandas()
         return df
