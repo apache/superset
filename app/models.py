@@ -49,7 +49,7 @@ class Database(Model, AuditMixin):
             autoload_with=self.get_sqla_engine())
 
 
-class Table(Model, Queryable):
+class Table(Model, Queryable, AuditMixin):
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     table_name = Column(String(256), unique=True)
@@ -180,7 +180,7 @@ class Table(Model, Queryable):
             db.session.commit()
 
 
-class SqlMetric(Model):
+class SqlMetric(Model, AuditMixin):
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
@@ -427,7 +427,7 @@ class Datasource(Model, AuditMixin, Queryable):
         return df
 
 
-class Metric(Model):
+class Metric(Model, AuditMixin):
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
