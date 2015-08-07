@@ -10,11 +10,17 @@ from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 
 from copy import deepcopy, copy
+from collections import namedtuple
+from datetime import datetime
 import logging
 import json
 import requests
+import textwrap
 
 from app import db, get_session
+
+QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+
 
 class Queryable(object):
     @property
@@ -84,6 +90,7 @@ class Table(Model, Queryable, AuditMixin):
             is_timeseries=True,
             timeseries_limit=15, row_limit=None):
         from pandas import read_sql_query
+        qry_start_dttm = datetime.now()
         metrics_exprs = [
             "{} AS {}".format(m.expression, m.metric_name)
             for m in self.metrics if m.metric_name in metrics]
@@ -128,33 +135,36 @@ class Table(Model, Queryable, AuditMixin):
         if timeseries_limit and groupby:
             inner_select = ", ".join(["{g} as __{g}".format(g=g) for g in inner_groupby_exprs])
             inner_groupby_exprs = ", ".join(inner_groupby_exprs)
-            limiting_join = """
-            JOIN (
-                SELECT {inner_select}
-                FROM {self.table_name}
-                WHERE
-                    {where_clause}
-                GROUP BY {inner_groupby_exprs}
-                ORDER BY {main_metric_expr} DESC
-                LIMIT {timeseries_limit}
-            ) z ON {on_clause}
-            """.format(**locals())
+            limiting_join = (
+            "JOIN ( \n"
+            "    SELECT {inner_select} \n"
+            "    FROM {self.table_name} \n"
+            "    WHERE \n"
+            "        {where_clause}\n"
+            "    GROUP BY {inner_groupby_exprs}\n"
+            "    ORDER BY {main_metric_expr} DESC\n"
+            "    LIMIT {timeseries_limit}\n"
+            ") z ON {on_clause}\n"
+            ).format(**locals())
 
-        sql = """
-        SELECT
-            {select_exprs}
-        FROM {self.table_name}
-        {limiting_join}
-        WHERE
-            {where_clause}
-        GROUP BY
-            {groupby_exprs}
-        """.format(**locals())
+        sql = (
+        "SELECT\n"
+        "    {select_exprs}\n"
+        "FROM {self.table_name}\n"
+        "{limiting_join}\n"
+        "WHERE\n"
+        "    {where_clause}\n"
+        "GROUP BY\n"
+        "    {groupby_exprs}\n"
+        ).format(**locals())
         df = read_sql_query(
             sql=sql,
             con=self.database.get_sqla_engine()
         )
-        return df
+        textwrap.dedent(sql)
+
+        return QueryResult(
+            df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
 
     def fetch_metadata(self):
@@ -178,6 +188,7 @@ class Table(Model, Queryable, AuditMixin):
 
             dbcol.type = str(col.type)
             db.session.commit()
+
 
 
 class SqlMetric(Model, AuditMixin):
@@ -337,6 +348,7 @@ class Datasource(Model, AuditMixin, Queryable):
         filter=None,
         is_timeseries=True,
         timeseries_limit=15, row_limit=None):
+        qry_start_dttm = datetime.now()
 
         aggregations = {
             m.metric_name: m.json_obj
@@ -424,10 +436,12 @@ class Datasource(Model, AuditMixin, Queryable):
 
         client.groupby(**qry)
         df = client.export_pandas()
-        return df
+        return QueryResult(
+            df=df, query="", duration=datetime.now() - qry_start_dttm)
 
 
-class Metric(Model, AuditMixin):
+#class Metric(Model, AuditMixin):
+class Metric(Model):
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))

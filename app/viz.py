@@ -77,7 +77,8 @@ class BaseViz(object):
         self.metrics = form_data.getlist('metrics') or ['count']
         self.groupby = form_data.getlist('groupby') or []
 
-        self.df = self.bake_query()
+        self.results = self.bake_query()
+        self.df = self.results.df
         self.view = view
         if self.df is not None:
             if 'timestamp' in self.df.columns:
@@ -147,6 +148,7 @@ class BaseViz(object):
         form = self.form_class(self.form_data)
         return self.view.render_template(
             self.template, form=form, viz=self, datasource=self.datasource,
+            results=self.results,
             *args, **kwargs)
 
 
@@ -225,8 +227,7 @@ class TimeSeriesViz(HighchartsViz):
         """
         Doing a 2 phase query where we limit the number of series.
         """
-        qry = self.query_obj()
-        return self.datasource.query(**qry)
+        return self.datasource.query(**self.query_obj())
 
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"

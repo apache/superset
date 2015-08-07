@@ -16,6 +16,10 @@ form div.form-control {
 form input.form-control {
   margin-bottom: 5px !important;
 }
+.tooltip-inner {
+  max-width: 350px;
+  //width: 350px; 
+}
 </style>
 {% endblock %}
 {% block content_fluid %}
@@ -71,7 +75,12 @@ form input.form-control {
   </div>
 
   <div class="col-md-9">
-    <h3>{{ viz.verbose_name }}</h3>
+    <h3>{{ viz.verbose_name }}
+    <span class="label label-success">{{ "{0:0.2f}".format(results.duration.total_seconds()) }} s</span>
+    <span class="label label-info" data-html="true" 
+      title="<code><pre>{{ results.query }}</pre></code>" 
+      data-toggle="tooltip" data-placement="bottom" >query</span>
+    </h3>
     <hr/>
     {% block viz %}
     {% endblock %}
