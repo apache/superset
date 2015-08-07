@@ -233,6 +233,10 @@ class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"
     compare = 'percent'
 
+class TimeSeriesCompareValueViz(TimeSeriesViz):
+    verbose_name = "Time Series - Value Change"
+    compare = 'value'
+
 class TimeSeriesAreaViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Area Chart"
     stacked=True
@@ -295,6 +299,7 @@ viz_types = OrderedDict([
     ['table', TableViz],
     ['line', TimeSeriesViz],
     ['compare', TimeSeriesCompareViz],
+    ['compare_value', TimeSeriesCompareValueViz],
     ['area', TimeSeriesAreaViz],
     ['bar', TimeSeriesBarViz],
     ['stacked_ts_bar', TimeSeriesStackedBarViz],
