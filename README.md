@@ -1,9 +1,29 @@
 Panoramix
 =========
 
-Panoramix is a web UI to slice and dice data out of Druid.io
+Panoramix is a data exploration platform designed to be visual, intuitive
+and interactive.
+
+Buzz Phrases
+------------
+
+* Analytics at the speed of thought! 
+* Instantaneous learning curve
+* Realtime analytics when querying [Druid.io](http://druid.io)
+* Extentsible to infinity
 
 ![img](http://i.imgur.com/aOaH0ty.png)
+
+Database Support
+----------------
+
+Panoramix was originally designed on to of Druid.io, but quickly broadened
+to support other databases through the use of SqlAlchemy, a Python
+ORM that is compatible with 
+[many external databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
+At the moment the SQL has been hard coded to use ``LIMIT``-type
+dialect and needs to be extended to support other syntax 
+(``TOP``, ``ROWNUM``, ...)
 
 What's Druid?
 -------------
