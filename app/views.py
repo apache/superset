@@ -124,7 +124,7 @@ class TableView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Table)
     list_columns = ['table_link', 'database']
     add_columns = ['table_name', 'database', 'default_endpoint']
-    edit_columns = add_columns
+    edit_columns = ['table_name', 'database', 'main_datetime_column', 'default_endpoint']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
 
     def post_insert(self, table):

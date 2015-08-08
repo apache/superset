@@ -20,6 +20,7 @@ form input.form-control {
   max-width: 350px;
   //width: 350px; 
 }
+
 </style>
 {% endblock %}
 {% block content_fluid %}
@@ -30,7 +31,7 @@ form input.form-control {
       {% if datasource.description %}
         <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
       {% endif %}
-      <a href="/datasourcemodelview/edit/{{ datasource.id }}">
+      <a href="/{{ datasource.baselink }}/edit/{{ datasource.id }}">
         <i class="fa fa-edit"></i>
       </a>
     </h3>
@@ -39,11 +40,20 @@ form input.form-control {
     <form id="query" method="GET" style="display: none;">
       <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
       <div>{{ form.metrics.label }}: {{ form.metrics(class_="form-control select2") }}</div>
-      <div>{{ form.granularity.label }}: {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
+      <div>{{ form.granularity.label }}
+         <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+           title="Supports natural language time as in '10 seconds', '1 day' or '1 week'" 
+           id="blah"></i>
+        {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
       <div class="row">
         <div class="form-group">
-          <div class="col-xs-6">{{ form.since.label }}: {{ form.since(class_="form-control select2_free_since") }}</div>
-          <div class="col-xs-6">{{ form.until.label }}: {{ form.until(class_="form-control select2_free_until") }}</div>
+          <div class="col-xs-6">{{ form.since.label }}
+           <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+             title="Supports natural language time as in '1 day ago', '28 days' or '3 years'" 
+             id="blah"></i>
+            {{ form.since(class_="form-control select2_free_since") }}</div>
+          <div class="col-xs-6">{{ form.until.label }}
+            {{ form.until(class_="form-control select2_free_until") }}</div>
         </div>
       </div>
       <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
@@ -70,16 +80,14 @@ form input.form-control {
       <button type="button" class="btn btn-primary" id="druidify">Druidify!</button>
       <button type="button" class="btn btn-default" id="bookmark">Bookmark</button>
       <hr style="margin-bottom: 0px;">
-      <img src="{{ url_for("static", filename="panoramix.png") }}" width=250>
+      <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
     </form><br>
   </div>
 
   <div class="col-md-9">
     <h3>{{ viz.verbose_name }}
     <span class="label label-success">{{ "{0:0.2f}".format(results.duration.total_seconds()) }} s</span>
-    <span class="label label-info" data-html="true" 
-      title="<code><pre>{{ results.query }}</pre></code>" 
-      data-toggle="tooltip" data-placement="bottom" >query</span>
+    <span class="label label-info btn" data-toggle="modal" data-target="#query_modal">query</span>
     </h3>
     <hr/>
     {% block viz %}
@@ -96,6 +104,22 @@ form input.form-control {
                {{ latest_metadata }} 
     </pre>
     {% endif %}
+  </div>
+</div>
+<div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Query</h4>
+      </div>
+      <div class="modal-body">
+        <pre>{{ results.query }}</pre>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+      </div>
+    </div>
   </div>
 </div>
 {% endblock %}

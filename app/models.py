@@ -41,6 +41,8 @@ class Database(Model, AuditMixin):
     database_name = Column(String(256), unique=True)
     sqlalchemy_uri = Column(String(1024))
 
+    baselink = "datasourcemodelview"
+
     def __repr__(self):
         return self.database_name
 
@@ -59,10 +61,15 @@ class Table(Model, Queryable, AuditMixin):
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     table_name = Column(String(256), unique=True)
+    main_datetime_column_id = Column(Integer, ForeignKey('table_columns.id'))
+    main_datetime_column = relationship(
+        'TableColumn', foreign_keys=[main_datetime_column_id])
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'))
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
+
+    baselink = "tableview"
 
     @property
     def name(self):
@@ -151,7 +158,7 @@ class Table(Model, Queryable, AuditMixin):
         "SELECT\n"
         "    {select_exprs}\n"
         "FROM {self.table_name}\n"
-        "{limiting_join}\n"
+        "{limiting_join}"
         "WHERE\n"
         "    {where_clause}\n"
         "GROUP BY\n"
@@ -221,6 +228,8 @@ class TableColumn(Model, AuditMixin):
     filterable = Column(Boolean, default=False)
     description = Column(Text, default='')
 
+    def __repr__(self):
+        return self.column_name
 
 class Cluster(Model, AuditMixin):
     __tablename__ = 'clusters'
@@ -350,6 +359,7 @@ class Datasource(Model, AuditMixin, Queryable):
         timeseries_limit=15, row_limit=None):
         qry_start_dttm = datetime.now()
 
+        query_str = ""
         aggregations = {
             m.metric_name: m.json_obj
             for m in self.metrics if m.metric_name in metrics
@@ -409,6 +419,7 @@ class Datasource(Model, AuditMixin, Queryable):
                 }],
             }
             client.groupby(**pre_qry)
+            query_str += json.dumps(client.query_dict, indent=2) + "\n"
             df = client.export_pandas()
             if not df is None and not df.empty:
                 dims = qry['dimensions']
@@ -435,9 +446,12 @@ class Datasource(Model, AuditMixin, Queryable):
                 qry['limit_spec'] = None
 
         client.groupby(**qry)
+        query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
         return QueryResult(
-            df=df, query="", duration=datetime.now() - qry_start_dttm)
+            df=df,
+            query=query_str,
+            duration=datetime.now() - qry_start_dttm)
 
 
 #class Metric(Model, AuditMixin):
