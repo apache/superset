@@ -38,10 +38,9 @@ class Queryable(object):
 class Database(Model, AuditMixin):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
-    database_name = Column(String(256), unique=True)
+    database_name = Column(String(255), unique=True)
     sqlalchemy_uri = Column(String(1024))
 
-    baselink = "datasourcemodelview"
 
     def __repr__(self):
         return self.database_name
@@ -60,7 +59,7 @@ class Database(Model, AuditMixin):
 class Table(Model, Queryable, AuditMixin):
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
-    table_name = Column(String(256), unique=True)
+    table_name = Column(String(255), unique=True)
     main_datetime_column_id = Column(Integer, ForeignKey('table_columns.id'))
     main_datetime_column = relationship(
         'TableColumn', foreign_keys=[main_datetime_column_id])
@@ -234,7 +233,7 @@ class TableColumn(Model, AuditMixin):
 class Cluster(Model, AuditMixin):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
-    cluster_name = Column(String(256), unique=True)
+    cluster_name = Column(String(255), unique=True)
     coordinator_host = Column(String(256))
     coordinator_port = Column(Integer)
     coordinator_endpoint = Column(String(256))
@@ -263,16 +262,19 @@ class Cluster(Model, AuditMixin):
 
 
 class Datasource(Model, AuditMixin, Queryable):
+
+    baselink = "datasourcemodelview"
+
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
-    datasource_name = Column(String(256), unique=True)
+    datasource_name = Column(String(255), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='datasources', foreign_keys=[user_id])
-    cluster_name = Column(String(256),
+    cluster_name = Column(String(255),
         ForeignKey('clusters.cluster_name'))
     cluster = relationship('Cluster', backref='datasources', foreign_keys=[cluster_name])
 

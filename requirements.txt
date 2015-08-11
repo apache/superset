@@ -1,8 +1,10 @@
 flask
 flask-alembic
 flask-appbuilder
+mysql-python
 pandas
 parsedatetime
 pydruid
+pyhive
 python-dateutil
 requests

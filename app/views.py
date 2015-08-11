@@ -34,12 +34,9 @@ class TableColumnInlineView(CompactCRUDMixin, ModelView):
         'column_name', 'description', 'table', 'groupby', 'filterable',
         'count_distinct', 'sum', 'min', 'max']
     list_columns = [
-        'column_name', 'type', 'groupby', 'count_distinct',
+        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
     page_size = 100
-    list_columns = [
-        'column_name', 'type', 'groupby', 'count_distinct',
-        'sum', 'min', 'max']
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
@@ -49,7 +46,7 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
         'column_name', 'description', 'datasource', 'groupby',
         'count_distinct', 'sum', 'min', 'max']
     list_columns = [
-        'column_name', 'type', 'groupby', 'count_distinct',
+        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
     can_delete = False
     page_size = 100
