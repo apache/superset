@@ -17,13 +17,10 @@ Buzz Phrases
 Database Support
 ----------------
 
-Panoramix was originally designed on to of Druid.io, but quickly broadened
-to support other databases through the use of SqlAlchemy, a Python
+Panoramix was originally designed on to of Druid.io, but quickly broadened 
+its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with 
 [many external databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
-At the moment the SQL has been hard coded to use ``LIMIT``-type
-dialect and needs to be extended to support other syntax 
-(``TOP``, ``ROWNUM``, ...)
 
 What's Druid?
 -------------

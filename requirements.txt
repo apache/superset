@@ -8,3 +8,4 @@ pydruid
 pyhive
 python-dateutil
 requests
+sqlparse
