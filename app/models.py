@@ -2,7 +2,7 @@ from flask.ext.appbuilder import Model
 from datetime import timedelta
 from flask.ext.appbuilder.models.mixins import AuditMixin
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine, MetaData, desc
 from sqlalchemy import Table as sqlaTable
 from sqlalchemy.orm import relationship
 from dateutil.parser import parse
@@ -210,11 +210,11 @@ class Table(Model, Queryable, AuditMixin):
             select_exprs = [literal_column(s) for s in groupby]
             groupby_exprs = [literal_column(s) for s in groupby]
             inner_groupby_exprs = [literal_column(s).label('__' + s) for s in groupby]
-        select_exprs += metrics_exprs
         if granularity != "all":
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
 
+        select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
         qry = qry.group_by(*groupby_exprs)
@@ -231,6 +231,7 @@ class Table(Model, Queryable, AuditMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         qry = qry.where(and_(*where_clause_and))
+        qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
@@ -238,6 +239,7 @@ class Table(Model, Queryable, AuditMixin):
             subq = subq.select_from(table(self.table_name))
             subq = subq.where(and_(*where_clause_and))
             subq = subq.group_by(*inner_groupby_exprs)
+            subq = subq.order_by(desc(main_metric_expr))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for gb in groupby:

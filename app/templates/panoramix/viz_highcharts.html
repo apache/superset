@@ -13,6 +13,7 @@
       <span class="col col-sm-4">{{ form.rolling_periods.label }}: {{ form.rolling_periods(class_="form-control") }}</span>
     </div>
   {% endif %}
+  <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
 {% endblock %}
 
 {% block tail %}

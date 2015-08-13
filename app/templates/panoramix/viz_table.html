@@ -1,11 +1,31 @@
 {% extends "panoramix/datasource.html" %}
+
+{% block head_css %}
+{{super()}}
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dataTables.bootstrap.css') }}">
+{% endblock %}
+
 {% block viz %}
     {{ table|safe  }}
 {% endblock %}
 
-{% block scripts %}
+{% block extra_fields %}
+  <div>{{ form.row_limit.label }}: {{ form.row_limit(class_="form-control select2") }}</div>
+{% endblock %}
+
+{% block tail %}
 {{ super() }}
+<script src="{{ url_for('static', filename='jquery.dataTables.min.js') }}"></script>
+<script src="{{ url_for('static', filename='dataTables.bootstrap.js') }}"></script>
+
 <script>
-    $('table').css('background-color', 'white');
+    //$('table').css('background-color', 'white');
+$(document).ready(function() {
+    var table = $('table').DataTable({
+        paging: false,
+    });
+    table.column('-1').order( 'desc' ).draw();
+});
 </script>
 {% endblock %}
+

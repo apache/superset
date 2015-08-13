@@ -31,7 +31,6 @@ class OmgWtForm(Form):
 
 def form_factory(datasource, form_args=None, extra_fields_dict=None):
     extra_fields_dict = extra_fields_dict or {}
-    limits = [0, 5, 10, 25, 50, 100, 500]
 
     if form_args:
         limit = form_args.get("limit")
@@ -54,8 +53,6 @@ def form_factory(datasource, form_args=None, extra_fields_dict=None):
         granularity = TextField('Time Granularity', default="one day")
         since = TextField('Since', default="one day ago")
         until = TextField('Until', default="now")
-        limit = SelectField(
-            'Limit', choices=[(s, s) for s in limits])
     for i in range(10):
         setattr(QueryForm, 'flt_col_' + str(i), SelectField(
             'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
@@ -110,10 +107,13 @@ class BaseViz(object):
         groupby = args.getlist("groupby") or []
         metrics = args.getlist("metrics") or ['count']
         granularity = args.get("granularity", "1 day")
-        granularity = utils.parse_human_timedelta(
-            granularity).total_seconds() * 1000
+        if granularity != "all":
+            granularity = utils.parse_human_timedelta(
+                granularity).total_seconds() * 1000
         limit = int(
-            args.get("limit", config.ROW_LIMIT)) or config.ROW_LIMIT
+            args.get("limit", config.ROW_LIMIT))
+        row_limit = int(
+            args.get("row_limit", config.ROW_LIMIT))
         since = args.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
         if from_dttm > datetime.now():
@@ -129,6 +129,7 @@ class BaseViz(object):
             'to_dttm': to_dttm,
             'groupby': groupby,
             'metrics': metrics,
+            'row_limit': row_limit,
             'filter': self.query_filters(),
             'timeseries_limit': limit,
         }
@@ -156,18 +157,28 @@ class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     def render(self):
-        if self.df is None or self.df.empty:
+        df = self.df
+        row_limit = request.args.get("row_limit")
+        if df is None or df.empty:
             flash("No data.", "error")
             table = None
         else:
-            if self.form_data.get("granularity") == "all":
-                del self.df['timestamp']
-            table = self.df.to_html(
+            if self.form_data.get("granularity") == "all" and 'timestamp' in df:
+                del df['timestamp']
+            table = df.to_html(
                 classes=[
                     'table', 'table-striped', 'table-bordered',
                     'table-condensed'],
                 index=False)
         return super(TableViz, self).render(table=table)
+
+    def form_class(self):
+        limits = [10, 50, 100, 500, 1000, 5000, 10000]
+        return form_factory(self.datasource, request.args,
+            extra_fields_dict={
+                'row_limit':
+                    SelectField('Row limit', choices=[(s, s) for s in limits])
+            })
 
 
 class HighchartsViz(BaseViz):
@@ -194,6 +205,7 @@ class TimeSeriesViz(HighchartsViz):
             values=metrics,)
 
         rolling_periods = request.args.get("rolling_periods")
+        limit = request.args.get("limit")
         rolling_type = request.args.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
@@ -214,6 +226,7 @@ class TimeSeriesViz(HighchartsViz):
         return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
 
     def form_class(self):
+        limits = [0, 5, 10, 25, 50, 100, 500]
         return form_factory(self.datasource, request.args,
             extra_fields_dict={
                 #'compare': TextField('Period Compare',),
@@ -221,6 +234,8 @@ class TimeSeriesViz(HighchartsViz):
                     'Rolling',
                     choices=[(s, s) for s in ['mean', 'sum', 'std']]),
                 'rolling_periods': TextField('Periods',),
+                'limit': SelectField(
+                    'Series limit', choices=[(s, s) for s in limits])
             })
 
     def bake_query(self):
