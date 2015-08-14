@@ -194,8 +194,9 @@ class Panoramix(BaseView):
                 json.dumps(obj.get_query(), indent=4),
                 status=200,
                 mimetype="application/json")
-        if obj.df is None or obj.df.empty:
-            return obj.render_no_data()
+        if not hasattr(obj, 'df') or obj.df is None or obj.df.empty:
+            pass
+            #return obj.render_no_data()
         return obj.render()
 
     @has_access
@@ -221,8 +222,9 @@ class Panoramix(BaseView):
                 json.dumps(obj.get_query(), indent=4),
                 status=200,
                 mimetype="application/json")
-        if obj.df is None or obj.df.empty:
+        if not hasattr(obj, 'df') or obj.df is None or obj.df.empty:
             return obj.render_no_data()
+
         return obj.render()
 
     @has_access

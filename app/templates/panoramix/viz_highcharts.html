@@ -1,5 +1,6 @@
 {% extends "panoramix/datasource.html" %}
 {% block viz %}
+    {{ super() }}
     <div id="chart"></div>
 {% endblock %}
 
@@ -14,6 +15,21 @@
     </div>
   {% endif %}
   <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
+  {% if form.series %}
+    <div>{{ form.series.label }}: {{ form.series(class_="form-control select2") }}</div>
+  {% endif %}
+  {% if form.entity %}
+    <div>{{ form.entity.label }}: {{ form.entity(class_="form-control select2") }}</div>
+  {% endif %}
+  {% if form.x %}
+    <div>{{ form.x.label }}: {{ form.x(class_="form-control select2") }}</div>
+  {% endif %}
+  {% if form.y %}
+    <div>{{ form.y.label }}: {{ form.y(class_="form-control select2") }}</div>
+  {% endif %}
+  {% if form.size %}
+    <div>{{ form.size.label }}: {{ form.size(class_="form-control select2") }}</div>
+  {% endif %}
 {% endblock %}
 
 {% block tail %}
@@ -23,6 +39,7 @@
 {% else %}
 <script src="{{ url_for("static", filename="highcharts.js") }}"></script>
 {% endif %}
+<script src="{{ url_for("static", filename="highcharts-more.js") }}"></script>
 <script>
 $( document ).ready(function() {
     Highcharts.setOptions({

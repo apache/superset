@@ -39,12 +39,16 @@ form input.form-control {
     <hr>
     <form id="query" method="GET" style="display: none;">
       <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
-      <div>{{ form.metrics.label }}: {{ form.metrics(class_="form-control select2") }}</div>
+      {% if 'metrics' not in viz.hidden_fields %}
+        <div>{{ form.metrics.label }}: {{ form.metrics(class_="form-control select2") }}</div>
+      {% endif %}
+      {% if 'granularity' not in viz.hidden_fields %}
       <div>{{ form.granularity.label }}
          <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
            title="Supports natural language time as in '10 seconds', '1 day' or '1 week'" 
            id="blah"></i>
         {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
+      {% endif  %}
       <div class="row">
         <div class="form-group">
           <div class="col-xs-6">{{ form.since.label }}
@@ -56,7 +60,9 @@ form input.form-control {
             {{ form.until(class_="form-control select2_free_until") }}</div>
         </div>
       </div>
-      <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
+      {% if 'groupby' not in viz.hidden_fields %}
+        <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
+      {% endif %}
       {% block extra_fields %}{% endblock %}
       <hr>
       <h4>Filters</h4>
@@ -85,11 +91,19 @@ form input.form-control {
 
   <div class="col-md-9">
     <h3>{{ viz.verbose_name }}
-    <span class="label label-success">{{ "{0:0.2f}".format(results.duration.total_seconds()) }} s</span>
-    <span class="label label-info btn" data-toggle="modal" data-target="#query_modal">query</span>
+    {% if results %}
+        <span class="label label-success">
+            {{ "{0:0.2f}".format(results.duration.total_seconds()) }} s
+        </span>
+        <span class="label label-info btn" 
+            data-toggle="modal" data-target="#query_modal">query</span>
+    {% endif %}
     </h3>
     <hr/>
     {% block viz %}
+        {% if error_msg %}
+            <span class="alert alert-danger">{{ error_msg }}</span>
+        {% endif %}
     {% endblock %}
 
     {% if debug %}

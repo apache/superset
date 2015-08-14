@@ -3,7 +3,7 @@ from flask import flash, request
 import pandas as pd
 from collections import OrderedDict
 from app import utils
-from app.highchart import Highchart
+from app.highchart import Highchart, HighchartBubble
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
 from pydruid.utils.filters import Dimension, Filter
@@ -67,21 +67,28 @@ def form_factory(datasource, form_args=None, extra_fields_dict=None):
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = "panoramix/datasource.html"
+    hidden_fields = []
     def __init__(self, datasource, form_data, view):
         self.datasource = datasource
         self.form_class = self.form_class()
+        self.view = view
         self.form_data = form_data
         self.metrics = form_data.getlist('metrics') or ['count']
         self.groupby = form_data.getlist('groupby') or []
 
-        self.results = self.bake_query()
-        self.df = self.results.df
-        self.view = view
-        if self.df is not None:
-            if 'timestamp' in self.df.columns:
-                self.df.timestamp = pd.to_datetime(self.df.timestamp)
-            self.df_prep()
-            self.form_prep()
+        self.error_msg = ""
+        self.results = None
+        try:
+            self.results = self.bake_query()
+            self.df = self.results.df
+            if self.df is not None:
+                if 'timestamp' in self.df.columns:
+                    self.df.timestamp = pd.to_datetime(self.df.timestamp)
+                self.df_prep()
+                self.form_prep()
+        except Exception as e:
+            self.error_msg = str(e)
+
 
     def form_class(self):
         return form_factory(self.datasource, request.args)
@@ -188,6 +195,68 @@ class HighchartsViz(BaseViz):
     stacked = False
     chart_type = 'not_stock'
     compare = False
+
+
+class BubbleViz(HighchartsViz):
+    verbose_name = "Bubble Chart"
+    chart_type = 'bubble'
+    hidden_fields = ['granularity', 'metrics', 'groupby']
+
+    def form_class(self):
+        datasource = self.datasource
+        limits = [0, 5, 10, 25, 50, 100, 500]
+        return form_factory(self.datasource, request.args,
+            extra_fields_dict={
+                #'compare': TextField('Period Compare',),
+                'series': SelectField(
+                    'Series', choices=[
+                (s, s) for s in datasource.groupby_column_names]),
+                'entity': SelectField(
+                    'Entity', choices=[
+                (s, s) for s in datasource.groupby_column_names]),
+                'x': SelectField(
+                    'X Axis', choices=datasource.metrics_combo),
+                'y': SelectField(
+                    'Y Axis', choices=datasource.metrics_combo),
+                'size': SelectField(
+                    'Bubble Size', choices=datasource.metrics_combo),
+                'limit': SelectField(
+                    'Limit', choices=[(s, s) for s in limits]),
+            })
+
+    def query_obj(self):
+        d = super(BubbleViz, self).query_obj()
+        d['granularity'] = 'all'
+        d['groupby'] = [request.args.get('series')]
+        self.x_metric = request.args.get('x')
+        self.y_metric = request.args.get('y')
+        self.z_metric = request.args.get('size')
+        self.entity = request.args.get('entity')
+        self.series = request.args.get('series')
+        d['metrics'] = [
+            self.x_metric,
+            self.y_metric,
+            self.z_metric,
+        ]
+        if not all(d['metrics'] + [self.entity, self.series]):
+            raise Exception("Pick a metric for x, y and size")
+        return d
+
+    def render(self):
+        metrics = self.metrics
+
+        if not self.error_msg:
+            df = self.df
+            df['x'] = df[[self.x_metric]]
+            df['y'] = df[[self.y_metric]]
+            df['z'] = df[[self.z_metric]]
+            df['name'] = df[[self.entity]]
+            df['group'] = df[[self.series]]
+            chart = HighchartBubble(df)
+            return super(BubbleViz, self).render(chart_js=chart.javascript_cmd)
+        else:
+            return super(BubbleViz, self).render(error_msg=self.error_msg)
+
 
 
 class TimeSeriesViz(HighchartsViz):
@@ -320,4 +389,5 @@ viz_types = OrderedDict([
     ['stacked_ts_bar', TimeSeriesStackedBarViz],
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
+    ['bubble', BubbleViz],
 ])
