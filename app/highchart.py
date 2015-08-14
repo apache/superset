@@ -1,9 +1,27 @@
 import pandas
+from collections import defaultdict
 import copy
+import json
 from pandas.io.json import dumps
 
 
-class Highchart(object):
+class BaseHighchart(object):
+    stockchart = False
+    tooltip_formatter = ""
+    target_div = 'chart'
+    @property
+    def javascript_cmd(self):
+        js = dumps(self.chart)
+        js = (
+            js.replace('"{{TOOLTIP_FORMATTER}}"', self.tooltip_formatter)
+            .replace("\n", " ")
+        )
+        if self.stockchart:
+            return "new Highcharts.StockChart(%s);" % js
+        return "new Highcharts.Chart(%s);" %js
+
+
+class Highchart(BaseHighchart):
     def __init__(
             self, df,
             chart_type="spline",
@@ -144,7 +162,8 @@ class Highchart(object):
         if df.index.dtype.kind in "M":
             x_axis["type"] = "datetime"
         if df.index.dtype.kind == 'O':
-            x_axis['categories'] = sorted(list(df.index)) if self.sort_columns else list(df.index)
+            x_axis['categories'] = sorted(
+                list(df.index)) if self.sort_columns else list(df.index)
             print list(df.index)
         if self.grid:
             x_axis["gridLineWidth"] = 1
@@ -174,10 +193,38 @@ class Highchart(object):
             chart["yAxis"].append(yAxis2)
 
 
-    @property
-    def javascript_cmd(self):
-        js = dumps(self.chart)
-        js = js.replace('"{{TOOLTIP_FORMATTER}}"', self.tooltip_formatter).replace("\n", " ")
-        if self.stockchart:
-            return "new Highcharts.StockChart(%s);" % js
-        return "new Highcharts.Chart(%s);" %js
+class HighchartBubble(BaseHighchart):
+    def __init__(self, df, target_div='chart', height=800):
+        self.df = df
+        self.chart = {
+            'chart': {
+                'type': 'bubble',
+                'zoomType': 'xy'
+            },
+            'title': {'text': None},
+            'plotOptions': {
+                'bubble': {
+                    'tooltip': {
+                        'headerFormat': '<b>{series.name}</b><br>',
+                        'pointFormat': '<b>{point.name}</b>: {point.x}, {point.y}, {point.z}'
+                    }
+                }
+            },
+        }
+        chart = self.chart
+        chart['series'] = self.series()
+        chart['chart']['renderTo'] = target_div
+        if height:
+            chart['chart']["height"] = height
+
+    def series(self):
+        #df = self.df[['name', 'x', 'y', 'z']]
+        df = self.df
+        series = defaultdict(list)
+        for row in df.to_dict(orient='records'):
+            series[row['group']].append(row)
+        l = []
+        for k, v in series.items():
+            l.append({'data': v, 'name': k})
+        print(json.dumps(l, indent=2))
+        return l
