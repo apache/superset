@@ -243,7 +243,7 @@ class Table(Model, Queryable, AuditMixin):
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for gb in groupby:
-                on_clause.append(literal_column(s)==literal_column("__" + s))
+                on_clause.append(literal_column(gb)==literal_column("__" + gb))
 
             from_clause = from_clause.join(subq.alias(), and_(*on_clause))
 

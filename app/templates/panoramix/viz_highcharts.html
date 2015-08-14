@@ -21,14 +21,14 @@
   {% if form.entity %}
     <div>{{ form.entity.label }}: {{ form.entity(class_="form-control select2") }}</div>
   {% endif %}
+  {% if form.size %}
+    <div>{{ form.size.label }}: {{ form.size(class_="form-control select2") }}</div>
+  {% endif %}
   {% if form.x %}
     <div>{{ form.x.label }}: {{ form.x(class_="form-control select2") }}</div>
   {% endif %}
   {% if form.y %}
     <div>{{ form.y.label }}: {{ form.y(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.size %}
-    <div>{{ form.size.label }}: {{ form.size(class_="form-control select2") }}</div>
   {% endif %}
 {% endblock %}
 
