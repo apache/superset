@@ -249,7 +249,7 @@ class BubbleViz(HighchartsViz):
         metrics = self.metrics
 
         if not self.error_msg:
-            df = self.df
+            df = self.df.fillna(0)
             df['x'] = df[[self.x_metric]]
             df['y'] = df[[self.y_metric]]
             df['z'] = df[[self.z_metric]]
