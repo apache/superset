@@ -227,7 +227,10 @@ class BubbleViz(HighchartsViz):
     def query_obj(self):
         d = super(BubbleViz, self).query_obj()
         d['granularity'] = 'all'
-        d['groupby'] = [request.args.get('series')]
+        d['groupby'] = list({
+            request.args.get('series'),
+            request.args.get('entity')
+            })
         self.x_metric = request.args.get('x')
         self.y_metric = request.args.get('y')
         self.z_metric = request.args.get('size')
