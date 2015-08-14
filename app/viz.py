@@ -237,9 +237,9 @@ class BubbleViz(HighchartsViz):
         self.entity = request.args.get('entity')
         self.series = request.args.get('series')
         d['metrics'] = [
+            self.z_metric,
             self.x_metric,
             self.y_metric,
-            self.z_metric,
         ]
         if not all(d['metrics'] + [self.entity, self.series]):
             raise Exception("Pick a metric for x, y and size")
