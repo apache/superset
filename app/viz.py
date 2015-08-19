@@ -163,21 +163,22 @@ class BaseViz(object):
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
+
     def render(self):
+        if self.error_msg:
+            return super(TableViz, self).render(error_msg=self.error_msg)
+
         df = self.df
         row_limit = request.args.get("row_limit")
         if df is None or df.empty:
             flash("No data.", "error")
-            table = None
         else:
             if self.form_data.get("granularity") == "all" and 'timestamp' in df:
                 del df['timestamp']
-            table = df.to_html(
-                classes=[
-                    'table', 'table-striped', 'table-bordered',
-                    'table-condensed'],
-                index=False)
-        return super(TableViz, self).render(table=table)
+            for m in self.metrics:
+                import numpy as np
+                df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
+        return super(TableViz, self).render(df=df)
 
     def form_class(self):
         limits = [10, 50, 100, 500, 1000, 5000, 10000]
