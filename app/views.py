@@ -124,7 +124,7 @@ class TableView(ModelView, DeleteMixin):
     edit_columns = ['table_name', 'database', 'main_datetime_column', 'default_endpoint']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
 
-    def post_insert(self, table):
+    def post_add(self, table):
         table.fetch_metadata()
 
     def post_update(self, table):
@@ -147,7 +147,7 @@ class DatasourceModelView(ModelView, DeleteMixin):
     page_size = 100
     base_order = ('datasource_name', 'asc')
 
-    def post_insert(self, datasource):
+    def post_add(self, datasource):
         datasource.generate_metrics()
 
     def post_update(self, datasource):

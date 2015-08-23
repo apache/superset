@@ -1,6 +1,7 @@
 from flask.ext.appbuilder import Model
 from datetime import timedelta
 from flask.ext.appbuilder.models.mixins import AuditMixin
+from flask import request, redirect, flash, Response
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
 from sqlalchemy import create_engine, MetaData, desc
 from sqlalchemy import Table as sqlaTable
@@ -68,7 +69,7 @@ class Table(Model, Queryable, AuditMixin):
     main_datetime_column = relationship(
         'TableColumn', foreign_keys=[main_datetime_column_id])
     default_endpoint = Column(Text)
-    database_id = Column(Integer, ForeignKey('dbs.id'))
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
 
@@ -261,8 +262,18 @@ class Table(Model, Queryable, AuditMixin):
 
 
     def fetch_metadata(self):
-        table = self.database.get_table(self.table_name)
+        try:
+            table = self.database.get_table(self.table_name)
+        except Exception as e:
+            flash(
+                "Table doesn't see to exist in the specified database, "
+                "couldn't fetch column information", "danger")
+            return
+
         TC = TableColumn
+        M = SqlMetric
+        metrics = []
+        any_date_col = None
         for col in table.columns:
             dbcol = (
                 db.session
@@ -274,13 +285,69 @@ class Table(Model, Queryable, AuditMixin):
             db.session.flush()
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
-                if str(col.type) in ('VARCHAR', 'STRING'):
+                if (
+                        str(col.type).startswith('VARCHAR') or
+                        str(col.type).startswith('STRING')):
                     dbcol.groupby = True
                     dbcol.filterable = True
-                self.columns.append(dbcol)
+            db.session.merge(self)
+            self.columns.append(dbcol)
 
+            if not any_date_col and 'date' in str(col.type).lower():
+                any_date_col = dbcol
+
+            if dbcol.sum:
+                metrics.append(M(
+                    metric_name='sum__' + dbcol.column_name,
+                    verbose_name='sum__' + dbcol.column_name,
+                    metric_type='sum',
+                    expression="SUM({})".format(dbcol.column_name)
+                ))
+            if dbcol.max:
+                metrics.append(M(
+                    metric_name='max__' + dbcol.column_name,
+                    verbose_name='max__' + dbcol.column_name,
+                    metric_type='max',
+                    expression="MAX({})".format(dbcol.column_name)
+                ))
+            if dbcol.min:
+                metrics.append(M(
+                    metric_name='min__' + dbcol.column_name,
+                    verbose_name='min__' + dbcol.column_name,
+                    metric_type='min',
+                    expression="MIN({})".format(dbcol.column_name)
+                ))
+            if dbcol.count_distinct:
+                metrics.append(M(
+                    metric_name='count_distinct__' + dbcol.column_name,
+                    verbose_name='count_distinct__' + dbcol.column_name,
+                    metric_type='count_distinct',
+                    expression="COUNT(DISTINCT {})".format(dbcol.column_name)
+                ))
             dbcol.type = str(col.type)
+            db.session.merge(self)
             db.session.commit()
+
+        metrics.append(M(
+            metric_name='count',
+            verbose_name='COUNT(*)',
+            metric_type='count',
+            expression="COUNT(*)"
+        ))
+        for metric in metrics:
+            m = (
+                db.session.query(M)
+                .filter(M.metric_name==metric.metric_name)
+                .filter(M.table==self)
+                .first()
+            )
+            metric.table = self
+            if not m:
+                db.session.add(metric)
+                db.session.commit()
+        if not self.main_datetime_column:
+            self.main_datetime_column = any_date_col
+
 
 
 

@@ -6,6 +6,7 @@ from app import utils
 from app.highchart import Highchart, HighchartBubble
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
+import logging
 from pydruid.utils.filters import Dimension, Filter
 
 
@@ -87,6 +88,7 @@ class BaseViz(object):
                 self.df_prep()
                 self.form_prep()
         except Exception as e:
+            logging.exception(e)
             self.error_msg = str(e)
 
 
@@ -171,7 +173,7 @@ class TableViz(BaseViz):
         df = self.df
         row_limit = request.args.get("row_limit")
         if df is None or df.empty:
-            flash("No data.", "error")
+            return super(TableViz, self).render(error_msg="No data.")
         else:
             if self.form_data.get("granularity") == "all" and 'timestamp' in df:
                 del df['timestamp']
