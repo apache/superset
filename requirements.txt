@@ -1,6 +1,7 @@
 flask
 flask-alembic
 flask-appbuilder
+gunicorn
 mysql-python
 pandas
 parsedatetime

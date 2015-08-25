@@ -13,6 +13,7 @@ There' a ``from local_config import *`` at the end of this file.
 # Panoramix specifix config
 #---------------------------------------------------------
 ROW_LIMIT = 5000
+WEBSERVER_THREADS = 8
 
 PANORAMIX_WEBSERVER_PORT = 8088
 #---------------------------------------------------------
