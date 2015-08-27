@@ -1,8 +1,7 @@
 # TODO
 * in/notin filters autocomplete
-* Scatter plot
-* Allow for post aggregations (ratios!)
+* DRUID: Allow for post aggregations (ratios!)
 * compare time ranges
-* Add verbose_name and label method to metrics and columns
-* csv 
+* csv export out of table view
 * Save / bookmark / url shortener
+* SQL: Find a way to manage granularity

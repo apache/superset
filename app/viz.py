@@ -85,8 +85,6 @@ class BaseViz(object):
             if self.df is not None:
                 if 'timestamp' in self.df.columns:
                     self.df.timestamp = pd.to_datetime(self.df.timestamp)
-                self.df_prep()
-                self.form_prep()
         except Exception as e:
             logging.exception(e)
             self.error_msg = str(e)
@@ -111,6 +109,9 @@ class BaseViz(object):
         return self.datasource.query(**self.query_obj())
 
     def query_obj(self):
+        """
+        Building a query object
+        """
         ds = self.datasource
         args = self.form_data
         groupby = args.getlist("groupby") or []
@@ -143,12 +144,6 @@ class BaseViz(object):
             'timeseries_limit': limit,
         }
         return d
-
-    def df_prep(self):
-        pass
-
-    def form_prep(self):
-        pass
 
     def render_no_data(self):
         self.template = "panoramix/no_data.html"
@@ -272,6 +267,11 @@ class TimeSeriesViz(HighchartsViz):
     sort_legend_y = True
 
     def render(self):
+        if request.args.get("granularity") == "all":
+            self.error_msg = (
+                "You have to select a time granularity for this view")
+            return super(TimeSeriesViz, self).render(error_msg=self.error_msg)
+
         metrics = self.metrics
         df = self.df
         df = df.pivot_table(
