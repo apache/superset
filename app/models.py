@@ -410,6 +410,7 @@ class Cluster(Model, AuditMixin):
             "http://{self.coordinator_host}:{self.coordinator_port}/"
             "{self.coordinator_endpoint}/datasources"
         ).format(self=self)
+
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
             Datasource.sync_to_db(datasource, self)
@@ -459,6 +460,8 @@ class Datasource(Model, AuditMixin, Queryable):
     def latest_metadata(self):
         client = self.cluster.get_pydruid_client()
         results = client.time_boundary(datasource=self.datasource_name)
+        if not results:
+            return
         max_time = results[0]['result']['minTime']
         max_time = parse(max_time)
         intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'

@@ -156,7 +156,9 @@ class Highchart(BaseHighchart):
 
     def serialize_xaxis(self):
         df = self.df
-        x_axis = {}
+        x_axis = {
+            'ordinal': False,
+        }
         if df.index.name:
             x_axis["title"] = {"text": df.index.name}
         if df.index.dtype.kind in "M":
@@ -164,7 +166,6 @@ class Highchart(BaseHighchart):
         if df.index.dtype.kind == 'O':
             x_axis['categories'] = sorted(
                 list(df.index)) if self.sort_columns else list(df.index)
-            print list(df.index)
         if self.grid:
             x_axis["gridLineWidth"] = 1
             x_axis["gridLineDashStyle"] = "Dot"
@@ -226,5 +227,4 @@ class HighchartBubble(BaseHighchart):
         l = []
         for k, v in series.items():
             l.append({'data': v, 'name': k})
-        print(json.dumps(l, indent=2))
         return l
