@@ -93,7 +93,7 @@ form input.form-control {
     <h3>{{ viz.verbose_name }}
     {% if results %}
         <span class="label label-success">
-            {{ "{0:0.2f}".format(results.duration.total_seconds()) }} s
+            {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
         </span>
         <span class="label label-info btn" 
             data-toggle="modal" data-target="#query_modal">query</span>

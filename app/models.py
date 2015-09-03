@@ -265,8 +265,9 @@ class Table(Model, Queryable, AuditMixin):
         try:
             table = self.database.get_table(self.table_name)
         except Exception as e:
+            flash(str(e))
             flash(
-                "Table doesn't see to exist in the specified database, "
+                "Table doesn't seem to exist in the specified database, "
                 "couldn't fetch column information", "danger")
             return
 
@@ -275,6 +276,10 @@ class Table(Model, Queryable, AuditMixin):
         metrics = []
         any_date_col = None
         for col in table.columns:
+            try:
+                datatype = str(col.type)
+            except Exception as e:
+                datatype = "UNKNOWN"
             dbcol = (
                 db.session
                 .query(TC)
@@ -285,15 +290,16 @@ class Table(Model, Queryable, AuditMixin):
             db.session.flush()
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
+
                 if (
-                        str(col.type).startswith('VARCHAR') or
-                        str(col.type).startswith('STRING')):
+                        str(datatype).startswith('VARCHAR') or
+                        str(datatype).startswith('STRING')):
                     dbcol.groupby = True
                     dbcol.filterable = True
             db.session.merge(self)
             self.columns.append(dbcol)
 
-            if not any_date_col and 'date' in str(col.type).lower():
+            if not any_date_col and 'date' in datatype.lower():
                 any_date_col = dbcol
 
             if dbcol.sum:
@@ -324,7 +330,7 @@ class Table(Model, Queryable, AuditMixin):
                     metric_type='count_distinct',
                     expression="COUNT(DISTINCT {})".format(dbcol.column_name)
                 ))
-            dbcol.type = str(col.type)
+            dbcol.type = datatype
             db.session.merge(self)
             db.session.commit()
 
@@ -509,13 +515,14 @@ class Datasource(Model, AuditMixin, Queryable):
         #session.commit()
 
     def query(
-        self, groupby, metrics,
-        granularity,
-        from_dttm, to_dttm,
-        limit_spec=None,
-        filter=None,
-        is_timeseries=True,
-        timeseries_limit=15, row_limit=None):
+            self, groupby, metrics,
+            granularity,
+            from_dttm, to_dttm,
+            limit_spec=None,
+            filter=None,
+            is_timeseries=True,
+            timeseries_limit=None,
+            row_limit=None):
         qry_start_dttm = datetime.now()
 
         query_str = ""
@@ -565,7 +572,7 @@ class Datasource(Model, AuditMixin, Queryable):
 
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
-        if timeseries_limit:
+        if timeseries_limit and is_timeseries:
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
             pre_qry['granularity'] = "all"
@@ -605,7 +612,15 @@ class Datasource(Model, AuditMixin, Queryable):
                             Filter.build_filter(ff),
                             Filter.build_filter(orig_filters)])
                 qry['limit_spec'] = None
-
+        if row_limit:
+            qry['limit_spec'] = {
+                "type": "default",
+                "limit": row_limit,
+                "columns": [{
+                    "dimension": metrics[0] if metrics else self.metrics[0],
+                    "direction": "descending",
+                }],
+            }
         client.groupby(**qry)
         query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()

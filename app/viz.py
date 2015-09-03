@@ -120,8 +120,7 @@ class BaseViz(object):
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
                 granularity).total_seconds() * 1000
-        limit = int(
-            args.get("limit", config.ROW_LIMIT))
+        limit = int(args.get("limit", 0))
         row_limit = int(
             args.get("row_limit", config.ROW_LIMIT))
         since = args.get("since", "1 year ago")
@@ -137,6 +136,7 @@ class BaseViz(object):
             'granularity': granularity,
             'from_dttm': from_dttm,
             'to_dttm': to_dttm,
+            'is_timeseries': True,
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
@@ -160,6 +160,12 @@ class BaseViz(object):
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
+
+    def query_obj(self):
+        d = super(TableViz, self).query_obj()
+        d['is_timeseries'] = False
+        d['timeseries_limit'] = None
+        return d
 
     def render(self):
         if self.error_msg:
