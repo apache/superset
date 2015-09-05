@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 
 app = Flask(__name__)
-app.config.from_object('config')
+app.config.from_object('panoramix.config')
 db = SQLA(app)
 
 class MyIndexView(IndexView):
@@ -22,4 +22,4 @@ appbuilder = AppBuilder(
 
 get_session = appbuilder.get_session
 
-from app import views
+from panoramix import views

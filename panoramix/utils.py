@@ -1,9 +1,5 @@
-import config
 from datetime import datetime
 import parsedatetime
-from app import db
-
-
 
 
 def parse_human_datetime(s):
