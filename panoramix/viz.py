@@ -2,12 +2,11 @@ from datetime import datetime
 from flask import flash, request
 import pandas as pd
 from collections import OrderedDict
-from app import utils
-from app.highchart import Highchart, HighchartBubble
+from panoramix import utils
+from panoramix.highchart import Highchart, HighchartBubble
 from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
 import logging
-from pydruid.utils.filters import Dimension, Filter
 
 
 CHART_ARGS = {

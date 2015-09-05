@@ -61,35 +61,17 @@ Installation
 Follow these few simple steps to install Panoramix
 
 ```
+# Install panoramix
+pip install panoramix
+
+# Create an admin user
+fabmanager create-admin --app panoramix
+
 # Clone the github repo 
 git clone https://github.com/mistercrunch/panoramix.git
 
-# Get in that fresh new folder
-cd panoramix
-
-# You may want to create a python virtualenv
-# virtualenv env
-# source env/bin/activate
-# pip install -r requirements.txt
-
-# If you don't use a virtualenv, you'll have to sudo to install the reqs
-sudo pip install -r requirements.txt
-
-# Edit config.py, and read through the settings
-# Note that alternatively, you can create a ``local_config.py`` and put it
-# somewhere in your PYTHONPATH. The variables declared local_config.py
-# will override the ones in ``config.py``, and won't create issues when
-# you need to ``git pull`` the latest version of panoramix
-vim config.py
-
-# Create an admin account, the app will ask for username/password, ...
-# This feature is out of Flask App Builder, the framework I used to build
-# Panoramix
-fabmanager create-admin
-
 # Start the web server
-python run.py
-
+panoramix
 ```
 
 After installation, you should be able to point your browser to the right
@@ -101,6 +83,42 @@ your datasources for Panoramix to be aware of, and they should show up in
 
 Configuration
 -------------
+
+To configure your application, you need to create a file (module) 
+`panoramix_config.py` and make sure it is in your PYTHONPATH. Here are some
+of the parameters you can copy / paste in that configuration module:
+
+```
+#---------------------------------------------------------
+# Panoramix specifix config
+#---------------------------------------------------------
+ROW_LIMIT = 5000
+WEBSERVER_THREADS = 8
+
+PANORAMIX_WEBSERVER_PORT = 8088
+#---------------------------------------------------------
+
+#---------------------------------------------------------
+# Flask App Builder configuration
+#---------------------------------------------------------
+# Your App secret key
+SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+
+# The SQLAlchemy connection string.
+SQLALCHEMY_DATABASE_URI = 'sqlite:///tmp/panoramix.db'
+
+# Flask-WTF flag for CSRF
+CSRF_ENABLED = True
+
+# Whether to run the web server in debug mode or not
+DEBUG = True
+```
+
+This file also allows you to define configuration parameters used by
+Flask App Builder, the web framework used by Panoramix. Please consult
+the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en/latest/config.html) for more information on how to configure Panoramix.
+
+
 * From the UI, enter the information about your clusters in the 
 ``Admin->Clusters`` menu by hitting the + sign. 
 

@@ -1,17 +1,16 @@
 from datetime import datetime
-import logging
 import json
+import logging
 
 from flask import request, redirect, flash, Response
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
-from app import appbuilder, db, models, viz, utils, app, get_session
-from flask.ext.appbuilder.security.decorators import has_access, permission_name
-import config
+from flask.ext.appbuilder.security.decorators import has_access
 from pydruid.client import doublesum
 from wtforms.validators import ValidationError
 from flask.ext.appbuilder.actions import action
 
+from panoramix import appbuilder, db, models, viz, utils, app
 
 def validate_json(form, field):
     try:
