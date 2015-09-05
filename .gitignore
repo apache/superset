@@ -1,5 +1,7 @@
 *.pyc
 *.db
 tmp
+panoramix_config.py
 local_config.py
+env
 app.db

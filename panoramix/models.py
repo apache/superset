@@ -22,7 +22,7 @@ import sqlparse
 import requests
 import textwrap
 
-from app import db, get_session, utils
+from panoramix import db, get_session
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 

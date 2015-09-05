@@ -124,6 +124,6 @@ IMG_UPLOAD_URL = '/static/uploads/'
 #APP_THEME = "yeti.css"
 
 try:
-    from local_config import *
+    from panoramix_config import *
 except:
     pass
