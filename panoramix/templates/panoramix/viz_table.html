@@ -33,10 +33,6 @@
     {% endif %}
 {% endblock %}
 
-{% block extra_fields %}
-  <div>{{ form.row_limit.label }}: {{ form.row_limit(class_="form-control select2") }}</div>
-{% endblock %}
-
 {% block tail %}
 {{ super() }}
 <script src="{{ url_for('static', filename='jquery.dataTables.min.js') }}"></script>
