@@ -4,4 +4,6 @@ tmp
 panoramix_config.py
 local_config.py
 env
+dist
+panoramix.egg-info/
 app.db
