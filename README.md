@@ -126,3 +126,10 @@ the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en
 ``Admin->Refresh Metadata`` menu item to populate
 
 * Navigate to your datasources
+
+More screenshots
+----------------
+
+![img](http://i.imgur.com/Rt6gNQ9.png)
+![img](http://i.imgur.com/t7VOtqQ.png)
+![img](http://i.imgur.com/PaiFQnH.png)
