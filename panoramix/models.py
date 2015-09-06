@@ -23,6 +23,7 @@ import requests
 import textwrap
 
 from panoramix import db, get_session
+import config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
@@ -524,6 +525,8 @@ class Datasource(Model, AuditMixin, Queryable):
             timeseries_limit=None,
             row_limit=None):
         qry_start_dttm = datetime.now()
+        from_dttm = from_dttm.replace(tzinfo=config.DRUID_TZ)  # add tzinfo to native datetime with config
+        to_dttm = to_dttm.replace(tzinfo=config.DRUID_TZ)
 
         query_str = ""
         aggregations = {

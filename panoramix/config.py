@@ -1,6 +1,7 @@
 import os
 from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
 basedir = os.path.abspath(os.path.dirname(__file__))
+from dateutil import tz
 
 """
 All configuration in this file can be overridden by providing a local_config
@@ -40,6 +41,12 @@ APP_NAME = "Panoramix"
 
 # Uncomment to setup Setup an App icon
 APP_ICON = "/static/chaudron_white.png"
+
+# Druid query timezone
+# tz.tzutc() : Using utc timezone
+# tz.tzlocal() : Using local timezone
+# other tz can be overridden by providing a local_config
+DRUID_TZ = tz.tzutc()
 
 #----------------------------------------------------
 # AUTHENTICATION CONFIG
