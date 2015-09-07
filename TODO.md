@@ -5,3 +5,4 @@
 * csv export out of table view
 * Save / bookmark / url shortener
 * SQL: Find a way to manage granularity
+* Create ~/.panoramix/ to host DB and config, generate default config there
