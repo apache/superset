@@ -356,6 +356,7 @@ class DistributionBarViz(HighchartsViz):
     def query_obj(self):
         d = super(DistributionBarViz, self).query_obj()
         d['granularity'] = "all"
+        d['is_timeseries'] = False
         return d
 
     def render(self):
@@ -377,6 +378,7 @@ class DistributionPieViz(HighchartsViz):
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
         d['granularity'] = "all"
+        d['is_timeseries'] = False
         return d
 
     def render(self):
