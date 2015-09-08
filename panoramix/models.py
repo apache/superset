@@ -390,6 +390,10 @@ class TableColumn(Model, AuditMixin):
     def __repr__(self):
         return self.column_name
 
+    @property
+    def isnum(self):
+        return self.type in ('LONG', 'DOUBLE', 'FLOAT')
+
 class Cluster(Model, AuditMixin):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)

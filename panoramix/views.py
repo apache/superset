@@ -30,7 +30,7 @@ class TableColumnInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
-        'column_name', 'description', 'table', 'groupby', 'filterable',
+        'column_name', 'description', 'groupby', 'filterable', 'table',
         'count_distinct', 'sum', 'min', 'max']
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -63,7 +63,7 @@ class SqlMetricInlineView(CompactCRUDMixin, ModelView):
     list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'table', 'expression']
+        'expression', 'table',]
     add_columns = edit_columns
     page_size = 100
 appbuilder.add_view_no_menu(SqlMetricInlineView)

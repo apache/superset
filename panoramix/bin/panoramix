@@ -1,19 +1,30 @@
 #!/usr/bin/env python
 from panoramix import app, config
 from subprocess import Popen
+import argparse
 
 
 if __name__ == "__main__":
-    if config.DEBUG:
+    parser = argparse.ArgumentParser(
+        description='Start a Panoramix web server')
+    parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help="Start the web server in debug mode")
+    parser.add_argument(
+        '-p', '--port', default=config.PANORAMIX_WEBSERVER_PORT,
+        help="Specify the port on which to run the web server")
+    args = parser.parse_args()
+    args.debug = args.debug or config.DEBUG
+    if args.debug:
         app.run(
             host='0.0.0.0',
-            port=int(config.PANORAMIX_WEBSERVER_PORT),
+            port=int(args.port),
             debug=True)
     else:
         cmd = (
             "gunicorn "
             "-w 8 "
-            "-b 0.0.0.0:{config.PANORAMIX_WEBSERVER_PORT} "
+            "-b 0.0.0.0:{args.port} "
             "panoramix:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
