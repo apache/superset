@@ -90,7 +90,7 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            'where': args.get("where")
+            'where': args.get("where", '')
         }
         d = {
             'granularity': granularity,
@@ -111,6 +111,14 @@ class BaseViz(object):
         return BaseViz.render(self)
 
     def check_and_render(self, *args, **kwards):
+        if (
+                hasattr(self, 'df') and
+                self.df is not None and
+                len(self.df) == config.ROW_LIMIT):
+            self.warning_msg = (
+                "Doh! The system limit of {} rows was reached, "
+                "showing partial results.").format(config.ROW_LIMIT)
+
         if self.error_msg:
             return BaseViz.render(self, error_msg=self.error_msg)
         else:

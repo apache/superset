@@ -109,8 +109,11 @@ form input.form-control {
     </h3>
     <hr/>
     {% block viz %}
-        {% if error_msg %}
-            <div class="alert alert-danger">{{ error_msg }}</div>
+        {% if viz.error_msg %}
+            <div class="alert alert-danger">{{ viz.error_msg }}</div>
+        {% endif %}
+        {% if viz.warning_msg %}
+            <div class="alert alert-warning">{{ viz.warning_msg }}</div>
         {% endif %}
     {% endblock %}
 
