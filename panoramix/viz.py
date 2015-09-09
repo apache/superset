@@ -2,12 +2,13 @@ from datetime import datetime
 from flask import flash, request
 import pandas as pd
 from collections import OrderedDict
-from panoramix import utils
-from panoramix.highchart import Highchart, HighchartBubble
-from wtforms import Form, SelectMultipleField, SelectField, TextField
 import config
 import logging
+import numpy as np
 
+from panoramix import utils
+from panoramix.highchart import Highchart, HighchartBubble
+from panoramix.forms import form_factory
 
 CHART_ARGS = {
     'height': 700,
@@ -16,58 +17,14 @@ CHART_ARGS = {
 }
 
 
-class OmgWtForm(Form):
-    field_order = (
-        'viz_type', 'granularity', 'since', 'group_by', 'limit')
-    def fields(self):
-        fields = []
-        for field in self.field_order:
-            if hasattr(self, field):
-                obj = getattr(self, field)
-                if isinstance(obj, Field):
-                    fields.append(getattr(self, field))
-        return fields
-
-
-def form_factory(datasource, form_args=None, extra_fields_dict=None):
-    extra_fields_dict = extra_fields_dict or {}
-
-    if form_args:
-        limit = form_args.get("limit")
-        try:
-            limit = int(limit)
-            if limit not in limits:
-                limits.append(limit)
-                limits = sorted(limits)
-        except:
-            pass
-
-    class QueryForm(OmgWtForm):
-        viz_type = SelectField(
-            'Viz',
-            choices=[(k, v.verbose_name) for k, v in viz_types.items()])
-        metrics = SelectMultipleField('Metrics', choices=datasource.metrics_combo)
-        groupby = SelectMultipleField(
-            'Group by', choices=[
-                (s, s) for s in datasource.groupby_column_names])
-        granularity = TextField('Time Granularity', default="one day")
-        since = TextField('Since', default="one day ago")
-        until = TextField('Until', default="now")
-    for i in range(10):
-        setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-            'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
-        setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-            'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
-        setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
-    for k, v in extra_fields_dict.items():
-        setattr(QueryForm, k, v)
-    return QueryForm
-
-
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = "panoramix/datasource.html"
     hidden_fields = []
+    form_fields = [
+        'viz_type', 'metrics', 'groupby', 'granularity',
+        ('since', 'until')]
+
     def __init__(self, datasource, form_data, view):
         self.datasource = datasource
         self.form_class = self.form_class()
@@ -90,7 +47,7 @@ class BaseViz(object):
 
 
     def form_class(self):
-        return form_factory(self.datasource, request.args)
+        return form_factory(self.datasource, self, request.args)
 
     def query_filters(self):
         args = self.form_data
@@ -159,6 +116,7 @@ class BaseViz(object):
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
+    form_fields = BaseViz.form_fields + ['row_limit']
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -178,17 +136,11 @@ class TableViz(BaseViz):
             if self.form_data.get("granularity") == "all" and 'timestamp' in df:
                 del df['timestamp']
             for m in self.metrics:
-                import numpy as np
                 df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
         return super(TableViz, self).render(df=df)
 
     def form_class(self):
-        limits = [10, 50, 100, 500, 1000, 5000, 10000]
-        return form_factory(self.datasource, request.args,
-            extra_fields_dict={
-                'row_limit':
-                    SelectField('Row limit', choices=[(s, s) for s in limits])
-            })
+        return form_factory(self.datasource, self, request.args)
 
 
 class HighchartsViz(BaseViz):
@@ -204,28 +156,12 @@ class BubbleViz(HighchartsViz):
     verbose_name = "Bubble Chart"
     chart_type = 'bubble'
     hidden_fields = ['granularity', 'metrics', 'groupby']
+    form_fields = [
+        'viz_type', 'since', 'until',
+        'series', 'entity', 'x', 'y', 'size', 'limit']
 
     def form_class(self):
-        datasource = self.datasource
-        limits = [0, 5, 10, 25, 50, 100, 500]
-        return form_factory(self.datasource, request.args,
-            extra_fields_dict={
-                #'compare': TextField('Period Compare',),
-                'series': SelectField(
-                    'Series', choices=[
-                (s, s) for s in datasource.groupby_column_names]),
-                'entity': SelectField(
-                    'Entity', choices=[
-                (s, s) for s in datasource.groupby_column_names]),
-                'x': SelectField(
-                    'X Axis', choices=datasource.metrics_combo),
-                'y': SelectField(
-                    'Y Axis', choices=datasource.metrics_combo),
-                'size': SelectField(
-                    'Bubble Size', choices=datasource.metrics_combo),
-                'limit': SelectField(
-                    'Limit', choices=[(s, s) for s in limits]),
-            })
+        return form_factory(self.datasource, self, request.args)
 
     def query_obj(self):
         d = super(BubbleViz, self).query_obj()
@@ -264,12 +200,18 @@ class BubbleViz(HighchartsViz):
             return super(BubbleViz, self).render(error_msg=self.error_msg)
 
 
-
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
     chart_type = "spline"
     stockchart = True
     sort_legend_y = True
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metrics',
+        'groupby', 'limit',
+        ('rolling_type', 'rolling_periods'),
+    ]
 
     def render(self):
         if request.args.get("granularity") == "all":
@@ -285,7 +227,6 @@ class TimeSeriesViz(HighchartsViz):
             values=metrics,)
 
         rolling_periods = request.args.get("rolling_periods")
-        limit = request.args.get("limit")
         rolling_type = request.args.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
@@ -306,17 +247,7 @@ class TimeSeriesViz(HighchartsViz):
         return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
 
     def form_class(self):
-        limits = [0, 5, 10, 25, 50, 100, 500]
-        return form_factory(self.datasource, request.args,
-            extra_fields_dict={
-                #'compare': TextField('Period Compare',),
-                'rolling_type': SelectField(
-                    'Rolling',
-                    choices=[(s, s) for s in ['mean', 'sum', 'std']]),
-                'rolling_periods': TextField('Periods',),
-                'limit': SelectField(
-                    'Series limit', choices=[(s, s) for s in limits])
-            })
+        return form_factory(self.datasource, self, request.args)
 
     def bake_query(self):
         """
@@ -324,13 +255,16 @@ class TimeSeriesViz(HighchartsViz):
         """
         return self.datasource.query(**self.query_obj())
 
+
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"
     compare = 'percent'
 
+
 class TimeSeriesCompareValueViz(TimeSeriesViz):
     verbose_name = "Time Series - Value Change"
     compare = 'value'
+
 
 class TimeSeriesAreaViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Area Chart"

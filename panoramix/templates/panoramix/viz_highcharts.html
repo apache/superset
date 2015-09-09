@@ -4,36 +4,6 @@
     <div id="chart"></div>
 {% endblock %}
 
-{% block extra_fields %}
-  {% if form.compare %}
-    <div>{{ form.compare.label }}: {{ form.compare(class_="form-control") }}</div>
-  {% endif %}
-  {% if form.rolling_type %}
-    <div class="row">
-      <span  class="col col-sm-5">{{ form.rolling_type.label }}: {{ form.rolling_type(class_="form-control select2") }}</span>
-      <span class="col col-sm-4">{{ form.rolling_periods.label }}: {{ form.rolling_periods(class_="form-control") }}</span>
-    </div>
-  {% endif %}
-  {% if form.limit %}
-    <div>{{ form.limit.label }}: {{ form.limit(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.series %}
-    <div>{{ form.series.label }}: {{ form.series(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.entity %}
-    <div>{{ form.entity.label }}: {{ form.entity(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.size %}
-    <div>{{ form.size.label }}: {{ form.size(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.x %}
-    <div>{{ form.x.label }}: {{ form.x(class_="form-control select2") }}</div>
-  {% endif %}
-  {% if form.y %}
-    <div>{{ form.y.label }}: {{ form.y(class_="form-control select2") }}</div>
-  {% endif %}
-{% endblock %}
-
 {% block tail %}
 {{ super() }}
 {% if viz.stockchart %}

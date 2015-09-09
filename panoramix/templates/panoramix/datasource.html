@@ -38,32 +38,27 @@ form input.form-control {
 
     <hr>
     <form id="query" method="GET" style="display: none;">
-      <div>{{ form.viz_type.label }}: {{ form.viz_type(class_="form-control select2") }}</div>
-      {% if 'metrics' not in viz.hidden_fields %}
-        <div>{{ form.metrics.label }}: {{ form.metrics(class_="form-control select2") }}</div>
-      {% endif %}
-      {% if 'granularity' not in viz.hidden_fields %}
-      <div>{{ form.granularity.label }}
-         <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-           title="Supports natural language time as in '10 seconds', '1 day' or '1 week'" 
-           id="blah"></i>
-        {{ form.granularity(class_="form-control select2_free_granularity") }}</div>
-      {% endif  %}
-      <div class="row">
-        <div class="form-group">
-          <div class="col-xs-6">{{ form.since.label }}
-           <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-             title="Supports natural language time as in '1 day ago', '28 days' or '3 years'" 
-             id="blah"></i>
-            {{ form.since(class_="form-control select2_free_since") }}</div>
-          <div class="col-xs-6">{{ form.until.label }}
-            {{ form.until(class_="form-control select2_free_until") }}</div>
-        </div>
-      </div>
-      {% if 'groupby' not in viz.hidden_fields %}
-        <div>{{ form.groupby.label }}: {{ form.groupby(class_="form-control select2") }}</div>
-      {% endif %}
-      {% block extra_fields %}{% endblock %}
+      {% for fieldname in form.field_order %}
+        {% if not fieldname.__iter__ %}
+            <div>
+                {% set field = form.get_field(fieldname)%}
+                {{ field.label }}: 
+                {{ field(class_=form.field_css_classes(field.name)) }}
+            </div>
+        {% else %}
+          <div class="row">
+            <div class="form-group">
+              {% for name in fieldname %}
+                  <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                    {% set field = form.get_field(name)%}
+                    {{ field.label }}: 
+                    {{ field(class_=form.field_css_classes(field.name)) }}
+                  </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+      {% endfor %}
       <hr>
       <h4>Filters</h4>
         <div id="flt0" style="display: none;">
