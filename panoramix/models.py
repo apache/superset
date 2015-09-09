@@ -1,22 +1,21 @@
-from flask.ext.appbuilder import Model
 from datetime import timedelta
-from flask.ext.appbuilder.models.mixins import AuditMixin
-from flask import request, redirect, flash, Response
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, DateTime
-from sqlalchemy import create_engine, MetaData, desc
-from sqlalchemy import Table as sqlaTable
-from sqlalchemy.orm import relationship
 from dateutil.parser import parse
+from flask import flash
+from flask.ext.appbuilder import Model
+from flask.ext.appbuilder.models.mixins import AuditMixin
+from pandas import read_sql_query
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
-from pandas import read_sql_query
+from sqlalchemy import (
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
+from sqlalchemy import Table as sqlaTable
+from sqlalchemy import create_engine, MetaData, desc, select, and_
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column
-from sqlalchemy import select, and_, text, String
 
 from copy import deepcopy, copy
 from collections import namedtuple
 from datetime import datetime
-import logging
 import json
 import sqlparse
 import requests
@@ -41,12 +40,12 @@ class Queryable(object):
     def filterable_column_names(self):
         return sorted([c.column_name for c in self.columns if c.filterable])
 
+
 class Database(Model, AuditMixin):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     database_name = Column(String(255), unique=True)
     sqlalchemy_uri = Column(String(1024))
-
 
     def __repr__(self):
         return self.database_name
@@ -115,7 +114,9 @@ class Table(Model, Queryable, AuditMixin):
         to_dttm_iso = to_dttm.isoformat()
 
         if metrics:
-            main_metric_expr = [m.expression for m in self.metrics if m.metric_name == metrics[0]][0]
+            main_metric_expr = [
+                m.expression for m in self.metrics
+                if m.metric_name == metrics[0]][0]
         else:
             main_metric_expr = "COUNT(*)"
 
@@ -150,29 +151,30 @@ class Table(Model, Queryable, AuditMixin):
         on_clause = " AND ".join(["{g} = __{g}".format(g=g) for g in groupby])
         limiting_join = ""
         if timeseries_limit and groupby:
-            inner_select = ", ".join(["{g} as __{g}".format(g=g) for g in inner_groupby_exprs])
+            inner_select = ", ".join([
+                "{g} as __{g}".format(g=g) for g in inner_groupby_exprs])
             inner_groupby_exprs = ", ".join(inner_groupby_exprs)
             limiting_join = (
-            "JOIN ( \n"
-            "    SELECT {inner_select} \n"
-            "    FROM {self.table_name} \n"
-            "    WHERE \n"
-            "        {where_clause}\n"
-            "    GROUP BY {inner_groupby_exprs}\n"
-            "    ORDER BY {main_metric_expr} DESC\n"
-            "    LIMIT {timeseries_limit}\n"
-            ") z ON {on_clause}\n"
+                "JOIN ( \n"
+                "    SELECT {inner_select} \n"
+                "    FROM {self.table_name} \n"
+                "    WHERE \n"
+                "        {where_clause}\n"
+                "    GROUP BY {inner_groupby_exprs}\n"
+                "    ORDER BY {main_metric_expr} DESC\n"
+                "    LIMIT {timeseries_limit}\n"
+                ") z ON {on_clause}\n"
             ).format(**locals())
 
         sql = (
-        "SELECT\n"
-        "    {select_exprs}\n"
-        "FROM {self.table_name}\n"
-        "{limiting_join}"
-        "WHERE\n"
-        "    {where_clause}\n"
-        "GROUP BY\n"
-        "    {groupby_exprs}\n"
+            "SELECT\n"
+            "    {select_exprs}\n"
+            "FROM {self.table_name}\n"
+            "{limiting_join}"
+            "WHERE\n"
+            "    {where_clause}\n"
+            "GROUP BY\n"
+            "    {groupby_exprs}\n"
         ).format(**locals())
         df = read_sql_query(
             sql=sql,
@@ -200,8 +202,9 @@ class Table(Model, Queryable, AuditMixin):
             for m in self.metrics if m.metric_name in metrics]
 
         if metrics:
-            main_metric_expr = literal_column(
-                [m.expression for m in self.metrics if m.metric_name == metrics[0]][0])
+            main_metric_expr = literal_column([
+                m.expression for m in self.metrics
+                if m.metric_name == metrics[0]][0])
         else:
             main_metric_expr = literal_column("COUNT(*)")
 
@@ -211,7 +214,8 @@ class Table(Model, Queryable, AuditMixin):
         if groupby:
             select_exprs = [literal_column(s) for s in groupby]
             groupby_exprs = [literal_column(s) for s in groupby]
-            inner_groupby_exprs = [literal_column(s).label('__' + s) for s in groupby]
+            inner_groupby_exprs = [
+                literal_column(s).label('__' + s) for s in groupby]
         if granularity != "all":
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
@@ -245,7 +249,8 @@ class Table(Model, Queryable, AuditMixin):
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for gb in groupby:
-                on_clause.append(literal_column(gb)==literal_column("__" + gb))
+                on_clause.append(
+                    literal_column(gb) == literal_column("__" + gb))
 
             from_clause = from_clause.join(subq.alias(), and_(*on_clause))
 
@@ -260,7 +265,6 @@ class Table(Model, Queryable, AuditMixin):
         sql = sqlparse.format(sql, reindent=True)
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
-
 
     def fetch_metadata(self):
         try:
@@ -284,8 +288,8 @@ class Table(Model, Queryable, AuditMixin):
             dbcol = (
                 db.session
                 .query(TC)
-                .filter(TC.table==self)
-                .filter(TC.column_name==col.name)
+                .filter(TC.table == self)
+                .filter(TC.column_name == col.name)
                 .first()
             )
             db.session.flush()
@@ -344,8 +348,8 @@ class Table(Model, Queryable, AuditMixin):
         for metric in metrics:
             m = (
                 db.session.query(M)
-                .filter(M.metric_name==metric.metric_name)
-                .filter(M.table==self)
+                .filter(M.metric_name == metric.metric_name)
+                .filter(M.table == self)
                 .first()
             )
             metric.table = self
@@ -356,15 +360,13 @@ class Table(Model, Queryable, AuditMixin):
             self.main_datetime_column = any_date_col
 
 
-
-
 class SqlMetric(Model, AuditMixin):
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
-    table_id = Column(Integer,ForeignKey('tables.id'))
+    table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'Table', backref='metrics', foreign_keys=[table_id])
     expression = Column(Text)
@@ -394,6 +396,7 @@ class TableColumn(Model, AuditMixin):
     @property
     def isnum(self):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT')
+
 
 class Cluster(Model, AuditMixin):
     __tablename__ = 'clusters'
@@ -440,9 +443,10 @@ class Datasource(Model, AuditMixin, Queryable):
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='datasources', foreign_keys=[user_id])
-    cluster_name = Column(String(255),
-        ForeignKey('clusters.cluster_name'))
-    cluster = relationship('Cluster', backref='datasources', foreign_keys=[cluster_name])
+    cluster_name = Column(
+        String(255), ForeignKey('clusters.cluster_name'))
+    cluster = relationship(
+        'Cluster', backref='datasources', foreign_keys=[cluster_name])
 
     @property
     def metrics_combo(self):
@@ -517,7 +521,6 @@ class Datasource(Model, AuditMixin, Queryable):
                 col_obj.type = cols[col]['type']
             col_obj.datasource = datasource
             col_obj.generate_metrics()
-        #session.commit()
 
     def query(
             self, groupby, metrics,
@@ -529,7 +532,9 @@ class Datasource(Model, AuditMixin, Queryable):
             timeseries_limit=None,
             row_limit=None):
         qry_start_dttm = datetime.now()
-        from_dttm = from_dttm.replace(tzinfo=config.DRUID_TZ)  # add tzinfo to native datetime with config
+
+        # add tzinfo to native datetime with config
+        from_dttm = from_dttm.replace(tzinfo=config.DRUID_TZ)
         to_dttm = to_dttm.replace(tzinfo=config.DRUID_TZ)
 
         query_str = ""
@@ -545,25 +550,25 @@ class Datasource(Model, AuditMixin, Queryable):
             dimensions=groupby,
             aggregations=aggregations,
             granularity=granularity,
-            intervals= from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+            intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
         filters = None
         for col, op, eq in filter:
             cond = None
             if op == '==':
-                cond = Dimension(col)==eq
+                cond = Dimension(col) == eq
             elif op == '!=':
-                cond = ~(Dimension(col)==eq)
+                cond = ~(Dimension(col) == eq)
             elif op in ('in', 'not in'):
                 fields = []
                 splitted = eq.split(',')
                 if len(splitted) > 1:
                     for s in eq.split(','):
                         s = s.strip()
-                        fields.append(Filter.build_filter(Dimension(col)==s))
+                        fields.append(Filter.build_filter(Dimension(col) == s))
                     cond = Filter(type="or", fields=fields)
                 else:
-                    cond = Dimension(col)==eq
+                    cond = Dimension(col) == eq
                 if op == 'not in':
                     cond = ~cond
             if filters:
@@ -596,7 +601,7 @@ class Datasource(Model, AuditMixin, Queryable):
             query_str += json.dumps(client.query_dict, indent=2) + "\n"
             query_str += "//\nPhase 2 (built based on phase one's results)\n"
             df = client.export_pandas()
-            if not df is None and not df.empty:
+            if df is not None and not df.empty:
                 dims = qry['dimensions']
                 filters = []
                 for index, row in df.iterrows():
@@ -637,7 +642,6 @@ class Datasource(Model, AuditMixin, Queryable):
             duration=datetime.now() - qry_start_dttm)
 
 
-#class Metric(Model, AuditMixin):
 class Metric(Model):
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
@@ -655,7 +659,7 @@ class Metric(Model):
     def json_obj(self):
         try:
             obj = json.loads(self.json)
-        except Exception as e:
+        except:
             obj = {}
         return obj
 
@@ -695,11 +699,14 @@ class Column(Model, AuditMixin):
             json=json.dumps({'type': 'count', 'name': 'count'})
         ))
         # Somehow we need to reassign this for UDAFs
-        corrected_type = 'DOUBLE' if self.type in ('DOUBLE', 'FLOAT') else self.type
+        if self.type in ('DOUBLE', 'FLOAT'):
+            corrected_type = 'DOUBLE'
+        else:
+            corrected_type = self.type
 
         if self.sum and self.isnum:
             mt = corrected_type.lower() + 'Sum'
-            name='sum__' + self.column_name
+            name = 'sum__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
                 metric_type='sum',
@@ -709,7 +716,7 @@ class Column(Model, AuditMixin):
             ))
         if self.min and self.isnum:
             mt = corrected_type.lower() + 'Min'
-            name='min__' + self.column_name
+            name = 'min__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
                 metric_type='min',
@@ -719,7 +726,7 @@ class Column(Model, AuditMixin):
             ))
         if self.max and self.isnum:
             mt = corrected_type.lower() + 'Max'
-            name='max__' + self.column_name
+            name = 'max__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
                 metric_type='max',
@@ -729,7 +736,7 @@ class Column(Model, AuditMixin):
             ))
         if self.count_distinct:
             mt = 'count_distinct'
-            name='count_distinct__' + self.column_name
+            name = 'count_distinct__' + self.column_name
             metrics.append(Metric(
                 metric_name=name,
                 verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
@@ -743,9 +750,9 @@ class Column(Model, AuditMixin):
         for metric in metrics:
             m = (
                 session.query(M)
-                .filter(M.metric_name==metric.metric_name)
-                .filter(M.datasource_name==self.datasource_name)
-                .filter(Cluster.cluster_name==self.datasource.cluster_name)
+                .filter(M.metric_name == metric.metric_name)
+                .filter(M.datasource_name == self.datasource_name)
+                .filter(Cluster.cluster_name == self.datasource.cluster_name)
                 .first()
             )
             metric.datasource_name = self.datasource_name

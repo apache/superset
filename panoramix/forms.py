@@ -1,12 +1,10 @@
 from wtforms import Field, Form, SelectMultipleField, SelectField, TextField
-from flask_appbuilder.fieldwidgets import Select2Widget, Select2ManyWidget
-
-
 
 
 class OmgWtForm(Form):
     field_order = tuple()
     css_classes = dict()
+
     @property
     def fields(self):
         fields = []
@@ -64,13 +62,12 @@ def form_factory(datasource, viz, form_args=None):
     select2 = [
         'viz_type', 'metrics', 'groupby',
         'row_limit', 'rolling_type', 'series',
-        'entity', 'x', 'y', 'size',]
+        'entity', 'x', 'y', 'size']
     field_css_classes['since'] += ['select2_free_since']
     field_css_classes['until'] += ['select2_free_until']
     field_css_classes['granularity'] += ['select2_free_granularity']
     for field in select2:
         field_css_classes[field] += ['select2']
-
 
     class QueryForm(OmgWtForm):
         field_order = viz.form_fields
@@ -78,7 +75,8 @@ def form_factory(datasource, viz, form_args=None):
 
     for i in range(10):
         setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-            'Filter 1', choices=[(s, s) for s in datasource.filterable_column_names]))
+            'Filter 1',
+            choices=[(s, s) for s in datasource.filterable_column_names]))
         setattr(QueryForm, 'flt_op_' + str(i), SelectField(
             'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
         setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))

@@ -1,7 +1,5 @@
-import pandas
 from collections import defaultdict
 import copy
-import json
 from pandas.io.json import dumps
 
 
@@ -9,6 +7,7 @@ class BaseHighchart(object):
     stockchart = False
     tooltip_formatter = ""
     target_div = 'chart'
+
     @property
     def javascript_cmd(self):
         js = dumps(self.chart)
@@ -18,7 +17,7 @@ class BaseHighchart(object):
         )
         if self.stockchart:
             return "new Highcharts.StockChart(%s);" % js
-        return "new Highcharts.Chart(%s);" %js
+        return "new Highcharts.Chart(%s);" % js
 
 
 class Highchart(BaseHighchart):
@@ -127,7 +126,6 @@ class Highchart(BaseHighchart):
             """
         return tf
 
-
     def serialize_series(self):
         df = self.df
         chart = self.chart
@@ -140,7 +138,8 @@ class Highchart(BaseHighchart):
                 continue
             sec = name in self.secondary_y
             d = {
-                "name": name if not sec or self.mark_right else name + " (right)",
+                "name":
+                    name if not sec or self.mark_right else name + " (right)",
                 "yAxis": int(sec),
                 "data": zip(df.index, data.tolist())
             }
@@ -150,8 +149,6 @@ class Highchart(BaseHighchart):
                 d['compare'] = self.compare  # either `value` or `percent`
             if self.chart_type in ("area", "column", "bar") and self.stacked:
                 d["stacking"] = 'normal'
-            #if kwargs.get("style"):
-            #    d["dashStyle"] = pd2hc_linestyle(kwargs["style"].get(name, "-"))
             chart["series"].append(d)
 
     def serialize_xaxis(self):
@@ -219,7 +216,6 @@ class HighchartBubble(BaseHighchart):
             chart['chart']["height"] = height
 
     def series(self):
-        #df = self.df[['name', 'x', 'y', 'z']]
         df = self.df
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):

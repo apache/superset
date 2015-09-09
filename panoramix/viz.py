@@ -45,7 +45,6 @@ class BaseViz(object):
             logging.exception(e)
             self.error_msg = str(e)
 
-
     def form_class(self):
         return form_factory(self.datasource, self, request.args)
 
@@ -68,7 +67,6 @@ class BaseViz(object):
         """
         Building a query object
         """
-        ds = self.datasource
         args = self.form_data
         groupby = args.getlist("groupby") or []
         metrics = args.getlist("metrics") or ['count']
@@ -129,11 +127,12 @@ class TableViz(BaseViz):
             return super(TableViz, self).render(error_msg=self.error_msg)
 
         df = self.df
-        row_limit = request.args.get("row_limit")
         if df is None or df.empty:
             return super(TableViz, self).render(error_msg="No data.")
         else:
-            if self.form_data.get("granularity") == "all" and 'timestamp' in df:
+            if (
+                    self.form_data.get("granularity") == "all" and
+                    'timestamp' in df):
                 del df['timestamp']
             for m in self.metrics:
                 df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
@@ -185,8 +184,6 @@ class BubbleViz(HighchartsViz):
         return d
 
     def render(self):
-        metrics = self.metrics
-
         if not self.error_msg:
             df = self.df.fillna(0)
             df['x'] = df[[self.x_metric]]
@@ -268,7 +265,7 @@ class TimeSeriesCompareValueViz(TimeSeriesViz):
 
 class TimeSeriesAreaViz(TimeSeriesViz):
     verbose_name = "Time Series - Stacked Area Chart"
-    stacked=True
+    stacked = True
     chart_type = "area"
 
 

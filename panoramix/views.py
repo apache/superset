@@ -12,14 +12,18 @@ from flask.ext.appbuilder.actions import action
 
 from panoramix import appbuilder, db, models, viz, utils, app
 
+
 def validate_json(form, field):
     try:
         json.loads(field.data)
     except Exception as e:
+        logging.exception(e)
         raise ValidationError("Json isn't valid")
 
+
 class DeleteMixin(object):
-    @action("muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
+    @action(
+        "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
     def muldelete(self, items):
         self.datamodel.delete_all(items)
         self.update_redirect()
@@ -53,17 +57,15 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
     def post_update(self, col):
         col.generate_metrics()
 
-    def post_update(self, col):
-        col.generate_metrics()
-
 appbuilder.add_view_no_menu(ColumnInlineView)
+
 
 class SqlMetricInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table',]
+        'expression', 'table']
     add_columns = edit_columns
     page_size = 100
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -71,7 +73,7 @@ appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 class MetricInlineView(CompactCRUDMixin, ModelView):
     datamodel = SQLAInterface(models.Metric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type' ]
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'datasource', 'json']
@@ -120,7 +122,8 @@ class TableView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Table)
     list_columns = ['table_link', 'database']
     add_columns = ['table_name', 'database', 'default_endpoint']
-    edit_columns = ['table_name', 'database', 'main_datetime_column', 'default_endpoint']
+    edit_columns = [
+        'table_name', 'database', 'main_datetime_column', 'default_endpoint']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
 
     def post_add(self, table):
@@ -193,9 +196,6 @@ class Panoramix(BaseView):
                 json.dumps(obj.get_query(), indent=4),
                 status=200,
                 mimetype="application/json")
-        if not hasattr(obj, 'df') or obj.df is None or obj.df.empty:
-            pass
-            #return obj.render_no_data()
         return obj.render()
 
     @has_access
@@ -263,5 +263,4 @@ appbuilder.add_link(
     category_icon='fa-cogs',
     icon="fa-cog")
 
-#models.Metric.__table__.drop(db.engine)
 db.create_all()
