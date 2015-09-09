@@ -196,7 +196,7 @@ class Panoramix(BaseView):
                 json.dumps(obj.get_query(), indent=4),
                 status=200,
                 mimetype="application/json")
-        return obj.render()
+        return obj.check_and_render()
 
     @has_access
     @expose("/datasource/<datasource_name>/")
@@ -224,7 +224,7 @@ class Panoramix(BaseView):
         if not hasattr(obj, 'df') or obj.df is None or obj.df.empty:
             return obj.render_no_data()
 
-        return obj.render()
+        return obj.check_and_render()
 
     @has_access
     @expose("/refresh_datasources/")

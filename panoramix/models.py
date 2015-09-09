@@ -11,7 +11,7 @@ from sqlalchemy import (
 from sqlalchemy import Table as sqlaTable
 from sqlalchemy import create_engine, MetaData, desc, select, and_
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import table, literal_column
+from sqlalchemy.sql import table, literal_column, text
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -99,7 +99,9 @@ class Table(Model, Queryable, AuditMixin):
             limit_spec=None,
             filter=None,
             is_timeseries=True,
-            timeseries_limit=15, row_limit=None):
+            timeseries_limit=15,
+            row_limit=None,
+            extras=None):
         """
         Unused, legacy way of querying by building a SQL string without
         using the sqlalchemy expression API (new approach which supports
@@ -192,7 +194,8 @@ class Table(Model, Queryable, AuditMixin):
             limit_spec=None,
             filter=None,
             is_timeseries=True,
-            timeseries_limit=15, row_limit=None):
+            timeseries_limit=15, row_limit=None,
+            extras=None):
 
         qry_start_dttm = datetime.now()
         timestamp = literal_column(
@@ -236,6 +239,8 @@ class Table(Model, Queryable, AuditMixin):
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
+        if extras and 'where' in extras:
+            where_clause_and += [text(extras['where'])]
         qry = qry.where(and_(*where_clause_and))
         qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
@@ -530,7 +535,8 @@ class Datasource(Model, AuditMixin, Queryable):
             filter=None,
             is_timeseries=True,
             timeseries_limit=None,
-            row_limit=None):
+            row_limit=None,
+            extras=None):
         qry_start_dttm = datetime.now()
 
         # add tzinfo to native datetime with config

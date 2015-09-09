@@ -1,6 +1,7 @@
 {% extends "panoramix/base.html" %}
 {% block head_css %}
 {{super()}}
+{% set datasource = viz.datasource %}
 <style>
 .select2-container-multi .select2-choices {
   height: 70px; 
@@ -97,7 +98,7 @@ form input.form-control {
     <hr/>
     {% block viz %}
         {% if error_msg %}
-            <span class="alert alert-danger">{{ error_msg }}</span>
+            <div class="alert alert-danger">{{ error_msg }}</div>
         {% endif %}
     {% endblock %}
 

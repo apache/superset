@@ -46,7 +46,7 @@ class BaseViz(object):
             self.error_msg = str(e)
 
     def form_class(self):
-        return form_factory(self.datasource, self, request.args)
+        return form_factory(self)
 
     def query_filters(self):
         args = self.form_data
@@ -86,6 +86,12 @@ class BaseViz(object):
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identicial to not raise
+
+        # extras are used to query elements specific to a datasource type
+        # for instance the extra where clause that applies only to Tables
+        extras = {
+            'where': args.get("where")
+        }
         d = {
             'granularity': granularity,
             'from_dttm': from_dttm,
@@ -96,12 +102,19 @@ class BaseViz(object):
             'row_limit': row_limit,
             'filter': self.query_filters(),
             'timeseries_limit': limit,
+            'extras': extras,
         }
         return d
 
     def render_no_data(self):
         self.template = "panoramix/no_data.html"
         return BaseViz.render(self)
+
+    def check_and_render(self, *args, **kwards):
+        if self.error_msg:
+            return BaseViz.render(self, error_msg=self.error_msg)
+        else:
+            return self.render(*args, **kwards)
 
     def render(self, *args, **kwargs):
         form = self.form_class(self.form_data)
@@ -123,9 +136,6 @@ class TableViz(BaseViz):
         return d
 
     def render(self):
-        if self.error_msg:
-            return super(TableViz, self).render(error_msg=self.error_msg)
-
         df = self.df
         if df is None or df.empty:
             return super(TableViz, self).render(error_msg="No data.")
@@ -137,9 +147,6 @@ class TableViz(BaseViz):
             for m in self.metrics:
                 df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
         return super(TableViz, self).render(df=df)
-
-    def form_class(self):
-        return form_factory(self.datasource, self, request.args)
 
 
 class HighchartsViz(BaseViz):
@@ -158,9 +165,6 @@ class BubbleViz(HighchartsViz):
     form_fields = [
         'viz_type', 'since', 'until',
         'series', 'entity', 'x', 'y', 'size', 'limit']
-
-    def form_class(self):
-        return form_factory(self.datasource, self, request.args)
 
     def query_obj(self):
         d = super(BubbleViz, self).query_obj()
@@ -184,17 +188,14 @@ class BubbleViz(HighchartsViz):
         return d
 
     def render(self):
-        if not self.error_msg:
-            df = self.df.fillna(0)
-            df['x'] = df[[self.x_metric]]
-            df['y'] = df[[self.y_metric]]
-            df['z'] = df[[self.z_metric]]
-            df['name'] = df[[self.entity]]
-            df['group'] = df[[self.series]]
-            chart = HighchartBubble(df)
-            return super(BubbleViz, self).render(chart_js=chart.javascript_cmd)
-        else:
-            return super(BubbleViz, self).render(error_msg=self.error_msg)
+        df = self.df.fillna(0)
+        df['x'] = df[[self.x_metric]]
+        df['y'] = df[[self.y_metric]]
+        df['z'] = df[[self.z_metric]]
+        df['name'] = df[[self.entity]]
+        df['group'] = df[[self.series]]
+        chart = HighchartBubble(df)
+        return super(BubbleViz, self).render(chart_js=chart.javascript_cmd)
 
 
 class TimeSeriesViz(HighchartsViz):
@@ -243,9 +244,6 @@ class TimeSeriesViz(HighchartsViz):
             **CHART_ARGS)
         return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
 
-    def form_class(self):
-        return form_factory(self.datasource, self, request.args)
-
     def bake_query(self):
         """
         Doing a 2 phase query where we limit the number of series.
@@ -283,6 +281,7 @@ class TimeSeriesStackedBarViz(TimeSeriesViz):
 class DistributionBarViz(HighchartsViz):
     verbose_name = "Distribution - Bar Chart"
     chart_type = "column"
+    form_fields = BaseViz.form_fields + ['limit']
 
     def query_obj(self):
         d = super(DistributionBarViz, self).query_obj()
@@ -305,6 +304,7 @@ class DistributionBarViz(HighchartsViz):
 class DistributionPieViz(HighchartsViz):
     verbose_name = "Distribution - Pie Chart"
     chart_type = "pie"
+    form_fields = BaseViz.form_fields + ['limit']
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
