@@ -43,8 +43,16 @@ form input.form-control {
         {% if not fieldname.__iter__ %}
             <div>
                 {% set field = form.get_field(fieldname)%}
-                {{ field.label }}: 
+                <div>
+                  {{ field.label }}
+                  {% if field.description %}
+                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                      title="{{ field.description }}"></i>
+                  {% endif %}: 
+                </div>
+                <div>
                 {{ field(class_=form.field_css_classes(field.name)) }}
+                </div>
             </div>
         {% else %}
           <div class="row">
@@ -52,7 +60,11 @@ form input.form-control {
               {% for name in fieldname %}
                   <div class="col-xs-{{ (12 / fieldname|length) | int }}">
                     {% set field = form.get_field(name)%}
-                    {{ field.label }}: 
+                    {{ field.label }}
+                    {% if field.description %}
+                      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                        title="{{ field.description }}"></i>
+                    {% endif %}: 
                     {{ field(class_=form.field_css_classes(field.name)) }}
                   </div>
               {% endfor %}

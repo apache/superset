@@ -35,25 +35,42 @@ def form_factory(viz):
     px_form_fields = {
         'viz_type': SelectField(
             'Viz',
-            choices=[(k, v.verbose_name) for k, v in viz_types.items()]),
+            choices=[(k, v.verbose_name) for k, v in viz_types.items()],
+            description="The type of visualization to display"),
         'metrics': SelectMultipleField(
-            'Metrics', choices=datasource.metrics_combo),
+            'Metrics', choices=datasource.metrics_combo,
+            description="One or many metrics to display"),
         'groupby': SelectMultipleField(
             'Group by',
-            choices=[(s, s) for s in datasource.groupby_column_names]),
-        'granularity': TextField('Time Granularity', default="one day"),
-        'since': TextField('Since', default="one day ago"),
+            choices=[(s, s) for s in datasource.groupby_column_names],
+            description="One or many fields to group by"),
+        'granularity': TextField(
+            'Time Granularity', default="one day",
+            description=(
+                "The time granularity for the visualization. Note that you "
+                "can type and use simple natural language as in '10 seconds', "
+                "'1 day' or '56 weeks'")),
+        'since': TextField(
+            'Since', default="one day ago", description=(
+                "Timestamp from filter. This supports free form typing and "
+                "natural language as in '1 day ago', '28 days' or '3 years'")),
         'until': TextField('Until', default="now"),
         'row_limit':
             SelectField(
                 'Row limit', choices=[(s, s) for s in row_limits]),
         'limit':
             SelectField(
-                'Series limit', choices=[(s, s) for s in series_limits]),
+                'Series limit', choices=[(s, s) for s in series_limits],
+                description=(
+                    "Limits the number of time series that get displayed")),
         'rolling_type': SelectField(
             'Rolling',
-            choices=[(s, s) for s in ['mean', 'sum', 'std']]),
-        'rolling_periods': TextField('Periods',),
+            choices=[(s, s) for s in ['mean', 'sum', 'std']],
+            description=(
+                "Defines a rolling window function to apply")),
+        'rolling_periods': TextField('Periods', description=(
+            "Defines the size of the rolling window function, "
+            "relative to the 'granularity' field")),
         'series': SelectField('Series', choices=group_by_choices),
         'entity': SelectField('Entity', choices=group_by_choices),
         'x': SelectField('X Axis', choices=datasource.metrics_combo),
