@@ -1,4 +1,5 @@
 from wtforms import Field, Form, SelectMultipleField, SelectField, TextField
+from copy import copy
 
 
 class OmgWtForm(Form):
@@ -24,7 +25,8 @@ class OmgWtForm(Form):
         return ""
 
 
-def form_factory(datasource, viz, form_args=None):
+def form_factory(viz):
+    datasource = viz.datasource
     from panoramix.viz import viz_types
     row_limits = [10, 50, 100, 500, 1000, 5000, 10000]
     series_limits = [0, 5, 10, 25, 50, 100, 500]
@@ -57,6 +59,7 @@ def form_factory(datasource, viz, form_args=None):
         'x': SelectField('X Axis', choices=datasource.metrics_combo),
         'y': SelectField('Y Axis', choices=datasource.metrics_combo),
         'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
+        'where': TextField('Custom WHERE clause'),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
@@ -70,7 +73,7 @@ def form_factory(datasource, viz, form_args=None):
         field_css_classes[field] += ['select2']
 
     class QueryForm(OmgWtForm):
-        field_order = viz.form_fields
+        field_order = copy(viz.form_fields)
         css_classes = field_css_classes
 
     for i in range(10):
@@ -85,4 +88,9 @@ def form_factory(datasource, viz, form_args=None):
             ff = [ff]
         for s in ff:
             setattr(QueryForm, s, px_form_fields[s])
+
+    # datasource type specific form elements
+    if datasource.__class__.__name__ == 'Table':
+        QueryForm.field_order += ['where']
+        setattr(QueryForm, 'where', px_form_fields['where'])
     return QueryForm
