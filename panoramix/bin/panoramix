@@ -1,30 +1,36 @@
 #!/usr/bin/env python
+
+from flask.ext.script import Manager
 from panoramix import app, config
 from subprocess import Popen
-import argparse
+from flask.ext.migrate import MigrateCommand
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Start a Panoramix web server')
-    parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help="Start the web server in debug mode")
-    parser.add_argument(
-        '-p', '--port', default=config.PANORAMIX_WEBSERVER_PORT,
-        help="Specify the port on which to run the web server")
-    args = parser.parse_args()
-    args.debug = args.debug or config.DEBUG
-    if args.debug:
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
+
+@manager.option(
+    '-d', '--debug', action='store_true',
+    help="Start the web server in debug mode")
+@manager.option(
+    '-p', '--port', default=config.PANORAMIX_WEBSERVER_PORT,
+    help="Specify the port on which to run the web server")
+def runserver(debug, port):
+    """Starts a Panoramix web server"""
+    debug = debug or config.DEBUG
+    if debug:
         app.run(
             host='0.0.0.0',
-            port=int(args.port),
+            port=int(port),
             debug=True)
     else:
         cmd = (
             "gunicorn "
             "-w 8 "
-            "-b 0.0.0.0:{args.port} "
+            "-b 0.0.0.0:{port} "
             "panoramix:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
+
+if __name__ == "__main__":
+    manager.run()
