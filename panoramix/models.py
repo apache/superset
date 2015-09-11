@@ -8,6 +8,7 @@ from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
+from panoramix.utils import JSONEncodedDict
 from sqlalchemy import Table as sqlaTable
 from sqlalchemy import create_engine, MetaData, desc, select, and_
 from sqlalchemy.orm import relationship
@@ -27,6 +28,15 @@ import config
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
+class Slice(Model, AuditMixin):
+    """A slice is essentially a report or a view on data"""
+    __tablename__ = 'slices'
+    id = Column(Integer, primary_key=True)
+    params = Column(JSONEncodedDict)
+    datasource = Column(String(250))
+    viz_type = Column(String(250))
+
+
 class Queryable(object):
     @property
     def column_names(self):
@@ -44,7 +54,7 @@ class Queryable(object):
 class Database(Model, AuditMixin):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
-    database_name = Column(String(255), unique=True)
+    database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
 
     def __repr__(self):
@@ -406,7 +416,7 @@ class TableColumn(Model, AuditMixin):
 class Cluster(Model, AuditMixin):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
-    cluster_name = Column(String(255), unique=True)
+    cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(256))
     coordinator_port = Column(Integer)
     coordinator_endpoint = Column(String(256))
@@ -441,7 +451,7 @@ class Datasource(Model, AuditMixin, Queryable):
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
-    datasource_name = Column(String(255), unique=True)
+    datasource_name = Column(String(250), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
@@ -655,7 +665,7 @@ class Metric(Model):
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     datasource_name = Column(
-        String(256),
+        String(250),
         ForeignKey('datasources.datasource_name'))
     datasource = relationship('Datasource', backref='metrics')
     json = Column(Text)
@@ -674,7 +684,7 @@ class Column(Model, AuditMixin):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
-        String(256),
+        String(250),
         ForeignKey('datasources.datasource_name'))
     datasource = relationship('Datasource', backref='columns')
     column_name = Column(String(256))

@@ -1,5 +1,5 @@
 flask
-flask-alembic
+flask-migrate
 flask-appbuilder
 gunicorn
 mysql-python

@@ -1,4 +1,6 @@
 from datetime import datetime
+from sqlalchemy.types import TypeDecorator, TEXT
+import json
 import parsedatetime
 
 
@@ -33,3 +35,19 @@ def parse_human_timedelta(s):
     d = datetime(
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
     return d - dttm
+
+
+
+class JSONEncodedDict(TypeDecorator):
+    """Represents an immutable structure as a json-encoded string."""
+    impl = TEXT
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            value = json.dumps(value)
+
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = json.loads(value)
+        return value

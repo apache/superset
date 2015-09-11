@@ -19,6 +19,8 @@ ROW_LIMIT = 50000
 WEBSERVER_THREADS = 8
 
 PANORAMIX_WEBSERVER_PORT = 8088
+
+CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
 
 # Your App secret key

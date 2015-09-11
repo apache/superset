@@ -1,4 +1,5 @@
 *.pyc
+build
 *.db
 tmp
 panoramix_config.py

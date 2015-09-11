@@ -262,5 +262,3 @@ appbuilder.add_link(
     category='Admin',
     category_icon='fa-cogs',
     icon="fa-cog")
-
-db.create_all()
