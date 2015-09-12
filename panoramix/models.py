@@ -32,9 +32,21 @@ class Slice(Model, AuditMixin):
     """A slice is essentially a report or a view on data"""
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
-    params = Column(JSONEncodedDict)
-    datasource = Column(String(250))
+    slice_name = Column(String(250))
+    datasource_id = Column(Integer)
+    datasource_type = Column(String(200))
+    datasource_name = Column(String(2000))
     viz_type = Column(String(250))
+    params = Column(Text)
+
+    @property
+    def slice_link(self):
+        d = json.loads(self.params)
+        kwargs = "&".join([k + '=' + v for k, v in d.iteritems()])
+        url = (
+            "/panoramix/{self.datasource_type}/"
+            "{self.datasource_id}/?{kwargs}").format(**locals())
+        return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
 
 
 class Queryable(object):
@@ -72,6 +84,8 @@ class Database(Model, AuditMixin):
 
 
 class Table(Model, Queryable, AuditMixin):
+    type = "table"
+
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     table_name = Column(String(255), unique=True)
@@ -446,6 +460,7 @@ class Cluster(Model, AuditMixin):
 
 
 class Datasource(Model, AuditMixin, Queryable):
+    type = "datasource"
 
     baselink = "datasourcemodelview"
 

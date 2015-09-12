@@ -104,6 +104,18 @@ appbuilder.add_view(
     category_icon='fa-cogs',)
 
 
+class SliceModelView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Slice)
+    list_columns = ['slice_link', 'viz_type', 'created_by']
+
+appbuilder.add_view(
+    SliceModelView,
+    "Slices",
+    icon="fa-bar-chart",
+    category="",
+    category_icon='',)
+
+
 class DatabaseView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name']
@@ -176,7 +188,6 @@ class Panoramix(BaseView):
     @has_access
     @expose("/table/<table_id>/")
     def table(self, table_id):
-
         table = (
             db.session
             .query(models.Table)
@@ -225,6 +236,24 @@ class Panoramix(BaseView):
             return obj.render_no_data()
 
         return obj.check_and_render()
+
+    @has_access
+    @expose("/save/")
+    def save(self):
+        session = db.session()
+        obj = models.Slice(
+            params=json.dumps(request.args.to_dict()),
+            viz_type=request.args.get('viz_type'),
+            datasource_name=request.args.get('datasource_name'),
+            datasource_id=request.args.get('datasource_id'),
+            datasource_type=request.args.get('datasource_type'),
+            slice_name=request.args.get('slice_name', 'junk'),
+        )
+        session.add(obj)
+        session.commit()
+        session.close()
+
+        return "super!"
 
     @has_access
     @expose("/refresh_datasources/")

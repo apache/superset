@@ -129,6 +129,7 @@ class BaseViz(object):
         return self.view.render_template(
             self.template, form=form, viz=self, datasource=self.datasource,
             results=self.results,
+            standalone=request.args.get('standalone') == 'true',
             *args, **kwargs)
 
 
