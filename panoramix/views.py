@@ -194,6 +194,8 @@ class Panoramix(BaseView):
             .filter_by(id=table_id)
             .first()
         )
+        if not table:
+            flash("The table seem to have been deleted", "alert")
         viz_type = request.args.get("viz_type")
         if not viz_type and table.default_endpoint:
             return redirect(table.default_endpoint)
@@ -254,6 +256,11 @@ class Panoramix(BaseView):
         session.close()
 
         return "super!"
+
+    @has_access
+    @expose("/dashboard/")
+    def dashboard(self):
+        return self.render_template("panoramix/dashboard.html")
 
     @has_access
     @expose("/refresh_datasources/")

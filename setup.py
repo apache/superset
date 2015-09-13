@@ -16,6 +16,7 @@ setup(
     install_requires=[
         'flask-appbuilder>=1.4.5',
         'flask-migrate>=1.5.1',
+        'flask-login==0.2.11',
         'gunicorn>=19.3.0',
         'pandas>=0.16.2',
         'pydruid>=0.2.2',

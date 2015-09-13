@@ -1,0 +1,63 @@
+{% extends "panoramix/base.html" %}
+
+{% block head_css %}
+    {{super()}}
+    <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
+<style>
+    .gridster li {
+        list-style-type: none;
+        border: 1px solid gray;    
+        background: #EEEEEE;
+        overflow: auto;
+        box-shadow: 2px 2px 2px #AAA;
+    }
+    img.loading {
+        width: 20px;
+        margin: 5px;
+    }
+</style>
+{% endblock %}
+
+{% block content_fluid %}
+<div class="gridster content_fluid">
+    <ul>
+        <li id="loadme3" data-row="1" data-col="1" data-sizex="1" data-sizey="1">
+        </li>
+        <li data-row="2" data-col="1" data-sizex="1" data-sizey="1"></li>
+        <li data-row="3" data-col="1" data-sizex="1" data-sizey="1"></li>
+
+        <li data-row="1" data-col="2" data-sizex="2" data-sizey="1"></li>
+        <li id="loadme1" data-row="2" data-col="2" data-sizex="2" data-sizey="2"></li>
+
+        <li data-row="1" data-col="4" data-sizex="1" data-sizey="1"></li>
+        <li data-row="2" data-col="4" data-sizex="2" data-sizey="1"></li>
+        <li data-row="3" data-col="4" data-sizex="1" data-sizey="1"></li>
+
+        <li data-row="1" data-col="5" data-sizex="1" data-sizey="1"></li>
+        <li data-row="3" data-col="5" data-sizex="1" data-sizey="1"></li>
+
+        <li data-row="1" data-col="6" data-sizex="1" data-sizey="1"></li>
+        <li data-row="2" data-col="6" data-sizex="1" data-sizey="2"></li>
+        <li id="loadme2" data-row="4" data-col="1" data-sizex="2" data-sizey="2">
+        </li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block tail %}
+    {{ super() }}
+    <script src="{{ url_for("static", filename="jquery.gridster.with-extras.min.js") }}"></script>
+    <script>
+    $(".gridster li").html('<img src="/static/loading.gif" class="loading">');
+    $(".gridster ul").gridster({
+        widget_margins: [5, 5],
+        widget_base_dimensions: [200, 200],
+        resize: {enabled: true}
+    });
+    $("#loadme1").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=table&row_limit=50&since=50%20years%20ago&until=now&metrics=total&granularity=all&datasource_name=baby_names&slice_name=Top%2050%20table&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
+    //$("#loadme2").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
+    //$("loadme3").html('<iframe src="http://localhost:8088/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true"></iframe>');
+    </script>
+
+{% endblock %}
+
