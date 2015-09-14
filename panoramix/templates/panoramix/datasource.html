@@ -112,6 +112,7 @@ form input.form-control {
     {% endif %}
     </h3>
     <hr/>
+    <div class="viz" style="height: 600px;">
     {% block viz %}
         {% if viz.error_msg %}
             <div class="alert alert-danger">{{ viz.error_msg }}</div>
@@ -120,6 +121,7 @@ form input.form-control {
             <div class="alert alert-warning">{{ viz.warning_msg }}</div>
         {% endif %}
     {% endblock %}
+    </div>
 
     {% if debug %}
     <h3>Results</h3>
@@ -154,10 +156,8 @@ form input.form-control {
 
 {% block tail_js %}
 {{ super() }}
-<script src="{{ url_for("static", filename="d3.min.js") }}"></script>
 <script>
 $( document ).ready(function() {
-  f = d3.format(".4s");
   function getParam(name) {
       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),

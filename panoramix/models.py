@@ -96,8 +96,8 @@ class Dashboard(Model, AuditMixin):
     def js_files(self):
         l = []
         for o in self.slices:
-            l += o.js_files
-        return list(set(l))
+            l += [f for f in o.js_files if f not in l]
+        return l
 
     @property
     def css_files(self):

@@ -2,12 +2,14 @@
 
 {% block head_css %}
     {{ super() }}
+    {% for css in dashboard.css_files %}
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
+    {% endfor %}
     <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
 <style>
     .gridster li {
         list-style-type: none;
         border: 1px solid gray;    
-        background: #EEEEEE;
         overflow: auto;
         box-shadow: 2px 2px 2px #AAA;
         border-radius: 5px;
@@ -24,6 +26,10 @@
     }
     div.gridster {
         visibility: hidden
+    }
+    div.slice_content {
+        width: 100%;
+        height: 100%;
     }
 </style>
 {% endblock %}
@@ -42,6 +48,7 @@
             <div class="slice_title">
                 <h5>{{ slice.slice_name }}</h5>
             </div>
+            <div id="slice_content_{{ slice.id }}"><img src="/static/loading.gif" class="loading"></div>
         </li>
         {% endfor %}
     </ul>
@@ -50,18 +57,40 @@
 
 {% block tail %}
     {{ super() }}
+    {% for js in dashboard.js_files %}
+        <script src="{{ url_for('static', filename=js) }}"></script>
+    {% endfor %}
     <script src="{{ url_for("static", filename="jquery.gridster.with-extras.min.js") }}"></script>
+    <script src="{{ url_for("static", filename="d3.min.js") }}"></script>
     <script>
-    //$(".gridster li").html('<img src="/static/loading.gif" class="loading">');
+        f = d3.format(".4s");
+    </script>
+    <script>
+
+$( document ).ready(function() {
     $(".gridster ul").gridster({
         widget_margins: [5, 5],
         widget_base_dimensions: [150, 150],
         resize: {enabled: true}
     });
-    $("#loadme1").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=table&row_limit=50&since=50%20years%20ago&until=now&metrics=total&granularity=all&datasource_name=baby_names&slice_name=Top%2050%20table&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
-    //$("#loadme2").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
-    //$("loadme3").html('<iframe src="http://localhost:8088/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true"></iframe>');
+    var url = "/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true&skip_libs=true";
+    $.ajax({
+        url: url,
+        success: function(result){
+            $("#slice_content_2").html(result);
+        },
+        async: true,
+    });
+    var url = "/panoramix/table/2/?flt_col_0=gender&rolling_periods=&datasource_id=2&flt_op_0=in&slice_name=Super%20Slice&viz_type=line&since=50%20years%20ago&groupby=name&metrics=total&limit=25&flt_eq_0=&granularity=one%20day&datasource_name=baby_names&where=&until=now&rolling_type=mean&datasource_type=table&standalone=true&skip_libs=true";
+    $.ajax({
+        url: url,
+        success: function(result){
+            $("#slice_content_3").html(result);
+        },
+        async: true,
+    });
     $("div.gridster").css('visibility', 'visible');
+});
     </script>
 
 {% endblock %}

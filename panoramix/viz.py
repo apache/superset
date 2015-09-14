@@ -11,7 +11,7 @@ from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
 
 CHART_ARGS = {
-    'height': 700,
+    #'height': 700,
     'title': None,
     'target_div': 'chart',
 }
@@ -132,6 +132,7 @@ class BaseViz(object):
             self.template, form=form, viz=self, datasource=self.datasource,
             results=self.results,
             standalone=request.args.get('standalone') == 'true',
+            skip_libs=request.args.get('skip_libs') == 'true',
             *args, **kwargs)
 
 
@@ -169,7 +170,7 @@ class HighchartsViz(BaseViz):
     stacked = False
     chart_type = 'not_stock'
     compare = False
-    js_files = ['highcharts.js']
+    js_files = ['highstock.js']
 
 
 class BubbleViz(HighchartsViz):
@@ -179,7 +180,7 @@ class BubbleViz(HighchartsViz):
     form_fields = [
         'viz_type', 'since', 'until',
         'series', 'entity', 'x', 'y', 'size', 'limit']
-    js_files = ['highcharts.js', 'highcharts-more.js']
+    js_files = ['highstock.js', 'highcharts-more.js']
 
     def query_obj(self):
         d = super(BubbleViz, self).query_obj()

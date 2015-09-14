@@ -1,9 +1,14 @@
-{% extends "appbuilder/baselayout.html" %}
-{% block body %}
+<html>
+    <head>
+    {% if not skip_libs %}
+        {% block head %}
+            <script src="{{url_for('appbuilder.static',filename='js/jquery-latest.js')}}"></script>
+        {% endblock %}
+    {% endif %}
+        {% block tail %}{% endblock %}
+    </head>
+    <body>
     {% block viz %}
     {% endblock %}
-{% endblock %}
-{% block tail %}
-    {{ super() }}
-{% endblock %}
-
+    </body>
+</html>
