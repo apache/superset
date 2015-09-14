@@ -1,10 +1,5 @@
 {% extends "panoramix/viz.html" %}
 
-{% block head_css %}
-{{super()}}
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='dataTables.bootstrap.css') }}">
-{% endblock %}
-
 {% block viz %}
     {{ super() }}
     {% if not error_msg %}
@@ -36,18 +31,15 @@
 {% endblock %}
 
 {% block tail %}
-{{ super() }}
-<script src="{{ url_for('static', filename='jquery.dataTables.min.js') }}"></script>
-<script src="{{ url_for('static', filename='dataTables.bootstrap.js') }}"></script>
-
-<script>
-    //$('table').css('background-color', 'white');
-$(document).ready(function() {
-    var table = $('table').DataTable({
-        paging: false,
+    {{ super() }}
+    <script>
+        //$('table').css('background-color', 'white');
+    $(document).ready(function() {
+        var table = $('table').DataTable({
+            paging: false,
+        });
+        table.column('-1').order( 'desc' ).draw();
     });
-    table.column('-1').order( 'desc' ).draw();
-});
-</script>
+    </script>
 {% endblock %}
 

@@ -24,6 +24,8 @@ class BaseViz(object):
     form_fields = [
         'viz_type', 'metrics', 'groupby', 'granularity',
         ('since', 'until')]
+    js_files = []
+    css_files = []
 
     def __init__(self, datasource, form_data, view):
         self.datasource = datasource
@@ -137,6 +139,8 @@ class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     form_fields = BaseViz.form_fields + ['row_limit']
+    css_files = ['dataTables.bootstrap.css']
+    js_files = ['jquery.dataTables.min.js', 'dataTables.bootstrap.js']
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -165,6 +169,7 @@ class HighchartsViz(BaseViz):
     stacked = False
     chart_type = 'not_stock'
     compare = False
+    js_files = ['highcharts.js']
 
 
 class BubbleViz(HighchartsViz):
@@ -174,6 +179,7 @@ class BubbleViz(HighchartsViz):
     form_fields = [
         'viz_type', 'since', 'until',
         'series', 'entity', 'x', 'y', 'size', 'limit']
+    js_files = ['highcharts.js', 'highcharts-more.js']
 
     def query_obj(self):
         d = super(BubbleViz, self).query_obj()
@@ -212,6 +218,7 @@ class TimeSeriesViz(HighchartsViz):
     chart_type = "spline"
     stockchart = True
     sort_legend_y = True
+    js_files = ['highstock.js', 'highcharts-more.js']
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),

@@ -106,12 +106,27 @@ appbuilder.add_view(
 
 class SliceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
-    list_columns = ['slice_link', 'viz_type', 'created_by']
+    list_columns = ['slice_link', 'viz_type', 'datasource', 'created_by']
 
 appbuilder.add_view(
     SliceModelView,
     "Slices",
     icon="fa-bar-chart",
+    category="",
+    category_icon='',)
+
+
+class DashboardModelView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Dashboard)
+    list_columns = ['dashboard_link', 'created_by']
+    edit_columns = ['dashboard_title', 'slices',]
+    add_columns = edit_columns
+
+
+appbuilder.add_view(
+    DashboardModelView,
+    "Dashboards",
+    icon="fa-dashboard",
     category="",
     category_icon='',)
 
@@ -258,9 +273,17 @@ class Panoramix(BaseView):
         return "super!"
 
     @has_access
-    @expose("/dashboard/")
-    def dashboard(self):
-        return self.render_template("panoramix/dashboard.html")
+    @expose("/dashboard/<id_>/")
+    def dashboard(self, id_):
+        session = db.session()
+        dashboard = (
+            session
+            .query(models.Dashboard)
+            .filter(models.Dashboard.id == id_)
+            .first()
+        )
+        return self.render_template(
+            "panoramix/dashboard.html", dashboard=dashboard)
 
     @has_access
     @expose("/refresh_datasources/")

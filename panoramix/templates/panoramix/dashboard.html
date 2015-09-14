@@ -1,7 +1,7 @@
 {% extends "panoramix/base.html" %}
 
 {% block head_css %}
-    {{super()}}
+    {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
 <style>
     .gridster li {
@@ -10,36 +10,40 @@
         background: #EEEEEE;
         overflow: auto;
         box-shadow: 2px 2px 2px #AAA;
+        border-radius: 5px;
     }
     img.loading {
         width: 20px;
         margin: 5px;
     }
+    .title {
+        text-align: center;
+    }
+    .slice_title {
+        text-align: center;
+    }
+    div.gridster {
+        visibility: hidden
+    }
 </style>
 {% endblock %}
 
 {% block content_fluid %}
+<div class="title"><h2>{{ dashboard.dashboard_title }}</h2></div>
 <div class="gridster content_fluid">
     <ul>
-        <li id="loadme3" data-row="1" data-col="1" data-sizex="1" data-sizey="1">
+        {% for slice in dashboard.slices %}
+        <li 
+            id="slice_{{ slice.id }}" 
+            data-row="1"
+            data-col="{{ loop.index }}"
+            data-sizex="2" 
+            data-sizey="2">
+            <div class="slice_title">
+                <h5>{{ slice.slice_name }}</h5>
+            </div>
         </li>
-        <li data-row="2" data-col="1" data-sizex="1" data-sizey="1"></li>
-        <li data-row="3" data-col="1" data-sizex="1" data-sizey="1"></li>
-
-        <li data-row="1" data-col="2" data-sizex="2" data-sizey="1"></li>
-        <li id="loadme1" data-row="2" data-col="2" data-sizex="2" data-sizey="2"></li>
-
-        <li data-row="1" data-col="4" data-sizex="1" data-sizey="1"></li>
-        <li data-row="2" data-col="4" data-sizex="2" data-sizey="1"></li>
-        <li data-row="3" data-col="4" data-sizex="1" data-sizey="1"></li>
-
-        <li data-row="1" data-col="5" data-sizex="1" data-sizey="1"></li>
-        <li data-row="3" data-col="5" data-sizex="1" data-sizey="1"></li>
-
-        <li data-row="1" data-col="6" data-sizex="1" data-sizey="1"></li>
-        <li data-row="2" data-col="6" data-sizex="1" data-sizey="2"></li>
-        <li id="loadme2" data-row="4" data-col="1" data-sizex="2" data-sizey="2">
-        </li>
+        {% endfor %}
     </ul>
 </div>
 {% endblock %}
@@ -48,15 +52,16 @@
     {{ super() }}
     <script src="{{ url_for("static", filename="jquery.gridster.with-extras.min.js") }}"></script>
     <script>
-    $(".gridster li").html('<img src="/static/loading.gif" class="loading">');
+    //$(".gridster li").html('<img src="/static/loading.gif" class="loading">');
     $(".gridster ul").gridster({
         widget_margins: [5, 5],
-        widget_base_dimensions: [200, 200],
+        widget_base_dimensions: [150, 150],
         resize: {enabled: true}
     });
     $("#loadme1").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=table&row_limit=50&since=50%20years%20ago&until=now&metrics=total&granularity=all&datasource_name=baby_names&slice_name=Top%2050%20table&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
     //$("#loadme2").load("/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true");
     //$("loadme3").html('<iframe src="http://localhost:8088/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true"></iframe>');
+    $("div.gridster").css('visibility', 'visible');
     </script>
 
 {% endblock %}

@@ -6,12 +6,6 @@
 
 {% block tail %}
     {{ super() }}
-    {% if viz.stockchart %}
-        <script src="{{ url_for("static", filename="highstock.js") }}"></script>
-    {% else %}
-        <script src="{{ url_for("static", filename="highcharts.js") }}"></script>
-    {% endif %}
-    <script src="{{ url_for("static", filename="highcharts-more.js") }}"></script>
     <script>
     $( document ).ready(function() {
         Highcharts.setOptions({

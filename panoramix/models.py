@@ -10,7 +10,7 @@ from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
 from panoramix.utils import JSONEncodedDict
 from sqlalchemy import Table as sqlaTable
-from sqlalchemy import create_engine, MetaData, desc, select, and_
+from sqlalchemy import create_engine, MetaData, desc, select, and_, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
 
@@ -33,11 +33,22 @@ class Slice(Model, AuditMixin):
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
-    datasource_id = Column(Integer)
+    datasource_id = Column(Integer, ForeignKey('datasources.id'))
+    table_id = Column(Integer, ForeignKey('tables.id'))
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+
+    table = relationship('Table', backref='slices')
+    druid_datasource = relationship('Datasource', backref='slices')
+
+    def __repr__(self):
+        return self.slice_name
+
+    @property
+    def datasource(self):
+        return self.table or self.druid_datasource
 
     @property
     def slice_link(self):
@@ -47,6 +58,53 @@ class Slice(Model, AuditMixin):
             "/panoramix/{self.datasource_type}/"
             "{self.datasource_id}/?{kwargs}").format(**locals())
         return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
+
+    @property
+    def js_files(self):
+        from panoramix.viz import viz_types
+        return viz_types[self.viz_type].js_files
+
+    @property
+    def css_files(self):
+        from panoramix.viz import viz_types
+        return viz_types[self.viz_type].css_files
+
+
+dashboard_slices = Table('dashboard_slices', Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
+    Column('slice_id', Integer, ForeignKey('slices.id')),
+)
+
+
+class Dashboard(Model, AuditMixin):
+    """A dash to slash"""
+    __tablename__ = 'dashboards'
+    id = Column(Integer, primary_key=True)
+    dashboard_title = Column(String(500))
+    slices = relationship(
+        'Slice', secondary=dashboard_slices, backref='dashboards')
+
+    def __repr__(self):
+        return self.dashboard_title
+
+    def dashboard_link(self):
+        url = "/panoramix/dashboard/{}/".format(self.id)
+        return '<a href="{url}">{self.dashboard_title}</a>'.format(**locals())
+
+    @property
+    def js_files(self):
+        l = []
+        for o in self.slices:
+            l += o.js_files
+        return list(set(l))
+
+    @property
+    def css_files(self):
+        l = []
+        for o in self.slices:
+            l += o.css_files
+        return list(set(l))
 
 
 class Queryable(object):
@@ -98,6 +156,9 @@ class Table(Model, Queryable, AuditMixin):
         'Database', backref='tables', foreign_keys=[database_id])
 
     baselink = "tableview"
+
+    def __repr__(self):
+        return self.table_name
 
     @property
     def name(self):
