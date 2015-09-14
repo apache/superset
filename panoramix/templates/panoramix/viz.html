@@ -1,8 +1,15 @@
+{% import viz.template as viz_macros %}
+
 {% if standalone %}
     {% extends 'panoramix/viz_standalone.html' %}
 {% else %}
     {% extends 'panoramix/datasource.html' %}
 {% endif %}
+
+
+{% block viz_html %}
+  {{ viz_macros.viz_html(viz) }}
+{% endblock %}
 
 {% block head %}
     {{super()}}
@@ -11,6 +18,7 @@
             <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
         {% endfor %}
     {% endif %}
+    {{ viz_macros.viz_css(viz) }}
 {% endblock %}
 
 
@@ -25,4 +33,5 @@
             <script src="{{ url_for('static', filename=js) }}"></script>
         {% endfor %}
     {% endif %}
+    {{ viz_macros.viz_js(viz) }}
 {% endblock %}

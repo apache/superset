@@ -1,11 +1,8 @@
-{% extends "panoramix/viz.html" %}
-{% block viz %}
-    {{ super() }}
+{% macro viz_html(viz) %}
     <div id="chart" style="height:100%; width:100%;"></div>
-{% endblock %}
+{% endmacro %}
 
-{% block tail %}
-    {{ super() }}
+{% macro viz_js(viz) %}
     <script>
     $( document ).ready(function() {
         Highcharts.setOptions({
@@ -20,9 +17,12 @@
         $("#viz_type").click(function(){
             $("#queryform").submit();
         })
-        {% if chart_js %}
-            {{ chart_js|safe }}
+        {% if viz.chart_js %}
+            {{ viz.chart_js|safe }}
         {% endif %}
     });
     </script>
-{% endblock %}
+{% endmacro %}
+
+{% macro viz_css(viz) %}
+{% endmacro %}

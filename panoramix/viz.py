@@ -129,7 +129,7 @@ class BaseViz(object):
     def render(self, *args, **kwargs):
         form = self.form_class(self.form_data)
         return self.view.render_template(
-            self.template, form=form, viz=self, datasource=self.datasource,
+            "panoramix/viz.html", form=form, viz=self, datasource=self.datasource,
             results=self.results,
             standalone=request.args.get('standalone') == 'true',
             skip_libs=request.args.get('skip_libs') == 'true',
@@ -211,7 +211,8 @@ class BubbleViz(HighchartsViz):
         df['name'] = df[[self.entity]]
         df['group'] = df[[self.series]]
         chart = HighchartBubble(df)
-        return super(BubbleViz, self).render(chart_js=chart.javascript_cmd)
+        self.chart_js = chart.javascript_cmd
+        return super(BubbleViz, self).render()
 
 
 class TimeSeriesViz(HighchartsViz):
@@ -259,7 +260,8 @@ class TimeSeriesViz(HighchartsViz):
             stockchart=self.stockchart,
             sort_legend_y=self.sort_legend_y,
             **CHART_ARGS)
-        return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
+        self.chart_js = chart.javascript_cmd
+        return super(TimeSeriesViz, self).render()
 
     def bake_query(self):
         """
@@ -314,8 +316,8 @@ class DistributionBarViz(HighchartsViz):
         df = df.sort(self.metrics[0], ascending=False)
         chart = Highchart(
             df, chart_type=self.chart_type, **CHART_ARGS)
-        return super(DistributionBarViz, self).render(
-            chart_js=chart.javascript_cmd)
+        self.chart_js = chart.javascript_cmd
+        return super(DistributionBarViz, self).render()
 
 
 class DistributionPieViz(HighchartsViz):
@@ -337,8 +339,8 @@ class DistributionPieViz(HighchartsViz):
         df = df.sort(self.metrics[0], ascending=False)
         chart = Highchart(
             df, chart_type=self.chart_type, **CHART_ARGS)
-        return super(DistributionPieViz, self).render(
-            chart_js=chart.javascript_cmd)
+        self.chart_js = chart.javascript_cmd
+        return super(DistributionPieViz, self).render()
 
 viz_types = OrderedDict([
     ['table', TableViz],
