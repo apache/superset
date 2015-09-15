@@ -219,12 +219,13 @@ class Panoramix(BaseView):
         obj = viz.viz_types[viz_type](
             table,
             form_data=request.args, view=self)
-        if request.args.get("json"):
+        if request.args.get("json") == "true":
             return Response(
-                json.dumps(obj.get_query(), indent=4),
-                status=200,
+                obj.get_json(),
+                #status=200,
                 mimetype="application/json")
-        return obj.check_and_render()
+        else:
+            return self.render_template("panoramix/viz.html", viz=obj)
 
     @has_access
     @expose("/datasource/<datasource_name>/")

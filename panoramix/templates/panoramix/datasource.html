@@ -1,36 +1,40 @@
 {% extends "panoramix/base.html" %}
 {% block head_css %}
 {{super()}}
-{% set datasource = viz.datasource %}
 <style>
-.select2-container-multi .select2-choices {
-  height: 70px; 
-  overflow: auto;
-}
-.no-gutter > [class*='col-'] {
+  .select2-container-multi .select2-choices {
+    height: 70px; 
+    overflow: auto;
+  }
+  .no-gutter > [class*='col-'] {
     padding-right:0;
     padding-left:0;
-}
-form div.form-control {
-  margin-bottom: 5px !important;
-}
-form input.form-control {
-  margin-bottom: 5px !important;
-}
-.tooltip-inner {
-  max-width: 350px;
-  //width: 350px; 
-}
+  }
+  form div.form-control {
+    margin-bottom: 5px !important;
+  }
+  form input.form-control {
+    margin-bottom: 5px !important;
+  }
+  .tooltip-inner {
+    max-width: 350px;
+    //width: 350px; 
+  }
+  img.loading {
+    width: 30px;
+  }
 
 </style>
 {% endblock %}
 {% block content_fluid %}
+{% set datasource = viz.datasource %}
+{% set form = viz.form %}
 <div class="container-fluid">
   <div class="col-md-3">
     <h3>
       {{ datasource.name }}
       {% if datasource.description %}
-        <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
+      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
       {% endif %}
       <a href="/{{ datasource.baselink }}/edit/{{ datasource.id }}">
         <i class="fa fa-edit"></i>
@@ -40,51 +44,51 @@ form input.form-control {
     <hr>
     <form id="query" method="GET" style="display: none;">
       {% for fieldname in form.field_order %}
-        {% if not fieldname.__iter__ %}
-            <div>
-                {% set field = form.get_field(fieldname)%}
-                <div>
-                  {{ field.label }}
-                  {% if field.description %}
-                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                      title="{{ field.description }}"></i>
-                  {% endif %}: 
-                </div>
-                <div>
-                {{ field(class_=form.field_css_classes(field.name)) }}
-                </div>
-            </div>
-        {% else %}
-          <div class="row">
-            <div class="form-group">
-              {% for name in fieldname %}
-                  <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-                    {% set field = form.get_field(name)%}
-                    {{ field.label }}
-                    {% if field.description %}
-                      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                        title="{{ field.description }}"></i>
-                    {% endif %}: 
-                    {{ field(class_=form.field_css_classes(field.name)) }}
-                  </div>
-              {% endfor %}
-            </div>
+      {% if not fieldname.__iter__ %}
+      <div>
+        {% set field = form.get_field(fieldname)%}
+        <div>
+          {{ field.label }}
+          {% if field.description %}
+          <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+            title="{{ field.description }}"></i>
+          {% endif %}: 
+        </div>
+        <div>
+          {{ field(class_=form.field_css_classes(field.name)) }}
+        </div>
+      </div>
+      {% else %}
+      <div class="row">
+        <div class="form-group">
+          {% for name in fieldname %}
+          <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+            {% set field = form.get_field(name)%}
+            {{ field.label }}
+            {% if field.description %}
+            <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+              title="{{ field.description }}"></i>
+            {% endif %}: 
+            {{ field(class_=form.field_css_classes(field.name)) }}
           </div>
-        {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
       {% endfor %}
       <hr>
       <h4>Filters</h4>
-        <div id="flt0" style="display: none;">
-            <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
-          <div class="row">
-            <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
-            <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
-            <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
-              <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
-            </button>
-          </div>
-          <hr style="margin: 5px 0px;"/>
+      <div id="flt0" style="display: none;">
+        <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+        <div class="row">
+          <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+          <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+          <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
+            <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+          </button>
         </div>
+        <hr style="margin: 5px 0px;"/>
+      </div>
       <div id="filters"></div>
       <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
@@ -103,37 +107,26 @@ form input.form-control {
 
   <div class="col-md-9">
     <h3>{{ viz.verbose_name }}
-    {% if results %}
-        <span class="label label-success">
-            {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
-        </span>
-        <span class="label label-info btn" 
-            data-toggle="modal" data-target="#query_modal">query</span>
-    {% endif %}
+      {% if False %}
+      <span class="label label-success">
+        {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
+      </span>
+      <span class="label label-info btn" 
+        data-toggle="modal" data-target="#query_modal">query</span>
+      {% endif %}
     </h3>
     <hr/>
     <div class="viz" style="height: 600px;">
-    {% block viz_html %}
-        {% if viz.error_msg %}
-            <div class="alert alert-danger">{{ viz.error_msg }}</div>
-        {% endif %}
-        {% if viz.warning_msg %}
-            <div class="alert alert-warning">{{ viz.warning_msg }}</div>
-        {% endif %}
-    {% endblock %}
+      {% block viz_html %}
+      {% if viz.error_msg %}
+      <div class="alert alert-danger">{{ viz.error_msg }}</div>
+      {% endif %}
+      {% if viz.warning_msg %}
+      <div class="alert alert-warning">{{ viz.warning_msg }}</div>
+      {% endif %}
+      {% endblock %}
     </div>
 
-    {% if debug %}
-    <h3>Results</h3>
-    <pre>
-      {{ results }} 
-    </pre>
-
-    <h3>Latest Segment Metadata</h3>
-    <pre>
-               {{ latest_metadata }} 
-    </pre>
-    {% endif %}
   </div>
 </div>
 <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -144,7 +137,7 @@ form input.form-control {
         <h4 class="modal-title" id="myModalLabel">Query</h4>
       </div>
       <div class="modal-body">
-        <pre>{{ results.query }}</pre>
+        <pre>{{ '' }}</pre>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
@@ -157,29 +150,29 @@ form input.form-control {
 {% block tail_js %}
 {{ super() }}
 <script>
-$( document ).ready(function() {
-  function getParam(name) {
+  $( document ).ready(function() {
+    function getParam(name) {
       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-          results = regex.exec(location.search);
+      results = regex.exec(location.search);
       return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-  }
+    }
 
-  $(".select2").select2();
-  $("form").slideDown("slow");
-  $('[data-toggle="tooltip"]').tooltip();
+    $(".select2").select2();
+    $("form").slideDown("slow");
+    $('[data-toggle="tooltip"]').tooltip();
 
-  function set_filters(){
-    for (var i=1; i<10; i++){
-      var eq = getParam("flt_eq_" + i);
-      if (eq !=''){
-        add_filter(i);
+    function set_filters(){
+      for (var i=1; i<10; i++){
+        var eq = getParam("flt_eq_" + i);
+        if (eq !=''){
+          add_filter(i);
+        }
       }
     }
-  }
-  set_filters();
+    set_filters();
 
-  function add_filter(i) {
+    function add_filter(i) {
       cp = $("#flt0").clone();
       $(cp).appendTo("#filters");  
       $(cp).slideDown("slow");
@@ -193,85 +186,85 @@ $( document ).ready(function() {
       $(cp).find('.remove').click(function() {
         $(this).parent().parent().slideUp("slow", function(){$(this).remove()});
       });
-  }
-  $("#plus").click(add_filter);
-  $("#bookmark").click(function () {
-    var slice_name = prompt("Name your slice!");
-    $("#slice_name").val(slice_name);
-    $.get( "/panoramix/save/", $("#query").serialize() );
-  })
-  add_filter();
-  $("#druidify").click(function () {
-    var i = 1;
+    }
+    $("#plus").click(add_filter);
+    $("#bookmark").click(function () {
+      var slice_name = prompt("Name your slice!");
+      $("#slice_name").val(slice_name);
+      $.get( "/panoramix/save/", $("#query").serialize() );
+    })
+    add_filter();
+    $("#druidify").click(function () {
+      var i = 1;
 
-    // removing empty filters
-    $("#filters > div").each(function(){
-      if ($(this).find("#flt_eq_0").val() == '')
+      // removing empty filters
+      $("#filters > div").each(function(){
+        if ($(this).find("#flt_eq_0").val() == '')
         $(this).slideUp();
-    });
+      });
 
-    // Assigning the right id to form elements in filters
-    $("#filters > div").each(function(){
-      $(this).attr("id", function(){return "flt_" + i;})
-      $(this).find("#flt_col_0")
+      // Assigning the right id to form elements in filters
+      $("#filters > div").each(function(){
+        $(this).attr("id", function(){return "flt_" + i;})
+        $(this).find("#flt_col_0")
         .attr("id", function(){return "flt_col_" + i;})
         .attr("name", function(){return "flt_col_" + i;});
-      $(this).find("#flt_op_0")
+        $(this).find("#flt_op_0")
         .attr("id", function(){return "flt_op_" + i;})
         .attr("name", function(){return "flt_op_" + i;});
-      $(this).find("#flt_eq_0")
+        $(this).find("#flt_eq_0")
         .attr("id", function(){return "flt_eq_" + i;})
         .attr("name", function(){return "flt_eq_" + i;});
-      i++;
+        i++;
+      });
+      $("#query").submit();
     });
-    $("#query").submit();
-  });
 
-  function create_choices (term, data) { 
+    function create_choices (term, data) { 
       if ($(data).filter(function() { 
-          return this.text.localeCompare(term)===0; 
+        return this.text.localeCompare(term)===0; 
       }).length===0) 
       {return {id:term, text:term};} 
-  }
-  $(".select2_free_since").select2({
+    }
+    $(".select2_free_since").select2({
       createSearchChoice: create_choices,
       multiple: false,
       data: [
-        {id: '-1 hour', text: '-1 hour'},
-        {id: '-12 hours', text: '-12 hours'},
-        {id: '-1 day', text: '-1 day'},
-        {id: '-7 days', text: '-7 days'},
-        {id: '-28 days', text: '-28 days'},
-        {id: '-90 days', text: '-90 days'},
-        {id: '{{ form.data.since }}', text: '{{ form.data.since }}'},
+      {id: '-1 hour', text: '-1 hour'},
+      {id: '-12 hours', text: '-12 hours'},
+      {id: '-1 day', text: '-1 day'},
+      {id: '-7 days', text: '-7 days'},
+      {id: '-28 days', text: '-28 days'},
+      {id: '-90 days', text: '-90 days'},
+      {id: '{{ viz.form.data.since }}', text: '{{ viz.form.data.since }}'},
       ]
-  });
-  $(".select2_free_until").select2({
+    });
+    $(".select2_free_until").select2({
       createSearchChoice: create_choices,
       multiple: false,
       data: [
-        {id: '{{ form.data.until }}', text: '{{ form.data.until }}'},
-        {id: 'now', text: 'now'},
-        {id: '-1 day', text: '-1 day'},
-        {id: '-7 days', text: '-7 days'},
-        {id: '-28 days', text: '-28 days'},
-        {id: '-90 days', text: '-90 days'},
+      {id: '{{ viz.form.data.until }}', text: '{{ viz.form.data.until }}'},
+      {id: 'now', text: 'now'},
+      {id: '-1 day', text: '-1 day'},
+      {id: '-7 days', text: '-7 days'},
+      {id: '-28 days', text: '-28 days'},
+      {id: '-90 days', text: '-90 days'},
       ]
-  });
-  $(".select2_free_granularity").select2({
+    });
+    $(".select2_free_granularity").select2({
       createSearchChoice: create_choices,
       multiple: false,
       data: [
-        {id: '{{ form.data.granularity }}', text: '{{ form.data.granularity }}'},
-        {id: 'all', text: 'all'},
-        {id: '5 seconds', text: '5 seconds'},
-        {id: '30 seconds', text: '30 seconds'},
-        {id: '1 minute', text: '1 minute'},
-        {id: '5 minutes', text: '5 minutes'},
-        {id: '1 day', text: '1 day'},
-        {id: '7 days', text: '7 days'},
+      {id: '{{ viz.form.data.granularity }}', text: '{{ viz.form.data.granularity }}'},
+      {id: 'all', text: 'all'},
+      {id: '5 seconds', text: '5 seconds'},
+      {id: '30 seconds', text: '30 seconds'},
+      {id: '1 minute', text: '1 minute'},
+      {id: '5 minutes', text: '5 minutes'},
+      {id: '1 day', text: '1 day'},
+      {id: '7 days', text: '7 days'},
       ]
+    });
   });
-});
 </script>
 {% endblock %}

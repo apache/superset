@@ -1,41 +1,52 @@
 {% macro viz_html(viz) %}
-  {% set df = viz.df %}
-  <table class="dataframe table table-striped table-bordered table-condensed">
-    <thead>
-      <tr>
-        {% for col in df.columns if not col.endswith('__perc') %}  
-          <th>{{ col }}</th>
+  {% if viz.args.get("async") == "true" %}
+    {% set df = viz.get_df() %}
+    <table class="dataframe table table-striped table-bordered table-condensed">
+      <thead>
+        <tr>
+          {% for col in df.columns if not col.endswith('__perc') %}  
+            <th>{{ col }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in df.to_dict(orient="records") %}
+        <tr>
+          {% for col in df.columns if not col.endswith('__perc') %}  
+            {% if col + '__perc' in df.columns %}
+            <td style="background-image: linear-gradient(to right, lightgrey, lightgrey {{ row[col+'__perc'] }}%, rgba(0,0,0,0) {{ row[col+'__perc'] }}%">
+              {{ row[col] }}
+            </td>
+            {% else %}
+            <td>{{ row[col] }}</td>
+            {% endif %}
+          {% endfor %}
+        </tr>
         {% endfor %}
-      </tr>
-    </thead>
-    <tbody>
-      {% for row in df.to_dict(orient="records") %}
-      <tr>
-        {% for col in df.columns if not col.endswith('__perc') %}  
-          {% if col + '__perc' in df.columns %}
-          <td style="background-image: linear-gradient(to right, lightgrey, lightgrey {{ row[col+'__perc'] }}%, rgba(0,0,0,0) {{ row[col+'__perc'] }}%">
-            {{ row[col] }}
-          </td>
-          {% else %}
-          <td>{{ row[col] }}</td>
-          {% endif %}
-        {% endfor %}
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  {% else %}
+  <div id="unique" style="display: none;">
+  </div>
+  <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
+  {% endif %}
 {% endmacro %}
 
 {% macro viz_js(viz) %}
+  {% if viz.args.get("async") != "true" %}
   <script>
-    //$('table').css('background-color', 'white');
-    $(document).ready(function() {
+    var url = window.location + '&async=true&standalone=true&skip_libs=true';
+    console.log(url);
+    $("#unique").load(url, function(){
       var table = $('table').DataTable({
         paging: false,
       });
       table.column('-1').order( 'desc' ).draw();
+      $("img.loading").hide();
+      $("#unique").show();
     });
   </script>
+  {% endif %}
 {% endmacro %}
 
 {% macro viz_css(viz) %}

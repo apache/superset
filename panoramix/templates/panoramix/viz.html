@@ -1,37 +1,41 @@
 {% import viz.template as viz_macros %}
 
-{% if standalone %}
-    {% extends 'panoramix/viz_standalone.html' %}
+{% if viz.args.get("json") == "true" %}
+  {{ viz.get_json() }}
 {% else %}
+  {% if viz.args.get("standalone") == "true" %}
+    {% extends 'panoramix/viz_standalone.html' %}
+  {% else %}
     {% extends 'panoramix/datasource.html' %}
+  {% endif %}
+
+
+  {% block viz_html %}
+    {{ viz_macros.viz_html(viz) }}
+  {% endblock %}
+
+  {% block head_css %}
+      {{super()}}
+      {% if viz.args.get("skip_libs") != "true" %}
+          {% for css in viz.css_files %}
+              <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
+          {% endfor %}
+      {% endif %}
+      {{ viz_macros.viz_css(viz) }}
+  {% endblock %}
+
+
+  {% block tail %}
+      {{super()}}
+      {% if viz.args.get("skip_libs") != "true" %}
+      <script src="{{ url_for("static", filename="d3.min.js") }}"></script>
+      <script>
+          f = d3.format(".4s");
+      </script>
+          {% for js in viz.js_files %}
+              <script src="{{ url_for('static', filename=js) }}"></script>
+          {% endfor %}
+      {% endif %}
+      {{ viz_macros.viz_js(viz) }}
+  {% endblock %}
 {% endif %}
-
-
-{% block viz_html %}
-  {{ viz_macros.viz_html(viz) }}
-{% endblock %}
-
-{% block head %}
-    {{super()}}
-    {% if not skip_libs %}
-        {% for css in viz.css_files %}
-            <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
-        {% endfor %}
-    {% endif %}
-    {{ viz_macros.viz_css(viz) }}
-{% endblock %}
-
-
-{% block tail %}
-    {{super()}}
-    <script src="{{ url_for("static", filename="d3.min.js") }}"></script>
-    <script>
-        f = d3.format(".4s");
-    </script>
-    {% if not skip_libs %}
-        {% for js in viz.js_files %}
-            <script src="{{ url_for('static', filename=js) }}"></script>
-        {% endfor %}
-    {% endif %}
-    {{ viz_macros.viz_js(viz) }}
-{% endblock %}

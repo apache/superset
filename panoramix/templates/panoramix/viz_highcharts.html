@@ -1,27 +1,36 @@
 {% macro viz_html(viz) %}
-    <div id="chart" style="height:100%; width:100%;"></div>
+  <div id="chart" style="height:100%; width:100%;">
+    
+    <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
+  </div>
 {% endmacro %}
 
 {% macro viz_js(viz) %}
-    <script>
-    $( document ).ready(function() {
-        Highcharts.setOptions({
-            colors: [
-                "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
-                "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
-            ],
-            global: {
-              useUTC: false
-            },
-        });
-        $("#viz_type").click(function(){
-            $("#queryform").submit();
-        })
-        {% if viz.chart_js %}
-            {{ viz.chart_js|safe }}
-        {% endif %}
+<script>
+  $( document ).ready(function() {
+    Highcharts.setOptions({
+      colors: [
+      "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
+      "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
+      ],
+      global: {
+        useUTC: false
+      },
     });
-    </script>
+    $("#viz_type").click(function(){
+      $("#queryform").submit();
+    });
+    var url = window.location + "&json=true";
+    console.log(url);
+    $.getJSON(url, function(data){
+        console.log(data);
+        new Highcharts.{{ viz.chart_call }}(data);
+    })
+    .fail(function() {
+      console.log( "error" );
+    });
+  });
+</script>
 {% endmacro %}
 
 {% macro viz_css(viz) %}
