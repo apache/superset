@@ -16,7 +16,6 @@ class BaseHighchart(object):
             .replace("\n", " ")
         )
 
-
     @property
     def javascript_cmd(self):
         js = self.json

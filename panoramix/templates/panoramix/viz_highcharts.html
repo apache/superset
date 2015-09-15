@@ -1,8 +1,7 @@
 {% macro viz_html(viz) %}
-  <div id="chart" style="height:100%; width:100%;">
-    
-    <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
-  </div>
+<div id="{{ viz.token }}" style="height:100%; width:100%;">
+  <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
+</div>
 {% endmacro %}
 
 {% macro viz_js(viz) %}
@@ -24,10 +23,11 @@
     console.log(url);
     $.getJSON(url, function(data){
         console.log(data);
-        new Highcharts.{{ viz.chart_call }}(data);
+        $("#{{ viz.token }}").highcharts('{{ viz.chart_call }}', data);
     })
-    .fail(function() {
-      console.log( "error" );
+    .fail(function(xhr) {
+      var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
+      $("#{{ viz.token }}").html(err);
     });
   });
 </script>

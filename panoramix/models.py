@@ -33,15 +33,17 @@ class Slice(Model, AuditMixin):
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
-    datasource_id = Column(Integer, ForeignKey('datasources.id'))
+    druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
     table_id = Column(Integer, ForeignKey('tables.id'))
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
 
-    table = relationship('Table', backref='slices')
-    druid_datasource = relationship('Datasource', backref='slices')
+    table = relationship(
+        'Table', foreign_keys=[table_id], backref='slices')
+    druid_datasource = relationship(
+        'Datasource', foreign_keys=[druid_datasource_id], backref='slices')
 
     def __repr__(self):
         return self.slice_name
@@ -49,6 +51,11 @@ class Slice(Model, AuditMixin):
     @property
     def datasource(self):
         return self.table or self.druid_datasource
+
+    @property
+    def datasource_id(self):
+        datasource = self.datasource
+        return datasource.id if datasource else None
 
     @property
     def slice_link(self):
@@ -68,6 +75,9 @@ class Slice(Model, AuditMixin):
     def css_files(self):
         from panoramix.viz import viz_types
         return viz_types[self.viz_type].css_files
+
+    def get_viz(self):
+        pass
 
 
 dashboard_slices = Table('dashboard_slices', Model.metadata,

@@ -73,7 +73,7 @@ $( document ).ready(function() {
         widget_base_dimensions: [150, 150],
         resize: {enabled: true}
     });
-    var url = "/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&standalone=true&skip_libs=true";
+    var url = "/panoramix/table/2/?flt_col_0=gender&rolling_periods=&datasource_id=2&flt_op_0=in&slice_name=Super%20Slice&viz_type=line&since=50%20years%20ago&groupby=name&metrics=total&limit=25&flt_eq_0=&granularity=one%20day&datasource_name=baby_names&where=&until=now&rolling_type=mean&datasource_type=table&skip_libs=true&standalone=true";
     $.ajax({
         url: url,
         success: function(result){
@@ -81,7 +81,7 @@ $( document ).ready(function() {
         },
         async: true,
     });
-    var url = "/panoramix/table/2/?flt_col_0=gender&rolling_periods=&datasource_id=2&flt_op_0=in&slice_name=Super%20Slice&viz_type=line&since=50%20years%20ago&groupby=name&metrics=total&limit=25&flt_eq_0=&granularity=one%20day&datasource_name=baby_names&where=&until=now&rolling_type=mean&datasource_type=table&standalone=true&skip_libs=true";
+    var url = "/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&skip_libs=true&standalone=true";
     $.ajax({
         url: url,
         success: function(result){

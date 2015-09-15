@@ -26,7 +26,7 @@
       </tbody>
     </table>
   {% else %}
-  <div id="unique" style="display: none;">
+  <div id="{{ viz.token }}" style="display: none;">
   </div>
   <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
   {% endif %}
@@ -37,13 +37,13 @@
   <script>
     var url = window.location + '&async=true&standalone=true&skip_libs=true';
     console.log(url);
-    $("#unique").load(url, function(){
+    $("#{{ viz.token }}").load(url, function(){
       var table = $('table').DataTable({
         paging: false,
-      });
+      })
+      $("#{{ viz.token }}").show();
       table.column('-1').order( 'desc' ).draw();
       $("img.loading").hide();
-      $("#unique").show();
     });
   </script>
   {% endif %}

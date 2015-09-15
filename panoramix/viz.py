@@ -3,7 +3,7 @@ from flask import flash, request
 import pandas as pd
 from collections import OrderedDict
 import config
-import logging
+import uuid
 import numpy as np
 
 from panoramix import utils
@@ -11,9 +11,7 @@ from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
 
 CHART_ARGS = {
-    #'height': 700,
     'title': None,
-    'target_div': 'chart',
 }
 
 
@@ -28,6 +26,7 @@ class BaseViz(object):
     css_files = []
 
     def __init__(self, datasource, form_data, view):
+        self.token = form_data.get('token', 'token_' + uuid.uuid4().hex[:8])
         self.datasource = datasource
         self.view = view
         self.form_data = form_data
@@ -97,7 +96,7 @@ class BaseViz(object):
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
-            from_dttm = to_dttm  # Making them identicial to not raise
+            from_dttm = to_dttm  # Making them identical to not raise
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -183,16 +182,20 @@ class BubbleViz(HighchartsViz):
             raise Exception("Pick a metric for x, y and size")
         return d
 
-    def render(self):
-        df = self.df.fillna(0)
+    def get_df(self):
+        df = super(BubbleViz, self).get_df()
+        df = df.fillna(0)
         df['x'] = df[[self.x_metric]]
         df['y'] = df[[self.y_metric]]
         df['z'] = df[[self.z_metric]]
         df['name'] = df[[self.entity]]
         df['group'] = df[[self.series]]
+        return df
+
+    def get_json(self):
+        df = self.get_df()
         chart = HighchartBubble(df)
-        self.chart_js = chart.javascript_cmd
-        return super(BubbleViz, self).render()
+        return chart.json
 
 
 class TimeSeriesViz(HighchartsViz):
