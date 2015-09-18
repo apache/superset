@@ -35,15 +35,16 @@
 {% macro viz_js(viz) %}
   {% if viz.args.get("async") != "true" %}
   <script>
-    var url = window.location + '&async=true&standalone=true&skip_libs=true';
+    var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";
     console.log(url);
     $("#{{ viz.token }}").load(url, function(){
       var table = $('table').DataTable({
         paging: false,
-      })
+        searching: false,
+      });
       $("#{{ viz.token }}").show();
       table.column('-1').order( 'desc' ).draw();
-      $("img.loading").hide();
+      $("#{{ viz.token }} img.loading").hide();
     });
   </script>
   {% endif %}

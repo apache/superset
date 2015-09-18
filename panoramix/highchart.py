@@ -196,7 +196,7 @@ class Highchart(BaseHighchart):
 
 
 class HighchartBubble(BaseHighchart):
-    def __init__(self, df, target_div='chart', height=800):
+    def __init__(self, df, target_div=None, height=None):
         self.df = df
         self.chart = {
             'chart': {

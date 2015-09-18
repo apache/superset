@@ -1,6 +1,7 @@
 {% macro viz_html(viz) %}
-<div id="{{ viz.token }}" style="height:100%; width:100%;">
+<div id="{{ viz.token }}" style="height:100%; width: 100%">
   <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
+  <div class="chart" style="height:100%; width: 100%"></div>
 </div>
 {% endmacro %}
 
@@ -16,19 +17,29 @@
         useUTC: false
       },
     });
-    $("#viz_type").click(function(){
-      $("#queryform").submit();
-    });
-    var url = window.location + "&json=true";
-    console.log(url);
-    $.getJSON(url, function(data){
-        console.log(data);
-        $("#{{ viz.token }}").highcharts('{{ viz.chart_call }}', data);
-    })
-    .fail(function(xhr) {
-      var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-      $("#{{ viz.token }}").html(err);
-    });
+    var token = $("#{{ viz.token }}");
+    var loading = $("#{{ viz.token }}").find("img.loading");
+    var chart = $("#{{ viz.token }}").find("div.chart");
+    var refresh = function(){ 
+      chart.hide();
+      loading.show();
+      var url = "{{ viz.get_url(json="true")|safe }}";
+      $.getJSON(url, function(data){
+        chart.width(token.width());
+        chart.height(token.height()-40);
+        chart.highcharts('{{ viz.chart_call }}', data);
+        chart.show();
+        token.find("img.loading").hide();
+      })
+      .fail(function(xhr) {
+        var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
+        loading.hide();
+        chart.show();
+        chart.html(err);
+      });
+    };
+    refresh();
+    token.parent().find("a.refresh").click(refresh);
   });
 </script>
 {% endmacro %}

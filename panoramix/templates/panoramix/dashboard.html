@@ -7,12 +7,30 @@
     {% endfor %}
     <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
 <style>
+    a i{
+      cursor: pointer;
+    }
+    i.drag{
+      cursor: move; !important
+    }
+    .gridster .preview-holder {
+        z-index: 1;
+        position: absolute;
+        background-color: #AAA;
+        border-color: #AAA;
+        opacity: 0.3;
+    }
     .gridster li {
         list-style-type: none;
         border: 1px solid gray;    
         overflow: auto;
         box-shadow: 2px 2px 2px #AAA;
         border-radius: 5px;
+        background-color: white;
+    }
+    .gridster .dragging,
+    .gridster .resizing {
+        opacity: 0.5;
     }
     img.loading {
         width: 20px;
@@ -23,6 +41,9 @@
     }
     .slice_title {
         text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 5px;
     }
     div.gridster {
         visibility: hidden
@@ -35,21 +56,52 @@
 {% endblock %}
 
 {% block content_fluid %}
-<div class="title"><h2>{{ dashboard.dashboard_title }}</h2></div>
+<div class="title">
+  <div class="row">
+    <div class="col-md-1 text-left"></div>
+    <div class="col-md-10 text-middle">
+      <h2>
+        {{ dashboard.dashboard_title }}
+        <a id="savedash"><i class="fa fa-save"></i></a>
+      </h2>
+    </div>
+    <div class="col-md-1 text-right">
+    </div>
+  </div>
+</div>
 <div class="gridster content_fluid">
     <ul>
         {% for slice in dashboard.slices %}
-        <li 
-            id="slice_{{ slice.id }}" 
-            data-row="1"
-            data-col="{{ loop.index }}"
-            data-sizex="2" 
-            data-sizey="2">
-            <div class="slice_title">
-                <h5>{{ slice.slice_name }}</h5>
-            </div>
-            <div id="slice_content_{{ slice.id }}"><img src="/static/loading.gif" class="loading"></div>
-        </li>
+          {% set pos = pos_dict.get(slice.id, {}) %}
+          {% set viz = slice.viz %}
+          {% import viz.template as viz_macros %}
+          <li
+              id="slice_{{ slice.id }}"
+              slice_id="{{ slice.id }}"
+              data-row="{{ pos.row or 1 }}"
+              data-col="{{ pos.col or loop.index }}"
+              data-sizex="{{ pos.size_x or 4 }}"
+              data-sizey="{{ pos.size_y or 4 }}">
+              <div class="slice_title" style="height: 0px;">
+                <div class="row">
+                  <div class="col-md-4 text-left">
+                    <a>
+                      <i class="fa fa-arrows drag"></i>
+                    </a>
+                  </div>
+                  <div class="col-md-4 text-middle">
+                    <span>{{ slice.slice_name }}</span>
+                  </div>
+                  <div class="col-md-4 text-right" style="position: relative;">
+                    <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
+                    <a class="refresh"><i class="fa fa-refresh"></i></a>
+                    <a><i class="fa fa-gear"></i></a>
+                    <a class="closewidget"><i class="fa fa-close"></i></a>
+                  </div>
+                </div>
+              </div>
+              {{ viz_macros.viz_html(viz) }}
+          </li>
         {% endfor %}
     </ul>
 </div>
@@ -66,32 +118,49 @@
         f = d3.format(".4s");
     </script>
     <script>
-
-$( document ).ready(function() {
-    $(".gridster ul").gridster({
-        widget_margins: [5, 5],
-        widget_base_dimensions: [150, 150],
-        resize: {enabled: true}
-    });
-    var url = "/panoramix/table/2/?flt_col_0=gender&rolling_periods=&datasource_id=2&flt_op_0=in&slice_name=Super%20Slice&viz_type=line&since=50%20years%20ago&groupby=name&metrics=total&limit=25&flt_eq_0=&granularity=one%20day&datasource_name=baby_names&where=&until=now&rolling_type=mean&datasource_type=table&skip_libs=true&standalone=true";
-    $.ajax({
-        url: url,
-        success: function(result){
-            $("#slice_content_2").html(result);
-        },
-        async: true,
-    });
-    var url = "/panoramix/table/2/?flt_col_0=gender&datasource_id=2&flt_op_0=in&viz_type=pie&since=50%20years%20ago&until=now&metrics=total&limit=10&granularity=one%20day&datasource_name=baby_names&slice_name=Pie&where=&groupby=name&flt_eq_0=&datasource_type=table&skip_libs=true&standalone=true";
-    $.ajax({
-        url: url,
-        success: function(result){
-            $("#slice_content_3").html(result);
-        },
-        async: true,
-    });
-    $("div.gridster").css('visibility', 'visible');
-});
+      $( document ).ready(function() {
+          var gridster = $(".gridster ul").gridster({
+              widget_margins: [5, 5],
+              widget_base_dimensions: [100, 100],
+              draggable: {
+                handle: '.drag',
+              },
+              resize: {
+                enabled: true,
+                stop: function(e, ui, $widget) {
+                  $widget.find("a.refresh").click();
+                }
+              },
+              serialize_params:function($w, wgd) {
+                  return {
+                       slice_id: $($w).attr('slice_id'),
+                       col: wgd.col,
+                       row: wgd.row,
+                       size_x: wgd.size_x,
+                       size_y: wgd.size_y
+                  };
+              },
+          }).data('gridster');
+          $("div.gridster").css('visibility', 'visible');
+          $("#savedash").click(function(){
+            var data = gridster.serialize();
+            console.log(data);
+            $.ajax({
+              type: "POST",
+              url: '/panoramix/save_dash/{{ dashboard.id }}/',
+              data: {data: JSON.stringify(data)},
+              success: function(){console.log('Sucess!')},
+            });
+          });
+          $("a.closewidget").click(function(){
+            var li = $(this).parents("li");
+            gridster.remove_widget(li);
+          });
+      });
     </script>
-
+    {% for slice in dashboard.slices %}
+      {% set viz = slice.viz %}
+      {% import viz.template as viz_macros %}
+      {{ viz_macros.viz_js(viz) }}
+    {% endfor %}
 {% endblock %}
-

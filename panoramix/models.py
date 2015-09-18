@@ -8,11 +8,11 @@ from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
-from panoramix.utils import JSONEncodedDict
 from sqlalchemy import Table as sqlaTable
 from sqlalchemy import create_engine, MetaData, desc, select, and_, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
+from flask import request
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -22,8 +22,8 @@ import sqlparse
 import requests
 import textwrap
 
-from panoramix import db, get_session
-import config
+from panoramix import db, get_session, config, utils
+from panoramix.viz import viz_types
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
@@ -53,17 +53,31 @@ class Slice(Model, AuditMixin):
         return self.table or self.druid_datasource
 
     @property
+    @utils.memoized
+    def viz(self):
+        d = json.loads(self.params)
+        viz = viz_types[self.viz_type](
+            self.datasource,
+            form_data=d)
+        return viz
+
+    @property
     def datasource_id(self):
         datasource = self.datasource
         return datasource.id if datasource else None
 
     @property
-    def slice_link(self):
+    def slice_url(self):
         d = json.loads(self.params)
-        kwargs = "&".join([k + '=' + v for k, v in d.iteritems()])
-        url = (
+        from werkzeug.urls import Href
+        href = Href(
             "/panoramix/{self.datasource_type}/"
-            "{self.datasource_id}/?{kwargs}").format(**locals())
+            "{self.datasource_id}/".format(self=self))
+        return href(d)
+
+    @property
+    def slice_link(self):
+        url = self.slice_url
         return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
 
     @property
@@ -92,6 +106,7 @@ class Dashboard(Model, AuditMixin):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
+    position_json = Column(Text)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
 

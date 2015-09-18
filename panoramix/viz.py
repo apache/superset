@@ -1,12 +1,15 @@
-from datetime import datetime
-from flask import flash, request
-import pandas as pd
 from collections import OrderedDict
-import config
+from datetime import datetime
+from urllib import urlencode
 import uuid
-import numpy as np
 
-from panoramix import utils
+from flask import flash
+from werkzeug.datastructures import MultiDict
+from werkzeug.urls import Href
+import numpy as np
+import pandas as pd
+
+from panoramix import utils, config
 from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
 
@@ -25,14 +28,28 @@ class BaseViz(object):
     js_files = []
     css_files = []
 
-    def __init__(self, datasource, form_data, view):
-        self.token = form_data.get('token', 'token_' + uuid.uuid4().hex[:8])
+    def __init__(self, datasource, form_data):
         self.datasource = datasource
-        self.view = view
+        if isinstance(form_data, MultiDict):
+            self.args = form_data.to_dict(flat=True)
+        else:
+            self.args = form_data
         self.form_data = form_data
-        self.args = form_data
-        self.metrics = form_data.getlist('metrics') or ['count']
-        self.groupby = form_data.getlist('groupby') or []
+        self.token = self.args.get('token', 'token_' + uuid.uuid4().hex[:8])
+
+        as_list = ('metrics', 'groupby')
+        d = self.args
+        for m in as_list:
+            if m in d and d[m] and not isinstance(d[m], list):
+                d[m] = [d[m]]
+        self.metrics = self.args.get('metrics') or ['count']
+        self.groupby = self.args.get('groupby') or []
+
+    def get_url(self, **kwargs):
+        d = self.args.copy()
+        d.update(kwargs)
+        href = Href('/panoramix/table/2/')
+        return href(d)
 
     def get_df(self):
         self.error_msg = ""
@@ -60,7 +77,7 @@ class BaseViz(object):
         return form_factory(self)
 
     def query_filters(self):
-        args = self.form_data
+        args = self.args
         # Building filters
         filters = []
         for i in range(1, 10):
@@ -78,9 +95,9 @@ class BaseViz(object):
         """
         Building a query object
         """
-        args = self.form_data
-        groupby = args.getlist("groupby") or []
-        metrics = args.getlist("metrics") or ['count']
+        args = self.args
+        groupby = args.get("groupby") or []
+        metrics = args.get("metrics") or ['count']
         granularity = args.get("granularity", "1 day")
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -162,17 +179,18 @@ class BubbleViz(HighchartsViz):
     js_files = ['highstock.js', 'highcharts-more.js']
 
     def query_obj(self):
+        args = self.form_data
         d = super(BubbleViz, self).query_obj()
         d['granularity'] = 'all'
         d['groupby'] = list({
-            request.args.get('series'),
-            request.args.get('entity')
-            })
-        self.x_metric = request.args.get('x')
-        self.y_metric = request.args.get('y')
-        self.z_metric = request.args.get('size')
-        self.entity = request.args.get('entity')
-        self.series = request.args.get('series')
+            args.get('series'),
+            args.get('entity')
+        })
+        self.x_metric = args.get('x')
+        self.y_metric = args.get('y')
+        self.z_metric = args.get('size')
+        self.entity = args.get('entity')
+        self.series = args.get('series')
         d['metrics'] = [
             self.z_metric,
             self.x_metric,
@@ -213,6 +231,7 @@ class TimeSeriesViz(HighchartsViz):
     ]
 
     def get_df(self):
+        args = self.args
         df = super(TimeSeriesViz, self).get_df()
         metrics = self.metrics
         df = df.pivot_table(
@@ -220,8 +239,8 @@ class TimeSeriesViz(HighchartsViz):
             columns=self.groupby,
             values=metrics,)
 
-        rolling_periods = request.args.get("rolling_periods")
-        rolling_type = request.args.get("rolling_type")
+        rolling_periods = args.get("rolling_periods")
+        rolling_type = args.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
                 df = pd.rolling_mean(df, int(rolling_periods))
