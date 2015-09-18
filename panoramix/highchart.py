@@ -9,12 +9,16 @@ class BaseHighchart(object):
     target_div = 'chart'
 
     @property
-    def javascript_cmd(self):
+    def json(self):
         js = dumps(self.chart)
-        js = (
+        return (
             js.replace('"{{TOOLTIP_FORMATTER}}"', self.tooltip_formatter)
             .replace("\n", " ")
         )
+
+    @property
+    def javascript_cmd(self):
+        js = self.json
         if self.stockchart:
             return "new Highcharts.StockChart(%s);" % js
         return "new Highcharts.Chart(%s);" % js
@@ -83,7 +87,7 @@ class Highchart(BaseHighchart):
         if sort_legend_y:
             if 'tooltip' not in chart:
                 chart['tooltip'] = {
-                    'formatter': "{{TOOLTIP_FORMATTER}}"
+                    #'formatter': "{{TOOLTIP_FORMATTER}}"
                 }
         if self.zoom:
             chart["zoomType"] = self.zoom
@@ -192,7 +196,7 @@ class Highchart(BaseHighchart):
 
 
 class HighchartBubble(BaseHighchart):
-    def __init__(self, df, target_div='chart', height=800):
+    def __init__(self, df, target_div=None, height=None):
         self.df = df
         self.chart = {
             'chart': {

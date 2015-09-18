@@ -1,55 +1,83 @@
-from datetime import datetime
-from flask import flash, request
-import pandas as pd
 from collections import OrderedDict
-import config
-import logging
-import numpy as np
+from datetime import datetime
+from urllib import urlencode
+import uuid
 
-from panoramix import utils
+from flask import flash
+from werkzeug.datastructures import MultiDict
+from werkzeug.urls import Href
+import numpy as np
+import pandas as pd
+
+from panoramix import utils, config
 from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
 
 CHART_ARGS = {
-    'height': 700,
     'title': None,
-    'target_div': 'chart',
 }
 
 
 class BaseViz(object):
     verbose_name = "Base Viz"
-    template = "panoramix/datasource.html"
+    template = None
     hidden_fields = []
     form_fields = [
         'viz_type', 'metrics', 'groupby', 'granularity',
         ('since', 'until')]
+    js_files = []
+    css_files = []
 
-    def __init__(self, datasource, form_data, view):
+    def __init__(self, datasource, form_data):
         self.datasource = datasource
-        self.form_class = self.form_class()
-        self.view = view
+        if isinstance(form_data, MultiDict):
+            self.args = form_data.to_dict(flat=True)
+        else:
+            self.args = form_data
         self.form_data = form_data
-        self.metrics = form_data.getlist('metrics') or ['count']
-        self.groupby = form_data.getlist('groupby') or []
+        self.token = self.args.get('token', 'token_' + uuid.uuid4().hex[:8])
 
+        as_list = ('metrics', 'groupby')
+        d = self.args
+        for m in as_list:
+            if m in d and d[m] and not isinstance(d[m], list):
+                d[m] = [d[m]]
+        self.metrics = self.args.get('metrics') or ['count']
+        self.groupby = self.args.get('groupby') or []
+
+    def get_url(self, **kwargs):
+        d = self.args.copy()
+        d.update(kwargs)
+        href = Href('/panoramix/table/2/')
+        return href(d)
+
+    def get_df(self):
         self.error_msg = ""
         self.results = None
-        try:
-            self.results = self.bake_query()
-            self.df = self.results.df
-            if self.df is not None:
-                if 'timestamp' in self.df.columns:
-                    self.df.timestamp = pd.to_datetime(self.df.timestamp)
+
+        #try:
+        self.results = self.bake_query()
+        df = self.results.df
+        if df is not None:
+            if 'timestamp' in df.columns:
+                df.timestamp = pd.to_datetime(df.timestamp)
+        return df
+        '''
         except Exception as e:
             logging.exception(e)
             self.error_msg = str(e)
+        '''
 
+    @property
+    def form(self):
+        return self.form_class(self.form_data)
+
+    @property
     def form_class(self):
         return form_factory(self)
 
     def query_filters(self):
-        args = self.form_data
+        args = self.args
         # Building filters
         filters = []
         for i in range(1, 10):
@@ -67,9 +95,9 @@ class BaseViz(object):
         """
         Building a query object
         """
-        args = self.form_data
-        groupby = args.getlist("groupby") or []
-        metrics = args.getlist("metrics") or ['count']
+        args = self.args
+        groupby = args.get("groupby") or []
+        metrics = args.get("metrics") or ['count']
         granularity = args.get("granularity", "1 day")
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -85,7 +113,7 @@ class BaseViz(object):
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
-            from_dttm = to_dttm  # Making them identicial to not raise
+            from_dttm = to_dttm  # Making them identical to not raise
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -106,36 +134,13 @@ class BaseViz(object):
         }
         return d
 
-    def render_no_data(self):
-        self.template = "panoramix/no_data.html"
-        return BaseViz.render(self)
-
-    def check_and_render(self, *args, **kwards):
-        if (
-                hasattr(self, 'df') and
-                self.df is not None and
-                len(self.df) == config.ROW_LIMIT):
-            self.warning_msg = (
-                "Doh! The system limit of {} rows was reached, "
-                "showing partial results.").format(config.ROW_LIMIT)
-
-        if self.error_msg:
-            return BaseViz.render(self, error_msg=self.error_msg)
-        else:
-            return self.render(*args, **kwards)
-
-    def render(self, *args, **kwargs):
-        form = self.form_class(self.form_data)
-        return self.view.render_template(
-            self.template, form=form, viz=self, datasource=self.datasource,
-            results=self.results,
-            *args, **kwargs)
-
 
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     form_fields = BaseViz.form_fields + ['row_limit']
+    css_files = ['dataTables.bootstrap.css']
+    js_files = ['jquery.dataTables.min.js', 'dataTables.bootstrap.js']
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -143,27 +148,25 @@ class TableViz(BaseViz):
         d['timeseries_limit'] = None
         return d
 
-    def render(self):
-        df = self.df
-        if df is None or df.empty:
-            return super(TableViz, self).render(error_msg="No data.")
-        else:
-            if (
-                    self.form_data.get("granularity") == "all" and
-                    'timestamp' in df):
-                del df['timestamp']
-            for m in self.metrics:
-                df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
-        return super(TableViz, self).render(df=df)
+    def get_df(self):
+        df = super(TableViz, self).get_df()
+        if (
+                self.form_data.get("granularity") == "all" and
+                'timestamp' in df):
+            del df['timestamp']
+        for m in self.metrics:
+            df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
+        return df
 
 
 class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
     chart_kind = 'line'
+    chart_call = "Chart"
     stacked = False
-    chart_type = 'not_stock'
     compare = False
+    js_files = ['highstock.js']
 
 
 class BubbleViz(HighchartsViz):
@@ -173,19 +176,21 @@ class BubbleViz(HighchartsViz):
     form_fields = [
         'viz_type', 'since', 'until',
         'series', 'entity', 'x', 'y', 'size', 'limit']
+    js_files = ['highstock.js', 'highcharts-more.js']
 
     def query_obj(self):
+        args = self.form_data
         d = super(BubbleViz, self).query_obj()
         d['granularity'] = 'all'
         d['groupby'] = list({
-            request.args.get('series'),
-            request.args.get('entity')
-            })
-        self.x_metric = request.args.get('x')
-        self.y_metric = request.args.get('y')
-        self.z_metric = request.args.get('size')
-        self.entity = request.args.get('entity')
-        self.series = request.args.get('series')
+            args.get('series'),
+            args.get('entity')
+        })
+        self.x_metric = args.get('x')
+        self.y_metric = args.get('y')
+        self.z_metric = args.get('size')
+        self.entity = args.get('entity')
+        self.series = args.get('series')
         d['metrics'] = [
             self.z_metric,
             self.x_metric,
@@ -195,22 +200,28 @@ class BubbleViz(HighchartsViz):
             raise Exception("Pick a metric for x, y and size")
         return d
 
-    def render(self):
-        df = self.df.fillna(0)
+    def get_df(self):
+        df = super(BubbleViz, self).get_df()
+        df = df.fillna(0)
         df['x'] = df[[self.x_metric]]
         df['y'] = df[[self.y_metric]]
         df['z'] = df[[self.z_metric]]
         df['name'] = df[[self.entity]]
         df['group'] = df[[self.series]]
+        return df
+
+    def get_json(self):
+        df = self.get_df()
         chart = HighchartBubble(df)
-        return super(BubbleViz, self).render(chart_js=chart.javascript_cmd)
+        return chart.json
 
 
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
     chart_type = "spline"
-    stockchart = True
+    chart_call = "StockChart"
     sort_legend_y = True
+    js_files = ['highstock.js', 'highcharts-more.js']
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
@@ -219,21 +230,17 @@ class TimeSeriesViz(HighchartsViz):
         ('rolling_type', 'rolling_periods'),
     ]
 
-    def render(self):
-        if request.args.get("granularity") == "all":
-            self.error_msg = (
-                "You have to select a time granularity for this view")
-            return super(TimeSeriesViz, self).render(error_msg=self.error_msg)
-
+    def get_df(self):
+        args = self.args
+        df = super(TimeSeriesViz, self).get_df()
         metrics = self.metrics
-        df = self.df
         df = df.pivot_table(
             index="timestamp",
             columns=self.groupby,
             values=metrics,)
 
-        rolling_periods = request.args.get("rolling_periods")
-        rolling_type = request.args.get("rolling_type")
+        rolling_periods = args.get("rolling_periods")
+        rolling_type = args.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
                 df = pd.rolling_mean(df, int(rolling_periods))
@@ -241,22 +248,18 @@ class TimeSeriesViz(HighchartsViz):
                 df = pd.rolling_std(df, int(rolling_periods))
             elif rolling_type == 'sum':
                 df = pd.rolling_sum(df, int(rolling_periods))
+        return df
 
+    def get_json(self):
+        df = self.get_df()
         chart = Highchart(
             df,
             compare=self.compare,
             chart_type=self.chart_type,
             stacked=self.stacked,
-            stockchart=self.stockchart,
             sort_legend_y=self.sort_legend_y,
             **CHART_ARGS)
-        return super(TimeSeriesViz, self).render(chart_js=chart.javascript_cmd)
-
-    def bake_query(self):
-        """
-        Doing a 2 phase query where we limit the number of series.
-        """
-        return self.datasource.query(**self.query_obj())
+        return chart.json
 
 
 class TimeSeriesCompareViz(TimeSeriesViz):
@@ -286,32 +289,12 @@ class TimeSeriesStackedBarViz(TimeSeriesViz):
     stacked = True
 
 
-class DistributionBarViz(HighchartsViz):
-    verbose_name = "Distribution - Bar Chart"
-    chart_type = "column"
-    form_fields = BaseViz.form_fields + ['limit']
-
-    def query_obj(self):
-        d = super(DistributionBarViz, self).query_obj()
-        d['granularity'] = "all"
-        d['is_timeseries'] = False
-        return d
-
-    def render(self):
-        df = self.df
-        df = df.pivot_table(
-            index=self.groupby,
-            values=self.metrics)
-        df = df.sort(self.metrics[0], ascending=False)
-        chart = Highchart(
-            df, chart_type=self.chart_type, **CHART_ARGS)
-        return super(DistributionBarViz, self).render(
-            chart_js=chart.javascript_cmd)
 
 
 class DistributionPieViz(HighchartsViz):
     verbose_name = "Distribution - Pie Chart"
     chart_type = "pie"
+    js_files = ['highstock.js']
     form_fields = BaseViz.form_fields + ['limit']
 
     def query_obj(self):
@@ -320,16 +303,26 @@ class DistributionPieViz(HighchartsViz):
         d['is_timeseries'] = False
         return d
 
-    def render(self):
-        df = self.df
+    def get_df(self):
+        df = super(DistributionPieViz, self).get_df()
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
         df = df.sort(self.metrics[0], ascending=False)
+        return df
+
+    def get_json(self):
+        df = self.get_df()
         chart = Highchart(
             df, chart_type=self.chart_type, **CHART_ARGS)
-        return super(DistributionPieViz, self).render(
-            chart_js=chart.javascript_cmd)
+        self.chart_js = chart.javascript_cmd
+        return chart.json
+
+
+class DistributionBarViz(DistributionPieViz):
+    verbose_name = "Distribution - Bar Chart"
+    chart_type = "column"
+
 
 viz_types = OrderedDict([
     ['table', TableViz],

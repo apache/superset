@@ -104,6 +104,33 @@ appbuilder.add_view(
     category_icon='fa-cogs',)
 
 
+class SliceModelView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Slice)
+    list_columns = ['slice_link', 'viz_type', 'datasource', 'created_by']
+
+appbuilder.add_view(
+    SliceModelView,
+    "Slices",
+    icon="fa-bar-chart",
+    category="",
+    category_icon='',)
+
+
+class DashboardModelView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Dashboard)
+    list_columns = ['dashboard_link', 'created_by']
+    edit_columns = ['dashboard_title', 'slices', 'position_json']
+    add_columns = edit_columns
+
+
+appbuilder.add_view(
+    DashboardModelView,
+    "Dashboards",
+    icon="fa-dashboard",
+    category="",
+    category_icon='',)
+
+
 class DatabaseView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name']
@@ -159,7 +186,7 @@ class DatasourceModelView(ModelView, DeleteMixin):
 appbuilder.add_view(
     DatasourceModelView,
     "Druid Datasources",
-    icon="fa-cube")
+    icon="fa-cubes")
 
 
 @app.route('/health')
@@ -176,13 +203,14 @@ class Panoramix(BaseView):
     @has_access
     @expose("/table/<table_id>/")
     def table(self, table_id):
-
         table = (
             db.session
             .query(models.Table)
             .filter_by(id=table_id)
             .first()
         )
+        if not table:
+            flash("The table seem to have been deleted", "alert")
         viz_type = request.args.get("viz_type")
         if not viz_type and table.default_endpoint:
             return redirect(table.default_endpoint)
@@ -190,19 +218,43 @@ class Panoramix(BaseView):
             viz_type = "table"
         obj = viz.viz_types[viz_type](
             table,
-            form_data=request.args, view=self)
-        if request.args.get("json"):
+            form_data=request.args)
+        if request.args.get("json") == "true":
+            try:
+                payload = obj.get_json()
+                status=200
+            except Exception as e:
+                logging.exception(e)
+                payload = str(e)
+                status=500
             return Response(
-                json.dumps(obj.get_query(), indent=4),
-                status=200,
+                payload,
+                status=status,
                 mimetype="application/json")
-        return obj.check_and_render()
+        else:
+            return self.render_template("panoramix/viz.html", viz=obj)
+
+    @has_access
+    @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
+    def save_dash(self, dashboard_id):
+        data = json.loads(request.form.get('data'))
+        slice_ids = [int(d['slice_id']) for d in data]
+        print slice_ids
+        session = db.session()
+        Dash = models.Dashboard
+        dash = session.query(Dash).filter_by(id=dashboard_id).first()
+        dash.slices = [o for o in dash.slices if o.id in slice_ids]
+        print dash.slices
+        dash.position_json = json.dumps(data, indent=4)
+        session.merge(dash)
+        session.commit()
+        session.close()
+        return "SUCCESS"
 
     @has_access
     @expose("/datasource/<datasource_name>/")
     def datasource(self, datasource_name):
         viz_type = request.args.get("viz_type")
-
         datasource = (
             db.session
             .query(models.Datasource)
@@ -215,7 +267,7 @@ class Panoramix(BaseView):
             viz_type = "table"
         obj = viz.viz_types[viz_type](
             datasource,
-            form_data=request.args, view=self)
+            form_data=request.args)
         if request.args.get("json"):
             return Response(
                 json.dumps(obj.get_query(), indent=4),
@@ -225,6 +277,55 @@ class Panoramix(BaseView):
             return obj.render_no_data()
 
         return obj.check_and_render()
+
+    @has_access
+    @expose("/save/")
+    def save(self):
+        session = db.session()
+        d = request.args.to_dict(flat=False)
+        as_list = ('metrics', 'groupby')
+        for m in as_list:
+            v = d.get(m)
+            if v and not isinstance(d[m], list):
+                d[m] = [d[m]]
+
+        table_id = druid_datasource_id = None
+        datasource_type = request.args.get('datasource_type')
+        if datasource_type == 'druid':
+            druid_datasource_id = request.args.get('datasource_id')
+        else:
+            table_id = request.args.get('datasource_id')
+
+        obj = models.Slice(
+            params=json.dumps(d, indent=4),
+            viz_type=request.args.get('viz_type'),
+            datasource_name=request.args.get('datasource_name'),
+            druid_datasource_id=druid_datasource_id,
+            table_id=table_id,
+            datasource_type=datasource_type,
+            slice_name=request.args.get('slice_name', 'junk'),
+        )
+        session.add(obj)
+        session.commit()
+        session.close()
+
+        return "super!"
+
+    @has_access
+    @expose("/dashboard/<id_>/")
+    def dashboard(self, id_):
+        session = db.session()
+        dashboard = (
+            session
+            .query(models.Dashboard)
+            .filter(models.Dashboard.id == id_)
+            .first()
+        )
+        pos_dict = {
+            int(o['slice_id']):o for o in json.loads(dashboard.position_json)}
+        return self.render_template(
+            "panoramix/dashboard.html", dashboard=dashboard,
+            pos_dict=pos_dict)
 
     @has_access
     @expose("/refresh_datasources/")

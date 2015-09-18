@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.2.1'
+version = '0.3.0'
 
 setup(
     name='panoramix',
@@ -17,6 +17,7 @@ setup(
         'flask-appbuilder>=1.4.5',
         'flask-login==0.2.11',
         'flask-migrate>=1.5.1',
+        'flask-login==0.2.11',
         'gunicorn>=19.3.0',
         'pandas>=0.16.2',
         'pydruid>=0.2.2',

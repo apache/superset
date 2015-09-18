@@ -1,0 +1,166 @@
+{% extends "panoramix/base.html" %}
+
+{% block head_css %}
+    {{ super() }}
+    {% for css in dashboard.css_files %}
+        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
+    {% endfor %}
+    <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
+<style>
+    a i{
+      cursor: pointer;
+    }
+    i.drag{
+      cursor: move; !important
+    }
+    .gridster .preview-holder {
+        z-index: 1;
+        position: absolute;
+        background-color: #AAA;
+        border-color: #AAA;
+        opacity: 0.3;
+    }
+    .gridster li {
+        list-style-type: none;
+        border: 1px solid gray;    
+        overflow: auto;
+        box-shadow: 2px 2px 2px #AAA;
+        border-radius: 5px;
+        background-color: white;
+    }
+    .gridster .dragging,
+    .gridster .resizing {
+        opacity: 0.5;
+    }
+    img.loading {
+        width: 20px;
+        margin: 5px;
+    }
+    .title {
+        text-align: center;
+    }
+    .slice_title {
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+        padding: 5px;
+    }
+    div.gridster {
+        visibility: hidden
+    }
+    div.slice_content {
+        width: 100%;
+        height: 100%;
+    }
+</style>
+{% endblock %}
+
+{% block content_fluid %}
+<div class="title">
+  <div class="row">
+    <div class="col-md-1 text-left"></div>
+    <div class="col-md-10 text-middle">
+      <h2>
+        {{ dashboard.dashboard_title }}
+        <a id="savedash"><i class="fa fa-save"></i></a>
+      </h2>
+    </div>
+    <div class="col-md-1 text-right">
+    </div>
+  </div>
+</div>
+<div class="gridster content_fluid">
+    <ul>
+        {% for slice in dashboard.slices %}
+          {% set pos = pos_dict.get(slice.id, {}) %}
+          {% set viz = slice.viz %}
+          {% import viz.template as viz_macros %}
+          <li
+              id="slice_{{ slice.id }}"
+              slice_id="{{ slice.id }}"
+              data-row="{{ pos.row or 1 }}"
+              data-col="{{ pos.col or loop.index }}"
+              data-sizex="{{ pos.size_x or 4 }}"
+              data-sizey="{{ pos.size_y or 4 }}">
+              <div class="slice_title" style="height: 0px;">
+                <div class="row">
+                  <div class="col-md-4 text-left">
+                    <a>
+                      <i class="fa fa-arrows drag"></i>
+                    </a>
+                  </div>
+                  <div class="col-md-4 text-middle">
+                    <span>{{ slice.slice_name }}</span>
+                  </div>
+                  <div class="col-md-4 text-right" style="position: relative;">
+                    <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
+                    <a class="refresh"><i class="fa fa-refresh"></i></a>
+                    <a><i class="fa fa-gear"></i></a>
+                    <a class="closewidget"><i class="fa fa-close"></i></a>
+                  </div>
+                </div>
+              </div>
+              {{ viz_macros.viz_html(viz) }}
+          </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+
+{% block tail %}
+    {{ super() }}
+    {% for js in dashboard.js_files %}
+        <script src="{{ url_for('static', filename=js) }}"></script>
+    {% endfor %}
+    <script src="{{ url_for("static", filename="jquery.gridster.with-extras.min.js") }}"></script>
+    <script src="{{ url_for("static", filename="d3.min.js") }}"></script>
+    <script>
+        f = d3.format(".4s");
+    </script>
+    <script>
+      $( document ).ready(function() {
+          var gridster = $(".gridster ul").gridster({
+              widget_margins: [5, 5],
+              widget_base_dimensions: [100, 100],
+              draggable: {
+                handle: '.drag',
+              },
+              resize: {
+                enabled: true,
+                stop: function(e, ui, $widget) {
+                  $widget.find("a.refresh").click();
+                }
+              },
+              serialize_params:function($w, wgd) {
+                  return {
+                       slice_id: $($w).attr('slice_id'),
+                       col: wgd.col,
+                       row: wgd.row,
+                       size_x: wgd.size_x,
+                       size_y: wgd.size_y
+                  };
+              },
+          }).data('gridster');
+          $("div.gridster").css('visibility', 'visible');
+          $("#savedash").click(function(){
+            var data = gridster.serialize();
+            console.log(data);
+            $.ajax({
+              type: "POST",
+              url: '/panoramix/save_dash/{{ dashboard.id }}/',
+              data: {data: JSON.stringify(data)},
+              success: function(){console.log('Sucess!')},
+            });
+          });
+          $("a.closewidget").click(function(){
+            var li = $(this).parents("li");
+            gridster.remove_widget(li);
+          });
+      });
+    </script>
+    {% for slice in dashboard.slices %}
+      {% set viz = slice.viz %}
+      {% import viz.template as viz_macros %}
+      {{ viz_macros.viz_js(viz) }}
+    {% endfor %}
+{% endblock %}

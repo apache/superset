@@ -8,11 +8,11 @@ from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
-from panoramix.utils import JSONEncodedDict
 from sqlalchemy import Table as sqlaTable
-from sqlalchemy import create_engine, MetaData, desc, select, and_
+from sqlalchemy import create_engine, MetaData, desc, select, and_, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
+from flask import request
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -22,8 +22,8 @@ import sqlparse
 import requests
 import textwrap
 
-from panoramix import db, get_session
-import config
+from panoramix import db, get_session, config, utils
+from panoramix.viz import viz_types
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
@@ -32,9 +32,104 @@ class Slice(Model, AuditMixin):
     """A slice is essentially a report or a view on data"""
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
-    params = Column(JSONEncodedDict)
-    datasource = Column(String(250))
+    slice_name = Column(String(250))
+    druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
+    table_id = Column(Integer, ForeignKey('tables.id'))
+    datasource_type = Column(String(200))
+    datasource_name = Column(String(2000))
     viz_type = Column(String(250))
+    params = Column(Text)
+
+    table = relationship(
+        'Table', foreign_keys=[table_id], backref='slices')
+    druid_datasource = relationship(
+        'Datasource', foreign_keys=[druid_datasource_id], backref='slices')
+
+    def __repr__(self):
+        return self.slice_name
+
+    @property
+    def datasource(self):
+        return self.table or self.druid_datasource
+
+    @property
+    @utils.memoized
+    def viz(self):
+        d = json.loads(self.params)
+        viz = viz_types[self.viz_type](
+            self.datasource,
+            form_data=d)
+        return viz
+
+    @property
+    def datasource_id(self):
+        datasource = self.datasource
+        return datasource.id if datasource else None
+
+    @property
+    def slice_url(self):
+        d = json.loads(self.params)
+        from werkzeug.urls import Href
+        href = Href(
+            "/panoramix/{self.datasource_type}/"
+            "{self.datasource_id}/".format(self=self))
+        return href(d)
+
+    @property
+    def slice_link(self):
+        url = self.slice_url
+        return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
+
+    @property
+    def js_files(self):
+        from panoramix.viz import viz_types
+        return viz_types[self.viz_type].js_files
+
+    @property
+    def css_files(self):
+        from panoramix.viz import viz_types
+        return viz_types[self.viz_type].css_files
+
+    def get_viz(self):
+        pass
+
+
+dashboard_slices = Table('dashboard_slices', Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
+    Column('slice_id', Integer, ForeignKey('slices.id')),
+)
+
+
+class Dashboard(Model, AuditMixin):
+    """A dash to slash"""
+    __tablename__ = 'dashboards'
+    id = Column(Integer, primary_key=True)
+    dashboard_title = Column(String(500))
+    position_json = Column(Text)
+    slices = relationship(
+        'Slice', secondary=dashboard_slices, backref='dashboards')
+
+    def __repr__(self):
+        return self.dashboard_title
+
+    def dashboard_link(self):
+        url = "/panoramix/dashboard/{}/".format(self.id)
+        return '<a href="{url}">{self.dashboard_title}</a>'.format(**locals())
+
+    @property
+    def js_files(self):
+        l = []
+        for o in self.slices:
+            l += [f for f in o.js_files if f not in l]
+        return l
+
+    @property
+    def css_files(self):
+        l = []
+        for o in self.slices:
+            l += o.css_files
+        return list(set(l))
 
 
 class Queryable(object):
@@ -72,6 +167,8 @@ class Database(Model, AuditMixin):
 
 
 class Table(Model, Queryable, AuditMixin):
+    type = "table"
+
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
     table_name = Column(String(255), unique=True)
@@ -84,6 +181,9 @@ class Table(Model, Queryable, AuditMixin):
         'Database', backref='tables', foreign_keys=[database_id])
 
     baselink = "tableview"
+
+    def __repr__(self):
+        return self.table_name
 
     @property
     def name(self):
@@ -446,6 +546,7 @@ class Cluster(Model, AuditMixin):
 
 
 class Datasource(Model, AuditMixin, Queryable):
+    type = "datasource"
 
     baselink = "datasourcemodelview"
 
