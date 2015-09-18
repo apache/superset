@@ -71,7 +71,7 @@ class Slice(Model, AuditMixin):
         d = json.loads(self.params)
         from werkzeug.urls import Href
         href = Href(
-            "/panoramix/{self.datasource_type}/"
+            "/panoramix/datasource/{self.datasource_type}/"
             "{self.datasource_id}/".format(self=self))
         return href(d)
 
@@ -191,7 +191,7 @@ class Table(Model, Queryable, AuditMixin):
 
     @property
     def table_link(self):
-        url = "/panoramix/table/{}/".format(self.id)
+        url = "/panoramix/datasource/{self.type}/{self.id}/".format(self=self)
         return '<a href="{url}">{self.table_name}</a>'.format(**locals())
 
     @property
@@ -579,7 +579,9 @@ class Datasource(Model, AuditMixin, Queryable):
 
     @property
     def datasource_link(self):
-        url = "/panoramix/datasource/{}/".format(self.datasource_name)
+        url = (
+            "/panoramix/datasource/"
+            "{self.type}/{self.id}/").format(self=self)
         return '<a href="{url}">{self.datasource_name}</a>'.format(**locals())
 
     def get_metric_obj(self, metric_name):
