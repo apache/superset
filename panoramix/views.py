@@ -285,14 +285,24 @@ class Panoramix(BaseView):
         d = request.args.to_dict(flat=False)
         as_list = ('metrics', 'groupby')
         for m in as_list:
-            if d[m] and not isinstance(d[m]):
+            v = d.get(m)
+            if v and not isinstance(d[m], list):
                 d[m] = [d[m]]
+
+        table_id = druid_datasource_id = None
+        datasource_type = request.args.get('datasource_type')
+        if datasource_type == 'druid':
+            druid_datasource_id = request.args.get('datasource_id')
+        else:
+            table_id = request.args.get('datasource_id')
+
         obj = models.Slice(
             params=json.dumps(d, indent=4),
             viz_type=request.args.get('viz_type'),
             datasource_name=request.args.get('datasource_name'),
-            datasource_id=request.args.get('datasource_id'),
-            datasource_type=request.args.get('datasource_type'),
+            druid_datasource_id=druid_datasource_id,
+            table_id=table_id,
+            datasource_type=datasource_type,
             slice_name=request.args.get('slice_name', 'junk'),
         )
         session.add(obj)

@@ -94,8 +94,14 @@
         <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
       </button>
       <hr>
-      <button type="button" class="btn btn-primary" id="druidify">Druidify!</button>
-      <button type="button" class="btn btn-default" id="bookmark">Bookmark</button>
+      <button type="button" class="btn btn-primary" id="druidify">
+        <i class="fa fa-bolt"></i>
+        Druidify!
+      </button>
+      <button type="button" class="btn btn-default" id="save">
+        <i class="fa fa-save"></i>
+        Save as Slice
+      </button>
       <hr style="margin-bottom: 0px;">
       <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
       <input type="hidden" id="slice_name" name="slice_name" value="TEST">
@@ -188,7 +194,7 @@
       });
     }
     $("#plus").click(add_filter);
-    $("#bookmark").click(function () {
+    $("#save").click(function () {
       var slice_name = prompt("Name your slice!");
       $("#slice_name").val(slice_name);
       $.get( "/panoramix/save/", $("#query").serialize() );
