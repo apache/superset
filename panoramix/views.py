@@ -201,23 +201,32 @@ def ping():
 
 class Panoramix(BaseView):
     @has_access
-    @expose("/table/<table_id>/")
-    def table(self, table_id):
-        table = (
-            db.session
-            .query(models.Table)
-            .filter_by(id=table_id)
-            .first()
-        )
-        if not table:
-            flash("The table seem to have been deleted", "alert")
+    @expose("/datasource/<datasource_type>/<datasource_id>/")
+    def datasource(self, datasource_type, datasource_id):
+        if datasource_type == "table":
+            datasource = (
+                db.session
+                .query(models.Table)
+                .filter_by(id=datasource_id)
+                .first()
+            )
+        else:
+            datasource = (
+                db.session
+                .query(models.Datasource)
+                .filter_by(id=datasource_id)
+                .first()
+            )
+
+        if not datasource:
+            flash("The datasource seem to have been deleted", "alert")
         viz_type = request.args.get("viz_type")
-        if not viz_type and table.default_endpoint:
-            return redirect(table.default_endpoint)
+        if not viz_type and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
         if not viz_type:
             viz_type = "table"
         obj = viz.viz_types[viz_type](
-            table,
+            datasource,
             form_data=request.args)
         if request.args.get("json") == "true":
             try:
@@ -250,33 +259,6 @@ class Panoramix(BaseView):
         session.commit()
         session.close()
         return "SUCCESS"
-
-    @has_access
-    @expose("/datasource/<datasource_name>/")
-    def datasource(self, datasource_name):
-        viz_type = request.args.get("viz_type")
-        datasource = (
-            db.session
-            .query(models.Datasource)
-            .filter_by(datasource_name=datasource_name)
-            .first()
-        )
-        if not viz_type and datasource.default_endpoint:
-            return redirect(datasource.default_endpoint)
-        if not viz_type:
-            viz_type = "table"
-        obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=request.args)
-        if request.args.get("json"):
-            return Response(
-                json.dumps(obj.get_query(), indent=4),
-                status=200,
-                mimetype="application/json")
-        if not hasattr(obj, 'df') or obj.df is None or obj.df.empty:
-            return obj.render_no_data()
-
-        return obj.check_and_render()
 
     @has_access
     @expose("/save/")
