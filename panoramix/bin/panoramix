@@ -32,5 +32,10 @@ def runserver(debug, port):
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
+@manager.command
+def load_examples(self):
+    """Loads a set of Slices and Dashboards and a supporting dataset """
+    print("Loading examples")
+
 if __name__ == "__main__":
     manager.run()
