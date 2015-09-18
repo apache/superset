@@ -49,6 +49,9 @@ class BaseViz(object):
         d = self.args.copy()
         d.update(kwargs)
         href = Href('/panoramix/table/2/')
+        href = Href(
+            '/panoramix/{self.datasource.type}/'
+            '{self.datasource.id}/'.format(**locals()))
         return href(d)
 
     def get_df(self):
