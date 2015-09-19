@@ -24,11 +24,23 @@ import textwrap
 
 from panoramix import db, get_session, config, utils
 from panoramix.viz import viz_types
+from sqlalchemy.ext.declarative import declared_attr
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
-class Slice(Model, AuditMixin):
+class AuditMixinNullable(AuditMixin):
+    @declared_attr
+    def created_by_fk(cls):
+        return Column(Integer, ForeignKey('ab_user.id'),
+                      default=cls.get_user_id, nullable=True)
+    @declared_attr
+    def changed_by_fk(cls):
+        return Column(Integer, ForeignKey('ab_user.id'),
+            default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
+
+
+class Slice(Model, AuditMixinNullable):
     """A slice is essentially a report or a view on data"""
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
@@ -76,6 +88,10 @@ class Slice(Model, AuditMixin):
         return href(d)
 
     @property
+    def edit_url(self):
+        return "/slicemodelview/edit/{}".format(self.id)
+
+    @property
     def slice_link(self):
         url = self.slice_url
         return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
@@ -101,7 +117,7 @@ dashboard_slices = Table('dashboard_slices', Model.metadata,
 )
 
 
-class Dashboard(Model, AuditMixin):
+class Dashboard(Model, AuditMixinNullable):
     """A dash to slash"""
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
@@ -146,7 +162,7 @@ class Queryable(object):
         return sorted([c.column_name for c in self.columns if c.filterable])
 
 
-class Database(Model, AuditMixin):
+class Database(Model, AuditMixinNullable):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
@@ -166,15 +182,13 @@ class Database(Model, AuditMixin):
             autoload_with=self.get_sqla_engine())
 
 
-class Table(Model, Queryable, AuditMixin):
+class Table(Model, Queryable, AuditMixinNullable):
     type = "table"
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
-    table_name = Column(String(255), unique=True)
-    main_datetime_column_id = Column(Integer, ForeignKey('table_columns.id'))
-    main_datetime_column = relationship(
-        'TableColumn', foreign_keys=[main_datetime_column_id])
+    table_name = Column(String(250), unique=True)
+    main_dttm_col = Column(String(250))
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     database = relationship(
@@ -308,8 +322,11 @@ class Table(Model, Queryable, AuditMixin):
             extras=None):
 
         qry_start_dttm = datetime.now()
+        if not self.main_dttm_col:
+            raise Exception(
+                "Datetime column not provided as part table configuration")
         timestamp = literal_column(
-            self.main_datetime_column.column_name).label('timestamp')
+            self.main_dttm_col).label('timestamp')
         metrics_exprs = [
             literal_column(m.expression).label(m.metric_name)
             for m in self.metrics if m.metric_name in metrics]
@@ -420,7 +437,7 @@ class Table(Model, Queryable, AuditMixin):
             self.columns.append(dbcol)
 
             if not any_date_col and 'date' in datatype.lower():
-                any_date_col = dbcol
+                any_date_col = col.name
 
             if dbcol.sum:
                 metrics.append(M(
@@ -464,18 +481,18 @@ class Table(Model, Queryable, AuditMixin):
             m = (
                 db.session.query(M)
                 .filter(M.metric_name == metric.metric_name)
-                .filter(M.table == self)
+                .filter(M.table_id == self.id)
                 .first()
             )
-            metric.table = self
+            metric.table_id = self.id
             if not m:
                 db.session.add(metric)
                 db.session.commit()
-        if not self.main_datetime_column:
-            self.main_datetime_column = any_date_col
+        if not self.main_dttm_col:
+            self.main_dttm_col = any_date_col
 
 
-class SqlMetric(Model, AuditMixin):
+class SqlMetric(Model, AuditMixinNullable):
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
@@ -488,7 +505,7 @@ class SqlMetric(Model, AuditMixin):
     description = Column(Text)
 
 
-class TableColumn(Model, AuditMixin):
+class TableColumn(Model, AuditMixinNullable):
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
@@ -513,7 +530,7 @@ class TableColumn(Model, AuditMixin):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT')
 
 
-class Cluster(Model, AuditMixin):
+class Cluster(Model, AuditMixinNullable):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
@@ -560,7 +577,7 @@ class Datasource(Model, AuditMixin, Queryable):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='datasources', foreign_keys=[user_id])
     cluster_name = Column(
-        String(255), ForeignKey('clusters.cluster_name'))
+        String(250), ForeignKey('clusters.cluster_name'))
     cluster = relationship(
         'Cluster', backref='datasources', foreign_keys=[cluster_name])
 
@@ -783,7 +800,7 @@ class Metric(Model):
         return obj
 
 
-class Column(Model, AuditMixin):
+class Column(Model, AuditMixinNullable):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(

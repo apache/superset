@@ -86,6 +86,44 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(MetricInlineView)
 
 
+class DatabaseView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Database)
+    list_columns = ['database_name']
+    add_columns = ['database_name', 'sqlalchemy_uri']
+    edit_columns = add_columns
+
+appbuilder.add_view(
+    DatabaseView,
+    "Databases",
+    icon="fa-database",
+    category="Sources",
+    category_icon='fa-cogs',)
+
+
+class TableView(ModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.Table)
+    list_columns = ['table_link', 'database']
+    add_columns = ['table_name', 'database', 'default_endpoint']
+    edit_columns = [
+        'table_name', 'database', 'main_dttm_col', 'default_endpoint']
+    related_views = [TableColumnInlineView, SqlMetricInlineView]
+
+    def post_add(self, table):
+        table.fetch_metadata()
+
+    def post_update(self, table):
+        table.fetch_metadata()
+
+appbuilder.add_view(
+    TableView,
+    "Tables",
+    category="Sources",
+    icon='fa-table',)
+
+
+appbuilder.add_separator("Sources")
+
+
 class ClusterModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Cluster)
     add_columns = [
@@ -100,13 +138,16 @@ appbuilder.add_view(
     ClusterModelView,
     "Druid Clusters",
     icon="fa-server",
-    category="Admin",
+    category="Sources",
     category_icon='fa-cogs',)
 
 
 class SliceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     list_columns = ['slice_link', 'viz_type', 'datasource', 'created_by']
+    edit_columns = [
+        'slice_name', 'viz_type', 'druid_datasource', 'table',
+        'dashboards', 'params']
 
 appbuilder.add_view(
     SliceModelView,
@@ -131,40 +172,6 @@ appbuilder.add_view(
     category_icon='',)
 
 
-class DatabaseView(ModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name']
-    add_columns = ['database_name', 'sqlalchemy_uri']
-    edit_columns = add_columns
-
-appbuilder.add_view(
-    DatabaseView,
-    "Databases",
-    icon="fa-database",
-    category="Admin",
-    category_icon='fa-cogs',)
-
-
-class TableView(ModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.Table)
-    list_columns = ['table_link', 'database']
-    add_columns = ['table_name', 'database', 'default_endpoint']
-    edit_columns = [
-        'table_name', 'database', 'main_datetime_column', 'default_endpoint']
-    related_views = [TableColumnInlineView, SqlMetricInlineView]
-
-    def post_add(self, table):
-        table.fetch_metadata()
-
-    def post_update(self, table):
-        table.fetch_metadata()
-
-appbuilder.add_view(
-    TableView,
-    "Tables",
-    icon='fa-table',)
-
-
 class DatasourceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = [
@@ -186,6 +193,7 @@ class DatasourceModelView(ModelView, DeleteMixin):
 appbuilder.add_view(
     DatasourceModelView,
     "Druid Datasources",
+    category="Sources",
     icon="fa-cubes")
 
 
@@ -241,7 +249,14 @@ class Panoramix(BaseView):
                 status=status,
                 mimetype="application/json")
         else:
-            return self.render_template("panoramix/viz.html", viz=obj)
+            try:
+                resp = self.render_template("panoramix/viz.html", viz=obj)
+            except Exception as e:
+                return Response(
+                    str(e),
+                    status=500,
+                    mimetype="application/json")
+            return resp
 
     @has_access
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
@@ -303,8 +318,10 @@ class Panoramix(BaseView):
             .filter(models.Dashboard.id == id_)
             .first()
         )
-        pos_dict = {
-            int(o['slice_id']):o for o in json.loads(dashboard.position_json)}
+        pos_dict = {}
+        if dashboard.position_json:
+            pos_dict = {
+                int(o['slice_id']):o for o in json.loads(dashboard.position_json)}
         return self.render_template(
             "panoramix/dashboard.html", dashboard=dashboard,
             pos_dict=pos_dict)
@@ -342,6 +359,6 @@ appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(
     "Refresh Druid Metadata",
     href='/panoramix/refresh_datasources/',
-    category='Admin',
+    category='Sources',
     category_icon='fa-cogs',
     icon="fa-cog")

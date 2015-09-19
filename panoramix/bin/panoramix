@@ -4,6 +4,12 @@ from flask.ext.script import Manager
 from panoramix import app, config
 from subprocess import Popen
 from flask.ext.migrate import MigrateCommand
+from panoramix import db
+from flask.ext.appbuilder import Base
+from sqlalchemy import Column, Integer, String
+from panoramix import config, models
+import csv
+import gzip
 
 
 manager = Manager(app)
@@ -33,9 +39,66 @@ def runserver(debug, port):
         Popen(cmd, shell=True).wait()
 
 @manager.command
-def load_examples(self):
+def load_examples():
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    print("Loading examples")
+    print("Loading examples into {}".format(db))
+    class BirthNames(Base):
+        __tablename__ = "birth_names"
+        id = Column(Integer, primary_key=True)
+        state = Column(String(10))
+        year = Column(Integer)
+        name = Column(String(128))
+        num = Column(Integer)
+        ds = Column(String(20))
+        gender = Column(String(10))
+    try:
+        BirthNames.__table__.drop(db.engine)
+    except:
+        pass
+    Base.metadata.create_all(db.engine)
+    session = db.session()
+
+    with gzip.open(config.basedir + '/data/birth_names.csv.gz') as f:
+        bb_csv = csv.reader(f)
+        for i, (state, year, name, num, gender) in enumerate(bb_csv):
+            if i == 0 or not name or name=="\xc2\xa0":
+                continue
+            if num == "NA":
+                num = 0
+            ds = str(year) + '-01-01'
+            session.add(
+                BirthNames(
+                    state=state, year=year,
+                    ds=ds,
+                    name=name, num=num, gender=gender))
+            if i % 1000 == 0:
+                print("{} loaded out of 502619 rows".format(i))
+                session.commit()
+            session.commit()
+    print("Done loading table!")
+    DB = models.Database
+    dbobj = session.query(DB).filter_by(database_name='main').first()
+    if not dbobj:
+        dbobj = DB()
+    dbobj.database_name = "main"
+    dbobj.sqlalchemy_uri = config.SQLALCHEMY_DATABASE_URI
+    session.merge(dbobj)
+    session.commit()
+ 
+    TBL = models.Table
+    obj = session.query(TBL).filter_by(table_name='birth_names').first()
+    if not obj:
+        obj = TBL()
+    obj.table_name = 'birth_names'
+    obj.main_dttm_col = 'ds'
+    obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=one+day&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
+    obj.database = dbobj
+    obj.fetch_metadata()
+    session.merge(obj)
+    session.commit()
+
+    session.close()
+
 
 if __name__ == "__main__":
     manager.run()

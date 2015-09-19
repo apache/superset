@@ -26,8 +26,7 @@
       </tbody>
     </table>
   {% else %}
-  <div id="{{ viz.token }}" style="display: none;">
-  </div>
+  <div id="{{ viz.token }}" style="display: none;"></div>
   <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
   {% endif %}
 {% endmacro %}
@@ -37,14 +36,22 @@
   <script>
     var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";
     console.log(url);
-    $("#{{ viz.token }}").load(url, function(){
-      var table = $('table').DataTable({
-        paging: false,
-        searching: false,
-      });
-      $("#{{ viz.token }}").show();
-      table.column('-1').order( 'desc' ).draw();
-      $("#{{ viz.token }} img.loading").hide();
+    var token = $("#{{ viz.token }}");
+    token.load(url, function(response, status, xhr){
+      if(status=="error"){
+        var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
+        token.html(err);
+        token.show();
+      }
+      else{
+        var table = $('table').DataTable({
+          paging: false,
+          searching: false,
+        });
+        table.column('-1').order( 'desc' ).draw();
+      }
+      token.show();
+      token.parent().find("img.loading").hide();
     });
   </script>
   {% endif %}

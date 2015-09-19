@@ -7,7 +7,7 @@ and interactive.
 Buzz Phrases
 ------------
 
-* Analytics at the speed of thought! 
+* Analytics at the speed of thought!
 * Instantaneous learning curve
 * Realtime analytics when querying [Druid.io](http://druid.io)
 * Extentsible to infinity
@@ -67,11 +67,11 @@ pip install panoramix
 # Create an admin user
 fabmanager create-admin --app panoramix
 
-# Clone the github repo 
-git clone https://github.com/mistercrunch/panoramix.git
+# Load some data to play with
+panoramix load_examples
 
-# Start the web server
-panoramix
+# Start the development web server
+panoramix runserver -d
 ```
 
 After installation, you should be able to point your browser to the right
