@@ -105,7 +105,7 @@ PANORAMIX_WEBSERVER_PORT = 8088
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///tmp/panoramix.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/panoramix.db'
 
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
