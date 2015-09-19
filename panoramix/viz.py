@@ -31,17 +31,19 @@ class BaseViz(object):
     def __init__(self, datasource, form_data):
         self.datasource = datasource
         if isinstance(form_data, MultiDict):
-            self.args = form_data.to_dict(flat=True)
+            self.args = form_data.to_dict(flat=False)
         else:
             self.args = form_data
         self.form_data = form_data
         self.token = self.args.get('token', 'token_' + uuid.uuid4().hex[:8])
 
         as_list = ('metrics', 'groupby')
-        d = self.args
-        for m in as_list:
-            if m in d and d[m] and not isinstance(d[m], list):
-                d[m] = [d[m]]
+        for k, v in self.args.items():
+            if k in as_list and not isinstance(v, list):
+                self.args[k] = [v]
+            elif k not in as_list and isinstance(v, list) and v:
+                self.args[k] = v[0]
+
         self.metrics = self.args.get('metrics') or ['count']
         self.groupby = self.args.get('groupby') or []
 
@@ -57,18 +59,14 @@ class BaseViz(object):
         self.error_msg = ""
         self.results = None
 
-        #try:
         self.results = self.bake_query()
         df = self.results.df
-        if df is not None:
+        if df is None or df.empty:
+            raise Exception("No data, review your incantations!")
+        else:
             if 'timestamp' in df.columns:
                 df.timestamp = pd.to_datetime(df.timestamp)
         return df
-        '''
-        except Exception as e:
-            logging.exception(e)
-            self.error_msg = str(e)
-        '''
 
     @property
     def form(self):
