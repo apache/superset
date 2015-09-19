@@ -137,7 +137,7 @@ class ClusterModelView(ModelView, DeleteMixin):
 appbuilder.add_view(
     ClusterModelView,
     "Druid Clusters",
-    icon="fa-server",
+    icon="fa-cubes",
     category="Sources",
     category_icon='fa-cogs',)
 
@@ -194,7 +194,7 @@ appbuilder.add_view(
     DatasourceModelView,
     "Druid Datasources",
     category="Sources",
-    icon="fa-cubes")
+    icon="fa-cube")
 
 
 @app.route('/health')
