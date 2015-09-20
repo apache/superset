@@ -6,6 +6,11 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
     {% endfor %}
     <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
+    {% for slice in dashboard.slices %}
+      {% set viz = slice.viz %}
+      {% import viz.template as viz_macros %}
+      {{ viz_macros.viz_css(viz) }}
+    {% endfor %}
 <style>
     a i{
       cursor: pointer;
@@ -52,6 +57,15 @@
         width: 100%;
         height: 100%;
     }
+    table.widget_header {
+      width: 100%;
+    }
+    td.icons {
+      width: 50px;
+    }
+    div.header {
+      font-weight: bold;
+    }
 </style>
 {% endblock %}
 
@@ -82,24 +96,26 @@
               data-col="{{ pos.col or loop.index }}"
               data-sizex="{{ pos.size_x or 4 }}"
               data-sizey="{{ pos.size_y or 4 }}">
-              <div class="slice_title" style="height: 0px;">
-                <div class="row">
-                  <div class="col-md-4 text-left">
-                    <a>
-                      <i class="fa fa-arrows drag"></i>
-                    </a>
-                  </div>
-                  <div class="col-md-4 text-middle">
-                    <span>{{ slice.slice_name }}</span>
-                  </div>
-                  <div class="col-md-4 text-right" style="position: relative;">
-                    <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
-                    <a class="refresh"><i class="fa fa-refresh"></i></a>
-                    <a href="{{ slice.edit_url }}"><i class="fa fa-gear"></i></a>
-                    <a class="closewidget"><i class="fa fa-close"></i></a>
-                  </div>
-                </div>
-              </div>
+              <table class="widget_header">
+                <tbody>
+                  <tr>
+                    <td class="icons">
+                      <a><i class="fa fa-arrows drag"></i></a>
+                    </td>
+                    <td>
+                      <div class="text-center header"><nobr>{{ slice.slice_name }}</nobr></div>
+                    </td>
+                    <td class="icons">
+                      <nobr>
+                      <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
+                      <a class="refresh"><i class="fa fa-refresh"></i></a>
+                      <a href="{{ slice.edit_url }}"><i class="fa fa-gear"></i></a>
+                      <a class="closewidget"><i class="fa fa-close"></i></a>
+                      </br>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
               {{ viz_macros.viz_html(viz) }}
           </li>
         {% endfor %}

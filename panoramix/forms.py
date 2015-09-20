@@ -40,6 +40,9 @@ def form_factory(viz):
         'metrics': SelectMultipleField(
             'Metrics', choices=datasource.metrics_combo,
             description="One or many metrics to display"),
+        'metric': SelectField(
+            'Metric', choices=datasource.metrics_combo,
+            description="One or many metrics to display"),
         'groupby': SelectMultipleField(
             'Group by',
             choices=[(s, s) for s in datasource.groupby_column_names],
@@ -77,6 +80,10 @@ def form_factory(viz):
         'y': SelectField('Y Axis', choices=datasource.metrics_combo),
         'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
         'where': TextField('Custom WHERE clause'),
+        'compare_lag': TextField('Comparison Period Lag',
+            description="Based on granularity, number of time periods to compare against"),
+        'compare_suffix': TextField('Comparison suffix',
+            description="Suffix to apply after the percentage display"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [

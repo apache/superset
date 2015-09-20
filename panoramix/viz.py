@@ -1,6 +1,6 @@
 from collections import OrderedDict
 from datetime import datetime
-from urllib import urlencode
+import json
 import uuid
 
 from flask import flash
@@ -215,6 +215,46 @@ class BubbleViz(HighchartsViz):
         chart = HighchartBubble(df)
         return chart.json
 
+class BigNumberViz(BaseViz):
+    verbose_name = "Big Number"
+    template = 'panoramix/viz_bignumber.html'
+    js_files = ['d3.min.js']
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metric',
+        'compare_lag',
+        'compare_suffix',
+        #('rolling_type', 'rolling_periods'),
+    ]
+
+    def query_obj(self):
+        d = super(BigNumberViz, self).query_obj()
+        metric = self.args.get('metric')
+        if not metric:
+            raise Exception("Pick a metric!")
+        d['metrics'] = [self.args.get('metric')]
+        return d
+
+    def get_df(self):
+        args = self.args
+        self.df = super(BigNumberViz, self).get_df()
+        return self.df
+
+    def get_json(self):
+        args = self.args
+        df = self.get_df()
+        df = df.sort(columns=df.columns[0])
+        df['timestamp'] = df[[0]].astype(np.int64) // 10**9
+        compare_lag = args.get("compare_lag", "")
+        compare_lag = int(compare_lag) if compare_lag.isdigit() else 0
+        d = {
+            'data': df.values.tolist(),
+            'compare_lag': compare_lag,
+            'compare_suffix': args.get('compare_suffix', ''),
+        }
+        return json.dumps(d)
+
 
 class TimeSeriesViz(HighchartsViz):
     verbose_name = "Time Series - Line Chart"
@@ -327,6 +367,7 @@ class DistributionBarViz(DistributionPieViz):
 viz_types = OrderedDict([
     ['table', TableViz],
     ['line', TimeSeriesViz],
+    ['big_number', BigNumberViz],
     ['compare', TimeSeriesCompareViz],
     ['compare_value', TimeSeriesCompareValueViz],
     ['area', TimeSeriesAreaViz],

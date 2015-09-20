@@ -249,13 +249,15 @@ class Panoramix(BaseView):
                 status=status,
                 mimetype="application/json")
         else:
-            try:
-                resp = self.render_template("panoramix/viz.html", viz=obj)
+            #try:
+            resp = self.render_template("panoramix/viz.html", viz=obj)
+            '''
             except Exception as e:
                 return Response(
                     str(e),
                     status=500,
                     mimetype="application/json")
+            '''
             return resp
 
     @has_access
