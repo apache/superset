@@ -105,6 +105,7 @@
       <hr style="margin-bottom: 0px;">
       <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
       <input type="hidden" id="slice_name" name="slice_name" value="TEST">
+      <input type="hidden" id="action" name="action" value="">
       <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
       <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
       <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
@@ -193,14 +194,8 @@
         $(this).parent().parent().slideUp("slow", function(){$(this).remove()});
       });
     }
-    $("#plus").click(add_filter);
-    $("#save").click(function () {
-      var slice_name = prompt("Name your slice!");
-      $("#slice_name").val(slice_name);
-      $.get( "/panoramix/save/", $("#query").serialize() );
-    })
-    add_filter();
-    $("#druidify").click(function () {
+
+    function druidify(){
       var i = 1;
 
       // removing empty filters
@@ -224,7 +219,19 @@
         i++;
       });
       $("#query").submit();
-    });
+    }
+
+    $("#plus").click(add_filter);
+    $("#save").click(function () {
+      var slice_name = prompt("Name your slice!");
+      if (slice_name != "" && slice_name != null) {
+        $("#slice_name").val(slice_name);
+        $("#action").val("save");
+        druidify();
+      }
+    })
+    add_filter();
+    $("#druidify").click(druidify);
 
     function create_choices (term, data) { 
       if ($(data).filter(function() { 

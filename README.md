@@ -4,6 +4,31 @@ Panoramix
 Panoramix is a data exploration platform designed to be visual, intuitive
 and interactive.
 
+
+![img](http://i.imgur.com/aOaH0ty.png)
+
+Panoramix
+---------
+Panoramix's main goal is to make it easy to slice, dice and visualize data. 
+It empowers its user to perform **analytics at the speed of thought**.
+
+Panoramix provides:
+* A quick way to intuitively visualize datasets
+* Create and share simple dashboards
+* A rich set of visualizations to analyze your data, as well as a flexible
+    way to extend the capabilities
+* An extensible, high granularity security model allowing intricate rules
+    on who can access which features, and integration with major
+    authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
+    through Flask AppBuiler)
+* A simple semantic layer, allowing to control how data sources are 
+    displayed in the UI,
+    by defining which fields should show up in which dropdown and which
+    aggregation and function (metrics) are made available to the user
+* Deep integration with Druid allows for Panoramix to stay blazing fast while
+    slicing and dicing large, realtime datasets
+
+
 Buzz Phrases
 ------------
 
@@ -12,17 +37,16 @@ Buzz Phrases
 * Realtime analytics when querying [Druid.io](http://druid.io)
 * Extentsible to infinity
 
-![img](http://i.imgur.com/aOaH0ty.png)
-
 Database Support
 ----------------
 
-Panoramix was originally designed on to of Druid.io, but quickly broadened 
+Panoramix was originally designed on to of Druid.io, but quickly broadened
 its scope to support other databases through the use of SqlAlchemy, a Python
-ORM that is compatible with 
-[many external databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
+ORM that is compatible with
+[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
 
-What's Druid?
+
+What is Druid?
 -------------
 From their website at http://druid.io
 
@@ -33,27 +57,6 @@ and fast data aggregation. Existing Druid deployments have scaled to
 trillions of events and petabytes of data. Druid is best used to 
 power analytic dashboards and applications.*
 
-Panoramix
----------
-Panoramix's main goal is to make it easy to slice, dice and visualize data
-out of Druid. It empowers its user to perform **analytics 
-at the speed of thought**.
-
-Panoramix started as a hackathon project at Airbnb in while running a POC
-(proof of concept) on using Druid. 
-
-Panoramix provides:
-* A way to query intuitively a Druid dataset, allowing for grouping, filtering
-    limiting and defining a time granularity
-* Many charts and visualization to analyze your data, as well as a flexible
-    way to extend the visualization capabilities
-* An extensible, high granularity security model allowing intricate rules
-    on who can access which features, and integration with major 
-    authentication providers (through Flask AppBuiler)
-* A simple semantic layer, allowing to control how Druid datasources are 
-    displayed in the UI,
-    by defining which fields should show up in which dropdown and which
-    aggregation and function (metrics) are made available to the user
 
 Installation
 ------------

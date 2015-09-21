@@ -144,6 +144,7 @@ appbuilder.add_view(
 
 class SliceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
+    can_add = False
     list_columns = ['slice_link', 'viz_type', 'datasource', 'created_by']
     edit_columns = [
         'slice_name', 'viz_type', 'druid_datasource', 'table',
@@ -211,6 +212,41 @@ class Panoramix(BaseView):
     @has_access
     @expose("/datasource/<datasource_type>/<datasource_id>/")
     def datasource(self, datasource_type, datasource_id):
+        action = request.args.get('action')
+        if action == 'save':
+            session = db.session()
+            d = request.args.to_dict(flat=False)
+            del d['action']
+            as_list = ('metrics', 'groupby')
+            for k in d:
+                v = d.get(k)
+                if k in as_list and not isinstance(v, list):
+                    d[k] = [v] if v else []
+                if k not in as_list and isinstance(v, list):
+                    d[k] = v[0]
+
+            table_id = druid_datasource_id = None
+            datasource_type = request.args.get('datasource_type')
+            if datasource_type == 'druid':
+                druid_datasource_id = request.args.get('datasource_id')
+            else:
+                table_id = request.args.get('datasource_id')
+            slice_name = request.args.get('slice_name')
+
+            obj = models.Slice(
+                params=json.dumps(d, indent=4, sort_keys=True),
+                viz_type=request.args.get('viz_type'),
+                datasource_name=request.args.get('datasource_name'),
+                druid_datasource_id=druid_datasource_id,
+                table_id=table_id,
+                datasource_type=datasource_type,
+                slice_name=slice_name,
+            )
+            session.add(obj)
+            session.commit()
+            flash("Slice <{}> has been added to the pie".format(slice_name), "info")
+            redirect(obj.slice_url)
+
         if datasource_type == "table":
             datasource = (
                 db.session
@@ -249,15 +285,13 @@ class Panoramix(BaseView):
                 status=status,
                 mimetype="application/json")
         else:
-            #try:
-            resp = self.render_template("panoramix/viz.html", viz=obj)
-            '''
+            try:
+                resp = self.render_template("panoramix/viz.html", viz=obj)
             except Exception as e:
                 return Response(
                     str(e),
                     status=500,
                     mimetype="application/json")
-            '''
             return resp
 
     @has_access
@@ -279,36 +313,6 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/save/")
-    def save(self):
-        session = db.session()
-        d = request.args.to_dict(flat=False)
-        as_list = ('metrics', 'groupby')
-        for m in as_list:
-            v = d.get(m)
-            if v and not isinstance(d[m], list):
-                d[m] = [d[m]]
-
-        table_id = druid_datasource_id = None
-        datasource_type = request.args.get('datasource_type')
-        if datasource_type == 'druid':
-            druid_datasource_id = request.args.get('datasource_id')
-        else:
-            table_id = request.args.get('datasource_id')
-
-        obj = models.Slice(
-            params=json.dumps(d, indent=4),
-            viz_type=request.args.get('viz_type'),
-            datasource_name=request.args.get('datasource_name'),
-            druid_datasource_id=druid_datasource_id,
-            table_id=table_id,
-            datasource_type=datasource_type,
-            slice_name=request.args.get('slice_name', 'junk'),
-        )
-        session.add(obj)
-        session.commit()
-        session.close()
-
-        return "super!"
 
     @has_access
     @expose("/dashboard/<id_>/")

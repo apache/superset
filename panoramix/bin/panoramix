@@ -60,8 +60,8 @@ def load_examples():
 
     with gzip.open(config.basedir + '/data/birth_names.csv.gz') as f:
         bb_csv = csv.reader(f)
-        for i, (state, year, name, num, gender) in enumerate(bb_csv):
-            if i == 0 or not name or name=="\xc2\xa0":
+        for i, (state, year, name, gender, num) in enumerate(bb_csv):
+            if i == 0:
                 continue
             if num == "NA":
                 num = 0
@@ -71,8 +71,8 @@ def load_examples():
                     state=state, year=year,
                     ds=ds,
                     name=name, num=num, gender=gender))
-            if i % 1000 == 0:
-                print("{} loaded out of 502619 rows".format(i))
+            if i % 5000 == 0:
+                print("{} loaded out of 82527 rows".format(i))
                 session.commit()
             session.commit()
     print("Done loading table!")

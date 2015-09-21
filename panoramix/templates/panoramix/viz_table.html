@@ -34,6 +34,7 @@
 {% macro viz_js(viz) %}
   {% if viz.args.get("async") != "true" %}
   <script>
+  $( document ).ready(function() {
     var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";
     console.log(url);
     var token = $("#{{ viz.token }}");
@@ -44,7 +45,7 @@
         token.show();
       }
       else{
-        var table = $('table').DataTable({
+        var table = token.find('table').DataTable({
           paging: false,
           searching: false,
         });
@@ -53,6 +54,7 @@
       token.show();
       token.parent().find("img.loading").hide();
     });
+  });
   </script>
   {% endif %}
 {% endmacro %}

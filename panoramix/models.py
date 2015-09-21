@@ -80,7 +80,10 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def slice_url(self):
-        d = json.loads(self.params)
+        try:
+            d = json.loads(self.params)
+        except Exception as e:
+            d = {}
         from werkzeug.urls import Href
         href = Href(
             "/panoramix/datasource/{self.datasource_type}/"

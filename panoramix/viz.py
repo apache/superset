@@ -49,6 +49,8 @@ class BaseViz(object):
 
     def get_url(self, **kwargs):
         d = self.args.copy()
+        if 'action' in d:
+            del d['action']
         d.update(kwargs)
         href = Href(
             '/panoramix/datasource/{self.datasource.type}/'
@@ -335,7 +337,9 @@ class DistributionPieViz(HighchartsViz):
     verbose_name = "Distribution - Pie Chart"
     chart_type = "pie"
     js_files = ['highstock.js']
-    form_fields = BaseViz.form_fields + ['limit']
+    form_fields = [
+        'viz_type', 'metrics', 'groupby',
+        ('since', 'until'), 'limit']
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()

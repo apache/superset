@@ -36,14 +36,12 @@ var render = function(){
     data = example_data();
     data = json.data;
     var compare_suffix = ' ' + json.compare_suffix;
-    console.log(data);
     var v_compare = null;
     var v = data[data.length -1][1];
     if (json.compare_lag >0){
       pos = data.length - (json.compare_lag+1);
       if(pos >=0)
         v_compare = 1-(v / data[pos][1]);
-      console.log(v_compare)
     }
     var date_ext = d3.extent(data, function(d){return d[0]});
     var value_ext = d3.extent(data, function(d){return d[1]});
