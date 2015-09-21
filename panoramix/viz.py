@@ -223,7 +223,8 @@ class BigNumberViz(BaseViz):
     js_files = ['d3.min.js']
     form_fields = [
         'viz_type',
-        'granularity', ('since', 'until'),
+        'granularity',
+        ('since', 'until'),
         'metric',
         'compare_lag',
         'compare_suffix',
@@ -237,11 +238,6 @@ class BigNumberViz(BaseViz):
             raise Exception("Pick a metric!")
         d['metrics'] = [self.args.get('metric')]
         return d
-
-    def get_df(self):
-        args = self.args
-        self.df = super(BigNumberViz, self).get_df()
-        return self.df
 
     def get_json(self):
         args = self.args

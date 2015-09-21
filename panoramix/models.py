@@ -566,7 +566,7 @@ class Cluster(Model, AuditMixinNullable):
 
 
 class Datasource(Model, AuditMixin, Queryable):
-    type = "datasource"
+    type = "druid"
 
     baselink = "datasourcemodelview"
 

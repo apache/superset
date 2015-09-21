@@ -145,10 +145,14 @@ appbuilder.add_view(
 class SliceModelView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     can_add = False
-    list_columns = ['slice_link', 'viz_type', 'datasource', 'created_by']
+    list_columns = [
+        'slice_link', 'viz_type', 'datasource_type',
+        'datasource', 'created_by']
     edit_columns = [
-        'slice_name', 'viz_type', 'druid_datasource', 'table',
-        'dashboards', 'params']
+        'slice_name', 'viz_type', 'druid_datasource',
+        'table', 'dashboards', 'params']
+for p in range(1000):
+    print SliceModelView.list_columns
 
 appbuilder.add_view(
     SliceModelView,
@@ -227,10 +231,11 @@ class Panoramix(BaseView):
 
             table_id = druid_datasource_id = None
             datasource_type = request.args.get('datasource_type')
-            if datasource_type == 'druid':
+            if datasource_type in ('datasource', 'druid'):
                 druid_datasource_id = request.args.get('datasource_id')
-            else:
+            elif datasource_type == 'table':
                 table_id = request.args.get('datasource_id')
+
             slice_name = request.args.get('slice_name')
 
             obj = models.Slice(
