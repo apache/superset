@@ -97,7 +97,7 @@ appbuilder.add_view(
     "Databases",
     icon="fa-database",
     category="Sources",
-    category_icon='fa-cogs',)
+    category_icon='fa-database',)
 
 
 class TableView(ModelView, DeleteMixin):
@@ -139,7 +139,7 @@ appbuilder.add_view(
     "Druid Clusters",
     icon="fa-cubes",
     category="Sources",
-    category_icon='fa-cogs',)
+    category_icon='fa-database',)
 
 
 class SliceModelView(ModelView, DeleteMixin):
@@ -362,5 +362,5 @@ appbuilder.add_link(
     "Refresh Druid Metadata",
     href='/panoramix/refresh_datasources/',
     category='Sources',
-    category_icon='fa-cogs',
+    category_icon='fa-database',
     icon="fa-cog")
