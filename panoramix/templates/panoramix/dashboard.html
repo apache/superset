@@ -28,7 +28,7 @@
     .gridster li {
         list-style-type: none;
         border: 1px solid gray;    
-        overflow: auto;
+        overflow: hidden;
         box-shadow: 2px 2px 2px #AAA;
         border-radius: 5px;
         background-color: white;
@@ -59,9 +59,13 @@
     }
     table.widget_header {
       width: 100%;
+      height: 20px;
     }
     td.icons {
       width: 50px;
+    }
+    td.icons nobr {
+      display: none;
     }
     div.header {
       font-weight: bold;
@@ -100,15 +104,17 @@
                 <tbody>
                   <tr>
                     <td class="icons">
-                      <a><i class="fa fa-arrows drag"></i></a>
+                      <nobr class="icons">
+                        <a><i class="fa fa-arrows drag"></i></a>
+                        <a class="refresh"><i class="fa fa-refresh"></i></a>
+                      </nobr>
                     </td>
                     <td>
                       <div class="text-center header"><nobr>{{ slice.slice_name }}</nobr></div>
                     </td>
-                    <td class="icons">
+                    <td class="icons text-right">
                       <nobr>
                       <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
-                      <a class="refresh"><i class="fa fa-refresh"></i></a>
                       <a href="{{ slice.edit_url }}"><i class="fa fa-gear"></i></a>
                       <a class="closewidget"><i class="fa fa-close"></i></a>
                       </br>
@@ -171,6 +177,12 @@
           $("a.closewidget").click(function(){
             var li = $(this).parents("li");
             gridster.remove_widget(li);
+          });
+          $("table.widget_header").mouseover(function(){
+            $(this).find("td.icons nobr").show();
+          });
+          $("table.widget_header").mouseout(function(){
+            $(this).find("td.icons nobr").hide();
           });
       });
     </script>
