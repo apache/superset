@@ -2,6 +2,7 @@ flask
 flask-migrate
 flask-appbuilder
 gunicorn
+markdown
 mysql-python
 pandas
 parsedatetime

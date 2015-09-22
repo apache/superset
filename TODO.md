@@ -8,3 +8,4 @@
 * Add a per-datasource permission
 * Reintroduce query and stopwatch
 * Sort tooltip
+* Add a "Test Connection" button in Add Connection menu

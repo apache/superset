@@ -1,4 +1,5 @@
-from wtforms import Field, Form, SelectMultipleField, SelectField, TextField
+from wtforms import (
+    Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField)
 from copy import copy
 
 
@@ -84,6 +85,12 @@ def form_factory(viz):
             description="Based on granularity, number of time periods to compare against"),
         'compare_suffix': TextField('Comparison suffix',
             description="Suffix to apply after the percentage display"),
+        'markup_type': SelectField(
+            "Markup Type",
+            choices=[(s, s) for s in ['markdown', 'html']],
+            default="markdown",
+            description="Pick your favorite markup language"),
+        'code': TextAreaField("Code", description="Put your code here"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [

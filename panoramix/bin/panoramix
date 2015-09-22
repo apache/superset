@@ -107,7 +107,7 @@ def load_examples():
     def get_slice_json(
             slice_name, filter_value, viz_type="table", group_by=None,
             granularity="all", filter_operator='in',
-            row_limit=config.ROW_LIMIT, flt_col_1="gender"):
+            row_limit=config.ROW_LIMIT, flt_col_1="gender", code=""):
         group_by = group_by if group_by is not None else ["name"]
         default_json = {
             "compare_lag": "10",
@@ -130,7 +130,9 @@ def load_examples():
             "slice_name": slice_name,
             "until": "now",
             "viz_type": viz_type,
-            "where": ""
+            "where": "",
+            "code": code,
+            "markup_type": "markdown",
         }
         return json.dumps(default_json, indent=4, sort_keys=True)
     Slice = models.Slice
@@ -210,6 +212,24 @@ def load_examples():
         session.add(slc)
     slices.append(slc)
 
+    slice_name = "Title"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    code = """
+### Birth Names Dashboard
+The source dataset came from [here](https://github.com/hadley/babynames)
+
+![img](http://monblog.system-linux.net/image/tux/baby-tux_overlord59-tux.png)
+    """
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='markup',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                slice_name, "", "markup", ['name'], code=code))
+        session.add(slc)
+    slices.append(slc)
 
     print("Creating a dashboard")
     Dash = models.Dashboard
@@ -222,44 +242,51 @@ def load_examples():
                 {
                     "size_y": 5,
                     "size_x": 2,
-                    "col": 5,
+                    "col": 10,
                     "slice_id": "1",
                     "row": 1
                 },
                 {
                     "size_y": 5,
                     "size_x": 2,
-                    "col": 7,
+                    "col": 8,
                     "slice_id": "2",
                     "row": 1
                 },
                 {
                     "size_y": 2,
                     "size_x": 2,
-                    "col": 1,
+                    "col": 6,
                     "slice_id": "3",
                     "row": 1
                 },
                 {
                     "size_y": 2,
                     "size_x": 2,
-                    "col": 3,
+                    "col": 4,
                     "slice_id": "4",
                     "row": 1
                 },
                 {
                     "size_y": 3,
                     "size_x": 4,
-                    "col": 1,
+                    "col": 4,
                     "slice_id": "5",
                     "row": 3
                 },
                 {
                     "size_y": 6,
-                    "size_x": 8,
+                    "size_x": 11,
                     "col": 1,
                     "slice_id": "6",
                     "row": 6
+                },
+                {
+                    "size_y": 5,
+                    "size_x": 3,
+                    "col": 1,
+                    "slice_id": "9",
+                    "row": 1
                 }
             ]
             """
