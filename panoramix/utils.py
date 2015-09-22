@@ -5,6 +5,7 @@ from sqlalchemy.types import TypeDecorator, TEXT
 import json
 import parsedatetime
 import functools
+from panoramix import db
 
 
 class memoized(object):
@@ -78,7 +79,6 @@ def parse_human_timedelta(s):
     return d - dttm
 
 
-
 class JSONEncodedDict(TypeDecorator):
     """Represents an immutable structure as a json-encoded string."""
     impl = TEXT
@@ -92,6 +92,7 @@ class JSONEncodedDict(TypeDecorator):
         if value is not None:
             value = json.loads(value)
         return value
+
 
 def color(s):
     """
@@ -109,3 +110,20 @@ def color(s):
     h = hashlib.md5(s)
     i = int(h.hexdigest(), 16)
     return colors[i % len(colors)]
+
+
+def init():
+    """
+    Inits the Panoramix application with security roles and such
+    """
+    from panoramix import appbuilder
+    sm = appbuilder.sm
+    alpha = sm.add_role("Alpha")
+    from flask_appbuilder.security.sqla import models
+    perms = db.session.query(models.PermissionView).all()
+    for perm in perms:
+        if perm.view_menu.name not in (
+                'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
+                'Security'):
+            sm.add_permission_role(alpha, perm)
+    sm.add_role("Gamma")

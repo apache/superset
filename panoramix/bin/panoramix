@@ -7,20 +7,18 @@ import json
 from subprocess import Popen
 
 from flask.ext.script import Manager
+from panoramix import app
 from flask.ext.migrate import MigrateCommand
 from panoramix import db
+from flask.ext.appbuilder import Base
 from sqlalchemy import Column, Integer, String, Table, DateTime
-
-from panoramix import app
-from panoramix import models
-
+from panoramix import models, utils
 
 config = app.config
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
-from flask.ext.appbuilder import Base
 
 @manager.option(
     '-d', '--debug', action='store_true',
@@ -44,6 +42,11 @@ def runserver(debug, port):
             "panoramix:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
+
+@manager.command
+def init():
+    """Inits the Panoramix application"""
+    utils.init()
 
 @manager.option(
     '-s', '--sample', action='store_true',
