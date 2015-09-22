@@ -151,8 +151,6 @@ class SliceModelView(ModelView, DeleteMixin):
     edit_columns = [
         'slice_name', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params']
-for p in range(1000):
-    print SliceModelView.list_columns
 
 appbuilder.add_view(
     SliceModelView,

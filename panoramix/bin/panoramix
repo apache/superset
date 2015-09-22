@@ -10,6 +10,7 @@ from sqlalchemy import Column, Integer, String
 from panoramix import config, models
 import csv
 import gzip
+import json
 
 
 manager = Manager(app)
@@ -57,7 +58,6 @@ def load_examples():
         pass
     Base.metadata.create_all(db.engine)
     session = db.session()
-
     with gzip.open(config.basedir + '/data/birth_names.csv.gz') as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
@@ -71,33 +71,203 @@ def load_examples():
                     state=state, year=year,
                     ds=ds,
                     name=name, num=num, gender=gender))
-            if i % 5000 == 0:
+            if i % 1000 == 0:
                 print("{} loaded out of 82527 rows".format(i))
                 session.commit()
             session.commit()
+            #if i>5000: break
     print("Done loading table!")
+    print("-" * 80)
+    print("Creating database reference")
     DB = models.Database
     dbobj = session.query(DB).filter_by(database_name='main').first()
     if not dbobj:
-        dbobj = DB()
-    dbobj.database_name = "main"
+        dbobj = DB(database_name="main")
     dbobj.sqlalchemy_uri = config.SQLALCHEMY_DATABASE_URI
-    session.merge(dbobj)
+    session.add(dbobj)
     session.commit()
- 
+
+    print("Creating table reference")
     TBL = models.Table
     obj = session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
-        obj = TBL()
-    obj.table_name = 'birth_names'
+        obj = TBL(table_name = 'birth_names')
     obj.main_dttm_col = 'ds'
     obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=one+day&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
     obj.database = dbobj
+    obj.columns = [models.TableColumn(
+        column_name="num", sum=True, type="INTEGER")]
     obj.fetch_metadata()
-    session.merge(obj)
+    models.Table
+    session.add(obj)
     session.commit()
+    tbl = obj
 
-    session.close()
+    print("Creating some slices")
+    def get_slice_json(
+            slice_name, filter_value, viz_type="table", group_by=None,
+            granularity="all", filter_operator='in',
+            row_limit=config.ROW_LIMIT, flt_col_1="gender"):
+        group_by = group_by if group_by is not None else ["name"]
+        default_json = {
+            "compare_lag": "10",
+            "compare_suffix": "o10Y",
+            "datasource_id": "1",
+            "datasource_name": "birth_names",
+            "datasource_type": "table",
+            "limit": "25",
+            "flt_col_1": flt_col_1,
+            "flt_eq_1": filter_value,
+            "flt_op_1": filter_operator,
+            "granularity": granularity,
+            "groupby": group_by,
+            "metric": 'sum__num',
+            "metrics": [
+                "sum__num"
+            ],
+            "row_limit": row_limit,
+            "since": "100 years",
+            "slice_name": slice_name,
+            "until": "now",
+            "viz_type": viz_type,
+            "where": ""
+        }
+        return json.dumps(default_json, indent=4, sort_keys=True)
+    Slice = models.Slice
+    slices = []
+
+    slice_name = "Girls"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='table',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_name, "girl", row_limit=50))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "Boys"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='table',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_name, "boy", row_limit=50))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "Participants"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='big_number',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_name, "", "big_number", [], "1 day"))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "Genders"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='pie',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_name, "", "pie", ['gender']))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "States"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='dist_bar',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                slice_name, "other", "dist_bar", ['state'],
+                filter_operator='not in', flt_col_1='state'))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "Trends"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='line',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_name, "", "line", ['name'], '1 day'))
+        session.add(slc)
+    slices.append(slc)
+
+
+    print("Creating a dashboard")
+    Dash = models.Dashboard
+    dash = session.query(Dash).filter_by(dashboard_title="Births").first()
+    if not dash:
+        dash = Dash(
+            dashboard_title="Births",
+            position_json="""
+            [
+                {
+                    "size_y": 5,
+                    "size_x": 2,
+                    "col": 5,
+                    "slice_id": "1",
+                    "row": 1
+                },
+                {
+                    "size_y": 5,
+                    "size_x": 2,
+                    "col": 7,
+                    "slice_id": "2",
+                    "row": 1
+                },
+                {
+                    "size_y": 2,
+                    "size_x": 2,
+                    "col": 1,
+                    "slice_id": "3",
+                    "row": 1
+                },
+                {
+                    "size_y": 2,
+                    "size_x": 2,
+                    "col": 3,
+                    "slice_id": "4",
+                    "row": 1
+                },
+                {
+                    "size_y": 3,
+                    "size_x": 4,
+                    "col": 1,
+                    "slice_id": "5",
+                    "row": 3
+                },
+                {
+                    "size_y": 6,
+                    "size_x": 8,
+                    "col": 1,
+                    "slice_id": "6",
+                    "row": 6
+                }
+            ]
+            """
+        )
+        session.add(dash)
+    for s in slices:
+        dash.slices.append(s)
+    session.commit()
 
 
 if __name__ == "__main__":
