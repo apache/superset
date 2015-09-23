@@ -390,4 +390,5 @@ viz_types = OrderedDict([
     ['pie', DistributionPieViz],
     ['bubble', BubbleViz],
     ['markup', MarkupViz],
+    ['word_cloud', WordCloudViz],
 ])
