@@ -4,6 +4,7 @@ import json
 import uuid
 
 from flask import flash
+from markdown import markdown
 from werkzeug.datastructures import MultiDict
 from werkzeug.urls import Href
 import numpy as np
@@ -21,7 +22,6 @@ CHART_ARGS = {
 class BaseViz(object):
     verbose_name = "Base Viz"
     template = None
-    hidden_fields = []
     form_fields = [
         'viz_type', 'metrics', 'groupby', 'granularity',
         ('since', 'until')]
@@ -161,6 +161,20 @@ class TableViz(BaseViz):
         return df
 
 
+class MarkupViz(BaseViz):
+    verbose_name = "Markup Widget"
+    template = 'panoramix/viz_markup.html'
+    form_fields = ['viz_type', 'markup_type', 'code']
+
+    def rendered(self):
+        markup_type = self.form_data.get("markup_type")
+        code = self.form_data.get("code", '')
+        if markup_type == "markdown":
+            return markdown(code)
+        elif markup_type == "html":
+            return code
+
+
 class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
@@ -174,7 +188,6 @@ class HighchartsViz(BaseViz):
 class BubbleViz(HighchartsViz):
     verbose_name = "Bubble Chart"
     chart_type = 'bubble'
-    hidden_fields = ['granularity', 'metrics', 'groupby']
     form_fields = [
         'viz_type', 'since', 'until',
         'series', 'entity', 'x', 'y', 'size', 'limit']
@@ -376,4 +389,6 @@ viz_types = OrderedDict([
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
     ['bubble', BubbleViz],
+    ['markup', MarkupViz],
+    ['word_cloud', WordCloudViz],
 ])

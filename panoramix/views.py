@@ -10,7 +10,7 @@ from pydruid.client import doublesum
 from wtforms.validators import ValidationError
 from flask.ext.appbuilder.actions import action
 
-from panoramix import appbuilder, db, models, viz, utils, app
+from panoramix import appbuilder, db, models, viz, utils, app, config
 
 
 def validate_json(form, field):
@@ -291,6 +291,8 @@ class Panoramix(BaseView):
             try:
                 resp = self.render_template("panoramix/viz.html", viz=obj)
             except Exception as e:
+                if config.DEBUG:
+                    raise(e)
                 return Response(
                     str(e),
                     status=500,
