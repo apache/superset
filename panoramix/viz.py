@@ -175,6 +175,13 @@ class MarkupViz(BaseViz):
             return code
 
 
+class WordCloudViz(BaseViz):
+    verbose_name = "Word Cloud"
+    template = 'panoramix/viz_word_cloud.html'
+    form_fields = ['viz_type', 'group_by', 'metric']
+    js_files = ['d3.layout.cloud.js']
+
+
 class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
@@ -390,4 +397,5 @@ viz_types = OrderedDict([
     ['pie', DistributionPieViz],
     ['bubble', BubbleViz],
     ['markup', MarkupViz],
+    ['word_cloud', WordCloudViz],
 ])
