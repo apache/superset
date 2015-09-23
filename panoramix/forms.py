@@ -90,13 +90,27 @@ def form_factory(viz):
             choices=[(s, s) for s in ['markdown', 'html']],
             default="markdown",
             description="Pick your favorite markup language"),
+        'rotation': SelectField(
+            "Rotation",
+            choices=[(s, s) for s in ['random', 'flat', 'square']],
+            default="random",
+            description="Rotation to apply to words in the cloud"),
         'code': TextAreaField("Code", description="Put your code here"),
+        'size_from': TextField(
+            "Font Size From",
+            default="20",
+            description="Font size for the smallest value in the list"),
+        'size_to': TextField(
+            "Font Size To",
+            default="150",
+            description="Font size for the biggest value in the list"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
         'viz_type', 'metrics', 'groupby',
         'row_limit', 'rolling_type', 'series',
-        'entity', 'x', 'y', 'size']
+        'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
+        'markup_type',]
     field_css_classes['since'] += ['select2_free_since']
     field_css_classes['until'] += ['select2_free_until']
     field_css_classes['granularity'] += ['select2_free_granularity']

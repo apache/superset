@@ -176,10 +176,35 @@ class MarkupViz(BaseViz):
 
 
 class WordCloudViz(BaseViz):
+    """
+    Integration with the nice library at:
+    https://github.com/jasondavies/d3-cloud
+    """
     verbose_name = "Word Cloud"
     template = 'panoramix/viz_word_cloud.html'
-    form_fields = ['viz_type', 'group_by', 'metric']
+    form_fields = [
+        'viz_type',
+        ('since', 'until'),
+        'groupby', 'metric', 'limit',
+        ('size_from', 'size_to'),
+        'rotation',
+    ]
     js_files = ['d3.layout.cloud.js']
+
+    def query_obj(self):
+        d = super(WordCloudViz, self).query_obj()
+        d['granularity'] = 'all'
+        metric = self.args.get('metric')
+        if not metric:
+            raise Exception("Pick a metric!")
+        d['metrics'] = [self.args.get('metric')]
+        d['groupby'] = [d['groupby'][0]]
+        return d
+
+    def get_json(self):
+        df = self.get_df()
+        df.columns = ['text', 'size']
+        return df.to_json(orient="records")
 
 
 class HighchartsViz(BaseViz):
