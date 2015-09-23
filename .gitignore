@@ -1,4 +1,5 @@
 *.pyc
+.DS_Store
 build
 *.db
 tmp
