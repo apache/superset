@@ -40,8 +40,9 @@ var render = function(){
     var v = data[data.length -1][1];
     if (json.compare_lag >0){
       pos = data.length - (json.compare_lag+1);
-      if(pos >=0)
-        v_compare = 1-(v / data[pos][1]);
+      if(pos >=0){
+        v_compare = (v / data[pos][1])-1;
+      }
     }
     var date_ext = d3.extent(data, function(d){return d[0]});
     var value_ext = d3.extent(data, function(d){return d[1]});

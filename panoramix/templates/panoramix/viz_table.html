@@ -36,7 +36,6 @@
   <script>
   $( document ).ready(function() {
     var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";
-    console.log(url);
     var token = $("#{{ viz.token }}");
     token.load(url, function(response, status, xhr){
       if(status=="error"){

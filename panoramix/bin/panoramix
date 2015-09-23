@@ -39,8 +39,10 @@ def runserver(debug, port):
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
-@manager.command
-def load_examples():
+@manager.option(
+    '-s', '--sample', action='store_true',
+    help="Only load 1000 rows (faster, used for testing)")
+def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
     class BirthNames(Base):
@@ -75,7 +77,7 @@ def load_examples():
                 print("{} loaded out of 82527 rows".format(i))
                 session.commit()
             session.commit()
-            #if i>5000: break
+            if sample and i>1000: break
     print("Done loading table!")
     print("-" * 80)
     print("Creating database reference")
@@ -104,37 +106,32 @@ def load_examples():
     tbl = obj
 
     print("Creating some slices")
-    def get_slice_json(
-            slice_name, filter_value, viz_type="table", group_by=None,
-            granularity="all", filter_operator='in',
-            row_limit=config.ROW_LIMIT, flt_col_1="gender", code=""):
-        group_by = group_by if group_by is not None else ["name"]
-        default_json = {
+    def get_slice_json(slice_name, **kwargs):
+        defaults = {
             "compare_lag": "10",
             "compare_suffix": "o10Y",
             "datasource_id": "1",
             "datasource_name": "birth_names",
             "datasource_type": "table",
             "limit": "25",
-            "flt_col_1": flt_col_1,
-            "flt_eq_1": filter_value,
-            "flt_op_1": filter_operator,
-            "granularity": granularity,
-            "groupby": group_by,
+            "flt_col_1": "gender",
+            "flt_eq_1": "",
+            "flt_op_1": "in",
+            "granularity": "all",
+            "groupby": [],
             "metric": 'sum__num',
-            "metrics": [
-                "sum__num"
-            ],
-            "row_limit": row_limit,
+            "metrics": ["sum__num"],
+            "row_limit": config.ROW_LIMIT,
             "since": "100 years",
             "slice_name": slice_name,
             "until": "now",
-            "viz_type": viz_type,
+            "viz_type": "table",
             "where": "",
-            "code": code,
             "markup_type": "markdown",
         }
-        return json.dumps(default_json, indent=4, sort_keys=True)
+        d = defaults.copy()
+        d.update(kwargs)
+        return json.dumps(d, indent=4, sort_keys=True)
     Slice = models.Slice
     slices = []
 
@@ -146,7 +143,8 @@ def load_examples():
             viz_type='table',
             datasource_type='table',
             table=tbl,
-            params=get_slice_json(slice_name, "girl", row_limit=50))
+            params=get_slice_json(
+                slice_name, groupby=['name'], flt_eq_1="girl", row_limit=50))
         session.add(slc)
     slices.append(slc)
 
@@ -158,7 +156,8 @@ def load_examples():
             viz_type='table',
             datasource_type='table',
             table=tbl,
-            params=get_slice_json(slice_name, "boy", row_limit=50))
+            params=get_slice_json(
+                slice_name, groupby=['name'], flt_eq_1="boy", row_limit=50))
         session.add(slc)
     slices.append(slc)
 
@@ -170,7 +169,9 @@ def load_examples():
             viz_type='big_number',
             datasource_type='table',
             table=tbl,
-            params=get_slice_json(slice_name, "", "big_number", [], "1 day"))
+            params=get_slice_json(
+                slice_name, viz_type="big_number", granularity="1 day",
+                compare_lag="5", compare_suffix="over 5Y"))
         session.add(slc)
     slices.append(slc)
 
@@ -182,7 +183,8 @@ def load_examples():
             viz_type='pie',
             datasource_type='table',
             table=tbl,
-            params=get_slice_json(slice_name, "", "pie", ['gender']))
+            params=get_slice_json(
+                slice_name, viz_type="pie", groupby=['gender']))
         session.add(slc)
     slices.append(slc)
 
@@ -195,8 +197,8 @@ def load_examples():
             datasource_type='table',
             table=tbl,
             params=get_slice_json(
-                slice_name, "other", "dist_bar", ['state'],
-                filter_operator='not in', flt_col_1='state'))
+                slice_name, flt_eq_1="other", viz_type="dist_bar",
+                groupby=['state'], flt_op_1='not in', flt_col_1='state'))
         session.add(slc)
     slices.append(slc)
 
@@ -208,7 +210,9 @@ def load_examples():
             viz_type='line',
             datasource_type='table',
             table=tbl,
-            params=get_slice_json(slice_name, "", "line", ['name'], '1 day'))
+            params=get_slice_json(
+                slice_name, viz_type="line", groupby=['name'],
+                granularity='1 day'))
         session.add(slc)
     slices.append(slc)
 
@@ -227,7 +231,23 @@ The source dataset came from [here](https://github.com/hadley/babynames)
             datasource_type='table',
             table=tbl,
             params=get_slice_json(
-                slice_name, "", "markup", ['name'], code=code))
+                slice_name, viz_type="markup", markup_type="markdown",
+                code=code))
+        session.add(slc)
+    slices.append(slc)
+
+    slice_name = "Name Cloud"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='word_cloud',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                slice_name, viz_type="word_cloud", size_from="10", 
+                groupby=['name'], size_to="70", rotation="square",
+                limit='100'))
         session.add(slc)
     slices.append(slc)
 
@@ -240,52 +260,59 @@ The source dataset came from [here](https://github.com/hadley/babynames)
             position_json="""
             [
                 {
-                    "size_y": 5,
+                    "size_y": 4,
                     "size_x": 2,
-                    "col": 10,
+                    "col": 3,
                     "slice_id": "1",
-                    "row": 1
+                    "row": 3
                 },
                 {
-                    "size_y": 5,
+                    "size_y": 4,
                     "size_x": 2,
-                    "col": 8,
+                    "col": 1,
                     "slice_id": "2",
-                    "row": 1
+                    "row": 3
                 },
                 {
                     "size_y": 2,
                     "size_x": 2,
-                    "col": 6,
+                    "col": 1,
                     "slice_id": "3",
                     "row": 1
                 },
                 {
                     "size_y": 2,
                     "size_x": 2,
-                    "col": 4,
+                    "col": 3,
                     "slice_id": "4",
                     "row": 1
                 },
                 {
                     "size_y": 3,
-                    "size_x": 4,
-                    "col": 4,
+                    "size_x": 7,
+                    "col": 5,
                     "slice_id": "5",
-                    "row": 3
-                },
-                {
-                    "size_y": 6,
-                    "size_x": 11,
-                    "col": 1,
-                    "slice_id": "6",
-                    "row": 6
+                    "row": 4
                 },
                 {
                     "size_y": 5,
-                    "size_x": 3,
+                    "size_x": 11,
                     "col": 1,
-                    "slice_id": "9",
+                    "slice_id": "6",
+                    "row": 7
+                },
+                {
+                    "size_y": 3,
+                    "size_x": 3,
+                    "col": 9,
+                    "slice_id": "7",
+                    "row": 1
+                },
+                {
+                    "size_y": 3,
+                    "size_x": 4,
+                    "col": 5,
+                    "slice_id": "8",
                     "row": 1
                 }
             ]

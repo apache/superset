@@ -7,62 +7,67 @@
 {% macro viz_js(viz) %}
 <script>
 $( document ).ready(function() {
-  var range = [
-    {{ viz.args.get('size_from') or 20 }}, 
-    {{ viz.args.get('size_to') or 100 }}
-  ];
-  var rotation = "{{ viz.args.get("rotation", "random") }}";
-  if (rotation == "square")
-    var f_rotation = function() { return ~~(Math.random() * 2) * 90; };
-  else if (rotation == "flat")
-    var f_rotation = function() { return 0};
-  else
-    var f_rotation = function() { return (~~(Math.random() * 6) - 3) * 30;};
-
-  var url = "{{ viz.get_url(json="true")|safe }}";
   var token = d3.select("#{{ viz.token }}");
-  var box = token.node().getBoundingClientRect();
-  var size = [box.width, box.height-25];
-  d3.json(url, function(error, data){
-    if(error != null){
-      var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-      token.html(err);
-      return '';
-    }
-    scale = d3.scale.linear()
-      .range(range)
-      .domain(d3.extent(data, function(d) { return d.size; }));
-    var fill = d3.scale.category20();
-    var layout = d3.layout.cloud()
-      .size(size)
-      .words(data)
-      .padding(5)
-      .rotate(f_rotation)
-      .font("serif")
-      .fontSize(function(d) { return scale(d.size); })
-      .on("end", draw);
-    layout.start();
-    function draw(words) {
-      token.selectAll("*").remove();
+  function refresh() {
+    var range = [
+      {{ viz.args.get('size_from') or 20 }}, 
+      {{ viz.args.get('size_to') or 100 }}
+    ];
+    var rotation = "{{ viz.args.get("rotation", "random") }}";
+    if (rotation == "square")
+      var f_rotation = function() { return ~~(Math.random() * 2) * 90; };
+    else if (rotation == "flat")
+      var f_rotation = function() { return 0};
+    else
+      var f_rotation = function() { return (~~(Math.random() * 6) - 3) * 30;};
 
-      token.append("svg")
-          .attr("width", layout.size()[0])
-          .attr("height", layout.size()[1])
-        .append("g")
-          .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
-        .selectAll("text")
-          .data(words)
-        .enter().append("text")
-          .style("font-size", function(d) { return d.size + "px"; })
-          .style("font-family", "Impact")
-          .style("fill", function(d, i) { return fill(i); })
-          .attr("text-anchor", "middle")
-          .attr("transform", function(d) {
-            return "translate(" + [d.x, d.y] + ") rotate(" + d.rotate + ")";
-          })
-          .text(function(d) { return d.text; });
-    }
-  });
+    var url = "{{ viz.get_url(json="true")|safe }}";
+    var box = token.node().getBoundingClientRect();
+    var size = [box.width, box.height-25];
+    d3.json(url, function(error, data){
+      if(error != null){
+        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
+        token.html(err);
+        return '';
+      }
+      scale = d3.scale.linear()
+        .range(range)
+        .domain(d3.extent(data, function(d) { return d.size; }));
+      var fill = d3.scale.category20();
+      var layout = d3.layout.cloud()
+        .size(size)
+        .words(data)
+        .padding(5)
+        .rotate(f_rotation)
+        .font("serif")
+        .fontSize(function(d) { return scale(d.size); })
+        .on("end", draw);
+      layout.start();
+      function draw(words) {
+        token.selectAll("*").remove();
+
+        token.append("svg")
+            .attr("width", layout.size()[0])
+            .attr("height", layout.size()[1])
+          .append("g")
+            .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
+          .selectAll("text")
+            .data(words)
+          .enter().append("text")
+            .style("font-size", function(d) { return d.size + "px"; })
+            .style("font-family", "Impact")
+            .style("fill", function(d, i) { return fill(i); })
+            .attr("text-anchor", "middle")
+            .attr("transform", function(d) {
+              return "translate(" + [d.x, d.y] + ") rotate(" + d.rotate + ")";
+            })
+            .text(function(d) { return d.text; });
+      }
+    });
+  }
+  refresh();
+  jtoken = $(token);
+  jtoken.parent().find("a.refresh").click(refresh);
 });
 </script>
 {% endmacro %}
