@@ -4,6 +4,7 @@ flask-appbuilder
 gunicorn
 markdown
 mysql-python
+nose
 pandas
 parsedatetime
 pydruid

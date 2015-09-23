@@ -9,7 +9,10 @@ setup(
         "and druid.io"),
     version=version,
     packages=find_packages(),
-    package_data={'': ['panoramix/migrations/alembic.ini']},
+    package_data={'': [
+        'panoramix/migrations/alembic.ini',
+        'panoramix/data/birth_names.csv.gz',
+    ]},
     include_package_data=True,
     zip_safe=False,
     scripts=['panoramix/bin/panoramix'],

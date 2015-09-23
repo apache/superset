@@ -6,10 +6,14 @@
   .carousel img {
     max-height: 500px;
   }
-  .carousel-caption{
+  .carousel {
+    overflow: hidden;
+  }
+  div.carousel-caption{
     background: rgba(0,0,0,0.5);
-    border-radius: 20px;   
-    margin-bottom: 100px;
+    border-radius: 20px;
+    top: 150px;
+    bottom: auto !important;
   }
   .carousel-inner > .item > img {
     margin: 0 auto;
@@ -37,6 +41,7 @@
     <li data-target="#carousel" data-slide-to="1"></li>
     <li data-target="#carousel" data-slide-to="2"></li>
     <li data-target="#carousel" data-slide-to="3"></li>
+    <li data-target="#carousel" data-slide-to="4"></li>
   </ol>
 
   <!-- Wrapper for slides -->
@@ -75,6 +80,17 @@
       <div class="carousel-caption">
         <h1>Extend</h1>
         <p>Join the community and take part in extending the widget library</p>
+      </div>
+    </div>
+    <div class="item">
+      <img style="max-height: none;" src="{{ url_for("static", filename="servers.jpg") }}">
+      <div class="carousel-caption">
+        <h1>Connect</h1>
+        <p>
+          Access data from MySql, Presto.db, Postgres, RedShift, Oracle, MsSql,
+          SQLite, and more through the SqlAlchemy integration. You can also
+          query realtime data blazingly fast out of Druid.io
+        </p>
       </div>
     </div>
   </div>
