@@ -94,6 +94,12 @@ class DatabaseView(ModelView, DeleteMixin):
     edit_columns = add_columns
     add_template = "panoramix/models/database/add.html"
     edit_template = "panoramix/models/database/edit.html"
+    description_columns = {
+        'sqlalchemy_uri': (
+            "Refer to the SqlAlchemy docs for more information on how "
+            "to structure your URI here: "
+            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html")
+    }
 
 appbuilder.add_view(
     DatabaseView,
