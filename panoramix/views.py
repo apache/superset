@@ -3,12 +3,13 @@ import json
 import logging
 
 from flask import request, redirect, flash, Response
-from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+from flask.ext.appbuilder.actions import action
+from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
 from pydruid.client import doublesum
+from sqlalchemy import create_engine
 from wtforms.validators import ValidationError
-from flask.ext.appbuilder.actions import action
 
 from panoramix import appbuilder, db, models, viz, utils, app, config
 
@@ -91,6 +92,8 @@ class DatabaseView(ModelView, DeleteMixin):
     list_columns = ['database_name']
     add_columns = ['database_name', 'sqlalchemy_uri']
     edit_columns = add_columns
+    add_template = "panoramix/models/database/add.html"
+    edit_template = "panoramix/models/database/edit.html"
 
 appbuilder.add_view(
     DatabaseView,
@@ -317,7 +320,19 @@ class Panoramix(BaseView):
         return "SUCCESS"
 
     @has_access
-    @expose("/save/")
+    @expose("/testconn/")
+    def testconn(self):
+        try:
+            db = create_engine(request.args.get('uri'))
+            for i in range(15):
+                request.args.get('uri')
+            db.connect()
+            return "SUCCESS"
+        except Exception as e:
+            return Response(
+                str(e),
+                status=500,
+                mimetype="application/json")
 
     @has_access
     @expose("/dashboard/<id_>/")
