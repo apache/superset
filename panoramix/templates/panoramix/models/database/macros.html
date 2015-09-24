@@ -1,0 +1,19 @@
+{% macro testconn() %}
+  <script>
+    $("#sqlalchemy_uri").parent()
+      .append('<button id="testconn" class="btn">Test Connection</button>');
+    $("#testconn").click(function() {
+      var url = "/panoramix/testconn";
+      $.ajax({
+        method: "GET",
+        url: url,
+        data: { uri: $("#sqlalchemy_uri").val() }
+      }).done(function() {
+          alert("success");
+      }).fail(function(error) {
+          alert("ERROR: " + error.responseText);
+      });
+      return false;
+    });
+  </script>
+{% endmacro %}
