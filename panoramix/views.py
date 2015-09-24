@@ -89,7 +89,7 @@ appbuilder.add_view_no_menu(MetricInlineView)
 
 class DatabaseView(ModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name']
+    list_columns = ['database_name', 'created_by', 'created_on']
     add_columns = ['database_name', 'sqlalchemy_uri']
     edit_columns = add_columns
     add_template = "panoramix/models/database/add.html"
