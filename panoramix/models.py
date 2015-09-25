@@ -439,6 +439,8 @@ class Table(Model, Queryable, AuditMixinNullable):
                         str(datatype).startswith('STRING')):
                     dbcol.groupby = True
                     dbcol.filterable = True
+                elif str(datatype).upper() in ('DOUBLE', 'FLOAT', 'INT', 'BIGINT'):
+                    dbcol.sum = True
             db.session.merge(self)
             self.columns.append(dbcol)
 
