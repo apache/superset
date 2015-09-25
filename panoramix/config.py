@@ -2,7 +2,7 @@ import os
 from flask_appbuilder.security.manager import AUTH_DB
 # from flask_appbuilder.security.manager import (
 #    AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH)
-basedir = os.path.abspath(os.path.dirname(__file__))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 from dateutil import tz
 
 """
@@ -107,10 +107,10 @@ LANGUAGES = {
 # Image and file configuration
 # ---------------------------------------------------
 # The file upload folder, when using models with files
-UPLOAD_FOLDER = basedir + '/app/static/uploads/'
+UPLOAD_FOLDER = BASE_DIR + '/app/static/uploads/'
 
 # The image upload folder, when using models with images
-IMG_UPLOAD_FOLDER = basedir + '/app/static/uploads/'
+IMG_UPLOAD_FOLDER = BASE_DIR + '/app/static/uploads/'
 
 # The image upload url, when using models with images
 IMG_UPLOAD_URL = '/static/uploads/'

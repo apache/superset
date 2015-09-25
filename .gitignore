@@ -1,5 +1,6 @@
 *.pyc
 .DS_Store
+.coverage
 build
 *.db
 tmp

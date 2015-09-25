@@ -2,14 +2,16 @@
 {% import 'appbuilder/baselib.html' as baselib %}
 
 {% block body %}
-        {% include 'appbuilder/general/confirm.html' %}
-        {% include 'appbuilder/general/alert.html' %}
+    {% include 'appbuilder/general/confirm.html' %}
+    {% include 'appbuilder/general/alert.html' %}
 
     {% block navbar %}
         <header class="top" role="header">
         {% include 'appbuilder/navbar.html' %}
         </header>
     {% endblock %}
+
+    {% block uncontained %}{% endblock %}
 
     <div class="container">
       <div class="row">
@@ -24,8 +26,6 @@
         {% block content_fluid %}
         {% endblock %}
     </div>
-    {% block uncontained %}
-    {% endblock %}
 
     {% block footer %}
         <footer>

@@ -1,30 +1,35 @@
 #!/usr/bin/env python
 
-from flask.ext.script import Manager
-from panoramix import app, config
-from subprocess import Popen
-from flask.ext.migrate import MigrateCommand
-from panoramix import db
-from flask.ext.appbuilder import Base
-from sqlalchemy import Column, Integer, String
-from panoramix import config, models
 import csv
 import gzip
 import json
+from subprocess import Popen
 
+from flask.ext.script import Manager
+from flask.ext.migrate import MigrateCommand
+from panoramix import db
+from sqlalchemy import Column, Integer, String, Table
+
+from panoramix import app
+from panoramix import models
+
+
+config = app.config
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+
+from flask.ext.appbuilder import Base
 
 @manager.option(
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
-    '-p', '--port', default=config.PANORAMIX_WEBSERVER_PORT,
+    '-p', '--port', default=config.get("PANORAMIX_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 def runserver(debug, port):
     """Starts a Panoramix web server"""
-    debug = debug or config.DEBUG
+    debug = debug or config.get("DEBUG")
     if debug:
         app.run(
             host='0.0.0.0',
@@ -45,22 +50,26 @@ def runserver(debug, port):
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
-    class BirthNames(Base):
-        __tablename__ = "birth_names"
-        id = Column(Integer, primary_key=True)
-        state = Column(String(10))
-        year = Column(Integer)
-        name = Column(String(128))
-        num = Column(Integer)
-        ds = Column(String(20))
-        gender = Column(String(10))
+
+
+    BirthNames = Table(
+        "birth_names", Base.metadata,
+        Column("id", Integer, primary_key=True),
+        Column("state", String(10)),
+        Column("year", Integer),
+        Column("name", String(128)),
+        Column("num", Integer),
+        Column("ds", String(20)),
+        Column("gender", String(10)),
+    )
     try:
-        BirthNames.__table__.drop(db.engine)
+        BirthNames.drop(db.engine)
     except:
         pass
-    Base.metadata.create_all(db.engine)
+
+    BirthNames.create(db.engine)
     session = db.session()
-    with gzip.open(config.basedir + '/data/birth_names.csv.gz') as f:
+    with gzip.open(config.get("BASE_DIR") + '/data/birth_names.csv.gz') as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
             if i == 0:
@@ -68,24 +77,27 @@ def load_examples(sample):
             if num == "NA":
                 num = 0
             ds = str(year) + '-01-01'
-            session.add(
-                BirthNames(
-                    state=state, year=year,
-                    ds=ds,
-                    name=name, num=num, gender=gender))
-            if i % 1000 == 0:
+            db.engine.execute(
+                BirthNames.insert(),
+                state=state,
+                year=year,
+                ds=ds,
+                name=name, num=num, gender=gender)
+            if i % 5000 == 0:
                 print("{} loaded out of 82527 rows".format(i))
                 session.commit()
             session.commit()
             if sample and i>1000: break
     print("Done loading table!")
     print("-" * 80)
+
     print("Creating database reference")
     DB = models.Database
     dbobj = session.query(DB).filter_by(database_name='main').first()
     if not dbobj:
         dbobj = DB(database_name="main")
-    dbobj.sqlalchemy_uri = config.SQLALCHEMY_DATABASE_URI
+    print config.get("SQLALCHEMY_DATABASE_URI")
+    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
     session.add(dbobj)
     session.commit()
 
@@ -99,10 +111,10 @@ def load_examples(sample):
     obj.database = dbobj
     obj.columns = [models.TableColumn(
         column_name="num", sum=True, type="INTEGER")]
-    obj.fetch_metadata()
     models.Table
     session.add(obj)
     session.commit()
+    obj.fetch_metadata()
     tbl = obj
 
     print("Creating some slices")
@@ -121,7 +133,7 @@ def load_examples(sample):
             "groupby": [],
             "metric": 'sum__num',
             "metrics": ["sum__num"],
-            "row_limit": config.ROW_LIMIT,
+            "row_limit": config.get("ROW_LIMIT"),
             "since": "100 years",
             "slice_name": slice_name,
             "until": "now",
@@ -245,7 +257,7 @@ The source dataset came from [here](https://github.com/hadley/babynames)
             datasource_type='table',
             table=tbl,
             params=get_slice_json(
-                slice_name, viz_type="word_cloud", size_from="10", 
+                slice_name, viz_type="word_cloud", size_from="10",
                 groupby=['name'], size_to="70", rotation="square",
                 limit='100'))
         session.add(slc)
