@@ -1,5 +1,5 @@
 {% macro viz_html(viz) %}
-<div style="padding: 10px;">{{ viz.rendered()|safe }}</div>
+<div style="padding: 10px;overflow: auto; height: 100%;">{{ viz.rendered()|safe }}</div>
 {% endmacro %}
 
 {% macro viz_js(viz) %}

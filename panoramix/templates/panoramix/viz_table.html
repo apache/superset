@@ -26,7 +26,7 @@
       </tbody>
     </table>
   {% else %}
-  <div id="{{ viz.token }}" style="display: none;"></div>
+  <div id="{{ viz.token }}" style="display: none;overflow: auto; height: 100%;"></div>
   <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
   {% endif %}
 {% endmacro %}
