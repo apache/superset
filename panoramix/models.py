@@ -134,9 +134,12 @@ class Dashboard(Model, AuditMixinNullable):
     def __repr__(self):
         return self.dashboard_title
 
+    @property
+    def url(self):
+        return "/panoramix/dashboard/{}/".format(self.id)
+
     def dashboard_link(self):
-        url = "/panoramix/dashboard/{}/".format(self.id)
-        return '<a href="{url}">{self.dashboard_title}</a>'.format(**locals())
+        return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)
 
     @property
     def js_files(self):
