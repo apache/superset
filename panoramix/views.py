@@ -11,7 +11,9 @@ from pydruid.client import doublesum
 from sqlalchemy import create_engine
 from wtforms.validators import ValidationError
 
-from panoramix import appbuilder, db, models, viz, utils, app, config
+from panoramix import appbuilder, db, models, viz, utils, app
+
+config = app.config
 
 
 def validate_json(form, field):
@@ -300,7 +302,7 @@ class Panoramix(BaseView):
             try:
                 resp = self.render_template("panoramix/viz.html", viz=obj)
             except Exception as e:
-                if config.DEBUG:
+                if config.get("DEBUG"):
                     raise(e)
                 return Response(
                     str(e),

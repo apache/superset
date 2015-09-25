@@ -10,9 +10,11 @@ from werkzeug.urls import Href
 import numpy as np
 import pandas as pd
 
-from panoramix import utils, config
+from panoramix import app, utils
 from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
+
+config = app.config
 
 CHART_ARGS = {
     'title': None,
@@ -106,7 +108,7 @@ class BaseViz(object):
                 granularity).total_seconds() * 1000
         limit = int(args.get("limit", 0))
         row_limit = int(
-            args.get("row_limit", config.ROW_LIMIT))
+            args.get("row_limit", config.get("ROW_LIMIT")))
         since = args.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
         if from_dttm > datetime.now():

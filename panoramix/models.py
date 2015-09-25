@@ -22,9 +22,11 @@ import sqlparse
 import requests
 import textwrap
 
-from panoramix import db, get_session, config, utils
+from panoramix import app, db, get_session, utils
 from panoramix.viz import viz_types
 from sqlalchemy.ext.declarative import declared_attr
+
+config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
@@ -402,6 +404,7 @@ class Table(Model, Queryable, AuditMixinNullable):
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
     def fetch_metadata(self):
+        table = self.database.get_table(self.table_name)
         try:
             table = self.database.get_table(self.table_name)
         except Exception as e:
@@ -673,8 +676,8 @@ class Datasource(Model, AuditMixin, Queryable):
         qry_start_dttm = datetime.now()
 
         # add tzinfo to native datetime with config
-        from_dttm = from_dttm.replace(tzinfo=config.DRUID_TZ)
-        to_dttm = to_dttm.replace(tzinfo=config.DRUID_TZ)
+        from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 
         query_str = ""
         aggregations = {
