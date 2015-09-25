@@ -33,7 +33,11 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class TableColumnInlineView(CompactCRUDMixin, ModelView):
+class PanoramixModelView(ModelView):
+    page_size = 100
+
+
+class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
@@ -46,7 +50,7 @@ class TableColumnInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-class ColumnInlineView(CompactCRUDMixin, ModelView):
+class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.Column)
     edit_columns = [
         'column_name', 'description', 'datasource', 'groupby',
@@ -63,7 +67,7 @@ class ColumnInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(ColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, ModelView):
+class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.SqlMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -74,7 +78,7 @@ class SqlMetricInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class MetricInlineView(CompactCRUDMixin, ModelView):
+class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.Metric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -89,7 +93,7 @@ class MetricInlineView(CompactCRUDMixin, ModelView):
 appbuilder.add_view_no_menu(MetricInlineView)
 
 
-class DatabaseView(ModelView, DeleteMixin):
+class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'created_by', 'created_on']
     add_columns = ['database_name', 'sqlalchemy_uri']
@@ -111,7 +115,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class TableView(ModelView, DeleteMixin):
+class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Table)
     list_columns = ['table_link', 'database']
     add_columns = ['table_name', 'database', 'default_endpoint']
@@ -135,7 +139,7 @@ appbuilder.add_view(
 appbuilder.add_separator("Sources")
 
 
-class ClusterModelView(ModelView, DeleteMixin):
+class ClusterModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Cluster)
     add_columns = [
         'cluster_name',
@@ -153,7 +157,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class SliceModelView(ModelView, DeleteMixin):
+class SliceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     list_columns = [
@@ -171,7 +175,7 @@ appbuilder.add_view(
     category_icon='',)
 
 
-class DashboardModelView(ModelView, DeleteMixin):
+class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'created_by']
     edit_columns = ['dashboard_title', 'slices', 'position_json']
@@ -186,7 +190,7 @@ appbuilder.add_view(
     category_icon='',)
 
 
-class DatasourceModelView(ModelView, DeleteMixin):
+class DatasourceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner', 'is_featured', 'is_hidden']
