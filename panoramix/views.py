@@ -326,12 +326,11 @@ class Panoramix(BaseView):
         return "SUCCESS"
 
     @has_access
-    @expose("/testconn/")
+    @expose("/testconn", methods=["POST"])
     def testconn(self):
         try:
-            db = create_engine(request.args.get('uri'))
-            for i in range(15):
-                request.args.get('uri')
+            uri = request.form.get('uri')
+            db = create_engine(uri)
             db.connect()
             return "SUCCESS"
         except Exception as e:
