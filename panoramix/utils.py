@@ -1,4 +1,5 @@
 from datetime import datetime
+import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
 import parsedatetime
@@ -79,3 +80,18 @@ class JSONEncodedDict(TypeDecorator):
         if value is not None:
             value = json.loads(value)
         return value
+
+def color(s):
+    """
+    Get a consistent color from the same string using a hash function
+
+    >>> color("foo")
+    '#FF5A5F'
+    """
+    colors = [
+      "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
+      "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
+    ]
+    h = hashlib.md5(s)
+    i = int(h.hexdigest(), 16)
+    return colors[i % len(colors)]

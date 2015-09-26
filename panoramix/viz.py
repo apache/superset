@@ -5,6 +5,7 @@ import uuid
 
 from flask import flash
 from markdown import markdown
+from pandas.io.json import dumps
 from werkzeug.datastructures import MultiDict
 from werkzeug.urls import Href
 import numpy as np
@@ -209,6 +210,14 @@ class WordCloudViz(BaseViz):
         return df.to_json(orient="records")
 
 
+class NVD3Viz(BaseViz):
+    verbose_name = "Base NVD3 Viz"
+    template = 'panoramix/viz_nvd3.html'
+    chart_kind = 'line'
+    js_files = ['nv.d3.min.js']
+    css_files = ['nv.d3.css']
+
+
 class HighchartsViz(BaseViz):
     verbose_name = "Base Highcharts Viz"
     template = 'panoramix/viz_highcharts.html'
@@ -347,6 +356,81 @@ class TimeSeriesViz(HighchartsViz):
         return chart.json
 
 
+class NVD3TimeSeriesViz(NVD3Viz):
+    verbose_name = "NVD3 - Time Series - Line Chart"
+    chart_type = "nvd3_line"
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metrics',
+        'groupby', 'limit',
+        ('rolling_type', 'rolling_periods'),
+        ('show_brush', 'show_legend'),
+        ('rich_tooltip', 'y_axis_zero'),
+        'y_log_scale',
+    ]
+
+    def get_df(self):
+        args = self.args
+        df = super(NVD3TimeSeriesViz, self).get_df()
+        metrics = self.metrics
+        df = df.pivot_table(
+            index="timestamp",
+            columns=self.groupby,
+            values=metrics,)
+
+        rolling_periods = args.get("rolling_periods")
+        rolling_type = args.get("rolling_type")
+        if rolling_periods and rolling_type:
+            if rolling_type == 'mean':
+                df = pd.rolling_mean(df, int(rolling_periods))
+            elif rolling_type == 'std':
+                df = pd.rolling_std(df, int(rolling_periods))
+            elif rolling_type == 'sum':
+                df = pd.rolling_sum(df, int(rolling_periods))
+        return df
+
+    def get_json(self):
+        df = self.get_df()
+        series = df.to_dict('series')
+        datas = []
+        for name, ys in series.items():
+            if df[name].dtype.kind not in "biufc":
+                continue
+
+            df.tz_localize(None)
+            df.index.tz_localize(None)
+            df['timestamp'] = pd.to_datetime(df.index, utc=False)
+            if isinstance(name, basestring):
+                series_title = name
+            elif len(self.metrics) > 1:
+                series_title = ", ".join(name)
+            else:
+                series_title = ", ".join(name[1:])
+            d = {
+                "key": series_title,
+                "color": utils.color(series_title),
+                "values": [
+                    {'x': ds, 'y': ys[i]}
+                    for i, ds in enumerate(df.timestamp)]
+            }
+            datas.append(d)
+        return dumps(datas)
+
+
+class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
+    verbose_name = "NVD3 - Time Series - Bar Chart"
+    chart_type = "nvd3_bar"
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metrics',
+        'groupby', 'limit',
+        ('rolling_type', 'rolling_periods'),
+        'show_legend',
+    ]
+
+
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"
     compare = 'percent'
@@ -413,6 +497,8 @@ class DistributionBarViz(DistributionPieViz):
 
 viz_types = OrderedDict([
     ['table', TableViz],
+    ['nvd3_line', NVD3TimeSeriesViz],
+    ['nvd3_bar', NVD3TimeSeriesBarViz],
     ['line', TimeSeriesViz],
     ['big_number', BigNumberViz],
     ['compare', TimeSeriesCompareViz],
