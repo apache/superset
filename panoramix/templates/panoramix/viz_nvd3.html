@@ -1,0 +1,99 @@
+{% macro viz_html(viz) %}
+<div id="{{ viz.token }}" style="height:100%; width: 100%">
+  <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
+  <div class="chart" style="height:100%; width: 100%"></div>
+</div>
+{% endmacro %}
+
+{% macro viz_js(viz) %}
+<script>
+  $( document ).ready(function() {
+    function UTC(dttm){
+      return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
+    }
+    var tickMultiFormat = d3.time.format.multi([
+      [".%L", function(d) { return d.getMilliseconds(); }],
+      [":%S", function(d) { return d.getSeconds(); }],
+      ["%I:%M", function(d) { return d.getMinutes(); }],
+      ["%I %p", function(d) { return d.getHours(); }],
+      ["%a %d", function(d) { return d.getDay() && d.getDate() != 1; }],
+      ["%b %d", function(d) { return d.getDate() != 1; }],
+      ["%B", function(d) { return d.getMonth(); }],
+      ["%Y", function() { return true; }]
+    ]);
+    colors = [
+      "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
+      "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
+    ];
+    var token = d3.select("#{{ viz.token }}");
+    var jtoken = $("#{{ viz.token }}");
+    var loading = $("#{{ viz.token }}").find("img.loading");
+    var chart = $("#{{ viz.token }}").find("div.chart");
+    var refresh = function(){
+      chart.hide();
+      loading.show();
+      var url = "{{ viz.get_url(json="true")|safe }}";
+      $.getJSON(url, function(data){
+        nv.addGraph(function() {
+          {% if viz.chart_type == 'nvd3_line' %}
+            {% if viz.args.show_brush == 'y' %}
+              var chart = nv.models.lineWithFocusChart()
+              var xext = chart.xAxis.scale().domain();
+              chart
+                .x2Axis
+                .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); })
+                .tickValues([]);
+            {% elif viz.chart_type == 'nvd3_line' %}
+              var chart = nv.models.lineChart()
+            {% endif %}
+
+            chart.xScale(d3.time.scale());
+            chart.xAxis
+              .showMaxMin(false)
+              .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+
+          {% elif viz.chart_type == 'nvd3_bar' %}
+            var chart = nv.models.multiBarChart()
+              .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+              .groupSpacing(0.1);   //Distance between each group of bars.
+
+            chart.xAxis
+              .showMaxMin(false)
+              .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
+          {% endif %}
+          chart.yAxis.tickFormat(d3.format('.3s'));
+          {% if viz.chart_type == "nvd3_line" and viz.args.rich_tooltip == 'y' %}
+            chart.useInteractiveGuideline(true);
+          {% endif %}
+          {% if viz.args.y_axis_zero == 'y' %}
+            chart.forceY([0, 1]);
+          {% elif viz.args.y_log_scale == 'y' %}
+            chart.yScale(d3.scale.log());
+          {% endif %}
+
+
+          token.select('.chart').append("svg")
+            .datum(data)
+            .transition().duration(500)
+            .call(chart);
+
+          return chart;
+        });
+        chart.show();
+        loading.hide();
+    }).fail(function(xhr) {
+        var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
+        loading.hide();
+        chart.show();
+        chart.html(err);
+      });
+    };
+    refresh();
+    jtoken.parent().find("a.refresh").click(refresh);
+  });
+</script>
+{% endmacro %}
+
+{% macro viz_css(viz) %}
+{% endmacro %}

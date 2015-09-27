@@ -1,5 +1,6 @@
 from wtforms import (
-    Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField)
+    Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
+    BooleanField)
 from copy import copy
 
 
@@ -104,6 +105,21 @@ def form_factory(viz):
             "Font Size To",
             default="150",
             description="Font size for the biggest value in the list"),
+        'show_brush': BooleanField(
+            "Range Selector", default=True,
+            description="Whether to display the time range interactive selector"),
+        'show_legend': BooleanField(
+            "Legend", default=True,
+            description="Whether to display the legend (toggles)"),
+        'rich_tooltip': BooleanField(
+            "Rich Tooltip", default=True,
+            description="The rich tooltip shows a list of all series for that point in time"),
+        'y_axis_zero': BooleanField(
+            "Y Axis Zero", default=False,
+            description="Force the Y axis to start at 0 instead of the minimum value"),
+        'y_log_scale': BooleanField(
+            "Y Log", default=False,
+            description="Use a log scale for the Y axis"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
@@ -114,6 +130,8 @@ def form_factory(viz):
     field_css_classes['since'] += ['select2_free_since']
     field_css_classes['until'] += ['select2_free_until']
     field_css_classes['granularity'] += ['select2_free_granularity']
+    for field in ('show_brush', 'show_legend', 'rich_tooltip'):
+        field_css_classes[field] += ['input-sm']
     for field in select2:
         field_css_classes[field] += ['select2']
 
