@@ -120,6 +120,9 @@ def form_factory(viz):
         'y_log_scale': BooleanField(
             "Y Log", default=False,
             description="Use a log scale for the Y axis"),
+        'donut': BooleanField(
+            "Donut", default=False,
+            description="Do you want a donut or a pie?"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
@@ -150,7 +153,8 @@ def form_factory(viz):
         if isinstance(ff, basestring):
             ff = [ff]
         for s in ff:
-            setattr(QueryForm, s, px_form_fields[s])
+            if s:
+                setattr(QueryForm, s, px_form_fields[s])
 
     # datasource type specific form elements
     if datasource.__class__.__name__ == 'Table':

@@ -53,8 +53,6 @@
           <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
             title="{{ field.description }}"></i>
           {% endif %}: 
-        </div>
-        <div>
           {{ field(class_=form.field_css_classes(field.name)) }}
         </div>
       </div>
@@ -63,13 +61,15 @@
         <div class="form-group">
           {% for name in fieldname %}
           <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-            {% set field = form.get_field(name)%}
-            {{ field.label }}
-            {% if field.description %}
-            <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-              title="{{ field.description }}"></i>
-            {% endif %}: 
-            {{ field(class_=form.field_css_classes(field.name)) }}
+            {% if name %}
+              {% set field = form.get_field(name)%}
+              {{ field.label }}
+              {% if field.description %}
+              <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                title="{{ field.description }}"></i>
+              {% endif %}: 
+              {{ field(class_=form.field_css_classes(field.name)) }}
+            {% endif %}
           </div>
           {% endfor %}
         </div>

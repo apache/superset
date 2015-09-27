@@ -219,12 +219,12 @@ def load_examples(sample):
     if not slc:
         slc = Slice(
             slice_name=slice_name,
-            viz_type='line',
+            viz_type='nvd3_line',
             datasource_type='table',
             table=tbl,
             params=get_slice_json(
-                slice_name, viz_type="line", groupby=['name'],
-                granularity='1 day'))
+                slice_name, viz_type="nvd3_line", groupby=['name'],
+                granularity='1 day', rich_tooltip='y', show_legend='y'))
         session.add(slc)
     slices.append(slc)
 

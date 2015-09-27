@@ -35,6 +35,7 @@
       var url = "{{ viz.get_url(json="true")|safe }}";
       $.getJSON(url, function(data){
         nv.addGraph(function() {
+          // chart_type is {{ viz.chart_type }}
           {% if viz.chart_type == 'nvd3_line' %}
             {% if viz.args.show_brush == 'y' %}
               var chart = nv.models.lineWithFocusChart()
@@ -43,7 +44,7 @@
                 .x2Axis
                 .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); })
                 .tickValues([]);
-            {% elif viz.chart_type == 'nvd3_line' %}
+            {% else %}
               var chart = nv.models.lineChart()
             {% endif %}
 
@@ -52,6 +53,7 @@
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
             chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+            chart.yAxis.tickFormat(d3.format('.3s'));
 
           {% elif viz.chart_type == 'nvd3_bar' %}
             var chart = nv.models.multiBarChart()
@@ -61,8 +63,29 @@
             chart.xAxis
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
+            chart.yAxis.tickFormat(d3.format('.3s'));
+          {% elif viz.chart_type == 'pie' %}
+            var chart = nv.models.pieChart()
+            chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+            {% if viz.args.donut=='y' %}
+              chart.donut(true);
+              chart.donutLabelsOutside(true);
+            {% endif %}
+            chart.labelsOutside(true);
+            chart.cornerRadius(true);
+          {% elif viz.chart_type == 'column' %}
+            var chart = nv.models.multiBarChart();
+            chart.yAxis.tickFormat(d3.format('.3s'));
+          {% elif viz.chart_type == 'stacked' %}
+            var chart = nv.models.stackedAreaChart();
+            chart.xScale(d3.time.scale());
+            chart.xAxis
+              .showMaxMin(false)
+              .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+            chart.yAxis.tickFormat(d3.format('.3s'));
           {% endif %}
-          chart.yAxis.tickFormat(d3.format('.3s'));
+
           {% if viz.chart_type == "nvd3_line" and viz.args.rich_tooltip == 'y' %}
             chart.useInteractiveGuideline(true);
           {% endif %}

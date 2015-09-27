@@ -367,7 +367,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         ('rolling_type', 'rolling_periods'),
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
-        'y_log_scale',
+        ('y_log_scale', None)
     ]
 
     def get_df(self):
@@ -392,14 +392,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_json(self):
         df = self.get_df()
+        df = df.fillna(0)
         series = df.to_dict('series')
         datas = []
         for name, ys in series.items():
             if df[name].dtype.kind not in "biufc":
                 continue
-
-            df.tz_localize(None)
-            df.index.tz_localize(None)
             df['timestamp'] = pd.to_datetime(df.index, utc=False)
             if isinstance(name, basestring):
                 series_title = name
@@ -431,6 +429,18 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     ]
 
 
+class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
+    verbose_name = "NVD3 - Time Series - Stacked"
+    chart_type = "stacked"
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metrics',
+        'groupby', 'limit',
+        ('rolling_type', 'rolling_periods'),
+    ]
+
+
 class TimeSeriesCompareViz(TimeSeriesViz):
     verbose_name = "Time Series - Percent Change"
     compare = 'percent'
@@ -458,15 +468,13 @@ class TimeSeriesStackedBarViz(TimeSeriesViz):
     stacked = True
 
 
-
-
-class DistributionPieViz(HighchartsViz):
-    verbose_name = "Distribution - Pie Chart"
+class DistributionPieViz(NVD3Viz):
+    verbose_name = "Distribution - NVD3 - Pie Chart"
     chart_type = "pie"
-    js_files = ['highstock.js']
     form_fields = [
         'viz_type', 'metrics', 'groupby',
-        ('since', 'until'), 'limit']
+        ('since', 'until'), 'limit',
+    ]
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
@@ -484,21 +492,54 @@ class DistributionPieViz(HighchartsViz):
 
     def get_json(self):
         df = self.get_df()
-        chart = Highchart(
-            df, chart_type=self.chart_type, **CHART_ARGS)
-        self.chart_js = chart.javascript_cmd
-        return chart.json
+        df = df.reset_index()
+        df.columns = ['x', 'y']
+        df['color'] = map(utils.color, df.x)
+        return df.to_json(orient="records")
 
 
 class DistributionBarViz(DistributionPieViz):
     verbose_name = "Distribution - Bar Chart"
     chart_type = "column"
 
+    def get_df(self):
+        df = super(DistributionPieViz, self).get_df()
+        df = df.pivot_table(
+            index=self.groupby,
+            values=self.metrics)
+        df = df.sort(self.metrics[0], ascending=False)
+        return df
+
+    def get_json(self):
+        df = self.get_df()
+        series = df.to_dict('series')
+        datas = []
+        for name, ys in series.items():
+            if df[name].dtype.kind not in "biufc":
+                continue
+            df['timestamp'] = pd.to_datetime(df.index, utc=False)
+            if isinstance(name, basestring):
+                series_title = name
+            elif len(self.metrics) > 1:
+                series_title = ", ".join(name)
+            else:
+                series_title = ", ".join(name[1:])
+            d = {
+                "key": series_title,
+                "color": utils.color(series_title),
+                "values": [
+                    {'x': ds, 'y': ys[i]}
+                    for i, ds in enumerate(df.timestamp)]
+            }
+            datas.append(d)
+        return dumps(datas)
+
 
 viz_types = OrderedDict([
     ['table', TableViz],
     ['nvd3_line', NVD3TimeSeriesViz],
     ['nvd3_bar', NVD3TimeSeriesBarViz],
+    ['stacked', NVD3TimeSeriesStackedViz],
     ['line', TimeSeriesViz],
     ['big_number', BigNumberViz],
     ['compare', TimeSeriesCompareViz],
