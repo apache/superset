@@ -1,4 +1,4 @@
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from datetime import datetime
 import json
 import uuid
@@ -12,7 +12,6 @@ import numpy as np
 import pandas as pd
 
 from panoramix import app, utils
-from panoramix.highchart import Highchart, HighchartBubble
 from panoramix.forms import form_factory
 
 config = app.config
@@ -218,23 +217,18 @@ class NVD3Viz(BaseViz):
     css_files = ['nv.d3.css']
 
 
-class HighchartsViz(BaseViz):
-    verbose_name = "Base Highcharts Viz"
-    template = 'panoramix/viz_highcharts.html'
-    chart_kind = 'line'
-    chart_call = "Chart"
-    stacked = False
-    compare = False
-    js_files = ['highstock.js']
-
-
-class BubbleViz(HighchartsViz):
+class BubbleViz(NVD3Viz):
     verbose_name = "Bubble Chart"
     chart_type = 'bubble'
     form_fields = [
-        'viz_type', 'since', 'until',
-        'series', 'entity', 'x', 'y', 'size', 'limit']
-    js_files = ['highstock.js', 'highcharts-more.js']
+        'viz_type',
+        ('since', 'until'),
+        ('series', 'entity'),
+        ('x', 'y'),
+        ('size', 'limit'),
+        ('x_log_scale', 'y_log_scale'),
+        ('show_legend', None),
+    ]
 
     def query_obj(self):
         args = self.form_data
@@ -263,15 +257,23 @@ class BubbleViz(HighchartsViz):
         df = df.fillna(0)
         df['x'] = df[[self.x_metric]]
         df['y'] = df[[self.y_metric]]
-        df['z'] = df[[self.z_metric]]
-        df['name'] = df[[self.entity]]
+        df['size'] = df[[self.z_metric]]
+        df['shape'] = 'circle'
         df['group'] = df[[self.series]]
         return df
 
     def get_json(self):
         df = self.get_df()
-        chart = HighchartBubble(df)
-        return chart.json
+        series = defaultdict(list)
+        for row in df.to_dict(orient='records'):
+            series[row['group']].append(row)
+        data = []
+        for k, v in series.items():
+            data.append({
+                'key': k,
+                "color": utils.color(k),
+                'values': v })
+        return json.dumps(data)
 
 class BigNumberViz(BaseViz):
     verbose_name = "Big Number"
@@ -308,52 +310,6 @@ class BigNumberViz(BaseViz):
             'compare_suffix': args.get('compare_suffix', ''),
         }
         return json.dumps(d)
-
-
-class TimeSeriesViz(HighchartsViz):
-    verbose_name = "Time Series - Line Chart"
-    chart_type = "spline"
-    chart_call = "StockChart"
-    sort_legend_y = True
-    js_files = ['highstock.js', 'highcharts-more.js']
-    form_fields = [
-        'viz_type',
-        'granularity', ('since', 'until'),
-        'metrics',
-        'groupby', 'limit',
-        ('rolling_type', 'rolling_periods'),
-    ]
-
-    def get_df(self):
-        args = self.args
-        df = super(TimeSeriesViz, self).get_df()
-        metrics = self.metrics
-        df = df.pivot_table(
-            index="timestamp",
-            columns=self.groupby,
-            values=metrics,)
-
-        rolling_periods = args.get("rolling_periods")
-        rolling_type = args.get("rolling_type")
-        if rolling_periods and rolling_type:
-            if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods))
-            elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods))
-            elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods))
-        return df
-
-    def get_json(self):
-        df = self.get_df()
-        chart = Highchart(
-            df,
-            compare=self.compare,
-            chart_type=self.chart_type,
-            stacked=self.stacked,
-            sort_legend_y=self.sort_legend_y,
-            **CHART_ARGS)
-        return chart.json
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
@@ -441,39 +397,14 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     ]
 
 
-class TimeSeriesCompareViz(TimeSeriesViz):
-    verbose_name = "Time Series - Percent Change"
-    compare = 'percent'
-
-
-class TimeSeriesCompareValueViz(TimeSeriesViz):
-    verbose_name = "Time Series - Value Change"
-    compare = 'value'
-
-
-class TimeSeriesAreaViz(TimeSeriesViz):
-    verbose_name = "Time Series - Stacked Area Chart"
-    stacked = True
-    chart_type = "area"
-
-
-class TimeSeriesBarViz(TimeSeriesViz):
-    verbose_name = "Time Series - Bar Chart"
-    chart_type = "column"
-
-
-class TimeSeriesStackedBarViz(TimeSeriesViz):
-    verbose_name = "Time Series - Stacked Bar Chart"
-    chart_type = "column"
-    stacked = True
-
-
 class DistributionPieViz(NVD3Viz):
     verbose_name = "Distribution - NVD3 - Pie Chart"
     chart_type = "pie"
     form_fields = [
         'viz_type', 'metrics', 'groupby',
-        ('since', 'until'), 'limit',
+        ('since', 'until'),
+        'limit',
+        ('donut', 'show_legend'),
     ]
 
     def query_obj(self):
@@ -503,7 +434,7 @@ class DistributionBarViz(DistributionPieViz):
     chart_type = "column"
 
     def get_df(self):
-        df = super(DistributionPieViz, self).get_df()
+        df = super(DistributionBarViz, self).get_df()
         df = df.pivot_table(
             index=self.groupby,
             values=self.metrics)
@@ -537,16 +468,12 @@ class DistributionBarViz(DistributionPieViz):
 
 viz_types = OrderedDict([
     ['table', TableViz],
-    ['nvd3_line', NVD3TimeSeriesViz],
-    ['nvd3_bar', NVD3TimeSeriesBarViz],
+    ['line', NVD3TimeSeriesViz],
     ['stacked', NVD3TimeSeriesStackedViz],
-    ['line', TimeSeriesViz],
     ['big_number', BigNumberViz],
-    ['compare', TimeSeriesCompareViz],
-    ['compare_value', TimeSeriesCompareValueViz],
-    ['area', TimeSeriesAreaViz],
-    ['bar', TimeSeriesBarViz],
-    ['stacked_ts_bar', TimeSeriesStackedBarViz],
+    #['compare', TimeSeriesCompareViz],  # TODO replace
+    #['area', TimeSeriesAreaViz],  # TODO replace
+    ['bar', NVD3TimeSeriesBarViz],
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
     ['bubble', BubbleViz],

@@ -137,3 +137,15 @@ More screenshots
 ![img](http://i.imgur.com/t7VOtqQ.png)
 ![img](http://i.imgur.com/PaiFQnH.png)
 ![img](http://i.imgur.com/CdcGHuC.png)
+
+
+Tip of the Hat
+--------------
+
+Panoramix would not be possible without these great frameworks / libs
+
+* Flask App Builder - Allowing us to focus on building the app quickly while
+getting the foundation for free
+* The Flask ecosystem - Simply amazing. So much Plug, easy play.
+* NVD3 - One of the best charting library out there
+* Much more, check out the requirements.txt file!

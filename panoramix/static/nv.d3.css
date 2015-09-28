@@ -197,6 +197,7 @@
 }
 .nvd3 .nv-groups path.nv-line {
     fill: none;
+    stroke-width: 2px;
 }
 
 .nvd3 .nv-groups path.nv-area {

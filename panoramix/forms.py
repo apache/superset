@@ -76,10 +76,19 @@ def form_factory(viz):
         'rolling_periods': TextField('Periods', description=(
             "Defines the size of the rolling window function, "
             "relative to the 'granularity' field")),
-        'series': SelectField('Series', choices=group_by_choices),
-        'entity': SelectField('Entity', choices=group_by_choices),
-        'x': SelectField('X Axis', choices=datasource.metrics_combo),
-        'y': SelectField('Y Axis', choices=datasource.metrics_combo),
+        'series': SelectField(
+            'Series', choices=group_by_choices,
+            description=(
+                "Defines the grouping of entities. "
+                "Each serie is shown as a specific color on the chart and "
+                "has a legend toggle")),
+        'entity': SelectField('Entity', choices=group_by_choices,
+            description="This define the element to be plotted on the chart"),
+        'x': SelectField(
+            'X Axis', choices=datasource.metrics_combo,
+            description="Metric assigned to the [X] axis"),
+        'y': SelectField('Y Axis', choices=datasource.metrics_combo,
+            description="Metric assigned to the [Y] axis"),
         'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
         'where': TextField('Custom WHERE clause'),
         'compare_lag': TextField('Comparison Period Lag',
@@ -120,6 +129,9 @@ def form_factory(viz):
         'y_log_scale': BooleanField(
             "Y Log", default=False,
             description="Use a log scale for the Y axis"),
+        'x_log_scale': BooleanField(
+            "X Log", default=False,
+            description="Use a log scale for the X axis"),
         'donut': BooleanField(
             "Donut", default=False,
             description="Do you want a donut or a pie?"),

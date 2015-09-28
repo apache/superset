@@ -1,7 +1,7 @@
 {% macro viz_html(viz) %}
 <div id="{{ viz.token }}" style="height:100%; width: 100%">
   <img src="{{ url_for("static", filename="loading.gif") }}" class="loading">
-  <div class="chart" style="height:100%; width: 100%"></div>
+  <div class="chart with-3d-shadow with-transitions" style="height:100%; width: 100%"></div>
 </div>
 {% endmacro %}
 
@@ -47,7 +47,6 @@
             {% else %}
               var chart = nv.models.lineChart()
             {% endif %}
-
             chart.xScale(d3.time.scale());
             chart.xAxis
               .showMaxMin(false)
@@ -59,11 +58,11 @@
             var chart = nv.models.multiBarChart()
               .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
               .groupSpacing(0.1);   //Distance between each group of bars.
-
             chart.xAxis
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
             chart.yAxis.tickFormat(d3.format('.3s'));
+
           {% elif viz.chart_type == 'pie' %}
             var chart = nv.models.pieChart()
             chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
@@ -73,9 +72,18 @@
             {% endif %}
             chart.labelsOutside(true);
             chart.cornerRadius(true);
+
           {% elif viz.chart_type == 'column' %}
             var chart = nv.models.multiBarChart();
             chart.yAxis.tickFormat(d3.format('.3s'));
+
+          {% elif viz.chart_type == 'bubble' %}
+            var chart = nv.models.scatterChart();
+            chart.xAxis.tickFormat(d3.format('.3s'));
+            chart.yAxis.tickFormat(d3.format('.3s'));
+            chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+            chart.pointRange([5, 5000]);
+
           {% elif viz.chart_type == 'stacked' %}
             var chart = nv.models.stackedAreaChart();
             chart.xScale(d3.time.scale());
@@ -84,6 +92,7 @@
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
             chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
             chart.yAxis.tickFormat(d3.format('.3s'));
+
           {% endif %}
 
           {% if viz.chart_type == "nvd3_line" and viz.args.rich_tooltip == 'y' %}
@@ -93,6 +102,10 @@
             chart.forceY([0, 1]);
           {% elif viz.args.y_log_scale == 'y' %}
             chart.yScale(d3.scale.log());
+          {% endif %}
+
+          {% if viz.args.x_log_scale == 'y' %}
+            chart.xScale(d3.scale.log());
           {% endif %}
 
 

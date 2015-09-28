@@ -1,26 +1,25 @@
 # TODO
-* Add a per-datasource permission
+List of TODO items for Panoramix
 
-* in/notin filters autocomplete
-* DRUID: Allow for post aggregations (ratios!)
-* compare time ranges
-* csv export out of table view
-* SQL: Find a way to manage granularity
-* Create ~/.panoramix/ to host DB and config, generate default config there
+## Improvments 
 * Reintroduce query and stopwatch
-* Sort tooltip
-* Make "Test Connection" test further
-* Consistent colors for same entities
+* [druid] Allow for post aggregations (ratios!)
+* [sql] find a way to manage time granularity
+* [sql] support arbitrary expression as column
+* [sql] define column based grouping
+* [sql] make "Test Connection" test further
+* csv export out of table view
+* in/notin filters autocomplete
+
+## First Class Line Charts
 * Contribution to total
-* Arbitrary expressions
-    * Group bucketing
-* ToT
-* Layers
+* Time comparison
+* Time ratios
+* Use legend shapes that match line markers (useful?)
+* Hover line highlighting
+* More colors! the Airbnb palette is currently pretty limited
+* Line types (dash, dotted)
 
-## Test
-* Line types
-* Intelligence around series name
-* Shapes
-* Line highlighting - draw attention
-
-## Bug
+## New Features
+* Annotations layers
+* Add a per-datasource permission
