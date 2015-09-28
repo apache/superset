@@ -77,6 +77,15 @@
             var chart = nv.models.multiBarChart();
             chart.yAxis.tickFormat(d3.format('.3s'));
 
+          {% elif viz.chart_type == 'compare' %}
+            var chart = nv.models.cumulativeLineChart();
+            chart.xScale(d3.time.scale());
+            chart.xAxis
+              .showMaxMin(false)
+              .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
+            chart.yAxis.tickFormat(d3.format('.3p'));
+
           {% elif viz.chart_type == 'bubble' %}
             var chart = nv.models.scatterChart();
             chart.xAxis.tickFormat(d3.format('.3s'));

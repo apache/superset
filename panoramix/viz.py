@@ -313,7 +313,7 @@ class BigNumberViz(BaseViz):
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
-    verbose_name = "NVD3 - Time Series - Line Chart"
+    verbose_name = "Time Series - Line Chart"
     chart_type = "nvd3_line"
     form_fields = [
         'viz_type',
@@ -373,7 +373,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
-    verbose_name = "NVD3 - Time Series - Bar Chart"
+    verbose_name = "Time Series - Bar Chart"
     chart_type = "nvd3_bar"
     form_fields = [
         'viz_type',
@@ -385,8 +385,21 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     ]
 
 
+class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
+    verbose_name = "Time Series - Percent Change"
+    chart_type = "compare"
+    form_fields = [
+        'viz_type',
+        'granularity', ('since', 'until'),
+        'metrics',
+        'groupby', 'limit',
+        ('rolling_type', 'rolling_periods'),
+        'show_legend',
+    ]
+
+
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
-    verbose_name = "NVD3 - Time Series - Stacked"
+    verbose_name = "Time Series - Stacked"
     chart_type = "stacked"
     form_fields = [
         'viz_type',
@@ -469,10 +482,9 @@ class DistributionBarViz(DistributionPieViz):
 viz_types = OrderedDict([
     ['table', TableViz],
     ['line', NVD3TimeSeriesViz],
-    ['stacked', NVD3TimeSeriesStackedViz],
     ['big_number', BigNumberViz],
-    #['compare', TimeSeriesCompareViz],  # TODO replace
-    #['area', TimeSeriesAreaViz],  # TODO replace
+    ['compare', NVD3CompareTimeSeriesViz],
+    ['area', NVD3TimeSeriesStackedViz],
     ['bar', NVD3TimeSeriesBarViz],
     ['dist_bar', DistributionBarViz],
     ['pie', DistributionPieViz],
