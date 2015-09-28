@@ -1,5 +1,6 @@
 alembic
 coverage
+coveralls
 flask
 flask-appbuilder
 flask-login

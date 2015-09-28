@@ -1,5 +1,6 @@
 Panoramix
 =========
+![img](https://travis-ci.org/mistercrunch/panoramix.svg?branch=master)
 
 Panoramix is a data exploration platform designed to be visual, intuitive
 and interactive.
