@@ -74,6 +74,7 @@ class BaseViz(object):
 
     @property
     def form(self):
+        return self.form_class(**self.args)
         return self.form_class(self.form_data)
 
     @property
@@ -314,7 +315,7 @@ class BigNumberViz(BaseViz):
 
 class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = "Time Series - Line Chart"
-    chart_type = "nvd3_line"
+    chart_type = "line"
     sort_series = False
     form_fields = [
         'viz_type',

@@ -36,7 +36,7 @@
       $.getJSON(url, function(data){
         nv.addGraph(function() {
           // chart_type is {{ viz.chart_type }}
-          {% if viz.chart_type == 'nvd3_line' %}
+          {% if viz.chart_type == 'line' %}
             {% if viz.args.show_brush == 'y' %}
               var chart = nv.models.lineWithFocusChart()
               var xext = chart.xAxis.scale().domain();
