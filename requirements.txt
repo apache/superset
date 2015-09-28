@@ -1,6 +1,8 @@
+alembic
 coverage
 flask
 flask-appbuilder
+flask-login
 flask-migrate
 flask-testing
 gunicorn

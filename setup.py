@@ -17,11 +17,13 @@ setup(
     zip_safe=False,
     scripts=['panoramix/bin/panoramix'],
     install_requires=[
+        'alembic>=0.7.7, <0.8.0',
         'flask>=0.10.1, <1.0.0',
         'flask-appbuilder>=1.4.5, <2.0.0',
         'flask-login==0.2.11',
         'flask-migrate>=1.5.1, <2.0.0',
         'flask-script>=2.0.5, <3.0.0',
+        'flask-testing>=0.4.2, <0.5.0',
         'gunicorn>=19.3.0, <20.0.0',
         'pandas>=0.16.2, <1.0.0',
         'parsedatetime>=1.5, <2.0.0',
