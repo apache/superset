@@ -2,6 +2,8 @@
 {% block head_css %}
 {{super()}}
 <style>
+  #form_container {
+  }
   .select2-container-multi .select2-choices {
     height: 70px; 
     overflow: auto;
@@ -23,6 +25,17 @@
   img.loading {
     width: 30px;
   }
+  .row {
+    margin-right: -5px;
+    margin-left: -5px;
+  }
+  .col-sm-1, .col-md-1, .col-lg-1, .col-xs-2, .col-sm-2, .col-md-2, .col-lg-2, .col-xs-3, .col-sm-3, .col-md-3, .col-lg-3, .col-xs-4, .col-sm-4, .col-md-4, .col-lg-4, .col-xs-5, .col-sm-5, .col-md-5, .col-lg-5, .col-xs-6, .col-sm-6, .col-md-6, .col-lg-6, .col-xs-7, .col-sm-7, .col-md-7, .col-lg-7, .col-xs-8, .col-sm-8, .col-md-8, .col-lg-8, .col-xs-9, .col-sm-9, .col-md-9, .col-lg-9, .col-xs-10, .col-sm-10, .col-md-10, .col-lg-10, .col-xs-11, .col-sm-11, .col-md-11, .col-lg-11, .col-xs-12, .col-sm-12, .col-md-12, .col-lg-12 {
+      position: relative;
+      min-height: 1px;
+      padding-right: 5px;
+      padding-left: 5px;
+  }
+
 
 </style>
 {% endblock %}
@@ -30,40 +43,25 @@
 {% set datasource = viz.datasource %}
 {% set form = viz.form %}
 <div class="container-fluid">
-  <div class="col-md-3">
-    <h3>
-      {{ datasource.name }}
-      {% if datasource.description %}
-      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
-      {% endif %}
-      <a href="/{{ datasource.baselink }}/edit/{{ datasource.id }}">
-        <i class="fa fa-edit"></i>
-      </a>
-    </h3>
+  <div class="row">
+    <div id="form_container" class="col-md-3">
+      <h3>
+        {{ datasource.name }}
+        {% if datasource.description %}
+        <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
+        {% endif %}
+        <a href="/{{ datasource.baselink }}/edit/{{ datasource.id }}">
+          <i class="fa fa-edit"></i>
+        </a>
+      </h3>
 
-    <hr>
-    <form id="query" method="GET" style="display: none;">
-      {% for fieldname in form.field_order %}
-      {% if not fieldname.__iter__ %}
-      <div>
-        {% set field = form.get_field(fieldname)%}
+      <hr>
+      <form id="query" method="GET" style="display: none;">
+        {% for fieldname in form.field_order %}
+        {% if not fieldname.__iter__ %}
         <div>
-          {{ field.label }}
-          {% if field.description %}
-          <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-            title="{{ field.description }}"></i>
-          {% endif %}: 
-        </div>
-        <div>
-          {{ field(class_=form.field_css_classes(field.name)) }}
-        </div>
-      </div>
-      {% else %}
-      <div class="row">
-        <div class="form-group">
-          {% for name in fieldname %}
-          <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-            {% set field = form.get_field(name)%}
+          {% set field = form.get_field(fieldname)%}
+          <div>
             {{ field.label }}
             {% if field.description %}
             <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
@@ -71,69 +69,85 @@
             {% endif %}: 
             {{ field(class_=form.field_css_classes(field.name)) }}
           </div>
-          {% endfor %}
         </div>
-      </div>
-      {% endif %}
-      {% endfor %}
-      <hr>
-      <h4>Filters</h4>
-      <div id="flt0" style="display: none;">
-        <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+        {% else %}
         <div class="row">
-          <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
-          <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
-          <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
-            <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
-          </button>
+          <div class="form-group">
+            {% for name in fieldname %}
+            <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+              {% if name %}
+                {% set field = form.get_field(name)%}
+                {{ field.label }}
+                {% if field.description %}
+                <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                  title="{{ field.description }}"></i>
+                {% endif %}: 
+                {{ field(class_=form.field_css_classes(field.name)) }}
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
         </div>
-        <hr style="margin: 5px 0px;"/>
-      </div>
-      <div id="filters"></div>
-      <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
-        <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-      </button>
-      <hr>
-      <button type="button" class="btn btn-primary" id="druidify">
-        <i class="fa fa-bolt"></i>
-        Druidify!
-      </button>
-      <button type="button" class="btn btn-default" id="save">
-        <i class="fa fa-save"></i>
-        Save as Slice
-      </button>
-      <hr style="margin-bottom: 0px;">
-      <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
-      <input type="hidden" id="slice_name" name="slice_name" value="TEST">
-      <input type="hidden" id="action" name="action" value="">
-      <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
-      <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
-      <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
-    </form><br>
-  </div>
-
-  <div class="col-md-9">
-    <h3>{{ viz.verbose_name }}
-      {% if False %}
-      <span class="label label-success">
-        {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
-      </span>
-      <span class="label label-info btn" 
-        data-toggle="modal" data-target="#query_modal">query</span>
-      {% endif %}
-    </h3>
-    <hr/>
-    <div class="viz" style="height: 700px;">
-      {% block viz_html %}
-      {% if viz.error_msg %}
-      <div class="alert alert-danger">{{ viz.error_msg }}</div>
-      {% endif %}
-      {% if viz.warning_msg %}
-      <div class="alert alert-warning">{{ viz.warning_msg }}</div>
-      {% endif %}
-      {% endblock %}
+        {% endif %}
+        {% endfor %}
+        <hr>
+        <h4>Filters</h4>
+        <div id="flt0" style="display: none;">
+          <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+          <div class="row">
+            <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+            <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+            <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
+              <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+            </button>
+          </div>
+          <hr style="margin: 5px 0px;"/>
+        </div>
+        <div id="filters"></div>
+        <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
+          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+        </button>
+        <hr>
+        <button type="button" class="btn btn-primary" id="druidify">
+          <i class="fa fa-bolt"></i>
+          Druidify!
+        </button>
+        <button type="button" class="btn btn-default" id="save">
+          <i class="fa fa-save"></i>
+          Save as Slice
+        </button>
+        <hr style="margin-bottom: 0px;">
+        <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
+        <input type="hidden" id="slice_name" name="slice_name" value="TEST">
+        <input type="hidden" id="action" name="action" value="">
+        <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
+        <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
+        <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
+      </form><br>
     </div>
 
+    <div class="col-md-9">
+      <h3>{{ viz.verbose_name }}
+        {% if False %}
+        <span class="label label-success">
+          {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
+        </span>
+        <span class="label label-info btn" 
+          data-toggle="modal" data-target="#query_modal">query</span>
+        {% endif %}
+      </h3>
+      <hr/>
+      <div class="viz" style="height: 700px;">
+        {% block viz_html %}
+        {% if viz.error_msg %}
+        <div class="alert alert-danger">{{ viz.error_msg }}</div>
+        {% endif %}
+        {% if viz.warning_msg %}
+        <div class="alert alert-warning">{{ viz.warning_msg }}</div>
+        {% endif %}
+        {% endblock %}
+      </div>
+    </div>
   </div>
 </div>
 <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
@@ -167,7 +181,7 @@
 
     $(".select2").select2();
     $("form").slideDown("slow");
-    $('[data-toggle="tooltip"]').tooltip();
+    $('[data-toggle="tooltip"]').tooltip({container: 'body'});
 
     function set_filters(){
       for (var i=1; i<10; i++){

@@ -1,6 +1,6 @@
 from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField)
+    BooleanField, IntegerField)
 from copy import copy
 
 
@@ -76,10 +76,19 @@ def form_factory(viz):
         'rolling_periods': TextField('Periods', description=(
             "Defines the size of the rolling window function, "
             "relative to the 'granularity' field")),
-        'series': SelectField('Series', choices=group_by_choices),
-        'entity': SelectField('Entity', choices=group_by_choices),
-        'x': SelectField('X Axis', choices=datasource.metrics_combo),
-        'y': SelectField('Y Axis', choices=datasource.metrics_combo),
+        'series': SelectField(
+            'Series', choices=group_by_choices,
+            description=(
+                "Defines the grouping of entities. "
+                "Each serie is shown as a specific color on the chart and "
+                "has a legend toggle")),
+        'entity': SelectField('Entity', choices=group_by_choices,
+            description="This define the element to be plotted on the chart"),
+        'x': SelectField(
+            'X Axis', choices=datasource.metrics_combo,
+            description="Metric assigned to the [X] axis"),
+        'y': SelectField('Y Axis', choices=datasource.metrics_combo,
+            description="Metric assigned to the [Y] axis"),
         'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
         'where': TextField('Custom WHERE clause'),
         'compare_lag': TextField('Comparison Period Lag',
@@ -109,7 +118,7 @@ def form_factory(viz):
             "Range Selector", default=True,
             description="Whether to display the time range interactive selector"),
         'show_legend': BooleanField(
-            "Legend", default=True,
+            "Legend", default=True, false_values=["f"],
             description="Whether to display the legend (toggles)"),
         'rich_tooltip': BooleanField(
             "Rich Tooltip", default=True,
@@ -120,6 +129,20 @@ def form_factory(viz):
         'y_log_scale': BooleanField(
             "Y Log", default=False,
             description="Use a log scale for the Y axis"),
+        'x_log_scale': BooleanField(
+            "X Log", default=False,
+            description="Use a log scale for the X axis"),
+        'donut': BooleanField(
+            "Donut", default=False,
+            description="Do you want a donut or a pie?"),
+        'contribution': BooleanField(
+            "Contribution", default=False,
+            description="Compute the contribution to the total"),
+        'num_period_compare': IntegerField(
+            "Period Ratio", default=None,
+            description=(
+                "Number of period to compare against, "
+                "this is relative to the granularity selected")),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
@@ -150,7 +173,8 @@ def form_factory(viz):
         if isinstance(ff, basestring):
             ff = [ff]
         for s in ff:
-            setattr(QueryForm, s, px_form_fields[s])
+            if s:
+                setattr(QueryForm, s, px_form_fields[s])
 
     # datasource type specific form elements
     if datasource.__class__.__name__ == 'Table':

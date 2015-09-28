@@ -72,7 +72,7 @@ def load_examples(sample):
     with gzip.open(config.get("BASE_DIR") + '/data/birth_names.csv.gz') as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
-            if i == 0:
+            if i == 0 or year < "1965":  # jumpy data before 1965
                 continue
             if num == "NA":
                 num = 0
@@ -224,7 +224,7 @@ def load_examples(sample):
             table=tbl,
             params=get_slice_json(
                 slice_name, viz_type="line", groupby=['name'],
-                granularity='1 day'))
+                granularity='1 day', rich_tooltip='y', show_legend='y'))
         session.add(slc)
     slices.append(slc)
 
