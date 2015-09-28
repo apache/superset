@@ -214,7 +214,7 @@ class NVD3Viz(BaseViz):
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
     chart_kind = 'line'
-    js_files = ['nv.d3.min.js']
+    js_files = ['d3.min.js', 'nv.d3.min.js']
     css_files = ['nv.d3.css']
 
 
