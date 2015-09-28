@@ -17,6 +17,7 @@ setup(
     zip_safe=False,
     scripts=['panoramix/bin/panoramix'],
     install_requires=[
+        'flask>=0.10.1, <1.0.0',
         'flask-appbuilder>=1.4.5, <2.0.0',
         'flask-login==0.2.11',
         'flask-migrate>=1.5.1, <2.0.0',
