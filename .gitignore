@@ -1,6 +1,7 @@
 *.pyc
 .DS_Store
 .coverage
+panoramix/bin/panoramixc
 build
 *.db
 tmp
