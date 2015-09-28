@@ -12,12 +12,10 @@ List of TODO items for Panoramix
 * in/notin filters autocomplete
 
 ## First Class Line Charts
-* Contribution to total
+* Contribution to total (added to line chart already)
 * Time comparison
 * Time ratios
 * Use legend shapes that match line markers (useful?)
-* Hover line highlighting
-* More colors! the Airbnb palette is currently pretty limited
 * Line types (dash, dotted)
 
 ## New Features

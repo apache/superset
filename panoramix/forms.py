@@ -135,6 +135,9 @@ def form_factory(viz):
         'donut': BooleanField(
             "Donut", default=False,
             description="Do you want a donut or a pie?"),
+        'contribution': BooleanField(
+            "Contribution", default=False,
+            description="Compute the contribution to the total"),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [

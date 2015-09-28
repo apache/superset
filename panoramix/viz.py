@@ -315,6 +315,7 @@ class BigNumberViz(BaseViz):
 class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = "Time Series - Line Chart"
     chart_type = "nvd3_line"
+    sort_series = False
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
@@ -323,17 +324,27 @@ class NVD3TimeSeriesViz(NVD3Viz):
         ('rolling_type', 'rolling_periods'),
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
-        ('y_log_scale', None)
+        ('y_log_scale', 'contribution')
     ]
 
     def get_df(self):
         args = self.args
         df = super(NVD3TimeSeriesViz, self).get_df()
+        df = df.fillna(0)
         metrics = self.metrics
         df = df.pivot_table(
             index="timestamp",
             columns=self.groupby,
             values=metrics,)
+
+        if self.sort_series:
+            dfs = df.sum()
+            dfs.sort(ascending=False)
+            df = df[dfs.index]
+
+        if self.args.get("contribution") == "y":
+            dft = df.T
+            df = (dft / dft.sum()).T
 
         rolling_periods = args.get("rolling_periods")
         rolling_type = args.get("rolling_type")
@@ -348,10 +359,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_json(self):
         df = self.get_df()
-        df = df.fillna(0)
         series = df.to_dict('series')
         datas = []
-        for name, ys in series.items():
+        for name in df.T.index.tolist():
+            ys = series[name]
             if df[name].dtype.kind not in "biufc":
                 continue
             df['timestamp'] = pd.to_datetime(df.index, utc=False)
@@ -401,12 +412,14 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     verbose_name = "Time Series - Stacked"
     chart_type = "stacked"
+    sort_series = True
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
         'metrics',
         'groupby', 'limit',
         ('rolling_type', 'rolling_periods'),
+        ('rich_tooltip', 'show_legend'),
     ]
 
 
@@ -447,7 +460,7 @@ class DistributionBarViz(DistributionPieViz):
     chart_type = "column"
 
     def get_df(self):
-        df = super(DistributionBarViz, self).get_df()
+        df = super(DistributionPieViz, self).get_df()
         df = df.pivot_table(
             index=self.groupby,
             values=self.metrics)
@@ -482,7 +495,6 @@ class DistributionBarViz(DistributionPieViz):
 viz_types = OrderedDict([
     ['table', TableViz],
     ['line', NVD3TimeSeriesViz],
-    ['big_number', BigNumberViz],
     ['compare', NVD3CompareTimeSeriesViz],
     ['area', NVD3TimeSeriesStackedViz],
     ['bar', NVD3TimeSeriesBarViz],
@@ -491,4 +503,5 @@ viz_types = OrderedDict([
     ['bubble', BubbleViz],
     ['markup', MarkupViz],
     ['word_cloud', WordCloudViz],
+    ['big_number', BigNumberViz],
 ])

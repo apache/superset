@@ -53,6 +53,9 @@
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
             chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
             chart.yAxis.tickFormat(d3.format('.3s'));
+            {% if viz.args.contribution=='y' %}
+              chart.yAxis.tickFormat(d3.format('.3p'));
+            {% endif %}
 
           {% elif viz.chart_type == 'nvd3_bar' %}
             var chart = nv.models.multiBarChart()
@@ -74,7 +77,9 @@
             chart.cornerRadius(true);
 
           {% elif viz.chart_type == 'column' %}
-            var chart = nv.models.multiBarChart();
+            var chart = nv.models.multiBarChart()
+              .reduceXTicks(false)
+              .rotateLabels(45) ;
             chart.yAxis.tickFormat(d3.format('.3s'));
 
           {% elif viz.chart_type == 'compare' %}
@@ -104,7 +109,7 @@
 
           {% endif %}
 
-          {% if viz.chart_type == "nvd3_line" and viz.args.rich_tooltip == 'y' %}
+          {% if viz.chart_type in ("line", "stacked") and viz.args.rich_tooltip == 'y' %}
             chart.useInteractiveGuideline(true);
           {% endif %}
           {% if viz.args.y_axis_zero == 'y' %}
