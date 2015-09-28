@@ -25,6 +25,7 @@ setup(
         'flask-script>=2.0.5, <3.0.0',
         'flask-testing>=0.4.2, <0.5.0',
         'gunicorn>=19.3.0, <20.0.0',
+        'markdown>=2.6.2, <3.0.0',
         'pandas>=0.16.2, <1.0.0',
         'parsedatetime>=1.5, <2.0.0',
         'pydruid>=0.2.2, <0.3',
