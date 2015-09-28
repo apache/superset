@@ -31,26 +31,27 @@ class BaseViz(object):
     css_files = []
 
     def __init__(self, datasource, form_data):
-        self.datasource = datasource
-        if isinstance(form_data, MultiDict):
-            self.args = form_data.to_dict(flat=False)
-        else:
-            self.args = form_data
         self.form_data = form_data
-        self.token = self.args.get('token', 'token_' + uuid.uuid4().hex[:8])
+        if isinstance(form_data, MultiDict):
+            self.form_data = form_data.to_dict(flat=False)
+        self.datasource = datasource
+        self.token = self.form_data.get(
+            'token', 'token_' + uuid.uuid4().hex[:8])
 
         as_list = ('metrics', 'groupby')
-        for k, v in self.args.items():
+        for k, v in self.form_data.items():
             if k in as_list and not isinstance(v, list):
-                self.args[k] = [v]
+                self.form_data[k] = [v]
             elif k not in as_list and isinstance(v, list) and v:
-                self.args[k] = v[0]
+                self.form_data[k] = v[0]
+        for i in range(50):
+            print('show_legend' in form_data)
 
-        self.metrics = self.args.get('metrics') or ['count']
-        self.groupby = self.args.get('groupby') or []
+        self.metrics = self.form_data.get('metrics') or ['count']
+        self.groupby = self.form_data.get('groupby') or []
 
     def get_url(self, **kwargs):
-        d = self.args.copy()
+        d = self.form_data.copy()
         if 'action' in d:
             del d['action']
         d.update(kwargs)
@@ -74,21 +75,20 @@ class BaseViz(object):
 
     @property
     def form(self):
-        return self.form_class(**self.args)
-        return self.form_class(self.form_data)
+        return self.form_class(**self.form_data)
 
     @property
     def form_class(self):
         return form_factory(self)
 
     def query_filters(self):
-        args = self.args
+        form_data = self.form_data
         # Building filters
         filters = []
         for i in range(1, 10):
-            col = args.get("flt_col_" + str(i))
-            op = args.get("flt_op_" + str(i))
-            eq = args.get("flt_eq_" + str(i))
+            col = form_data.get("flt_col_" + str(i))
+            op = form_data.get("flt_op_" + str(i))
+            eq = form_data.get("flt_eq_" + str(i))
             if col and op and eq:
                 filters.append((col, op, eq))
         return filters
@@ -100,21 +100,21 @@ class BaseViz(object):
         """
         Building a query object
         """
-        args = self.args
-        groupby = args.get("groupby") or []
-        metrics = args.get("metrics") or ['count']
-        granularity = args.get("granularity", "1 day")
+        form_data = self.form_data
+        groupby = form_data.get("groupby") or []
+        metrics = form_data.get("metrics") or ['count']
+        granularity = form_data.get("granularity", "1 day")
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
                 granularity).total_seconds() * 1000
-        limit = int(args.get("limit", 0))
+        limit = int(form_data.get("limit", 0))
         row_limit = int(
-            args.get("row_limit", config.get("ROW_LIMIT")))
-        since = args.get("since", "1 year ago")
+            form_data.get("row_limit", config.get("ROW_LIMIT")))
+        since = form_data.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
         if from_dttm > datetime.now():
             from_dttm = datetime.now() - (from_dttm-datetime.now())
-        until = args.get("until", "now")
+        until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm >= to_dttm:
             flash("The date range doesn't seem right.", "danger")
@@ -123,7 +123,7 @@ class BaseViz(object):
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
         extras = {
-            'where': args.get("where", '')
+            'where': form_data.get("where", '')
         }
         d = {
             'granularity': granularity,
@@ -197,10 +197,10 @@ class WordCloudViz(BaseViz):
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
         d['granularity'] = 'all'
-        metric = self.args.get('metric')
+        metric = self.form_data.get('metric')
         if not metric:
             raise Exception("Pick a metric!")
-        d['metrics'] = [self.args.get('metric')]
+        d['metrics'] = [self.form_data.get('metric')]
         d['groupby'] = [d['groupby'][0]]
         return d
 
@@ -232,18 +232,18 @@ class BubbleViz(NVD3Viz):
     ]
 
     def query_obj(self):
-        args = self.form_data
+        form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
         d['granularity'] = 'all'
         d['groupby'] = list({
-            args.get('series'),
-            args.get('entity')
+            form_data.get('series'),
+            form_data.get('entity')
         })
-        self.x_metric = args.get('x')
-        self.y_metric = args.get('y')
-        self.z_metric = args.get('size')
-        self.entity = args.get('entity')
-        self.series = args.get('series')
+        self.x_metric = form_data.get('x')
+        self.y_metric = form_data.get('y')
+        self.z_metric = form_data.get('size')
+        self.entity = form_data.get('entity')
+        self.series = form_data.get('series')
         d['metrics'] = [
             self.z_metric,
             self.x_metric,
@@ -292,23 +292,23 @@ class BigNumberViz(BaseViz):
 
     def query_obj(self):
         d = super(BigNumberViz, self).query_obj()
-        metric = self.args.get('metric')
+        metric = self.form_data.get('metric')
         if not metric:
             raise Exception("Pick a metric!")
-        d['metrics'] = [self.args.get('metric')]
+        d['metrics'] = [self.form_data.get('metric')]
         return d
 
     def get_json(self):
-        args = self.args
+        form_data = self.form_data
         df = self.get_df()
         df = df.sort(columns=df.columns[0])
         df['timestamp'] = df[[0]].astype(np.int64) // 10**9
-        compare_lag = args.get("compare_lag", "")
+        compare_lag = form_data.get("compare_lag", "")
         compare_lag = int(compare_lag) if compare_lag.isdigit() else 0
         d = {
             'data': df.values.tolist(),
             'compare_lag': compare_lag,
-            'compare_suffix': args.get('compare_suffix', ''),
+            'compare_suffix': form_data.get('compare_suffix', ''),
         }
         return json.dumps(d)
 
@@ -330,7 +330,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     ]
 
     def get_df(self):
-        args = self.args
+        form_data = self.form_data
         df = super(NVD3TimeSeriesViz, self).get_df()
         df = df.fillna(0)
         metrics = self.metrics
@@ -344,7 +344,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dfs.sort(ascending=False)
             df = df[dfs.index]
 
-        if self.args.get("contribution") == "y":
+        if self.form_data.get("contribution") == "y":
             dft = df.T
             df = (dft / dft.sum()).T
 
@@ -354,8 +354,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df = df / df.shift(num_period_compare)
             df = df[num_period_compare:]
 
-        rolling_periods = args.get("rolling_periods")
-        rolling_type = args.get("rolling_type")
+        rolling_periods = form_data.get("rolling_periods")
+        rolling_type = form_data.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
                 df = pd.rolling_mean(df, int(rolling_periods))

@@ -1,5 +1,5 @@
 {% macro viz_html(viz) %}
-  {% if viz.args.get("async") == "true" %}
+  {% if viz.form_data.get("async") == "true" %}
     {% set df = viz.get_df() %}
     <table class="dataframe table table-striped table-bordered table-condensed">
       <thead>
@@ -32,7 +32,7 @@
 {% endmacro %}
 
 {% macro viz_js(viz) %}
-  {% if viz.args.get("async") != "true" %}
+  {% if viz.form_data.get("async") != "true" %}
   <script>
   $( document ).ready(function() {
     var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";

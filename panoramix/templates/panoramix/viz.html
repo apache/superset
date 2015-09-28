@@ -1,9 +1,9 @@
 {% import viz.template as viz_macros %}
 
-{% if viz.args.get("json") == "true" %}
+{% if viz.form_data.get("json") == "true" %}
   {{ viz.get_json() }}
 {% else %}
-  {% if viz.args.get("standalone") == "true" %}
+  {% if viz.form_data.get("standalone") == "true" %}
     {% extends 'panoramix/viz_standalone.html' %}
   {% else %}
     {% extends 'panoramix/datasource.html' %}
@@ -16,7 +16,7 @@
 
   {% block head_css %}
       {{super()}}
-      {% if viz.args.get("skip_libs") != "true" %}
+      {% if viz.form_data.get("skip_libs") != "true" %}
           {% for css in viz.css_files %}
               <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
           {% endfor %}
@@ -27,7 +27,7 @@
 
   {% block tail %}
       {{super()}}
-      {% if viz.args.get("skip_libs") != "true" %}
+      {% if viz.form_data.get("skip_libs") != "true" %}
       <script src="{{ url_for("static", filename="d3.min.js") }}"></script>
       <script>
           f = d3.format(".4s");

@@ -118,7 +118,7 @@ def form_factory(viz):
             "Range Selector", default=True,
             description="Whether to display the time range interactive selector"),
         'show_legend': BooleanField(
-            "Legend", default=True,
+            "Legend", default=True, false_values=["f"],
             description="Whether to display the legend (toggles)"),
         'rich_tooltip': BooleanField(
             "Rich Tooltip", default=True,
