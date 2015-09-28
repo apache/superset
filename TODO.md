@@ -15,7 +15,6 @@ List of TODO items for Panoramix
 * Contribution to total (added to line chart already)
 * Time comparison
 * Time ratios
-* Use legend shapes that match line markers (useful?)
 * Line types (dash, dotted)
 
 ## New Features

@@ -53,8 +53,9 @@
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
             chart.showLegend({{ "{}".format(viz.args.show_legend=='y')|lower }});
             chart.yAxis.tickFormat(d3.format('.3s'));
-            {% if viz.args.contribution=='y' %}
+            {% if viz.args.contribution=='y' or viz.args.get("num_period_compare") %}
               chart.yAxis.tickFormat(d3.format('.3p'));
+              chart.y2Axis.tickFormat(d3.format('.3p'));
             {% endif %}
 
           {% elif viz.chart_type == 'nvd3_bar' %}

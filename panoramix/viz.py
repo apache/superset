@@ -322,6 +322,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'metrics',
         'groupby', 'limit',
         ('rolling_type', 'rolling_periods'),
+        ('num_period_compare', None),
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
         ('y_log_scale', 'contribution')
@@ -345,6 +346,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if self.args.get("contribution") == "y":
             dft = df.T
             df = (dft / dft.sum()).T
+
+        num_period_compare = self.form_data.get("num_period_compare")
+        if num_period_compare:
+            num_period_compare = int(num_period_compare)
+            df = df / df.shift(num_period_compare)
+            df = df[num_period_compare:]
 
         rolling_periods = args.get("rolling_periods")
         rolling_type = args.get("rolling_type")

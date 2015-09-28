@@ -1,6 +1,6 @@
 from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField)
+    BooleanField, IntegerField)
 from copy import copy
 
 
@@ -138,6 +138,11 @@ def form_factory(viz):
         'contribution': BooleanField(
             "Contribution", default=False,
             description="Compute the contribution to the total"),
+        'num_period_compare': IntegerField(
+            "Period Ratio", default=None,
+            description=(
+                "Number of period to compare against, "
+                "this is relative to the granularity selected")),
     }
     field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
     select2 = [
