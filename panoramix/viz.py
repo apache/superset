@@ -44,8 +44,6 @@ class BaseViz(object):
                 self.form_data[k] = [v]
             elif k not in as_list and isinstance(v, list) and v:
                 self.form_data[k] = v[0]
-        for i in range(50):
-            print('show_legend' in form_data)
 
         self.metrics = self.form_data.get('metrics') or ['count']
         self.groupby = self.form_data.get('groupby') or []
@@ -376,10 +374,12 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df['timestamp'] = pd.to_datetime(df.index, utc=False)
             if isinstance(name, basestring):
                 series_title = name
-            elif len(self.metrics) > 1:
-                series_title = ", ".join(name)
             else:
-                series_title = ", ".join(name[1:])
+                name = ["{}".format(s) for s in name]
+                if len(self.metrics) > 1:
+                    series_title = ", ".join(name)
+                else:
+                    series_title = ", ".join(name[1:])
             d = {
                 "key": series_title,
                 "color": utils.color(series_title),
