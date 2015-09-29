@@ -31,10 +31,13 @@ class BaseViz(object):
     css_files = []
 
     def __init__(self, datasource, form_data):
+        self.datasource = datasource
+        form = self.form_class(form_data)
+        form.validate()
+        raise
         self.form_data = form_data
         if isinstance(form_data, MultiDict):
             self.form_data = form_data.to_dict(flat=False)
-        self.datasource = datasource
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
 
