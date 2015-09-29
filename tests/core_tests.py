@@ -4,8 +4,9 @@ import unittest
 import urllib2
 os.environ['PANORAMIX_CONFIG'] = 'tests.panoramix_test_config'
 from flask.ext.testing import LiveServerTestCase, TestCase
+from flask_login import login_user
 
-from panoramix import app, db, models
+from panoramix import app, appbuilder, db, models
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/panoramix")
 
@@ -18,7 +19,7 @@ class LiveTest(TestCase):
         return app
 
     def setUp(self):
-        print BASE_DIR
+        pass
 
     def test_load_examples(self):
         cli.load_examples(sample=True)
@@ -28,6 +29,7 @@ class LiveTest(TestCase):
         for slc in db.session.query(Slc).all():
             self.client.get(slc.slice_url)
             viz = slc.viz
+            self.client.get(viz.get_url())
             if hasattr(viz, 'get_json'):
                 self.client.get(viz.get_json())
 

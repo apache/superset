@@ -5,6 +5,7 @@ from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.migrate import Migrate
 from panoramix import config
 
+
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('PANORAMIX_CONFIG', 'panoramix.config')
 
@@ -25,6 +26,8 @@ appbuilder = AppBuilder(
     app, db.session, base_template='panoramix/base.html',
     indexview=MyIndexView,
     security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
+
+sm = appbuilder.sm
 
 get_session = appbuilder.get_session
 from panoramix import views
