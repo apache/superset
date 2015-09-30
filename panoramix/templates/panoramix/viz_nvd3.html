@@ -34,6 +34,7 @@
       loading.show();
       var url = "{{ viz.get_url(json="true")|safe }}";
       $.getJSON(url, function(data){
+        $("#query_container").html(data.query);
         nv.addGraph(function() {
           // chart_type is {{ viz.chart_type }}
           {% if viz.chart_type == 'line' %}
@@ -127,7 +128,7 @@
 
 
           token.select('.chart').append("svg")
-            .datum(data)
+            .datum(data.chart_data)
             .transition().duration(500)
             .call(chart);
 

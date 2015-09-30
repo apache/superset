@@ -133,9 +133,9 @@
         <span class="label label-success">
           {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
         </span>
+        {% endif %}
         <span class="label label-info btn"
           data-toggle="modal" data-target="#query_modal">query</span>
-        {% endif %}
       </h3>
       <hr/>
       <div class="viz" style="height: 700px;">
@@ -159,7 +159,12 @@
         <h4 class="modal-title" id="myModalLabel">Query</h4>
       </div>
       <div class="modal-body">
-        <pre>{{ '' }}</pre>
+        <pre id="query_container">
+          {% if viz.query %}
+          {% else %}
+            <img width="250" src="{{ url_for('static', filename="penguins.png") }}">
+          {% endif %}
+        </pre>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

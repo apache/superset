@@ -397,7 +397,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def get_json(self):
         df = self.get_df()
         series = df.to_dict('series')
-        datas = []
+        chart_data = []
         for name in df.T.index.tolist():
             ys = series[name]
             if df[name].dtype.kind not in "biufc":
@@ -418,8 +418,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     {'x': ds, 'y': ys[i]}
                     for i, ds in enumerate(df.timestamp)]
             }
-            datas.append(d)
-        return dumps(datas)
+            chart_data.append(d)
+            data = {
+                'chart_data': chart_data,
+                'query': self.results.query,
+                'duration': self.results.duration,
+            }
+        return dumps(data)
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
