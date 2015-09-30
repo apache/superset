@@ -75,6 +75,10 @@ class BaseViz(object):
         if 'action' in d:
             del d['action']
         d.update(kwargs)
+        # Remove unchecked checkboxes because HTML is weird like that
+        for key in d.keys():
+            if d[key] == False:
+                del d[key]
         href = Href(
             '/panoramix/datasource/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
@@ -159,6 +163,15 @@ class BaseViz(object):
         }
         return d
 
+    def get_json(self):
+        payload = {
+            'data': json.loads(self.get_json_data()),
+            'form_data': self.form_data,
+        }
+        return json.dumps(payload)
+
+    def get_json_data(self):
+        return json.dumps([])
 
 class TableViz(BaseViz):
     verbose_name = "Table View"
@@ -212,7 +225,11 @@ class WordCloudViz(BaseViz):
         ('size_from', 'size_to'),
         'rotation',
     ]
-    js_files = ['d3.layout.cloud.js']
+    js_files = [
+        'd3.min.js',
+        'd3.layout.cloud.js',
+        'widgets/viz_wordcloud.js',
+    ]
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
@@ -224,7 +241,7 @@ class WordCloudViz(BaseViz):
         d['groupby'] = [d['groupby'][0]]
         return d
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         df.columns = ['text', 'size']
         return df.to_json(orient="records")
@@ -234,7 +251,11 @@ class NVD3Viz(BaseViz):
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
     chart_kind = 'line'
-    js_files = ['d3.min.js', 'nv.d3.min.js']
+    js_files = [
+        'd3.min.js',
+        'nv.d3.min.js',
+        'widgets/viz_nvd3.js',
+    ]
     css_files = ['nv.d3.css']
 
 
@@ -283,7 +304,7 @@ class BubbleViz(NVD3Viz):
         df['group'] = df[[self.series]]
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):
@@ -299,7 +320,13 @@ class BubbleViz(NVD3Viz):
 class BigNumberViz(BaseViz):
     verbose_name = "Big Number"
     template = 'panoramix/viz_bignumber.html'
-    js_files = ['d3.min.js']
+    js_files = [
+        'd3.min.js',
+        'widgets/viz_bignumber.js',
+    ]
+    css_files = [
+        'widgets/viz_bignumber.css',
+    ]
     form_fields = [
         'viz_type',
         'granularity',
@@ -325,7 +352,7 @@ class BigNumberViz(BaseViz):
         self.form_data['metric'] = metric
         return d
 
-    def get_json(self):
+    def get_json_data(self):
         form_data = self.form_data
         df = self.get_df()
         df = df.sort(columns=df.columns[0])
@@ -394,7 +421,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = pd.rolling_sum(df, int(rolling_periods))
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []
@@ -491,7 +518,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.sort(self.metrics[0], ascending=False)
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         df = df.reset_index()
         df.columns = ['x', 'y']
@@ -515,7 +542,7 @@ class DistributionBarViz(DistributionPieViz):
         df = df.sort(self.metrics[0], ascending=False)
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []
