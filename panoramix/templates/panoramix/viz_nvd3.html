@@ -33,7 +33,8 @@
       chart.hide();
       loading.show();
       var url = "{{ viz.get_url(json="true")|safe }}";
-      $.getJSON(url, function(data){
+      $.getJSON(url, function(payload){
+        data = payload.data;
         $("#query_container").html(data.query);
         nv.addGraph(function() {
           // chart_type is {{ viz.chart_type }}

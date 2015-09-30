@@ -159,6 +159,12 @@ class BaseViz(object):
         }
         return d
 
+    def get_json(self):
+        payload = {
+            'data': json.loads(self.get_json_data()),
+            'form_data': self.form_data,
+        }
+        return json.dumps(payload)
 
 class TableViz(BaseViz):
     verbose_name = "Table View"
@@ -212,7 +218,11 @@ class WordCloudViz(BaseViz):
         ('size_from', 'size_to'),
         'rotation',
     ]
-    js_files = ['d3.layout.cloud.js']
+    js_files = [
+        'd3.min.js',
+        'd3.layout.cloud.js',
+        'widgets/viz_wordcloud.js',
+    ]
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
@@ -224,7 +234,7 @@ class WordCloudViz(BaseViz):
         d['groupby'] = [d['groupby'][0]]
         return d
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         df.columns = ['text', 'size']
         return df.to_json(orient="records")
@@ -283,7 +293,7 @@ class BubbleViz(NVD3Viz):
         df['group'] = df[[self.series]]
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):
@@ -325,7 +335,7 @@ class BigNumberViz(BaseViz):
         self.form_data['metric'] = metric
         return d
 
-    def get_json(self):
+    def get_json_data(self):
         form_data = self.form_data
         df = self.get_df()
         df = df.sort(columns=df.columns[0])
@@ -394,7 +404,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = pd.rolling_sum(df, int(rolling_periods))
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []
@@ -491,7 +501,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.sort(self.metrics[0], ascending=False)
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         df = df.reset_index()
         df.columns = ['x', 'y']
@@ -515,7 +525,7 @@ class DistributionBarViz(DistributionPieViz):
         df = df.sort(self.metrics[0], ascending=False)
         return df
 
-    def get_json(self):
+    def get_json_data(self):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []

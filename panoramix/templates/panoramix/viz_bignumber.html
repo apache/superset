@@ -13,7 +13,8 @@ var div = d3.select("#{{ viz.token }}");
 var render = function(){
   url = "/";
   var url = "{{ viz.get_url(json="true")|safe }}";
-  d3.json(url, function(error, json){
+  d3.json(url, function(error, payload){
+    json = payload.data;
     div.html("");
     //Define the percentage bounds that define color from red to green
     if(error != null){
@@ -161,7 +162,7 @@ example_data = function(){
   var data = [];
   for(i=0; i<24; i++){
     data.push([
-      new Date(2015, 1, i, 1, 0, 0, 0), 
+      new Date(2015, 1, i, 1, 0, 0, 0),
       rnd() + (i*(rnd()/40))
     ]);
   }
