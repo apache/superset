@@ -75,6 +75,10 @@ class BaseViz(object):
         if 'action' in d:
             del d['action']
         d.update(kwargs)
+        # Remove unchecked checkboxes because HTML is weird like that
+        for key in d.keys():
+            if d[key] == False:
+                del d[key]
         href = Href(
             '/panoramix/datasource/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
@@ -244,7 +248,11 @@ class NVD3Viz(BaseViz):
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
     chart_kind = 'line'
-    js_files = ['d3.min.js', 'nv.d3.min.js']
+    js_files = [
+        'd3.min.js',
+        'nv.d3.min.js',
+        'widgets/viz_nvd3.js',
+    ]
     css_files = ['nv.d3.css']
 
 
