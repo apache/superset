@@ -170,6 +170,9 @@ class BaseViz(object):
         }
         return json.dumps(payload)
 
+    def get_json_data(self):
+        return json.dumps([])
+
 class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
