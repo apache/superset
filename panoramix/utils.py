@@ -126,4 +126,20 @@ def init():
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
                 'Security'):
             sm.add_permission_role(alpha, perm)
-    sm.add_role("Gamma")
+    gamma = sm.add_role("Gamma")
+    for perm in perms:
+        s = perm.permission.name
+        if(
+                perm.view_menu.name not in (
+                    'UserDBModelView',
+                    'RoleModelView',
+                    'ResetPasswordView',
+                    'Security') and
+                perm.permission.name not in (
+                    'can_edit',
+                    'can_add',
+                    'can_save',
+                    'can_download',
+                    'muldelete',
+                )):
+            sm.add_permission_role(gamma, perm)
