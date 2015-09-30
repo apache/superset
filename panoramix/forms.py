@@ -52,6 +52,7 @@ class FormFactory(object):
                 description="One or many metrics to display"),
             'metric': SelectField(
                 'Metric', choices=datasource.metrics_combo,
+                default='',
                 description="One or many metrics to display"),
             'groupby': SelectMultipleField(
                 'Group by',

@@ -27,8 +27,10 @@ class BaseViz(object):
     css_files = []
 
     def __init__(self, datasource, form_data):
+        self.orig_form_data = form_data
         self.datasource = datasource
         self.request = request
+        self.viz_type = form_data.get("viz_type")
 
         ff = FormFactory(self)
         form_class = ff.get_form()
@@ -39,7 +41,7 @@ class BaseViz(object):
             form = form_class(**form_data)
         data = form.data.copy()
         previous_viz_type = form_data.get('previous_viz_type')
-        if previous_viz_type in viz_types:
+        if previous_viz_type in viz_types and previous_viz_type != self.viz_type:
             data = {
                 k: form.data[k]
                 for k in form_data.keys()
@@ -47,19 +49,13 @@ class BaseViz(object):
         defaults.update(data)
         self.form_data = defaults
 
-        self.form_data['previous_viz_type'] = form_data.get("viz_type")
+        self.form_data['previous_viz_type'] = self.viz_type
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
 
-        as_list = ('metrics', 'groupby')
-        for k, v in self.form_data.items():
-            if k in as_list and not isinstance(v, list):
-                self.form_data[k] = [v]
-            elif k not in as_list and isinstance(v, list) and v:
-                self.form_data[k] = v[0]
-
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
+        self.reassignments()
 
     @classmethod
     def flat_form_fields(cls):
@@ -70,6 +66,9 @@ class BaseViz(object):
             else:
                 l.append(obj)
         return l
+
+    def reassignments(self):
+        pass
 
     def get_url(self, **kwargs):
         d = self.form_data.copy()
@@ -311,12 +310,19 @@ class BigNumberViz(BaseViz):
         #('rolling_type', 'rolling_periods'),
     ]
 
+    def reassignments(self):
+        metric = self.form_data.get('metric')
+        if not metric:
+            self.form_data['metric'] = self.orig_form_data.get('metrics')
+
+
     def query_obj(self):
         d = super(BigNumberViz, self).query_obj()
         metric = self.form_data.get('metric')
         if not metric:
             raise Exception("Pick a metric!")
         d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
         return d
 
     def get_json(self):
