@@ -123,6 +123,7 @@
         <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
         <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
         <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
+        {{ form.previous_viz_type() }}
       </form><br>
     </div>
 
@@ -132,7 +133,7 @@
         <span class="label label-success">
           {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
         </span>
-        <span class="label label-info btn" 
+        <span class="label label-info btn"
           data-toggle="modal" data-target="#query_modal">query</span>
         {% endif %}
       </h3>

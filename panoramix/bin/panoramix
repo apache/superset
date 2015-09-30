@@ -61,6 +61,8 @@ def load_examples(sample):
         Column("num", Integer),
         Column("ds", String(20)),
         Column("gender", String(10)),
+        Column("sum_boys", Integer),
+        Column("sum_girls", Integer),
     )
     try:
         BirthNames.drop(db.engine)
@@ -82,7 +84,10 @@ def load_examples(sample):
                 state=state,
                 year=year,
                 ds=ds,
-                name=name, num=num, gender=gender)
+                name=name, num=num, gender=gender,
+                sum_boys=num if gender == 'boy' else 0,
+                sum_girls=num if gender == 'girl' else 0,
+            )
             if i % 5000 == 0:
                 print("{} loaded out of 82527 rows".format(i))
                 session.commit()
@@ -109,8 +114,11 @@ def load_examples(sample):
     obj.main_dttm_col = 'ds'
     obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=one+day&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
     obj.database = dbobj
-    obj.columns = [models.TableColumn(
-        column_name="num", sum=True, type="INTEGER")]
+    obj.columns = [
+        models.TableColumn(column_name="num", sum=True, type="INTEGER"),
+        models.TableColumn(column_name="sum_boys", sum=True, type="INTEGER"),
+        models.TableColumn(column_name="sum_girls", sum=True, type="INTEGER"),
+    ]
     models.Table
     session.add(obj)
     session.commit()
@@ -200,7 +208,7 @@ def load_examples(sample):
         session.add(slc)
     slices.append(slc)
 
-    slice_name = "States"
+    slice_name = "Gender by State"
     slc = session.query(Slice).filter_by(slice_name=slice_name).first()
     if not slc:
         slc = Slice(
@@ -210,6 +218,7 @@ def load_examples(sample):
             table=tbl,
             params=get_slice_json(
                 slice_name, flt_eq_1="other", viz_type="dist_bar",
+                metrics=['sum__sum_girls', 'sum__sum_boys'],
                 groupby=['state'], flt_op_1='not in', flt_col_1='state'))
         session.add(slc)
     slices.append(slc)

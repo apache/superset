@@ -1,7 +1,9 @@
 from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField, IntegerField)
+    BooleanField, IntegerField, HiddenField)
 from copy import copy
+from panoramix import app
+config = app.config
 
 
 class OmgWtForm(Form):
@@ -27,157 +29,183 @@ class OmgWtForm(Form):
         return ""
 
 
-def form_factory(viz):
-    datasource = viz.datasource
-    from panoramix.viz import viz_types
-    row_limits = [10, 50, 100, 500, 1000, 5000, 10000]
+class FormFactory(object):
+    row_limits = [10, 50, 100, 500, 1000, 5000, 10000, 50000]
     series_limits = [0, 5, 10, 25, 50, 100, 500]
-    group_by_choices = [(s, s) for s in datasource.groupby_column_names]
-    # Pool of all the fields that can be used in Panoramix
-    px_form_fields = {
-        'viz_type': SelectField(
-            'Viz',
-            choices=[(k, v.verbose_name) for k, v in viz_types.items()],
-            description="The type of visualization to display"),
-        'metrics': SelectMultipleField(
-            'Metrics', choices=datasource.metrics_combo,
-            description="One or many metrics to display"),
-        'metric': SelectField(
-            'Metric', choices=datasource.metrics_combo,
-            description="One or many metrics to display"),
-        'groupby': SelectMultipleField(
-            'Group by',
-            choices=[(s, s) for s in datasource.groupby_column_names],
-            description="One or many fields to group by"),
-        'granularity': TextField(
-            'Time Granularity', default="one day",
-            description=(
-                "The time granularity for the visualization. Note that you "
-                "can type and use simple natural language as in '10 seconds', "
-                "'1 day' or '56 weeks'")),
-        'since': TextField(
-            'Since', default="one day ago", description=(
-                "Timestamp from filter. This supports free form typing and "
-                "natural language as in '1 day ago', '28 days' or '3 years'")),
-        'until': TextField('Until', default="now"),
-        'row_limit':
-            SelectField(
-                'Row limit', choices=[(s, s) for s in row_limits]),
-        'limit':
-            SelectField(
-                'Series limit', choices=[(s, s) for s in series_limits],
+
+    def __init__(self, viz):
+        self.viz = viz
+        from panoramix.viz import viz_types
+        viz = self.viz
+        datasource = viz.datasource
+        group_by_choices = [(s, s) for s in datasource.groupby_column_names]
+        # Pool of all the fields that can be used in Panoramix
+        self.field_dict = {
+            'viz_type': SelectField(
+                'Viz',
+                default='table',
+                choices=[(k, v.verbose_name) for k, v in viz_types.items()],
+                description="The type of visualization to display"),
+            'metrics': SelectMultipleField(
+                'Metrics', choices=datasource.metrics_combo,
+                default=[datasource.metrics_combo[0][0]],
+                description="One or many metrics to display"),
+            'metric': SelectField(
+                'Metric', choices=datasource.metrics_combo,
+                description="One or many metrics to display"),
+            'groupby': SelectMultipleField(
+                'Group by',
+                choices=[(s, s) for s in datasource.groupby_column_names],
+                description="One or many fields to group by"),
+            'granularity': TextField(
+                'Time Granularity', default="one day",
                 description=(
-                    "Limits the number of time series that get displayed")),
-        'rolling_type': SelectField(
-            'Rolling',
-            choices=[(s, s) for s in ['mean', 'sum', 'std']],
-            description=(
-                "Defines a rolling window function to apply")),
-        'rolling_periods': TextField('Periods', description=(
-            "Defines the size of the rolling window function, "
-            "relative to the 'granularity' field")),
-        'series': SelectField(
-            'Series', choices=group_by_choices,
-            description=(
-                "Defines the grouping of entities. "
-                "Each serie is shown as a specific color on the chart and "
-                "has a legend toggle")),
-        'entity': SelectField('Entity', choices=group_by_choices,
-            description="This define the element to be plotted on the chart"),
-        'x': SelectField(
-            'X Axis', choices=datasource.metrics_combo,
-            description="Metric assigned to the [X] axis"),
-        'y': SelectField('Y Axis', choices=datasource.metrics_combo,
-            description="Metric assigned to the [Y] axis"),
-        'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
-        'where': TextField('Custom WHERE clause'),
-        'compare_lag': TextField('Comparison Period Lag',
-            description="Based on granularity, number of time periods to compare against"),
-        'compare_suffix': TextField('Comparison suffix',
-            description="Suffix to apply after the percentage display"),
-        'markup_type': SelectField(
-            "Markup Type",
-            choices=[(s, s) for s in ['markdown', 'html']],
-            default="markdown",
-            description="Pick your favorite markup language"),
-        'rotation': SelectField(
-            "Rotation",
-            choices=[(s, s) for s in ['random', 'flat', 'square']],
-            default="random",
-            description="Rotation to apply to words in the cloud"),
-        'code': TextAreaField("Code", description="Put your code here"),
-        'size_from': TextField(
-            "Font Size From",
-            default="20",
-            description="Font size for the smallest value in the list"),
-        'size_to': TextField(
-            "Font Size To",
-            default="150",
-            description="Font size for the biggest value in the list"),
-        'show_brush': BooleanField(
-            "Range Selector", default=True,
-            description="Whether to display the time range interactive selector"),
-        'show_legend': BooleanField(
-            "Legend", default=True, false_values=["f"],
-            description="Whether to display the legend (toggles)"),
-        'rich_tooltip': BooleanField(
-            "Rich Tooltip", default=True,
-            description="The rich tooltip shows a list of all series for that point in time"),
-        'y_axis_zero': BooleanField(
-            "Y Axis Zero", default=False,
-            description="Force the Y axis to start at 0 instead of the minimum value"),
-        'y_log_scale': BooleanField(
-            "Y Log", default=False,
-            description="Use a log scale for the Y axis"),
-        'x_log_scale': BooleanField(
-            "X Log", default=False,
-            description="Use a log scale for the X axis"),
-        'donut': BooleanField(
-            "Donut", default=False,
-            description="Do you want a donut or a pie?"),
-        'contribution': BooleanField(
-            "Contribution", default=False,
-            description="Compute the contribution to the total"),
-        'num_period_compare': IntegerField(
-            "Period Ratio", default=None,
-            description=(
-                "Number of period to compare against, "
-                "this is relative to the granularity selected")),
-    }
-    field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
-    select2 = [
-        'viz_type', 'metrics', 'groupby',
-        'row_limit', 'rolling_type', 'series',
-        'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
-        'markup_type',]
-    field_css_classes['since'] += ['select2_free_since']
-    field_css_classes['until'] += ['select2_free_until']
-    field_css_classes['granularity'] += ['select2_free_granularity']
-    for field in ('show_brush', 'show_legend', 'rich_tooltip'):
-        field_css_classes[field] += ['input-sm']
-    for field in select2:
-        field_css_classes[field] += ['select2']
+                    "The time granularity for the visualization. Note that you "
+                    "can type and use simple natural language as in '10 seconds', "
+                    "'1 day' or '56 weeks'")),
+            'since': TextField(
+                'Since', default="one day ago", description=(
+                    "Timestamp from filter. This supports free form typing and "
+                    "natural language as in '1 day ago', '28 days' or '3 years'")),
+            'until': TextField('Until', default="now"),
+            'row_limit':
+                SelectField(
+                    'Row limit',
+                    default=config.get("ROW_LIMIT"),
+                    choices=[(s, s) for s in self.row_limits]),
+            'limit':
+                SelectField(
+                    'Series limit', choices=[(s, s) for s in self.series_limits],
+                    default=50,
+                    description=(
+                        "Limits the number of time series that get displayed")),
+            'rolling_type': SelectField(
+                'Rolling',
+                choices=[(s, s) for s in ['mean', 'sum', 'std']],
+                description=(
+                    "Defines a rolling window function to apply")),
+            'rolling_periods': TextField('Periods', description=(
+                "Defines the size of the rolling window function, "
+                "relative to the 'granularity' field")),
+            'series': SelectField(
+                'Series', choices=group_by_choices,
+                description=(
+                    "Defines the grouping of entities. "
+                    "Each serie is shown as a specific color on the chart and "
+                    "has a legend toggle")),
+            'entity': SelectField('Entity', choices=group_by_choices,
+                description="This define the element to be plotted on the chart"),
+            'x': SelectField(
+                'X Axis', choices=datasource.metrics_combo,
+                description="Metric assigned to the [X] axis"),
+            'y': SelectField('Y Axis', choices=datasource.metrics_combo,
+                description="Metric assigned to the [Y] axis"),
+            'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
+            'where': TextField('Custom WHERE clause', default=''),
+            'compare_lag': TextField('Comparison Period Lag',
+                description="Based on granularity, number of time periods to compare against"),
+            'compare_suffix': TextField('Comparison suffix',
+                description="Suffix to apply after the percentage display"),
+            'markup_type': SelectField(
+                "Markup Type",
+                choices=[(s, s) for s in ['markdown', 'html']],
+                default="markdown",
+                description="Pick your favorite markup language"),
+            'rotation': SelectField(
+                "Rotation",
+                choices=[(s, s) for s in ['random', 'flat', 'square']],
+                default="random",
+                description="Rotation to apply to words in the cloud"),
+            'code': TextAreaField("Code", description="Put your code here"),
+            'size_from': TextField(
+                "Font Size From",
+                default="20",
+                description="Font size for the smallest value in the list"),
+            'size_to': TextField(
+                "Font Size To",
+                default="150",
+                description="Font size for the biggest value in the list"),
+            'show_brush': BooleanField(
+                "Range Selector", default=True,
+                description="Whether to display the time range interactive selector"),
+            'show_legend': BooleanField(
+                "Legend", default=True,
+                description="Whether to display the legend (toggles)"),
+            'rich_tooltip': BooleanField(
+                "Rich Tooltip", default=True,
+                description="The rich tooltip shows a list of all series for that point in time"),
+            'y_axis_zero': BooleanField(
+                "Y Axis Zero", default=False,
+                description="Force the Y axis to start at 0 instead of the minimum value"),
+            'y_log_scale': BooleanField(
+                "Y Log", default=False,
+                description="Use a log scale for the Y axis"),
+            'x_log_scale': BooleanField(
+                "X Log", default=False,
+                description="Use a log scale for the X axis"),
+            'donut': BooleanField(
+                "Donut", default=False,
+                description="Do you want a donut or a pie?"),
+            'contribution': BooleanField(
+                "Contribution", default=False,
+                description="Compute the contribution to the total"),
+            'num_period_compare': IntegerField(
+                "Period Ratio", default=None,
+                description=(
+                    "Number of period to compare against, "
+                    "this is relative to the granularity selected")),
+        }
 
-    class QueryForm(OmgWtForm):
-        field_order = copy(viz.form_fields)
-        css_classes = field_css_classes
+    def get_form(self, previous=False):
+        px_form_fields = self.field_dict
+        viz = self.viz
+        datasource = viz.datasource
+        field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
+        select2 = [
+            'viz_type', 'metrics', 'groupby',
+            'row_limit', 'rolling_type', 'series',
+            'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
+            'markup_type',]
+        field_css_classes['since'] += ['select2_free_since']
+        field_css_classes['until'] += ['select2_free_until']
+        field_css_classes['granularity'] += ['select2_free_granularity']
+        for field in ('show_brush', 'show_legend', 'rich_tooltip'):
+            field_css_classes[field] += ['input-sm']
+        for field in select2:
+            field_css_classes[field] += ['select2']
 
-    for i in range(10):
-        setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-            'Filter 1',
-            choices=[(s, s) for s in datasource.filterable_column_names]))
-        setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-            'Filter 1', choices=[(m, m) for m in ['in', 'not in']]))
-        setattr(QueryForm, 'flt_eq_' + str(i), TextField("Super"))
-    for ff in viz.form_fields:
-        if isinstance(ff, basestring):
-            ff = [ff]
-        for s in ff:
-            if s:
-                setattr(QueryForm, s, px_form_fields[s])
 
-    # datasource type specific form elements
-    if datasource.__class__.__name__ == 'Table':
-        QueryForm.field_order += ['where']
-        setattr(QueryForm, 'where', px_form_fields['where'])
-    return QueryForm
+        class QueryForm(OmgWtForm):
+            field_order = copy(viz.form_fields)
+            css_classes = field_css_classes
+            standalone = HiddenField()
+            async = HiddenField()
+            json = HiddenField()
+            previous_viz_type = HiddenField()
+            standalone = HiddenField()
+
+
+        for i in range(10):
+            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
+                'Filter 1',
+                default='',
+                choices=[(s, s) for s in datasource.filterable_column_names]))
+            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
+                'Filter 1',
+                default='',
+                choices=[(m, m) for m in ['in', 'not in']]))
+            setattr(
+                QueryForm, 'flt_eq_' + str(i),
+                TextField("Super", default=''))
+        for ff in viz.form_fields:
+            if isinstance(ff, basestring):
+                ff = [ff]
+            for s in ff:
+                if s:
+                    setattr(QueryForm, s, px_form_fields[s])
+
+        # datasource type specific form elements
+        if datasource.__class__.__name__ == 'Table':
+            QueryForm.field_order += ['where']
+            setattr(QueryForm, 'where', px_form_fields['where'])
+        return QueryForm

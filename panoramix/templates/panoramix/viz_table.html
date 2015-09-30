@@ -1,5 +1,5 @@
 {% macro viz_html(viz) %}
-  {% if viz.form_data.get("async") == "true" %}
+  {% if viz.request.args.get("async") == "true" %}
     {% set df = viz.get_df() %}
     <table class="dataframe table table-striped table-bordered table-condensed">
       <thead>

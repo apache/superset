@@ -1,6 +1,6 @@
 <html>
   <head>
-    {% if viz.form_data.get("skip_libs") != "true" %}
+    {% if viz.request.args.get("skip_libs") != "true" %}
       {% block head %}
         <script src="{{url_for('appbuilder.static',filename='js/jquery-latest.js')}}"></script>
       {% endblock %}

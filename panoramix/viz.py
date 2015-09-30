@@ -3,22 +3,18 @@ from datetime import datetime
 import json
 import uuid
 
-from flask import flash
+from flask import flash, request
 from markdown import markdown
 from pandas.io.json import dumps
-from werkzeug.datastructures import MultiDict
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
 import numpy as np
 import pandas as pd
 
 from panoramix import app, utils
-from panoramix.forms import form_factory
+from panoramix.forms import FormFactory
 
 config = app.config
-
-CHART_ARGS = {
-    'title': None,
-}
 
 
 class BaseViz(object):
@@ -32,12 +28,26 @@ class BaseViz(object):
 
     def __init__(self, datasource, form_data):
         self.datasource = datasource
-        form = self.form_class(form_data)
-        form.validate()
-        raise
-        self.form_data = form_data
-        if isinstance(form_data, MultiDict):
-            self.form_data = form_data.to_dict(flat=False)
+        self.request = request
+
+        ff = FormFactory(self)
+        form_class = ff.get_form()
+        defaults = form_class().data.copy()
+        if isinstance(form_data, ImmutableMultiDict):
+            form = form_class(form_data)
+        else:
+            form = form_class(**form_data)
+        data = form.data.copy()
+        previous_viz_type = form_data.get('previous_viz_type')
+        if previous_viz_type in viz_types:
+            data = {
+                k: form.data[k]
+                for k in form_data.keys()
+                if k in viz_types[previous_viz_type].flat_form_fields() and k in form.data}
+        defaults.update(data)
+        self.form_data = defaults
+
+        self.form_data['previous_viz_type'] = form_data.get("viz_type")
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
 
@@ -48,8 +58,18 @@ class BaseViz(object):
             elif k not in as_list and isinstance(v, list) and v:
                 self.form_data[k] = v[0]
 
-        self.metrics = self.form_data.get('metrics') or ['count']
+        self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
+
+    @classmethod
+    def flat_form_fields(cls):
+        l = []
+        for obj in cls.form_fields:
+            if isinstance(obj, (tuple, list)):
+                l += [a for a in obj]
+            else:
+                l.append(obj)
+        return l
 
     def get_url(self, **kwargs):
         d = self.form_data.copy()
@@ -80,7 +100,7 @@ class BaseViz(object):
 
     @property
     def form_class(self):
-        return form_factory(self)
+        return FormFactory(self).get_form()
 
     def query_filters(self):
         form_data = self.form_data
@@ -334,11 +354,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
         form_data = self.form_data
         df = super(NVD3TimeSeriesViz, self).get_df()
         df = df.fillna(0)
-        metrics = self.metrics
+        if form_data.get("granularity") == "all":
+            raise Exception("Pick a time granularity for your time series")
+
         df = df.pivot_table(
             index="timestamp",
-            columns=self.groupby,
-            values=metrics,)
+            columns=self.form_data.get('groupby'),
+            values=self.form_data.get('metrics'))
 
         if self.sort_series:
             dfs = df.sum()
@@ -379,7 +401,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 series_title = name
             else:
                 name = ["{}".format(s) for s in name]
-                if len(self.metrics) > 1:
+                if len(self.form_data.get('metrics')) > 1:
                     series_title = ", ".join(name)
                 else:
                     series_title = ", ".join(name[1:])

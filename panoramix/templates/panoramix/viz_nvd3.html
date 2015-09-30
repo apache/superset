@@ -37,7 +37,7 @@
         nv.addGraph(function() {
           // chart_type is {{ viz.chart_type }}
           {% if viz.chart_type == 'line' %}
-            {% if viz.form_data.show_brush == 'y' %}
+            {% if viz.form_data.show_brush %}
               var chart = nv.models.lineWithFocusChart()
               var xext = chart.xAxis.scale().domain();
               chart
@@ -52,10 +52,10 @@
             chart.xAxis
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
-            chart.showLegend({{ "{}".format(viz.form_data.show_legend=='y')|lower }});
+            chart.showLegend({{ "{}".format(viz.form_data.show_legend)|lower }});
             chart.yAxis.tickFormat(d3.format('.3s'));
 
-            {% if viz.form_data.contribution=='y' or viz.form_data.get("num_period_compare") %}
+            {% if viz.form_data.contribution or viz.form_data.get("num_period_compare") %}
               chart.yAxis.tickFormat(d3.format('.3p'));
               chart.y2Axis.tickFormat(d3.format('.3p'));
             {% endif %}
@@ -71,8 +71,8 @@
 
           {% elif viz.chart_type == 'pie' %}
             var chart = nv.models.pieChart()
-            chart.showLegend({{ "{}".format(viz.form_data.show_legend=='y')|lower }});
-            {% if viz.form_data.donut=='y' %}
+            chart.showLegend({{ "{}".format(viz.form_data.show_legend)|lower }});
+            {% if viz.form_data.donut %}
               chart.donut(true);
               chart.donutLabelsOutside(true);
             {% endif %}
@@ -91,14 +91,14 @@
             chart.xAxis
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
-            chart.showLegend({{ "{}".format(viz.form_data.show_legend=='y')|lower }});
+            chart.showLegend({{ "{}".format(viz.form_data.show_legend)|lower }});
             chart.yAxis.tickFormat(d3.format('.3p'));
 
           {% elif viz.chart_type == 'bubble' %}
             var chart = nv.models.scatterChart();
             chart.xAxis.tickFormat(d3.format('.3s'));
             chart.yAxis.tickFormat(d3.format('.3s'));
-            chart.showLegend({{ "{}".format(viz.form_data.show_legend=='y')|lower }});
+            chart.showLegend({{ "{}".format(viz.form_data.show_legend)|lower }});
             chart.pointRange([5, 5000]);
 
           {% elif viz.chart_type == 'stacked' %}
@@ -107,21 +107,21 @@
             chart.xAxis
               .showMaxMin(false)
               .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
-            chart.showLegend({{ "{}".format(viz.form_data.show_legend=='y')|lower }});
+            chart.showLegend({{ "{}".format(viz.form_data.show_legend)|lower }});
             chart.yAxis.tickFormat(d3.format('.3s'));
 
           {% endif %}
 
-          {% if viz.chart_type in ("line", "stacked") and viz.form_data.rich_tooltip == 'y' %}
+          {% if viz.chart_type in ("line", "stacked") and viz.form_data.rich_tooltip %}
             chart.useInteractiveGuideline(true);
           {% endif %}
-          {% if viz.form_data.y_axis_zero == 'y' %}
+          {% if viz.form_data.y_axis_zero %}
             chart.forceY([0, 1]);
-          {% elif viz.form_data.y_log_scale == 'y' %}
+          {% elif viz.form_data.y_log_scale %}
             chart.yScale(d3.scale.log());
           {% endif %}
 
-          {% if viz.form_data.x_log_scale == 'y' %}
+          {% if viz.form_data.x_log_scale %}
             chart.xScale(d3.scale.log());
           {% endif %}
 
