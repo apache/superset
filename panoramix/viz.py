@@ -419,11 +419,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     for i, ds in enumerate(df.timestamp)]
             }
             chart_data.append(d)
-            data = {
-                'chart_data': chart_data,
-                'query': self.results.query,
-                'duration': self.results.duration,
-            }
+        data = {
+            'chart_data': chart_data,
+            'query': self.results.query,
+            'duration': self.results.duration,
+        }
         return dumps(data)
 
 
@@ -496,7 +496,11 @@ class DistributionPieViz(NVD3Viz):
         df = df.reset_index()
         df.columns = ['x', 'y']
         df['color'] = map(utils.color, df.x)
-        return df.to_json(orient="records")
+        return dumps({
+            'chart_data': df.to_dict(orient="records"),
+            'query': self.results.query,
+            'duration': self.results.duration,
+        })
 
 
 class DistributionBarViz(DistributionPieViz):
@@ -514,7 +518,7 @@ class DistributionBarViz(DistributionPieViz):
     def get_json(self):
         df = self.get_df()
         series = df.to_dict('series')
-        datas = []
+        chart_data = []
         for name, ys in series.items():
             if df[name].dtype.kind not in "biufc":
                 continue
@@ -532,8 +536,12 @@ class DistributionBarViz(DistributionPieViz):
                     {'x': ds, 'y': ys[i]}
                     for i, ds in enumerate(df.timestamp)]
             }
-            datas.append(d)
-        return dumps(datas)
+            chart_data.append(d)
+        return dumps({
+            'chart_data': chart_data,
+            'query': self.results.query,
+            'duration': self.results.duration,
+        })
 
 
 viz_types = OrderedDict([
