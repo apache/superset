@@ -1,0 +1,26 @@
+.viz_bignumber g.axis text{
+  font-size:10px;
+  font-weight:normal;
+  color: gray;
+  fill: gray;
+  text-anchor:middle;
+  alignment-baseline: middle;
+  font-weight: none;
+}
+
+.viz_bignumber text.big{
+  stroke: black;
+  text-anchor:middle;
+  fill: black;
+}
+
+.viz_bignumber g.tick line {
+  stroke-width: 1px;
+  stroke: grey;
+}
+
+.viz_bignumber .domain {
+  fill: none;
+  stroke: black;
+  stroke-width; 1;
+}

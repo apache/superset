@@ -309,7 +309,13 @@ class BubbleViz(NVD3Viz):
 class BigNumberViz(BaseViz):
     verbose_name = "Big Number"
     template = 'panoramix/viz_bignumber.html'
-    js_files = ['d3.min.js']
+    js_files = [
+        'd3.min.js',
+        'widgets/viz_bignumber.js',
+    ]
+    css_files = [
+        'widgets/viz_bignumber.css',
+    ]
     form_fields = [
         'viz_type',
         'granularity',
