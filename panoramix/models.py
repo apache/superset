@@ -233,7 +233,7 @@ class Table(Model, Queryable, AuditMixinNullable):
             is_timeseries=True,
             timeseries_limit=15,
             row_limit=None,
-            extras=None):
+            extras=None):  # pragma: no cover
         """
         Unused, legacy way of querying by building a SQL string without
         using the sqlalchemy expression API (new approach which supports
