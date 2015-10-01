@@ -117,7 +117,7 @@
           Save as Slice
         </button>
         <hr style="margin-bottom: 0px;">
-        <img src="{{ url_for("static", filename="tux_panoramix.png") }}" width=250>
+        <img src="{{ url_for("static", filename="img/tux_panoramix.png") }}" width=250>
         <input type="hidden" id="slice_name" name="slice_name" value="TEST">
         <input type="hidden" id="action" name="action" value="">
         <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
@@ -162,7 +162,7 @@
         <pre id="query_container">
           {% if viz.query %}
           {% else %}
-            <img width="250" src="{{ url_for('static', filename="penguins.png") }}">
+            <img width="250" src="{{ url_for('static', filename="img/penguins.png") }}">
           {% endif %}
         </pre>
       </div>
