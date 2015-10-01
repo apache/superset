@@ -71,7 +71,7 @@ class BaseViz(object):
         pass
 
     def get_url(self, **kwargs):
-        d = self.form_data.copy()
+        d = self.orig_form_data.copy()
         if 'action' in d:
             del d['action']
         d.update(kwargs)
@@ -285,6 +285,7 @@ class BubbleViz(NVD3Viz):
         self.z_metric = form_data.get('size')
         self.entity = form_data.get('entity')
         self.series = form_data.get('series')
+
         d['metrics'] = [
             self.z_metric,
             self.x_metric,
@@ -309,13 +310,17 @@ class BubbleViz(NVD3Viz):
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):
             series[row['group']].append(row)
-        data = []
+        chart_data = []
         for k, v in series.items():
-            data.append({
+            chart_data.append({
                 'key': k,
                 "color": utils.color(k),
                 'values': v })
-        return json.dumps(data)
+        return dumps({
+            'chart_data': chart_data,
+            'query': self.results.query,
+            'duration': self.results.duration,
+        })
 
 class BigNumberViz(BaseViz):
     verbose_name = "Big Number"

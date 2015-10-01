@@ -38,6 +38,8 @@ class FormFactory(object):
         from panoramix.viz import viz_types
         viz = self.viz
         datasource = viz.datasource
+        default_metric = datasource.metrics_combo[0][0]
+        default_groupby = datasource.groupby_column_names[0]
         group_by_choices = [(s, s) for s in datasource.groupby_column_names]
         # Pool of all the fields that can be used in Panoramix
         self.field_dict = {
@@ -48,11 +50,11 @@ class FormFactory(object):
                 description="The type of visualization to display"),
             'metrics': SelectMultipleField(
                 'Metrics', choices=datasource.metrics_combo,
-                default=[datasource.metrics_combo[0][0]],
+                default=[default_metric],
                 description="One or many metrics to display"),
             'metric': SelectField(
                 'Metric', choices=datasource.metrics_combo,
-                default='',
+                default=default_metric,
                 description="One or many metrics to display"),
             'groupby': SelectMultipleField(
                 'Group by',
@@ -90,18 +92,25 @@ class FormFactory(object):
                 "relative to the 'granularity' field")),
             'series': SelectField(
                 'Series', choices=group_by_choices,
+                default=default_groupby,
                 description=(
                     "Defines the grouping of entities. "
                     "Each serie is shown as a specific color on the chart and "
                     "has a legend toggle")),
             'entity': SelectField('Entity', choices=group_by_choices,
+                default=default_groupby,
                 description="This define the element to be plotted on the chart"),
             'x': SelectField(
                 'X Axis', choices=datasource.metrics_combo,
+                default=default_metric,
                 description="Metric assigned to the [X] axis"),
             'y': SelectField('Y Axis', choices=datasource.metrics_combo,
+                default=default_metric,
                 description="Metric assigned to the [Y] axis"),
-            'size': SelectField('Bubble Size', choices=datasource.metrics_combo),
+            'size': SelectField(
+                    'Bubble Size',
+                    default=default_metric,
+                    choices=datasource.metrics_combo),
             'where': TextField('Custom WHERE clause', default=''),
             'compare_lag': TextField('Comparison Period Lag',
                 description="Based on granularity, number of time periods to compare against"),
@@ -183,7 +192,6 @@ class FormFactory(object):
             async = HiddenField()
             json = HiddenField()
             previous_viz_type = HiddenField()
-            standalone = HiddenField()
 
 
         for i in range(10):
