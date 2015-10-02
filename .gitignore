@@ -11,3 +11,4 @@ env
 dist
 panoramix.egg-info/
 app.db
+*.bak

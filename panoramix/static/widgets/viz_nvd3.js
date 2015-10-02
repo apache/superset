@@ -59,8 +59,7 @@ function viz_nvd3(token_name, json_callback) {
             .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
             .groupSpacing(0.1);   //Distance between each group of bars.
           chart.xAxis
-            .showMaxMin(false)
-            .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
+            .showMaxMin(false);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'pie') {
