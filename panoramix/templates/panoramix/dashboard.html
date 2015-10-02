@@ -11,70 +11,10 @@
       {% import viz.template as viz_macros %}
       {{ viz_macros.viz_css(viz) }}
     {% endfor %}
-<style>
-    a i{
-      cursor: pointer;
-    }
-    i.drag{
-      cursor: move; !important
-    }
-    .gridster .preview-holder {
-        z-index: 1;
-        position: absolute;
-        background-color: #AAA;
-        border-color: #AAA;
-        opacity: 0.3;
-    }
-    .gridster li {
-        list-style-type: none;
-        border: 1px solid gray;    
-        overflow: hidden;
-        box-shadow: 2px 2px 2px #AAA;
-        border-radius: 5px;
-        background-color: white;
-        //overflow: auto;
-    }
-    .gridster .dragging,
-    .gridster .resizing {
-        opacity: 0.5;
-    }
-    img.loading {
-        width: 20px;
-        margin: 5px;
-    }
-    .title {
-        text-align: center;
-    }
-    .slice_title {
-        text-align: center;
-        font-weight: bold;
-        font-size: 14px;
-        padding: 5px;
-    }
-    div.gridster {
-        visibility: hidden
-    }
-    div.slice_content {
-        width: 100%;
-        height: 100%;
-    }
-    table.widget_header {
-      width: 100%;
-      height: 20px;
-    }
-    td.icons {
-      width: 50px;
-    }
-    td.icons nobr {
-      display: none;
-    }
-    div.header {
-      font-weight: bold;
-    }
-</style>
 {% endblock %}
 
 {% block content_fluid %}
+<div class="dashboard">
 <div class="title">
   <div class="row">
     <div class="col-md-1 text-left"></div>
@@ -127,6 +67,7 @@
           </li>
         {% endfor %}
     </ul>
+</div>
 </div>
 {% endblock %}
 

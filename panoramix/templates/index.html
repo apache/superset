@@ -1,40 +1,8 @@
 {% extends "appbuilder/base.html" %}
 
-{% block head_css %}
-{{super()}}
-<style>
-  .carousel img {
-    max-height: 500px;
-  }
-  .carousel {
-    overflow: hidden;
-  }
-  div.carousel-caption{
-    background: rgba(0,0,0,0.5);
-    border-radius: 20px;
-    top: 150px;
-    bottom: auto !important;
-  }
-  .carousel-inner > .item > img {
-    margin: 0 auto;
-  }
-  div.navbar {
-    margin: 0px;
-  }
-  .carousel-indicators li {
-    background-color: #AAA;
-    border: 1px solid black;
-  }
-
-  .carousel-indicators .active {
-    background-color: #000;
-    border: 5px solid black;
-  }
-</style>
-{% endblock %}
-
 {% block uncontained %}
-<div id="carousel" style="height: 500px;" class="carousel slide" data-ride="carousel">
+<div class="index">
+<div id="carousel" class="carousel slide" data-ride="carousel">
   <!-- Indicators -->
   <ol class="carousel-indicators">
     <li data-target="#carousel" data-slide-to="0" class="active"></li>
@@ -50,8 +18,8 @@
       <img src="{{ url_for("static", filename="img/dash.png") }}">
       <div class="carousel-caption">
         <div>
-          <h1 style="font-size: 80px;">Panoramix</h1>
-          <p style="font-size: 25px;">
+          <h1>Panoramix</h1>
+          <p>
             an open source data visualization platform
           </p>
         </div>
@@ -83,7 +51,7 @@
       </div>
     </div>
     <div class="item">
-      <img style="max-height: none;" src="{{ url_for("static", filename="img/servers.jpg") }}">
+      <img src="{{ url_for("static", filename="img/servers.jpg") }}">
       <div class="carousel-caption">
         <h1>Connect</h1>
         <p>
@@ -134,6 +102,7 @@
       </a></p>
     </div><!-- /.col-lg-4 -->
   </div>
+</div>
 </div>
 {% endblock %}
 
