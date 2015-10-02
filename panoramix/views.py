@@ -323,12 +323,10 @@ class Panoramix(BaseView):
     def save_dash(self, dashboard_id):
         data = json.loads(request.form.get('data'))
         slice_ids = [int(d['slice_id']) for d in data]
-        print slice_ids
         session = db.session()
         Dash = models.Dashboard
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
-        print dash.slices
         dash.position_json = json.dumps(data, indent=4)
         session.merge(dash)
         session.commit()
