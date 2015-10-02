@@ -1,16 +1,16 @@
-.viz_bignumber g.axis text{
-  font-size:10px;
-  font-weight:normal;
+.viz_bignumber g.axis text {
+  font-size: 10px;
+  font-weight: normal;
   color: gray;
   fill: gray;
-  text-anchor:middle;
+  text-anchor: middle;
   alignment-baseline: middle;
   font-weight: none;
 }
 
-.viz_bignumber text.big{
+.viz_bignumber text.big {
   stroke: black;
-  text-anchor:middle;
+  text-anchor: middle;
   fill: black;
 }
 
@@ -22,5 +22,5 @@
 .viz_bignumber .domain {
   fill: none;
   stroke: black;
-  stroke-width; 1;
+  stroke-width: 1;
 }
