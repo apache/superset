@@ -4,8 +4,129 @@ input[type="checkbox"] {
   height: 16px;
   float: right;
 }
-
 form div {
   padding-top: 1px;
 }
+.navbar-brand a {
+  color: white;
+}
+.navbar {
+  -webkit-box-shadow: 0px 3px 3px #AAA;
+  -moz-box-shadow: 0px 3px 3px #AAA;
+  box-shadow: 0px 3px 3px #AAA;
+  z-index: 999;
+}
+.panel.panel-primary {
+  margin: 10px;
+}
 
+.index .carousel img {
+  max-height: 500px;
+}
+.index .carousel {
+  overflow: hidden;
+  height: 500px;
+}
+.index .carousel-caption h1 {
+  font-size: 80px;
+}
+.index .carousel-caption p {
+  font-size: 25px;
+}
+.index div.carousel-caption{
+  background: rgba(0,0,0,0.5);
+  border-radius: 20px;
+  top: 150px;
+  bottom: auto !important;
+}
+.index .carousel-inner > .item > img {
+  margin: 0 auto;
+}
+.index {
+  margin: -20px;
+}
+.index .carousel-indicators li {
+  background-color: #AAA;
+  border: 1px solid black;
+}
+
+.index .carousel-indicators .active {
+  background-color: #000;
+  border: 5px solid black;
+}
+
+.datasource .select2-container-multi .select2-choices {
+  height: 70px;
+  overflow: auto;
+}
+.datasource form div.form-control {
+  margin-bottom: 5px !important;
+}
+.datasource form input.form-control {
+  margin-bottom: 5px !important;
+}
+.datasource .tooltip-inner {
+  max-width: 350px;
+}
+.datasource img.loading {
+  width: 30px;
+}
+
+.dashboard a i {
+  cursor: pointer;
+}
+.dashboard i.drag {
+  cursor: move; !important
+}
+.dashboard .gridster .preview-holder {
+  z-index: 1;
+  position: absolute;
+  background-color: #AAA;
+  border-color: #AAA;
+  opacity: 0.3;
+}
+.dashboard .gridster li {
+  list-style-type: none;
+  border: 1px solid gray;
+  overflow: hidden;
+  box-shadow: 2px 2px 2px #AAA;
+  border-radius: 5px;
+  background-color: white;
+}
+.dashboard .gridster .dragging,
+.dashboard .gridster .resizing {
+  opacity: 0.5;
+}
+.dashboard img.loading {
+  width: 20px;
+  margin: 5px;
+}
+.dashboard .title {
+  text-align: center;
+}
+.dashboard .slice_title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 5px;
+}
+.dashboard div.gridster {
+  visibility: hidden
+}
+.dashboard div.slice_content {
+  width: 100%;
+  height: 100%;
+}
+.dashboard table.widget_header {
+  width: 100%;
+  height: 20px;
+}
+.dashboard td.icons {
+  width: 50px;
+}
+.dashboard td.icons nobr {
+  display: none;
+}
+div.header {
+  font-weight: bold;
+}
