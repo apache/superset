@@ -101,7 +101,7 @@ def load_examples(sample):
     dbobj = session.query(DB).filter_by(database_name='main').first()
     if not dbobj:
         dbobj = DB(database_name="main")
-    print config.get("SQLALCHEMY_DATABASE_URI")
+    print(config.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
     session.add(dbobj)
     session.commit()

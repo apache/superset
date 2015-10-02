@@ -1,7 +1,7 @@
 # TODO
 List of TODO items for Panoramix
 
-## Improvments 
+## Improvments
 * Reintroduce query and stopwatch
 * [druid] Allow for post aggregations (ratios!)
 * [sql] find a way to manage time granularity
