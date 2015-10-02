@@ -76,56 +76,9 @@
     {% for js in dashboard.js_files %}
         <script src="{{ url_for('static', filename=js) }}"></script>
     {% endfor %}
-    <script src="{{ url_for("static", filename="jquery.gridster.with-extras.min.js") }}"></script>
+    <script src="/static/jquery.gridster.with-extras.min.js"></script>
     <script>
-        f = d3.format(".4s");
-    </script>
-    <script>
-      $( document ).ready(function() {
-          var gridster = $(".gridster ul").gridster({
-              widget_margins: [5, 5],
-              widget_base_dimensions: [100, 100],
-              draggable: {
-                handle: '.drag',
-              },
-              resize: {
-                enabled: true,
-                stop: function(e, ui, $widget) {
-                  $widget.find("a.refresh").click();
-                }
-              },
-              serialize_params:function($w, wgd) {
-                  return {
-                       slice_id: $($w).attr('slice_id'),
-                       col: wgd.col,
-                       row: wgd.row,
-                       size_x: wgd.size_x,
-                       size_y: wgd.size_y
-                  };
-              },
-          }).data('gridster');
-          $("div.gridster").css('visibility', 'visible');
-          $("#savedash").click(function(){
-            var data = gridster.serialize();
-            console.log(data);
-            $.ajax({
-              type: "POST",
-              url: '/panoramix/save_dash/{{ dashboard.id }}/',
-              data: {data: JSON.stringify(data)},
-              success: function(){console.log('Sucess!')},
-            });
-          });
-          $("a.closewidget").click(function(){
-            var li = $(this).parents("li");
-            gridster.remove_widget(li);
-          });
-          $("table.widget_header").mouseover(function(){
-            $(this).find("td.icons nobr").show();
-          });
-          $("table.widget_header").mouseout(function(){
-            $(this).find("td.icons nobr").hide();
-          });
-      });
+      $(document).ready(initializeDashboardView);
     </script>
     {% for slice in dashboard.slices %}
       {% set viz = slice.viz %}

@@ -120,6 +120,8 @@ function viz_nvd3(token_name, json_callback) {
             chart.xScale(d3.scale.log());
           }
 
+          chart.duration(0);
+
           token.select('.chart').append("svg")
             .datum(data.chart_data)
             .transition().duration(500)
