@@ -543,6 +543,12 @@ class DistributionPieViz(NVD3Viz):
 class DistributionBarViz(DistributionPieViz):
     viz_type = "dist_bar"
     verbose_name = "Distribution - Bar Chart"
+    form_fields = [
+        'viz_type', 'metrics', 'groupby',
+        ('since', 'until'),
+        'limit',
+        ('show_legend', None),
+    ]
 
     def get_df(self):
         df = super(DistributionPieViz, self).get_df()
