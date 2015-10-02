@@ -88,7 +88,7 @@ def load_examples(sample):
                 sum_boys=num if gender == 'boy' else 0,
                 sum_girls=num if gender == 'girl' else 0,
             )
-            if i % 5000 == 0:
+            if i % 1000 == 0:
                 print("{} loaded out of 82527 rows".format(i))
                 session.commit()
             session.commit()

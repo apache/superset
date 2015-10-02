@@ -18,6 +18,7 @@ config = app.config
 
 
 class BaseViz(object):
+    viz_type = None
     verbose_name = "Base Viz"
     template = None
     form_fields = [
@@ -174,6 +175,7 @@ class BaseViz(object):
         return json.dumps([])
 
 class TableViz(BaseViz):
+    viz_type = "table"
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     form_fields = BaseViz.form_fields + ['row_limit']
@@ -198,6 +200,7 @@ class TableViz(BaseViz):
 
 
 class MarkupViz(BaseViz):
+    viz_type = "markup"
     verbose_name = "Markup Widget"
     template = 'panoramix/viz_markup.html'
     form_fields = ['viz_type', 'markup_type', 'code']
@@ -216,6 +219,7 @@ class WordCloudViz(BaseViz):
     Integration with the nice library at:
     https://github.com/jasondavies/d3-cloud
     """
+    viz_type = "word_cloud"
     verbose_name = "Word Cloud"
     template = 'panoramix/viz_word_cloud.html'
     form_fields = [
@@ -248,9 +252,9 @@ class WordCloudViz(BaseViz):
 
 
 class NVD3Viz(BaseViz):
+    viz_type = None
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
-    chart_kind = 'line'
     js_files = [
         'd3.min.js',
         'nv.d3.min.js',
@@ -260,8 +264,8 @@ class NVD3Viz(BaseViz):
 
 
 class BubbleViz(NVD3Viz):
+    viz_type = "bubble"
     verbose_name = "Bubble Chart"
-    chart_type = 'bubble'
     form_fields = [
         'viz_type',
         ('since', 'until'),
@@ -323,6 +327,7 @@ class BubbleViz(NVD3Viz):
         })
 
 class BigNumberViz(BaseViz):
+    viz_type = "big_number"
     verbose_name = "Big Number"
     template = 'panoramix/viz_bignumber.html'
     js_files = [
@@ -373,8 +378,8 @@ class BigNumberViz(BaseViz):
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
+    viz_type = "line"
     verbose_name = "Time Series - Line Chart"
-    chart_type = "line"
     sort_series = False
     form_fields = [
         'viz_type',
@@ -460,8 +465,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
+    viz_type = "bar"
     verbose_name = "Time Series - Bar Chart"
-    chart_type = "nvd3_bar"
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
@@ -473,8 +478,8 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
+    viz_type = 'compare'
     verbose_name = "Time Series - Percent Change"
-    chart_type = "compare"
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
@@ -486,8 +491,8 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
+    viz_type = "area"
     verbose_name = "Time Series - Stacked"
-    chart_type = "stacked"
     sort_series = True
     form_fields = [
         'viz_type',
@@ -500,8 +505,8 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 
 
 class DistributionPieViz(NVD3Viz):
+    viz_type = "pie"
     verbose_name = "Distribution - NVD3 - Pie Chart"
-    chart_type = "pie"
     form_fields = [
         'viz_type', 'metrics', 'groupby',
         ('since', 'until'),
@@ -536,8 +541,8 @@ class DistributionPieViz(NVD3Viz):
 
 
 class DistributionBarViz(DistributionPieViz):
+    viz_type = "dist_bar"
     verbose_name = "Distribution - Bar Chart"
-    chart_type = "column"
 
     def get_df(self):
         df = super(DistributionPieViz, self).get_df()
@@ -576,16 +581,18 @@ class DistributionBarViz(DistributionPieViz):
         })
 
 
-viz_types = OrderedDict([
-    ['table', TableViz],
-    ['line', NVD3TimeSeriesViz],
-    ['compare', NVD3CompareTimeSeriesViz],
-    ['area', NVD3TimeSeriesStackedViz],
-    ['bar', NVD3TimeSeriesBarViz],
-    ['dist_bar', DistributionBarViz],
-    ['pie', DistributionPieViz],
-    ['bubble', BubbleViz],
-    ['markup', MarkupViz],
-    ['word_cloud', WordCloudViz],
-    ['big_number', BigNumberViz],
-])
+viz_types_list = [
+    TableViz,
+    NVD3TimeSeriesViz,
+    NVD3CompareTimeSeriesViz,
+    NVD3TimeSeriesStackedViz,
+    NVD3TimeSeriesBarViz,
+    DistributionBarViz,
+    DistributionPieViz,
+    BubbleViz,
+    MarkupViz,
+    WordCloudViz,
+    BigNumberViz,
+]
+# This dict is used to
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

@@ -95,7 +95,7 @@ function viz_nvd3(token_name, json_callback) {
             chart.showLegend(viz.form_data.show_legend);
             chart.pointRange([5, 5000]);
 
-          } else if (viz_type === 'stacked') {
+          } else if (viz_type === 'area') {
             var chart = nv.models.stackedAreaChart();
             chart.xScale(d3.time.scale());
             chart.xAxis
