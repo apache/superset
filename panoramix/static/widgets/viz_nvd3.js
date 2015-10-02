@@ -38,7 +38,6 @@ function viz_nvd3(token_name, json_callback) {
               .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); })
               .tickValues([]);
             chart.y2Axis.tickFormat(d3.format('.3s'));
-            console.log(viz.form_data.line_interpolation);
           } else {
             var chart = nv.models.lineChart()
           }
