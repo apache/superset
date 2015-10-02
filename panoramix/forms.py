@@ -126,6 +126,13 @@ class FormFactory(object):
                 choices=[(s, s) for s in ['random', 'flat', 'square']],
                 default="random",
                 description="Rotation to apply to words in the cloud"),
+            'line_interpolation': SelectField(
+                "Line Interpolation",
+                choices=[(s, s) for s in [
+                    'linear', 'basis', 'cardinal', 'monotone',
+                    'step-before', 'step-after']],
+                default='linear',
+                description="Line interpolation as defined by d3.js"),
             'code': TextAreaField("Code", description="Put your code here"),
             'size_from': TextField(
                 "Font Size From",

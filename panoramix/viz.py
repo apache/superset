@@ -387,7 +387,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'metrics',
         'groupby', 'limit',
         ('rolling_type', 'rolling_periods'),
-        ('num_period_compare', None),
+        ('num_period_compare', 'line_interpolation'),
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
         ('y_log_scale', 'contribution')
