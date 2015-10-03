@@ -1,5 +1,9 @@
-function viz_wordcloud(token, json_callback) {
-  var token = d3.select('#' + token);
+px.registerWidget('word_cloud', function(data_attribute) {
+
+  var token_name = data_attribute['token'];
+  var json_callback = data_attribute['json_endpoint'];
+  var token = d3.select('#' + token_name);
+
   function refresh() {
     d3.json(json_callback, function(error, json) {
       var data = json.data;
@@ -60,7 +64,10 @@ function viz_wordcloud(token, json_callback) {
       }
     });
   }
-  refresh();
-  jtoken = $(token);
-  jtoken.parent().find("a.refresh").click(refresh);
-}
+
+  return {
+    render: refresh,
+    resize: refresh,
+  };
+
+});
