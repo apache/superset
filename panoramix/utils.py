@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import date, datetime, timedelta
+from dateutil.parser import parse
 import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
@@ -38,11 +39,22 @@ def parse_human_datetime(s):
     Use the parsedatetime lib to return ``datetime.datetime`` from human
     generated strings
 
+    >>> parse_human_datetime('2015-04-03')
+    datetime.datetime(2015, 4, 3, 0, 0)
+    >>> parse_human_datetime('2/3/1969')
+    datetime.datetime(1969, 2, 3, 0, 0)
     >>> parse_human_datetime("now") <= datetime.now()
     True
+    >>> parse_human_datetime("yesterday") <= datetime.now()
+    >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
+    True
     """
-    cal = parsedatetime.Calendar()
-    return dttm_from_timtuple(cal.parse(s)[0])
+    try:
+        dttm = parse(s)
+    except:
+        cal = parsedatetime.Calendar()
+        dttm = dttm_from_timtuple(cal.parse(s)[0])
+    return dttm
 
 
 def dttm_from_timtuple(d):
