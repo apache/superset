@@ -50,7 +50,9 @@ function viz_nvd3(token_name, json_callback) {
           chart.yAxis.tickFormat(d3.format('.3s'));
           if (viz.form_data.contribution || viz.form_data.num_period_compare) {
             chart.yAxis.tickFormat(d3.format('.3p'));
-            chart.y2Axis.tickFormat(d3.format('.3p'));
+            if (chart.y2Axis != undefined) {
+                chart.y2Axis.tickFormat(d3.format('.3p'));
+            }
           }
 
         } else if (viz_type === 'dist_bar') {

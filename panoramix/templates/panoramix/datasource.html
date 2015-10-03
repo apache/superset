@@ -98,6 +98,9 @@
           data-toggle="modal" data-target="#query_modal">query</span>
       </h3>
       <hr/>
+          {% block messages %}
+          {% endblock %}
+            {% include 'appbuilder/flash.html' %}
       <div class="viz" style="height: 700px;">
         {% block viz_html %}
         {% if viz.error_msg %}
