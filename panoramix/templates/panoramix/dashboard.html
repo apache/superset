@@ -21,7 +21,14 @@
     <div class="col-md-10 text-middle">
       <h2>
         {{ dashboard.dashboard_title }}
-        <a id="savedash"><i class="fa fa-save"></i></a>
+        <div class="btn-group pull-right" role="group" >
+          <a id="editdash" class="btn btn-default" href="/dashboardmodelview/edit/{{ dashboard.id }}">
+                <i class="fa fa-edit"></i>
+            </a>
+            <button type="button" id="savedash" class="btn btn-default">
+              <i class="fa fa-save"></i>
+            </button>
+        </div>
       </h2>
     </div>
     <div class="col-md-1 text-right">
