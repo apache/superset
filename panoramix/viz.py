@@ -485,6 +485,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['inner_to_dttm'] = query_object['to_dttm']
             query_object['from_dttm'] -= delta
             query_object['to_dttm'] -= delta
+
             df2 = self.get_df(query_object)
             df2.index += delta
             chart_data += self.to_series(
