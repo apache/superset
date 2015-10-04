@@ -208,6 +208,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return self.table_name
 
     @property
+    def perm(self):
+        return (
+            "[{self.database}].[{self.table_name}]"
+            "(id:{self.id})").format(self=self)
+
+    @property
     def name(self):
         return self.table_name
 

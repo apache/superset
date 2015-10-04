@@ -2,7 +2,7 @@ from datetime import datetime
 import json
 import logging
 
-from flask import request, redirect, flash, Response
+from flask import request, redirect, flash, Response, g
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
@@ -229,6 +229,29 @@ class Panoramix(BaseView):
     @has_access
     @expose("/datasource/<datasource_type>/<datasource_id>/")
     def datasource(self, datasource_type, datasource_id):
+        if datasource_type == "table":
+            datasource = (
+                db.session
+                .query(models.SqlaTable)
+                .filter_by(id=datasource_id)
+                .first()
+            )
+        else:
+            datasource = (
+                db.session
+                .query(models.Datasource)
+                .filter_by(id=datasource_id)
+                .first()
+            )
+
+        if 'Gamma' in [r.name for r in g.user.roles]:
+            datasource_access = self.appbuilder.sm.has_access(
+                'datasource_access', datasource.perm)
+            if not datasource_access:
+                flash(
+                    "You don't seem to have access to this datasource",
+                    "danger")
+                return redirect('/')
         action = request.args.get('action')
         if action == 'save':
             session = db.session()
@@ -263,22 +286,8 @@ class Panoramix(BaseView):
             session.add(obj)
             session.commit()
             flash("Slice <{}> has been added to the pie".format(slice_name), "info")
-            redirect(obj.slice_url)
+            return redirect(obj.slice_url)
 
-        if datasource_type == "table":
-            datasource = (
-                db.session
-                .query(models.SqlaTable)
-                .filter_by(id=datasource_id)
-                .first()
-            )
-        else:
-            datasource = (
-                db.session
-                .query(models.Datasource)
-                .filter_by(id=datasource_id)
-                .first()
-            )
 
         if not datasource:
             flash("The datasource seem to have been deleted", "alert")

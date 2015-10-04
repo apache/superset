@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from dateutil.parser import parse
 import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
@@ -117,10 +117,11 @@ def init():
     Inits the Panoramix application with security roles and such
     """
     from panoramix import appbuilder
+    from panoramix import models
     sm = appbuilder.sm
     alpha = sm.add_role("Alpha")
-    from flask_appbuilder.security.sqla import models
-    perms = db.session.query(models.PermissionView).all()
+    from flask_appbuilder.security.sqla import models as ab_models
+    perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
         if perm.view_menu.name not in (
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
@@ -144,7 +145,7 @@ def init():
                 )):
             sm.add_permission_role(gamma, perm)
     session = db.session()
-    for i in range(100):
-        print(type(models.Table))
-    for table in session.query(models.Table).all():
-        print table
+    for table in session.query(models.SqlaTable).all():
+        sm.add_permission_view_menu('datasource_access', table.perm)
+    for druid_datasource in session.query(models.Datasource).all():
+        sm.add_permission_view_menu('datasource_access', druid_datasource.perm)
