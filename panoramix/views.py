@@ -116,7 +116,7 @@ appbuilder.add_view(
 
 
 class TableView(PanoramixModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.Table)
+    datamodel = SQLAInterface(models.SqlaTable)
     list_columns = ['table_link', 'database']
     add_columns = ['table_name', 'database', 'default_endpoint']
     edit_columns = [
@@ -268,7 +268,7 @@ class Panoramix(BaseView):
         if datasource_type == "table":
             datasource = (
                 db.session
-                .query(models.Table)
+                .query(models.SqlaTable)
                 .filter_by(id=datasource_id)
                 .first()
             )

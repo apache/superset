@@ -8,8 +8,8 @@ from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
-from sqlalchemy import Table as sqlaTable
-from sqlalchemy import create_engine, MetaData, desc, select, and_, Table
+from sqlalchemy import Table
+from sqlalchemy import create_engine, MetaData, desc, select, and_
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
 from flask import request
@@ -55,7 +55,7 @@ class Slice(Model, AuditMixinNullable):
     params = Column(Text)
 
     table = relationship(
-        'Table', foreign_keys=[table_id], backref='slices')
+        'SqlaTable', foreign_keys=[table_id], backref='slices')
     druid_datasource = relationship(
         'Datasource', foreign_keys=[druid_datasource_id], backref='slices')
 
@@ -184,13 +184,13 @@ class Database(Model, AuditMixinNullable):
 
     def get_table(self, table_name):
         meta = MetaData()
-        return sqlaTable(
+        return Table(
             table_name, meta,
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
 
-class Table(Model, Queryable, AuditMixinNullable):
+class SqlaTable(Model, Queryable, AuditMixinNullable):
     type = "table"
 
     __tablename__ = 'tables'
@@ -519,7 +519,7 @@ class SqlMetric(Model, AuditMixinNullable):
     metric_type = Column(String(32))
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
-        'Table', backref='metrics', foreign_keys=[table_id])
+        'SqlaTable', backref='metrics', foreign_keys=[table_id])
     expression = Column(Text)
     description = Column(Text)
 
@@ -528,7 +528,8 @@ class TableColumn(Model, AuditMixinNullable):
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
-    table = relationship('Table', backref='columns', foreign_keys=[table_id])
+    table = relationship(
+        'SqlaTable', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
     is_dttm = Column(Boolean, default=True)
     is_active = Column(Boolean, default=True)

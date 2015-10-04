@@ -143,3 +143,8 @@ def init():
                     'muldelete',
                 )):
             sm.add_permission_role(gamma, perm)
+    session = db.session()
+    for i in range(100):
+        print(type(models.Table))
+    for table in session.query(models.Table).all():
+        print table
