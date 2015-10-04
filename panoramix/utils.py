@@ -1,10 +1,11 @@
-from datetime import date, datetime, timedelta
+from datetime import datetime
 from dateutil.parser import parse
 import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
 import parsedatetime
 import functools
+from panoramix import db
 
 
 class memoized(object):
@@ -62,6 +63,12 @@ def dttm_from_timtuple(d):
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
 
+def merge_perm(sm, permission_name, view_menu_name):
+    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
+    if not pv:
+        sm.add_permission_view_menu(permission_name, view_menu_name)
+
+
 def parse_human_timedelta(s):
     """
     Use the parsedatetime lib to return ``datetime.datetime`` from human
@@ -78,7 +85,6 @@ def parse_human_timedelta(s):
     return d - dttm
 
 
-
 class JSONEncodedDict(TypeDecorator):
     """Represents an immutable structure as a json-encoded string."""
     impl = TEXT
@@ -92,6 +98,7 @@ class JSONEncodedDict(TypeDecorator):
         if value is not None:
             value = json.loads(value)
         return value
+
 
 def color(s):
     """
@@ -109,3 +116,48 @@ def color(s):
     h = hashlib.md5(s)
     i = int(h.hexdigest(), 16)
     return colors[i % len(colors)]
+
+
+def init():
+    """
+    Inits the Panoramix application with security roles and such
+    """
+    from panoramix import appbuilder
+    from panoramix import models
+    from flask_appbuilder.security.sqla import models as ab_models
+    sm = appbuilder.sm
+    alpha = sm.add_role("Alpha")
+
+    merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
+
+    perms = db.session.query(ab_models.PermissionView).all()
+    for perm in perms:
+        if perm.view_menu.name not in (
+                'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
+                'Security'):
+            sm.add_permission_role(alpha, perm)
+    gamma = sm.add_role("Gamma")
+    for perm in perms:
+        s = perm.permission.name
+        if(
+                perm.view_menu.name not in (
+                    'UserDBModelView',
+                    'RoleModelView',
+                    'ResetPasswordView',
+                    'Security') and
+                perm.permission.name not in (
+                    'can_edit',
+                    'can_add',
+                    'can_save',
+                    'can_download',
+                    'muldelete',
+                    'all_datasource_access',
+                )):
+            sm.add_permission_role(gamma, perm)
+    session = db.session()
+    table_perms = [
+            table.perm for table in session.query(models.SqlaTable).all()]
+    table_perms += [
+            table.perm for table in session.query(models.Datasource).all()]
+    for table_perm in table_perms:
+        merge_perm(sm, 'datasource_access', table.perm)

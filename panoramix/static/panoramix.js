@@ -64,7 +64,7 @@ function initializeDatasourceView() {
     }
   })
   add_filter();
-  $("#druidify").click(druidify);
+  $(".druidify").click(druidify);
 
   function create_choices(term, data) {
     var filtered = $(data).filter(function() {
