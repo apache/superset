@@ -111,7 +111,7 @@ def load_examples(sample):
     session.commit()
 
     print("Creating table reference")
-    TBL = models.Table
+    TBL = models.SqlaTable
     obj = session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name = 'birth_names')
