@@ -219,16 +219,16 @@ class FormFactory(object):
             json = HiddenField()
             previous_viz_type = HiddenField()
 
-
+        filter_cols = datasource.filterable_column_names or ['']
         for i in range(10):
             setattr(QueryForm, 'flt_col_' + str(i), SelectField(
                 'Filter 1',
-                default='',
-                choices=[(s, s) for s in datasource.filterable_column_names]))
+                default=filter_cols[0],
+                choices=self.choicify(filter_cols)))
             setattr(QueryForm, 'flt_op_' + str(i), SelectField(
                 'Filter 1',
-                default='',
-                choices=[(m, m) for m in ['in', 'not in']]))
+                default='in',
+                choices=self.choicify(['in', 'not in'])))
             setattr(
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))

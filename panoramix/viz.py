@@ -41,12 +41,12 @@ class BaseViz(object):
             form = form_class(form_data)
         else:
             form = form_class(**form_data)
-        if not form.validate():
-            for k, v in form.errors.items():
-                if not k.startswith("flt") and not form_data.get('token'):
-                    flash("{}: {}".format(k, " ".join(v)), 'danger')
 
         data = form.data.copy()
+        if not form.validate():
+            for k, v in form.errors.items():
+                if not data.get('json') and not data.get('async'):
+                    flash("{}: {}".format(k, " ".join(v)), 'danger')
         previous_viz_type = form_data.get('previous_viz_type')
         if previous_viz_type in viz_types and previous_viz_type != self.viz_type:
             data = {
