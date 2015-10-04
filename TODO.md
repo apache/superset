@@ -11,12 +11,6 @@ List of TODO items for Panoramix
 * csv export out of table view
 * in/notin filters autocomplete
 
-## First Class Line Charts
-* Contribution to total (added to line chart already)
-* Time comparison
-* Time ratios
-* Line types (dash, dotted)
-
 ## New Features
 * Annotations layers
 * Add a per-datasource permission

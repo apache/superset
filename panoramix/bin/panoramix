@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import csv
+from datetime import datetime
 import gzip
 import json
 from subprocess import Popen
@@ -8,7 +9,7 @@ from subprocess import Popen
 from flask.ext.script import Manager
 from flask.ext.migrate import MigrateCommand
 from panoramix import db
-from sqlalchemy import Column, Integer, String, Table
+from sqlalchemy import Column, Integer, String, Table, DateTime
 
 from panoramix import app
 from panoramix import models
@@ -59,7 +60,7 @@ def load_examples(sample):
         Column("year", Integer),
         Column("name", String(128)),
         Column("num", Integer),
-        Column("ds", String(20)),
+        Column("ds", DateTime),
         Column("gender", String(10)),
         Column("sum_boys", Integer),
         Column("sum_girls", Integer),
@@ -78,7 +79,7 @@ def load_examples(sample):
                 continue
             if num == "NA":
                 num = 0
-            ds = str(year) + '-01-01'
+            ds = datetime(int(year), 1, 1)
             db.engine.execute(
                 BirthNames.insert(),
                 state=state,

@@ -327,6 +327,7 @@ class Table(Model, Queryable, AuditMixinNullable):
             filter=None,
             is_timeseries=True,
             timeseries_limit=15, row_limit=None,
+            inner_from_dttm=None, inner_to_dttm=None,
             extras=None):
 
         qry_start_dttm = datetime.now()
@@ -363,10 +364,17 @@ class Table(Model, Queryable, AuditMixinNullable):
         from_clause = table(self.table_name)
         qry = qry.group_by(*groupby_exprs)
 
-        where_clause_and = [
+        time_filter = [
             timestamp >= from_dttm.isoformat(),
-            timestamp < to_dttm.isoformat(),
+            timestamp <= to_dttm.isoformat(),
         ]
+        inner_time_filter = copy(time_filter)
+        if inner_from_dttm:
+            inner_time_filter[0] = timestamp >= inner_from_dttm.isoformat()
+        if inner_to_dttm:
+            inner_time_filter[1] = timestamp <= inner_to_dttm.isoformat()
+
+        where_clause_and = []
         for col, op, eq in filter:
             if op in ('in', 'not in'):
                 values = eq.split(",")
@@ -376,14 +384,14 @@ class Table(Model, Queryable, AuditMixinNullable):
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
             where_clause_and += [text(extras['where'])]
-        qry = qry.where(and_(*where_clause_and))
+        qry = qry.where(and_(*(time_filter + where_clause_and)))
         qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
             subq = select(inner_groupby_exprs)
             subq = subq.select_from(table(self.table_name))
-            subq = subq.where(and_(*where_clause_and))
+            subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
             subq = subq.order_by(desc(main_metric_expr))
             subq = subq.limit(timeseries_limit)
@@ -677,8 +685,12 @@ class Datasource(Model, AuditMixin, Queryable):
             is_timeseries=True,
             timeseries_limit=None,
             row_limit=None,
+            inner_from_dttm=None, inner_to_dttm=None,
             extras=None):
         qry_start_dttm = datetime.now()
+
+        inner_from_dttm = inner_from_dttm or from_dttm
+        inner_to_dttm = inner_to_dttm or to_dttm
 
         # add tzinfo to native datetime with config
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
@@ -738,6 +750,7 @@ class Datasource(Model, AuditMixin, Queryable):
             pre_qry['limit_spec'] = {
                 "type": "default",
                 "limit": timeseries_limit,
+                'intervals': inner_from_dttm.isoformat() + '/' + inner_to_dttm.isoformat(),
                 "columns": [{
                     "dimension": metrics[0] if metrics else self.metrics[0],
                     "direction": "descending",

@@ -1,4 +1,5 @@
 from collections import OrderedDict, defaultdict
+from copy import copy
 from datetime import datetime
 import json
 import uuid
@@ -40,7 +41,12 @@ class BaseViz(object):
             form = form_class(form_data)
         else:
             form = form_class(**form_data)
+
         data = form.data.copy()
+        if not form.validate():
+            for k, v in form.errors.items():
+                if not data.get('json') and not data.get('async'):
+                    flash("{}: {}".format(k, " ".join(v)), 'danger')
         previous_viz_type = form_data.get('previous_viz_type')
         if previous_viz_type in viz_types and previous_viz_type != self.viz_type:
             data = {
@@ -85,11 +91,14 @@ class BaseViz(object):
             '{self.datasource.id}/'.format(**locals()))
         return href(d)
 
-    def get_df(self):
+    def get_df(self, query_obj=None):
+        if not query_obj:
+            query_obj = self.query_obj()
+
         self.error_msg = ""
         self.results = None
 
-        self.results = self.bake_query()
+        self.results = self.datasource.query(**query_obj)
         df = self.results.df
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
@@ -117,9 +126,6 @@ class BaseViz(object):
             if col and op and eq:
                 filters.append((col, op, eq))
         return filters
-
-    def bake_query(self):
-        return self.datasource.query(**self.query_obj())
 
     def query_obj(self):
         """
@@ -260,7 +266,10 @@ class NVD3Viz(BaseViz):
         'nv.d3.min.js',
         'widgets/viz_nvd3.js',
     ]
-    css_files = ['nv.d3.css']
+    css_files = [
+        'nv.d3.css',
+        'widgets/viz_nvd3.css',
+    ]
 
 
 class BubbleViz(NVD3Viz):
@@ -387,34 +396,36 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'metrics',
         'groupby', 'limit',
         ('rolling_type', 'rolling_periods'),
-        ('num_period_compare', 'line_interpolation'),
+        ('time_compare', 'num_period_compare'),
+        ('line_interpolation', None),
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
-        ('y_log_scale', 'contribution')
+        ('y_log_scale', 'contribution'),
     ]
 
-    def get_df(self):
+    def get_df(self, query_obj=None):
         form_data = self.form_data
-        df = super(NVD3TimeSeriesViz, self).get_df()
+        df = super(NVD3TimeSeriesViz, self).get_df(query_obj)
+
         df = df.fillna(0)
         if form_data.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")
 
         df = df.pivot_table(
             index="timestamp",
-            columns=self.form_data.get('groupby'),
-            values=self.form_data.get('metrics'))
+            columns=form_data.get('groupby'),
+            values=form_data.get('metrics'))
 
         if self.sort_series:
             dfs = df.sum()
             dfs.sort(ascending=False)
             df = df[dfs.index]
 
-        if self.form_data.get("contribution") == "y":
+        if form_data.get("contribution"):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        num_period_compare = self.form_data.get("num_period_compare")
+        num_period_compare = form_data.get("num_period_compare")
         if num_period_compare:
             num_period_compare = int(num_period_compare)
             df = df / df.shift(num_period_compare)
@@ -431,8 +442,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = pd.rolling_sum(df, int(rolling_periods))
         return df
 
-    def get_json_data(self):
-        df = self.get_df()
+    def to_series(self, df, classed='', title_suffix=''):
         series = df.to_dict('series')
         chart_data = []
         for name in df.T.index.tolist():
@@ -448,14 +458,40 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     series_title = ", ".join(name)
                 else:
                     series_title = ", ".join(name[1:])
+            color = utils.color(series_title)
+            if title_suffix:
+                series_title += title_suffix
+
             d = {
                 "key": series_title,
-                "color": utils.color(series_title),
+                "color": color,
+                "classed": classed,
                 "values": [
                     {'x': ds, 'y': ys[i]}
                     for i, ds in enumerate(df.timestamp)]
             }
             chart_data.append(d)
+        return chart_data
+
+    def get_json_data(self):
+        df = self.get_df()
+        chart_data = self.to_series(df)
+
+        time_compare = self.form_data.get('time_compare')
+        if time_compare:
+            query_object = self.query_obj()
+            delta = utils.parse_human_timedelta(time_compare)
+            query_object['inner_from_dttm'] = query_object['from_dttm']
+            query_object['inner_to_dttm'] = query_object['to_dttm']
+            query_object['from_dttm'] -= delta
+            query_object['to_dttm'] -= delta
+
+            df2 = self.get_df(query_object)
+            df2.index += delta
+            chart_data += self.to_series(
+                df2, classed='dashed', title_suffix="---")
+            chart_data = sorted(chart_data, key=lambda x: x['key'])
+
         data = {
             'chart_data': chart_data,
             'query': self.results.query,

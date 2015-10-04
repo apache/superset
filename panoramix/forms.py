@@ -1,6 +1,7 @@
 from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
+from wtforms import validators
 from copy import copy
 from panoramix import app
 config = app.config
@@ -58,7 +59,7 @@ class FormFactory(object):
                 description="One or many metrics to display"),
             'groupby': SelectMultipleField(
                 'Group by',
-                choices=[(s, s) for s in datasource.groupby_column_names],
+                choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to group by"),
             'granularity': TextField(
                 'Time Granularity', default="one day",
@@ -75,19 +76,24 @@ class FormFactory(object):
                 SelectField(
                     'Row limit',
                     default=config.get("ROW_LIMIT"),
-                    choices=[(s, s) for s in self.row_limits]),
+                    choices=self.choicify(self.row_limits)),
             'limit':
                 SelectField(
-                    'Series limit', choices=[(s, s) for s in self.series_limits],
+                    'Series limit',
+                    choices=self.choicify(self.series_limits),
                     default=50,
                     description=(
                         "Limits the number of time series that get displayed")),
             'rolling_type': SelectField(
                 'Rolling',
+                default='mean',
                 choices=[(s, s) for s in ['mean', 'sum', 'std']],
                 description=(
                     "Defines a rolling window function to apply")),
-            'rolling_periods': TextField('Periods', description=(
+            'rolling_periods': IntegerField(
+                'Periods',
+                validators=[validators.optional()],
+                description=(
                 "Defines the size of the rolling window function, "
                 "relative to the 'granularity' field")),
             'series': SelectField(
@@ -118,7 +124,7 @@ class FormFactory(object):
                 description="Suffix to apply after the percentage display"),
             'markup_type': SelectField(
                 "Markup Type",
-                choices=[(s, s) for s in ['markdown', 'html']],
+                choices=self.choicify(['markdown', 'html']),
                 default="markdown",
                 description="Pick your favorite markup language"),
             'rotation': SelectField(
@@ -128,9 +134,9 @@ class FormFactory(object):
                 description="Rotation to apply to words in the cloud"),
             'line_interpolation': SelectField(
                 "Line Interpolation",
-                choices=[(s, s) for s in [
+                choices=self.choicify([
                     'linear', 'basis', 'cardinal', 'monotone',
-                    'step-before', 'step-after']],
+                    'step-before', 'step-after']),
                 default='linear',
                 description="Line interpolation as defined by d3.js"),
             'code': TextAreaField("Code", description="Put your code here"),
@@ -168,10 +174,23 @@ class FormFactory(object):
                 description="Compute the contribution to the total"),
             'num_period_compare': IntegerField(
                 "Period Ratio", default=None,
+                validators=[validators.optional()],
                 description=(
-                    "Number of period to compare against, "
+                    "[integer] Number of period to compare against, "
                     "this is relative to the granularity selected")),
+            'time_compare': TextField(
+                "Time Shift Compare",
+                default="1 week ago",
+                description=(
+                    "Overlay a timeseries from a "
+                    "relative time period. Expects relative time delta "
+                    "in natural language (example: 24 hours, 7 days, "
+                    "56 weeks, 365 days")),
         }
+
+    @staticmethod
+    def choicify(l):
+        return [("{}".format(obj), "{}".format(obj)) for obj in l]
 
     def get_form(self, previous=False):
         px_form_fields = self.field_dict
@@ -200,16 +219,16 @@ class FormFactory(object):
             json = HiddenField()
             previous_viz_type = HiddenField()
 
-
+        filter_cols = datasource.filterable_column_names or ['']
         for i in range(10):
             setattr(QueryForm, 'flt_col_' + str(i), SelectField(
                 'Filter 1',
-                default='',
-                choices=[(s, s) for s in datasource.filterable_column_names]))
+                default=filter_cols[0],
+                choices=self.choicify(filter_cols)))
             setattr(QueryForm, 'flt_op_' + str(i), SelectField(
                 'Filter 1',
-                default='',
-                choices=[(m, m) for m in ['in', 'not in']]))
+                default='in',
+                choices=self.choicify(['in', 'not in'])))
             setattr(
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
