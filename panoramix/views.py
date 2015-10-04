@@ -251,7 +251,7 @@ class Panoramix(BaseView):
                 flash(
                     "You don't seem to have access to this datasource",
                     "danger")
-                return redirect('/')
+                return redirect('/slicemodelview/list/')
         action = request.args.get('action')
         if action == 'save':
             session = db.session()
