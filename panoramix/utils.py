@@ -63,6 +63,12 @@ def dttm_from_timtuple(d):
         d.tm_year, d.tm_mon, d.tm_mday, d.tm_hour, d.tm_min, d.tm_sec)
 
 
+def merge_perm(sm, permission_name, view_menu_name):
+    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
+    if not pv:
+        sm.add_permission_view_menu(permission_name, view_menu_name)
+
+
 def parse_human_timedelta(s):
     """
     Use the parsedatetime lib to return ``datetime.datetime`` from human
@@ -118,9 +124,12 @@ def init():
     """
     from panoramix import appbuilder
     from panoramix import models
+    from flask_appbuilder.security.sqla import models as ab_models
     sm = appbuilder.sm
     alpha = sm.add_role("Alpha")
-    from flask_appbuilder.security.sqla import models as ab_models
+
+    merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
+
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
         if perm.view_menu.name not in (
@@ -142,10 +151,13 @@ def init():
                     'can_save',
                     'can_download',
                     'muldelete',
+                    'all_datasource_access',
                 )):
             sm.add_permission_role(gamma, perm)
     session = db.session()
-    for table in session.query(models.SqlaTable).all():
-        sm.add_permission_view_menu('datasource_access', table.perm)
-    for druid_datasource in session.query(models.Datasource).all():
-        sm.add_permission_view_menu('datasource_access', druid_datasource.perm)
+    table_perms = [
+            table.perm for table in session.query(models.SqlaTable).all()]
+    table_perms += [
+            table.perm for table in session.query(models.Datasource).all()]
+    for table_perm in table_perms:
+        merge_perm(sm, 'datasource_access', table.perm)

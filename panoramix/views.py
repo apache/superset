@@ -11,7 +11,7 @@ from pydruid.client import doublesum
 from sqlalchemy import create_engine
 from wtforms.validators import ValidationError
 
-from panoramix import appbuilder, db, models, viz, utils, app
+from panoramix import appbuilder, db, models, viz, utils, app, sm
 
 config = app.config
 
@@ -124,10 +124,17 @@ class TableView(PanoramixModelView, DeleteMixin):
     related_views = [TableColumnInlineView, SqlMetricInlineView]
 
     def post_add(self, table):
-        table.fetch_metadata()
+        try:
+            table.fetch_metadata()
+        except Exception as e:
+            flash(
+            "Table [{}] doesn't seem to exist, "
+            "couldn't fetch metadata".format(table.table_name),
+            "danger")
+        utils.merge_perm(sm, 'datasource_access', table.perm)
 
     def post_update(self, table):
-        table.fetch_metadata()
+        self.post_add(table)
 
 appbuilder.add_view(
     TableView,
@@ -203,10 +210,10 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
 
     def post_add(self, datasource):
         datasource.generate_metrics()
+        utils.merge_perm(sm, 'datasource_access', table.perm)
 
     def post_update(self, datasource):
-        datasource.generate_metrics()
-
+        self.post_add(datasource)
 
 appbuilder.add_view(
     DatasourceModelView,
@@ -244,10 +251,11 @@ class Panoramix(BaseView):
                 .first()
             )
 
-        if 'Gamma' in [r.name for r in g.user.roles]:
+            all_datasource_access = self.appbuilder.sm.has_access(
+                'all_datasource_access', 'all_datasource_access')
             datasource_access = self.appbuilder.sm.has_access(
                 'datasource_access', datasource.perm)
-            if not datasource_access:
+            if not all_datasource_access or not datasource_access:
                 flash(
                     "You don't seem to have access to this datasource",
                     "danger")
