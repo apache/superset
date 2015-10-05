@@ -5,7 +5,7 @@
     {% for css in dashboard.css_files %}
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
     {% endfor %}
-    <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename="lib/gridster/jquery.gridster.min.css") }}">
     {% for slice in dashboard.slices %}
       {% set viz = slice.viz %}
       {% import viz.template as viz_macros %}
@@ -78,7 +78,7 @@
     {% for js in dashboard.js_files %}
         <script src="{{ url_for('static', filename=js) }}"></script>
     {% endfor %}
-    <script src="/static/jquery.gridster.with-extras.min.js"></script>
+    <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
     <script>
       $(document).ready(initializeDashboardView);
     </script>
