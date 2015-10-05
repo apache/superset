@@ -180,7 +180,7 @@ class FormFactory(object):
                     "this is relative to the granularity selected")),
             'time_compare': TextField(
                 "Time Shift Compare",
-                default="1 week ago",
+                default="",
                 description=(
                     "Overlay a timeseries from a "
                     "relative time period. Expects relative time delta "
