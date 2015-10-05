@@ -240,7 +240,7 @@ class FormFactory(object):
                     setattr(QueryForm, s, px_form_fields[s])
 
         # datasource type specific form elements
-        if datasource.__class__.__name__ == 'Table':
+        if datasource.__class__.__name__ == 'SqlaTable':
             QueryForm.field_order += ['where']
             setattr(QueryForm, 'where', px_form_fields['where'])
         return QueryForm
