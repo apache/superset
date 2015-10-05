@@ -617,6 +617,12 @@ class Datasource(Model, AuditMixin, Queryable):
     def name(self):
         return self.datasource_name
 
+    @property
+    def perm(self):
+        return (
+            "[{self.cluster_name}].[{self.datasource_name}]"
+            "(id:{self.id})").format(self=self)
+
     def __repr__(self):
         return self.datasource_name
 
