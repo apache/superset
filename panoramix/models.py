@@ -128,6 +128,8 @@ class Dashboard(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
     position_json = Column(Text)
+    description = Column(Text)
+    css = Column(Text)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
 
