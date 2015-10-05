@@ -2,7 +2,6 @@
 List of TODO items for Panoramix
 
 ## Improvments
-* Reintroduce query and stopwatch
 * [druid] Allow for post aggregations (ratios!)
 * [sql] find a way to manage time granularity
 * [sql] support arbitrary expression as column
@@ -10,6 +9,12 @@ List of TODO items for Panoramix
 * [sql] make "Test Connection" test further
 * csv export out of table view
 * in/notin filters autocomplete
+
+## Better Javascript enables
+* Async on Druidify! in exploration page
+* Async form reload onchange of viz_type dropdown
+* Reintroduce query and stopwatch
+* Fix resize / refresh
 
 ## New Features
 * Annotations layers

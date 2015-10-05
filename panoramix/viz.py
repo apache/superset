@@ -185,8 +185,10 @@ class TableViz(BaseViz):
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
     form_fields = BaseViz.form_fields + ['row_limit']
-    css_files = ['dataTables.bootstrap.css']
-    js_files = ['jquery.dataTables.min.js', 'dataTables.bootstrap.js']
+    css_files = ['lib/dataTables/dataTables.bootstrap.css']
+    js_files = [
+        'lib/dataTables/jquery.dataTables.min.js',
+        'lib/dataTables/dataTables.bootstrap.js']
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -236,8 +238,8 @@ class WordCloudViz(BaseViz):
         'rotation',
     ]
     js_files = [
-        'd3.min.js',
-        'd3.layout.cloud.js',
+        'lib/d3.min.js',
+        'lib/d3.layout.cloud.js',
         'widgets/viz_wordcloud.js',
     ]
 
@@ -262,12 +264,12 @@ class NVD3Viz(BaseViz):
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
     js_files = [
-        'd3.min.js',
-        'nv.d3.min.js',
+        'lib/d3.min.js',
+        'lib/nvd3/nv.d3.min.js',
         'widgets/viz_nvd3.js',
     ]
     css_files = [
-        'nv.d3.css',
+        'lib/nvd3/nv.d3.css',
         'widgets/viz_nvd3.css',
     ]
 
@@ -340,7 +342,7 @@ class BigNumberViz(BaseViz):
     verbose_name = "Big Number"
     template = 'panoramix/viz_bignumber.html'
     js_files = [
-        'd3.min.js',
+        'lib/d3.min.js',
         'widgets/viz_bignumber.js',
     ]
     css_files = [

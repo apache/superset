@@ -5,7 +5,7 @@
     {% for css in dashboard.css_files %}
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
     {% endfor %}
-    <link rel="stylesheet" href="{{ url_for('static', filename="jquery.gridster.min.css") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename="lib/gridster/jquery.gridster.min.css") }}">
     {% for slice in dashboard.slices %}
       {% set viz = slice.viz %}
       {% import viz.template as viz_macros %}
@@ -16,9 +16,7 @@
 {% block content_fluid %}
 <div class="dashboard">
 <div class="title">
-  <div class="row">
-    <div class="col-md-1 text-left"></div>
-    <div class="col-md-10 text-middle">
+    <div class="text-middle">
       <h2>
         {{ dashboard.dashboard_title }}
         <div class="btn-group pull-right" role="group" >
@@ -31,9 +29,6 @@
         </div>
       </h2>
     </div>
-    <div class="col-md-1 text-right">
-    </div>
-  </div>
 </div>
 <div class="gridster content_fluid">
     <ul>
@@ -83,7 +78,7 @@
     {% for js in dashboard.js_files %}
         <script src="{{ url_for('static', filename=js) }}"></script>
     {% endfor %}
-    <script src="/static/jquery.gridster.with-extras.min.js"></script>
+    <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
     <script>
       $(document).ready(initializeDashboardView);
     </script>
