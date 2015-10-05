@@ -185,7 +185,7 @@ appbuilder.add_view(
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'created_by']
-    edit_columns = ['dashboard_title', 'slices', 'position_json']
+    edit_columns = ['dashboard_title', 'slices', 'position_json', 'css']
     add_columns = edit_columns
 
 
@@ -339,12 +339,14 @@ class Panoramix(BaseView):
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         data = json.loads(request.form.get('data'))
-        slice_ids = [int(d['slice_id']) for d in data]
+        positions = data['positions']
+        slice_ids = [int(d['slice_id']) for d in positions]
         session = db.session()
         Dash = models.Dashboard
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
-        dash.position_json = json.dumps(data, indent=4)
+        dash.position_json = json.dumps(data['positions'], indent=4)
+        dash.css = data['css']
         session.merge(dash)
         session.commit()
         session.close()

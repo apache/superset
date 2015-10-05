@@ -6,6 +6,9 @@
         <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
     {% endfor %}
     <link rel="stylesheet" href="{{ url_for('static', filename="lib/gridster/jquery.gridster.min.css") }}">
+    <style id="user_style" type="text/css">
+      {{ dashboard.css }}
+    </style>
     {% for slice in dashboard.slices %}
       {% set viz = slice.viz %}
       {% import viz.template as viz_macros %}
@@ -15,17 +18,51 @@
 
 {% block content_fluid %}
 <div class="dashboard">
+
+<!-- Modal -->
+<div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
+      </div>
+      <div class="modal-body">
+        <textarea id="dash_css" rows="30" cols="60">
+          {%- if dashboard.css %}
+            {{- dashboard.css }}
+          {% else %}
+/*
+body {
+    background: #F00;
+}
+*/
+          {% endif %}
+        </textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="title">
     <div class="text-middle">
       <h2>
         {{ dashboard.dashboard_title }}
         <div class="btn-group pull-right" role="group" >
+          <button type="button" id="css" class="btn btn-default" data-toggle="modal" data-target="#css_modal">
+            <i class="fa fa-code"></i>
+          </button>
           <a id="editdash" class="btn btn-default" href="/dashboardmodelview/edit/{{ dashboard.id }}">
-                <i class="fa fa-edit"></i>
-            </a>
-            <button type="button" id="savedash" class="btn btn-default">
-              <i class="fa fa-save"></i>
-            </button>
+              <i class="fa fa-edit"></i>
+          </a>
+          <button type="button" id="savedash" class="btn btn-default">
+            <i class="fa fa-save"></i>
+          </button>
         </div>
       </h2>
     </div>
@@ -80,7 +117,9 @@
     {% endfor %}
     <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
     <script>
-      $(document).ready(initializeDashboardView);
+      $(document).ready(function(){
+        initializeDashboardView({{ dashboard.id }});
+      });
     </script>
     {% for slice in dashboard.slices %}
       {% set viz = slice.viz %}

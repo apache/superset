@@ -118,7 +118,7 @@ function initializeDatasourceView() {
   });
 }
 
-function initializeDashboardView() {
+function initializeDashboardView(dashboard_id) {
   var gridster = $(".gridster ul").gridster({
     widget_margins: [5, 5],
     widget_base_dimensions: [100, 100],
@@ -143,12 +143,17 @@ function initializeDashboardView() {
   }).data('gridster');
   $("div.gridster").css('visibility', 'visible');
   $("#savedash").click(function() {
-    var data = gridster.serialize();
+    var data = {
+        positions: gridster.serialize(),
+        css: $("#dash_css").val()
+    };
+    console.log(data);
     $.ajax({
       type: "POST",
-      url: '/panoramix/save_dash/{{ dashboard.id }}/',
-      data: {data: JSON.stringify(data)},
-      success: function() {},
+      url: '/panoramix/save_dash/' + dashboard_id + '/',
+      data: {'data': JSON.stringify(data)},
+      success: function() {alert("Saved!")},
+      error: function() {alert("Error :(")},
     });
   });
   $("a.closewidget").click(function() {
@@ -160,5 +165,9 @@ function initializeDashboardView() {
   });
   $("table.widget_header").mouseout(function() {
     $(this).find("td.icons nobr").hide();
+  });
+  $("#dash_css").on("keyup", function(){
+    css = $(this).val();
+    $("#user_style").html(css);
   });
 }
