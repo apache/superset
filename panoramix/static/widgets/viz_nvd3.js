@@ -58,6 +58,8 @@ function viz_nvd3(token_name, json_callback) {
         } else if (viz_type === 'dist_bar') {
           var chart = nv.models.multiBarChart()
             .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .reduceXTicks(false)
+            .rotateLabels(45)
             .groupSpacing(0.1);   //Distance between each group of bars.
           chart.xAxis
             .showMaxMin(false);

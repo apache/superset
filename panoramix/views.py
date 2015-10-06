@@ -42,7 +42,8 @@ class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     can_delete = False
     edit_columns = [
         'column_name', 'description', 'groupby', 'filterable', 'table',
-        'count_distinct', 'sum', 'min', 'max']
+        'count_distinct', 'sum', 'min', 'max', 'expression']
+    add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
