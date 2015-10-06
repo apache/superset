@@ -255,7 +255,7 @@ class Panoramix(BaseView):
                 'all_datasource_access', 'all_datasource_access')
             datasource_access = self.appbuilder.sm.has_access(
                 'datasource_access', datasource.perm)
-            if not all_datasource_access or not datasource_access:
+            if not (all_datasource_access or datasource_access):
                 flash(
                     "You don't seem to have access to this datasource",
                     "danger")
