@@ -399,7 +399,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_time_filter[0] = timestamp >= inner_from_dttm.isoformat()
         if inner_to_dttm:
             inner_time_filter[1] = timestamp <= inner_to_dttm.isoformat()
-
         where_clause_and = []
         for col, op, eq in filter:
             col_obj = cols[col]
