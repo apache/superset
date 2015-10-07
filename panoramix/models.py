@@ -11,7 +11,8 @@ from sqlalchemy import (
 from sqlalchemy import Table
 from sqlalchemy import create_engine, MetaData, desc, select, and_
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import table, literal_column, text
+from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.sql.elements import ColumnClause
 from flask import request
 
 from copy import deepcopy, copy
@@ -338,6 +339,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_from_dttm=None, inner_to_dttm=None,
             extras=None):
 
+        cols = {col.column_name: col for col in self.columns}
         qry_start_dttm = datetime.now()
         if not self.main_dttm_col:
             raise Exception(
@@ -360,9 +362,25 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if groupby:
             select_exprs = [literal_column(s) for s in groupby]
-            groupby_exprs = [literal_column(s) for s in groupby]
-            inner_groupby_exprs = [
-                literal_column(s).label('__' + s) for s in groupby]
+            select_exprs = []
+            groupby_exprs = []
+            inner_select_exprs = []
+            inner_groupby_exprs = []
+            for s in groupby:
+                col = cols[s]
+                expr = col.expression
+                if expr:
+                    outer = ColumnClause(expr, is_literal=True).label(s)
+                    inner = ColumnClause(expr, is_literal=True).label('__' + s)
+                else:
+                    outer = literal_column(s).label(s)
+                    inner = literal_column(s).label('__' + s)
+
+                groupby_exprs.append(outer)
+                select_exprs.append(outer)
+                inner_groupby_exprs.append(inner)
+                inner_select_exprs.append(inner)
+
         if granularity != "all":
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
@@ -384,9 +402,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         where_clause_and = []
         for col, op, eq in filter:
+            col_obj = cols[col]
             if op in ('in', 'not in'):
                 values = eq.split(",")
-                cond = literal_column(col).in_(values)
+                if col_obj.expression:
+                    cond = ColumnClause(
+                        col_obj.expression, is_literal=True).in_(values)
+                else:
+                    cond = literal_column(col).in_(values)
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
@@ -397,16 +420,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
-            subq = select(inner_groupby_exprs)
+            subq = select(inner_select_exprs)
             subq = subq.select_from(table(self.table_name))
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
             subq = subq.order_by(desc(main_metric_expr))
             subq = subq.limit(timeseries_limit)
             on_clause = []
-            for gb in groupby:
+            for i, gb in enumerate(groupby):
                 on_clause.append(
-                    literal_column(gb) == literal_column("__" + gb))
+                    groupby_exprs[i] == literal_column("__" + gb))
 
             from_clause = from_clause.join(subq.alias(), and_(*on_clause))
 
@@ -414,6 +437,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         engine = self.database.get_sqla_engine()
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
+        print sql
         df = read_sql_query(
             sql=sql,
             con=engine
@@ -548,6 +572,7 @@ class TableColumn(Model, AuditMixinNullable):
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
+    expression = Column(Text, default='')
     description = Column(Text, default='')
 
     def __repr__(self):
