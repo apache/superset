@@ -22,9 +22,13 @@ class BaseViz(object):
     viz_type = None
     verbose_name = "Base Viz"
     template = None
+    is_timeseries = False
     form_fields = [
-        'viz_type', 'metrics', 'groupby', 'granularity',
-        ('since', 'until')]
+        'viz_type',
+        'granularity',
+        ('since', 'until'),
+        'metrics', 'groupby',
+    ]
     js_files = []
     css_files = []
 
@@ -37,22 +41,21 @@ class BaseViz(object):
         ff = FormFactory(self)
         form_class = ff.get_form()
         defaults = form_class().data.copy()
+        previous_viz_type = form_data.get('previous_viz_type')
         if isinstance(form_data, ImmutableMultiDict):
             form = form_class(form_data)
         else:
             form = form_class(**form_data)
-
         data = form.data.copy()
+
         if not form.validate():
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
                     flash("{}: {}".format(k, " ".join(v)), 'danger')
-        previous_viz_type = form_data.get('previous_viz_type')
-        if previous_viz_type in viz_types and previous_viz_type != self.viz_type:
-            data = {
-                k: form.data[k]
-                for k in form_data.keys()
-                if k in viz_types[previous_viz_type].flat_form_fields() and k in form.data}
+        data = {
+            k: form.data[k]
+            for k in form_data.keys()
+            if k in form.data}
         defaults.update(data)
         self.form_data = defaults
 
@@ -134,10 +137,7 @@ class BaseViz(object):
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
-        granularity = form_data.get("granularity", "1 day")
-        if granularity != "all":
-            granularity = utils.parse_human_timedelta(
-                granularity).total_seconds() * 1000
+        granularity = form_data.get("granularity")
         limit = int(form_data.get("limit", 0))
         row_limit = int(
             form_data.get("row_limit", config.get("ROW_LIMIT")))
@@ -160,7 +160,7 @@ class BaseViz(object):
             'granularity': granularity,
             'from_dttm': from_dttm,
             'to_dttm': to_dttm,
-            'is_timeseries': True,
+            'is_timeseries': self.is_timeseries,
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
@@ -194,6 +194,7 @@ class TableViz(BaseViz):
     template = 'panoramix/viz_table.html'
     form_fields = BaseViz.form_fields + ['row_limit']
     css_files = ['lib/dataTables/dataTables.bootstrap.css']
+    is_timeseries = False
     js_files = [
         'lib/dataTables/jquery.dataTables.min.js',
         'lib/dataTables/dataTables.bootstrap.js']
@@ -220,6 +221,7 @@ class MarkupViz(BaseViz):
     verbose_name = "Markup Widget"
     template = 'panoramix/viz_markup.html'
     form_fields = ['viz_type', 'markup_type', 'code']
+    is_timeseries = False
 
     def rendered(self):
         markup_type = self.form_data.get("markup_type")
@@ -238,6 +240,7 @@ class WordCloudViz(BaseViz):
     viz_type = "word_cloud"
     verbose_name = "Word Cloud"
     template = 'panoramix/viz_word_cloud.html'
+    is_timeseries = False
     form_fields = [
         'viz_type',
         ('since', 'until'),
@@ -253,7 +256,6 @@ class WordCloudViz(BaseViz):
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
-        d['granularity'] = 'all'
         metric = self.form_data.get('metric')
         if not metric:
             raise Exception("Pick a metric!")
@@ -271,6 +273,7 @@ class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     template = 'panoramix/viz_nvd3.html'
+    is_timeseries = False
     js_files = [
         'lib/d3.min.js',
         'lib/nvd3/nv.d3.min.js',
@@ -285,6 +288,7 @@ class NVD3Viz(BaseViz):
 class BubbleViz(NVD3Viz):
     viz_type = "bubble"
     verbose_name = "Bubble Chart"
+    is_timeseries = False
     form_fields = [
         'viz_type',
         ('since', 'until'),
@@ -298,7 +302,6 @@ class BubbleViz(NVD3Viz):
     def query_obj(self):
         form_data = self.form_data
         d = super(BubbleViz, self).query_obj()
-        d['granularity'] = 'all'
         d['groupby'] = list({
             form_data.get('series'),
             form_data.get('entity')
@@ -349,6 +352,7 @@ class BigNumberViz(BaseViz):
     viz_type = "big_number"
     verbose_name = "Big Number"
     template = 'panoramix/viz_bignumber.html'
+    is_timeseries = True
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_bignumber.js',
@@ -400,6 +404,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     viz_type = "line"
     verbose_name = "Time Series - Line Chart"
     sort_series = False
+    is_timeseries = True
     form_fields = [
         'viz_type',
         'granularity', ('since', 'until'),
@@ -553,16 +558,17 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 class DistributionPieViz(NVD3Viz):
     viz_type = "pie"
     verbose_name = "Distribution - NVD3 - Pie Chart"
+    is_timeseries = False
     form_fields = [
-        'viz_type', 'metrics', 'groupby',
+        'viz_type',
         ('since', 'until'),
+        'metrics', 'groupby',
         'limit',
         ('donut', 'show_legend'),
     ]
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
-        d['granularity'] = "all"
         d['is_timeseries'] = False
         return d
 
@@ -589,6 +595,7 @@ class DistributionPieViz(NVD3Viz):
 class DistributionBarViz(DistributionPieViz):
     viz_type = "dist_bar"
     verbose_name = "Distribution - Bar Chart"
+    is_timeseries = False
     form_fields = [
         'viz_type', 'metrics', 'groupby',
         ('since', 'until'),

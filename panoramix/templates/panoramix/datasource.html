@@ -88,7 +88,7 @@
         <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
         <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
         <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
-        {{ form.previous_viz_type() }}
+        <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
       </form><br>
     </div>
 

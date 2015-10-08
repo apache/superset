@@ -67,6 +67,13 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")),
+            'granularity_sqla': SelectField(
+                'Time Column', default=datasource.main_dttm_col,
+                choices=self.choicify(datasource.dttm_cols),
+                description=(
+                    "The time granularity for the visualization. Note that you "
+                    "can define arbitrary expression that return a DATETIME "
+                    "column in the table editor")),
             'since': TextField(
                 'Since', default="7 days ago", description=(
                     "Timestamp from filter. This supports free form typing and "
@@ -217,7 +224,7 @@ class FormFactory(object):
             standalone = HiddenField()
             async = HiddenField()
             json = HiddenField()
-            previous_viz_type = HiddenField()
+            previous_viz_type = HiddenField(default=viz.viz_type)
 
         filter_cols = datasource.filterable_column_names or ['']
         for i in range(10):
@@ -243,4 +250,11 @@ class FormFactory(object):
         if datasource.__class__.__name__ == 'SqlaTable':
             QueryForm.field_order += ['where']
             setattr(QueryForm, 'where', px_form_fields['where'])
+
+            if 'granularity' in viz.form_fields:
+                setattr(
+                    QueryForm,
+                    'granularity', px_form_fields['granularity_sqla'])
+                field_css_classes['granularity'] = ['form-control', 'select2']
+
         return QueryForm

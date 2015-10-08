@@ -42,12 +42,18 @@ class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     can_delete = False
     edit_columns = [
         'column_name', 'description', 'groupby', 'filterable', 'table',
-        'count_distinct', 'sum', 'min', 'max', 'expression']
+        'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
+        'sum', 'min', 'max', 'is_dttm']
     page_size = 100
+    description_columns = {
+        'is_dttm': (
+            "Whether to make this column available as a "
+            "[Time Granularity] option, column has to be DATETIME or "
+            "DATETIME-like"),
+    }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 

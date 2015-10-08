@@ -116,12 +116,13 @@ def load_examples(sample):
     if not obj:
         obj = TBL(table_name = 'birth_names')
     obj.main_dttm_col = 'ds'
-    obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=one+day&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
+    obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=ds&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
     obj.database = dbobj
     obj.columns = [
         models.TableColumn(column_name="num", sum=True, type="INTEGER"),
         models.TableColumn(column_name="sum_boys", sum=True, type="INTEGER"),
         models.TableColumn(column_name="sum_girls", sum=True, type="INTEGER"),
+        models.TableColumn(column_name="ds", is_dttm=True, type="DATETIME"),
     ]
     models.Table
     session.add(obj)
@@ -141,7 +142,7 @@ def load_examples(sample):
             "flt_col_1": "gender",
             "flt_eq_1": "",
             "flt_op_1": "in",
-            "granularity": "all",
+            "granularity": "ds",
             "groupby": [],
             "metric": 'sum__num',
             "metrics": ["sum__num"],
@@ -194,7 +195,7 @@ def load_examples(sample):
             datasource_type='table',
             table=tbl,
             params=get_slice_json(
-                slice_name, viz_type="big_number", granularity="1 day",
+                slice_name, viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y"))
         session.add(slc)
     slices.append(slc)
@@ -237,7 +238,7 @@ def load_examples(sample):
             table=tbl,
             params=get_slice_json(
                 slice_name, viz_type="line", groupby=['name'],
-                granularity='1 day', rich_tooltip='y', show_legend='y'))
+                granularity='ds', rich_tooltip='y', show_legend='y'))
         session.add(slc)
     slices.append(slc)
 
