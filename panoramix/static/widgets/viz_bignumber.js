@@ -1,6 +1,10 @@
-function viz_bignumber(token, json_callback) {
-  var div = d3.select('#' + token);
-  var render = function() {
+px.registerWidget('big_number', function(data_attribute) {
+
+  var token_name = data_attribute['token'];
+  var json_callback = data_attribute['json_endpoint'];
+  var div = d3.select('#' + token_name);
+
+  function render() {
     d3.json(json_callback, function(error, payload){
       json = payload.data;
       div.html("");
@@ -134,6 +138,10 @@ function viz_bignumber(token, json_callback) {
       });
     });
   };
-  render();
-  $(div).parent().find("a.refresh").click(render);
-}
+
+  return {
+    render: render,
+    resize: render,
+  }
+
+});

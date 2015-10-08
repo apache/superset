@@ -1,3 +1,25 @@
+var px = (function() {
+
+  var visualizations = [];
+
+  function registerWidget(name, initializer) {
+    visualizations[name] = initializer;
+  }
+
+  function makeNullWidget() {
+    return {
+      render: function() {},
+      resize: function() {},
+    };
+  }
+
+  function initializeWidget(data) {
+    var name = data['viz_name'];
+    var initializer = visualizations[name];
+    var widget = initializer ? initializer(data) : makeNullWidget();
+    return widget;
+  }
+
 function initializeDatasourceView() {
   function getParam(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -127,8 +149,9 @@ function initializeDashboardView(dashboard_id) {
     },
     resize: {
       enabled: true,
-      stop: function(e, ui, _widget) {
-        _widget.find("a.refresh").click();
+      stop: function(e, ui, element) {
+        var widget = $(element).data('widget');
+        widget.resize();
       }
     },
     serialize_params: function(_w, wgd) {
@@ -171,3 +194,15 @@ function initializeDashboardView(dashboard_id) {
     $("#user_style").html(css);
   });
 }
+
+  // Export public functions
+
+  return {
+    registerWidget: registerWidget,
+    initializeWidget: initializeWidget,
+    initializeDatasourceView: initializeDatasourceView,
+    initializeDashboardView: initializeDashboardView,
+  }
+
+})();
+

@@ -1,4 +1,8 @@
-function viz_nvd3(token_name, json_callback) {
+function viz_nvd3(data_attribute) {
+
+  var token_name = data_attribute['token'];
+  var json_callback = data_attribute['json_endpoint'];
+
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
   }
@@ -138,6 +142,22 @@ function viz_nvd3(token_name, json_callback) {
       chart.html(err);
     });
   };
-  refresh();
-  jtoken.parent().find("a.refresh").click(refresh);
+
+  return {
+    render: refresh,
+    resize: refresh,
+  };
+
 }
+
+[
+  'area',
+  'bubble',
+  'column',
+  'compare',
+  'dist_bar',
+  'line',
+  'pie',
+].forEach(function(name) {
+  px.registerWidget(name, viz_nvd3);
+});

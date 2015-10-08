@@ -180,6 +180,14 @@ class BaseViz(object):
     def get_json_data(self):
         return json.dumps([])
 
+    def get_data_attribute(self):
+        content = {
+            'viz_name': self.viz_type,
+            'json_endpoint': self.get_url(json="true"),
+            'token': self.token,
+        }
+        return json.dumps(content)
+
 class TableViz(BaseViz):
     viz_type = "table"
     verbose_name = "Table View"

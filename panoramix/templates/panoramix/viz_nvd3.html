@@ -6,14 +6,6 @@
 {% endmacro %}
 
 {% macro viz_js(viz) %}
-<script>
-  $(document).ready(function() {
-    viz_nvd3(
-      "{{ viz.token }}",
-      "{{ viz.get_url(json="true")|safe }}"
-    );
-  });
-</script>
 {% endmacro %}
 
 {% macro viz_css(viz) %}
