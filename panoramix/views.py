@@ -211,7 +211,7 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        utils.merge_perm(sm, 'datasource_access', table.perm)
+        utils.merge_perm(sm, 'datasource_access', datasource.perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
