@@ -194,6 +194,17 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
     list_columns = ['dashboard_link', 'created_by']
     edit_columns = ['dashboard_title', 'slices', 'position_json', 'css']
     add_columns = edit_columns
+    description_columns = {
+        'position_json': (
+            "This json object describes the positioning of the widgets in "
+            "the dashboard. It is dynamically generated when adjusting "
+            "the widgets size and positions by using drag & drop in "
+            "the dashboard view"),
+        'css': (
+            "The css for individual dashboards can be altered here, or "
+            "in the dashboard view where changes are immediatly "
+            "visible"),
+    }
 
 
 appbuilder.add_view(
