@@ -165,12 +165,20 @@ class Queryable(object):
         return sorted([c.column_name for c in self.columns])
 
     @property
+    def main_dttm_col(self):
+        return "timestamp"
+
+    @property
     def groupby_column_names(self):
         return sorted([c.column_name for c in self.columns if c.groupby])
 
     @property
     def filterable_column_names(self):
         return sorted([c.column_name for c in self.columns if c.filterable])
+
+    @property
+    def dttm_cols(self):
+        return []
 
 
 class Database(Model, AuditMixinNullable):
@@ -215,6 +223,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return (
             "[{self.database}].[{self.table_name}]"
             "(id:{self.id})").format(self=self)
+
+    @property
+    def dttm_cols(self):
+        l = [c.column_name for c in self.columns if c.is_dttm]
+        if self.main_dttm_col not in l:
+            l.append(self.main_dttm_col)
+        return l
 
     @property
     def name(self):
@@ -339,13 +354,20 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_from_dttm=None, inner_to_dttm=None,
             extras=None):
 
+        # For backward compatibility
+        if granularity not in self.dttm_cols:
+            granularity = self.main_dttm_col
+
         cols = {col.column_name: col for col in self.columns}
         qry_start_dttm = datetime.now()
         if not self.main_dttm_col:
             raise Exception(
                 "Datetime column not provided as part table configuration")
-        timestamp = literal_column(
-            self.main_dttm_col).label('timestamp')
+        dttm_expr = cols[granularity].expression
+        if dttm_expr:
+            timestamp = ColumnClause(dttm_expr, is_literal=True).label('timestamp')
+        else:
+            timestamp = literal_column(granularity).label('timestamp')
         metrics_exprs = [
             literal_column(m.expression).label(m.metric_name)
             for m in self.metrics if m.metric_name in metrics]
@@ -381,7 +403,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_groupby_exprs.append(inner)
                 inner_select_exprs.append(inner)
 
-        if granularity != "all":
+        if is_timeseries:
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
 
@@ -562,7 +584,7 @@ class TableColumn(Model, AuditMixinNullable):
     table = relationship(
         'SqlaTable', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
-    is_dttm = Column(Boolean, default=True)
+    is_dttm = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     type = Column(String(32), default='')
     groupby = Column(Boolean, default=False)
@@ -740,6 +762,9 @@ class Datasource(Model, AuditMixin, Queryable):
             m.metric_name: m.json_obj
             for m in self.metrics if m.metric_name in metrics
         }
+        if granularity != "all":
+            granularity = utils.parse_human_timedelta(
+                granularity).total_seconds() * 1000
         if not isinstance(granularity, basestring):
             granularity = {"type": "duration", "duration": granularity}
 
