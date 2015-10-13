@@ -72,6 +72,9 @@ pip install panoramix
 # Create an admin user
 fabmanager create-admin --app panoramix
 
+# Initialize the database
+panoramix db upgrade
+
 # Load some data to play with
 panoramix load_examples
 
