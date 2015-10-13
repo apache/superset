@@ -127,6 +127,7 @@ def init():
     from flask_appbuilder.security.sqla import models as ab_models
     sm = appbuilder.sm
     alpha = sm.add_role("Alpha")
+    admin = sm.add_role("Admin")
 
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
 
@@ -136,6 +137,7 @@ def init():
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
                 'Security'):
             sm.add_permission_role(alpha, perm)
+        sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")
     for perm in perms:
         s = perm.permission.name

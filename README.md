@@ -75,6 +75,9 @@ fabmanager create-admin --app panoramix
 # Initialize the database
 panoramix db upgrade
 
+# Create default roles and permissions
+panoramix init
+
 # Load some data to play with
 panoramix load_examples
 
