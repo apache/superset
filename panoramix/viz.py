@@ -391,7 +391,7 @@ class BigNumberViz(BaseViz):
         df = df.sort(columns=df.columns[0])
         df['timestamp'] = df[[0]].astype(np.int64) // 10**9
         compare_lag = form_data.get("compare_lag", "")
-        compare_lag = int(compare_lag) if compare_lag.isdigit() else 0
+        compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
         d = {
             'data': df.values.tolist(),
             'compare_lag': compare_lag,
