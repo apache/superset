@@ -255,7 +255,6 @@ class Panoramix(BaseView):
     @has_access
     @expose("/datasource/<datasource_type>/<datasource_id>/")
     def datasource(self, datasource_type, datasource_id):
-        raise
         if datasource_type == "table":
             datasource = (
                 db.session
