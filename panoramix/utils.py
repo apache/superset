@@ -154,6 +154,7 @@ def init():
                     'can_download',
                     'muldelete',
                     'all_datasource_access',
+                    'datasource_access',
                 )):
             sm.add_permission_role(gamma, perm)
     session = db.session()
