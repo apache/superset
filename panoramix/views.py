@@ -1,8 +1,9 @@
 from datetime import datetime
 import json
 import logging
+import traceback
 
-from flask import request, redirect, flash, Response, g
+from flask import request, redirect, flash, Response, render_template
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
@@ -11,7 +12,7 @@ from pydruid.client import doublesum
 from sqlalchemy import create_engine
 from wtforms.validators import ValidationError
 
-from panoramix import appbuilder, db, models, viz, utils, app, sm
+from panoramix import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 
@@ -254,6 +255,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/datasource/<datasource_type>/<datasource_id>/")
     def datasource(self, datasource_type, datasource_id):
+        raise
         if datasource_type == "table":
             datasource = (
                 db.session
@@ -430,6 +432,21 @@ class Panoramix(BaseView):
         )
         values = sorted([d[column] for d in top[0]['result']])
         return json.dumps(values)
+
+    @app.errorhandler(500)
+    def show_traceback(self):
+        if config.get("SHOW_STACKTRACE"):
+            error_msg = traceback.format_exc()
+        else:
+            error_msg = "FATAL ERROR\n"
+            error_msg = (
+                "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+                "configuration setting to enable it")
+        return render_template(
+            'panoramix/traceback.html',
+            error_msg=error_msg,
+            title=ascii_art.stacktrace,
+            art=ascii_art.error), 500
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(
