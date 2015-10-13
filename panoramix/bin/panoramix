@@ -26,7 +26,10 @@ manager.add_command('db', MigrateCommand)
 @manager.option(
     '-p', '--port', default=config.get("PANORAMIX_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
-def runserver(debug, port):
+@manager.option(
+    '-t', '--timeout', default=config.get("PANORAMIX_WEBSERVER_TIMEOUT"),
+    help="Specify the timeout (seconds) for the gunicorn web server")
+def runserver(debug, port, timeout):
     """Starts a Panoramix web server"""
     debug = debug or config.get("DEBUG")
     if debug:
@@ -38,6 +41,7 @@ def runserver(debug, port):
         cmd = (
             "gunicorn "
             "-w 8 "
+            "--timeout {timeout} "
             "-b 0.0.0.0:{port} "
             "panoramix:app").format(**locals())
         print("Starting server with command: " + cmd)
