@@ -63,7 +63,10 @@ power analytic dashboards and applications.*
 Installation
 ------------
 
-Follow these few simple steps to install Panoramix
+Panoramix is currently only tested using Python 2.7.*. Python 3 support is
+on the roadmap, Python 2.6 won't be supported.
+
+Follow these few simple steps to install Panoramix.
 
 ```
 # Install panoramix
