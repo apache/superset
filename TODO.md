@@ -13,6 +13,7 @@ List of TODO items for Panoramix
 * Async form reload onchange of viz_type dropdown
 * Reintroduce query and stopwatch
 * Fix resize / refresh
+* Configurable widget auto refresh in Dashboard view
 
 ## New Features
 * Annotations layers
