@@ -282,8 +282,11 @@ class Panoramix(BaseView):
         action = request.args.get('action')
         if action == 'save':
             session = db.session()
+
+            # TODO use form processing form wtforms
             d = request.args.to_dict(flat=False)
             del d['action']
+            del d['previous_viz_type']
             as_list = ('metrics', 'groupby')
             for k in d:
                 v = d.get(k)

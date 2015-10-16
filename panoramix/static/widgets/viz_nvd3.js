@@ -1,5 +1,4 @@
 function viz_nvd3(data_attribute) {
-
   var token_name = data_attribute['token'];
   var json_callback = data_attribute['json_endpoint'];
 
@@ -58,6 +57,15 @@ function viz_nvd3(data_attribute) {
                 chart.y2Axis.tickFormat(d3.format('.3p'));
             }
           }
+        } else if (viz_type === 'bar') {
+          var chart = nv.models.multiBarChart()
+              .showControls(true)
+              .groupSpacing(0.1);
+          chart.xAxis
+            .showMaxMin(false)
+            .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
+          chart.showLegend(viz.form_data.show_legend);
+          chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'dist_bar') {
           var chart = nv.models.multiBarChart()
@@ -152,6 +160,7 @@ function viz_nvd3(data_attribute) {
 
 [
   'area',
+  'bar',
   'bubble',
   'column',
   'compare',

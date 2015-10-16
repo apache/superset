@@ -38,6 +38,7 @@ class BaseViz(object):
         self.request = request
         self.viz_type = form_data.get("viz_type")
 
+        # TODO refactor all form related logic out of here and into forms.py
         ff = FormFactory(self)
         form_class = ff.get_form()
         defaults = form_class().data.copy()
@@ -52,10 +53,11 @@ class BaseViz(object):
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
                     flash("{}: {}".format(k, " ".join(v)), 'danger')
-        data = {
-            k: form.data[k]
-            for k in form_data.keys()
-            if k in form.data}
+        if previous_viz_type != self.viz_type:
+            data = {
+                k: form.data[k]
+                for k in form_data.keys()
+                if k in form.data}
         defaults.update(data)
         self.form_data = defaults
 
