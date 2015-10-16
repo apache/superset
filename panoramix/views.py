@@ -411,7 +411,13 @@ class Panoramix(BaseView):
     def refresh_datasources(self):
         session = db.session()
         for cluster in session.query(models.Cluster).all():
-            cluster.refresh_datasources()
+            try:
+                cluster.refresh_datasources()
+            except Exception as e:
+                flash(
+                    "Error while processing cluster '{}'".format(cluster),
+                    "alert")
+                return redirect('/clustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
                 "Refreshed metadata from cluster "

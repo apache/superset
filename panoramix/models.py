@@ -610,10 +610,11 @@ class Cluster(Model, AuditMixinNullable):
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(256))
     coordinator_port = Column(Integer)
-    coordinator_endpoint = Column(String(256))
+    coordinator_endpoint = Column(
+        String(256), default='druid/coordinator/v1/metadata')
     broker_host = Column(String(256))
     broker_port = Column(Integer)
-    broker_endpoint = Column(String(256))
+    broker_endpoint = Column(String(256), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
 
     def __repr__(self):
