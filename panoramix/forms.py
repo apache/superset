@@ -91,6 +91,10 @@ class FormFactory(object):
                 'Group by',
                 choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to group by"),
+            'columns': SelectMultipleField(
+                'Columns',
+                choices=self.choicify(datasource.groupby_column_names),
+                description="One or many fields to pivot as columns"),
             'granularity': TextField(
                 'Time Granularity', default="one day",
                 description=(
@@ -182,6 +186,14 @@ class FormFactory(object):
                 default='linear',
                 description="Line interpolation as defined by d3.js"),
             'code': TextAreaField("Code", description="Put your code here", default=''),
+            'pandas_aggfunc': SelectField(
+                "Aggregation function",
+                choices=self.choicify([
+                    'sum', 'mean', 'min', 'max', 'median', 'stdev', 'var']),
+                default='sum',
+                description=(
+                    "Aggregate function to apply when pivoting and "
+                    "computing the total rows and columns")),
             'size_from': TextField(
                 "Font Size From",
                 default="20",
@@ -241,6 +253,7 @@ class FormFactory(object):
         field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
         select2 = [
             'viz_type',
+            'viz_type', 'columns', 'pandas_aggfunc',
             'row_limit', 'rolling_type', 'series',
             'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
             'markup_type',]
