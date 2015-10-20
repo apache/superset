@@ -22,6 +22,8 @@ import sqlparse
 import requests
 import textwrap
 
+from six import string_types
+
 from panoramix import app, db, get_session, utils
 from panoramix.viz import viz_types
 from sqlalchemy.ext.declarative import declared_attr
@@ -766,7 +768,7 @@ class Datasource(Model, AuditMixinNullable, Queryable):
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
                 granularity).total_seconds() * 1000
-        if not isinstance(granularity, basestring):
+        if not isinstance(granularity, string_types):
             granularity = {"type": "duration", "duration": granularity}
 
         qry = dict(
