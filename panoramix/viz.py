@@ -1,6 +1,5 @@
 from collections import OrderedDict, defaultdict
-from copy import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import uuid
 
@@ -110,6 +109,8 @@ class BaseViz(object):
         else:
             if 'timestamp' in df.columns:
                 df.timestamp = pd.to_datetime(df.timestamp)
+                if self.datasource.offset:
+                    df.timestamp += timedelta(hours=self.datasource.offset)
         return df
 
     @property

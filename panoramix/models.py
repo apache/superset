@@ -11,9 +11,8 @@ from sqlalchemy import (
 from sqlalchemy import Table
 from sqlalchemy import create_engine, MetaData, desc, select, and_
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.sql import table, literal_column, text
 from sqlalchemy.sql.elements import ColumnClause
-from flask import request
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -201,7 +200,7 @@ class Database(Model, AuditMixinNullable):
             autoload_with=self.get_sqla_engine())
 
 
-class SqlaTable(Model, Queryable, AuditMixinNullable):
+class SqlaTable(Model, Queryable):
     type = "table"
 
     __tablename__ = 'tables'
@@ -212,6 +211,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
+    offset = Column(Integer, default=0)
 
     baselink = "tableview"
 
@@ -655,6 +655,7 @@ class Datasource(Model, AuditMixin, Queryable):
         String(250), ForeignKey('clusters.cluster_name'))
     cluster = relationship(
         'Cluster', backref='datasources', foreign_keys=[cluster_name])
+    offset = Column(Integer, default=0)
 
     @property
     def metrics_combo(self):
