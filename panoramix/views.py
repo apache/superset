@@ -126,10 +126,14 @@ appbuilder.add_view(
 class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = ['table_link', 'database']
-    add_columns = ['table_name', 'database', 'default_endpoint']
+    add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
-        'table_name', 'database', 'main_dttm_col', 'default_endpoint']
+        'table_name', 'database', 'main_dttm_col', 'default_endpoint',
+        'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
+    description_columns = {
+        'offset': "Timezone offset (in hours) for this datasource"
+    }
 
     def post_add(self, table):
         try:
@@ -219,13 +223,17 @@ appbuilder.add_view(
 class DatasourceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = [
-        'datasource_link', 'cluster', 'owner', 'is_featured', 'is_hidden']
+        'datasource_link', 'cluster', 'owner', 'is_featured', 'is_hidden',
+        'offset']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'default_endpoint']
+        'is_featured', 'is_hidden', 'default_endpoint', 'offset']
     page_size = 100
     base_order = ('datasource_name', 'asc')
+    description_columns = {
+        'offset': "Timezone offset (in hours) for this datasource"
+    }
 
     def post_add(self, datasource):
         datasource.generate_metrics()
