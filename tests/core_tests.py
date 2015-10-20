@@ -1,7 +1,6 @@
 import imp
 import os
 import unittest
-import urllib2
 os.environ['PANORAMIX_CONFIG'] = 'tests.panoramix_test_config'
 from flask.ext.testing import LiveServerTestCase, TestCase
 

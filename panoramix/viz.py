@@ -14,6 +14,8 @@ import pandas as pd
 from panoramix import app, utils
 from panoramix.forms import FormFactory
 
+from six import string_types
+
 config = app.config
 
 
@@ -468,7 +470,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if df[name].dtype.kind not in "biufc":
                 continue
             df['timestamp'] = pd.to_datetime(df.index, utc=False)
-            if isinstance(name, basestring):
+            if isinstance(name, string_types):
                 series_title = name
             else:
                 name = ["{}".format(s) for s in name]
@@ -622,7 +624,7 @@ class DistributionBarViz(DistributionPieViz):
             if df[name].dtype.kind not in "biufc":
                 continue
             df['timestamp'] = pd.to_datetime(df.index, utc=False)
-            if isinstance(name, basestring):
+            if isinstance(name, string_types):
                 series_title = name
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)

@@ -4,6 +4,7 @@ from wtforms import (
 from wtforms import validators
 from copy import copy
 from panoramix import app
+from six import string_types
 config = app.config
 
 
@@ -240,7 +241,7 @@ class FormFactory(object):
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
         for ff in viz.form_fields:
-            if isinstance(ff, basestring):
+            if isinstance(ff, string_types):
                 ff = [ff]
             for s in ff:
                 if s:
