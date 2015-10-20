@@ -458,7 +458,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         engine = self.database.get_sqla_engine()
         sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
-        print sql
         df = read_sql_query(
             sql=sql,
             con=engine

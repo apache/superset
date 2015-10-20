@@ -79,7 +79,9 @@ def load_examples(sample):
 
     BirthNames.create(db.engine)
     session = db.session()
-    with gzip.open(config.get("BASE_DIR") + '/data/birth_names.csv.gz') as f:
+    with gzip.open(
+            config.get("BASE_DIR") + '/data/birth_names.csv.gz',
+            encoding="ascii") as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
             if i == 0 or year < "1965":  # jumpy data before 1965
