@@ -113,6 +113,7 @@ def color(s):
         "#A14D83", "#4FA3AB", "#4EDED2", "#4EDED2", "#FFCA4F", "#FFC4B3",
         "#C9BF97", "#C9BF97", "#898C8C",
     ]
+    s = s.encode('utf-8')
     h = hashlib.md5(s)
     i = int(h.hexdigest(), 16)
     return colors[i % len(colors)]

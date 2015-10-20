@@ -1,7 +1,7 @@
 language: python
 python:
   - "2.7"
-  - "3.5"
+  - "3.4"
 cache:
   directories:
     - $HOME/.wheelhouse/
