@@ -200,7 +200,7 @@ class Database(Model, AuditMixinNullable):
             autoload_with=self.get_sqla_engine())
 
 
-class SqlaTable(Model, Queryable):
+class SqlaTable(Model, Queryable, AuditMixinNullable):
     type = "table"
 
     __tablename__ = 'tables'
@@ -637,7 +637,7 @@ class Cluster(Model, AuditMixinNullable):
             Datasource.sync_to_db(datasource, self)
 
 
-class Datasource(Model, AuditMixin, Queryable):
+class Datasource(Model, AuditMixinNullable, Queryable):
     type = "druid"
 
     baselink = "datasourcemodelview"
