@@ -2,10 +2,13 @@ language: python
 python:
   - "2.7"
   #- "3.5"
-# command to install dependencies
+cache:
+  directories:
+    - $HOME/.wheelhouse/
 install:
-    - python setup.py install
-    - pip install -r requirements.txt
+  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse -r requirements.txt
+  - pip install --find-links=$HOME/.wheelhouse --no-index -rrequirements.txt
+  - python setup.py install
 
 # command to run tests
 script: bash run_tests.sh
