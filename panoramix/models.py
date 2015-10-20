@@ -765,6 +765,7 @@ class Datasource(Model, AuditMixinNullable, Queryable):
             m.metric_name: m.json_obj
             for m in self.metrics if m.metric_name in metrics
         }
+        granularity = granularity or "all"
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
                 granularity).total_seconds() * 1000
