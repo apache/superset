@@ -4,6 +4,7 @@ import csv
 from datetime import datetime
 import gzip
 import json
+import os
 from subprocess import Popen
 
 from flask.ext.script import Manager
@@ -79,9 +80,8 @@ def load_examples(sample):
 
     BirthNames.create(db.engine)
     session = db.session()
-    with gzip.open(
-            config.get("BASE_DIR") + '/data/birth_names.csv.gz',
-            encoding="ascii") as f:
+    filepath = os.path.join(config.get("BASE_DIR"), 'data/birth_names.csv.gz')
+    with gzip.open(filepath, mode='rt') as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
             if i == 0 or year < "1965":  # jumpy data before 1965
