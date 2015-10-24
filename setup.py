@@ -34,6 +34,7 @@ setup(
         'requests>=2.7.0, <3.0.0',
         'sqlparse>=0.1.16, <0.2.0',
         'sqlalchemy==1.0.8',
+        'flask-sqlalchemy==2.0',
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
