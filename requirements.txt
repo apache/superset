@@ -20,3 +20,4 @@ sqlparse>=0.1.16, <0.2.0
 pyhive
 mysqlclient>=1.3.6, <2.0.0
 six
+sqlalchemy==1.0.8

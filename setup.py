@@ -33,6 +33,7 @@ setup(
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
         'sqlparse>=0.1.16, <0.2.0',
+        'sqlalchemy==1.0.8',
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
