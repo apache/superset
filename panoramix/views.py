@@ -181,10 +181,12 @@ class SliceModelView(PanoramixModelView, DeleteMixin):
     can_add = False
     list_columns = [
         'slice_link', 'viz_type', 'datasource_type',
-        'datasource', 'created_by']
+        'datasource', 'created_by', 'changed_on']
     edit_columns = [
         'slice_name', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params']
+    base_order = ('changed_on','desc')
+
 
 appbuilder.add_view(
     SliceModelView,
