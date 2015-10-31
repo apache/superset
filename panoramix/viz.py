@@ -110,7 +110,7 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(df.timestamp)
+                df.timestamp = pd.to_datetime(df.timestamp, utc=False)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         return df

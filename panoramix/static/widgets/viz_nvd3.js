@@ -15,6 +15,11 @@ function viz_nvd3(data_attribute) {
     ["%B", function(d) { return d.getMonth(); }],
     ["%Y", function() { return true; }]
   ]);
+  function formatDate(dttm) {
+    var d = UTC(new Date(dttm));
+    //d = new Date(d.getTime() - 1 * 60 * 60 * 1000);
+    return tickMultiFormat(d);
+  }
   colors = [
     "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
@@ -35,20 +40,21 @@ function viz_nvd3(data_attribute) {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
             var chart = nv.models.lineWithFocusChart()
-            var xext = chart.xAxis.scale().domain();
-            chart
-              .x2Axis
-              .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); })
-              .tickValues([]);
-            chart.y2Axis.tickFormat(d3.format('.3s'));
+          //chart.lines2.xScale( d3.time.scale.utc());
+          chart.lines2.xScale(d3.time.scale.utc());
+          chart.x2Axis
+            .showMaxMin(true)
+            .tickFormat(formatDate);
           } else {
             var chart = nv.models.lineChart()
           }
+          // To alter the tooltip header
+          // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
+          chart.xScale(d3.time.scale.utc());
           chart.interpolate(viz.form_data.line_interpolation);
-          chart.xScale(d3.time.scale());
           chart.xAxis
-            .showMaxMin(false)
-            .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            .showMaxMin(true)
+            .tickFormat(formatDate);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
           if (viz.form_data.contribution || viz.form_data.num_period_compare) {
@@ -63,7 +69,7 @@ function viz_nvd3(data_attribute) {
               .groupSpacing(0.1);
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(function (d) {return tickMultiFormat(UTC(new Date(d))); });
+            .tickFormat(formatDate);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
@@ -95,10 +101,10 @@ function viz_nvd3(data_attribute) {
 
         } else if (viz_type === 'compare') {
           var chart = nv.models.cumulativeLineChart();
-          chart.xScale(d3.time.scale());
+          chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            .tickFormat(formatDate);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3p'));
 
@@ -111,10 +117,10 @@ function viz_nvd3(data_attribute) {
 
         } else if (viz_type === 'area') {
           var chart = nv.models.stackedAreaChart();
-          chart.xScale(d3.time.scale());
+          chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(function (d) {return tickMultiFormat(new Date(d)); });
+            .tickFormat(formatDate);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
