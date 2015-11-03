@@ -6,6 +6,11 @@ px.registerWidget('word_cloud', function(data_attribute) {
 
   function refresh() {
     d3.json(json_callback, function(error, json) {
+      if (error != null){
+        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
+        token.html(err);
+        return '';
+      }
       var data = json.data;
       var range = [
         json.form_data.size_from,
@@ -24,11 +29,6 @@ px.registerWidget('word_cloud', function(data_attribute) {
       var box = token.node().getBoundingClientRect();
       var size = [box.width, box.height - 25];
 
-      if (error != null){
-        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-        token.html(err);
-        return '';
-      }
       scale = d3.scale.linear()
         .range(range)
         .domain(d3.extent(data, function(d) { return d.size; }));

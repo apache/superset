@@ -99,44 +99,52 @@ function initializeDatasourceView() {
   function initSelectionToValue(element, callback) {
     callback({id: element.val(), text: element.val()});
   }
+  function list_data(arr) {
+    var obj = [];
+    for (var i=0; i<arr.length; i++){
+        obj.push({id: arr[i], text: arr[i]});
+    }
+    return obj;
+  }
   $(".select2_free_since").select2({
     createSearchChoice: create_choices,
     initSelection: initSelectionToValue,
     multiple: false,
-    data: [
-      {id: '-1 hour', text: '-1 hour'},
-      {id: '-12 hours', text: '-12 hours'},
-      {id: '-1 day', text: '-1 day'},
-      {id: '-7 days', text: '-7 days'},
-      {id: '-28 days', text: '-28 days'},
-      {id: '-90 days', text: '-90 days'},
-    ]
+    data: list_data([
+        '1 hour ago',
+        '12 hours ago',
+        '1 day ago',
+        '7 days ago',
+        '28 days ago',
+        '90 days ago',
+        '1 year ago'])
   });
   $(".select2_free_until").select2({
     createSearchChoice: create_choices,
     initSelection: initSelectionToValue,
     multiple: false,
-    data: [
-      {id: 'now', text: 'now'},
-      {id: '-1 day', text: '-1 day'},
-      {id: '-7 days', text: '-7 days'},
-      {id: '-28 days', text: '-28 days'},
-      {id: '-90 days', text: '-90 days'},
-    ]
+    data: list_data([
+        'now',
+        '1 day ago',
+        '7 days ago',
+        '28 days ago',
+        '90 days ago',
+        '1 year ago'])
   });
   $(".select2_free_granularity").select2({
     createSearchChoice: create_choices,
     initSelection: initSelectionToValue,
     multiple: false,
-    data: [
-      {id: 'all', text: 'all'},
-      {id: '5 seconds', text: '5 seconds'},
-      {id: '30 seconds', text: '30 seconds'},
-      {id: '1 minute', text: '1 minute'},
-      {id: '5 minutes', text: '5 minutes'},
-      {id: '1 day', text: '1 day'},
-      {id: '7 days', text: '7 days'},
-    ]
+    data: list_data([
+        'all',
+        '5 seconds',
+        '30 seconds',
+        '1 minute',
+        '5 minutes',
+        '1 hour',
+        '6 hour',
+        '1 day',
+        '7 days'])
   });
 }
 
