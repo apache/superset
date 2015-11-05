@@ -125,12 +125,13 @@ appbuilder.add_view(
 
 class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    list_columns = ['table_link', 'database']
+    list_columns = ['table_link', 'database', 'changed_by', 'changed_on']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'database', 'main_dttm_col', 'default_endpoint',
         'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
+    base_order = ('changed_on','desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource"
     }
@@ -198,9 +199,10 @@ appbuilder.add_view(
 
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
-    list_columns = ['dashboard_link', 'created_by']
+    list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on']
     edit_columns = ['dashboard_title', 'slices', 'position_json', 'css']
     add_columns = edit_columns
+    base_order = ('changed_on','desc')
     description_columns = {
         'position_json': (
             "This json object describes the positioning of the widgets in "
