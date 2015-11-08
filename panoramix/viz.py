@@ -372,7 +372,6 @@ class BigNumberViz(BaseViz):
         'metric',
         'compare_lag',
         'compare_suffix',
-        #('rolling_type', 'rolling_periods'),
     ]
 
     def reassignments(self):
@@ -455,11 +454,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
         rolling_type = form_data.get("rolling_type")
         if rolling_periods and rolling_type:
             if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods))
+                df = pd.rolling_mean(df, int(rolling_periods), min_periods=1)
             elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods))
+                df = pd.rolling_std(df, int(rolling_periods), min_periods=1)
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods))
+                df = pd.rolling_sum(df, int(rolling_periods), min_periods=1)
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
