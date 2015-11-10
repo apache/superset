@@ -130,6 +130,10 @@ class FormFactory(object):
                 description="Based on granularity, number of time periods to compare against"),
             'compare_suffix': TextField('Comparison suffix',
                 description="Suffix to apply after the percentage display"),
+            'y_axis_format': TextField('Y axis format',
+                description="D3 format syntax for y axis "
+                            "https://github.com/mbostock/\n"
+                            "d3/wiki/Formatting"),
             'markup_type': SelectField(
                 "Markup Type",
                 choices=self.choicify(['markdown', 'html']),
