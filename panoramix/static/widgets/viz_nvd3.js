@@ -137,6 +137,9 @@ function viz_nvd3(data_attribute) {
         if (viz.form_data.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
+        if (viz.form_data.y_axis_format) {
+          chart.yAxis.tickFormat(d3.format(viz.form_data.y_axis_format));
+        }
 
         chart.duration(0);
 
