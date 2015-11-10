@@ -151,7 +151,7 @@ class FormFactory(object):
                     'step-before', 'step-after']),
                 default='linear',
                 description="Line interpolation as defined by d3.js"),
-            'code': TextAreaField("Code", description="Put your code here"),
+            'code': TextAreaField("Code", description="Put your code here", default=''),
             'size_from': TextField(
                 "Font Size From",
                 default="20",
