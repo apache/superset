@@ -5,7 +5,7 @@
 <div class="container-fluid datasource">
   <div class="row">
     <div id="form_container" class="col-md-3">
-      <h3>
+      <h4>
         {{ datasource.name }}
         {% if datasource.description %}
           <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
@@ -18,7 +18,7 @@
             <i class="fa fa-bolt"></i>
           </button>
         </div>
-      </h3>
+      </h4>
 
       <hr>
       <form id="query" method="GET" style="display: none;">
@@ -93,7 +93,7 @@
     </div>
 
     <div class="col-md-9">
-      <h3>{{ viz.verbose_name }}
+      <h4>{{ viz.verbose_name }}
         {% if False %}
         <span class="label label-success">
           {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
@@ -101,7 +101,7 @@
         {% endif %}
         <span class="label pull-right label-info btn"
           data-toggle="modal" data-target="#query_modal">query</span>
-      </h3>
+      </h4>
       <hr/>
           {% block messages %}
           {% endblock %}

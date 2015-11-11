@@ -1,6 +1,7 @@
 function viz_nvd3(data_attribute) {
   var token_name = data_attribute['token'];
   var json_callback = data_attribute['json_endpoint'];
+  var chart = undefined;
 
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
@@ -27,9 +28,10 @@ function viz_nvd3(data_attribute) {
   var token = d3.select('#' + token_name);
   var jtoken = $('#' + token_name);
   var loading = $('#' + token_name).find("img.loading");
-  var chart = $('#' + token_name).find("div.chart");
+  var chart_div = $('#' + token_name).find("div.chart");
+
   var refresh = function() {
-    chart.hide();
+    chart_div.hide();
     loading.show();
     $.getJSON(json_callback, function(payload) {
       var data = payload.data;
@@ -39,14 +41,14 @@ function viz_nvd3(data_attribute) {
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
-            var chart = nv.models.lineWithFocusChart()
+            chart = nv.models.lineWithFocusChart()
           //chart.lines2.xScale( d3.time.scale.utc());
           chart.lines2.xScale(d3.time.scale.utc());
           chart.x2Axis
             .showMaxMin(true)
             .tickFormat(formatDate);
           } else {
-            var chart = nv.models.lineChart()
+            chart = nv.models.lineChart()
           }
           // To alter the tooltip header
           // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
@@ -64,7 +66,7 @@ function viz_nvd3(data_attribute) {
             }
           }
         } else if (viz_type === 'bar') {
-          var chart = nv.models.multiBarChart()
+          chart = nv.models.multiBarChart()
               .showControls(true)
               .groupSpacing(0.1);
           chart.xAxis
@@ -74,7 +76,7 @@ function viz_nvd3(data_attribute) {
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'dist_bar') {
-          var chart = nv.models.multiBarChart()
+          chart = nv.models.multiBarChart()
             .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
             .reduceXTicks(false)
             .rotateLabels(45)
@@ -84,7 +86,7 @@ function viz_nvd3(data_attribute) {
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'pie') {
-          var chart = nv.models.pieChart()
+          chart = nv.models.pieChart()
           chart.showLegend(viz.form_data.show_legend);
           if (viz.form_data.donut) {
             chart.donut(true);
@@ -94,13 +96,13 @@ function viz_nvd3(data_attribute) {
           chart.cornerRadius(true);
 
         } else if (viz_type === 'column') {
-          var chart = nv.models.multiBarChart()
+          chart = nv.models.multiBarChart()
             .reduceXTicks(false)
             .rotateLabels(45) ;
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'compare') {
-          var chart = nv.models.cumulativeLineChart();
+          chart = nv.models.cumulativeLineChart();
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
@@ -109,14 +111,14 @@ function viz_nvd3(data_attribute) {
           chart.yAxis.tickFormat(d3.format('.3p'));
 
         } else if (viz_type === 'bubble') {
-          var chart = nv.models.scatterChart();
+          chart = nv.models.scatterChart();
           chart.xAxis.tickFormat(d3.format('.3s'));
           chart.yAxis.tickFormat(d3.format('.3s'));
           chart.showLegend(viz.form_data.show_legend);
           chart.pointRange([5, 5000]);
 
         } else if (viz_type === 'area') {
-          var chart = nv.models.stackedAreaChart();
+          chart = nv.models.stackedAreaChart();
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
@@ -154,19 +156,22 @@ function viz_nvd3(data_attribute) {
 
         return chart;
       });
-      chart.show();
+      chart_div.show();
       loading.hide();
   }).fail(function(xhr) {
       var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
       loading.hide();
-      chart.show();
+      chart_div.show();
       chart.html(err);
     });
   };
+  var resize = function() {
+    chart.update();
+  }
 
   return {
     render: refresh,
-    resize: refresh,
+    resize: resize,
   };
 
 }

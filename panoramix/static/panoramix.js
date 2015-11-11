@@ -178,7 +178,6 @@ function initializeDashboardView(dashboard_id) {
         positions: gridster.serialize(),
         css: $("#dash_css").val()
     };
-    console.log(data);
     $.ajax({
       type: "POST",
       url: '/panoramix/save_dash/' + dashboard_id + '/',
@@ -204,7 +203,6 @@ function initializeDashboardView(dashboard_id) {
 }
 
   // Export public functions
-
   return {
     registerWidget: registerWidget,
     initializeWidget: initializeWidget,

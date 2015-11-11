@@ -413,7 +413,8 @@ class Panoramix(BaseView):
         pos_dict = {}
         if dashboard.position_json:
             pos_dict = {
-                int(o['slice_id']):o for o in json.loads(dashboard.position_json)}
+                int(o['slice_id']):o
+                for o in json.loads(dashboard.position_json)}
         return self.render_template(
             "panoramix/dashboard.html", dashboard=dashboard,
             pos_dict=pos_dict)
