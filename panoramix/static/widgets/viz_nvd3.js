@@ -162,7 +162,7 @@ function viz_nvd3(data_attribute) {
       var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
       loading.hide();
       chart_div.show();
-      chart.html(err);
+      chart_div.html(err);
     });
   };
   var resize = function() {
