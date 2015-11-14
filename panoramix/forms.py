@@ -2,10 +2,21 @@ from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
 from wtforms import validators
+from wtforms.widgets import HTMLString
 from copy import copy
 from panoramix import app
 from six import string_types
 config = app.config
+
+
+# Fixes behavior of html forms omitting non checked <input>
+# (which doesn't distinguish False from NULL/missing )
+# If value is unchecked, this hidden <input> fills in False value
+class BetterBooleanField(BooleanField):
+    def __call__(self, **kwargs):
+        html = super(BetterBooleanField, self).__call__(**kwargs)
+        html += u'<input type="hidden" name="show_brush" value="false">'
+        return HTMLString(html)
 
 
 class OmgWtForm(Form):
@@ -160,28 +171,28 @@ class FormFactory(object):
                 "Font Size To",
                 default="150",
                 description="Font size for the biggest value in the list"),
-            'show_brush': BooleanField(
+            'show_brush': BetterBooleanField(
                 "Range Selector", default=True,
                 description="Whether to display the time range interactive selector"),
-            'show_legend': BooleanField(
+            'show_legend': BetterBooleanField(
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
-            'rich_tooltip': BooleanField(
+            'rich_tooltip': BetterBooleanField(
                 "Rich Tooltip", default=True,
                 description="The rich tooltip shows a list of all series for that point in time"),
-            'y_axis_zero': BooleanField(
+            'y_axis_zero': BetterBooleanField(
                 "Y Axis Zero", default=False,
                 description="Force the Y axis to start at 0 instead of the minimum value"),
-            'y_log_scale': BooleanField(
+            'y_log_scale': BetterBooleanField(
                 "Y Log", default=False,
                 description="Use a log scale for the Y axis"),
-            'x_log_scale': BooleanField(
+            'x_log_scale': BetterBooleanField(
                 "X Log", default=False,
                 description="Use a log scale for the X axis"),
-            'donut': BooleanField(
+            'donut': BetterBooleanField(
                 "Donut", default=False,
                 description="Do you want a donut or a pie?"),
-            'contribution': BooleanField(
+            'contribution': BetterBooleanField(
                 "Contribution", default=False,
                 description="Compute the contribution to the total"),
             'num_period_compare': IntegerField(
