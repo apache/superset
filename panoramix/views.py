@@ -10,6 +10,7 @@ from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
 from pydruid.client import doublesum
 from sqlalchemy import create_engine
+import sqlalchemy as sqla
 from wtforms.validators import ValidationError
 
 from panoramix import appbuilder, db, models, viz, utils, app, sm, ascii_art
@@ -105,6 +106,7 @@ class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'created_by', 'created_on']
     add_columns = ['database_name', 'sqlalchemy_uri']
+    search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "panoramix/models/database/add.html"
     edit_template = "panoramix/models/database/edit.html"
@@ -114,6 +116,14 @@ class DatabaseView(PanoramixModelView, DeleteMixin):
             "to structure your URI here: "
             "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html")
     }
+    def pre_add(self, db):
+        conn = sqla.engine.url.make_url(db.sqlalchemy_uri)
+        db.password = conn.password
+        conn.password = "X" * 10 if conn.password else None
+        db.sqlalchemy_uri = str(conn)  # hides the password
+
+    def pre_update(self, db):
+        self.pre_add(db)
 
 appbuilder.add_view(
     DatabaseView,

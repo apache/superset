@@ -6,13 +6,14 @@ from flask.ext.appbuilder.models.mixins import AuditMixin
 from pandas import read_sql_query
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
+import sqlalchemy as sqla
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime)
-from sqlalchemy import Table
-from sqlalchemy import create_engine, MetaData, desc, select, and_
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
+    Table, create_engine, MetaData, desc, select, and_)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
 from sqlalchemy.sql.elements import ColumnClause
+from sqlalchemy_utils import EncryptedType
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -187,12 +188,16 @@ class Database(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
+    password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
 
     def __repr__(self):
         return self.database_name
 
     def get_sqla_engine(self):
-        return create_engine(self.sqlalchemy_uri)
+        return create_engine(self.sqlalchemy_uri_decrypted)
+
+    def safe_sqlalchemy_uri(self):
+        return self.sqlalchemy_uri
 
     def get_table(self, table_name):
         meta = MetaData()
@@ -200,6 +205,12 @@ class Database(Model, AuditMixinNullable):
             table_name, meta,
             autoload=True,
             autoload_with=self.get_sqla_engine())
+
+    @property
+    def sqlalchemy_uri_decrypted(self):
+        conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
+        conn.password = self.password
+        return str(conn)
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
