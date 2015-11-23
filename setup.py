@@ -18,6 +18,7 @@ setup(
     scripts=['panoramix/bin/panoramix'],
     install_requires=[
         'alembic>=0.7.7, <0.8.0',
+        'cryptography>=1.1.1, <2.0.0',
         'flask>=0.10.1, <1.0.0',
         'flask-appbuilder>=1.4.5, <2.0.0',
         'flask-login==0.2.11',
@@ -33,6 +34,7 @@ setup(
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
         'sqlparse>=0.1.16, <0.2.0',
+        'sqlalchemy-utils>=0.31.3, <0.32.0',
         'sqlalchemy==1.0.8',
         'flask-sqlalchemy==2.0',
     ],
