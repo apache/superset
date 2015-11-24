@@ -108,10 +108,23 @@ def color(s):
     '#FF5A5F'
     """
     colors = [
-        "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
-        "#FFAA91", "#B4A76C", "#9CA299", "#565A5C",
-        "#A14D83", "#4FA3AB", "#4EDED2", "#4EDED2", "#FFCA4F", "#FFC4B3",
-        "#C9BF97", "#C9BF97", "#898C8C",
+        "#007A87",
+        "#00D1C1",
+        "#4EDED2",
+        "#4FA3AB",
+        "#565A5C",
+        "#7B0051",
+        "#898C8C",
+        "#8CE071",
+        "#9CA299",
+        "#A14D83",
+        "#B4A76C",
+        "#C9BF97",
+        "#FF5A5F",
+        "#FFAA91",
+        "#FFB400",
+        "#FFC4B3",
+        "#FFCA4F",
     ]
     s = s.encode('utf-8')
     h = hashlib.md5(s)
