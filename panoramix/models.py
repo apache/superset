@@ -435,6 +435,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if inner_to_dttm:
             inner_time_filter[1] = timestamp <= inner_to_dttm.isoformat()
         where_clause_and = []
+        having_clause_and = []
         for col, op, eq in filter:
             col_obj = cols[col]
             if op in ('in', 'not in'):
@@ -449,7 +450,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
             where_clause_and += [text(extras['where'])]
+        if extras and 'having' in extras:
+            having_clause_and += [text(extras['having'])]
         qry = qry.where(and_(*(time_filter + where_clause_and)))
+        qry = qry.having(and_(*having_clause_and))
         qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 

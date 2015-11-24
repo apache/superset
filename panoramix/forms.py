@@ -155,6 +155,7 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'where': TextField('Custom WHERE clause', default=''),
+            'having': TextField('Custom HAVING clause', default=''),
             'compare_lag': TextField('Comparison Period Lag',
                 description="Based on granularity, number of time periods to compare against"),
             'compare_suffix': TextField('Comparison suffix',
@@ -287,8 +288,9 @@ class FormFactory(object):
 
         # datasource type specific form elements
         if datasource.__class__.__name__ == 'SqlaTable':
-            QueryForm.field_order += ['where']
+            QueryForm.field_order += ['where', 'having']
             setattr(QueryForm, 'where', px_form_fields['where'])
+            setattr(QueryForm, 'having', px_form_fields['having'])
 
             if 'granularity' in viz.form_fields:
                 setattr(
