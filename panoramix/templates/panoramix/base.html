@@ -4,9 +4,12 @@
 {{super()}}
 <link rel="shortcut icon" href="{{ url_for('static', filename='chaudron.png') }}" />
 <link rel="stylesheet" type="text/css" href="/static/panoramix.css" />
+<link rel="stylesheet" type="text/css" href="/static/lib/select2.sortable.css" />
 {% endblock %}
 
 {% block tail_js %}
 {{ super() }}
 <script src="/static/panoramix.js"></script>
+<script src="/static/lib/jquery-ui.min.js"></script>
+<script src="/static/lib/select2.sortable.js"></script>
 {% endblock %}

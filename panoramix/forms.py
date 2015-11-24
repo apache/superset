@@ -1,22 +1,40 @@
 from wtforms import (
     Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
-from wtforms import validators
-from wtforms.widgets import HTMLString
+from wtforms import validators, widgets
 from copy import copy
 from panoramix import app
 from six import string_types
+from collections import OrderedDict
 config = app.config
 
 
-# Fixes behavior of html forms omitting non checked <input>
-# (which doesn't distinguish False from NULL/missing )
-# If value is unchecked, this hidden <input> fills in False value
 class BetterBooleanField(BooleanField):
+    """
+    Fixes behavior of html forms omitting non checked <input>
+    (which doesn't distinguish False from NULL/missing )
+    If value is unchecked, this hidden <input> fills in False value
+    """
     def __call__(self, **kwargs):
         html = super(BetterBooleanField, self).__call__(**kwargs)
         html += u'<input type="hidden" name="show_brush" value="false">'
-        return HTMLString(html)
+        return widgets.HTMLString(html)
+
+
+class BetterSelectMultipleField(SelectMultipleField):
+    """
+    Works along with select2sortable to preserves the sort order
+    """
+    def iter_choices(self):
+        d = OrderedDict()
+        for value, label in self.choices:
+            selected = self.data is not None and self.coerce(value) in self.data
+            d[value] = (value, label, selected)
+        if self.data:
+            for value in self.data:
+                yield d.pop(value)
+        while d:
+            yield d.pop(d.keys()[0])
 
 
 class OmgWtForm(Form):
@@ -61,7 +79,7 @@ class FormFactory(object):
                 default='table',
                 choices=[(k, v.verbose_name) for k, v in viz_types.items()],
                 description="The type of visualization to display"),
-            'metrics': SelectMultipleField(
+            'metrics': BetterSelectMultipleField(
                 'Metrics', choices=datasource.metrics_combo,
                 default=[default_metric],
                 description="One or many metrics to display"),
@@ -69,7 +87,7 @@ class FormFactory(object):
                 'Metric', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="One or many metrics to display"),
-            'groupby': SelectMultipleField(
+            'groupby': BetterSelectMultipleField(
                 'Group by',
                 choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to group by"),
@@ -221,7 +239,7 @@ class FormFactory(object):
         datasource = viz.datasource
         field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
         select2 = [
-            'viz_type', 'metrics', 'groupby',
+            'viz_type', 'groupby',
             'row_limit', 'rolling_type', 'series',
             'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
             'markup_type',]
@@ -232,6 +250,7 @@ class FormFactory(object):
             field_css_classes[field] += ['input-sm']
         for field in select2:
             field_css_classes[field] += ['select2']
+        field_css_classes['metrics'] += ['select2Sortable']
 
 
         class QueryForm(OmgWtForm):

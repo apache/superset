@@ -29,6 +29,7 @@ function initializeDatasourceView() {
   }
 
   $(".select2").select2();
+  $(".select2Sortable").select2Sortable();
   $("form").show();
   $('[data-toggle="tooltip"]').tooltip({container: 'body'});
 
