@@ -239,19 +239,23 @@ class FormFactory(object):
         datasource = viz.datasource
         field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
         select2 = [
-            'viz_type', 'groupby',
+            'viz_type',
             'row_limit', 'rolling_type', 'series',
             'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
             'markup_type',]
+        select2Sortable = [
+            'metrics', 'groupby'
+        ]
         field_css_classes['since'] += ['select2_free_since']
         field_css_classes['until'] += ['select2_free_until']
         field_css_classes['granularity'] += ['select2_free_granularity']
+
         for field in ('show_brush', 'show_legend', 'rich_tooltip'):
             field_css_classes[field] += ['input-sm']
         for field in select2:
             field_css_classes[field] += ['select2']
-        field_css_classes['metrics'] += ['select2Sortable']
-
+        for field in select2Sortable:
+            field_css_classes[field] += ['select2Sortable']
 
         class QueryForm(OmgWtForm):
             field_order = copy(viz.form_fields)
