@@ -17,4 +17,3 @@ List of TODO items for Panoramix
 
 ## New Features
 * Annotations layers
-* Add a per-datasource permission
