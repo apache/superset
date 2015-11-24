@@ -243,10 +243,18 @@ class PivotTableViz(BaseViz):
 
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
-        if not self.form_data.get('groupby'):
+        groupby = self.form_data.get('groupby')
+        columns = self.form_data.get('columns')
+        metrics = self.form_data.get('metrics')
+        if not groupby:
             raise Exception("Please choose at least one \"Group by\" field ")
-        if not self.form_data.get('metrics'):
+        if not metrics:
             raise Exception("Please choose at least one metric")
+        if (
+                any(v in groupby for v in columns) or
+                any(v in columns for v in groupby)):
+            raise Exception("groupby and columns can't overlap")
+
         d['groupby'] = list(set(d['groupby']) | set(self.form_data.get('columns')))
         d['is_timeseries'] = False
         d['timeseries_limit'] = None
