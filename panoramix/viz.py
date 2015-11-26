@@ -222,6 +222,60 @@ class TableViz(BaseViz):
         return df
 
 
+class PivotTableViz(BaseViz):
+    viz_type = "pivot_table"
+    verbose_name = "Pivot Table"
+    template = 'panoramix/viz_pivot_table.html'
+    css_files = ['lib/dataTables/dataTables.bootstrap.css']
+    is_timeseries = False
+    js_files = [
+        'lib/dataTables/jquery.dataTables.min.js',
+        'lib/dataTables/dataTables.bootstrap.js']
+    form_fields = [
+        'viz_type',
+        'granularity',
+        ('since', 'until'),
+        'groupby',
+        'columns',
+        'metrics',
+        'pandas_aggfunc',
+    ]
+
+    def query_obj(self):
+        d = super(PivotTableViz, self).query_obj()
+        groupby = self.form_data.get('groupby')
+        columns = self.form_data.get('columns')
+        metrics = self.form_data.get('metrics')
+        if not groupby:
+            raise Exception("Please choose at least one \"Group by\" field ")
+        if not metrics:
+            raise Exception("Please choose at least one metric")
+        if (
+                any(v in groupby for v in columns) or
+                any(v in columns for v in groupby)):
+            raise Exception("groupby and columns can't overlap")
+
+        d['groupby'] = list(set(d['groupby']) | set(self.form_data.get('columns')))
+        d['is_timeseries'] = False
+        d['timeseries_limit'] = None
+        return d
+
+    def get_df(self):
+        df = super(PivotTableViz, self).get_df()
+        if (
+                self.form_data.get("granularity") == "all" and
+                'timestamp' in df):
+            del df['timestamp']
+        df = df.pivot_table(
+            index=self.form_data.get('groupby'),
+            columns=self.form_data.get('columns'),
+            values=self.form_data.get('metrics'),
+            aggfunc=self.form_data.get('pandas_aggfunc'),
+            margins=True,
+        )
+        return df
+
+
 class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
@@ -648,6 +702,7 @@ class DistributionBarViz(DistributionPieViz):
 
 viz_types_list = [
     TableViz,
+    PivotTableViz,
     NVD3TimeSeriesViz,
     NVD3CompareTimeSeriesViz,
     NVD3TimeSeriesStackedViz,

@@ -283,6 +283,20 @@ The source dataset came from [here](https://github.com/hadley/babynames)
         session.add(slc)
     slices.append(slc)
 
+    slice_name = "Pivot Table"
+    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    if not slc:
+        slc = Slice(
+            slice_name=slice_name,
+            viz_type='pivot_table',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                slice_name, viz_type="pivot_table", metrics=['sum__num'],
+                groupby=['name'], columns=['state']))
+        session.add(slc)
+    slices.append(slc)
+
     print("Creating a dashboard")
     Dash = models.Dashboard
     dash = session.query(Dash).filter_by(dashboard_title="Births").first()
