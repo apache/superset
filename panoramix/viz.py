@@ -508,17 +508,21 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         rolling_periods = form_data.get("rolling_periods")
         rolling_type = form_data.get("rolling_type")
-        if rolling_periods and rolling_type:
+
+        if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
             if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods), min_periods=1)
+                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
             elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods), min_periods=1)
+                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
             elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods), min_periods=1)
+                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
+        elif rolling_type == 'cumsum':
+            df = df.cumsum()
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
         series = df.to_dict('series')
+
         chart_data = []
         for name in df.T.index.tolist():
             ys = series[name]
@@ -542,7 +546,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 "color": color,
                 "classed": classed,
                 "values": [
-                    {'x': ds, 'y': ys[i]}
+                    {'x': ds, 'y': ys[ds]}
                     for i, ds in enumerate(df.timestamp)]
             }
             chart_data.append(d)
