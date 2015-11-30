@@ -127,8 +127,8 @@ class FormFactory(object):
                         "Limits the number of time series that get displayed")),
             'rolling_type': SelectField(
                 'Rolling',
-                default='mean',
-                choices=[(s, s) for s in ['mean', 'sum', 'std']],
+                default='None',
+                choices=[(s, s) for s in ['None', 'mean', 'sum', 'std', 'cumsum']],
                 description=(
                     "Defines a rolling window function to apply")),
             'rolling_periods': IntegerField(
