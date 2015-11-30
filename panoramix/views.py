@@ -352,15 +352,16 @@ class Panoramix(BaseView):
             datasource,
             form_data=request.args)
         if request.args.get("json") == "true":
+            status = 200
             if config.get("DEBUG"):
                 payload = obj.get_json()
-            try:
-                payload = obj.get_json()
-                status=200
-            except Exception as e:
-                logging.exception(e)
-                payload = str(e)
-                status=500
+            else:
+                try:
+                    payload = obj.get_json()
+                except Exception as e:
+                    logging.exception(e)
+                    payload = str(e)
+                    status = 500
             return Response(
                 payload,
                 status=status,
