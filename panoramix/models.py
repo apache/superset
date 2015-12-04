@@ -134,6 +134,7 @@ class Dashboard(Model, AuditMixinNullable):
     position_json = Column(Text)
     description = Column(Text)
     css = Column(Text)
+    slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
 
@@ -142,7 +143,7 @@ class Dashboard(Model, AuditMixinNullable):
 
     @property
     def url(self):
-        return "/panoramix/dashboard/{}/".format(self.id)
+        return "/panoramix/dashboard/{}/".format(self.slug or self.id)
 
     def dashboard_link(self):
         return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)

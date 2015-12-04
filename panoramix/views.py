@@ -210,7 +210,8 @@ appbuilder.add_view(
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on']
-    edit_columns = ['dashboard_title', 'slices', 'position_json', 'css']
+    edit_columns = [
+        'dashboard_title', 'slug', 'slices', 'position_json', 'css']
     add_columns = edit_columns
     base_order = ('changed_on','desc')
     description_columns = {
@@ -223,7 +224,13 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
             "The css for individual dashboards can be altered here, or "
             "in the dashboard view where changes are immediatly "
             "visible"),
+        'slug': "To get a readable URL for your dashboard",
     }
+    def pre_add(self, obj):
+        obj.slug = obj.slug.strip() or None
+
+    def pre_update(self, obj):
+        self.pre_add(obj)
 
 
 appbuilder.add_view(
@@ -424,15 +431,16 @@ class Panoramix(BaseView):
                 mimetype="application/json")
 
     @has_access
-    @expose("/dashboard/<id_>/")
-    def dashboard(self, id_):
+    @expose("/dashboard/<identifier>/")
+    def dashboard(self, identifier):
         session = db.session()
-        dashboard = (
-            session
-            .query(models.Dashboard)
-            .filter(models.Dashboard.id == id_)
-            .first()
-        )
+        qry = session.query(models.Dashboard)
+        if identifier.isdigit():
+            qry = qry.filter_by(id=int(identifier))
+        else:
+            qry = qry.filter_by(slug=identifier)
+
+        dashboard = qry.first()
         pos_dict = {}
         if dashboard.position_json:
             pos_dict = {
