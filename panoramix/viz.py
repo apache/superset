@@ -475,7 +475,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         ('show_brush', 'show_legend'),
         ('rich_tooltip', 'y_axis_zero'),
         ('y_log_scale', 'contribution'),
-        ('y_axis_format', None)
+        ('y_axis_format', 'x_axis_showminmax'),
     ]
 
     def get_df(self, query_obj=None):

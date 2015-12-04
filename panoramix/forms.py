@@ -185,7 +185,8 @@ class FormFactory(object):
                     'step-before', 'step-after']),
                 default='linear',
                 description="Line interpolation as defined by d3.js"),
-            'code': TextAreaField("Code", description="Put your code here", default=''),
+            'code': TextAreaField(
+                "Code", description="Put your code here", default=''),
             'pandas_aggfunc': SelectField(
                 "Aggregation function",
                 choices=self.choicify([
@@ -204,10 +205,15 @@ class FormFactory(object):
                 description="Font size for the biggest value in the list"),
             'show_brush': BetterBooleanField(
                 "Range Selector", default=True,
-                description="Whether to display the time range interactive selector"),
+                description=(
+                    "Whether to display the time range interactive selector")),
             'show_legend': BetterBooleanField(
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
+            'x_axis_showminmax': BetterBooleanField(
+                "X axis show min/max", default=True,
+                description=(
+                    "Whether to display the min and max values of the axis")),
             'rich_tooltip': BetterBooleanField(
                 "Rich Tooltip", default=True,
                 description="The rich tooltip shows a list of all series for that point in time"),

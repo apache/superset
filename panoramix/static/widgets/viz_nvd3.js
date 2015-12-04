@@ -45,7 +45,7 @@ function viz_nvd3(data_attribute) {
           //chart.lines2.xScale( d3.time.scale.utc());
           chart.lines2.xScale(d3.time.scale.utc());
           chart.x2Axis
-            .showMaxMin(true)
+            .showMaxMin(viz.form_data.x_axis_showminmax)
             .tickFormat(formatDate);
           } else {
             chart = nv.models.lineChart()
@@ -55,7 +55,7 @@ function viz_nvd3(data_attribute) {
           chart.xScale(d3.time.scale.utc());
           chart.interpolate(viz.form_data.line_interpolation);
           chart.xAxis
-            .showMaxMin(true)
+            .showMaxMin(viz.form_data.x_axis_showminmax)
             .tickFormat(formatDate);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
