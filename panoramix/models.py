@@ -9,7 +9,7 @@ from pydruid.utils.filters import Dimension, Filter
 import sqlalchemy as sqla
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
-    Table, create_engine, MetaData, desc, select, and_)
+    Table, create_engine, MetaData, desc, select, and_, func)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text
 from sqlalchemy.sql.elements import ColumnClause
@@ -883,6 +883,17 @@ class Datasource(Model, AuditMixinNullable, Queryable):
             df=df,
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
+
+
+class Log(Model):
+    __tablename__ = 'logs'
+
+    id = Column(Integer, primary_key=True)
+    action = Column(String(512))
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
+    json = Column(Text)
+    user = relationship('User', backref='logs', foreign_keys=[user_id])
+    dttm = Column(DateTime, default=func.now())
 
 
 class Metric(Model):
