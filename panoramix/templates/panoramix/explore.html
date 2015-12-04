@@ -77,14 +77,21 @@
           <i class="fa fa-bolt"></i>
           Slice!
         </button>
-        <button type="button" class="btn btn-default" id="save">
-          <i class="fa fa-save"></i>
-          Save as Slice
+        {% if viz.form_data.slice_id %}
+          <button type="button" class="btn btn-default" id="btn_overwrite">
+            <i class="fa fa-save"></i>
+            Overwrite
+          </button>
+        {% endif %}
+        <button type="button" class="btn btn-default" id="btn_save">
+          <i class="fa fa-plus-circle"></i>
+          Save as
         </button>
         <hr style="margin-bottom: 0px;">
         <img src="{{ url_for("static", filename="img/tux_panoramix.png") }}" width=250>
-        <input type="hidden" id="slice_name" name="slice_name" value="TEST">
-        <input type="hidden" id="action" name="action" value="">
+        {{ form.slice_id() }}
+        {{ form.slice_name() }}
+        <input type="hidden" name="action" id="action" value="">
         <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
         <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
         <input type="hidden" name="datasource_type" value="{{ datasource.type }}">

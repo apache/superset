@@ -274,9 +274,11 @@ def ping():
 
 
 class Panoramix(BaseView):
+
     @has_access
-    @expose("/datasource/<datasource_type>/<datasource_id>/")
-    def datasource(self, datasource_type, datasource_id):
+    @expose("/explore/<datasource_type>/<datasource_id>/")
+    @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
+    def explore(self, datasource_type, datasource_id):
         if datasource_type == "table":
             datasource = (
                 db.session
@@ -302,7 +304,7 @@ class Panoramix(BaseView):
                     "danger")
                 return redirect('/slicemodelview/list/')
         action = request.args.get('action')
-        if action == 'save':
+        if action in ('save', 'overwrite'):
             session = db.session()
 
             # TODO use form processing form wtforms
@@ -326,19 +328,29 @@ class Panoramix(BaseView):
 
             slice_name = request.args.get('slice_name')
 
-            obj = models.Slice(
-                params=json.dumps(d, indent=4, sort_keys=True),
-                viz_type=request.args.get('viz_type'),
-                datasource_name=request.args.get('datasource_name'),
-                druid_datasource_id=druid_datasource_id,
-                table_id=table_id,
-                datasource_type=datasource_type,
-                slice_name=slice_name,
-            )
-            session.add(obj)
+            if action == "save":
+                slc = models.Slice()
+                msg = "Slice [{}] has been saved".format(slice_name)
+            elif action == "overwrite":
+                slc = (
+                    session.query(models.Slice)
+                    .filter_by(id=request.args.get("slice_id"))
+                    .first()
+                )
+                msg = "Slice [{}] has been overwritten".format(slice_name)
+
+            slc.params = json.dumps(d, indent=4, sort_keys=True)
+            slc.datasource_name = request.args.get('datasource_name')
+            slc.viz_type = request.args.get('viz_type')
+            slc.druid_datasource_id = druid_datasource_id
+            slc.table_id = table_id
+            slc.datasource_type = datasource_type
+            slc.slice_name = slice_name
+
+            session.merge(slc)
             session.commit()
-            flash("Slice <{}> has been added to the pie".format(slice_name), "info")
-            return redirect(obj.slice_url)
+            flash(msg, "info")
+            return redirect(slc.slice_url)
 
 
         if not datasource:

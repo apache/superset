@@ -277,6 +277,8 @@ class FormFactory(object):
             standalone = HiddenField()
             async = HiddenField()
             json = HiddenField()
+            slice_id = HiddenField()
+            slice_name = HiddenField()
             previous_viz_type = HiddenField(default=viz.viz_type)
 
         filter_cols = datasource.filterable_column_names or ['']
