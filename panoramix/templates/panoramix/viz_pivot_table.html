@@ -21,7 +21,7 @@
         token.show();
       }
       else{
-        {% if viz.form_data.get('groupby')|length == 1 %}
+        {% if viz.form_data.get('groupby') and viz.form_data.get('groupby')|length == 1 %}
           var table = token.find('table').DataTable({
             paging: false,
             searching: false,
