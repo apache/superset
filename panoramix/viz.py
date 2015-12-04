@@ -93,7 +93,7 @@ class BaseViz(object):
             if d[key] == False:
                 del d[key]
         href = Href(
-            '/panoramix/datasource/{self.datasource.type}/'
+            '/panoramix/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         return href(d)
 

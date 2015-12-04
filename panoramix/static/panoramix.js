@@ -78,14 +78,21 @@ function initializeDatasourceView() {
   }
 
   $("#plus").click(add_filter);
-  $("#save").click(function () {
+  $("#btn_save").click(function () {
     var slice_name = prompt("Name your slice!");
     if (slice_name != "" && slice_name != null) {
       $("#slice_name").val(slice_name);
       $("#action").val("save");
       druidify();
     }
-  })
+  });
+  $("#btn_overwrite").click(function () {
+    var flag = confirm("Overwrite slice [" + $("#slice_name").val() + "] !?");
+    if (flag) {
+      $("#action").val("overwrite");
+      druidify();
+    }
+  });
   add_filter();
   $(".druidify").click(druidify);
 

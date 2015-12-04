@@ -6,7 +6,7 @@
   {% if viz.request.args.get("standalone") == "true" %}
     {% extends 'panoramix/viz_standalone.html' %}
   {% else %}
-    {% extends 'panoramix/datasource.html' %}
+    {% extends 'panoramix/explore.html' %}
   {% endif %}
 
 

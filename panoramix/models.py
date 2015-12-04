@@ -80,20 +80,21 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def datasource_id(self):
-        datasource = self.datasource
-        return datasource.id if datasource else None
+        return self.table_id or self.druid_datasource_id
 
     @property
     def slice_url(self):
         try:
-            d = json.loads(self.params)
+            slice_params = json.loads(self.params)
         except Exception as e:
-            d = {}
+            slice_params = {}
+        slice_params['slice_id'] = self.id
+        slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
-            "/panoramix/datasource/{self.datasource_type}/"
+            "/panoramix/explore/{self.datasource_type}/"
             "{self.datasource_id}/".format(self=self))
-        return href(d)
+        return href(slice_params)
 
     @property
     def edit_url(self):
@@ -250,7 +251,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def table_link(self):
-        url = "/panoramix/datasource/{self.type}/{self.id}/".format(self=self)
+        url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
         return '<a href="{url}">{self.table_name}</a>'.format(**locals())
 
     @property
@@ -694,9 +695,7 @@ class Datasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def datasource_link(self):
-        url = (
-            "/panoramix/datasource/"
-            "{self.type}/{self.id}/").format(self=self)
+        url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
         return '<a href="{url}">{self.datasource_name}</a>'.format(**locals())
 
     def get_metric_obj(self, metric_name):
