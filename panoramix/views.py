@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import logging
+import re
 import traceback
 
 from flask import request, redirect, flash, Response, render_template
@@ -228,6 +229,8 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
     }
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
+        obj.slug = obj.slug.replace(" ", "-")
+        obj.slug = re.sub(r'\W+', '', obj.slug)
 
     def pre_update(self, obj):
         self.pre_add(obj)
@@ -239,6 +242,19 @@ appbuilder.add_view(
     icon="fa-dashboard",
     category="",
     category_icon='',)
+
+
+class LogModelView(PanoramixModelView):
+    datamodel = SQLAInterface(models.Log)
+    list_columns = ('user', 'action', 'dttm')
+    edit_columns = ('user', 'action', 'dttm', 'json')
+    base_order = ('dttm','desc')
+
+appbuilder.add_view(
+    LogModelView,
+    "Action Log",
+    category="Security",
+    icon="fa-list-ol")
 
 
 class DatasourceModelView(PanoramixModelView, DeleteMixin):
@@ -285,6 +301,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
+    @utils.log_this
     def explore(self, datasource_type, datasource_id):
         if datasource_type == "table":
             datasource = (
@@ -432,6 +449,7 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/dashboard/<identifier>/")
+    @utils.log_this
     def dashboard(self, identifier):
         session = db.session()
         qry = session.query(models.Dashboard)

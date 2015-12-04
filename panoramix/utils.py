@@ -3,6 +3,7 @@ from dateutil.parser import parse
 import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
+from flask import g, request
 import parsedatetime
 import functools
 from panoramix import db
@@ -178,3 +179,26 @@ def init():
             table.perm for table in session.query(models.Datasource).all()]
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table.perm)
+
+
+def log_this(f):
+    '''
+    Decorator to log user actions
+    '''
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        user_id = None
+        if g.user:
+            user_id = g.user.id
+        from panoramix import models
+        log = models.Log(
+            action=f.__name__,
+            json=json.dumps(request.args.to_dict()),
+            user_id=user_id)
+
+        db.session.add(log)
+        db.session.commit()
+
+        return f(*args, **kwargs)
+
+    return wrapper
