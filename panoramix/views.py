@@ -335,7 +335,7 @@ class Panoramix(BaseView):
             d = request.args.to_dict(flat=False)
             del d['action']
             del d['previous_viz_type']
-            as_list = ('metrics', 'groupby')
+            as_list = ('metrics', 'groupby', 'columns')
             for k in d:
                 v = d.get(k)
                 if k in as_list and not isinstance(v, list):

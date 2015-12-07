@@ -70,6 +70,17 @@ class BaseViz(object):
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
 
+    def fieldsetizer(self):
+        """
+        Makes form_fields support either a list approach or a fieldsets
+        approach
+        """
+        ff = self.fieldsets if hasattr(self, 'fieldsets') else self.form_fields
+        if isinstance(ff[0], dict):
+            return self.fieldsets
+        else:
+            return ({'label': None, 'fields': ff},)
+
     @classmethod
     def flat_form_fields(cls):
         l = []
@@ -246,6 +257,10 @@ class PivotTableViz(BaseViz):
         groupby = self.form_data.get('groupby')
         columns = self.form_data.get('columns')
         metrics = self.form_data.get('metrics')
+        if not columns:
+            columns = []
+        if not groupby:
+            groupby = []
         if not groupby:
             raise Exception("Please choose at least one \"Group by\" field ")
         if not metrics:
@@ -255,7 +270,7 @@ class PivotTableViz(BaseViz):
                 any(v in columns for v in groupby)):
             raise Exception("groupby and columns can't overlap")
 
-        d['groupby'] = list(set(d['groupby']) | set(self.form_data.get('columns')))
+        d['groupby'] = list(set(groupby) | set(columns))
         d['is_timeseries'] = False
         d['timeseries_limit'] = None
         return d
@@ -464,19 +479,33 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = "Time Series - Line Chart"
     sort_series = False
     is_timeseries = True
-    form_fields = [
-        'viz_type',
-        'granularity', ('since', 'until'),
-        'metrics',
-        'groupby', 'limit',
-        ('rolling_type', 'rolling_periods'),
-        ('time_compare', 'num_period_compare'),
-        ('line_interpolation', None),
-        ('show_brush', 'show_legend'),
-        ('rich_tooltip', 'y_axis_zero'),
-        ('y_log_scale', 'contribution'),
-        ('y_axis_format', 'x_axis_showminmax'),
-    ]
+    fieldsets = (
+        {
+            'label': None,
+            'fields': (
+                'viz_type',
+                'granularity', ('since', 'until'),
+                'metrics',
+                'groupby', 'limit',
+            ),
+        }, {
+            'label': 'Chart Options',
+            'fields': (
+                ('show_brush', 'show_legend'),
+                ('rich_tooltip', 'y_axis_zero'),
+                ('y_log_scale', 'contribution'),
+                ('y_axis_format', 'x_axis_showminmax'),
+                ('line_interpolation', None),
+            ),
+        }, {
+            'label': 'Advanced Analytics',
+            'fields': (
+                ('rolling_type', 'rolling_periods'),
+                'time_compare',
+                'num_period_compare',
+            ),
+        },
+    )
 
     def get_df(self, query_obj=None):
         form_data = self.form_data
