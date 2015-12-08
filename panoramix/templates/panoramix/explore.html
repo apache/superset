@@ -22,57 +22,74 @@
 
       <hr>
       <form id="query" method="GET" style="display: none;">
-        {% for fieldname in form.field_order %}
-        {% if not fieldname.__iter__ %}
-        <div>
-          {% set field = form.get_field(fieldname)%}
-          <div>
-            {{ field.label }}
-            {% if field.description %}
-            <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-              title="{{ field.description }}"></i>
-            {% endif %}:
-            {{ field(class_=form.field_css_classes(field.name)) }}
-          </div>
-        </div>
-        {% else %}
-        <div class="row">
-          <div class="form-group">
-            {% for name in fieldname %}
-            <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-              {% if name %}
-                {% set field = form.get_field(name)%}
-                {{ field.label }}
-                {% if field.description %}
-                <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                  title="{{ field.description }}"></i>
-                {% endif %}:
-                {{ field(class_=form.field_css_classes(field.name)) }}
+      {% for fieldset in form.fieldsets %}
+          <fieldset class="fs-style">
+            {% if fieldset.label %}
+              <legend class="legend-style">
+                <span class="legend_label">{{ fieldset.label }}</span>
+                <span class="collapser"> [-]</span>
+              </legend>
+            {% endif %}
+            <div class="fieldset_content">
+            {% for fieldname in fieldset.fields %}
+              {% if not fieldname.__iter__ %}
+              <div>
+                {% set field = form.get_field(fieldname)%}
+                <div>
+                  {{ field.label }}
+                  {% if field.description %}
+                  <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                    title="{{ field.description }}"></i>
+                  {% endif %}
+                  {{ field(class_=form.field_css_classes(field.name)) }}
+                </div>
+              </div>
+              {% else %}
+              <div class="row">
+                <div class="form-group">
+                  {% for name in fieldname %}
+                  <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                    {% if name %}
+                      {% set field = form.get_field(name)%}
+                      {{ field.label }}
+                      {% if field.description %}
+                      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+                        title="{{ field.description }}"></i>
+                      {% endif %}
+                      {{ field(class_=form.field_css_classes(field.name)) }}
+                    {% endif %}
+                  </div>
+                  {% endfor %}
+                </div>
+              </div>
               {% endif %}
-            </div>
             {% endfor %}
-          </div>
-        </div>
-        {% endif %}
+            </div>
+          </fieldset>
         {% endfor %}
-        <hr>
-        <h4>Filters</h4>
-        <div id="flt0" style="display: none;">
-          <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
-          <div class="row">
-            <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
-            <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
-            <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
-              <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+        <fieldset class="fs-style">
+          <legend class="legend-style">
+            <span class="legend_label">Filters</span>
+            <span class="collapser"> [-]</span>
+          </legend>
+          <div class="fieldset_content">
+            <div id="flt0" style="display: none;">
+              <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+              <div class="row">
+                <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+                <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+                <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
+                  <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+                </button>
+              </div>
+              <hr style="margin: 5px 0px;"/>
+            </div>
+            <div id="filters"></div>
+            <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
+              <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
             </button>
           </div>
-          <hr style="margin: 5px 0px;"/>
-        </div>
-        <div id="filters"></div>
-        <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
-          <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
-        </button>
-        <hr>
+        </fieldset>
         <button type="button" class="btn btn-primary druidify">
           <i class="fa fa-bolt"></i>
           Slice!
@@ -91,6 +108,7 @@
         <img src="{{ url_for("static", filename="img/tux_panoramix.png") }}" width=250>
         {{ form.slice_id() }}
         {{ form.slice_name() }}
+        {{ form.collapsed_fieldsets() }}
         <input type="hidden" name="action" id="action" value="">
         <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
         <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
@@ -161,6 +179,57 @@
     var widget = px.initializeWidget(data);
     $('.widget').data('widget', widget);
     widget.render();
+
+    function get_collapsed_fieldsets(){
+        collapsed_fieldsets = $("#collapsed_fieldsets").val()
+        if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
+          collapsed_fieldsets = collapsed_fieldsets.split('||');
+        else
+          collapsed_fieldsets = [];
+        return collapsed_fieldsets;
+    }
+
+    function toggle_fieldset(legend, animation) {
+        var parent = legend.parent();
+        fieldset = parent.find(".legend_label").text();
+        collapsed_fieldsets = get_collapsed_fieldsets();
+
+        if (!parent.hasClass("collapsed")){
+          if (animation)
+            parent.find(".fieldset_content").slideUp();
+          else
+            parent.find(".fieldset_content").hide();
+
+          parent.addClass("collapsed");
+          parent.find("span.collapser").text("[+]");
+          var index = collapsed_fieldsets.indexOf(fieldset);
+          if (index === -1 && fieldset !== "" && fieldset !== undefined) {
+            collapsed_fieldsets.push(fieldset);
+          }
+        } else {
+          if (animation)
+            parent.find(".fieldset_content").slideDown();
+          else
+            parent.find(".fieldset_content").show();
+          parent.removeClass("collapsed");
+          parent.find("span.collapser").text("[-]");
+
+          // removing from array, js is overcomplicated
+          var index = collapsed_fieldsets.indexOf(fieldset);
+          if (index !== -1) {
+            collapsed_fieldsets.splice(index, 1);
+          }
+        }
+        $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
+    }
+
+    $('legend').click(function () {
+      toggle_fieldset($(this), true);
+    });
+    collapsed_fieldsets = get_collapsed_fieldsets();
+    for(var i=0; i<collapsed_fieldsets.length;i++){
+      toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
+    }
   });
 </script>
 {% endblock %}

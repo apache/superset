@@ -38,18 +38,8 @@ class BetterSelectMultipleField(SelectMultipleField):
 
 
 class OmgWtForm(Form):
-    field_order = tuple()
+    fieldsets = {}
     css_classes = dict()
-
-    @property
-    def fields(self):
-        fields = []
-        for field in self.field_order:
-            if hasattr(self, field):
-                obj = getattr(self, field)
-                if isinstance(obj, Field):
-                    fields.append(getattr(self, field))
-        return fields
 
     def get_field(self, fieldname):
         return getattr(self, fieldname)
@@ -179,7 +169,7 @@ class FormFactory(object):
                 default="random",
                 description="Rotation to apply to words in the cloud"),
             'line_interpolation': SelectField(
-                "Line Interpolation",
+                "Line Style",
                 choices=self.choicify([
                     'linear', 'basis', 'cardinal', 'monotone',
                     'step-before', 'step-after']),
@@ -204,7 +194,7 @@ class FormFactory(object):
                 default="150",
                 description="Font size for the biggest value in the list"),
             'show_brush': BetterBooleanField(
-                "Range Selector", default=True,
+                "Range Filter", default=True,
                 description=(
                     "Whether to display the time range interactive selector")),
             'show_legend': BetterBooleanField(
@@ -239,7 +229,7 @@ class FormFactory(object):
                     "[integer] Number of period to compare against, "
                     "this is relative to the granularity selected")),
             'time_compare': TextField(
-                "Time Shift Compare",
+                "Time Shift",
                 default="",
                 description=(
                     "Overlay a timeseries from a "
@@ -278,7 +268,7 @@ class FormFactory(object):
             field_css_classes[field] += ['select2Sortable']
 
         class QueryForm(OmgWtForm):
-            field_order = copy(viz.form_fields)
+            fieldsets = copy(viz.fieldsetizer())
             css_classes = field_css_classes
             standalone = HiddenField()
             async = HiddenField()
@@ -286,6 +276,7 @@ class FormFactory(object):
             slice_id = HiddenField()
             slice_name = HiddenField()
             previous_viz_type = HiddenField(default=viz.viz_type)
+            collapsed_fieldsets = HiddenField()
 
         filter_cols = datasource.filterable_column_names or ['']
         for i in range(10):
@@ -300,23 +291,24 @@ class FormFactory(object):
             setattr(
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
-        for ff in viz.form_fields:
-            if isinstance(ff, string_types):
-                ff = [ff]
-            for s in ff:
-                if s:
-                    setattr(QueryForm, s, px_form_fields[s])
+        for fieldset in viz.fieldsetizer():
+            for ff in fieldset['fields']:
+                if isinstance(ff, string_types):
+                    ff = [ff]
+                for s in ff:
+                    if s:
+                        setattr(QueryForm, s, px_form_fields[s])
 
         # datasource type specific form elements
         if datasource.__class__.__name__ == 'SqlaTable':
-            QueryForm.field_order += ['where', 'having']
+            QueryForm.fieldsets += (
+                {'label': 'SQL', 'fields': ['where', 'having']},)
             setattr(QueryForm, 'where', px_form_fields['where'])
             setattr(QueryForm, 'having', px_form_fields['having'])
 
-            if 'granularity' in viz.form_fields:
+            if 'granularity' in viz.flat_form_fields():
                 setattr(
                     QueryForm,
                     'granularity', px_form_fields['granularity_sqla'])
                 field_css_classes['granularity'] = ['form-control', 'select2']
-
         return QueryForm
