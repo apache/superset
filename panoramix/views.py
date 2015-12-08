@@ -229,8 +229,9 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
     }
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
-        obj.slug = obj.slug.replace(" ", "-")
-        obj.slug = re.sub(r'\W+', '', obj.slug)
+        if obj.slug:
+            obj.slug = obj.slug.replace(" ", "-")
+            obj.slug = re.sub(r'\W+', '', obj.slug)
 
     def pre_update(self, obj):
         self.pre_add(obj)
