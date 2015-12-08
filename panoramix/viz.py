@@ -24,12 +24,16 @@ class BaseViz(object):
     verbose_name = "Base Viz"
     template = None
     is_timeseries = False
-    form_fields = [
-        'viz_type',
-        'granularity',
-        ('since', 'until'),
-        'metrics', 'groupby',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity',
+            ('since', 'until'),
+            'metrics', 'groupby',
+        )
+    },)
     js_files = []
     css_files = []
 
@@ -75,20 +79,17 @@ class BaseViz(object):
         Makes form_fields support either a list approach or a fieldsets
         approach
         """
-        ff = self.fieldsets if hasattr(self, 'fieldsets') else self.form_fields
-        if isinstance(ff[0], dict):
-            return self.fieldsets
-        else:
-            return ({'label': None, 'fields': ff},)
+        return self.fieldsets
 
     @classmethod
     def flat_form_fields(cls):
-        l = []
-        for obj in cls.form_fields:
-            if isinstance(obj, (tuple, list)):
-                l += [a for a in obj]
-            else:
-                l.append(obj)
+        l = set()
+        for d in cls.fieldsets:
+            for obj in d['fields']:
+                if isinstance(obj, (tuple, list)):
+                    l |= {a for a in obj}
+                else:
+                    l.add(obj)
         return l
 
     def reassignments(self):
@@ -209,7 +210,17 @@ class TableViz(BaseViz):
     viz_type = "table"
     verbose_name = "Table View"
     template = 'panoramix/viz_table.html'
-    form_fields = BaseViz.form_fields + ['row_limit']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity',
+            ('since', 'until'),
+            'metrics', 'groupby',
+            'row_limit'
+        )
+    },)
     css_files = ['lib/dataTables/dataTables.bootstrap.css']
     is_timeseries = False
     js_files = [
@@ -242,15 +253,19 @@ class PivotTableViz(BaseViz):
     js_files = [
         'lib/dataTables/jquery.dataTables.min.js',
         'lib/dataTables/dataTables.bootstrap.js']
-    form_fields = [
-        'viz_type',
-        'granularity',
-        ('since', 'until'),
-        'groupby',
-        'columns',
-        'metrics',
-        'pandas_aggfunc',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity',
+            ('since', 'until'),
+            'groupby',
+            'columns',
+            'metrics',
+            'pandas_aggfunc',
+        )
+    },)
 
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
@@ -295,7 +310,11 @@ class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
     template = 'panoramix/viz_markup.html'
-    form_fields = ['viz_type', 'markup_type', 'code']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': ('viz_type', 'markup_type', 'code')
+    },)
     is_timeseries = False
 
     def rendered(self):
@@ -316,13 +335,17 @@ class WordCloudViz(BaseViz):
     verbose_name = "Word Cloud"
     template = 'panoramix/viz_word_cloud.html'
     is_timeseries = False
-    form_fields = [
-        'viz_type',
-        ('since', 'until'),
-        'groupby', 'metric', 'limit',
-        ('size_from', 'size_to'),
-        'rotation',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            ('since', 'until'),
+            'groupby', 'metric', 'limit',
+            ('size_from', 'size_to'),
+            'rotation',
+        )
+    },)
     js_files = [
         'lib/d3.min.js',
         'lib/d3.layout.cloud.js',
@@ -364,15 +387,19 @@ class BubbleViz(NVD3Viz):
     viz_type = "bubble"
     verbose_name = "Bubble Chart"
     is_timeseries = False
-    form_fields = [
-        'viz_type',
-        ('since', 'until'),
-        ('series', 'entity'),
-        ('x', 'y'),
-        ('size', 'limit'),
-        ('x_log_scale', 'y_log_scale'),
-        ('show_legend', None),
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            ('since', 'until'),
+            ('series', 'entity'),
+            ('x', 'y'),
+            ('size', 'limit'),
+            ('x_log_scale', 'y_log_scale'),
+            ('show_legend', None),
+        )
+    },)
 
     def query_obj(self):
         form_data = self.form_data
@@ -435,14 +462,18 @@ class BigNumberViz(BaseViz):
     css_files = [
         'widgets/viz_bignumber.css',
     ]
-    form_fields = [
-        'viz_type',
-        'granularity',
-        ('since', 'until'),
-        'metric',
-        'compare_lag',
-        'compare_suffix',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity',
+            ('since', 'until'),
+            'metric',
+            'compare_lag',
+            'compare_suffix',
+        )
+    },)
 
     def reassignments(self):
         metric = self.form_data.get('metric')
@@ -611,54 +642,70 @@ class NVD3TimeSeriesViz(NVD3Viz):
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = "bar"
     verbose_name = "Time Series - Bar Chart"
-    form_fields = [
-        'viz_type',
-        'granularity', ('since', 'until'),
-        'metrics',
-        'groupby', 'limit',
-        ('rolling_type', 'rolling_periods'),
-        'show_legend',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity', ('since', 'until'),
+            'metrics',
+            'groupby', 'limit',
+            ('rolling_type', 'rolling_periods'),
+            'show_legend',
+        )
+    },)
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
     viz_type = 'compare'
     verbose_name = "Time Series - Percent Change"
-    form_fields = [
-        'viz_type',
-        'granularity', ('since', 'until'),
-        'metrics',
-        'groupby', 'limit',
-        ('rolling_type', 'rolling_periods'),
-        'show_legend',
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity', ('since', 'until'),
+            'metrics',
+            'groupby', 'limit',
+            ('rolling_type', 'rolling_periods'),
+            'show_legend',
+        )
+    },)
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = "Time Series - Stacked"
     sort_series = True
-    form_fields = [
-        'viz_type',
-        'granularity', ('since', 'until'),
-        'metrics',
-        'groupby', 'limit',
-        ('rolling_type', 'rolling_periods'),
-        ('rich_tooltip', 'show_legend'),
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            'granularity', ('since', 'until'),
+            'metrics',
+            'groupby', 'limit',
+            ('rolling_type', 'rolling_periods'),
+            ('rich_tooltip', 'show_legend'),
+        )
+    },)
 
 
 class DistributionPieViz(NVD3Viz):
     viz_type = "pie"
     verbose_name = "Distribution - NVD3 - Pie Chart"
     is_timeseries = False
-    form_fields = [
-        'viz_type',
-        ('since', 'until'),
-        'metrics', 'groupby',
-        'limit',
-        ('donut', 'show_legend'),
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            ('since', 'until'),
+            'metrics', 'groupby',
+            'limit',
+            ('donut', 'show_legend'),
+        )
+    },)
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
@@ -689,12 +736,16 @@ class DistributionBarViz(DistributionPieViz):
     viz_type = "dist_bar"
     verbose_name = "Distribution - Bar Chart"
     is_timeseries = False
-    form_fields = [
-        'viz_type', 'metrics', 'groupby',
-        ('since', 'until'),
-        'limit',
-        ('show_legend', None),
-    ]
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type', 'metrics', 'groupby',
+            ('since', 'until'),
+            'limit',
+            ('show_legend', None),
+        )
+    },)
 
     def get_df(self):
         df = super(DistributionPieViz, self).get_df()

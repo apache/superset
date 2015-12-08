@@ -53,9 +53,6 @@ function viz_nvd3(data_attribute) {
           // To alter the tooltip header
           // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
           chart.xScale(d3.time.scale.utc());
-          chart.useInteractiveGuideline(false);
-          chart.interactiveLayer.tooltip.chartContainer(document.body);
-
           chart.interpolate(viz.form_data.line_interpolation);
           chart.xAxis
             .showMaxMin(viz.form_data.x_axis_showminmax)

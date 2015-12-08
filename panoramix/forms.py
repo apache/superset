@@ -41,14 +41,6 @@ class OmgWtForm(Form):
     fieldsets = {}
     css_classes = dict()
 
-    @property
-    def form_fields(self):
-        all_field_ids = set()
-        for k, fieldset in self.fieldsets:
-            all_field_ids |= fieldset
-        return all_field_ids
-
-
     def get_field(self, fieldname):
         return getattr(self, fieldname)
 
@@ -314,7 +306,7 @@ class FormFactory(object):
             setattr(QueryForm, 'where', px_form_fields['where'])
             setattr(QueryForm, 'having', px_form_fields['having'])
 
-            if 'granularity' in viz.form_fields:
+            if 'granularity' in viz.flat_form_fields():
                 setattr(
                     QueryForm,
                     'granularity', px_form_fields['granularity_sqla'])
