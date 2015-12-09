@@ -76,7 +76,11 @@ class FormFactory(object):
             'metric': SelectField(
                 'Metric', choices=datasource.metrics_combo,
                 default=default_metric,
-                description="One or many metrics to display"),
+                description="Chose the metric"),
+            'secondary_metric': SelectField(
+                'Color Metric', choices=datasource.metrics_combo,
+                default=default_metric,
+                description="A metric to use for color"),
             'groupby': BetterSelectMultipleField(
                 'Group by',
                 choices=self.choicify(datasource.groupby_column_names),

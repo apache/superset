@@ -1,5 +1,6 @@
 function viz_nvd3(data_attribute) {
   var token_name = data_attribute['token'];
+  var token = d3.select('#' + token_name);
   var json_callback = data_attribute['json_endpoint'];
   var chart = undefined;
 
@@ -25,7 +26,6 @@ function viz_nvd3(data_attribute) {
     "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
   ];
-  var token = d3.select('#' + token_name);
   var jtoken = $('#' + token_name);
   var loading = $('#' + token_name).find("img.loading");
   var chart_div = $('#' + token_name).find("div.chart");
