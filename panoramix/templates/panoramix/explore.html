@@ -36,10 +36,10 @@
               <div>
                 {% set field = form.get_field(fieldname)%}
                 <div>
-                  {{ field.label }}
+                  {{ viz.get_form_override(fieldname, 'label') or field.label }}
                   {% if field.description %}
                   <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                    title="{{ field.description }}"></i>
+                    title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
                   {% endif %}
                   {{ field(class_=form.field_css_classes(field.name)) }}
                 </div>
@@ -51,10 +51,10 @@
                   <div class="col-xs-{{ (12 / fieldname|length) | int }}">
                     {% if name %}
                       {% set field = form.get_field(name)%}
-                      {{ field.label }}
+                      {{ viz.form_overrides.label or field.label }}
                       {% if field.description %}
                       <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                        title="{{ field.description }}"></i>
+                        title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
                       {% endif %}
                       {{ field(class_=form.field_css_classes(field.name)) }}
                     {% endif %}
