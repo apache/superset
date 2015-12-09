@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import json
 import uuid
 
-from flask import flash, request
+from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
 from werkzeug.datastructures import ImmutableMultiDict
@@ -36,6 +36,7 @@ class BaseViz(object):
     },)
     js_files = []
     css_files = []
+    form_overrides = {}
 
     def __init__(self, datasource, form_data):
         self.orig_form_data = form_data
@@ -73,6 +74,16 @@ class BaseViz(object):
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
+
+    def get_form_override(self, fieldname, attr):
+        if (
+                fieldname in self.form_overrides and
+                attr in self.form_overrides[fieldname]):
+            s = self.form_overrides[fieldname][attr]
+            if attr == 'label':
+                s = '<label for="{fieldname}">{s}</label>'.format(**locals())
+                s = Markup(s)
+            return s
 
     def fieldsetizer(self):
         """
@@ -804,6 +815,24 @@ class SunburstViz(BaseViz):
             'limit',
         )
     },)
+    form_overrides = {
+        'metric': {
+            'label': 'Primary Metric',
+            'description': (
+                "The primary metric is used to "
+                "define the arc segment sizes"),
+        },
+        'secondary_metric': {
+            'label': 'Secondary Metric',
+            'description': (
+                "This secondary metric is used to "
+                "define the color as a ratio against the primary metric"),
+        },
+        'groupby': {
+            'label': 'Hierarchy',
+            'description': "This defines the level of the hierarchy",
+        },
+    }
 
     def get_df(self):
         df = super(SunburstViz, self).get_df()
