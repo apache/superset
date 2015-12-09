@@ -784,6 +784,44 @@ class DistributionBarViz(DistributionPieViz):
         })
 
 
+class SunburstViz(BaseViz):
+    viz_type = "sunburst"
+    verbose_name = "Sunburst"
+    is_timeseries = False
+    template = 'panoramix/viz_sunburst.html'
+    js_files = [
+        'lib/d3.min.js',
+        'widgets/viz_sunburst.js']
+    css_files = ['widgets/viz_sunburst.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'viz_type',
+            ('since', 'until'),
+            'groupby',
+            'metric', 'secondary_metric',
+            'limit',
+        )
+    },)
+
+    def get_df(self):
+        df = super(SunburstViz, self).get_df()
+        return df
+
+    def get_json_data(self):
+        df = self.get_df()
+        # if m1 == m2 dupplicate the metric column
+        if self.form_data['metric'] == self.form_data['secondary_metric']:
+            df['dup'] = df[df.columns[-1]]
+        return df.to_json(orient="values")
+
+    def query_obj(self):
+        qry = super(SunburstViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric'], self.form_data['secondary_metric']]
+        return qry
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -797,6 +835,7 @@ viz_types_list = [
     MarkupViz,
     WordCloudViz,
     BigNumberViz,
+    SunburstViz,
 ]
 # This dict is used to
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

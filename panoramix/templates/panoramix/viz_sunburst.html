@@ -1,0 +1,14 @@
+{% macro viz_html(viz) %}
+<div id="{{ viz.token }}" class="token">
+  <div id="chart">
+    <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading">
+  </div>
+</div>
+{% endmacro %}
+
+{% macro viz_js(viz) %}
+{% endmacro %}
+
+{% macro viz_css(viz) %}
+{% endmacro %}
+

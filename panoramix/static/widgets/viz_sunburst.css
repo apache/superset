@@ -1,0 +1,37 @@
+#sidebar {
+  float: right;
+  width: 100px;
+}
+
+text.middle{
+    text-anchor: middle;
+}
+
+#sequence {
+}
+
+#legend {
+  padding: 10px 0 0 3px;
+}
+
+#sequence text, #legend text {
+  font-weight: 600;
+  fill: #fff;
+}
+
+#chart {
+  height: 100%;
+}
+
+div.token {
+  height: 100%;
+}
+
+#chart path {
+  stroke: #fff;
+}
+
+#percentage {
+  font-size: 2.5em;
+}
+
