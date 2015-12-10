@@ -812,7 +812,7 @@ class SunburstViz(BaseViz):
             ('since', 'until'),
             'groupby',
             'metric', 'secondary_metric',
-            'limit',
+            'row_limit',
         )
     },)
     form_overrides = {
