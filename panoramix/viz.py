@@ -541,6 +541,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ),
         }, {
             'label': 'Advanced Analytics',
+            'description': (
+                "This section contains options "
+                "that allow for advanced analytical post processing "
+                "of query reults"),
             'fields': (
                 ('rolling_type', 'rolling_periods'),
                 'time_compare',
