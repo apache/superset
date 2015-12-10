@@ -124,13 +124,14 @@ class FormFactory(object):
                 default='None',
                 choices=[(s, s) for s in ['None', 'mean', 'sum', 'std', 'cumsum']],
                 description=(
-                    "Defines a rolling window function to apply")),
+                    "Defines a rolling window function to apply, works along "
+                    "with the [Periods] text box")),
             'rolling_periods': IntegerField(
                 'Periods',
                 validators=[validators.optional()],
                 description=(
                 "Defines the size of the rolling window function, "
-                "relative to the 'granularity' field")),
+                "relative to the time granularity selected")),
             'series': SelectField(
                 'Series', choices=group_by_choices,
                 default=default_groupby,
@@ -152,8 +153,19 @@ class FormFactory(object):
                     'Bubble Size',
                     default=default_metric,
                     choices=datasource.metrics_combo),
-            'where': TextField('Custom WHERE clause', default=''),
-            'having': TextField('Custom HAVING clause', default=''),
+            'where': TextField(
+                'Custom WHERE clause', default='',
+                description=(
+                    "The text in this box gets included in your query's WHERE "
+                    "clause, as an AND to other criteria. You can include "
+                    "complex expression, parenthesis and anything else "
+                    "supported by the backend it is directed towards.")),
+            'having': TextField('Custom HAVING clause', default='',
+                description=(
+                    "The text in this box gets included in your query's HAVING"
+                    " clause, as an AND to other criteria. You can include "
+                    "complex expression, parenthesis and anything else "
+                    "supported by the backend it is directed towards.")),
             'compare_lag': TextField('Comparison Period Lag',
                 description="Based on granularity, number of time periods to compare against"),
             'compare_suffix': TextField('Comparison suffix',
@@ -305,8 +317,13 @@ class FormFactory(object):
 
         # datasource type specific form elements
         if datasource.__class__.__name__ == 'SqlaTable':
-            QueryForm.fieldsets += (
-                {'label': 'SQL', 'fields': ['where', 'having']},)
+            QueryForm.fieldsets += ({
+                'label': 'SQL',
+                'fields': ['where', 'having'],
+                'description': (
+                    "This section exposes ways to include snippets of "
+                    "SQL in your query"),
+            },)
             setattr(QueryForm, 'where', px_form_fields['where'])
             setattr(QueryForm, 'having', px_form_fields['having'])
 

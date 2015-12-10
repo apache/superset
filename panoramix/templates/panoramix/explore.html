@@ -27,6 +27,11 @@
             {% if fieldset.label %}
               <legend class="legend-style">
                 <span class="legend_label">{{ fieldset.label }}</span>
+                {% if fieldset.description %}
+                  <i    class="fa fa-info-circle" data-toggle="tooltip"
+                        data-placement="bottom"
+                        title="{{ fieldset.description }}"></i>
+                {% endif %}
                 <span class="collapser"> [-]</span>
               </legend>
             {% endif %}
@@ -70,6 +75,9 @@
         <fieldset class="fs-style">
           <legend class="legend-style">
             <span class="legend_label">Filters</span>
+            <i  class="fa fa-info-circle" data-toggle="tooltip"
+                data-placement="bottom"
+                title="Filters are defined using comma delimited strings as in 'US,FR,Other'"></i>
             <span class="collapser"> [-]</span>
           </legend>
           <div class="fieldset_content">
