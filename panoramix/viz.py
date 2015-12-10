@@ -878,6 +878,43 @@ class SunburstViz(BaseViz):
             self.form_data['metric'], self.form_data['secondary_metric']]
         return qry
 
+
+class SankeyViz(BaseViz):
+    viz_type = "sankey"
+    verbose_name = "Sankey"
+    is_timeseries = False
+    template = 'panoramix/viz_sankey.html'
+    js_files = [
+        'lib/d3.min.js',
+        'lib/d3-sankey.js',
+        'widgets/viz_sankey.js']
+    css_files = ['widgets/viz_sankey.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'groupby',
+            'metric',
+            'row_limit',
+        )
+    },)
+    form_overrides = {}
+
+    def query_obj(self):
+        qry = super(SankeyViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric']]
+        return qry
+
+    def get_json_data(self):
+        df = self.get_df()
+        df.columns = ['source', 'target', 'value']
+        d = df.to_dict(orient='records')
+        return dumps(d)
+
+
 class DirectedForceViz(BaseViz):
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
@@ -939,6 +976,7 @@ viz_types_list = [
     BigNumberViz,
     SunburstViz,
     DirectedForceViz,
+    SankeyViz,
 ]
 # This dict is used to
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
