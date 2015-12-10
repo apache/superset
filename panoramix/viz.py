@@ -840,10 +840,20 @@ class SunburstViz(BaseViz):
 
     def get_json_data(self):
         df = self.get_df()
-        # if m1 == m2 dupplicate the metric column
-        if self.form_data['metric'] == self.form_data['secondary_metric']:
-            df['dup'] = df[df.columns[-1]]
-        return df.to_json(orient="values")
+
+        # if m1 == m2 duplicate the metric column
+        cols = self.form_data.get('groupby')
+        metric = self.form_data.get('metric')
+        secondary_metric = self.form_data.get('secondary_metric')
+        if metric == secondary_metric:
+            ndf = df[cols]
+            ndf['m1'] = df[metric]
+            ndf['m2'] = df[metric]
+        else:
+            cols += [
+                self.form_data['metric'], self.form_data['secondary_metric']]
+            ndf = df[cols]
+        return ndf.to_json(orient="values")
 
     def query_obj(self):
         qry = super(SunburstViz, self).query_obj()
