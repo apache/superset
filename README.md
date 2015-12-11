@@ -149,6 +149,10 @@ More screenshots
 ![img](http://i.imgur.com/PaiFQnH.png)
 ![img](http://i.imgur.com/CdcGHuC.png)
 
+Related Links
+-------------
+* [Panoramix Google Group] (https://groups.google.com/forum/#!forum/airbnb_panoramix)
+
 
 Tip of the Hat
 --------------
