@@ -50,9 +50,14 @@ body {
 </div>
 
 <div class="title">
-    <div class="text-middle">
-      <h2>
-        {{ dashboard.dashboard_title }}
+    <div class="row">
+      <div class="col-md-2"></div>
+      <div class="col-md-8">
+        <h2>
+          {{ dashboard.dashboard_title }}
+        </h2>
+      </div>
+      <div class="col-md-2">
         <div class="btn-group pull-right" role="group" >
           <button type="button" id="css" class="btn btn-default" data-toggle="modal" data-target="#css_modal">
             <i class="fa fa-code"></i>
@@ -64,7 +69,7 @@ body {
             <i class="fa fa-save"></i>
           </button>
         </div>
-      </h2>
+      </div>
     </div>
 </div>
 <div class="gridster content_fluid">
