@@ -3,7 +3,7 @@ from dateutil.parser import parse
 import hashlib
 from sqlalchemy.types import TypeDecorator, TEXT
 import json
-from flask import g, request
+from flask import g, request, Markup
 import parsedatetime
 import functools
 from panoramix import db
@@ -200,5 +200,15 @@ def log_this(f):
         db.session.commit()
 
         return f(*args, **kwargs)
-
     return wrapper
+
+
+def datetime_f(dttm):
+    if dttm:
+        dttm = dttm.isoformat()
+        now_iso = datetime.now().isoformat()
+        if now_iso[:10] == dttm[:10]:
+            dttm = dttm[11:]
+        elif now_iso[:4] == dttm[:4]:
+            dttm = dttm[5:]
+    return Markup("<nobr>{}</nobr>".format(dttm))

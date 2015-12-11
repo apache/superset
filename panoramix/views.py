@@ -105,7 +105,7 @@ appbuilder.add_view_no_menu(MetricInlineView)
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'created_by', 'changed_on']
+    list_columns = ['database_name', 'created_by', 'changed_on_']
     add_columns = ['database_name', 'sqlalchemy_uri']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
@@ -137,7 +137,7 @@ appbuilder.add_view(
 
 class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    list_columns = ['table_link', 'database', 'changed_by', 'changed_on']
+    list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'database', 'main_dttm_col', 'default_endpoint',
@@ -194,7 +194,7 @@ class SliceModelView(PanoramixModelView, DeleteMixin):
     can_add = False
     list_columns = [
         'slice_link', 'viz_type', 'datasource_type',
-        'datasource', 'created_by', 'changed_on']
+        'datasource', 'created_by', 'changed_on_']
     edit_columns = [
         'slice_name', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params']
@@ -211,7 +211,7 @@ appbuilder.add_view(
 
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
-    list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on']
+    list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on_']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'position_json', 'css']
     add_columns = edit_columns

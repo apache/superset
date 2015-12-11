@@ -43,6 +43,9 @@ class AuditMixinNullable(AuditMixin):
     def changed_by_fk(cls):
         return Column(Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
+    @property
+    def changed_on_(cls):
+        return utils.datetime_f(cls.changed_on)
 
 
 class Slice(Model, AuditMixinNullable):
