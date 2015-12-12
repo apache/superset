@@ -15,7 +15,10 @@ import sqlalchemy as sa
 
 def upgrade():
     op.add_column('dashboards', sa.Column('slug', sa.String(length=255), nullable=True))
-    op.create_unique_constraint('idx_unique_slug', 'dashboards', ['slug'])
+    try:
+        op.create_unique_constraint('idx_unique_slug', 'dashboards', ['slug'])
+    except:
+        pass
 
 
 def downgrade():
