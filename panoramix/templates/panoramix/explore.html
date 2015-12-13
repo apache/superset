@@ -2,26 +2,44 @@
 {% block content_fluid %}
 {% set datasource = viz.datasource %}
 {% set form = viz.form %}
+
+{% macro panofield(fieldname)%}
+  <div>
+    {% set field = form.get_field(fieldname)%}
+    <div>
+      {{ viz.get_form_override(fieldname, 'label') or field.label }}
+      {% if field.description %}
+      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+        title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
+      {% endif %}
+      {{ field(class_=form.field_css_classes(field.name)) }}
+    </div>
+  </div>
+{% endmacro %}
+
 <div class="container-fluid datasource">
-  <div class="row">
-    <div id="form_container" class="col-md-3">
-      <h4>
-        {{ datasource.name }}
+  <form id="query" method="GET" style="display: none;">
+  <div class="header">
+      <a class="btn btn-primary" data-toggle="tooltip" title="Slice!">
+        <i class="fa fa-bolt"></i>
+      </a>
+      <span class="btn btn-default notbtn">
+        <strong>{{ datasource.full_name }}</strong>
         {% if datasource.description %}
           <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
         {% endif %}
-        <div class="btn-group pull-right" role="group" >
-          <a class="btn btn-default" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit datasource">
+          <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit datasource">
             <i class="fa fa-edit"></i>
           </a>
-          <button type="button" class="btn btn-default druidify" data-toggle="tooltip" title="Slice!">
-            <i class="fa fa-bolt"></i>
-          </button>
-        </div>
-      </h4>
+      </span>
+      <span class="">{{ form.get_field("viz_type")(class_="select2") }}</span>
+      <span class="btn btn-info pull-right"
+        data-toggle="modal" data-target="#query_modal">query</span>
+      <hr/>
+  </font>
+  <div class="row">
+    <div id="form_container" class="col-md-3">
 
-      <hr>
-      <form id="query" method="GET" style="display: none;">
       {% for fieldset in form.fieldsets %}
           <fieldset class="fs-style">
             {% if fieldset.label %}
@@ -38,30 +56,14 @@
             <div class="fieldset_content">
             {% for fieldname in fieldset.fields %}
               {% if not fieldname.__iter__ %}
-              <div>
-                {% set field = form.get_field(fieldname)%}
-                <div>
-                  {{ viz.get_form_override(fieldname, 'label') or field.label }}
-                  {% if field.description %}
-                  <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                    title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
-                  {% endif %}
-                  {{ field(class_=form.field_css_classes(field.name)) }}
-                </div>
-              </div>
+                {{ panofield(fieldname) }}
               {% else %}
               <div class="row">
                 <div class="form-group">
                   {% for name in fieldname %}
                   <div class="col-xs-{{ (12 / fieldname|length) | int }}">
                     {% if name %}
-                      {% set field = form.get_field(name)%}
-                      {{ viz.form_overrides.label or field.label }}
-                      {% if field.description %}
-                      <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-                        title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
-                      {% endif %}
-                      {{ field(class_=form.field_css_classes(field.name)) }}
+                      {{ panofield(name) }}
                     {% endif %}
                   </div>
                   {% endfor %}
@@ -90,7 +92,6 @@
                   <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
                 </button>
               </div>
-              <hr style="margin: 5px 0px;"/>
             </div>
             <div id="filters"></div>
             <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
@@ -112,7 +113,6 @@
           <i class="fa fa-plus-circle"></i>
           Save as
         </button>
-        <hr style="margin-bottom: 0px;">
         <img src="{{ url_for("static", filename="img/tux_panoramix.png") }}" width=250>
         {{ form.slice_id() }}
         {{ form.slice_name() }}
@@ -122,20 +122,10 @@
         <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
         <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
         <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
-      </form><br>
+      <br>
     </div>
 
     <div class="col-md-9">
-      <h4>{{ viz.verbose_name }}
-        {% if False %}
-        <span class="label label-success">
-          {{ "{0:0.4f}".format(results.duration.total_seconds()) }} s
-        </span>
-        {% endif %}
-        <span class="label pull-right label-info btn"
-          data-toggle="modal" data-target="#query_modal">query</span>
-      </h4>
-      <hr/>
           {% block messages %}
           {% endblock %}
             {% include 'appbuilder/flash.html' %}
@@ -175,6 +165,7 @@
       </div>
     </div>
   </div>
+  </form>
 </div>
 {% endblock %}
 
@@ -234,6 +225,7 @@
     $('legend').click(function () {
       toggle_fieldset($(this), true);
     });
+    $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();
     for(var i=0; i<collapsed_fieldsets.length;i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);

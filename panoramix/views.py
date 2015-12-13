@@ -140,8 +140,8 @@ class TableView(PanoramixModelView, DeleteMixin):
     list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
-        'table_name', 'database', 'main_dttm_col', 'default_endpoint',
-        'offset']
+        'table_name', 'database', 'description', 'main_dttm_col',
+        'default_endpoint', 'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
     description_columns = {

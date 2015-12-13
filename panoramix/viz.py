@@ -28,7 +28,6 @@ class BaseViz(object):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity',
             ('since', 'until'),
             'metrics', 'groupby',
@@ -225,7 +224,6 @@ class TableViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity',
             ('since', 'until'),
             'metrics', 'groupby',
@@ -268,7 +266,6 @@ class PivotTableViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity',
             ('since', 'until'),
             'groupby',
@@ -324,7 +321,7 @@ class MarkupViz(BaseViz):
     fieldsets = (
     {
         'label': None,
-        'fields': ('viz_type', 'markup_type', 'code')
+        'fields': ('markup_type', 'code')
     },)
     is_timeseries = False
 
@@ -350,7 +347,7 @@ class WordCloudViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
+            'granularity',
             ('since', 'until'),
             'groupby', 'metric', 'limit',
             ('size_from', 'size_to'),
@@ -402,7 +399,6 @@ class BubbleViz(NVD3Viz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             ('since', 'until'),
             ('series', 'entity'),
             ('x', 'y'),
@@ -477,7 +473,6 @@ class BigNumberViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity',
             ('since', 'until'),
             'metric',
@@ -525,7 +520,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         {
             'label': None,
             'fields': (
-                'viz_type',
                 'granularity', ('since', 'until'),
                 'metrics',
                 'groupby', 'limit',
@@ -661,7 +655,6 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity', ('since', 'until'),
             'metrics',
             'groupby', 'limit',
@@ -678,7 +671,6 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity', ('since', 'until'),
             'metrics',
             'groupby', 'limit',
@@ -696,7 +688,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             'granularity', ('since', 'until'),
             'metrics',
             'groupby', 'limit',
@@ -714,7 +705,6 @@ class DistributionPieViz(NVD3Viz):
     {
         'label': None,
         'fields': (
-            'viz_type',
             ('since', 'until'),
             'metrics', 'groupby',
             'limit',
@@ -755,7 +745,7 @@ class DistributionBarViz(DistributionPieViz):
     {
         'label': None,
         'fields': (
-            'viz_type', 'metrics', 'groupby',
+            'metrics', 'groupby',
             ('since', 'until'),
             'limit',
             ('show_legend', None),
@@ -812,7 +802,7 @@ class SunburstViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'viz_type',
+            'granularity',
             ('since', 'until'),
             'groupby',
             'metric', 'secondary_metric',

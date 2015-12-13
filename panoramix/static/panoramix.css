@@ -10,6 +10,19 @@ form div {
 .navbar-brand a {
   color: white;
 }
+
+.notbtn {
+    cursor: default;
+}
+
+span.title-block {
+    background-color: #EEE;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin: 0px 10px;
+    font-size: 20px;
+}
+
 fieldset.fs-style {
     font-family: Verdana, Arial, sans-serif;
     font-size: small;
@@ -18,7 +31,7 @@ fieldset.fs-style {
     background-color: #F4F4F4;
     border-radius: 6px;
     padding: 10px;
-    margin: 10px 0px;
+    margin: 0px 0px 10px 0px;
 }
 legend.legend-style {
     font-size: 14px;

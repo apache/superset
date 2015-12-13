@@ -339,6 +339,7 @@ class FormFactory(object):
             slice_name = HiddenField()
             previous_viz_type = HiddenField(default=viz.viz_type)
             collapsed_fieldsets = HiddenField()
+            viz_type = self.field_dict.get('viz_type')
 
         filter_cols = datasource.filterable_column_names or ['']
         for i in range(10):
@@ -360,6 +361,7 @@ class FormFactory(object):
                 for s in ff:
                     if s:
                         setattr(QueryForm, s, px_form_fields[s])
+
 
         # datasource type specific form elements
         if datasource.__class__.__name__ == 'SqlaTable':

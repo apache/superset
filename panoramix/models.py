@@ -225,6 +225,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     table_name = Column(String(250), unique=True)
     main_dttm_col = Column(String(250))
+    description = Column(Text)
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     database = relationship(
@@ -241,6 +242,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return (
             "[{self.database}].[{self.table_name}]"
             "(id:{self.id})").format(self=self)
+    @property
+    def full_name(self):
+        return "[{self.database}].[{self.table_name}]".format(self=self)
 
     @property
     def dttm_cols(self):
@@ -693,6 +697,10 @@ class Datasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{self.cluster_name}].[{self.datasource_name}]"
             "(id:{self.id})").format(self=self)
+
+    @property
+    def full_name(self):
+        return "[{self.cluster_name}].[{self.datasource_name}]".format(self=self)
 
     def __repr__(self):
         return self.datasource_name
