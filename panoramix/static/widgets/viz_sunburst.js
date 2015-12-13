@@ -39,7 +39,13 @@ function viz_sunburst(data_attribute) {
         .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
 
     var ext;
-    d3.json(data_attribute.json_endpoint, function(json){
+    d3.json(data_attribute.json_endpoint, function(error, json){
+
+      if (error != null){
+        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
+        token.html(err);
+        return '';
+      }
       var tree = buildHierarchy(json.data);
       createVisualization(tree);
       token.select("img.loading").remove();
