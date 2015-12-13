@@ -320,7 +320,7 @@ class FormFactory(object):
         viz = self.viz
         datasource = viz.datasource
         field_css_classes = {}
-        for name, obj in px_form_fields.iteritems():
+        for name, obj in px_form_fields.items():
             field_css_classes[name] = ['form-control']
             s = self.fieltype_class.get(obj.field_class)
             if s:
