@@ -419,6 +419,22 @@ class Panoramix(BaseView):
             return resp
 
     @has_access
+    @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
+    def checkbox(self, model_view, id_, attr, value):
+        model = None
+        if model_view == 'TableColumnInlineView':
+            model = models.TableColumn
+        elif model_view == 'ColumnInlineView':
+            model = models.Column
+
+        obj = db.session.query(model).filter_by(id=id_).first()
+        if obj:
+            setattr(obj, attr, value=='true')
+            db.session.commit()
+        return Response("OK", mimetype="application/json")
+
+
+    @has_access
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         data = json.loads(request.form.get('data'))
