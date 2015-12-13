@@ -29,6 +29,7 @@ function initializeDatasourceView() {
   }
 
   $(".select2").select2();
+  $(".select2Sortable").select2();
   $(".select2Sortable").select2Sortable();
   $("form").show();
   $('[data-toggle="tooltip"]').tooltip({container: 'body'});
@@ -114,45 +115,27 @@ function initializeDatasourceView() {
     }
     return obj;
   }
-  $(".select2_free_since").select2({
-    createSearchChoice: create_choices,
-    initSelection: initSelectionToValue,
-    multiple: false,
-    data: list_data([
-        '1 hour ago',
-        '12 hours ago',
-        '1 day ago',
-        '7 days ago',
-        '28 days ago',
-        '90 days ago',
-        '1 year ago'])
-  });
-  $(".select2_free_until").select2({
-    createSearchChoice: create_choices,
-    initSelection: initSelectionToValue,
-    multiple: false,
-    data: list_data([
-        'now',
-        '1 day ago',
-        '7 days ago',
-        '28 days ago',
-        '90 days ago',
-        '1 year ago'])
-  });
-  $(".select2_free_granularity").select2({
-    createSearchChoice: create_choices,
-    initSelection: initSelectionToValue,
-    multiple: false,
-    data: list_data([
-        'all',
-        '5 seconds',
-        '30 seconds',
-        '1 minute',
-        '5 minutes',
-        '1 hour',
-        '6 hour',
-        '1 day',
-        '7 days'])
+  $(".select2_freeform").each(function(){
+    parent = $(this).parent();
+    var name = $(this).attr('name');
+    var l = [];
+    var selected = '';
+    for(var i=0; i<this.options.length; i++) {
+        l.push({id: this.options[i].value, text: this.options[i].text});
+        if(this.options[i].selected){
+            selected = this.options[i].value;
+        }
+    }
+    obj = parent.append(
+        '<input class="' + $(this).attr('class') + '" name="'+ name +'" type="text" value="' + selected + '">');
+    $("input[name='" + name  +"']")
+      .select2({
+        createSearchChoice: create_choices,
+        initSelection: initSelectionToValue,
+        multiple: false,
+        data: l,
+      });
+    $(this).remove();
   });
 }
 

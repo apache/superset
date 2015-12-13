@@ -21,7 +21,7 @@ class BetterBooleanField(BooleanField):
         return widgets.HTMLString(html)
 
 
-class BetterSelectMultipleField(SelectMultipleField):
+class SelectMultipleSortableField(SelectMultipleField):
     """
     Works along with select2sortable to preserves the sort order
     """
@@ -35,6 +35,28 @@ class BetterSelectMultipleField(SelectMultipleField):
                 yield d.pop(value)
         while d:
             yield d.pop(d.keys()[0])
+
+
+class FreeFormSelect(widgets.Select):
+    def __call__(self, field, **kwargs):
+        kwargs.setdefault('id', field.id)
+        if self.multiple:
+            kwargs['multiple'] = True
+        html = ['<select %s>' % widgets.html_params(name=field.name, **kwargs)]
+        found = False
+        for val, label, selected in field.iter_choices():
+            html.append(self.render_option(val, label, selected))
+            if field.data and val == field.data:
+                found = True
+        if not found:
+            html.insert(1, self.render_option(field.data, field.data, True))
+        html.append('</select>')
+        return widgets.HTMLString(''.join(html))
+
+class FreeFormSelectField(SelectField):
+    widget = FreeFormSelect()
+    def pre_validate(self, form):
+        return
 
 
 class OmgWtForm(Form):
@@ -53,6 +75,12 @@ class OmgWtForm(Form):
 class FormFactory(object):
     row_limits = [10, 50, 100, 500, 1000, 5000, 10000, 50000]
     series_limits = [0, 5, 10, 25, 50, 100, 500]
+    fieltype_class = {
+        SelectField: 'select2',
+        SelectMultipleField: 'select2',
+        FreeFormSelectField: 'select2_freeform',
+        SelectMultipleSortableField: 'select2Sortable',
+    }
 
     def __init__(self, viz):
         self.viz = viz
@@ -69,7 +97,7 @@ class FormFactory(object):
                 default='table',
                 choices=[(k, v.verbose_name) for k, v in viz_types.items()],
                 description="The type of visualization to display"),
-            'metrics': BetterSelectMultipleField(
+            'metrics': SelectMultipleSortableField(
                 'Metrics', choices=datasource.metrics_combo,
                 default=[default_metric],
                 description="One or many metrics to display"),
@@ -81,16 +109,27 @@ class FormFactory(object):
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="A metric to use for color"),
-            'groupby': BetterSelectMultipleField(
+            'groupby': SelectMultipleSortableField(
                 'Group by',
                 choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to group by"),
-            'columns': SelectMultipleField(
+            'columns': SelectMultipleSortableField(
                 'Columns',
                 choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to pivot as columns"),
-            'granularity': TextField(
+            'granularity': FreeFormSelectField(
                 'Time Granularity', default="one day",
+                choices=self.choicify([
+                    'all',
+                    '5 seconds',
+                    '30 seconds',
+                    '1 minute',
+                    '5 minutes',
+                    '1 hour',
+                    '6 hour',
+                    '1 day',
+                    '7 days',
+                ]),
                 description=(
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
@@ -102,11 +141,29 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor")),
-            'since': TextField(
-                'Since', default="7 days ago", description=(
+            'since': FreeFormSelectField(
+                'Since', default="7 days ago",
+                choices=self.choicify([
+                    '1 hour ago',
+                    '12 hours ago',
+                    '1 day ago',
+                    '7 days ago',
+                    '28 days ago',
+                    '90 days ago',
+                    '1 year ago'
+                ]),
+                description=(
                     "Timestamp from filter. This supports free form typing and "
                     "natural language as in '1 day ago', '28 days' or '3 years'")),
-            'until': TextField('Until', default="now"),
+            'until': FreeFormSelectField('Until', default="now",
+                choices=self.choicify([
+                    'now',
+                    '1 day ago',
+                    '7 days ago',
+                    '28 days ago',
+                    '90 days ago',
+                    '1 year ago'])
+                ),
             'row_limit':
                 SelectField(
                     'Row limit',
@@ -262,26 +319,15 @@ class FormFactory(object):
         px_form_fields = self.field_dict
         viz = self.viz
         datasource = viz.datasource
-        field_css_classes = {k: ['form-control'] for k in px_form_fields.keys()}
-        select2 = [
-            'viz_type',
-            'viz_type', 'columns', 'pandas_aggfunc',
-            'row_limit', 'rolling_type', 'series',
-            'entity', 'x', 'y', 'size', 'rotation', 'metric', 'limit',
-            'markup_type',]
-        select2Sortable = [
-            'metrics', 'groupby'
-        ]
-        field_css_classes['since'] += ['select2_free_since']
-        field_css_classes['until'] += ['select2_free_until']
-        field_css_classes['granularity'] += ['select2_free_granularity']
+        field_css_classes = {}
+        for name, obj in px_form_fields.items():
+            field_css_classes[name] = ['form-control']
+            s = self.fieltype_class.get(obj.field_class)
+            if s:
+                field_css_classes[name] += [s]
 
         for field in ('show_brush', 'show_legend', 'rich_tooltip'):
             field_css_classes[field] += ['input-sm']
-        for field in select2:
-            field_css_classes[field] += ['select2']
-        for field in select2Sortable:
-            field_css_classes[field] += ['select2Sortable']
 
         class QueryForm(OmgWtForm):
             fieldsets = copy(viz.fieldsetizer())
