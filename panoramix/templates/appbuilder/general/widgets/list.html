@@ -56,7 +56,7 @@
                     </center></td>
                 {% endif %}
                 {% for value in include_columns %}
-                    <td class="text-center">
+                    <td>
                     {% if item[value].__class__.__name__ == 'bool' %}
                       <input
                           class="form-control"
