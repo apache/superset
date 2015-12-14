@@ -28,7 +28,7 @@ function initializeDatasourceView() {
     return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
   }
 
-  $(".select2").select2();
+  $(".select2").select2({dropdownAutoWidth : true});
   $(".select2Sortable").select2();
   $(".select2Sortable").select2Sortable();
   $("form").show();
