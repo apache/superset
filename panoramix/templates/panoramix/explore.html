@@ -129,7 +129,7 @@
             {% endblock %}
               {% include 'appbuilder/flash.html' %}
         <div
-          class="viz widget"
+          class="viz widget {{ viz.viz_type }}"
           data-widget="{{ viz.get_data_attribute() }}"
           style="height: 700px;">
           {% block viz_html %}

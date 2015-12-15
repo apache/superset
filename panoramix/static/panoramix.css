@@ -166,6 +166,18 @@ legend {
   width: 100%;
   height: 20px;
 }
+.dashboard li.widget.line,
+  .dashboard li.widget.bar,
+  .dashboard li.widget.compare,
+  .dashboard li.widget.area,
+  .dashboard li.widget.pie,
+  .dashboard li.widget.dist_bar,
+  .dashboard li.widget.sunburst {
+ overflow: visible;  /* This allows elements within these slice typesin a dashboard to overflow */
+}
+.dashboard  div.nvtooltip {
+  z-index: 1;  /* this lets tool tips go on top of other slices  */
+}
 .dashboard td.icons {
   width: 50px;
 }
