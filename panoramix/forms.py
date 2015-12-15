@@ -134,6 +134,34 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")),
+            'link_length': FreeFormSelectField(
+                'Link Length', default="200",
+                choices=self.choicify([
+                    '10',
+                    '25',
+                    '50',
+                    '75',
+                    '100',
+                    '150',
+                    '200',
+                    '250',
+                ]),
+                description="Link length in the force layout"),
+            'charge': FreeFormSelectField(
+                'Charge', default="-500",
+                choices=self.choicify([
+                    '-50',
+                    '-75',
+                    '-100',
+                    '-150',
+                    '-200',
+                    '-250',
+                    '-500',
+                    '-1000',
+                    '-2500',
+                    '-5000',
+                ]),
+                description="Charge in the force layout"),
             'granularity_sqla': SelectField(
                 'Time Column', default=datasource.main_dttm_col,
                 choices=self.choicify(datasource.dttm_cols),
