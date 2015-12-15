@@ -19,19 +19,19 @@ text.middle{
   fill: #fff;
 }
 
-#chart {
+.sunburst #chart {
   height: 100%;
 }
 
-div.token {
+.sunburst div.token {
   height: 100%;
 }
 
-#chart path {
+.sunburst path {
   stroke: #fff;
 }
 
-#percentage {
+.sunburst #percentage {
   font-size: 2.5em;
 }
 
