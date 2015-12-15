@@ -3,6 +3,7 @@ function viz_nvd3(data_attribute) {
   var token = d3.select('#' + token_name);
   var json_callback = data_attribute['json_endpoint'];
   var chart = undefined;
+  var data = {};
 
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
@@ -27,17 +28,14 @@ function viz_nvd3(data_attribute) {
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
   ];
   var jtoken = $('#' + token_name);
-  var loading = $('#' + token_name).find("img.loading");
   var chart_div = $('#' + token_name).find("div.chart");
 
-  var refresh = function() {
+  var refresh = function(done) {
     chart_div.hide();
-    loading.show();
     $.getJSON(json_callback, function(payload) {
       var data = payload.data;
       var viz = payload;
       var viz_type = viz.form_data.viz_type;
-      $("#query_container").html(data.query);
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
@@ -157,10 +155,11 @@ function viz_nvd3(data_attribute) {
         return chart;
       });
       chart_div.show();
-      loading.hide();
-  }).fail(function(xhr) {
+      done(data);
+  })
+  .fail(function(xhr) {
       var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-      loading.hide();
+      done(data);
       chart_div.show();
       chart_div.html(err);
     });

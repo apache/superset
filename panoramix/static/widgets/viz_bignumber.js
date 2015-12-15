@@ -4,7 +4,7 @@ px.registerWidget('big_number', function(data_attribute) {
   var json_callback = data_attribute['json_endpoint'];
   var div = d3.select('#' + token_name);
 
-  function render() {
+  function render(done) {
     d3.json(json_callback, function(error, payload){
       json = payload.data;
       div.html("");
@@ -12,6 +12,7 @@ px.registerWidget('big_number', function(data_attribute) {
       if (error != null){
         var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
         div.html(err);
+        done(payload);
         return '';
       }
       var color_range = [-1, 1];
@@ -136,6 +137,7 @@ px.registerWidget('big_number', function(data_attribute) {
         div.select('g.digits').transition().duration(500).attr('opacity', 1);
         div.select('g.axis').transition().duration(500).attr('opacity', 0);
       });
+      done(payload);
     });
   };
 

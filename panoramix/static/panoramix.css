@@ -11,6 +11,15 @@ form div {
   color: white;
 }
 
+.header span{
+    margin-left: 3px;
+}
+
+#timer {
+    width: 80px;
+    text-align: right;
+}
+
 .notbtn {
     cursor: default;
 }

@@ -4,11 +4,12 @@ px.registerWidget('word_cloud', function(data_attribute) {
   var json_callback = data_attribute['json_endpoint'];
   var token = d3.select('#' + token_name);
 
-  function refresh() {
+  function refresh(done) {
     d3.json(json_callback, function(error, json) {
       if (error != null){
         var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
         token.html(err);
+        done();
         return '';
       }
       var data = json.data;
@@ -62,6 +63,7 @@ px.registerWidget('word_cloud', function(data_attribute) {
             })
             .text(function(d) { return d.text; });
       }
+      done(data);
     });
   }
 

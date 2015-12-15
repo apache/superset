@@ -1,3 +1,4 @@
+var timer;
 var px = (function() {
 
   var visualizations = [];
@@ -14,18 +15,43 @@ var px = (function() {
   }
 
   function initializeWidget(data) {
+    var token = $('#' + data.token);
     var name = data['viz_name'];
     var initializer = visualizations[name];
-    var widget = initializer ? initializer(data) : makeNullWidget();
+    var user_defined_widget = initializer ? initializer(data) : makeNullWidget();
+    var dttm = 0;
+    var timer;
+    var stopwatch = function () {
+        dttm += 10;
+        $('#timer').text(Math.round(dttm/10)/100 + " sec");
+    }
+    var done = function (data) {
+        clearInterval(timer);
+        token.find("img.loading").hide();
+        if(data !== undefined)
+            $("#query_container").html(data.query);
+        $('#timer').removeClass('btn-warning');
+        $('span.query').removeClass('disabled');
+        $('#timer').addClass('btn-success');
+    }
+    widget = {
+      render: function() {
+        timer = setInterval(stopwatch, 10);
+        user_defined_widget.render(done);
+      },
+      resize: function() {
+        user_defined_widget.resize();
+      },
+    };
     return widget;
   }
 
-function initializeDatasourceView() {
-  function getParam(name) {
-    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-    results = regex.exec(location.search);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  function initializeDatasourceView() {
+    function getParam(name) {
+      name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+      var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+      results = regex.exec(location.search);
+      return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
   }
 
   $(".select2").select2({dropdownAutoWidth : true});
