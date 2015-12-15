@@ -73,7 +73,6 @@ class OmgWtForm(Form):
 
 
 class FormFactory(object):
-    row_limits = [10, 50, 100, 500, 1000, 5000, 10000, 50000]
     series_limits = [0, 5, 10, 25, 50, 100, 500]
     fieltype_class = {
         SelectField: 'select2',
@@ -193,10 +192,11 @@ class FormFactory(object):
                     '1 year ago'])
                 ),
             'row_limit':
-                SelectField(
+                FreeFormSelectField(
                     'Row limit',
                     default=config.get("ROW_LIMIT"),
-                    choices=self.choicify(self.row_limits)),
+                    choices=self.choicify(
+                        [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000])),
             'limit':
                 SelectField(
                     'Series limit',
