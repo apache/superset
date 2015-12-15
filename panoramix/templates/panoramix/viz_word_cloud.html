@@ -1,7 +1,5 @@
 {% macro viz_html(viz) %}
-<div id="{{ viz.token }}" style="height: 100%;">
-  <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading">
-</div>
+<div id="{{ viz.token }}" style="height: 100%;"></div>
 {% endmacro %}
 
 {% macro viz_js(viz) %}

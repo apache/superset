@@ -1,61 +1,36 @@
 {% macro viz_html(viz) %}
   {% if viz.request.args.get("async") == "true" %}
     {% set df = viz.get_df() %}
-    <table class="dataframe table table-striped table-bordered table-condensed">
-      <thead>
-        <tr>
-          {% for col in df.columns if not col.endswith('__perc') %}
-            <th>{{ col }}</th>
+    <div class="table">
+      <table class="dataframe table table-striped table-bordered table-condensed">
+        <thead>
+          <tr>
+            {% for col in df.columns if not col.endswith('__perc') %}
+              <th>{{ col }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in df.to_dict(orient="records") %}
+          <tr>
+            {% for col in df.columns if not col.endswith('__perc') %}
+              {% if col + '__perc' in df.columns %}
+              <td style="background-image: linear-gradient(to right, lightgrey, lightgrey {{ row[col+'__perc'] }}%, rgba(0,0,0,0) {{ row[col+'__perc'] }}%">
+                {{ row[col] }}
+              </td>
+              {% else %}
+              <td>{{ row[col] }}</td>
+              {% endif %}
+            {% endfor %}
+          </tr>
           {% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for row in df.to_dict(orient="records") %}
-        <tr>
-          {% for col in df.columns if not col.endswith('__perc') %}
-            {% if col + '__perc' in df.columns %}
-            <td style="background-image: linear-gradient(to right, lightgrey, lightgrey {{ row[col+'__perc'] }}%, rgba(0,0,0,0) {{ row[col+'__perc'] }}%">
-              {{ row[col] }}
-            </td>
-            {% else %}
-            <td>{{ row[col] }}</td>
-            {% endif %}
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-  <div id="{{ viz.token }}" style="display: none;overflow: auto; height: 100%;"></div>
-  <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading">
+        </tbody>
+      </table>
+    </div>
   {% endif %}
 {% endmacro %}
 
 {% macro viz_js(viz) %}
-  {% if viz.form_data.get("async") != "true" %}
-  <script>
-  $( document ).ready(function() {
-    var url = "{{ viz.get_url(async="true", standalone="true", skip_libs="true")|safe }}";
-    var token = $("#{{ viz.token }}");
-    token.load(url, function(response, status, xhr){
-      if(status=="error"){
-        var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-        token.html(err);
-        token.show();
-      }
-      else{
-        var table = token.find('table').DataTable({
-          paging: false,
-          searching: false,
-        });
-        table.column('-1').order( 'desc' ).draw();
-      }
-      token.show();
-      token.parent().find("img.loading").hide();
-    });
-  });
-  </script>
-  {% endif %}
 {% endmacro %}
 
 {% macro viz_css(viz) %}

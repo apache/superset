@@ -65,6 +65,7 @@ class BaseViz(object):
                 if k in form.data}
         defaults.update(data)
         self.form_data = defaults
+        self.query = ""
 
         self.form_data['previous_viz_type'] = self.viz_type
         self.token = self.form_data.get(
@@ -127,6 +128,7 @@ class BaseViz(object):
         self.results = None
 
         self.results = self.datasource.query(**query_obj)
+        self.query = self.results.query
         df = self.results.df
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
@@ -201,6 +203,7 @@ class BaseViz(object):
     def get_json(self):
         payload = {
             'data': json.loads(self.get_json_data()),
+            'query': self.query,
             'form_data': self.form_data,
         }
         return json.dumps(payload)
@@ -208,13 +211,18 @@ class BaseViz(object):
     def get_json_data(self):
         return json.dumps([])
 
+    @property
+    def json_endpoint(self):
+        return self.get_url(json="true")
+
     def get_data_attribute(self):
         content = {
             'viz_name': self.viz_type,
-            'json_endpoint': self.get_url(json="true"),
+            'json_endpoint': self.json_endpoint,
             'token': self.token,
+            'form_data': self.form_data,
         }
-        return json.dumps(content)
+        return dumps(content)
 
 class TableViz(BaseViz):
     viz_type = "table"
@@ -234,7 +242,14 @@ class TableViz(BaseViz):
     is_timeseries = False
     js_files = [
         'lib/dataTables/jquery.dataTables.min.js',
-        'lib/dataTables/dataTables.bootstrap.js']
+        'lib/dataTables/dataTables.bootstrap.js',
+        'widgets/viz_table.js',
+    ]
+    css_files = ['widgets/viz_table.css']
+
+    @property
+    def json_endpoint(self):
+        return self.get_url(async='true', standalone='true', skip_libs='true')
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -257,11 +272,14 @@ class PivotTableViz(BaseViz):
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
     template = 'panoramix/viz_pivot_table.html'
-    css_files = ['lib/dataTables/dataTables.bootstrap.css']
+    css_files = [
+        'lib/dataTables/dataTables.bootstrap.css',
+        'widgets/viz_pivot_table.css']
     is_timeseries = False
     js_files = [
         'lib/dataTables/jquery.dataTables.min.js',
-        'lib/dataTables/dataTables.bootstrap.js']
+        'lib/dataTables/dataTables.bootstrap.js',
+        'widgets/viz_pivot_table.js']
     fieldsets = (
     {
         'label': None,
@@ -274,6 +292,10 @@ class PivotTableViz(BaseViz):
             'pandas_aggfunc',
         )
     },)
+
+    @property
+    def json_endpoint(self):
+        return self.get_url(async='true', standalone='true', skip_libs='true')
 
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
@@ -318,6 +340,7 @@ class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
     template = 'panoramix/viz_markup.html'
+    js_files = ['widgets/viz_markup.js']
     fieldsets = (
     {
         'label': None,

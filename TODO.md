@@ -2,18 +2,23 @@
 List of TODO items for Panoramix
 
 ## Improvments
-* [druid] Allow for post aggregations (ratios!)
-* [sql] define column based grouping
 * [sql] make "Test Connection" test further
-* csv export out of table view
+* csv export
+* json export (options)
 * in/notin filters autocomplete
+* [druid] Allow for post aggregations (ratios!)
 
 ## Better Javascript enables
 * Async on Druidify! in exploration page
-* Async form reload onchange of viz_type dropdown
-* Reintroduce query and stopwatch
-* Fix resize / refresh
 * Configurable widget auto refresh in Dashboard view
 
 ## New Features
 * Annotations layers
+
+## Low value
+* [sql] define column based grouping
+
+## Community
+* Creat a proper doc
+* Usage vid
+*

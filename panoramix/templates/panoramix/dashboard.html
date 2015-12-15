@@ -109,7 +109,10 @@ body {
                   </tr>
                 </tbody>
               </table>
-              {{ viz_macros.viz_html(viz) }}
+              <div id="{{ viz.token }}" class="token" style="height: 100%;">
+                <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
+                {{ viz_macros.viz_html(viz) }}
+              </div>
           </li>
         {% endfor %}
     </ul>
