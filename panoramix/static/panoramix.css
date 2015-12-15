@@ -139,7 +139,7 @@ legend {
   border-color: #AAA;
   opacity: 0.3;
 }
-.dashboard .gridster li {
+.gridster li.widget{
   list-style-type: none;
   border: 1px solid gray;
   overflow: hidden;

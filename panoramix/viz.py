@@ -878,6 +878,52 @@ class SunburstViz(BaseViz):
             self.form_data['metric'], self.form_data['secondary_metric']]
         return qry
 
+class DirectedForceViz(BaseViz):
+    viz_type = "directed_force"
+    verbose_name = "Directed Force Layout"
+    is_timeseries = False
+    template = 'panoramix/viz_directed_force.html'
+    js_files = [
+        'lib/d3.min.js',
+        'widgets/viz_directed_force.js']
+    css_files = ['widgets/viz_directed_force.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'groupby',
+            'metric',
+            'row_limit',
+        )
+    },
+    {
+        'label': 'Force Layout',
+        'fields': (
+            'link_length',
+            'charge',
+        )
+    },)
+    form_overrides = {
+        'groupby': {
+            'label': 'Source / Target',
+            'description': "Choose a source and a target",
+        },
+    }
+    def query_obj(self):
+        qry = super(DirectedForceViz, self).query_obj()
+        if len(self.form_data['groupby']) != 2:
+            raise Exception("Pick exactly 2 columns to 'Group By'")
+        qry['metrics'] = [self.form_data['metric']]
+        return qry
+
+    def get_json_data(self):
+        df = self.get_df()
+        df.columns = ['source', 'target', 'value']
+        d = df.to_dict(orient='records')
+        return dumps(d)
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -892,6 +938,7 @@ viz_types_list = [
     WordCloudViz,
     BigNumberViz,
     SunburstViz,
+    DirectedForceViz,
 ]
 # This dict is used to
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
