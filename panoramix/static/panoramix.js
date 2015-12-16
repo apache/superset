@@ -217,6 +217,13 @@ function initializeDashboardView(dashboard_id) {
     css = $(this).val();
     $("#user_style").html(css);
   });
+  $('li.widget').each(function() { /* this sets the z-index for left side boxes higher. */
+    current_row = $(this).attr('data-col');
+    $( this ).css('z-index', 100 - current_row);
+  });
+  $("div.chart").each(function() { /* this makes the whole chart fit within the dashboard div */
+    $(this).css('height', '95%');
+  });
 }
 
   // Export public functions
