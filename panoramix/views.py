@@ -262,7 +262,9 @@ appbuilder.add_view(
 class DatasourceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Datasource)
     list_columns = [
-        'datasource_link', 'cluster', 'owner', 'is_featured', 'is_hidden',
+        'datasource_link', 'cluster', 'owner',
+        'created_by', 'created_on',
+        'changed_by', 'changed_on',
         'offset']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
