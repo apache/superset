@@ -140,7 +140,7 @@ class TableView(PanoramixModelView, DeleteMixin):
     list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
-        'table_name', 'database', 'description', 'main_dttm_col',
+        'table_name', 'is_featured', 'database', 'description', 'main_dttm_col',
         'default_endpoint', 'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
@@ -537,6 +537,19 @@ class Panoramix(BaseView):
             error_msg=error_msg,
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
+
+    @has_access
+    @expose("/datasets", methods=['GET'])
+    def datasets(self):
+        session = db.session()
+        datasets_sqla = (session.query(models.SqlaTable)
+                                        .filter_by(is_featured=True).all())
+        datasets_druid = (session.query(models.Datasource)
+                                         .filter_by(is_featured=True).all())
+        featured_datasets = datasets_sqla + datasets_druid
+        return self.render_template(
+            'panoramix/featured_datasets.html',
+            featured_datasets=featured_datasets)
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(

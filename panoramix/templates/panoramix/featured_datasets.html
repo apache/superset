@@ -1,0 +1,27 @@
+{% extends "panoramix/base.html" %}
+{% block content %}
+<link rel="stylesheet" type="text/css" href="/static/featured_datasets.css" />
+<div class="main-text">
+Featured Datasets
+</div>
+<table class = "table table-hover">
+    <thead>
+        <tr>
+            <th>Table</th>
+            <th>Database</th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for dataset in featured_datasets %}
+        <tr>
+            <td>
+                <a href='{{ dataset.default_endpoint }}' class="data-title">{{ dataset.table_name }}</a> 
+                </br> {{ dataset.description }}
+            </td>
+            <td>{{ dataset.database }}</td>
+       </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+

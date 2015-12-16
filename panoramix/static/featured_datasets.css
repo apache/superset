@@ -1,0 +1,18 @@
+.main-text {
+    text-align: center;
+    font-size: 36px;
+    margin-bottom: 20px;
+}
+
+.data-title{
+    font-size: 26px;
+    font-weight: strong;
+}
+
+table {
+    border-bottom: 1px solid #dddddd;
+}
+
+td {
+    vertical-align: middle;
+}
