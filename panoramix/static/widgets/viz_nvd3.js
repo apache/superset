@@ -9,14 +9,13 @@ function viz_nvd3(data_attribute) {
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
   }
   var tickMultiFormat = d3.time.format.multi([
-    [".%L", function(d) { return d.getMilliseconds(); }],
-    [":%S", function(d) { return d.getSeconds(); }],
-    ["%I:%M", function(d) { return d.getMinutes(); }],
-    ["%I %p", function(d) { return d.getHours(); }],
-    ["%a %d", function(d) { return d.getDay() && d.getDate() != 1; }],
-    ["%b %d", function(d) { return d.getDate() != 1; }],
-    ["%B", function(d) { return d.getMonth(); }],
-    ["%Y", function() { return true; }]
+    [".%L", function(d) { return d.getMilliseconds(); }], // If there are millisections, show  only them
+    [":%S", function(d) { return d.getSeconds(); }], // If there are seconds, show only them
+    ["%a %b %d, %I:%M %p", function(d) { return d.getMinutes()!=0; }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
+    ["%a %b %d, %I %p", function(d) { return d.getHours() != 0; }], // If there are hours that are multiples of 3, show date and AM/PM
+    ["%a %b %d, %Y", function(d) { return d.getDate() != 1; }], // If not the first of the month, do "month day, year."
+    ["%B %Y", function(d) { return d.getMonth() != 0 && d.getDate() == 1; }], // If the first of the month, do "month day, year."
+    ["%Y", function(d) { return true; }] // fall back on month, year
   ]);
   function formatDate(dttm) {
     var d = UTC(new Date(dttm));
@@ -44,7 +43,8 @@ function viz_nvd3(data_attribute) {
           chart.lines2.xScale(d3.time.scale.utc());
           chart.x2Axis
             .showMaxMin(viz.form_data.x_axis_showminmax)
-            .tickFormat(formatDate);
+            .tickFormat(formatDate)
+            .staggerLabels(true);
           } else {
             chart = nv.models.lineChart()
           }
@@ -54,9 +54,13 @@ function viz_nvd3(data_attribute) {
           chart.interpolate(viz.form_data.line_interpolation);
           chart.xAxis
             .showMaxMin(viz.form_data.x_axis_showminmax)
-            .tickFormat(formatDate);
+            .tickFormat(formatDate)
+            .staggerLabels(true);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
+          if (chart.y2Axis != undefined) {
+              chart.y2Axis.tickFormat(d3.format('.3s'));
+          }
           if (viz.form_data.contribution || viz.form_data.num_period_compare) {
             chart.yAxis.tickFormat(d3.format('.3p'));
             if (chart.y2Axis != undefined) {
@@ -125,6 +129,8 @@ function viz_nvd3(data_attribute) {
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
 
+        // make space for labels on right
+        chart.height($(".chart").height() - 50).margin({"right": 50});
         if ((viz_type === "line" || viz_type === "area") && viz.form_data.rich_tooltip) {
           chart.useInteractiveGuideline(true);
         }
