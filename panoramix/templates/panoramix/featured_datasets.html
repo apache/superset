@@ -4,24 +4,38 @@
 <div class="main-text">
 Featured Datasets
 </div>
-<table class = "table table-hover">
+<table class = "table table-hover" id="dataset-table">
     <thead>
         <tr>
             <th>Table</th>
             <th>Database</th>
+            <th>Owner</th>
+            <th></th>
         </tr>
     </thead>
     <tbody>
     {% for dataset in featured_datasets %}
         <tr>
             <td>
-                <a href='{{ dataset.default_endpoint }}' class="data-title">{{ dataset.table_name }}</a> 
+                <div id="data-title">{{ dataset.table_name }}</div>
                 </br> {{ dataset.description }}
             </td>
-            <td>{{ dataset.database }}</td>
+            <td class="small_table">{{ dataset.database }}</td>
+            <td class="small_table">{{ dataset.owner }}</td>
+            <td class="small_table"><button type="button" class="btn btn-primary" href="{{ dataset.default_endpoint }}">Visualize it!</button></td>
        </tr>
     {% endfor %}
     </tbody>
 </table>
 {% endblock %}
 
+{% block tail %}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.10/css/dataTables.bootstrap.min.css" />
+<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
+<script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#dataset-table').DataTable();
+    } );
+</script>
+{% endblock %}

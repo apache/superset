@@ -4,15 +4,14 @@
     margin-bottom: 20px;
 }
 
-.data-title{
-    font-size: 26px;
-    font-weight: strong;
+.small_table {
+    width: 170px;
 }
 
-table {
+#data-title{
+    font-size: 20px;
+}
+
+#dataset-table {
     border-bottom: 1px solid #dddddd;
-}
-
-td {
-    vertical-align: middle;
 }
