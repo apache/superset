@@ -12,7 +12,7 @@ from panoramix import app
 from flask.ext.migrate import MigrateCommand
 from panoramix import db
 from flask.ext.appbuilder import Base
-from sqlalchemy import Column, Integer, String, Table, DateTime
+from sqlalchemy import Column, Integer, String, Table, DateTime, Float
 from panoramix import models, utils
 
 config = app.config
@@ -59,6 +59,63 @@ def init():
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
+    session = db.session()
+    Country = Table(
+        "countries", Base.metadata,
+        Column("id", Integer, primary_key=True),
+        Column("ds", DateTime, default=datetime.now()),
+        Column("name", String(255)),
+        Column("cca2", String(2)),
+        Column("cca3", String(3)),
+        Column("cioc", String(3)),
+        Column("capital", String(255)),
+        Column("lat", Float),
+        Column("lng", Float),
+        Column("area", Float),
+    )
+    try:
+        Country.drop(db.engine)
+    except:
+        pass
+    Country.create(db.engine)
+
+    filepath = os.path.join(config.get("BASE_DIR"), 'data/countries.json')
+    with open(filepath, 'r') as f:
+        d = {}
+        for c in json.load(f):
+            if not c['latlng']:
+                continue
+            db.engine.execute(
+                Country.insert(),
+                name=c['name']['common'].encode('utf8'),
+                cca2=c['cca2'],
+                cca3=c['cca3'],
+                cioc=c['cioc'],
+                capital=c['capital'],
+                lat=c['latlng'][0],
+                lng=c['latlng'][1],
+                area=c['area'],
+            )
+            d[c['cca3']] = dict(
+                name=c['name']['common'],
+                cca2=c['cca2'],
+                cca3=c['cca3'],
+                cioc=c['cioc'],
+                capital=c['capital'],
+                lat=c['latlng'][0],
+                lng=c['latlng'][1],
+                area=c['area'],
+            )
+    #print(json.dumps(d, indent=4))
+    print("Creating database reference")
+    DB = models.Database
+    dbobj = session.query(DB).filter_by(database_name='main').first()
+    if not dbobj:
+        dbobj = DB(database_name="main")
+    print(config.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
+    session.add(dbobj)
+    session.commit()
 
 
     BirthNames = Table(
@@ -79,8 +136,8 @@ def load_examples(sample):
         pass
 
     BirthNames.create(db.engine)
-    session = db.session()
     filepath = os.path.join(config.get("BASE_DIR"), 'data/birth_names.csv.gz')
+    '''
     with gzip.open(filepath, mode='rt') as f:
         bb_csv = csv.reader(f)
         for i, (state, year, name, gender, num) in enumerate(bb_csv):
@@ -105,16 +162,8 @@ def load_examples(sample):
             if sample and i>1000: break
     print("Done loading table!")
     print("-" * 80)
+    '''
 
-    print("Creating database reference")
-    DB = models.Database
-    dbobj = session.query(DB).filter_by(database_name='main').first()
-    if not dbobj:
-        dbobj = DB(database_name="main")
-    print(config.get("SQLALCHEMY_DATABASE_URI"))
-    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
-    session.add(dbobj)
-    session.commit()
 
     print("Creating table reference")
     TBL = models.SqlaTable

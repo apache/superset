@@ -961,6 +961,86 @@ class DirectedForceViz(BaseViz):
         d = df.to_dict(orient='records')
         return dumps(d)
 
+
+class WorldMapViz(BaseViz):
+    viz_type = "world_map"
+    verbose_name = "World Map"
+    is_timeseries = False
+    template = 'panoramix/viz_world_map.html'
+    js_files = [
+        'lib/d3.min.js',
+        'lib/topojson.min.js',
+        'lib/datamaps.all.js',
+        'widgets/viz_world_map.js']
+    css_files = ['widgets/viz_world_map.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'entity',
+            'country_fieldtype',
+            'metric',
+            'secondary_metric',
+        )
+    },
+    {
+        'label': 'Bubbles',
+        'fields': (
+            ('show_bubbles', None),
+            'secondary_metric',
+        )
+    })
+    form_overrides = {
+        'entity': {
+            'label': 'Country Field',
+            'description': "3 letter code of the country",
+        },
+        'metric': {
+            'label': 'Metric for color',
+            'description': ("Metric that defines the color of the country"),
+        },
+        'secondary_metric': {
+            'label': 'Bubble size',
+            'description': ("Metric that defines the size of the bubble"),
+        },
+    }
+    def query_obj(self):
+        qry = super(WorldMapViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric'], self.form_data['secondary_metric']]
+        qry['groupby'] = [self.form_data['entity']]
+        return qry
+
+    def get_json_data(self):
+        from panoramix.data import countries
+        df = self.get_df()
+        cols = [self.form_data.get('entity')]
+        metric = self.form_data.get('metric')
+        secondary_metric = self.form_data.get('secondary_metric')
+        if metric == secondary_metric:
+            ndf = df[cols]
+            ndf['metric'] = df[metric]
+            ndf['radius'] = df[metric]
+        else:
+            cols += [metric, secondary_metric]
+            ndf = df[cols]
+        df = ndf
+        df.columns = ['country', 'metric', 'radius']
+        d = df.to_dict(orient='records')
+        for row in d:
+            country = countries.get(
+                self.form_data.get('country_fieldtype'), row['country'])
+            if country:
+                row['country'] = country['cca3']
+                row['latitude'] = country['lat']
+                row['longitude'] = country['lng']
+            else:
+                row['country'] = "XXX"
+        return dumps(d)
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -977,6 +1057,7 @@ viz_types_list = [
     SunburstViz,
     DirectedForceViz,
     SankeyViz,
+    WorldMapViz,
 ]
 # This dict is used to
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

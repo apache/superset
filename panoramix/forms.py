@@ -108,6 +108,18 @@ class FormFactory(object):
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="A metric to use for color"),
+            'country_fieldtype': SelectField(
+                'Country Field Type',
+                default='cca2',
+                choices=(
+                    ('name', 'Full name'),
+                    ('cioc', 'code International Olympic Committee (cioc)'),
+                    ('cca2', 'code ISO 3166-1 alpha-2 (cca2)'),
+                    ('cca3', 'code ISO 3166-1 alpha-3 (cca3)'),
+                ),
+                description=(
+                    "The country code standard that Panoramix should expect "
+                    "to find in the [country] column")),
             'groupby': SelectMultipleSortableField(
                 'Group by',
                 choices=self.choicify(datasource.groupby_column_names),
@@ -298,6 +310,10 @@ class FormFactory(object):
                 "Range Filter", default=True,
                 description=(
                     "Whether to display the time range interactive selector")),
+            'show_bubbles': BetterBooleanField(
+                "Show Bubbles", default=False,
+                description=(
+                    "Whether to display bubbles on top of countries")),
             'show_legend': BetterBooleanField(
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
