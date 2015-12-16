@@ -98,7 +98,7 @@ function viz_sankey(data_attribute) {
             link.attr("d", path);
           }
             token.select("img.loading").remove();
-          done();
+          done(json);
         });
     }
     return {
