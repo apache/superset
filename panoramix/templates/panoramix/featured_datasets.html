@@ -1,10 +1,8 @@
 {% extends "panoramix/base.html" %}
 {% block content %}
-<link rel="stylesheet" type="text/css" href="/static/featured_datasets.css" />
-<div class="main-text">
-Featured Datasets
-</div>
-<table class = "table table-hover" id="dataset-table">
+<h1><i class='fa fa-star'></i> Featured Datasets </h1>
+<hr/>
+<table class="table table-hover dataTable" id="dataset-table" style="display:None">
     <thead>
         <tr>
             <th>Table</th>
@@ -17,32 +15,34 @@ Featured Datasets
     {% for dataset in featured_datasets %}
         <tr>
             <td>
-                <div id="data-title">{{ dataset.table_name }}</div>
+                <h4>{{ dataset.table_name }}</h4>
                 <p>{{ dataset.description }}</p>
             </td>
             <td class="small_table">{{ dataset.database }}</td>
             <td class="small_table">{{ dataset.owner }}</td>
-            <td class="small_table"><a class="btn btn-primary" href="{{ dataset.default_endpoint }}">Visualize it!</a></td>
+            <td class="small_table"><a class="btn btn-default" href="{{ dataset.default_endpoint }}"><i class='fa fa-line-chart'/></a></td>
        </tr>
     {% endfor %}
     </tbody>
 </table>
 {% endblock %}
 
-{% block tail %}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.10/css/dataTables.bootstrap.min.css" />
-<script src="//code.jquery.com/jquery-1.11.3.min.js"></script>
-<script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="/static/lib/dataTables/dataTables.bootstrap.css" />
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script src="/static/lib/dataTables/jquery.dataTables.min.js"></script>
+<script src="/static/lib/dataTables/dataTables.bootstrap.js"></script>
 <script>
     $(document).ready(function() {
         $('#dataset-table').DataTable({
-            aLengthMenu: [
-                [25, 50, 100, 200, -1],
-                [25, 50, 100, 200, "All"]
-            ],
-            iDisplayLength: -1,
+            "bPaginate": false,
             "order": [[ 1, "asc" ]]
         });
+        $('#dataset-table').show();
     } );
 </script>
 {% endblock %}

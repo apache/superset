@@ -66,7 +66,7 @@ appbuilder.add_link(
     category_icon='fa-table',
     icon="fa-star")
 
-
+appbuilder.add_separator("Sources")
 
 class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.Column)
