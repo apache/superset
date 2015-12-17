@@ -18,11 +18,11 @@ Featured Datasets
         <tr>
             <td>
                 <div id="data-title">{{ dataset.table_name }}</div>
-                </br> {{ dataset.description }}
+                <p>{{ dataset.description }}</p>
             </td>
             <td class="small_table">{{ dataset.database }}</td>
             <td class="small_table">{{ dataset.owner }}</td>
-            <td class="small_table"><button type="button" class="btn btn-primary" href="{{ dataset.default_endpoint }}">Visualize it!</button></td>
+            <td class="small_table"><a class="btn btn-primary" href="{{ dataset.default_endpoint }}">Visualize it!</a></td>
        </tr>
     {% endfor %}
     </tbody>
