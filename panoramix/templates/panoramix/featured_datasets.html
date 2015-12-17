@@ -35,7 +35,14 @@ Featured Datasets
 <script src="https://cdn.datatables.net/1.10.10/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#dataset-table').DataTable();
+        $('#dataset-table').DataTable({
+            aLengthMenu: [
+                [25, 50, 100, 200, -1],
+                [25, 50, 100, 200, "All"]
+            ],
+            iDisplayLength: -1,
+            "order": [[ 1, "asc" ]]
+        });
     } );
 </script>
 {% endblock %}
