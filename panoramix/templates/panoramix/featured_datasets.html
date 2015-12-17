@@ -1,0 +1,48 @@
+{% extends "panoramix/base.html" %}
+{% block content %}
+<h1><i class='fa fa-star'></i> Featured Datasets </h1>
+<hr/>
+<table class="table table-hover dataTable" id="dataset-table" style="display:None">
+    <thead>
+        <tr>
+            <th>Table</th>
+            <th>Database</th>
+            <th>Owner</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    {% for dataset in featured_datasets %}
+        <tr>
+            <td>
+                <h4>{{ dataset.table_name }}</h4>
+                <p>{{ dataset.description }}</p>
+            </td>
+            <td class="small_table">{{ dataset.database }}</td>
+            <td class="small_table">{{ dataset.owner }}</td>
+            <td class="small_table"><a class="btn btn-default" href="{{ dataset.default_endpoint }}"><i class='fa fa-line-chart'/></a></td>
+       </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block head_css %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="/static/lib/dataTables/dataTables.bootstrap.css" />
+{% endblock %}
+
+{% block tail_js %}
+{{ super() }}
+<script src="/static/lib/dataTables/jquery.dataTables.min.js"></script>
+<script src="/static/lib/dataTables/dataTables.bootstrap.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#dataset-table').DataTable({
+            "bPaginate": false,
+            "order": [[ 1, "asc" ]]
+        });
+        $('#dataset-table').show();
+    } );
+</script>
+{% endblock %}

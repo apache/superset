@@ -228,6 +228,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     description = Column(Text)
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    is_featured = Column(Boolean, default=False)
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
+    owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)

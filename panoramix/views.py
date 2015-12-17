@@ -59,6 +59,14 @@ class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
+appbuilder.add_link(
+    "Featured Datasets",
+    href='/panoramix/featured_datasets',
+    category='Sources',
+    category_icon='fa-table',
+    icon="fa-star")
+
+appbuilder.add_separator("Sources")
 
 class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     datamodel = SQLAInterface(models.Column)
@@ -140,8 +148,8 @@ class TableView(PanoramixModelView, DeleteMixin):
     list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
-        'table_name', 'database', 'description', 'main_dttm_col',
-        'default_endpoint', 'offset']
+        'table_name', 'is_featured', 'database', 'description', 'owner',
+        'main_dttm_col', 'default_endpoint', 'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
     description_columns = {
@@ -537,6 +545,19 @@ class Panoramix(BaseView):
             error_msg=error_msg,
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
+
+    @has_access
+    @expose("/featured_datasets", methods=['GET'])
+    def featured_datasets(self):
+        session = db.session()
+        datasets_sqla = (session.query(models.SqlaTable)
+                                        .filter_by(is_featured=True).all())
+        datasets_druid = (session.query(models.Datasource)
+                                         .filter_by(is_featured=True).all())
+        featured_datasets = datasets_sqla + datasets_druid
+        return self.render_template(
+            'panoramix/featured_datasets.html',
+            featured_datasets=featured_datasets)
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(
