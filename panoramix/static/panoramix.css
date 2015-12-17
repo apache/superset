@@ -20,6 +20,10 @@ form div {
     text-align: right;
 }
 
+.select2-results .select2-highlighted {
+    background-color: #005c66;
+}
+
 .notbtn {
     cursor: default;
 }
