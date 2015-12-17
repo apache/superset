@@ -982,7 +982,6 @@ class WorldMapViz(BaseViz):
             'entity',
             'country_fieldtype',
             'metric',
-            'secondary_metric',
         )
     },
     {
@@ -990,6 +989,7 @@ class WorldMapViz(BaseViz):
         'fields': (
             ('show_bubbles', None),
             'secondary_metric',
+            'max_bubble_size',
         )
     })
     form_overrides = {
@@ -1021,13 +1021,13 @@ class WorldMapViz(BaseViz):
         secondary_metric = self.form_data.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df[cols]
-            ndf['metric'] = df[metric]
-            ndf['radius'] = df[metric]
+            ndf['m1'] = df[metric]
+            ndf['m2'] = df[metric]
         else:
             cols += [metric, secondary_metric]
             ndf = df[cols]
         df = ndf
-        df.columns = ['country', 'metric', 'radius']
+        df.columns = ['country', 'm1', 'm2']
         d = df.to_dict(orient='records')
         for row in d:
             country = countries.get(
@@ -1036,6 +1036,7 @@ class WorldMapViz(BaseViz):
                 row['country'] = country['cca3']
                 row['latitude'] = country['lat']
                 row['longitude'] = country['lng']
+                row['name'] = country['name']
             else:
                 row['country'] = "XXX"
         return dumps(d)

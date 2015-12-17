@@ -203,6 +203,18 @@ class FormFactory(object):
                     '90 days ago',
                     '1 year ago'])
                 ),
+            'max_bubble_size': FreeFormSelectField(
+                'Max Bubble Size', default="25",
+                choices=self.choicify([
+                    '5',
+                    '10',
+                    '15',
+                    '25',
+                    '50',
+                    '75',
+                    '100',
+                    ])
+                ),
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',

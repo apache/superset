@@ -19,13 +19,13 @@ function viz_world_map(data_attribute) {
         return '';
         done();
       }
-      var ext = d3.extent(json.data, function(d){return d.metric});
-      var extRadius = d3.extent(json.data, function(d){return d.radius});
+      var ext = d3.extent(json.data, function(d){return d.m1});
+      var extRadius = d3.extent(json.data, function(d){return d.m2});
       var radiusScale = d3.scale.linear()
           .domain([extRadius[0], extRadius[1]])
-          .range([1, 40]);
+          .range([1, data_attribute.form_data.max_bubble_size]);
       json.data.forEach(function(d){
-        d.radius = radiusScale(d.radius);
+        d.radius = radiusScale(d.m2);
       })
       var colorScale = d3.scale.linear()
           .domain([ext[0], ext[1]])
@@ -33,10 +33,13 @@ function viz_world_map(data_attribute) {
       var d = {};
       for (var i=0; i<json.data.length; i++){
         var country = json.data[i];
-        d[country.country] = colorScale(country.metric);
+        country['fillColor'] = colorScale(country.m1);
+        d[country.country] = country;
       }
+      f = d3.format('.3s');
       var map = new Datamap({
         element: document.getElementById(data_attribute.token),
+        data: json.data,
         fills: {
           defaultFill: 'grey'
         },
@@ -48,6 +51,9 @@ function viz_world_map(data_attribute) {
           highlightBorderColor: 'black',
           highlightFillColor: '#005a63',
           highlightBorderWidth: 1,
+          popupTemplate: function(geo, data) {
+            return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>'+ f(data.m1) + '</div>';
+          },
         },
         bubblesConfig: {
           borderWidth: 1,
@@ -55,8 +61,8 @@ function viz_world_map(data_attribute) {
           borderColor: '#005a63',
           popupOnHover: true,
           radius: null,
-          popupTemplate: function(geography, data) {
-            return '<div class="hoverinfo"><strong>' + data.country + '</strong></div>';
+          popupTemplate: function(geo, data) {
+            return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>'+ f(data.m2) + '</div>';
           },
           fillOpacity: 0.5,
           animate: true,
