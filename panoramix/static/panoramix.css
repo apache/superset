@@ -59,9 +59,9 @@ legend.legend-style {
     background-color: transparent;
     font-weight: bold;
 }
-.nvtooltip{
+.nvtooltip {
     position: relative; !important
-    z-index: 10;
+    z-index: 888;
 }
 
 legend {
@@ -189,7 +189,7 @@ legend {
  overflow: visible;  /* This allows elements within these slice typesin a dashboard to overflow */
 }
 .dashboard  div.nvtooltip {
-  z-index: 1;  /* this lets tool tips go on top of other slices  */
+  z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
 .dashboard td.icons {
   width: 50px;
