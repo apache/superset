@@ -6,15 +6,15 @@ px.registerWidget('big_number', function(data_attribute) {
 
   function render(done) {
     d3.json(json_callback, function(error, payload){
-      json = payload.data;
-      div.html("");
       //Define the percentage bounds that define color from red to green
+      div.html("");
       if (error != null){
         var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
         div.html(err);
         done(payload);
         return '';
       }
+      json = payload.data;
       var color_range = [-1, 1];
       var compare_pos = -23
       var target_url = 'd3js.org';
