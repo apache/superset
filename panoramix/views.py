@@ -149,7 +149,7 @@ class TableView(PanoramixModelView, DeleteMixin):
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
-         'main_dttm_col', 'default_endpoint', 'offset']
+        'main_dttm_col', 'default_endpoint', 'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
     description_columns = {
