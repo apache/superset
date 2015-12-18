@@ -55,7 +55,7 @@ px.registerWidget('table', function(data_attribute) {
       var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
       token.html(err);
       token.show();
-      done();
+      ctrl.done();
     });
   }
 
