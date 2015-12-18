@@ -36,6 +36,13 @@
         <span class="btn btn-info pull-right disabled query"
           data-toggle="modal" data-target="#query_modal">query</span>
         <span class="btn btn-warning pull-right notbtn" id="timer">0 sec</span>
+        <div class="btn-group pull-right" role="group">
+          <span class="btn btn-default disabled">
+            <i class="fa fa-file-text"></i>
+          </span>
+          <span class="btn btn-default" id="csv">.csv</span>
+          <span class="btn btn-default" id="json">.json</span>
+        </div>
         <hr/>
     </div>
     <div class="row">
@@ -228,6 +235,12 @@
 
     $('legend').click(function () {
       toggle_fieldset($(this), true);
+    });
+    $('#json').click(function () {
+      window.location = '{{ viz.json_endpoint | safe }}';
+    });
+    $('#csv').click(function () {
+      window.location = '{{ viz.csv_endpoint | safe }}';
     });
     $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();

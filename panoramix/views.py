@@ -399,6 +399,13 @@ class Panoramix(BaseView):
         obj = viz.viz_types[viz_type](
             datasource,
             form_data=request.args)
+        if request.args.get("csv") == "true":
+            status = 200
+            payload = obj.get_csv()
+            return Response(
+                payload,
+                status=status,
+                mimetype="application/csv")
         if request.args.get("json") == "true":
             status = 200
             if config.get("DEBUG"):

@@ -208,12 +208,20 @@ class BaseViz(object):
         }
         return json.dumps(payload)
 
+    def get_csv(self):
+        df = self.get_df()
+        return df.to_csv(index=False)
+
     def get_json_data(self):
         return json.dumps([])
 
     @property
     def json_endpoint(self):
         return self.get_url(json="true")
+
+    @property
+    def csv_endpoint(self):
+        return self.get_url(csv="true")
 
     def get_data_attribute(self):
         content = {
