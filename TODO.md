@@ -4,8 +4,8 @@ List of TODO items for Panoramix
 ## Improvments
 * GROUPED boolean for table view
 * datasource in explore mode could be a dropdown
-* csv export
-* json export (options)
+* [sql] make "Test Connection" test further
+* in/notin filters autocomplete
 * [druid] Allow for post aggregations (ratios!)
 * in/notin filters autocomplete
 * [sql] make "Test Connection" test further
