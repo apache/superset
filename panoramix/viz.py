@@ -242,8 +242,20 @@ class TableViz(BaseViz):
         'fields': (
             'granularity',
             ('since', 'until'),
-            'metrics', 'groupby',
             'row_limit'
+        )
+    },
+    {
+        'label': "GROUP BY",
+        'fields': (
+            'groupby',
+            'metrics',
+        )
+    },
+    {
+        'label': "NOT GROUPED BY",
+        'fields': (
+            'all_columns',
         )
     },)
     css_files = ['lib/dataTables/dataTables.bootstrap.css']
@@ -261,6 +273,14 @@ class TableViz(BaseViz):
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
+        fd = self.form_data
+        if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
+            raise Exception(
+                "Choose either fields to [Group By] and [Metrics] or "
+                "[Columns], not both")
+        if fd.get('all_columns'):
+            d['columns'] = fd.get('all_columns')
+            d['groupby'] = []
         d['is_timeseries'] = False
         d['timeseries_limit'] = None
         return d
@@ -301,10 +321,6 @@ class PivotTableViz(BaseViz):
         )
     },)
 
-    @property
-    def json_endpoint(self):
-        return self.get_url(async='true', standalone='true', skip_libs='true')
-
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
         groupby = self.form_data.get('groupby')
@@ -342,6 +358,13 @@ class PivotTableViz(BaseViz):
             margins=True,
         )
         return df
+
+    def get_json_data(self):
+        return dumps(self.get_df().to_html(
+            na_rep='',
+            classes=(
+                "dataframe table table-striped table-bordered "
+                "table-condensed table-hover")))
 
 
 class MarkupViz(BaseViz):

@@ -2,7 +2,7 @@
   {% if viz.request.args.get("async") == "true" %}
     {% set df = viz.get_df() %}
     <div class="table">
-      <table class="dataframe table table-striped table-bordered table-condensed">
+      <table class="dataframe table table-striped table-bordered table-condensed table-hover">
         <thead>
           <tr>
             {% for col in df.columns if not col.endswith('__perc') %}

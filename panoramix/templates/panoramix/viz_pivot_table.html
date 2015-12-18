@@ -1,18 +1,7 @@
 {% macro viz_html(viz) %}
-  {% if viz.request.args.get("async") == "true" %}
-    {{ viz.get_df().to_html(na_rep='', classes="dataframe table table-striped table-bordered table-condensed")|safe }}
-  {% else %}
-    <div id="{{ viz.token }}" style="display: none;overflow: auto; height: 100%;"></div>
-  {% endif %}
 {% endmacro %}
 
 {% macro viz_js(viz) %}
-  {% if viz.form_data.get("async") != "true" %}
-  <script>
-  $( document ).ready(function() {
-  });
-  </script>
-  {% endif %}
 {% endmacro %}
 
 {% macro viz_css(viz) %}
