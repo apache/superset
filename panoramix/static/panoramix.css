@@ -1,3 +1,9 @@
+html>body{
+    margin: 0px; !important
+}
+.container-fluid {
+    text-align: left;
+}
 input[type="checkbox"] {
   display: inline-block;
   width: 16px;

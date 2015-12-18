@@ -128,6 +128,10 @@ class FormFactory(object):
                 'Columns',
                 choices=self.choicify(datasource.groupby_column_names),
                 description="One or many fields to pivot as columns"),
+            'all_columns': SelectMultipleSortableField(
+                'Columns',
+                choices=self.choicify(datasource.column_names),
+                description="Columns to display"),
             'granularity': FreeFormSelectField(
                 'Time Granularity', default="one day",
                 choices=self.choicify([
@@ -322,6 +326,10 @@ class FormFactory(object):
                 "Range Filter", default=True,
                 description=(
                     "Whether to display the time range interactive selector")),
+            'include_search': BetterBooleanField(
+                "Search Box", default=False,
+                description=(
+                    "Whether to include a client side search box")),
             'show_bubbles': BetterBooleanField(
                 "Show Bubbles", default=False,
                 description=(
@@ -335,10 +343,14 @@ class FormFactory(object):
                     "Whether to display the min and max values of the axis")),
             'rich_tooltip': BetterBooleanField(
                 "Rich Tooltip", default=True,
-                description="The rich tooltip shows a list of all series for that point in time"),
+                description=(
+                    "The rich tooltip shows a list of all series for that"
+                    " point in time")),
             'y_axis_zero': BetterBooleanField(
                 "Y Axis Zero", default=False,
-                description="Force the Y axis to start at 0 instead of the minimum value"),
+                description=(
+                    "Force the Y axis to start at 0 instead of the minimum "
+                    "value")),
             'y_log_scale': BetterBooleanField(
                 "Y Log", default=False,
                 description="Use a log scale for the Y axis"),

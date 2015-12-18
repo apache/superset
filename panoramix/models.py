@@ -377,7 +377,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             is_timeseries=True,
             timeseries_limit=15, row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
-            extras=None):
+            extras=None,
+            columns=None):
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -427,15 +428,20 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs.append(outer)
                 inner_groupby_exprs.append(inner)
                 inner_select_exprs.append(inner)
+        elif columns:
+            for s in columns:
+                select_exprs.append(s)
+            metrics_exprs = []
 
-        if is_timeseries:
+        if is_timeseries and groupby:
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
-        qry = qry.group_by(*groupby_exprs)
+        if groupby:
+            qry = qry.group_by(*groupby_exprs)
 
         time_filter = [
             timestamp >= from_dttm.isoformat(),
@@ -466,7 +472,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             having_clause_and += [text(extras['having'])]
         qry = qry.where(and_(*(time_filter + where_clause_and)))
         qry = qry.having(and_(*having_clause_and))
-        qry = qry.order_by(desc(main_metric_expr))
+        if groupby:
+            qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
@@ -492,6 +499,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             con=engine
         )
         sql = sqlparse.format(sql, reindent=True)
+        print(sql)
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
@@ -779,7 +787,8 @@ class Datasource(Model, AuditMixinNullable, Queryable):
             timeseries_limit=None,
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
-            extras=None):
+            extras=None,
+            select=None):
         qry_start_dttm = datetime.now()
 
         inner_from_dttm = inner_from_dttm or from_dttm

@@ -242,25 +242,43 @@ class TableViz(BaseViz):
         'fields': (
             'granularity',
             ('since', 'until'),
-            'metrics', 'groupby',
-            'row_limit'
+            'row_limit',
+            ('include_search', None),
+        )
+    },
+    {
+        'label': "GROUP BY",
+        'fields': (
+            'groupby',
+            'metrics',
+        )
+    },
+    {
+        'label': "NOT GROUPED BY",
+        'fields': (
+            'all_columns',
         )
     },)
     css_files = ['lib/dataTables/dataTables.bootstrap.css']
     is_timeseries = False
     js_files = [
+        'lib/d3.min.js',
         'lib/dataTables/jquery.dataTables.min.js',
         'lib/dataTables/dataTables.bootstrap.js',
         'widgets/viz_table.js',
     ]
     css_files = ['widgets/viz_table.css']
 
-    @property
-    def json_endpoint(self):
-        return self.get_url(async='true', standalone='true', skip_libs='true')
-
     def query_obj(self):
         d = super(TableViz, self).query_obj()
+        fd = self.form_data
+        if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
+            raise Exception(
+                "Choose either fields to [Group By] and [Metrics] or "
+                "[Columns], not both")
+        if fd.get('all_columns'):
+            d['columns'] = fd.get('all_columns')
+            d['groupby'] = []
         d['is_timeseries'] = False
         d['timeseries_limit'] = None
         return d
@@ -271,9 +289,14 @@ class TableViz(BaseViz):
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
             del df['timestamp']
-        for m in self.metrics:
-            df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
         return df
+
+    def get_json_data(self):
+        df = self.get_df()
+        return dumps(dict(
+            records=df.to_dict(orient="records"),
+            columns=df.columns,
+        ))
 
 
 class PivotTableViz(BaseViz):
@@ -300,10 +323,6 @@ class PivotTableViz(BaseViz):
             'pandas_aggfunc',
         )
     },)
-
-    @property
-    def json_endpoint(self):
-        return self.get_url(async='true', standalone='true', skip_libs='true')
 
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
@@ -342,6 +361,13 @@ class PivotTableViz(BaseViz):
             margins=True,
         )
         return df
+
+    def get_json_data(self):
+        return dumps(self.get_df().to_html(
+            na_rep='',
+            classes=(
+                "dataframe table table-striped table-bordered "
+                "table-condensed table-hover")))
 
 
 class MarkupViz(BaseViz):
