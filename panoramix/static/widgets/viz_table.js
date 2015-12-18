@@ -61,6 +61,6 @@ px.registerWidget('table', function(data_attribute) {
 
   return {
     render: refresh,
-    resize: refresh,
+    resize: function(){},
   };
 });
