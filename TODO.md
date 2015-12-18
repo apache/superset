@@ -2,11 +2,13 @@
 List of TODO items for Panoramix
 
 ## Improvments
-* [sql] make "Test Connection" test further
+* GROUPED boolean for table view
+* datasource in explore mode could be a dropdown
 * csv export
 * json export (options)
-* in/notin filters autocomplete
 * [druid] Allow for post aggregations (ratios!)
+* in/notin filters autocomplete
+* [sql] make "Test Connection" test further
 
 ## Better Javascript enables
 * Async on Druidify! in exploration page
@@ -21,4 +23,3 @@ List of TODO items for Panoramix
 ## Community
 * Creat a proper doc
 * Usage vid
-*

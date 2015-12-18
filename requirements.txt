@@ -1,4 +1,6 @@
 alembic>=0.7.7, <0.8.0
+sphinx
+sphinx_bootstrap_theme
 coverage
 coveralls
 flask==0.10.1
