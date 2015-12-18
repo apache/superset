@@ -1,8 +1,8 @@
 px.registerWidget('markup', function(data_attribute) {
 
-  function refresh(done) {
+  function refresh(ctrl) {
       $('#code').attr('rows', '15')
-      done();
+      ctrl.done();
   }
   return {
     render: refresh,

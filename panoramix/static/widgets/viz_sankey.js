@@ -5,7 +5,7 @@ function viz_sankey(data_attribute) {
     var width = xy.width;
     var height = xy.height - 25;
 
-    var render = function(done) {
+    var render = function(ctrl) {
         var margin = {top: 1, right: 1, bottom: 6, left: 1};
         width = width - margin.left - margin.right;
         height = height - margin.top - margin.bottom;
@@ -28,9 +28,7 @@ function viz_sankey(data_attribute) {
 
         d3.json(data_attribute.json_endpoint, function(error, json) {
           if (error != null){
-            var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-            token.html(err);
-            done();
+            ctrl.error(error.responseText);
             return '';
           }
           links = json.data;
@@ -98,7 +96,7 @@ function viz_sankey(data_attribute) {
             link.attr("d", path);
           }
             token.select("img.loading").remove();
-          done(json);
+          ctrl.done(json);
         });
     }
     return {

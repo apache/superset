@@ -3,7 +3,7 @@ px.registerWidget('pivot_table', function(data_attribute) {
   var token = $('#' + token_name);
   var form_data = data_attribute.form_data;
 
-  function refresh(done) {
+  function refresh(ctrl) {
     $.getJSON(data_attribute.json_endpoint, function(json){
       token.html(json.data);
       if (form_data.groupby.length == 1){
@@ -14,12 +14,10 @@ px.registerWidget('pivot_table', function(data_attribute) {
         table.column('-1').order( 'desc' ).draw();
       }
       token.show();
-      done(json);
+      ctrl.done(json);
     }).fail(function(xhr){
-        var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-        token.html(err);
         token.show();
-        done();
+        ctrl.error(xhr.responseText);
     });
   }
   return {

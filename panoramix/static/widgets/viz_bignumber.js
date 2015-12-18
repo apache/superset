@@ -4,14 +4,12 @@ px.registerWidget('big_number', function(data_attribute) {
   var json_callback = data_attribute['json_endpoint'];
   var div = d3.select('#' + token_name);
 
-  function render(done) {
+  function render(ctrl) {
     d3.json(json_callback, function(error, payload){
       //Define the percentage bounds that define color from red to green
       div.html("");
       if (error != null){
-        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-        div.html(err);
-        done(payload);
+        ctrl.error(error.responseText);
         return '';
       }
       json = payload.data;
@@ -137,7 +135,7 @@ px.registerWidget('big_number', function(data_attribute) {
         div.select('g.digits').transition().duration(500).attr('opacity', 1);
         div.select('g.axis').transition().duration(500).attr('opacity', 0);
       });
-      done(payload);
+      ctrl.done(payload);
     });
   };
 

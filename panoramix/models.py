@@ -433,14 +433,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs.append(s)
             metrics_exprs = []
 
-        if is_timeseries and groupby:
+        if is_timeseries:
             select_exprs += [timestamp]
             groupby_exprs += [timestamp]
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
-        if groupby:
+        if not columns:
             qry = qry.group_by(*groupby_exprs)
 
         time_filter = [

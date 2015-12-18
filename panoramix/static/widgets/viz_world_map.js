@@ -4,7 +4,7 @@
 
 function viz_world_map(data_attribute) {
     var token = d3.select('#' + data_attribute.token);
-    var render = function(done) {
+    var render = function(ctrl) {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var div = token;
     var xy = div.node().getBoundingClientRect();
@@ -14,10 +14,8 @@ function viz_world_map(data_attribute) {
     d3.json(data_attribute.json_endpoint, function(error, json){
 
       if (error != null){
-        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-        token.html(err);
+        ctrl.error(error.responseText);
         return '';
-        done();
       }
       var ext = d3.extent(json.data, function(d){return d.m1});
       var extRadius = d3.extent(json.data, function(d){return d.m2});
@@ -81,7 +79,7 @@ function viz_world_map(data_attribute) {
         map.bubbles(json.data);
         token.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
       }
-      done(json);
+      ctrl.done(json);
     });
   }
 

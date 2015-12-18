@@ -4,7 +4,7 @@ Modified from http://bl.ocks.org/kerryrodden/7090426
 
 function viz_sunburst(data_attribute) {
   var token = d3.select('#' + data_attribute.token);
-  var render = function(done) {
+  var render = function(ctrl) {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var b = {
       w: 100, h: 30, s: 3, t: 10
@@ -42,13 +42,12 @@ function viz_sunburst(data_attribute) {
     d3.json(data_attribute.json_endpoint, function(error, json){
 
       if (error != null){
-        var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-        token.html(err);
+        ctrl.error(error.responseText);
         return '';
       }
       var tree = buildHierarchy(json.data);
       createVisualization(tree);
-      done(json);
+      ctrl.done(json);
     });
 
     // Main function to draw and set up the visualization, once we have the data.

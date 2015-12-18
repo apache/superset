@@ -35,12 +35,14 @@ var px = (function() {
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-success');
       },
-      error: function (data) {
+      error: function (msg) {
         clearInterval(timer);
         token.find("img.loading").hide();
+        var err = '<div class="alert alert-danger">' + msg  + '</div>';
+        token.html(err);
         $('#timer').removeClass('btn-warning');
         $('span.query').removeClass('disabled');
-        $('#timer').addClass('btn-error');
+        $('#timer').addClass('btn-danger');
       }
     };
     widget = {
