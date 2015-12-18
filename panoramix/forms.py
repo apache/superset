@@ -326,6 +326,10 @@ class FormFactory(object):
                 "Range Filter", default=True,
                 description=(
                     "Whether to display the time range interactive selector")),
+            'include_search': BetterBooleanField(
+                "Search Box", default=False,
+                description=(
+                    "Whether to include a client side search box")),
             'show_bubbles': BetterBooleanField(
                 "Show Bubbles", default=False,
                 description=(

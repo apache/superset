@@ -242,7 +242,8 @@ class TableViz(BaseViz):
         'fields': (
             'granularity',
             ('since', 'until'),
-            'row_limit'
+            'row_limit',
+            ('include_search', None),
         )
     },
     {
@@ -261,15 +262,12 @@ class TableViz(BaseViz):
     css_files = ['lib/dataTables/dataTables.bootstrap.css']
     is_timeseries = False
     js_files = [
+        'lib/d3.min.js',
         'lib/dataTables/jquery.dataTables.min.js',
         'lib/dataTables/dataTables.bootstrap.js',
         'widgets/viz_table.js',
     ]
     css_files = ['widgets/viz_table.css']
-
-    @property
-    def json_endpoint(self):
-        return self.get_url(async='true', standalone='true', skip_libs='true')
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -291,9 +289,14 @@ class TableViz(BaseViz):
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
             del df['timestamp']
-        for m in self.metrics:
-            df[m + '__perc'] = np.rint((df[m] / np.max(df[m])) * 100)
         return df
+
+    def get_json_data(self):
+        df = self.get_df()
+        return dumps(dict(
+            records=df.to_dict(orient="records"),
+            columns=df.columns,
+        ))
 
 
 class PivotTableViz(BaseViz):
