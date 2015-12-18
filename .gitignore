@@ -1,6 +1,7 @@
 *.pyc
 .DS_Store
 .coverage
+_build
 panoramix/bin/panoramixc
 build
 *.db
