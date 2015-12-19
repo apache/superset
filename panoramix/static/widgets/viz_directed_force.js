@@ -16,13 +16,11 @@ function viz_directed_force(data_attribute) {
   if (charge === undefined){
     charge = -500;
   }
-  var render = function(done) {
+  var render = function(ctrl) {
     d3.json(data_attribute.json_endpoint, function(error, json) {
 
     if (error != null){
-      var err = '<div class="alert alert-danger">' + error.responseText  + '</div>';
-      token.html(err);
-      done();
+      ctrl.error(error.responseText);
       return '';
     }
     links = json.data;
@@ -152,7 +150,7 @@ function viz_directed_force(data_attribute) {
             .attr("transform", function(d) {
             return "translate(" + d.x + "," + d.y + ")"; });
     }
-    done(json);
+    ctrl.done(json);
     });
   }
   return {

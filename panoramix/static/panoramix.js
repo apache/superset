@@ -25,7 +25,8 @@ var px = (function() {
         dttm += 10;
         $('#timer').text(Math.round(dttm/10)/100 + " sec");
     }
-    var done = function (data) {
+    var controler = {
+      done: function (data) {
         clearInterval(timer);
         token.find("img.loading").hide();
         if(data !== undefined)
@@ -33,11 +34,21 @@ var px = (function() {
         $('#timer').removeClass('btn-warning');
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-success');
-    }
+      },
+      error: function (msg) {
+        clearInterval(timer);
+        token.find("img.loading").hide();
+        var err = '<div class="alert alert-danger">' + msg  + '</div>';
+        token.html(err);
+        $('#timer').removeClass('btn-warning');
+        $('span.query').removeClass('disabled');
+        $('#timer').addClass('btn-danger');
+      }
+    };
     widget = {
       render: function() {
         timer = setInterval(stopwatch, 10);
-        user_defined_widget.render(done);
+        user_defined_widget.render(controler);
       },
       resize: function() {
         user_defined_widget.resize();

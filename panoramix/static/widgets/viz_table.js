@@ -3,7 +3,7 @@ px.registerWidget('table', function(data_attribute) {
   var token_name = data_attribute['token'];
   var token = $('#' + token_name);
 
-  function refresh(done) {
+  function refresh(ctrl) {
     $.getJSON(data_attribute.json_endpoint, function(json){
       var data = json.data;
       var metrics = json.form_data.metrics;
@@ -50,12 +50,9 @@ px.registerWidget('table', function(data_attribute) {
         var main_metric = data_attribute.form_data.metrics[0];
         datatable.column(data.columns.indexOf(main_metric)).order( 'desc' ).draw();
       }
-      done(json);
+      ctrl.done(json);
     }).fail(function(xhr){
-      var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-      token.html(err);
-      token.show();
-      done();
+      ctrl.error(xhr.responseText);
     });
   }
 

@@ -29,7 +29,7 @@ function viz_nvd3(data_attribute) {
   var jtoken = $('#' + token_name);
   var chart_div = $('#' + token_name).find("div.chart");
 
-  var refresh = function(done) {
+  var refresh = function(ctrl) {
     chart_div.hide();
     $.getJSON(json_callback, function(payload) {
       var data = payload.data;
@@ -161,13 +161,11 @@ function viz_nvd3(data_attribute) {
         return chart;
       });
       chart_div.show();
-      done(data);
+      ctrl.done(data);
   })
   .fail(function(xhr) {
-      var err = '<div class="alert alert-danger">' + xhr.responseText  + '</div>';
-      done(data);
       chart_div.show();
-      chart_div.html(err);
+      ctrl.error(xhr.responseText);
     });
   };
   var resize = function() {
