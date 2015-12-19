@@ -2,6 +2,7 @@
 List of TODO items for Panoramix
 
 ## Improvments
+* Widget sets ()
 * datasource in explore mode could be a dropdown
 * [sql] make "Test Connection" test further
 * [druid] Allow for post aggregations (ratios!)
