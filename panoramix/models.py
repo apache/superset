@@ -4,6 +4,7 @@ from flask import flash
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 from pandas import read_sql_query
+from pandas.io.json import dumps
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 import sqlalchemy as sqla
@@ -84,6 +85,16 @@ class Slice(Model, AuditMixinNullable):
     @property
     def datasource_id(self):
         return self.table_id or self.druid_datasource_id
+
+    @property
+    def data(self):
+        d = self.viz.data
+        d['slice_id'] = self.id
+        return d
+
+    @property
+    def json_data(self):
+        return json.dumps(self.data)
 
     @property
     def slice_url(self):

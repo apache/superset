@@ -2,9 +2,9 @@
 Modified from http://bl.ocks.org/kerryrodden/7090426
 */
 
-function viz_sunburst(data_attribute) {
-  var token = d3.select('#' + data_attribute.token);
-  var render = function(ctrl) {
+function viz_sunburst(slice) {
+  var token = d3.select('#' + slice.data.token);
+  var render = function() {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var b = {
       w: 100, h: 30, s: 3, t: 10
@@ -39,15 +39,15 @@ function viz_sunburst(data_attribute) {
         .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
 
     var ext;
-    d3.json(data_attribute.json_endpoint, function(error, json){
+    d3.json(slice.data.json_endpoint, function(error, json){
 
       if (error != null){
-        ctrl.error(error.responseText);
+        slice.error(error.responseText);
         return '';
       }
       var tree = buildHierarchy(json.data);
       createVisualization(tree);
-      ctrl.done(json);
+      slice.done(json);
     });
 
     // Main function to draw and set up the visualization, once we have the data.
@@ -253,4 +253,4 @@ function viz_sunburst(data_attribute) {
     resize: render,
   };
 }
-px.registerWidget('sunburst', viz_sunburst);
+px.registerViz('sunburst', viz_sunburst);

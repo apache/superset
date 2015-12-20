@@ -138,8 +138,8 @@
               {% include 'appbuilder/flash.html' %}
         <div
           id="{{ viz.token }}"
-          class="viz widget {{ viz.viz_type }}"
-          data-widget="{{ viz.get_data_attribute() }}"
+          class="viz slice {{ viz.viz_type }}"
+          data-slice="{{ viz.json_data }}"
           style="height: 700px;">
           <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
           {% block viz_html %}
@@ -150,6 +150,7 @@
               <div class="alert alert-warning">{{ viz.warning_msg }}</div>
             {% endif %}
           {% endblock %}
+          <div class="slice_container" style="height: 100%; width: 100%">{{ viz_macros.viz_html(viz) }}</div>
         </div>
       </div>
     </div>
@@ -183,15 +184,15 @@
 {% block tail_js %}
 {{ super() }}
 <script>
-  $(document).ready(px.initializeDatasourceView);
+  $(document).ready(px.initExploreView);
   $(document).ready(function() {
-    var data = $('.widget').data('widget');
-    var widget = px.initializeWidget(data);
-    $('.widget').data('widget', widget);
-    widget.render();
+    var data = $('.slice').data('slice');
+    var slice = px.Slice(data);
+    $('.slice').data('slice', slice);
+    slice.render();
 
     function get_collapsed_fieldsets(){
-        collapsed_fieldsets = $("#collapsed_fieldsets").val()
+        collapsed_fieldsets = $("#collapsed_fieldsets").val();
         if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
           collapsed_fieldsets = collapsed_fieldsets.split('||');
         else
@@ -244,7 +245,7 @@
     });
     $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();
-    for(var i=0; i<collapsed_fieldsets.length;i++){
+    for(var i=0; i < collapsed_fieldsets.length; i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
     }
   });

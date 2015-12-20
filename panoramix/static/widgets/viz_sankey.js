@@ -1,11 +1,11 @@
-function viz_sankey(data_attribute) {
-    var token = d3.select('#' + data_attribute.token);
+function viz_sankey(slice) {
+    var token = d3.select('#' + slice.data.token);
     var div = token.select("#chart");
     var xy = div.node().getBoundingClientRect();
     var width = xy.width;
     var height = xy.height - 25;
 
-    var render = function(ctrl) {
+    var render = function() {
         var margin = {top: 1, right: 1, bottom: 6, left: 1};
         width = width - margin.left - margin.right;
         height = height - margin.top - margin.bottom;
@@ -26,9 +26,9 @@ function viz_sankey(data_attribute) {
 
         var path = sankey.link();
 
-        d3.json(data_attribute.json_endpoint, function(error, json) {
+        d3.json(slice.data.json_endpoint, function(error, json) {
           if (error != null){
-            ctrl.error(error.responseText);
+            slice.error(error.responseText);
             return '';
           }
           links = json.data;
@@ -96,7 +96,7 @@ function viz_sankey(data_attribute) {
             link.attr("d", path);
           }
             token.select("img.loading").remove();
-          ctrl.done(json);
+          slice.done(json);
         });
     }
     return {
@@ -104,4 +104,4 @@ function viz_sankey(data_attribute) {
         resize: render,
     };
 }
-px.registerWidget('sankey', viz_sankey);
+px.registerViz('sankey', viz_sankey);

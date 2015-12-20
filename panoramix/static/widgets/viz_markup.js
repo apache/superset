@@ -1,8 +1,8 @@
-px.registerWidget('markup', function(data_attribute) {
+px.registerViz('markup', function(slice) {
 
-  function refresh(ctrl) {
+  function refresh() {
       $('#code').attr('rows', '15')
-      ctrl.done();
+      slice.done();
   }
   return {
     render: refresh,

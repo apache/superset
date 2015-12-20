@@ -82,12 +82,12 @@ body {
               id="slice_{{ slice.id }}"
               slice_id="{{ slice.id }}"
               class="widget {{ slice.viz.viz_type }}"
-              data-widget="{{ slice.viz.get_data_attribute() }}"
+              data-slice="{{ slice.json_data }}"
               data-row="{{ pos.row or 1 }}"
               data-col="{{ pos.col or loop.index }}"
               data-sizex="{{ pos.size_x or 4 }}"
               data-sizey="{{ pos.size_y or 4 }}">
-              <table class="widget_header">
+              <table class="slice_header">
                 <tbody>
                   <tr>
                     <td class="icons">
@@ -103,7 +103,7 @@ body {
                       <nobr>
                       <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
                       <a href="{{ slice.edit_url }}"><i class="fa fa-gear"></i></a>
-                      <a class="closewidget"><i class="fa fa-close"></i></a>
+                      <a class="closeslice"><i class="fa fa-close"></i></a>
                       </br>
                     </td>
                   </tr>
@@ -111,7 +111,7 @@ body {
               </table>
               <div id="{{ viz.token }}" class="token" style="height: 100%;">
                 <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
-                {{ viz_macros.viz_html(viz) }}
+                <div class="slice_container" style="height: 100%; width: 100%;">{{ viz_macros.viz_html(viz) }}</div>
               </div>
           </li>
         {% endfor %}
@@ -127,14 +127,9 @@ body {
     {% endfor %}
     <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
     <script>
-      $(document).ready(px.initializeDashboardView({{ dashboard.id }}));
       $(document).ready(function() {
-        $('.dashboard .widget').each(function() {
-          var data = $(this).data('widget');
-          var widget = px.initializeWidget(data);
-          $(this).data('widget', widget);
-          widget.render();
-        });
+        px.initDashboardView({{ dashboard.id }})
+        var dashboard = px.Dashboard();
       });
     </script>
     {% for slice in dashboard.slices %}

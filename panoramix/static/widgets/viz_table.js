@@ -1,10 +1,10 @@
-px.registerWidget('table', function(data_attribute) {
+px.registerViz('table', function(slice) {
+  var data = slice.data;
+  var form_data = data.form_data;
 
-  var token_name = data_attribute['token'];
-  var token = $('#' + token_name);
-
-  function refresh(ctrl) {
-    $.getJSON(data_attribute.json_endpoint, function(json){
+  function refresh() {
+    var f = d3.format('.3s');
+    $.getJSON(data.json_endpoint, function(json){
       var data = json.data;
       var metrics = json.form_data.metrics;
       function col(c){
@@ -18,8 +18,7 @@ px.registerWidget('table', function(data_attribute) {
       for (var i=0; i<metrics.length; i++){
         maxes[metrics[i]] = d3.max(col(metrics[i]));
       }
-
-      var table = d3.select('#' + token_name).append('table')
+      var table = d3.select(slice.selector).append('table')
         .attr('class', 'dataframe table table-striped table-bordered table-condensed table-hover');
       table.append('thead').append('tr')
        .selectAll('th')
@@ -32,27 +31,51 @@ px.registerWidget('table', function(data_attribute) {
        .append('tr')
        .selectAll('td')
        .data(function(row, i) {
-          return data.columns.map(function(c) {return [c, row];});
+          return data.columns.map(function(c) {
+            return {col: c, val: row[c], isMetric: metrics.indexOf(c) >=0};
+          });
        }).enter()
        .append('td')
        .style('background-image', function(d){
-          var perc = Math.round((d[1][d[0]] / maxes[d[0]]) * 100);
-          if (perc !== NaN)
-            return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%"
+          if (d.isMetric){
+            var perc = Math.round((d.val / maxes[d.col]) * 100);
+            return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
+          }
        })
-       .html(function(d){return d[1][d[0]]});
-      var datatable = token.find('table').DataTable({
+       .attr('data-sort', function(d){
+          if (d.isMetric)
+            return d.val;
+       })
+       .on("click", function(d){
+         if(!d.isMetric){
+          table.selectAll('.filtered').classed('filtered', false);
+          d3.select(this).classed('filtered', true);
+          slice.addFilter(d.col, [d.val]);
+        }
+       })
+       .style("cursor", function(d){
+         if(!d.isMetric){
+          return 'pointer';
+        }
+       })
+       .html(function(d){
+          if (d.isMetric)
+            return f(d.val);
+          else
+            return d.val;
+       });
+      var datatable = slice.container.find('table').DataTable({
         paging: false,
-        searching: data_attribute.form_data.include_search,
+        searching: form_data.include_search,
       });
       // Sorting table by main column
-      if (data_attribute.form_data.metrics.length > 0) {
-        var main_metric = data_attribute.form_data.metrics[0];
+      if (form_data.metrics.length > 0) {
+        var main_metric = form_data.metrics[0];
         datatable.column(data.columns.indexOf(main_metric)).order( 'desc' ).draw();
       }
-      ctrl.done(json);
+      slice.done(json);
     }).fail(function(xhr){
-      ctrl.error(xhr.responseText);
+      slice.error(xhr.responseText);
     });
   }
 

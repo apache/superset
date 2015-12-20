@@ -1,34 +1,25 @@
-var timer;
 var px = (function() {
 
   var visualizations = [];
 
-  function registerWidget(name, initializer) {
-    visualizations[name] = initializer;
-  }
-
-  function makeNullWidget() {
-    return {
-      render: function() {},
-      resize: function() {},
-    };
-  }
-
-  function initializeWidget(data) {
+  var Slice = function(data, dashboard){
+    var timer;
     var token = $('#' + data.token);
+    var selector = '#' + data.token + ' .slice_container';
+    var container = $(selector);
+    var slice_id = data.form_data;
     var name = data['viz_name'];
-    var initializer = visualizations[name];
-    var user_defined_widget = initializer ? initializer(data) : makeNullWidget();
     var dttm = 0;
     var timer;
     var stopwatch = function () {
         dttm += 10;
         $('#timer').text(Math.round(dttm/10)/100 + " sec");
     }
-    var controler = {
+    slice = {
       done: function (data) {
         clearInterval(timer);
-        token.find("img.loading").hide();
+        token.find("img.loading").hide()
+        container.show();
         if(data !== undefined)
             $("#query_container").html(data.query);
         $('#timer').removeClass('btn-warning');
@@ -39,25 +30,64 @@ var px = (function() {
         clearInterval(timer);
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg  + '</div>';
-        token.html(err);
+        container.html(err);
         $('#timer').removeClass('btn-warning');
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
-      }
-    };
-    widget = {
+      },
+      data: data,
+      container: container,
+      selector: selector,
       render: function() {
+        token.find("img.loading").show();
+        container.hide();
         timer = setInterval(stopwatch, 10);
-        user_defined_widget.render(controler);
+        viz.render(this);
       },
       resize: function() {
-        user_defined_widget.resize();
+        viz.resize(this);
+      },
+      addFilter: function(col, vals) {
+        if(dashboard !== undefined)
+          dashboard.addFilter(slice_id, col, vals);
       },
     };
-    return widget;
+    var viz = visualizations[name](slice);
+    slice['viz'] = viz;
+    return slice;
   }
 
-  function initializeDatasourceView() {
+  var Dashboard = function(){
+    var dash = {
+      slices: [],
+      filters: {},
+      addFilter: function(slice_id, field, values) {
+        this.filters[slice_id] = [field, values];
+        this.slices.forEach(function(slice){
+          if(slice.data.slice_id != slice_id){
+            //slice.render();
+          }
+        });
+        console.log(this.filters);
+      },
+    }
+    $('.dashboard li.widget').each(function() {
+      var data = $(this).data('slice');
+      var slice = Slice(data, dash);
+      $(this).find('a.refresh').click(function(){
+        slice.render();
+      });
+      dash.slices.push(slice);
+      slice.render();
+    });
+    return dash;
+  }
+
+  function registerViz(name, initViz) {
+    visualizations[name] = initViz;
+  }
+
+  function initExploreView() {
     function getParam(name) {
       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
@@ -176,7 +206,7 @@ var px = (function() {
   });
 }
 
-function initializeDashboardView(dashboard_id) {
+function initDashboardView(dashboard_id) {
   var gridster = $(".gridster ul").gridster({
     widget_margins: [5, 5],
     widget_base_dimensions: [100, 100],
@@ -186,8 +216,8 @@ function initializeDashboardView(dashboard_id) {
     resize: {
       enabled: true,
       stop: function(e, ui, element) {
-        var widget = $(element).data('widget');
-        widget.resize();
+        var slice = $(element).data('slice');
+        slice.resize();
       }
     },
     serialize_params: function(_w, wgd) {
@@ -214,36 +244,42 @@ function initializeDashboardView(dashboard_id) {
       error: function() {alert("Error :(")},
     });
   });
-  $("a.closewidget").click(function() {
+  $("a.closeslice").click(function() {
     var li = $(this).parents("li");
     gridster.remove_widget(li);
   });
-  $("table.widget_header").mouseover(function() {
+  $("table.slice_header").mouseover(function() {
     $(this).find("td.icons nobr").show();
   });
-  $("table.widget_header").mouseout(function() {
+  $("table.slice_header").mouseout(function() {
     $(this).find("td.icons nobr").hide();
   });
   $("#dash_css").on("keyup", function(){
     css = $(this).val();
     $("#user_style").html(css);
   });
-  $('li.widget').each(function() { /* this sets the z-index for left side boxes higher. */
+
+  // this sets the z-index for left side boxes higher
+  $('li.slice').each(function() {
     current_row = $(this).attr('data-col');
     $( this ).css('z-index', 100 - current_row);
   });
-  $("div.chart").each(function() { /* this makes the whole chart fit within the dashboard div */
+
+  // this makes the whole chart fit within the dashboard div
+  $("div.chart").each(function() {
     $(this).css('height', '95%');
   });
+
+
 }
 
   // Export public functions
   return {
-    registerWidget: registerWidget,
-    initializeWidget: initializeWidget,
-    initializeDatasourceView: initializeDatasourceView,
-    initializeDashboardView: initializeDashboardView,
+    registerViz: registerViz,
+    Slice: Slice,
+    Dashboard: Dashboard,
+    initExploreView: initExploreView,
+    initDashboardView: initDashboardView,
   }
-
 })();
 

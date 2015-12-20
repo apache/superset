@@ -223,14 +223,19 @@ class BaseViz(object):
     def csv_endpoint(self):
         return self.get_url(csv="true")
 
-    def get_data_attribute(self):
+    @property
+    def data(self):
         content = {
             'viz_name': self.viz_type,
             'json_endpoint': self.json_endpoint,
             'token': self.token,
             'form_data': self.form_data,
         }
-        return dumps(content)
+        return content
+
+    @property
+    def json_data(self):
+        return dumps(self.data)
 
 class TableViz(BaseViz):
     viz_type = "table"
