@@ -8,7 +8,7 @@ var px = (function() {
     var container_id = data.token + '_con';
     var selector = '#' + container_id;
     var container = $(selector);
-    var slice_id = data.form_data;
+    var slice_id = data.slice_id;
     var name = data['viz_name'];
     var dttm = 0;
     var timer;
@@ -67,8 +67,9 @@ var px = (function() {
       addFilter: function(slice_id, field, values) {
         this.filters[slice_id] = [field, values];
         this.slices.forEach(function(slice){
+          console.log([slice.data.slice_id, slice_id]);
           if(slice.data.slice_id != slice_id){
-            //slice.render();
+            slice.render();
           }
         });
         console.log(this.filters);

@@ -2,6 +2,8 @@
 List of TODO items for Panoramix
 
 ## Improvments
+* dashboard controller + filters
+* Color hash in JS
 * Widget sets ()
 * datasource in explore mode could be a dropdown
 * [sql] make "Test Connection" test further
