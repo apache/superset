@@ -1,9 +1,8 @@
 px.registerViz('word_cloud', function(slice) {
   var slice = slice;
-  var token = d3.select(slice.selector);
+  var chart = d3.select(slice.selector);
   console.log(slice.data.json_endpoint);
   function refresh() {
-    return '';
     d3.json(slice.data.json_endpoint, function(error, json) {
       if (error != null){
         slice.error(error.responseText);
@@ -24,7 +23,6 @@ px.registerViz('word_cloud', function(slice) {
       else {
         var f_rotation = function() { return (~~(Math.random() * 6) - 3) * 30; };
       }
-      console.log('ici');
       var size = [slice.container.width(), slice.container.height() - 25];
 
       scale = d3.scale.linear()
@@ -41,9 +39,9 @@ px.registerViz('word_cloud', function(slice) {
         .on("end", draw);
       layout.start();
       function draw(words) {
-        token.selectAll("*").remove();
+        chart.selectAll("*").remove();
 
-        token.append("svg")
+        chart.append("svg")
             .attr("width", layout.size()[0])
             .attr("height", layout.size()[1])
           .append("g")

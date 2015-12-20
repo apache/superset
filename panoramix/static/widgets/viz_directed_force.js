@@ -3,10 +3,9 @@ Modified from http://bl.ocks.org/d3noob/5141278
 */
 
 function viz_directed_force(slice) {
-  var token = d3.select('#' + slice.data.token);
-  var xy = token.select('#chart').node().getBoundingClientRect();
-  var width = xy.width;
-  var height = xy.height - 25;
+  var div = d3.select(slice.selector);
+  var width = slice.container.width();
+  var height = slice.container.height() - 25;
   var radius = Math.min(width, height) / 2;
   var link_length = slice.data.form_data['link_length'];
   if (link_length === undefined){
@@ -59,7 +58,7 @@ function viz_directed_force(slice) {
         .on("tick", tick)
         .start();
 
-    var svg = token.select("#chart").append("svg")
+    var svg = div.append("svg")
         .attr("width", width)
         .attr("height", height);
 

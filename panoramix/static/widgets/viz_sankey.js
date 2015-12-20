@@ -1,12 +1,10 @@
 function viz_sankey(slice) {
-    var token = d3.select('#' + slice.data.token);
-    var div = token.select("#chart");
-    var xy = div.node().getBoundingClientRect();
-    var width = xy.width;
-    var height = xy.height - 25;
+    var div = d3.select(slice.selector);
 
     var render = function() {
-        var margin = {top: 1, right: 1, bottom: 6, left: 1};
+        var width = slice.container.width();
+        var height = slice.container.height() - 25;
+        var margin = {top: 5, right: 5, bottom: 5, left: 5};
         width = width - margin.left - margin.right;
         height = height - margin.top - margin.bottom;
 
@@ -14,7 +12,7 @@ function viz_sankey(slice) {
             format = function(d) { return formatNumber(d) + " TWh"; },
             color = d3.scale.category20();
 
-        var svg = token.select("#chart").append("svg")
+        var svg = div.append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
@@ -95,7 +93,6 @@ function viz_sankey(slice) {
             sankey.relayout();
             link.attr("d", path);
           }
-            token.select("img.loading").remove();
           slice.done(json);
         });
     }

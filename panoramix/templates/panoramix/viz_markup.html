@@ -1,4 +1,5 @@
 {% macro viz_html(viz) %}
+{{ viz.rendered()|safe }}
 {% endmacro %}
 
 {% macro viz_js(viz) %}

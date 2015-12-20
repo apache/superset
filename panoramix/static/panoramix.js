@@ -5,7 +5,8 @@ var px = (function() {
   var Slice = function(data, dashboard){
     var timer;
     var token = $('#' + data.token);
-    var selector = '#' + data.token + ' .slice_container';
+    var container_id = data.token + '_con';
+    var selector = '#' + container_id;
     var container = $(selector);
     var slice_id = data.form_data;
     var name = data['viz_name'];
@@ -31,12 +32,14 @@ var px = (function() {
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg  + '</div>';
         container.html(err);
+        container.show();
         $('#timer').removeClass('btn-warning');
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
       },
       data: data,
       container: container,
+      container_id: container_id,
       selector: selector,
       render: function() {
         token.find("img.loading").show();

@@ -150,7 +150,7 @@
               <div class="alert alert-warning">{{ viz.warning_msg }}</div>
             {% endif %}
           {% endblock %}
-          <div class="slice_container" style="height: 100%; width: 100%">{{ viz_macros.viz_html(viz) }}</div>
+          <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%">{{ viz_macros.viz_html(viz) }}</div>
         </div>
       </div>
     </div>

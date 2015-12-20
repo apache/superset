@@ -3,7 +3,7 @@ Modified from http://bl.ocks.org/kerryrodden/7090426
 */
 
 function viz_sunburst(slice) {
-  var token = d3.select('#' + slice.data.token);
+  var container = d3.select(slice.selector);
   var render = function() {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var b = {
@@ -13,13 +13,11 @@ function viz_sunburst(slice) {
 
     // Total size of all segments; we set this later, after loading the data.
     var totalSize = 0;
-    var div = token.select("#chart");
-    var xy = div.node().getBoundingClientRect();
-    var width = xy.width;
-    var height = xy.height - 25;
+    var width = slice.container.width();
+    var height = slice.container.height() - 25;
     var radius = Math.min(width, height) / 2;
 
-    var vis = div.append("svg:svg")
+    var vis = container.append("svg:svg")
         .attr("width", width)
         .attr("height", height)
         .append("svg:g")
@@ -84,7 +82,7 @@ function viz_sunburst(slice) {
 
 
       // Add the mouseleave handler to the bounding circle.
-      token.select("#container").on("mouseleave", mouseleave);
+      container.select("#container").on("mouseleave", mouseleave);
 
       // Get total size of the tree = value of root node from partition.
       totalSize = path.node().__data__.value;
@@ -117,12 +115,12 @@ function viz_sunburst(slice) {
       updateBreadcrumbs(sequenceArray, percentageString);
 
       // Fade all the segments.
-      token.selectAll("path")
+      container.selectAll("path")
           .style("stroke-width", "1px")
           .style("opacity", 0.3);
 
       // Then highlight only those that are an ancestor of the current segment.
-      token.selectAll("path")
+      container.selectAll("path")
           .filter(function(node) {
             return (sequenceArray.indexOf(node) >= 0);
           })
@@ -135,16 +133,16 @@ function viz_sunburst(slice) {
     function mouseleave(d) {
 
       // Hide the breadcrumb trail
-      token.select("#trail")
+      container.select("#trail")
           .style("visibility", "hidden");
       gMiddleText.selectAll("*").remove();
 
       // Deactivate all segments during transition.
-      token.selectAll("path").on("mouseenter", null);
+      container.selectAll("path").on("mouseenter", null);
       //gMiddleText.selectAll("*").remove();
 
       // Transition each segment to full opacity and then reactivate it.
-      token.selectAll("path")
+      container.selectAll("path")
           .transition()
           .duration(200)
           .style("opacity", 1)

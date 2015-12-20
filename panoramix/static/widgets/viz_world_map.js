@@ -3,13 +3,9 @@
 */
 
 function viz_world_map(slice) {
-    var token = d3.select('#' + slice.data.token);
     var render = function() {
-    // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
-    var div = token;
-    var xy = div.node().getBoundingClientRect();
-    var width = xy.width;
-    var height = xy.height - 25;
+    var container = slice.container;
+    var div = d3.select(slice.selector);
 
     d3.json(slice.data.json_endpoint, function(error, json){
 
@@ -35,8 +31,9 @@ function viz_world_map(slice) {
         d[country.country] = country;
       }
       f = d3.format('.3s');
+      container.show();
       var map = new Datamap({
-        element: document.getElementById(slice.data.token),
+        element: slice.container.get(0),
         data: json.data,
         fills: {
           defaultFill: 'grey'
@@ -77,7 +74,7 @@ function viz_world_map(slice) {
       map.updateChoropleth(d);
       if(slice.data.form_data.show_bubbles){
         map.bubbles(json.data);
-        token.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
+        div.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
       }
       slice.done(json);
     });

@@ -939,10 +939,17 @@ class SankeyViz(BaseViz):
             'row_limit',
         )
     },)
-    form_overrides = {}
+    form_overrides = {
+        'groupby': {
+            'label': 'Source / Target',
+            'description': "Choose a source and a target",
+        },
+    }
 
     def query_obj(self):
         qry = super(SankeyViz, self).query_obj()
+        if len(qry['groupby']) != 2:
+            raise Exception("Pick exactly 2 columns as [Source / Target]")
         qry['metrics'] = [
             self.form_data['metric']]
         return qry
