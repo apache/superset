@@ -9,11 +9,6 @@
     <style id="user_style" type="text/css">
       {{ dashboard.css }}
     </style>
-    {% for slice in dashboard.slices %}
-      {% set viz = slice.viz %}
-      {% import viz.template as viz_macros %}
-      {{ viz_macros.viz_css(viz) }}
-    {% endfor %}
 {% endblock %}
 
 {% block content_fluid %}
@@ -77,7 +72,6 @@ body {
         {% for slice in dashboard.slices %}
           {% set pos = pos_dict.get(slice.id, {}) %}
           {% set viz = slice.viz %}
-          {% import viz.template as viz_macros %}
           <li
               id="slice_{{ slice.id }}"
               slice_id="{{ slice.id }}"
@@ -111,7 +105,7 @@ body {
               </table>
               <div id="{{ viz.token }}" class="token" style="height: 100%;">
                 <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
-                <div class="slice_container" id="{{ viz.token }}_con" style="height: 100%; width: 100%;">{{ viz_macros.viz_html(viz) }}</div>
+                <div class="slice_container" id="{{ viz.token }}_con" style="height: 100%; width: 100%;"></div>
               </div>
           </li>
         {% endfor %}
@@ -132,9 +126,4 @@ body {
         var dashboard = px.Dashboard();
       });
     </script>
-    {% for slice in dashboard.slices %}
-      {% set viz = slice.viz %}
-      {% import viz.template as viz_macros %}
-      {{ viz_macros.viz_js(viz) }}
-    {% endfor %}
 {% endblock %}

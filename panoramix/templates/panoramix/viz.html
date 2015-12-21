@@ -1,5 +1,3 @@
-{% import viz.template as viz_macros %}
-
 {% if viz.form_data.get("json") == "true" %}
   {{ viz.get_json() }}
 {% else %}
@@ -10,10 +8,6 @@
   {% endif %}
 
 
-  {% block viz_html %}
-    {{ viz_macros.viz_html(viz) }}
-  {% endblock %}
-
   {% block head_css %}
       {{super()}}
       {% if viz.request.args.get("skip_libs") != "true" %}
@@ -21,7 +15,6 @@
               <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
           {% endfor %}
       {% endif %}
-      {{ viz_macros.viz_css(viz) }}
   {% endblock %}
 
 
@@ -31,7 +24,6 @@
           {% for js in viz.js_files %}
               <script src="{{ url_for('static', filename=js) }}"></script>
           {% endfor %}
-          {{ viz_macros.viz_js(viz) }}
       {% endif %}
   {% endblock %}
 {% endif %}

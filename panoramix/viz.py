@@ -22,7 +22,6 @@ config = app.config
 class BaseViz(object):
     viz_type = None
     verbose_name = "Base Viz"
-    template = None
     is_timeseries = False
     fieldsets = (
     {
@@ -240,7 +239,6 @@ class BaseViz(object):
 class TableViz(BaseViz):
     viz_type = "table"
     verbose_name = "Table View"
-    template = 'panoramix/viz_table.html'
     fieldsets = (
     {
         'label': None,
@@ -307,7 +305,6 @@ class TableViz(BaseViz):
 class PivotTableViz(BaseViz):
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
-    template = 'panoramix/viz_pivot_table.html'
     css_files = [
         'lib/dataTables/dataTables.bootstrap.css',
         'widgets/viz_pivot_table.css']
@@ -378,7 +375,6 @@ class PivotTableViz(BaseViz):
 class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
-    template = 'panoramix/viz_markup.html'
     js_files = ['widgets/viz_markup.js']
     fieldsets = (
     {
@@ -406,7 +402,6 @@ class WordCloudViz(BaseViz):
     """
     viz_type = "word_cloud"
     verbose_name = "Word Cloud"
-    template = 'panoramix/viz_word_cloud.html'
     is_timeseries = False
     fieldsets = (
     {
@@ -443,7 +438,6 @@ class WordCloudViz(BaseViz):
 class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
-    template = 'panoramix/viz_nvd3.html'
     is_timeseries = False
     js_files = [
         'lib/d3.min.js',
@@ -525,7 +519,6 @@ class BubbleViz(NVD3Viz):
 class BigNumberViz(BaseViz):
     viz_type = "big_number"
     verbose_name = "Big Number"
-    template = 'panoramix/viz_bignumber.html'
     is_timeseries = True
     js_files = [
         'lib/d3.min.js',
@@ -858,7 +851,6 @@ class SunburstViz(BaseViz):
     viz_type = "sunburst"
     verbose_name = "Sunburst"
     is_timeseries = False
-    template = 'panoramix/viz_sunburst.html'
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_sunburst.js']
@@ -925,7 +917,6 @@ class SankeyViz(BaseViz):
     viz_type = "sankey"
     verbose_name = "Sankey"
     is_timeseries = False
-    template = 'panoramix/viz_sankey.html'
     js_files = [
         'lib/d3.min.js',
         'lib/d3-sankey.js',
@@ -968,7 +959,6 @@ class DirectedForceViz(BaseViz):
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
     is_timeseries = False
-    template = 'panoramix/viz_directed_force.html'
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_directed_force.js']
@@ -1015,7 +1005,6 @@ class WorldMapViz(BaseViz):
     viz_type = "world_map"
     verbose_name = "World Map"
     is_timeseries = False
-    template = 'panoramix/viz_world_map.html'
     js_files = [
         'lib/d3.min.js',
         'lib/topojson.min.js',
