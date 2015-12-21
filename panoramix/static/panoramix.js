@@ -17,6 +17,33 @@ var px = (function() {
         $('#timer').text(Math.round(dttm/10)/100 + " sec");
     }
     slice = {
+      jsonEndpoint: function() {
+        // Shallow copy
+        var form_data = jQuery.extend({}, data.form_data);
+        for (var k in form_data){
+          if (form_data[k]==null){
+            delete form_data[k];
+          }
+        }
+        form_data['json'] = true;
+        if (dashboard !== undefined){
+          for (var f in dashboard.filters) {
+            if (slice_id !== f){
+              form_data[dashboard.filters[f][0]] = dashboard.filters[f][1];
+              form_data['flt_col_1'] = dashboard.filters[f][0];
+              form_data['flt_op_1'] = 'in';
+              form_data['flt_eq_1'] = dashboard.filters[f][1][0];
+            }
+          }
+        }
+        form_data['flt_op_0'] = '';
+        form_data['flt_eq_0'] = '';
+        form_data['flt_col_0'] = '';
+        var parser = document.createElement('a');
+        parser.href = data.json_endpoint;
+        var endpoint = parser.pathname + '?' + $.param(form_data, true);
+        return endpoint;
+      },
       done: function (data) {
         clearInterval(timer);
         token.find("img.loading").hide()
@@ -44,6 +71,7 @@ var px = (function() {
       render: function() {
         token.find("img.loading").show();
         container.hide();
+        container.html('');
         timer = setInterval(stopwatch, 10);
         viz.render(this);
       },
@@ -53,6 +81,10 @@ var px = (function() {
       addFilter: function(col, vals) {
         if(dashboard !== undefined)
           dashboard.addFilter(slice_id, col, vals);
+      },
+      clearFilter: function() {
+        if(dashboard !== undefined)
+          delete dashboard.clearFilter(slice_id);
       },
     };
     var viz = visualizations[name](slice);
@@ -66,13 +98,18 @@ var px = (function() {
       filters: {},
       addFilter: function(slice_id, field, values) {
         this.filters[slice_id] = [field, values];
+        this.refreshExcept(slice_id);
+      },
+      refreshExcept: function(slice_id) {
         this.slices.forEach(function(slice){
-          console.log([slice.data.slice_id, slice_id]);
           if(slice.data.slice_id != slice_id){
             slice.render();
           }
         });
-        console.log(this.filters);
+      },
+      clearFilter: function(slice_id) {
+        delete this.filters[slice_id];
+        this.refreshExcept(slice_id);
       },
     }
     $('.dashboard li.widget').each(function() {

@@ -1,5 +1,4 @@
 function viz_nvd3(slice) {
-  var json_callback = slice.data['json_endpoint'];
   var chart = undefined;
   var data = {};
 
@@ -25,7 +24,7 @@ function viz_nvd3(slice) {
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
   ];
   var refresh = function() {
-    $.getJSON(json_callback, function(payload) {
+    $.getJSON(slice.jsonEndpoint(), function(payload) {
       var data = payload.data;
       var viz = payload;
       var viz_type = viz.form_data.viz_type;

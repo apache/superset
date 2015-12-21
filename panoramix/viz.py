@@ -395,6 +395,9 @@ class MarkupViz(BaseViz):
         elif markup_type == "html":
             return code
 
+    def get_json_data(self):
+        return dumps(dict(html=self.rendered()))
+
 
 class WordCloudViz(BaseViz):
     """

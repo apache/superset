@@ -3,7 +3,7 @@ px.registerViz('big_number', function(slice) {
   var div = d3.select(slice.selector);
 
   function render() {
-    d3.json(slice.data.json_endpoint, function(error, payload){
+    d3.json(slice.jsonEndpoint(), function(error, payload){
       //Define the percentage bounds that define color from red to green
       if (error != null){
         slice.error(error.responseText);

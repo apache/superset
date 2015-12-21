@@ -4,7 +4,7 @@ px.registerViz('table', function(slice) {
 
   function refresh() {
     var f = d3.format('.3s');
-    $.getJSON(data.json_endpoint, function(json){
+    $.getJSON(slice.jsonEndpoint(), function(json){
       var data = json.data;
       var metrics = json.form_data.metrics;
       function col(c){
@@ -47,11 +47,17 @@ px.registerViz('table', function(slice) {
             return d.val;
        })
        .on("click", function(d){
-         if(!d.isMetric){
-          table.selectAll('.filtered').classed('filtered', false);
-          d3.select(this).classed('filtered', true);
-          slice.addFilter(d.col, [d.val]);
-        }
+          if(!d.isMetric){
+            var td = d3.select(this);
+            if (td.classed('filtered')){
+              slice.clearFilter(d.col, [d.val]);
+              table.selectAll('.filtered').classed('filtered', false);
+            } else {
+              table.selectAll('.filtered').classed('filtered', false);
+              d3.select(this).classed('filtered', true);
+              slice.addFilter(d.col, [d.val]);
+            }
+          }
        })
        .style("cursor", function(d){
          if(!d.isMetric){

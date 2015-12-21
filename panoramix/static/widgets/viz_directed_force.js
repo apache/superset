@@ -16,7 +16,7 @@ function viz_directed_force(slice) {
     charge = -500;
   }
   var render = function() {
-    d3.json(slice.data.json_endpoint, function(error, json) {
+    d3.json(slice.jsonEndpoint(), function(error, json) {
 
     if (error != null){
       slice.error(error.responseText);

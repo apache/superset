@@ -3,7 +3,7 @@ px.registerViz('pivot_table', function(slice) {
   var form_data = slice.data.form_data;
 
   function refresh() {
-    $.getJSON(slice.data.json_endpoint, function(json){
+    $.getJSON(slice.jsonEndpoint(), function(json){
       container.html(json.data);
       if (form_data.groupby.length == 1){
         var table = container.find('table').DataTable({

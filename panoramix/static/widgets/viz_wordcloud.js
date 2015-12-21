@@ -1,9 +1,8 @@
 px.registerViz('word_cloud', function(slice) {
   var slice = slice;
   var chart = d3.select(slice.selector);
-  console.log(slice.data.json_endpoint);
   function refresh() {
-    d3.json(slice.data.json_endpoint, function(error, json) {
+    d3.json(slice.jsonEndpoint(), function(error, json) {
       if (error != null){
         slice.error(error.responseText);
         return '';
