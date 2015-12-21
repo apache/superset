@@ -122,8 +122,8 @@ body {
     <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
     <script>
       $(document).ready(function() {
-        px.initDashboardView({{ dashboard.id }})
-        var dashboard = px.Dashboard();
+        px.initDashboardView();
+        var dashboard = px.Dashboard({{ dashboard.id }});
       });
     </script>
 {% endblock %}

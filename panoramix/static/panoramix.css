@@ -136,7 +136,7 @@ legend {
 .datasource .tooltip-inner {
   max-width: 350px;
 }
-.datasource img.loading {
+img.loading {
   width: 30px;
 }
 

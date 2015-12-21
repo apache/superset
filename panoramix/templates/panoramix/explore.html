@@ -36,13 +36,16 @@
         <span class="btn btn-info pull-right disabled query"
           data-toggle="modal" data-target="#query_modal">query</span>
         <span class="btn btn-warning pull-right notbtn" id="timer">0 sec</span>
-        <div class="btn-group pull-right" role="group">
-          <span class="btn btn-default disabled">
-            <i class="fa fa-file-text"></i>
-          </span>
-          <span class="btn btn-default" id="csv">.csv</span>
-          <span class="btn btn-default" id="json">.json</span>
-        </div>
+        <span class="btn btn-default pull-right" id="csv" title="Export to .csv format" data-toggle="tooltip">
+          <i class="fa fa-file-text-o"></i>.csv
+        </span>
+        <span class="btn btn-default pull-right" id="json" title="Export to .json" data-toggle="tooltip">
+          <i class="fa fa-file-code-o"></i>
+          .json
+        </span>
+        <span class="btn btn-default pull-right" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
+          <i class="fa fa-code"></i>
+        </span>
         <hr/>
     </div>
     <div class="row">
@@ -133,23 +136,14 @@
       </div>
 
       <div class="col-md-9">
-            {% block messages %}
-            {% endblock %}
-              {% include 'appbuilder/flash.html' %}
+        {% block messages %}{% endblock %}
+        {% include 'appbuilder/flash.html' %}
         <div
           id="{{ viz.token }}"
           class="viz slice {{ viz.viz_type }}"
           data-slice="{{ viz.json_data }}"
           style="height: 700px;">
           <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
-          {% block viz_html %}
-            {% if viz.error_msg %}
-              <div class="alert alert-danger">{{ viz.error_msg }}</div>
-            {% endif %}
-            {% if viz.warning_msg %}
-              <div class="alert alert-warning">{{ viz.warning_msg }}</div>
-            {% endif %}
-          {% endblock %}
           <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
         </div>
       </div>
@@ -242,6 +236,9 @@
     });
     $('#csv').click(function () {
       window.location = '{{ viz.csv_endpoint | safe }}';
+    });
+    $('#standalone').click(function () {
+      window.location = '{{ viz.standalone_endpoint | safe }}';
     });
     $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();

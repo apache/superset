@@ -3,11 +3,10 @@ Modified from http://bl.ocks.org/d3noob/5141278
 */
 
 function viz_directed_force(slice) {
-  var div = d3.select(slice.selector);
   var width = slice.container.width();
   var height = slice.container.height() - 25;
-  var radius = Math.min(width, height) / 2;
   var link_length = slice.data.form_data['link_length'];
+  var div = d3.select(slice.selector);
   if (link_length === undefined){
     link_length = 200;
   }

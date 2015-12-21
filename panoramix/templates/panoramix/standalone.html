@@ -1,0 +1,29 @@
+<html>
+  <head>
+    <script src="/static/panoramix.js"></script>
+
+    {% block head_css %}
+      <script src="{{url_for('appbuilder.static',filename='js/jquery-latest.js')}}"></script>
+      <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='panoramix.css') }}">
+    {% endblock %}
+  </head>
+  <body>
+    <div
+      id="{{ viz.token }}"
+      class="viz slice {{ viz.viz_type }}"
+      data-slice="{{ viz.json_data }}"
+      style="height: 700px;">
+      <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
+      <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+    </div>
+
+    <script>
+      $(document).ready(function() {
+        var data = $('.slice').data('slice');
+        var slice = px.Slice(data);
+        slice.render();
+      });
+    </script>
+    {% block tail %}{% endblock %}
+  </body>
+</html>

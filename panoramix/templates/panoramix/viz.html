@@ -2,7 +2,7 @@
   {{ viz.get_json() }}
 {% else %}
   {% if viz.request.args.get("standalone") == "true" %}
-    {% extends 'panoramix/viz_standalone.html' %}
+    {% extends 'panoramix/standalone.html' %}
   {% else %}
     {% extends 'panoramix/explore.html' %}
   {% endif %}
@@ -10,20 +10,16 @@
 
   {% block head_css %}
       {{super()}}
-      {% if viz.request.args.get("skip_libs") != "true" %}
-          {% for css in viz.css_files %}
-              <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
-          {% endfor %}
-      {% endif %}
+      {% for css in viz.css_files %}
+          <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
+      {% endfor %}
   {% endblock %}
 
 
   {% block tail %}
       {{super()}}
-      {% if viz.request.args.get("skip_libs") != "true" %}
-          {% for js in viz.js_files %}
-              <script src="{{ url_for('static', filename=js) }}"></script>
-          {% endfor %}
-      {% endif %}
+      {% for js in viz.js_files %}
+          <script src="{{ url_for('static', filename=js) }}"></script>
+      {% endfor %}
   {% endblock %}
 {% endif %}

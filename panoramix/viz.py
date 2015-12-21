@@ -223,6 +223,10 @@ class BaseViz(object):
         return self.get_url(csv="true")
 
     @property
+    def standalone_endpoint(self):
+        return self.get_url(standalone="true")
+
+    @property
     def data(self):
         content = {
             'viz_name': self.viz_type,
