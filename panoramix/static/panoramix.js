@@ -34,6 +34,7 @@ var px = (function() {
               form_data['flt_col_1'] = dashboard.filters[f][0];
               form_data['flt_op_1'] = 'in';
               form_data['flt_eq_1'] = dashboard.filters[f][1][0];
+              //form_data['extra_filters'] = JSON.stringify(dashboard.filters)
             }
           }
         }

@@ -26,26 +26,30 @@
         <span class="btn btn-default notbtn">
           <strong>{{ datasource.full_name }}</strong>
           {% if datasource.description %}
+          <a data-toggle="modal" data-target="#sourceinfo_modal">
             <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
+          </a>
           {% endif %}
             <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit datasource">
               <i class="fa fa-edit"></i>
             </a>
         </span>
         <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
-        <span class="btn btn-info pull-right disabled query"
-          data-toggle="modal" data-target="#query_modal">query</span>
-        <span class="btn btn-warning pull-right notbtn" id="timer">0 sec</span>
-        <span class="btn btn-default pull-right" id="csv" title="Export to .csv format" data-toggle="tooltip">
-          <i class="fa fa-file-text-o"></i>.csv
-        </span>
-        <span class="btn btn-default pull-right" id="json" title="Export to .json" data-toggle="tooltip">
-          <i class="fa fa-file-code-o"></i>
-          .json
-        </span>
-        <span class="btn btn-default pull-right" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
-          <i class="fa fa-code"></i>
-        </span>
+        <div class="btn-group pull-right" role="group">
+          <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
+            <i class="fa fa-code"></i>
+          </span>
+          <span class="btn btn-default " id="json" title="Export to .json" data-toggle="tooltip">
+            <i class="fa fa-file-code-o"></i>
+            .json
+          </span>
+          <span class="btn btn-default " id="csv" title="Export to .csv format" data-toggle="tooltip">
+            <i class="fa fa-file-text-o"></i>.csv
+          </span>
+          <span class="btn btn-warning notbtn" id="timer">0 sec</span>
+          <span class="btn btn-info disabled query"
+            data-toggle="modal" data-target="#query_modal">query</span>
+        </div>
         <hr/>
     </div>
     <div class="row">
@@ -164,6 +168,24 @@
                 <img width="250" src="{{ url_for('static', filename="img/penguins.png") }}" alt="Under construction">
               {% endif %}
             </pre>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal fade" id="sourceinfo_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">Query</h4>
+          </div>
+          <div class="modal-body">
+            <pre id="query_container">{{ datasource.description }}</pre>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

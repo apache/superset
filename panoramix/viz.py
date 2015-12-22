@@ -175,7 +175,7 @@ class BaseViz(object):
             from_dttm = datetime.now() - (from_dttm-datetime.now())
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
-        if from_dttm >= to_dttm:
+        if from_dttm > to_dttm:
             flash("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identical to not raise
 

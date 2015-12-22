@@ -36,7 +36,7 @@ function viz_world_map(slice) {
         element: slice.container.get(0),
         data: json.data,
         fills: {
-          defaultFill: 'white'
+          defaultFill: 'transparent'
         },
         geographyConfig: {
           popupOnHover: true,
