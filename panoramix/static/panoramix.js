@@ -1,6 +1,6 @@
 var px = (function() {
 
-  var visualizations = [];
+  var visualizations = {};
   var dashboard = undefined;
 
   var Slice = function(data, dashboard){
@@ -92,7 +92,7 @@ var px = (function() {
           delete dashboard.clearFilter(slice_id);
       },
     };
-    var viz = visualizations[name](slice);
+    var viz = visualizations[data.form_data.viz_type](slice);
     slice['viz'] = viz;
     return slice;
   }
@@ -119,7 +119,6 @@ var px = (function() {
       },
       getSlice: function(slice_id) {
         for(var i=0; i<this.slices.length; i++){
-          console.log([this.slices[i].data.slice_id, slice_id]);
           if (this.slices[i].data.slice_id == slice_id)
             return this.slices[i];
         }
@@ -139,6 +138,7 @@ var px = (function() {
   }
 
   function registerViz(name, initViz) {
+
     visualizations[name] = initViz;
   }
 
@@ -285,7 +285,6 @@ var px = (function() {
         };
       },
     }).data('gridster');
-    console.log(gridster);
     $("div.gridster").css('visibility', 'visible');
     $("#savedash").click(function() {
       var data = {

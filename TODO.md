@@ -1,8 +1,6 @@
 # TODO
 List of TODO items for Panoramix
 
-* fix directed
-
 ## Improvments
 * dashboard controller + filters
 * Color hash in JS
