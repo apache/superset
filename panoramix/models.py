@@ -508,7 +508,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             con=engine
         )
         sql = sqlparse.format(sql, reindent=True)
-        print(sql)
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 

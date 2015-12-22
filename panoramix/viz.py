@@ -156,6 +156,14 @@ class BaseViz(object):
             eq = form_data.get("flt_eq_" + str(i))
             if col and op and eq:
                 filters.append((col, op, eq))
+
+        # Extra filters (coming from dashboard)
+        extra_filters = form_data.get('extra_filters', [])
+        if extra_filters:
+            extra_filters = json.loads(extra_filters)
+            for slice_id, (col, vals) in extra_filters.items():
+                filters += [(col, 'in', ",".join(vals))]
+
         return filters
 
     def query_obj(self):

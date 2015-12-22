@@ -403,6 +403,7 @@ class FormFactory(object):
             css_classes = field_css_classes
             standalone = HiddenField()
             async = HiddenField()
+            extra_filters = HiddenField()
             json = HiddenField()
             slice_id = HiddenField()
             slice_name = HiddenField()
