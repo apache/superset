@@ -15,6 +15,19 @@ config = app.config
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
 
 
+def get_or_create_db(session):
+    print("Creating database reference")
+    DB = models.Database
+    dbobj = session.query(DB).filter_by(database_name='main').first()
+    if not dbobj:
+        dbobj = DB(database_name="main")
+    print(config.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
+    session.add(dbobj)
+    session.commit()
+    return dbobj
+
+
 def load_world_bank_health_n_pop():
     """
     Details on how the data was loaded from
@@ -41,11 +54,12 @@ def load_world_bank_health_n_pop():
     pdf.to_csv(DIR + '/countries.csv')
     pdf.to_json(DIR + '/countries.json', orient='records')
     """
+    tbl = 'wb_health_population'
     with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
         pdf = pd.read_json(f)
     pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
-        'wb_health_population',
+        tbl,
         db.engine,
         if_exists='replace',
         chunksize=500,
@@ -56,80 +70,49 @@ def load_world_bank_health_n_pop():
             'region': String(255),
         },
         index=False)
+    print("Creating table reference")
+    TBL = models.SqlaTable
+    obj = db.session.query(TBL).filter_by(table_name=tbl).first()
+    if not obj:
+        obj = TBL(table_name='wb_health_population')
+    obj.main_dttm_col = 'ds'
+    obj.database = get_or_create_db(db.session)
+    models.Table
+    db.session.add(obj)
+    db.session.commit()
+    obj.fetch_metadata()
 
 
 def load_birth_names():
-    BirthNames = Table(
-        "birth_names", Base.metadata,
-        Column("id", Integer, primary_key=True),
-        Column("state", String(10)),
-        Column("year", Integer),
-        Column("name", String(128)),
-        Column("num", Integer),
-        Column("ds", DateTime),
-        Column("gender", String(10)),
-        Column("sum_boys", Integer),
-        Column("sum_girls", Integer),
-    )
-    try:
-        BirthNames.drop(db.engine)
-    except:
-        pass
-
-    BirthNames.create(db.engine)
-    session = db.session()
-    filepath = os.path.join(DATA_FOLDER, 'birth_names.csv.gz')
-    with gzip.open(filepath, mode='rt') as f:
-        bb_csv = csv.reader(f)
-        for i, (state, year, name, gender, num) in enumerate(bb_csv):
-            if i == 0 or year < "1965":  # jumpy data before 1965
-                continue
-            if num == "NA":
-                num = 0
-            ds = datetime(int(year), 1, 1)
-            db.engine.execute(
-                BirthNames.insert(),
-                state=state,
-                year=year,
-                ds=ds,
-                name=name, num=num, gender=gender,
-                sum_boys=num if gender == 'boy' else 0,
-                sum_girls=num if gender == 'girl' else 0,
-            )
-            if i % 1000 == 0:
-                print("{} loaded out of 82527 rows".format(i))
-                session.commit()
-            session.commit()
+    session = db.session
+    with gzip.open(os.path.join(DATA_FOLDER, 'birth_names.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds)
+    pdf.to_sql(
+        'birth_names',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'gender': String(16),
+            'state': String(10),
+            'name': String(255),
+        },
+        index=False)
+    l = []
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating database reference")
-    DB = models.Database
-    dbobj = session.query(DB).filter_by(database_name='main').first()
-    if not dbobj:
-        dbobj = DB(database_name="main")
-    print(config.get("SQLALCHEMY_DATABASE_URI"))
-    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
-    session.add(dbobj)
-    session.commit()
-
     print("Creating table reference")
     TBL = models.SqlaTable
-    obj = session.query(TBL).filter_by(table_name='birth_names').first()
+    obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name = 'birth_names')
     obj.main_dttm_col = 'ds'
-    obj.default_endpoint = "/panoramix/datasource/table/1/?viz_type=table&granularity=ds&since=100+years&until=now&row_limit=10&where=&flt_col_0=ds&flt_op_0=in&flt_eq_0=&flt_col_1=ds&flt_op_1=in&flt_eq_1=&slice_name=TEST&datasource_name=birth_names&datasource_id=1&datasource_type=table"
-    obj.database = dbobj
-    obj.columns = [
-        models.TableColumn(column_name="num", sum=True, type="INTEGER"),
-        models.TableColumn(column_name="sum_boys", sum=True, type="INTEGER"),
-        models.TableColumn(column_name="sum_girls", sum=True, type="INTEGER"),
-        models.TableColumn(column_name="ds", is_dttm=True, type="DATETIME"),
-    ]
+    obj.database = get_or_create_db(db.session)
     models.Table
-    session.add(obj)
-    session.commit()
+    db.session.add(obj)
+    db.session.commit()
     obj.fetch_metadata()
     tbl = obj
 
@@ -164,7 +147,7 @@ def load_birth_names():
     slices = []
 
     slice_name = "Girls"
-    slc = session.query(Slice).filter_by(slice_name=slice_name).first()
+    slc = db.session.query(Slice).filter_by(slice_name=slice_name).first()
     if not slc:
         slc = Slice(
             slice_name=slice_name,
