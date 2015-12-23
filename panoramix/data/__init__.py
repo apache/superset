@@ -75,7 +75,7 @@ def load_world_bank_health_n_pop():
     obj = db.session.query(TBL).filter_by(table_name=tbl).first()
     if not obj:
         obj = TBL(table_name='wb_health_population')
-    obj.main_dttm_col = 'ds'
+    obj.main_dttm_col = 'year'
     obj.database = get_or_create_db(db.session)
     models.Table
     db.session.add(obj)

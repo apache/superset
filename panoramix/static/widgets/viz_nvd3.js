@@ -28,6 +28,8 @@ function viz_nvd3(slice) {
       var data = payload.data;
       var viz = payload;
       var viz_type = viz.form_data.viz_type;
+      var fd = viz.form_data;
+      var f = d3.format('.4s');
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
@@ -106,10 +108,25 @@ function viz_nvd3(slice) {
           chart.yAxis.tickFormat(d3.format('.3p'));
 
         } else if (viz_type === 'bubble') {
+          var row = function(col1, col2){
+            return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></r>"
+          }
           chart = nv.models.scatterChart();
+          chart.showDistX(true);
+          chart.showDistY(true);
           chart.xAxis.tickFormat(d3.format('.3s'));
           chart.yAxis.tickFormat(d3.format('.3s'));
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
+          chart.tooltip.contentGenerator(function (obj) {
+            p = obj.point;
+            var s = "<table>"
+            s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
+            s += row(fd.x, f(p.x));
+            s += row(fd.y, f(p.y));
+            s += row(fd.size, f(p.size));
+            s += "</table>";
+            return s;
+          });
           chart.pointRange([5, 5000]);
 
         } else if (viz_type === 'area') {

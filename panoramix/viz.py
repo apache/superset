@@ -472,8 +472,8 @@ class BubbleViz(NVD3Viz):
         'fields': (
             ('since', 'until'),
             ('series', 'entity'),
-            ('x', 'y'),
-            ('size', 'limit'),
+            'x', 'y', 'size',
+            'limit',
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
         )
