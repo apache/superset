@@ -1,11 +1,14 @@
-import pandas as pd
-import csv
 from datetime import datetime
+import csv
 import gzip
+import json
 import os
-from panoramix import app, db, models
-from sqlalchemy import Column, String, DateTime, Table, Integer
+
 from flask.ext.appbuilder import Base
+import pandas as pd
+from sqlalchemy import Column, String, DateTime, Table, Integer
+
+from panoramix import app, db, models
 
 config = app.config
 
@@ -40,6 +43,7 @@ def load_world_bank_health_n_pop():
     """
     with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
         pdf = pd.read_json(f)
+    pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
         'wb_health_population',
         db.engine,
