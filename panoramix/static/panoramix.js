@@ -17,29 +17,21 @@ var px = (function() {
         dttm += 10;
         $('#timer').text(Math.round(dttm/10)/100 + " sec");
     }
+    var qrystr = '';
     slice = {
       jsonEndpoint: function() {
-        // Shallow copy
-        var form_data = jQuery.extend({}, data.form_data);
-        for (var k in form_data){
-          if (form_data[k]==null){
-            delete form_data[k];
-          }
-        }
-        form_data['json'] = true;
-        if (dashboard !== undefined){
-          for (var f in dashboard.filters) {
-            if (slice_id !== f){
-              form_data['extra_filters'] = JSON.stringify(dashboard.filters)
-            }
-          }
-        }
-        form_data['flt_op_0'] = '';
-        form_data['flt_eq_0'] = '';
-        form_data['flt_col_0'] = '';
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
-        var endpoint = parser.pathname + '?' + $.param(form_data, true);
+        console.log(parser);
+        // Shallow copy
+        if (dashboard !== undefined){
+          qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
+          console.log(qrystr);
+        }
+        else {
+          qrystr = '?' + $('#query').serialize();
+        }
+        var endpoint = parser.pathname + qrystr + "&json=true";
         return endpoint;
       },
       done: function (data) {
@@ -49,8 +41,8 @@ var px = (function() {
         if(data !== undefined)
             $("#query_container").html(data.query);
         $('#timer').removeClass('btn-warning');
-        $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-success');
+        $('span.query').removeClass('disabled');
       },
       error: function (msg) {
         clearInterval(timer);
@@ -70,7 +62,10 @@ var px = (function() {
         token.find("img.loading").show();
         container.hide();
         container.html('');
+        dttm = 0;
         timer = setInterval(stopwatch, 10);
+        $('#timer').removeClass('btn-danger btn-success');
+        $('#timer').addClass('btn-warning');
         viz.render();
       },
       resize: function() {
@@ -194,7 +189,7 @@ var px = (function() {
           .attr("name", function() {return "flt_eq_" + i;});
         i++;
       });
-      $("#query").submit();
+      slice.render();
     }
 
     $("#plus").click(add_filter);
