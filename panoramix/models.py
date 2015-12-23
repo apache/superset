@@ -555,7 +555,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if not any_date_col and 'date' in datatype.lower():
                 any_date_col = col.name
 
-            quoted = unicode(
+            quoted = "{}".format(
                 column(dbcol.column_name).compile(dialect=db.engine.dialect))
             if dbcol.sum:
                 metrics.append(M(
