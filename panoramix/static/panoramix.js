@@ -26,6 +26,9 @@ var px = (function() {
         if (dashboard !== undefined){
           qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
         }
+        else if ($('#query').length == 0){
+          qrystr = parser.search;
+        }
         else {
           qrystr = '?' + $('#query').serialize();
         }
