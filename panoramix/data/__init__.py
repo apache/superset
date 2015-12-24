@@ -87,13 +87,14 @@ def load_birth_names():
     session = db.session
     with gzip.open(os.path.join(DATA_FOLDER, 'birth_names.json.gz')) as f:
         pdf = pd.read_json(f)
-    pdf.ds = pd.to_datetime(pdf.ds)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='ms')
     pdf.to_sql(
         'birth_names',
         db.engine,
         if_exists='replace',
         chunksize=500,
         dtype={
+            'ds': DateTime,
             'gender': String(16),
             'state': String(10),
             'name': String(255),

@@ -1,10 +1,18 @@
-from datetime import timedelta
+from copy import deepcopy, copy
+from collections import namedtuple
+from datetime import timedelta, datetime
+import json
+from six import string_types
+import sqlparse
+import requests
+import textwrap
+
 from dateutil.parser import parse
 from flask import flash
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
+import pandas as pd
 from pandas import read_sql_query
-from pandas.io.json import dumps
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 import sqlalchemy as sqla
@@ -16,15 +24,7 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
-from copy import deepcopy, copy
-from collections import namedtuple
-from datetime import datetime
-import json
-import sqlparse
-import requests
-import textwrap
 
-from six import string_types
 
 from panoramix import app, db, get_session, utils
 from panoramix.viz import viz_types

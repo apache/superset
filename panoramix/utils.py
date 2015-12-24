@@ -212,3 +212,13 @@ def datetime_f(dttm):
         elif now_iso[:4] == dttm[:4]:
             dttm = dttm[5:]
     return Markup("<nobr>{}</nobr>".format(dttm))
+
+
+def json_iso_dttm_ser(obj):
+    """
+    json serializer that deals with dates
+    usage: json.dumps(object, default=utils.json_ser)
+    """
+    if isinstance(obj, datetime):
+        obj = obj.isoformat()
+    return obj

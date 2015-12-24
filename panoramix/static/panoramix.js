@@ -22,11 +22,9 @@ var px = (function() {
       jsonEndpoint: function() {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
-        console.log(parser);
         // Shallow copy
         if (dashboard !== undefined){
           qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
-          console.log(qrystr);
         }
         else {
           qrystr = '?' + $('#query').serialize();
@@ -67,6 +65,9 @@ var px = (function() {
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
         viz.render();
+        $('#json').click(function(){window.location=slice.json_endpoint});
+        $('#standalone').click(function(){window.location=slice.standalone_endpoint});
+        $('#csv').click(function(){window.location=slice.csv_endpoint});
       },
       resize: function() {
         token.find("img.loading").show();

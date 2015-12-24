@@ -5,7 +5,7 @@ import uuid
 
 from flask import flash, request, Markup
 from markdown import markdown
-from pandas.io.json import dumps
+from pandas.io.json import dumps, to_json
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
 import numpy as np
@@ -212,6 +212,9 @@ class BaseViz(object):
             'data': json.loads(self.get_json_data()),
             'query': self.query,
             'form_data': self.form_data,
+            'json_endpoint': self.json_endpoint,
+            'csv_endpoint': self.csv_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
         }
         return json.dumps(payload)
 
@@ -308,10 +311,13 @@ class TableViz(BaseViz):
 
     def get_json_data(self):
         df = self.get_df()
-        return dumps(dict(
-            records=df.to_dict(orient="records"),
-            columns=df.columns,
-        ))
+        return json.dumps(
+            dict(
+                records=df.to_dict(orient="records"),
+                columns=list(df.columns),
+            ),
+            default=utils.json_iso_dttm_ser,
+        )
 
 
 class PivotTableViz(BaseViz):
