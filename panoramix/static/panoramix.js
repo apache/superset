@@ -65,9 +65,10 @@ var px = (function() {
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
         viz.render();
-        $('#json').click(function(){window.location=slice.json_endpoint});
-        $('#standalone').click(function(){window.location=slice.standalone_endpoint});
-        $('#csv').click(function(){window.location=slice.csv_endpoint});
+        console.log(slice);
+        $('#json').click(function(){window.location=slice.jsonEndpoint()});
+        $('#standalone').click(function(){window.location=slice.data.standalone_endpoint});
+        $('#csv').click(function(){window.location=slice.data.csv_endpoint});
       },
       resize: function() {
         token.find("img.loading").show();
@@ -173,8 +174,7 @@ var px = (function() {
         $(this).parent().parent().remove();
       });
     }
-
-    function druidify(){
+    function prepForm(){
       var i = 1;
       // Assigning the right id to form elements in filters
       $("#filters > div").each(function() {
@@ -190,6 +190,10 @@ var px = (function() {
           .attr("name", function() {return "flt_eq_" + i;});
         i++;
       });
+    }
+
+    function druidify(){
+      prepForm();
       slice.render();
     }
 
@@ -198,15 +202,17 @@ var px = (function() {
       var slice_name = prompt("Name your slice!");
       if (slice_name != "" && slice_name != null) {
         $("#slice_name").val(slice_name);
+        prepForm();
         $("#action").val("save");
-        druidify();
+        $("#query").submit();
       }
     });
     $("#btn_overwrite").click(function () {
       var flag = confirm("Overwrite slice [" + $("#slice_name").val() + "] !?");
       if (flag) {
         $("#action").val("overwrite");
-        druidify();
+        prepForm();
+        $("#query").submit();
       }
     });
     add_filter();
