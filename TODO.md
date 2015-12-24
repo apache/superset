@@ -2,6 +2,11 @@
 List of TODO items for Panoramix
 
 ## Improvments
+* Table description is markdown
+* Default slice instead of default endpoint
+* dashboard controller + filters
+* Color hash in JS
+* Widget sets ()
 * datasource in explore mode could be a dropdown
 * [sql] make "Test Connection" test further
 * [druid] Allow for post aggregations (ratios!)

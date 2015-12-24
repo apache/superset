@@ -1,6 +1,8 @@
 {% extends "panoramix/base.html" %}
 {% block content %}
-<h1><i class='fa fa-star'></i> Featured Datasets </h1>
+<div class="header">
+  <h1><i class='fa fa-star'></i> Featured Datasets </h1>
+</div>
 <hr/>
 <table class="table table-hover dataTable" id="dataset-table" style="display:None">
     <thead>
@@ -25,6 +27,7 @@
     {% endfor %}
     </tbody>
 </table>
+<hr/>
 {% endblock %}
 
 {% block head_css %}
@@ -42,6 +45,7 @@
             "bPaginate": false,
             "order": [[ 1, "asc" ]]
         });
+        $('#dataset-table_info').remove();
         $('#dataset-table').show();
     } );
 </script>

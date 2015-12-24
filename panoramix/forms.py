@@ -32,7 +32,8 @@ class SelectMultipleSortableField(SelectMultipleField):
             d[value] = (value, label, selected)
         if self.data:
             for value in self.data:
-                yield d.pop(value)
+                if value:
+                    yield d.pop(value)
         while d:
             yield d.pop(d.keys()[0])
 
@@ -402,6 +403,7 @@ class FormFactory(object):
             css_classes = field_css_classes
             standalone = HiddenField()
             async = HiddenField()
+            extra_filters = HiddenField()
             json = HiddenField()
             slice_id = HiddenField()
             slice_name = HiddenField()

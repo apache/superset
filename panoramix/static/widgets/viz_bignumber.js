@@ -1,15 +1,12 @@
-px.registerWidget('big_number', function(data_attribute) {
+px.registerViz('big_number', function(slice) {
+  var data_attribute = slice.data;
+  var div = d3.select(slice.selector);
 
-  var token_name = data_attribute['token'];
-  var json_callback = data_attribute['json_endpoint'];
-  var div = d3.select('#' + token_name);
-
-  function render(ctrl) {
-    d3.json(json_callback, function(error, payload){
+  function render() {
+    d3.json(slice.jsonEndpoint(), function(error, payload){
       //Define the percentage bounds that define color from red to green
-      div.html("");
       if (error != null){
-        ctrl.error(error.responseText);
+        slice.error(error.responseText);
         return '';
       }
       json = payload.data;
@@ -19,9 +16,8 @@ px.registerWidget('big_number', function(data_attribute) {
 
       var f = d3.format('.3s');
       var fp = d3.format('+.1%');
-      var xy = div.node().getBoundingClientRect();
-      var width = xy.width;
-      var height = xy.height - 30;
+      var width = slice.container.width();
+      var height = slice.container.height() - 30;
       var svg = div.append('svg');
       svg.attr("width", width);
       svg.attr("height", height);
@@ -135,7 +131,7 @@ px.registerWidget('big_number', function(data_attribute) {
         div.select('g.digits').transition().duration(500).attr('opacity', 1);
         div.select('g.axis').transition().duration(500).attr('opacity', 0);
       });
-      ctrl.done(payload);
+      slice.done(payload);
     });
   };
 

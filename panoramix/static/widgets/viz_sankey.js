@@ -1,12 +1,10 @@
-function viz_sankey(data_attribute) {
-    var token = d3.select('#' + data_attribute.token);
-    var div = token.select("#chart");
-    var xy = div.node().getBoundingClientRect();
-    var width = xy.width;
-    var height = xy.height - 25;
+function viz_sankey(slice) {
+    var div = d3.select(slice.selector);
 
-    var render = function(ctrl) {
-        var margin = {top: 1, right: 1, bottom: 6, left: 1};
+    var render = function() {
+        var width = slice.container.width();
+        var height = slice.container.height() - 25;
+        var margin = {top: 5, right: 5, bottom: 5, left: 5};
         width = width - margin.left - margin.right;
         height = height - margin.top - margin.bottom;
 
@@ -14,7 +12,7 @@ function viz_sankey(data_attribute) {
             format = function(d) { return formatNumber(d) + " TWh"; },
             color = d3.scale.category20();
 
-        var svg = token.select("#chart").append("svg")
+        var svg = div.append("svg")
             .attr("width", width + margin.left + margin.right)
             .attr("height", height + margin.top + margin.bottom)
           .append("g")
@@ -26,9 +24,9 @@ function viz_sankey(data_attribute) {
 
         var path = sankey.link();
 
-        d3.json(data_attribute.json_endpoint, function(error, json) {
+        d3.json(slice.data.json_endpoint, function(error, json) {
           if (error != null){
-            ctrl.error(error.responseText);
+            slice.error(error.responseText);
             return '';
           }
           links = json.data;
@@ -95,8 +93,7 @@ function viz_sankey(data_attribute) {
             sankey.relayout();
             link.attr("d", path);
           }
-            token.select("img.loading").remove();
-          ctrl.done(json);
+          slice.done(json);
         });
     }
     return {
@@ -104,4 +101,4 @@ function viz_sankey(data_attribute) {
         resize: render,
     };
 }
-px.registerWidget('sankey', viz_sankey);
+px.registerViz('sankey', viz_sankey);

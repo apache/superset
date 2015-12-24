@@ -2,26 +2,22 @@
  Using the awesome lib at http://datamaps.github.io/
 */
 
-function viz_world_map(data_attribute) {
-    var token = d3.select('#' + data_attribute.token);
-    var render = function(ctrl) {
-    // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
-    var div = token;
-    var xy = div.node().getBoundingClientRect();
-    var width = xy.width;
-    var height = xy.height - 25;
+function viz_world_map(slice) {
+    var render = function() {
+    var container = slice.container;
+    var div = d3.select(slice.selector);
 
-    d3.json(data_attribute.json_endpoint, function(error, json){
+    d3.json(slice.data.json_endpoint, function(error, json){
 
       if (error != null){
-        ctrl.error(error.responseText);
+        slice.error(error.responseText);
         return '';
       }
       var ext = d3.extent(json.data, function(d){return d.m1});
       var extRadius = d3.extent(json.data, function(d){return d.m2});
       var radiusScale = d3.scale.linear()
           .domain([extRadius[0], extRadius[1]])
-          .range([1, data_attribute.form_data.max_bubble_size]);
+          .range([1, slice.data.form_data.max_bubble_size]);
       json.data.forEach(function(d){
         d.radius = radiusScale(d.m2);
       })
@@ -35,11 +31,12 @@ function viz_world_map(data_attribute) {
         d[country.country] = country;
       }
       f = d3.format('.3s');
+      container.show();
       var map = new Datamap({
-        element: document.getElementById(data_attribute.token),
+        element: slice.container.get(0),
         data: json.data,
         fills: {
-          defaultFill: 'grey'
+          defaultFill: 'transparent'
         },
         geographyConfig: {
           popupOnHover: true,
@@ -75,11 +72,11 @@ function viz_world_map(data_attribute) {
       },
       });
       map.updateChoropleth(d);
-      if(data_attribute.form_data.show_bubbles){
+      if(slice.data.form_data.show_bubbles){
         map.bubbles(json.data);
-        token.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
+        div.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
       }
-      ctrl.done(json);
+      slice.done(json);
     });
   }
 
@@ -88,4 +85,4 @@ function viz_world_map(data_attribute) {
     resize: render,
   };
 }
-px.registerWidget('world_map', viz_world_map);
+px.registerViz('world_map', viz_world_map);

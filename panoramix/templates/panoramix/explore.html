@@ -26,22 +26,29 @@
         <span class="btn btn-default notbtn">
           <strong>{{ datasource.full_name }}</strong>
           {% if datasource.description %}
+          <a data-toggle="modal" data-target="#sourceinfo_modal">
             <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
+          </a>
           {% endif %}
             <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit datasource">
               <i class="fa fa-edit"></i>
             </a>
         </span>
         <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
-        <span class="btn btn-info pull-right disabled query"
-          data-toggle="modal" data-target="#query_modal">query</span>
-        <span class="btn btn-warning pull-right notbtn" id="timer">0 sec</span>
         <div class="btn-group pull-right" role="group">
-          <span class="btn btn-default disabled">
-            <i class="fa fa-file-text"></i>
+          <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
+            <i class="fa fa-code"></i>
           </span>
-          <span class="btn btn-default" id="csv">.csv</span>
-          <span class="btn btn-default" id="json">.json</span>
+          <span class="btn btn-default " id="json" title="Export to .json" data-toggle="tooltip">
+            <i class="fa fa-file-code-o"></i>
+            .json
+          </span>
+          <span class="btn btn-default " id="csv" title="Export to .csv format" data-toggle="tooltip">
+            <i class="fa fa-file-text-o"></i>.csv
+          </span>
+          <span class="btn btn-warning notbtn" id="timer">0 sec</span>
+          <span class="btn btn-info disabled query"
+            data-toggle="modal" data-target="#query_modal">query</span>
         </div>
         <hr/>
     </div>
@@ -133,23 +140,15 @@
       </div>
 
       <div class="col-md-9">
-            {% block messages %}
-            {% endblock %}
-              {% include 'appbuilder/flash.html' %}
+        {% block messages %}{% endblock %}
+        {% include 'appbuilder/flash.html' %}
         <div
           id="{{ viz.token }}"
-          class="viz widget {{ viz.viz_type }}"
-          data-widget="{{ viz.get_data_attribute() }}"
+          class="viz slice {{ viz.viz_type }}"
+          data-slice="{{ viz.json_data }}"
           style="height: 700px;">
           <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
-          {% block viz_html %}
-            {% if viz.error_msg %}
-              <div class="alert alert-danger">{{ viz.error_msg }}</div>
-            {% endif %}
-            {% if viz.warning_msg %}
-              <div class="alert alert-warning">{{ viz.warning_msg }}</div>
-            {% endif %}
-          {% endblock %}
+          <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
         </div>
       </div>
     </div>
@@ -176,6 +175,24 @@
         </div>
       </div>
     </div>
+    <div class="modal fade" id="sourceinfo_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">Query</h4>
+          </div>
+          <div class="modal-body">
+            <pre id="query_container">{{ datasource.description }}</pre>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </form>
 </div>
 {% endblock %}
@@ -183,15 +200,15 @@
 {% block tail_js %}
 {{ super() }}
 <script>
-  $(document).ready(px.initializeDatasourceView);
+  $(document).ready(px.initExploreView);
   $(document).ready(function() {
-    var data = $('.widget').data('widget');
-    var widget = px.initializeWidget(data);
-    $('.widget').data('widget', widget);
-    widget.render();
+    var data = $('.slice').data('slice');
+    var slice = px.Slice(data);
+    $('.slice').data('slice', slice);
+    slice.render();
 
     function get_collapsed_fieldsets(){
-        collapsed_fieldsets = $("#collapsed_fieldsets").val()
+        collapsed_fieldsets = $("#collapsed_fieldsets").val();
         if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
           collapsed_fieldsets = collapsed_fieldsets.split('||');
         else
@@ -242,9 +259,12 @@
     $('#csv').click(function () {
       window.location = '{{ viz.csv_endpoint | safe }}';
     });
+    $('#standalone').click(function () {
+      window.location = '{{ viz.standalone_endpoint | safe }}';
+    });
     $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();
-    for(var i=0; i<collapsed_fieldsets.length;i++){
+    for(var i=0; i < collapsed_fieldsets.length; i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
     }
   });

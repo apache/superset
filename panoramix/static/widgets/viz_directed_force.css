@@ -3,9 +3,6 @@
   stroke: #000;
   stroke-width: 1.5px;
 }
-.directed_force #chart {
-    height: 100%;
-}
 
 .directed_force circle {
   fill: #ccc;

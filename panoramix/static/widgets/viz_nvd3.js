@@ -1,7 +1,4 @@
-function viz_nvd3(data_attribute) {
-  var token_name = data_attribute['token'];
-  var token = d3.select('#' + token_name);
-  var json_callback = data_attribute['json_endpoint'];
+function viz_nvd3(slice) {
   var chart = undefined;
   var data = {};
 
@@ -26,15 +23,13 @@ function viz_nvd3(data_attribute) {
     "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
   ];
-  var jtoken = $('#' + token_name);
-  var chart_div = $('#' + token_name).find("div.chart");
-
-  var refresh = function(ctrl) {
-    chart_div.hide();
-    $.getJSON(json_callback, function(payload) {
+  var refresh = function() {
+    $.getJSON(slice.jsonEndpoint(), function(payload) {
       var data = payload.data;
       var viz = payload;
       var viz_type = viz.form_data.viz_type;
+      var fd = viz.form_data;
+      var f = d3.format('.4s');
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
@@ -113,10 +108,25 @@ function viz_nvd3(data_attribute) {
           chart.yAxis.tickFormat(d3.format('.3p'));
 
         } else if (viz_type === 'bubble') {
+          var row = function(col1, col2){
+            return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></r>"
+          }
           chart = nv.models.scatterChart();
+          chart.showDistX(true);
+          chart.showDistY(true);
           chart.xAxis.tickFormat(d3.format('.3s'));
           chart.yAxis.tickFormat(d3.format('.3s'));
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
+          chart.tooltip.contentGenerator(function (obj) {
+            p = obj.point;
+            var s = "<table>"
+            s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
+            s += row(fd.x, f(p.x));
+            s += row(fd.y, f(p.y));
+            s += row(fd.size, f(p.size));
+            s += "</table>";
+            return s;
+          });
           chart.pointRange([5, 5000]);
 
         } else if (viz_type === 'area') {
@@ -130,7 +140,7 @@ function viz_nvd3(data_attribute) {
         }
 
         // make space for labels on right
-        chart.height($(".chart").height() - 50).margin({"right": 50});
+        //chart.height($(".chart").height() - 50).margin({"right": 50});
         if ((viz_type === "line" || viz_type === "area") && viz.form_data.rich_tooltip) {
           chart.useInteractiveGuideline(true);
         }
@@ -153,19 +163,17 @@ function viz_nvd3(data_attribute) {
 
         chart.duration(0);
 
-        token.select('.chart').append("svg")
+        d3.select(slice.selector).append("svg")
           .datum(data.chart_data)
           .transition().duration(500)
           .call(chart);
 
         return chart;
       });
-      chart_div.show();
-      ctrl.done(data);
+      slice.done(data);
   })
   .fail(function(xhr) {
-      chart_div.show();
-      ctrl.error(xhr.responseText);
+      slice.error(xhr.responseText);
     });
   };
   var resize = function() {
@@ -189,5 +197,5 @@ function viz_nvd3(data_attribute) {
   'line',
   'pie',
 ].forEach(function(name) {
-  px.registerWidget(name, viz_nvd3);
+  px.registerViz(name, viz_nvd3);
 });

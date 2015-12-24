@@ -1,3 +1,7 @@
 li.widget.table div.token {
     overflow: auto;
 }
+td.filtered {
+    background-color: #005a63;
+    color: white;
+}

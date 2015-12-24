@@ -5,7 +5,7 @@ import uuid
 
 from flask import flash, request, Markup
 from markdown import markdown
-from pandas.io.json import dumps
+from pandas.io.json import dumps, to_json
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
 import numpy as np
@@ -22,7 +22,6 @@ config = app.config
 class BaseViz(object):
     viz_type = None
     verbose_name = "Base Viz"
-    template = None
     is_timeseries = False
     fieldsets = (
     {
@@ -157,6 +156,14 @@ class BaseViz(object):
             eq = form_data.get("flt_eq_" + str(i))
             if col and op and eq:
                 filters.append((col, op, eq))
+
+        # Extra filters (coming from dashboard)
+        extra_filters = form_data.get('extra_filters', [])
+        if extra_filters:
+            extra_filters = json.loads(extra_filters)
+            for slice_id, (col, vals) in extra_filters.items():
+                filters += [(col, 'in', ",".join(vals))]
+
         return filters
 
     def query_obj(self):
@@ -176,7 +183,7 @@ class BaseViz(object):
             from_dttm = datetime.now() - (from_dttm-datetime.now())
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
-        if from_dttm >= to_dttm:
+        if from_dttm > to_dttm:
             flash("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identical to not raise
 
@@ -205,6 +212,9 @@ class BaseViz(object):
             'data': json.loads(self.get_json_data()),
             'query': self.query,
             'form_data': self.form_data,
+            'json_endpoint': self.json_endpoint,
+            'csv_endpoint': self.csv_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
         }
         return json.dumps(payload)
 
@@ -223,19 +233,27 @@ class BaseViz(object):
     def csv_endpoint(self):
         return self.get_url(csv="true")
 
-    def get_data_attribute(self):
+    @property
+    def standalone_endpoint(self):
+        return self.get_url(standalone="true")
+
+    @property
+    def data(self):
         content = {
             'viz_name': self.viz_type,
             'json_endpoint': self.json_endpoint,
             'token': self.token,
             'form_data': self.form_data,
         }
-        return dumps(content)
+        return content
+
+    @property
+    def json_data(self):
+        return dumps(self.data)
 
 class TableViz(BaseViz):
     viz_type = "table"
     verbose_name = "Table View"
-    template = 'panoramix/viz_table.html'
     fieldsets = (
     {
         'label': None,
@@ -293,16 +311,18 @@ class TableViz(BaseViz):
 
     def get_json_data(self):
         df = self.get_df()
-        return dumps(dict(
-            records=df.to_dict(orient="records"),
-            columns=df.columns,
-        ))
+        return json.dumps(
+            dict(
+                records=df.to_dict(orient="records"),
+                columns=list(df.columns),
+            ),
+            default=utils.json_iso_dttm_ser,
+        )
 
 
 class PivotTableViz(BaseViz):
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
-    template = 'panoramix/viz_pivot_table.html'
     css_files = [
         'lib/dataTables/dataTables.bootstrap.css',
         'widgets/viz_pivot_table.css']
@@ -373,7 +393,6 @@ class PivotTableViz(BaseViz):
 class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
-    template = 'panoramix/viz_markup.html'
     js_files = ['widgets/viz_markup.js']
     fieldsets = (
     {
@@ -390,6 +409,9 @@ class MarkupViz(BaseViz):
         elif markup_type == "html":
             return code
 
+    def get_json_data(self):
+        return dumps(dict(html=self.rendered()))
+
 
 class WordCloudViz(BaseViz):
     """
@@ -398,7 +420,6 @@ class WordCloudViz(BaseViz):
     """
     viz_type = "word_cloud"
     verbose_name = "Word Cloud"
-    template = 'panoramix/viz_word_cloud.html'
     is_timeseries = False
     fieldsets = (
     {
@@ -435,7 +456,6 @@ class WordCloudViz(BaseViz):
 class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
-    template = 'panoramix/viz_nvd3.html'
     is_timeseries = False
     js_files = [
         'lib/d3.min.js',
@@ -458,8 +478,8 @@ class BubbleViz(NVD3Viz):
         'fields': (
             ('since', 'until'),
             ('series', 'entity'),
-            ('x', 'y'),
-            ('size', 'limit'),
+            'x', 'y', 'size',
+            'limit',
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
         )
@@ -517,7 +537,6 @@ class BubbleViz(NVD3Viz):
 class BigNumberViz(BaseViz):
     viz_type = "big_number"
     verbose_name = "Big Number"
-    template = 'panoramix/viz_bignumber.html'
     is_timeseries = True
     js_files = [
         'lib/d3.min.js',
@@ -850,7 +869,6 @@ class SunburstViz(BaseViz):
     viz_type = "sunburst"
     verbose_name = "Sunburst"
     is_timeseries = False
-    template = 'panoramix/viz_sunburst.html'
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_sunburst.js']
@@ -917,7 +935,6 @@ class SankeyViz(BaseViz):
     viz_type = "sankey"
     verbose_name = "Sankey"
     is_timeseries = False
-    template = 'panoramix/viz_sankey.html'
     js_files = [
         'lib/d3.min.js',
         'lib/d3-sankey.js',
@@ -934,10 +951,17 @@ class SankeyViz(BaseViz):
             'row_limit',
         )
     },)
-    form_overrides = {}
+    form_overrides = {
+        'groupby': {
+            'label': 'Source / Target',
+            'description': "Choose a source and a target",
+        },
+    }
 
     def query_obj(self):
         qry = super(SankeyViz, self).query_obj()
+        if len(qry['groupby']) != 2:
+            raise Exception("Pick exactly 2 columns as [Source / Target]")
         qry['metrics'] = [
             self.form_data['metric']]
         return qry
@@ -953,7 +977,6 @@ class DirectedForceViz(BaseViz):
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
     is_timeseries = False
-    template = 'panoramix/viz_directed_force.html'
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_directed_force.js']
@@ -1000,7 +1023,6 @@ class WorldMapViz(BaseViz):
     viz_type = "world_map"
     verbose_name = "World Map"
     is_timeseries = False
-    template = 'panoramix/viz_world_map.html'
     js_files = [
         'lib/d3.min.js',
         'lib/topojson.min.js',

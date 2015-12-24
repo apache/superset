@@ -1,8 +1,17 @@
-from datetime import timedelta
+from copy import deepcopy, copy
+from collections import namedtuple
+from datetime import timedelta, datetime
+import json
+from six import string_types
+import sqlparse
+import requests
+import textwrap
+
 from dateutil.parser import parse
 from flask import flash
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
+import pandas as pd
 from pandas import read_sql_query
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
@@ -11,19 +20,11 @@ from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
     Table, create_engine, MetaData, desc, select, and_, func)
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import table, literal_column, text
+from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
-from copy import deepcopy, copy
-from collections import namedtuple
-from datetime import datetime
-import json
-import sqlparse
-import requests
-import textwrap
 
-from six import string_types
 
 from panoramix import app, db, get_session, utils
 from panoramix.viz import viz_types
@@ -84,6 +85,16 @@ class Slice(Model, AuditMixinNullable):
     @property
     def datasource_id(self):
         return self.table_id or self.druid_datasource_id
+
+    @property
+    def data(self):
+        d = self.viz.data
+        d['slice_id'] = self.id
+        return d
+
+    @property
+    def json_data(self):
+        return json.dumps(self.data)
 
     @property
     def slice_url(self):
@@ -409,9 +420,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         groupby_exprs = []
 
         if groupby:
-            select_exprs = [literal_column(s) for s in groupby]
             select_exprs = []
-            groupby_exprs = []
             inner_select_exprs = []
             inner_groupby_exprs = []
             for s in groupby:
@@ -421,8 +430,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                     outer = ColumnClause(expr, is_literal=True).label(s)
                     inner = ColumnClause(expr, is_literal=True).label('__' + s)
                 else:
-                    outer = literal_column(s).label(s)
-                    inner = literal_column(s).label('__' + s)
+                    outer = column(s).label(s)
+                    inner = column(s).label('__' + s)
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -462,7 +471,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                     cond = ColumnClause(
                         col_obj.expression, is_literal=True).in_(values)
                 else:
-                    cond = literal_column(col).in_(values)
+                    cond = column(col).in_(values)
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
@@ -486,7 +495,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             on_clause = []
             for i, gb in enumerate(groupby):
                 on_clause.append(
-                    groupby_exprs[i] == literal_column("__" + gb))
+                    groupby_exprs[i] == column("__" + gb))
 
             from_clause = from_clause.join(subq.alias(), and_(*on_clause))
 
@@ -499,7 +508,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             con=engine
         )
         sql = sqlparse.format(sql, reindent=True)
-        print(sql)
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
@@ -547,33 +555,35 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if not any_date_col and 'date' in datatype.lower():
                 any_date_col = col.name
 
+            quoted = "{}".format(
+                column(dbcol.column_name).compile(dialect=db.engine.dialect))
             if dbcol.sum:
                 metrics.append(M(
                     metric_name='sum__' + dbcol.column_name,
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
-                    expression="SUM({})".format(dbcol.column_name)
+                    expression="SUM({})".format(quoted)
                 ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
                     verbose_name='max__' + dbcol.column_name,
                     metric_type='max',
-                    expression="MAX({})".format(dbcol.column_name)
+                    expression="MAX({})".format(quoted)
                 ))
             if dbcol.min:
                 metrics.append(M(
                     metric_name='min__' + dbcol.column_name,
                     verbose_name='min__' + dbcol.column_name,
                     metric_type='min',
-                    expression="MIN({})".format(dbcol.column_name)
+                    expression="MIN({})".format(quoted)
                 ))
             if dbcol.count_distinct:
                 metrics.append(M(
                     metric_name='count_distinct__' + dbcol.column_name,
                     verbose_name='count_distinct__' + dbcol.column_name,
                     metric_type='count_distinct',
-                    expression="COUNT(DISTINCT {})".format(dbcol.column_name)
+                    expression="COUNT(DISTINCT {})".format(quoted)
                 ))
             dbcol.type = datatype
             db.session.merge(self)
