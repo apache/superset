@@ -3,14 +3,16 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Panoramix documentation
+
+Documentation
 =======================================
+
 .. image:: img/tux_panoramix.png
 
 Panoramix is an open source data visualization platform that make it easy to
 slice, dice and visualize data.
 
-Features:
+Features
 ---------
 
 - A rich set of data visualizations, integrated from some of the best visualization libraries
@@ -21,7 +23,7 @@ Features:
 - Integration with most RDBMS through SqlAlchemy
 - Deep integration with Druid.io
 
-Contents:
+Contents
 ---------
 
 .. toctree::

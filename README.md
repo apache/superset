@@ -11,7 +11,7 @@ and interactive.
 
 Panoramix
 ---------
-Panoramix's main goal is to make it easy to slice, dice and visualize data. 
+Panoramix's main goal is to make it easy to slice, dice and visualize data.
 It empowers its user to perform **analytics at the speed of thought**.
 
 Panoramix provides:
