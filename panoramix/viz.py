@@ -476,12 +476,19 @@ class BubbleViz(NVD3Viz):
     {
         'label': None,
         'fields': (
+            'granularity',
             ('since', 'until'),
-            ('series', 'entity'),
-            'x', 'y', 'size',
-            'limit',
+            'series', 'entity',
+            'x', 'y',
+            'size', 'limit',
+        )
+    },
+    {
+        'label': 'Chart Options',
+        'fields': (
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
+            'max_bubble_size',
         )
     },)
 

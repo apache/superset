@@ -127,7 +127,7 @@ function viz_nvd3(slice) {
             s += "</table>";
             return s;
           });
-          chart.pointRange([5, 5000]);
+          chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
 
         } else if (viz_type === 'area') {
           chart = nv.models.stackedAreaChart();

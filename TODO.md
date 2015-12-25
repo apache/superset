@@ -3,6 +3,8 @@ List of TODO items for Panoramix
 
 ## Improvments
 * Table description is markdown
+* Animated scatter plots
+* Filter widget
 * Default slice instead of default endpoint
 * dashboard controller + filters
 * Color hash in JS
