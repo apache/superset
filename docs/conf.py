@@ -118,7 +118,12 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-#html_theme_options = {}
+html_theme_options = {
+    #'bootswatch_theme': 'simplex',
+    'navbar_title': 'Panoramix Documentation',
+    'navbar_fixed_top': "false",
+    #'navbar_class': "navbar navbar-default",
+}
 
 # Add any paths that contain custom themes here, relative to this directory.
 #html_theme_path = []
@@ -227,7 +232,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'panoramix.tex', u'panoramix Documentation',
+  (master_doc, 'panoramix.tex', u'Panoramix Documentation',
    u'Maxime Beauchemin', 'manual'),
 ]
 
@@ -257,7 +262,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'panoramix', u'panoramix Documentation',
+    (master_doc, 'Panoramix', u'panoramix Documentation',
      [author], 1)
 ]
 
@@ -271,8 +276,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'panoramix', u'panoramix Documentation',
-   author, 'panoramix', 'One line description of project.',
+  (master_doc, 'Panoramix', u'Panoramix Documentation',
+   author, 'Panoramix', 'One line description of project.',
    'Miscellaneous'),
 ]
 
