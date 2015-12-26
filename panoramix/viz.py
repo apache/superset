@@ -161,8 +161,11 @@ class BaseViz(object):
         extra_filters = form_data.get('extra_filters', [])
         if extra_filters:
             extra_filters = json.loads(extra_filters)
-            for slice_id, (col, vals) in extra_filters.items():
-                filters += [(col, 'in', ",".join(vals))]
+            for slice_id, slice_filters in extra_filters.items():
+                if slice_filters:
+                    for col, vals in slice_filters:
+                        if col and vals:
+                            filters += [(col, 'in', ",".join(vals))]
 
         return filters
 
@@ -1105,6 +1108,55 @@ class WorldMapViz(BaseViz):
         return dumps(d)
 
 
+class FilterBoxViz(BaseViz):
+    viz_type = "filter_box"
+    verbose_name = "Filters"
+    is_timeseries = False
+    js_files = [
+        'lib/d3.min.js',
+        'widgets/viz_filter_box.js']
+    css_files = []
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'groupby',
+            'metric',
+        )
+    },)
+    form_overrides = {
+        'groupby': {
+            'label': 'Filter fields',
+            'description': "The fields you want to filter on",
+        },
+    }
+    def query_obj(self):
+        qry = super(FilterBoxViz, self).query_obj()
+        groupby = self.form_data['groupby']
+        if len(groupby) < 1:
+            raise Exception("Pick at least one filter field")
+        qry['metrics'] = [
+            self.form_data['metric']]
+        return qry
+
+    def get_df(self):
+        qry = self.query_obj()
+
+        filters = [g for g in qry['groupby']]
+        d = {}
+        for flt in filters:
+            qry['groupby'] = [flt]
+            df = super(FilterBoxViz, self).get_df(qry)
+            d[flt] = [row for row in df.itertuples(index=False)]
+        return d
+
+    def get_json_data(self):
+        d = self.get_df()
+        return dumps(d)
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1122,6 +1174,7 @@ viz_types_list = [
     DirectedForceViz,
     SankeyViz,
     WorldMapViz,
+    FilterBoxViz,
 ]
 # This dict is used to
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

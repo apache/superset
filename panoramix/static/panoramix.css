@@ -2,6 +2,10 @@ html>body{
     margin: 0px; !important
 }
 
+.padded{
+    padding: 10px;
+}
+
 .slice_container {
     height: 100%;
 }
