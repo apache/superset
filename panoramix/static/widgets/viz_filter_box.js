@@ -1,23 +1,22 @@
 px.registerViz('filter_box', function(slice) {
   var slice = slice;
+  var filtersObj = {};
   d3token = d3.select(slice.selector);
 
   var fltChanged = function() {
     filters = []
-    d3token.selectAll('select.select2_box_filter').each(function(){
-      val = $(this).val();
-      name = $(this).attr('name');
-      if (val !== null && val !== undefined){
-        if (typeof val === 'string')
-          val = [val];
-        filters.push([name, val]);
+    for(flt in filtersObj) {
+      obj = filtersObj[flt];
+      val = obj.val()
+      if(val !== ''){
+        filters.push([flt, val.split(',')]);
       }
-    });
+    }
     slice.addFilter(filters);
   }
 
   var refresh = function() {
-      $('#code').attr('rows', '15')
+      d3token.selectAll("*").remove();
       var container = d3token
         .append('div')
         .classed('padded', true);
@@ -37,7 +36,7 @@ px.registerViz('filter_box', function(slice) {
             .attr('multiple', '')
             .attr('id', id);
 
-          $('#' + id).select2({
+          filtersObj[filter] = $('#' + id).select2({
             placeholder: "Select [" + filter + ']',
             containment: 'parent',
             dropdownAutoWidth : true,

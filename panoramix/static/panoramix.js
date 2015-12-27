@@ -101,6 +101,11 @@ var px = (function() {
       addFilter: function(slice_id, filters) {
         this.filters[slice_id] = filters;
         this.refreshExcept(slice_id);
+        console.log(this.filters);
+      },
+      readFilters: function() {
+        // Returns a list of human readable active filters
+        return JSON.stringify(this.filters, null, 4);
       },
       refreshExcept: function(slice_id) {
         this.slices.forEach(function(slice){

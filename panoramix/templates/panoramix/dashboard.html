@@ -54,6 +54,9 @@ body {
       </div>
       <div class="col-md-2">
         <div class="btn-group pull-right" role="group" >
+          <button type="button" id="filters" class="btn btn-default" data-toggle="tooltip" title="View the list of active filters">
+            <i class="fa fa-filter"></i>
+          </button>
           <button type="button" id="css" class="btn btn-default" data-toggle="modal" data-target="#css_modal">
             <i class="fa fa-code"></i>
           </button>
@@ -88,6 +91,7 @@ body {
                       <nobr class="icons">
                         <a><i class="fa fa-arrows drag"></i></a>
                         <a class="refresh"><i class="fa fa-refresh"></i></a>
+                        <a class="bug" data-slice_id="{{ slice.id }}" data-toggle="tooltip" title="console.log(this.slice);"><i class="fa fa-bug"></i></a>
                       </nobr>
                     </td>
                     <td>
@@ -124,6 +128,12 @@ body {
       $(document).ready(function() {
         px.initDashboardView();
         var dashboard = px.Dashboard({{ dashboard.id }});
+        $('#filters').click( function(){
+          alert(dashboard.readFilters());
+        });
+        $('a.bug').click( function(){
+          console.log(dashboard.getSlice($(this).data('slice_id')));
+        });
       });
     </script>
 {% endblock %}
