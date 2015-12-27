@@ -1115,7 +1115,8 @@ class FilterBoxViz(BaseViz):
     js_files = [
         'lib/d3.min.js',
         'widgets/viz_filter_box.js']
-    css_files = []
+    css_files = [
+        'widgets/viz_filter_box.css']
     fieldsets = (
     {
         'label': None,
@@ -1149,7 +1150,12 @@ class FilterBoxViz(BaseViz):
         for flt in filters:
             qry['groupby'] = [flt]
             df = super(FilterBoxViz, self).get_df(qry)
-            d[flt] = [row for row in df.itertuples(index=False)]
+            d[flt] = [
+                {'id': row[0],
+                'text': row[0],
+                'filter': flt,
+                'metric': row[1]}
+                for row in df.itertuples(index=False)]
         return d
 
     def get_json_data(self):

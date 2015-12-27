@@ -101,7 +101,6 @@ var px = (function() {
       addFilter: function(slice_id, filters) {
         this.filters[slice_id] = filters;
         this.refreshExcept(slice_id);
-        console.log(this.filters);
       },
       refreshExcept: function(slice_id) {
         this.slices.forEach(function(slice){
@@ -197,6 +196,7 @@ var px = (function() {
 
     function druidify(){
       prepForm();
+      $('div.alert').remove();
       slice.render();
     }
 

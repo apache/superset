@@ -1,0 +1,4 @@
+.select2-highlighted>.filter_box {
+    background-color: transparent;
+    border: 1px dashed black;
+}
