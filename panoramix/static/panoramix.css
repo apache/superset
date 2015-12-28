@@ -6,6 +6,11 @@ html>body{
     padding: 10px;
 }
 
+.intable-longtext{
+    max-height: 200px;
+    overflow: auto;
+}
+
 .slice_container {
     height: 100%;
 }

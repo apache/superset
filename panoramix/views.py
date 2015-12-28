@@ -4,7 +4,7 @@ import logging
 import re
 import traceback
 
-from flask import request, redirect, flash, Response, render_template
+from flask import request, redirect, flash, Response, render_template, Markup
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
@@ -153,7 +153,8 @@ class TableView(PanoramixModelView, DeleteMixin):
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource"
+        'offset': "Timezone offset (in hours) for this datasource",
+        'description': Markup("Supports <a href='https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
 
     def post_add(self, table):
@@ -281,7 +282,8 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
     page_size = 100
     base_order = ('datasource_name', 'asc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource"
+        'offset': "Timezone offset (in hours) for this datasource",
+        'description': Markup("Supports <a href='https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
 
     def post_add(self, datasource):
@@ -564,7 +566,8 @@ class Panoramix(BaseView):
         featured_datasets = datasets_sqla + datasets_druid
         return self.render_template(
             'panoramix/featured_datasets.html',
-            featured_datasets=featured_datasets)
+            featured_datasets=featured_datasets,
+            utils=utils)
 
 appbuilder.add_view_no_menu(Panoramix)
 appbuilder.add_link(
