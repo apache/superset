@@ -16,7 +16,7 @@ It empowers its user to perform **analytics at the speed of thought**.
 
 Panoramix provides:
 * A quick way to intuitively visualize datasets
-* Create and share simple dashboards
+* Create and share interactive dashboards
 * A rich set of visualizations to analyze your data, as well as a flexible
     way to extend the capabilities
 * An extensible, high granularity security model allowing intricate rules

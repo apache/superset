@@ -55,7 +55,7 @@ px.registerViz('table', function(slice) {
             } else {
               table.selectAll('.filtered').classed('filtered', false);
               d3.select(this).classed('filtered', true);
-              slice.addFilter(d.col, [d.val]);
+              slice.addFilter([[d.col, [d.val]]]);
             }
           }
        })

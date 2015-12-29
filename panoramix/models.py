@@ -252,6 +252,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return self.table_name
 
     @property
+    def description_markeddown(self):
+        return utils.markdown(self.description)
+
+    @property
     def perm(self):
         return (
             "[{self.database}].[{self.table_name}]"

@@ -68,7 +68,6 @@ var px = (function() {
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
         viz.render();
-        console.log(slice);
         $('#json').click(function(){window.location=slice.jsonEndpoint()});
         $('#standalone').click(function(){window.location=slice.data.standalone_endpoint});
         $('#csv').click(function(){window.location=slice.data.csv_endpoint});
@@ -99,9 +98,14 @@ var px = (function() {
       slices: [],
       filters: {},
       id: id,
-      addFilter: function(slice_id, field, values) {
-        this.filters[slice_id] = [field, values];
+      addFilter: function(slice_id, filters) {
+        this.filters[slice_id] = filters;
         this.refreshExcept(slice_id);
+        console.log(this.filters);
+      },
+      readFilters: function() {
+        // Returns a list of human readable active filters
+        return JSON.stringify(this.filters, null, 4);
       },
       refreshExcept: function(slice_id) {
         this.slices.forEach(function(slice){
@@ -197,6 +201,7 @@ var px = (function() {
 
     function druidify(){
       prepForm();
+      $('div.alert').remove();
       slice.render();
     }
 

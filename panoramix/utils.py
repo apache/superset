@@ -1,11 +1,14 @@
 from datetime import datetime
-from dateutil.parser import parse
-import hashlib
-from sqlalchemy.types import TypeDecorator, TEXT
-import json
-from flask import g, request, Markup
-import parsedatetime
 import functools
+import hashlib
+import json
+
+from dateutil.parser import parse
+from sqlalchemy.types import TypeDecorator, TEXT
+from flask import g, request, Markup
+from markdown import markdown as md
+import parsedatetime
+
 from panoramix import db
 
 
@@ -222,3 +225,7 @@ def json_iso_dttm_ser(obj):
     if isinstance(obj, datetime):
         obj = obj.isoformat()
     return obj
+
+
+def markdown(s):
+    return md(s, ['markdown.extensions.tables'])

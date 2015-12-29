@@ -2,6 +2,7 @@
 List of TODO items for Panoramix
 
 ## Improvments
+* Read dashboard filter from URL
 * Table description is markdown
 * Animated scatter plots
 * Filter widget

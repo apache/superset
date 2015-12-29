@@ -4,7 +4,7 @@
   <h1><i class='fa fa-star'></i> Featured Datasets </h1>
 </div>
 <hr/>
-<table class="table table-hover dataTable" id="dataset-table" style="display:None">
+<table class="table table-hover dataTable table-bordered" id="dataset-table" style="display:None">
     <thead>
         <tr>
             <th>Table</th>
@@ -16,9 +16,11 @@
     <tbody>
     {% for dataset in featured_datasets %}
         <tr>
-            <td>
+            <td> 
+              <div class="intable-longtext">
                 <h4>{{ dataset.table_name }}</h4>
-                <p>{{ dataset.description }}</p>
+                <p>{{ utils.markdown(dataset.description) | safe }}</p>
+              </div>
             </td>
             <td class="small_table">{{ dataset.database }}</td>
             <td class="small_table">{{ dataset.owner }}</td>
