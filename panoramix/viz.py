@@ -5,7 +5,7 @@ import uuid
 
 from flask import flash, request, Markup
 from markdown import markdown
-from pandas.io.json import dumps, to_json
+from pandas.io.json import dumps
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
 import numpy as np
@@ -629,6 +629,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 ('rolling_type', 'rolling_periods'),
                 'time_compare',
                 'num_period_compare',
+                ('resample_how', 'resample_rule',), 'resample_fillmethod'
             ),
         },
     )
@@ -645,6 +646,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
             index="timestamp",
             columns=form_data.get('groupby'),
             values=form_data.get('metrics'))
+
+        fm = form_data.get("resample_fillmethod")
+        if not fm:
+            fm = None
+        how = form_data.get("resample_how")
+        rule = form_data.get("resample_rule")
+        if how and rule:
+            df = df.resample(rule, how=how, fill_method=fm)
+            if not fm:
+                df = df.fillna(0)
+
 
         if self.sort_series:
             dfs = df.sum()
