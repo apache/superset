@@ -336,7 +336,7 @@ class FormFactory(object):
                 default="150",
                 description="Font size for the biggest value in the list"),
             'show_brush': BetterBooleanField(
-                "Range Filter", default=True,
+                "Range Filter", default=False,
                 description=(
                     "Whether to display the time range interactive selector")),
             'include_search': BetterBooleanField(
