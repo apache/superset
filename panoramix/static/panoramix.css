@@ -2,6 +2,17 @@ html>body{
     margin: 0px; !important
 }
 
+.col-left-fixed {
+    width:350px;
+    position: absolute;
+    float: left;
+}
+.col-offset {
+    margin-left: 365px;
+}
+
+
+
 .padded{
     padding: 10px;
 }

@@ -53,7 +53,7 @@
         <hr/>
     </div>
     <div class="row">
-      <div id="form_container" class="col-md-3">
+      <div id="form_container" class="col-left-fixed">
         {% for fieldset in form.fieldsets %}
             <fieldset class="fs-style">
               {% if fieldset.label %}
@@ -139,7 +139,7 @@
         <br>
       </div>
 
-      <div class="col-md-9">
+      <div class="col-offset">
         {% block messages %}{% endblock %}
         {% include 'appbuilder/flash.html' %}
         <div
