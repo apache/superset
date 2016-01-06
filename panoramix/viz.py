@@ -750,50 +750,17 @@ class NVD3TimeSeriesViz(NVD3Viz):
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = "bar"
     verbose_name = "Time Series - Bar Chart"
-    fieldsets = (
-    {
-        'label': None,
-        'fields': (
-            'granularity', ('since', 'until'),
-            'metrics',
-            'groupby', 'limit',
-            ('rolling_type', 'rolling_periods'),
-            'show_legend',
-        )
-    },)
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
     viz_type = 'compare'
     verbose_name = "Time Series - Percent Change"
-    fieldsets = (
-    {
-        'label': None,
-        'fields': (
-            'granularity', ('since', 'until'),
-            'metrics',
-            'groupby', 'limit',
-            ('rolling_type', 'rolling_periods'),
-            'show_legend',
-        )
-    },)
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = "Time Series - Stacked"
     sort_series = True
-    fieldsets = (
-    {
-        'label': None,
-        'fields': (
-            'granularity', ('since', 'until'),
-            'metrics',
-            'groupby', 'limit',
-            ('rolling_type', 'rolling_periods'),
-            ('rich_tooltip', 'show_legend'),
-        )
-    },)
 
 
 class DistributionPieViz(NVD3Viz):
