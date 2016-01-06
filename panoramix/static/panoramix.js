@@ -328,8 +328,10 @@ var px = (function() {
     });
 
     // this makes the whole chart fit within the dashboard div
-    $("div.chart").each(function() {
-      $(this).css('height', '95%');
+    $(".slice_container > svg").each(function(index){
+      w = $( this ).width();
+      h = $( this ).height();
+      $( this ).get(0).setAttribute('viewBox', '0 0 '+w+' '+(h+30));
     });
   }
 
