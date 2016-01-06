@@ -15,7 +15,8 @@ var px = (function() {
     var timer;
     var stopwatch = function () {
         dttm += 10;
-        $('#timer').text(Math.round(dttm/10)/100 + " sec");
+        num = dttm / 1000;
+        $('#timer').text(num.toFixed(2) + " sec");
     }
     var qrystr = '';
     slice = {
