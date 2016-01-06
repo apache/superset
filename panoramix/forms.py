@@ -438,11 +438,12 @@ class FormFactory(object):
                 TextField("Super", default=''))
         for fieldset in viz.fieldsetizer():
             for ff in fieldset['fields']:
-                if isinstance(ff, string_types):
-                    ff = [ff]
-                for s in ff:
-                    if s:
-                        setattr(QueryForm, s, px_form_fields[s])
+                if ff:
+                    if isinstance(ff, string_types):
+                        ff = [ff]
+                    for s in ff:
+                        if s:
+                            setattr(QueryForm, s, px_form_fields[s])
 
 
         # datasource type specific form elements

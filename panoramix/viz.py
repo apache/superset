@@ -98,7 +98,7 @@ class BaseViz(object):
             for obj in d['fields']:
                 if isinstance(obj, (tuple, list)):
                     l |= {a for a in obj}
-                else:
+                elif obj:
                     l.add(obj)
         return l
 
@@ -629,6 +629,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 ('rolling_type', 'rolling_periods'),
                 'time_compare',
                 'num_period_compare',
+                None,
                 ('resample_how', 'resample_rule',), 'resample_fillmethod'
             ),
         },
