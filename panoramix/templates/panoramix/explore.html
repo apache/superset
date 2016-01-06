@@ -69,7 +69,9 @@
               {% endif %}
               <div class="fieldset_content">
               {% for fieldname in fieldset.fields %}
-                {% if not fieldname.__iter__ %}
+                {% if not fieldname %}
+                  <hr/>
+                {% elif not fieldname.__iter__ %}
                   {{ panofield(fieldname) }}
                 {% else %}
                 <div class="row">

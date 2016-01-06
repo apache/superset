@@ -185,6 +185,18 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor")),
+            'resample_rule': FreeFormSelectField(
+                'Resample Rule', default='',
+                choices=self.choicify(('1M', '1H', '1D', '7D', '1M', '1Y')),
+                description=("Pandas resample rule")),
+            'resample_how': FreeFormSelectField(
+                'Resample How', default='',
+                choices=self.choicify(('', 'avg', 'sum',)),
+                description=("Pandas resample how")),
+            'resample_fillmethod': FreeFormSelectField(
+                'Resample Fill Method', default='',
+                choices=self.choicify(('', 'ffill', 'bfill')),
+                description=("Pandas resample fill method")),
             'since': FreeFormSelectField(
                 'Since', default="7 days ago",
                 choices=self.choicify([
@@ -426,11 +438,12 @@ class FormFactory(object):
                 TextField("Super", default=''))
         for fieldset in viz.fieldsetizer():
             for ff in fieldset['fields']:
-                if isinstance(ff, string_types):
-                    ff = [ff]
-                for s in ff:
-                    if s:
-                        setattr(QueryForm, s, px_form_fields[s])
+                if ff:
+                    if isinstance(ff, string_types):
+                        ff = [ff]
+                    for s in ff:
+                        if s:
+                            setattr(QueryForm, s, px_form_fields[s])
 
 
         # datasource type specific form elements
