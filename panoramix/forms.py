@@ -187,11 +187,11 @@ class FormFactory(object):
                     "column in the table editor")),
             'resample_rule': FreeFormSelectField(
                 'Resample Rule', default='',
-                choices=self.choicify(('1M', '1H', '1D', '7D', '1M', '1Y')),
+                choices=self.choicify(('1T', '1H', '1D', '7D', '1M', '1AS')),
                 description=("Pandas resample rule")),
             'resample_how': FreeFormSelectField(
                 'Resample How', default='',
-                choices=self.choicify(('', 'avg', 'sum',)),
+                choices=self.choicify(('', 'mean', 'sum', 'median')),
                 description=("Pandas resample how")),
             'resample_fillmethod': FreeFormSelectField(
                 'Resample Fill Method', default='',
