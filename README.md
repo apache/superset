@@ -152,6 +152,7 @@ More screenshots
 Related Links
 -------------
 * [Panoramix Google Group] (https://groups.google.com/forum/#!forum/airbnb_panoramix)
+* [Gitter (live chat) Channel](https://gitter.im/mistercrunch/panoramix)
 
 
 Tip of the Hat
