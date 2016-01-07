@@ -1,5 +1,7 @@
 Panoramix
 =========
+
+[![Join the chat at https://gitter.im/mistercrunch/panoramix](https://badges.gitter.im/mistercrunch/panoramix.svg)](https://gitter.im/mistercrunch/panoramix?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![img](https://travis-ci.org/mistercrunch/panoramix.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/mistercrunch/panoramix/badge.svg?branch=master&service=github)](https://coveralls.io/github/mistercrunch/panoramix?branch=master)
 
