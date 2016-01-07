@@ -471,16 +471,16 @@ class Panoramix(BaseView):
         return "SUCCESS"
 
     @has_access
-    @expose("/testconn", methods=["POST"])
+    @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         try:
             uri = request.form.get('uri')
-            db = create_engine(uri)
-            db.connect()
-            return "SUCCESS"
+            engine = create_engine(uri)
+            engine.connect()
+            return json.dumps(engine.table_names(), indent=4)
         except Exception as e:
             return Response(
-                str(e),
+                traceback.format_exc(),
                 status=500,
                 mimetype="application/json")
 
