@@ -323,9 +323,9 @@ var px = (function() {
     });
 
     // this sets the z-index for left side boxes higher
-    $('li.slice').each(function() {
-      current_row = $(this).attr('data-col');
-      $( this ).css('z-index', 100 - current_row);
+    $('li.widget').each(function() {
+      current_col = $(this).attr('data-col');
+      $( this ).css('z-index', 100 - current_col);
     });
 
     // this makes the whole chart fit within the dashboard div
