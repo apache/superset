@@ -230,3 +230,7 @@ img.loading {
 div.header {
   font-weight: bold;
 }
+
+li.widget:hover {
+  z-index:1000;
+}
