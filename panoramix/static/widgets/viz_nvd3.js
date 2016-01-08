@@ -33,7 +33,7 @@ function viz_nvd3(slice) {
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
-            chart = nv.models.lineWithFocusChart()
+            chart = nv.models.lineWithFocusChart();
           //chart.lines2.xScale( d3.time.scale.utc());
           chart.lines2.xScale(d3.time.scale.utc());
           chart.x2Axis
@@ -167,6 +167,13 @@ function viz_nvd3(slice) {
           .datum(data.chart_data)
           .transition().duration(500)
           .call(chart);
+        // if it is a two axis chart, rescale it down just a little so it fits in the div.
+        if(chart.hasOwnProperty("x2Axis")) {
+          two_axis_chart = $(slice.selector + " > svg");
+          w = two_axis_chart.width();
+          h = two_axis_chart.height();
+          two_axis_chart.get(0).setAttribute('viewBox', '0 0 '+w+' '+(h+30));
+        }
 
         return chart;
       });
