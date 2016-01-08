@@ -34,12 +34,12 @@ function viz_nvd3(slice) {
         if (viz_type === 'line') {
           if (viz.form_data.show_brush) {
             chart = nv.models.lineWithFocusChart();
-          //chart.lines2.xScale( d3.time.scale.utc());
-          chart.lines2.xScale(d3.time.scale.utc());
-          chart.x2Axis
-            .showMaxMin(viz.form_data.x_axis_showminmax)
-            .tickFormat(formatDate)
-            .staggerLabels(true);
+            //chart.lines2.xScale( d3.time.scale.utc());
+            chart.lines2.xScale(d3.time.scale.utc());
+            chart.x2Axis
+              .showMaxMin(viz.form_data.x_axis_showminmax)
+              .tickFormat(formatDate)
+              .staggerLabels(true);
           } else {
             chart = nv.models.lineChart()
           }
