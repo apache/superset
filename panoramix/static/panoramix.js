@@ -327,13 +327,6 @@ var px = (function() {
       current_col = $(this).attr('data-col');
       $( this ).css('z-index', 100 - current_col);
     });
-
-    // this makes the whole chart fit within the dashboard div
-    $(".slice_container > svg").each(function(index){
-      w = $( this ).width();
-      h = $( this ).height();
-      $( this ).get(0).setAttribute('viewBox', '0 0 '+w+' '+(h+30));
-    });
   }
 
   // Export public functions
