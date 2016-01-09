@@ -230,3 +230,6 @@ img.loading {
 div.header {
   font-weight: bold;
 }
+li.widget {
+  z-index: 1000;
+}
