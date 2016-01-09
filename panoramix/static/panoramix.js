@@ -321,12 +321,6 @@ var px = (function() {
       css = $(this).val();
       $("#user_style").html(css);
     });
-
-    // this sets the z-index for left side boxes higher
-    $('li.widget').each(function() {
-      current_col = $(this).attr('data-col');
-      $( this ).css('z-index', 100 - current_col);
-    });
   }
 
   // Export public functions
