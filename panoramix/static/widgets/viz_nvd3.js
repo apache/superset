@@ -68,7 +68,8 @@ function viz_nvd3(slice) {
               .groupSpacing(0.1);
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate);
+            .tickFormat(formatDate)
+            .staggerLabels(true);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
@@ -103,7 +104,8 @@ function viz_nvd3(slice) {
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate);
+            .tickFormat(formatDate)
+            .staggerLabels(true);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3p'));
 
@@ -134,7 +136,8 @@ function viz_nvd3(slice) {
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate);
+            .tickFormat(formatDate)
+            .staggerLabels(true);
           chart.showLegend(viz.form_data.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
