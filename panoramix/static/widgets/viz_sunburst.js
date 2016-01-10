@@ -4,8 +4,8 @@ Modified from http://bl.ocks.org/kerryrodden/7090426
 
 function viz_sunburst(slice) {
   var container = d3.select(slice.selector);
-  var width = slice.container.width();
-  var height = slice.container.height() - 25;
+  var width = slice.width();
+  var height = slice.height() - 25;
   var render = function() {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var b = {

@@ -60,6 +60,12 @@ var px = (function() {
       container: container,
       container_id: container_id,
       selector: selector,
+      width: function(){
+        return token.width();
+      },
+      height: function(){
+        return token.height();
+      },
       render: function() {
         token.find("img.loading").show();
         container.hide();

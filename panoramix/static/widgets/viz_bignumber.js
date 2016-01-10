@@ -16,8 +16,8 @@ px.registerViz('big_number', function(slice) {
 
       var f = d3.format('.3s');
       var fp = d3.format('+.1%');
-      var width = slice.container.width();
-      var height = slice.container.height() - 30;
+      var width = slice.width();
+      var height = slice.height() - 30;
       var svg = div.append('svg');
       svg.attr("width", width);
       svg.attr("height", height);

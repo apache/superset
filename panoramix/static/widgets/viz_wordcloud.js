@@ -22,7 +22,7 @@ px.registerViz('word_cloud', function(slice) {
       else {
         var f_rotation = function() { return (~~(Math.random() * 6) - 3) * 30; };
       }
-      var size = [slice.container.width(), slice.container.height() - 25];
+      var size = [slice.width(), slice.height()];
 
       scale = d3.scale.linear()
         .range(range)

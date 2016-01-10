@@ -17,7 +17,7 @@
   </div>
 {% endmacro %}
 
-<div class="container-fluid datasource">
+<div class="datasource">
   <form id="query" method="GET" style="display: none;">
     <div class="header">
         <a class="btn btn-primary druidify" data-toggle="tooltip" title="Slice!">
@@ -52,7 +52,6 @@
         </div>
         <hr/>
     </div>
-    <div class="row">
       <div id="form_container" class="col-left-fixed">
         {% for fieldset in form.fieldsets %}
             <fieldset class="fs-style">
@@ -153,7 +152,6 @@
           <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
         </div>
       </div>
-    </div>
     <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
       <div class="modal-dialog" role="document">
         <div class="modal-content">

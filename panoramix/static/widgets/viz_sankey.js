@@ -2,8 +2,8 @@ function viz_sankey(slice) {
     var div = d3.select(slice.selector);
 
     var render = function() {
-        var width = slice.container.width();
-        var height = slice.container.height() - 25;
+        var width = slice.width();
+        var height = slice.height() - 25;
         var margin = {top: 5, right: 5, bottom: 5, left: 5};
         width = width - margin.left - margin.right;
         height = height - margin.top - margin.bottom;
