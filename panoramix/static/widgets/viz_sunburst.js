@@ -4,6 +4,8 @@ Modified from http://bl.ocks.org/kerryrodden/7090426
 
 function viz_sunburst(slice) {
   var container = d3.select(slice.selector);
+  var width = slice.container.width();
+  var height = slice.container.height() - 25;
   var render = function() {
     // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
     var b = {
@@ -13,8 +15,6 @@ function viz_sunburst(slice) {
 
     // Total size of all segments; we set this later, after loading the data.
     var totalSize = 0;
-    var width = slice.container.width();
-    var height = slice.container.height() - 25;
     var radius = Math.min(width, height) / 2;
 
     var vis = container.append("svg:svg")
@@ -37,7 +37,7 @@ function viz_sunburst(slice) {
         .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
 
     var ext;
-    d3.json(slice.data.json_endpoint, function(error, json){
+    d3.json(slice.jsonEndpoint(), function(error, json){
 
       if (error != null){
         slice.error(error.responseText);

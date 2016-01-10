@@ -24,7 +24,7 @@ function viz_sankey(slice) {
 
         var path = sankey.link();
 
-        d3.json(slice.data.json_endpoint, function(error, json) {
+        d3.json(slice.jsonEndpoint(), function(error, json) {
           if (error != null){
             slice.error(error.responseText);
             return '';

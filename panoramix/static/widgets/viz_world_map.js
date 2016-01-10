@@ -7,7 +7,7 @@ function viz_world_map(slice) {
     var container = slice.container;
     var div = d3.select(slice.selector);
 
-    d3.json(slice.data.json_endpoint, function(error, json){
+    d3.json(slice.jsonEndpoint(), function(error, json){
 
       if (error != null){
         slice.error(error.responseText);
