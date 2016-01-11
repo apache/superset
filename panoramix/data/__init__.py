@@ -259,7 +259,7 @@ The source dataset came from [here](https://github.com/hadley/babynames)
             table=tbl,
             params=get_slice_json(
                 slice_name, viz_type="word_cloud", size_from="10",
-                groupby=['name'], size_to="70", rotation="square",
+                series='name', size_to="70", rotation="square",
                 limit='100'))
         session.add(slc)
     slices.append(slc)

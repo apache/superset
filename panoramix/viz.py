@@ -432,7 +432,7 @@ class WordCloudViz(BaseViz):
         'fields': (
             'granularity',
             ('since', 'until'),
-            'groupby', 'metric', 'limit',
+            'series', 'metric', 'limit',
             ('size_from', 'size_to'),
             'rotation',
         )
@@ -445,18 +445,16 @@ class WordCloudViz(BaseViz):
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
-        if len(d['groupby']) < 1:
-            raise Exception("Pick at least one field to group by")
 
-        metric = self.form_data.get('metric')
-        if not metric:
-            raise Exception("Pick a metric!")
         d['metrics'] = [self.form_data.get('metric')]
-        d['groupby'] = [d['groupby'][0]]
+        d['groupby'] = [self.form_data.get('series')]
         return d
 
     def get_json_data(self):
         df = self.get_df()
+        # Ordering the columns
+        df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
+        # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_json(orient="records")
 
