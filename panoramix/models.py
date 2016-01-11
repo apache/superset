@@ -916,6 +916,15 @@ class Datasource(Model, AuditMixinNullable, Queryable):
         client.groupby(**qry)
         query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
+
+        # Reordering columns
+        cols = []
+        if 'timestamp' in df.columns:
+            cols += ['timestamp']
+        cols += [col for col in groupby if col in df.columns]
+        cols += [col for col in metrics if col in df.columns]
+        cols += [col for col in df.columns if col in cols]
+        df = df[cols]
         return QueryResult(
             df=df,
             query=query_str,
