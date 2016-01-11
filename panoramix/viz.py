@@ -245,6 +245,8 @@ class BaseViz(object):
         content = {
             'viz_name': self.viz_type,
             'json_endpoint': self.json_endpoint,
+            'csv_endpoint': self.csv_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'form_data': self.form_data,
         }

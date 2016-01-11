@@ -2,6 +2,7 @@
 List of TODO items for Panoramix
 
 ## Features
+* **URL shortner**
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Browser history in explore.html:** use location.hash to manage query history
 * **Default slice:** choose a default slice for the dataset instead of default endpoint

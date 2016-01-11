@@ -44,7 +44,8 @@ px.registerViz('table', function(slice) {
           }
        })
        .attr('title', function(d){
-         return fC(d.val);
+         if (!isNaN(d.val))
+           return fC(d.val);
        })
        .attr('data-sort', function(d){
           if (d.isMetric)
