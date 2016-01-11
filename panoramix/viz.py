@@ -107,6 +107,7 @@ class BaseViz(object):
 
     def get_url(self, **kwargs):
         d = self.orig_form_data.copy()
+        d = self.form_data.copy()
         if 'action' in d:
             del d['action']
         d.update(kwargs)
@@ -245,6 +246,8 @@ class BaseViz(object):
         content = {
             'viz_name': self.viz_type,
             'json_endpoint': self.json_endpoint,
+            'csv_endpoint': self.csv_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'form_data': self.form_data,
         }

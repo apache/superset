@@ -19,10 +19,20 @@ var px = (function() {
         $('#timer').text(num.toFixed(2) + " sec");
     }
     var qrystr = '';
+    var always = function(data) {
+      //Private f, runs after done and error
+      clearInterval(timer);
+      $('#timer').removeClass('btn-warning');
+    }
     slice = {
+      data: data,
+      container: container,
+      container_id: container_id,
+      selector: selector,
       jsonEndpoint: function() {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
+
         // Shallow copy
         if (dashboard !== undefined){
           qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
@@ -45,21 +55,22 @@ var px = (function() {
         $('#timer').removeClass('btn-warning');
         $('#timer').addClass('btn-success');
         $('span.query').removeClass('disabled');
+        $('#json').click(function(){window.location=data.json_endpoint()});
+        $('#standalone').click(function(){window.location=data.standalone_endpoint});
+        $('#csv').click(function(){window.location=data.csv_endpoint});
+        $('.btn-group.results span').removeAttr('disabled');
+        always(data);
       },
       error: function (msg) {
-        clearInterval(timer);
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg  + '</div>';
         container.html(err);
         container.show();
-        $('#timer').removeClass('btn-warning');
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
+        $('.btn-group.results span').attr('disabled','disabled');
+        always(data);
       },
-      data: data,
-      container: container,
-      container_id: container_id,
-      selector: selector,
       width: function(){
         return token.width();
       },
@@ -75,9 +86,7 @@ var px = (function() {
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
         viz.render();
-        $('#json').click(function(){window.location=slice.jsonEndpoint()});
-        $('#standalone').click(function(){window.location=slice.data.standalone_endpoint});
-        $('#csv').click(function(){window.location=slice.data.csv_endpoint});
+        console.log(slice);
       },
       resize: function() {
         token.find("img.loading").show();
@@ -151,6 +160,58 @@ var px = (function() {
   }
 
   function initExploreView() {
+
+    function get_collapsed_fieldsets(){
+        collapsed_fieldsets = $("#collapsed_fieldsets").val();
+        if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
+          collapsed_fieldsets = collapsed_fieldsets.split('||');
+        else
+          collapsed_fieldsets = [];
+        return collapsed_fieldsets;
+    }
+
+    function toggle_fieldset(legend, animation) {
+        var parent = legend.parent();
+        fieldset = parent.find(".legend_label").text();
+        collapsed_fieldsets = get_collapsed_fieldsets();
+
+        if (!parent.hasClass("collapsed")){
+          if (animation)
+            parent.find(".fieldset_content").slideUp();
+          else
+            parent.find(".fieldset_content").hide();
+
+          parent.addClass("collapsed");
+          parent.find("span.collapser").text("[+]");
+          var index = collapsed_fieldsets.indexOf(fieldset);
+          if (index === -1 && fieldset !== "" && fieldset !== undefined) {
+            collapsed_fieldsets.push(fieldset);
+          }
+        } else {
+          if (animation)
+            parent.find(".fieldset_content").slideDown();
+          else
+            parent.find(".fieldset_content").show();
+          parent.removeClass("collapsed");
+          parent.find("span.collapser").text("[-]");
+
+          // removing from array, js is overcomplicated
+          var index = collapsed_fieldsets.indexOf(fieldset);
+          if (index !== -1) {
+            collapsed_fieldsets.splice(index, 1);
+          }
+        }
+        $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
+    }
+
+    $('legend').click(function () {
+      toggle_fieldset($(this), true);
+    });
+    $("#viz_type").change(function() {$("#query").submit();});
+    collapsed_fieldsets = get_collapsed_fieldsets();
+    for(var i=0; i < collapsed_fieldsets.length; i++){
+      toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
+    }
     function getParam(name) {
       name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
       var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),

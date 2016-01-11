@@ -35,7 +35,7 @@
             </a>
         </span>
         <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
-        <div class="btn-group pull-right" role="group">
+        <div class="btn-group results pull-right" role="group">
           <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
             <i class="fa fa-code"></i>
           </span>
@@ -206,67 +206,10 @@
     var slice = px.Slice(data);
     $('.slice').data('slice', slice);
     slice.render();
+  });
 
-    function get_collapsed_fieldsets(){
-        collapsed_fieldsets = $("#collapsed_fieldsets").val();
-        if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
-          collapsed_fieldsets = collapsed_fieldsets.split('||');
-        else
-          collapsed_fieldsets = [];
-        return collapsed_fieldsets;
-    }
-
-    function toggle_fieldset(legend, animation) {
-        var parent = legend.parent();
-        fieldset = parent.find(".legend_label").text();
-        collapsed_fieldsets = get_collapsed_fieldsets();
-
-        if (!parent.hasClass("collapsed")){
-          if (animation)
-            parent.find(".fieldset_content").slideUp();
-          else
-            parent.find(".fieldset_content").hide();
-
-          parent.addClass("collapsed");
-          parent.find("span.collapser").text("[+]");
-          var index = collapsed_fieldsets.indexOf(fieldset);
-          if (index === -1 && fieldset !== "" && fieldset !== undefined) {
-            collapsed_fieldsets.push(fieldset);
-          }
-        } else {
-          if (animation)
-            parent.find(".fieldset_content").slideDown();
-          else
-            parent.find(".fieldset_content").show();
-          parent.removeClass("collapsed");
-          parent.find("span.collapser").text("[-]");
-
-          // removing from array, js is overcomplicated
-          var index = collapsed_fieldsets.indexOf(fieldset);
-          if (index !== -1) {
-            collapsed_fieldsets.splice(index, 1);
-          }
-        }
-        $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
-    }
-
-    $('legend').click(function () {
-      toggle_fieldset($(this), true);
-    });
-    $('#json').click(function () {
-      window.location = '{{ viz.json_endpoint | safe }}';
-    });
-    $('#csv').click(function () {
-      window.location = '{{ viz.csv_endpoint | safe }}';
-    });
-    $('#standalone').click(function () {
-      window.location = '{{ viz.standalone_endpoint | safe }}';
-    });
-    $("#viz_type").change(function() {$("#query").submit();});
-    collapsed_fieldsets = get_collapsed_fieldsets();
-    for(var i=0; i < collapsed_fieldsets.length; i++){
-      toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
-    }
+  $(window).on('hashchange', function() {
+    console.log("change occurred");
   });
 </script>
 {% endblock %}
