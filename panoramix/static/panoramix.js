@@ -29,11 +29,9 @@ var px = (function() {
       container: container,
       container_id: container_id,
       selector: selector,
-      jsonEndpoint: function() {
+      querystring: function(){
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
-
-        // Shallow copy
         if (dashboard !== undefined){
           qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
         }
@@ -43,7 +41,12 @@ var px = (function() {
         else {
           qrystr = '?' + $('#query').serialize();
         }
-        var endpoint = parser.pathname + qrystr + "&json=true";
+        return qrystr;
+      },
+      jsonEndpoint: function() {
+        var parser = document.createElement('a');
+        parser.href = data.json_endpoint;
+        var endpoint = parser.pathname + this.querystring() + "&json=true";
         return endpoint;
       },
       done: function (data) {
@@ -68,7 +71,6 @@ var px = (function() {
         container.show();
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
-        $('.btn-group.results span').attr('disabled','disabled');
         always(data);
       },
       width: function(){
@@ -78,6 +80,7 @@ var px = (function() {
         return token.height();
       },
       render: function() {
+        $('.btn-group.results span').attr('disabled','disabled');
         token.find("img.loading").show();
         container.hide();
         container.html('');
@@ -86,7 +89,6 @@ var px = (function() {
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
         viz.render();
-        console.log(slice);
       },
       resize: function() {
         token.find("img.loading").show();
@@ -155,7 +157,6 @@ var px = (function() {
   }
 
   function registerViz(name, initViz) {
-
     visualizations[name] = initViz;
   }
 
@@ -266,10 +267,18 @@ var px = (function() {
         i++;
       });
     }
+    $(window).bind("popstate", function(event) {
+      // Browser back button
+      var returnLocation = history.location || document.location;
+      // Could do something more lightweight here, but we're not optimizing
+      // for the use of the back button anyways
+      returnLocation.reload();
+    });
 
     function druidify(){
       prepForm();
       $('div.alert').remove();
+      history.pushState({}, document.title, slice.querystring());
       slice.render();
     }
 
