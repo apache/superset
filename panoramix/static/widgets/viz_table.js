@@ -1,9 +1,10 @@
 px.registerViz('table', function(slice) {
   var data = slice.data;
   var form_data = data.form_data;
+  var f = d3.format('.3s');
+  var fC = d3.format('0,000');
 
   function refresh() {
-    var f = d3.format('.3s');
     $.getJSON(slice.jsonEndpoint(), function(json){
       var data = json.data;
       var metrics = json.form_data.metrics;
@@ -41,6 +42,9 @@ px.registerViz('table', function(slice) {
             var perc = Math.round((d.val / maxes[d.col]) * 100);
             return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
           }
+       })
+       .attr('title', function(d){
+         return fC(d.val);
        })
        .attr('data-sort', function(d){
           if (d.isMetric)

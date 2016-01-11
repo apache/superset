@@ -536,7 +536,7 @@ class BubbleViz(NVD3Viz):
         for k, v in series.items():
             chart_data.append({
                 'key': k,
-                "color": utils.color(k),
+                "color": utils.color(str(k)),
                 'values': v })
         return dumps({
             'chart_data': chart_data,
@@ -749,6 +749,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = "bar"
+    sort_series = True
     verbose_name = "Time Series - Bar Chart"
 
 
