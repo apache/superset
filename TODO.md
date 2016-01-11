@@ -6,6 +6,7 @@ List of TODO items for Panoramix
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Browser history in explore.html:** use location.hash to manage query history
 * **Default slice:** choose a default slice for the dataset instead of default endpoint
+* **refresh freq**: specifying the refresh frequency of a dashboard and specific slices within it, some randomization would be nice
 * **Color hash in JS:** it'd be nice to use the same hash function for color attribution of series
     on the js side as on the python side (`panoramix.utils.color`)
 * **Widget sets / chart grids:** a way to have all charts support making a series of charts and putting them in a grid.
@@ -19,8 +20,7 @@ List of TODO items for Panoramix
 * **Annotations layers:** allow for people to maintain data annotations, 
     attached to a layer and time range. These layers can be added on top of some visualizations as annotations.
     An example of a layer might be "holidays" or "site outages", ...
-* **Worth doing? User defined groups:** People could define mappings in the UI of say "Countries I follow" and apply it
-    to different datasets. For now, this is done by writing CASE-WHEN-type expression which is probably good enough.
+* **Worth doing? User defined groups:** People could define mappings in the UI of say "Countries I follow" and apply it to different datasets. For now, this is done by writing CASE-WHEN-type expression which is probably good enough.
 
 ## Easy-ish fix
 * datasource in explore mode could be a dropdown
