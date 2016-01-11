@@ -445,6 +445,9 @@ class WordCloudViz(BaseViz):
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
+        if len(d['groupby']) < 1:
+            raise Exception("Pick at least one field to group by")
+
         metric = self.form_data.get('metric')
         if not metric:
             raise Exception("Pick a metric!")
