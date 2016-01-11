@@ -775,6 +775,7 @@ class DistributionPieViz(NVD3Viz):
     {
         'label': None,
         'fields': (
+            'granularity',
             ('since', 'until'),
             'metrics', 'groupby',
             'limit',
@@ -815,8 +816,9 @@ class DistributionBarViz(DistributionPieViz):
     {
         'label': None,
         'fields': (
-            'metrics', 'groupby',
+            'granularity',
             ('since', 'until'),
+            'metrics', 'groupby',
             'limit',
             ('show_legend', None),
         )
