@@ -283,7 +283,10 @@ class TableViz(BaseViz):
             'all_columns',
         )
     },)
-    css_files = ['lib/dataTables/dataTables.bootstrap.css']
+    css_files = [
+        'lib/dataTables/dataTables.bootstrap.css',
+        'widgets/viz_table.css',
+    ]
     is_timeseries = False
     js_files = [
         'lib/d3.min.js',
@@ -291,7 +294,6 @@ class TableViz(BaseViz):
         'lib/dataTables/dataTables.bootstrap.js',
         'widgets/viz_table.js',
     ]
-    css_files = ['widgets/viz_table.css']
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()

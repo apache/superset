@@ -20,7 +20,7 @@ px.registerViz('table', function(slice) {
         maxes[metrics[i]] = d3.max(col(metrics[i]));
       }
       var table = d3.select(slice.selector).append('table')
-        .attr('class', 'dataframe table table-striped table-bordered table-condensed table-hover');
+        .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true);
       table.append('thead').append('tr')
        .selectAll('th')
        .data(data.columns).enter()
@@ -75,7 +75,7 @@ px.registerViz('table', function(slice) {
           else
             return d.val;
        });
-      var datatable = slice.container.find('table').DataTable({
+      var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
         searching: form_data.include_search,
       });
