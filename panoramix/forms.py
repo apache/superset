@@ -239,7 +239,7 @@ class FormFactory(object):
                     choices=self.choicify(
                         [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000])),
             'limit':
-                SelectField(
+                FreeFormSelectField(
                     'Series limit',
                     choices=self.choicify(self.series_limits),
                     default=50,

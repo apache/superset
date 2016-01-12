@@ -630,7 +630,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             'description': (
                 "This section contains options "
                 "that allow for advanced analytical post processing "
-                "of query reults"),
+                "of query results"),
             'fields': (
                 ('rolling_type', 'rolling_periods'),
                 'time_compare',
@@ -677,7 +677,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         num_period_compare = form_data.get("num_period_compare")
         if num_period_compare:
             num_period_compare = int(num_period_compare)
-            df = df / df.shift(num_period_compare)
+            df = (df / df.shift(num_period_compare)) - 1
             df = df[num_period_compare:]
 
         rolling_periods = form_data.get("rolling_periods")

@@ -926,7 +926,7 @@ class Datasource(Model, AuditMixinNullable, Queryable):
             cols += ['timestamp']
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
-        cols += [col for col in df.columns if col in cols]
+        cols += [col for col in df.columns if col not in cols]
         df = df[cols]
         return QueryResult(
             df=df,
