@@ -37,7 +37,7 @@ class DeleteMixin(object):
 
 
 class PanoramixModelView(ModelView):
-    page_size = 100
+    page_size = 500
 
 
 class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
@@ -50,7 +50,7 @@ class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max', 'is_dttm']
-    page_size = 100
+    page_size = 500
     description_columns = {
         'is_dttm': (
             "Whether to make this column available as a "
@@ -77,7 +77,7 @@ class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
     can_delete = False
-    page_size = 100
+    page_size = 500
 
     def post_update(self, col):
         col.generate_metrics()
@@ -92,7 +92,7 @@ class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table']
     add_columns = edit_columns
-    page_size = 100
+    page_size = 500
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
@@ -104,7 +104,7 @@ class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
         'datasource', 'json']
     add_columns = [
         'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
-    page_size = 100
+    page_size = 500
     validators_columns = {
         'json': [validate_json],
     }
@@ -279,7 +279,7 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset']
-    page_size = 100
+    page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
