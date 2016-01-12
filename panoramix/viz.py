@@ -305,8 +305,6 @@ class TableViz(BaseViz):
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
-        d['is_timeseries'] = False
-        d['timeseries_limit'] = None
         return d
 
     def get_df(self):
@@ -371,8 +369,6 @@ class PivotTableViz(BaseViz):
             raise Exception("groupby and columns can't overlap")
 
         d['groupby'] = list(set(groupby) | set(columns))
-        d['is_timeseries'] = False
-        d['timeseries_limit'] = None
         return d
 
     def get_df(self):
