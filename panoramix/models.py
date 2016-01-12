@@ -919,7 +919,10 @@ class Datasource(Model, AuditMixinNullable, Queryable):
         if df is None or df.size == 0:
             raise Exception("No data was returned.")
 
-        if not is_timeseries and 'timestamp' in df.columns:
+        if (
+                not is_timeseries and
+                granularity == "all"
+                and 'timestamp' in df.columns):
             del df['timestamp']
 
         # Reordering columns
