@@ -916,8 +916,8 @@ class Datasource(Model, AuditMixinNullable, Queryable):
         client.groupby(**qry)
         query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
-        if not df:
-            raise Exception("No data")
+        if df is None or df.size == 0:
+            raise Exception("No data was returned.")
 
         if not is_timeseries and 'timestamp' in df.columns:
             del df['timestamp']
