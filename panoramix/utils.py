@@ -228,7 +228,10 @@ def json_iso_dttm_ser(obj):
 
 
 def markdown(s):
-    return md(s, ['markdown.extensions.tables'])
+    return md(s, [
+        'markdown.extensions.tables',
+        'markdown.extensions.fenced_code',
+        'markdown.extensions.codehilite',])
 
 
 def readfile(filepath):
