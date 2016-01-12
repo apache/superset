@@ -287,7 +287,7 @@ class TableViz(BaseViz):
         'lib/dataTables/dataTables.bootstrap.css',
         'widgets/viz_table.css',
     ]
-    is_timeseries = False
+    is_timeseries = True
     js_files = [
         'lib/d3.min.js',
         'lib/dataTables/jquery.dataTables.min.js',
