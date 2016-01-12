@@ -284,7 +284,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def metrics_combo(self):
         return sorted(
             [
-                (m.metric_name, m.verbose_name)
+                (m.metric_name, m.verbose_name or m.metric_name)
                 for m in self.metrics],
             key=lambda x: x[1])
 

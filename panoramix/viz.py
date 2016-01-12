@@ -136,6 +136,7 @@ class BaseViz(object):
                 df.timestamp = pd.to_datetime(df.timestamp, utc=False)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
+        df = df.fillna(0)
         return df
 
     @property

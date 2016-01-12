@@ -58,7 +58,7 @@ var px = (function() {
         $('#timer').removeClass('btn-warning');
         $('#timer').addClass('btn-success');
         $('span.query').removeClass('disabled');
-        $('#json').click(function(){window.location=data.json_endpoint()});
+        $('#json').click(function(){window.location=data.json_endpoint});
         $('#standalone').click(function(){window.location=data.standalone_endpoint});
         $('#csv').click(function(){window.location=data.csv_endpoint});
         $('.btn-group.results span').removeAttr('disabled');
