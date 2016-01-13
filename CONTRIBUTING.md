@@ -9,7 +9,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs through Gihub
+Report bugs through Github
 
 If you are reporting a bug, please include:
 
@@ -29,13 +29,13 @@ Look through the GitHub issues for features. Anything tagged with
 "feature" is open to whoever wants to implement it.
 
 We've created the operators, hooks, macros and executors we needed, but we 
-made sure that this part of Airflow is extensible. New operators,
+made sure that this part of Panoramix is extensible. New operators,
 hooks and operators are very welcomed!
 
 ### Documentation
 
-Airflow could always use better documentation,
-whether as part of the official Airflow docs,
+Panoramix could always use better documentation,
+whether as part of the official Panoramix docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -51,15 +51,42 @@ If you are proposing a feature:
 -   Remember that this is a volunteer-driven project, and that
     contributions are welcome :)
 
-## Latests Documentation
+## Latest Documentation
 
-[API Documentation](http://pythonhosted.com/airflow)
+[API Documentation](http://pythonhosted.com/panoramix)
+
+## Setting up a development environment
+
+    # fork the repo on github and then clone it
+    # alternatively you may want to clone the main repo but that won't work
+    # so well if you are planning on sending PRs
+    # git clone git@github.com:mistercrunch/panoramix.git
+
+    # [optional] setup a virtual env and activate it
+    virtualenv env
+    source env/bin/activate
+
+    # install for development
+    python setup.py develop
+
+    # Create an admin user
+    fabmanager create-admin --app panoramix
+
+    # Initialize the database
+    panoramix db upgrade
+
+    # Create default roles and permissions
+    panoramix init
+
+    # Load some data to play with
+    panoramix load_examples
+
+    # start a dev web server
+    panoramix runserver -d
+
+For every development session you may have to 
 
 ## Testing
-
-Install development requirements:
-
-    pip install -r requirements.txt
 
 Tests can then be run with:
 
