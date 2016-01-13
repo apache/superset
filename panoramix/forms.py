@@ -105,6 +105,15 @@ class FormFactory(object):
                 'Metric', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="Chose the metric"),
+            'stacked_style': SelectField(
+                'Chart Style', choices=self.choicify(
+                    ['stack', 'stream', 'expand']),
+                default='stack',
+                description=""),
+            'bar_stacked': BetterBooleanField(
+                'Stacked Bars',
+                default=False,
+                description=""),
             'secondary_metric': SelectField(
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,

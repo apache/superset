@@ -69,6 +69,7 @@ function viz_nvd3(slice) {
             .tickFormat(formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
+          chart.stacked(fd.bar_stacked);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'dist_bar') {
@@ -79,6 +80,7 @@ function viz_nvd3(slice) {
             .groupSpacing(0.1);   //Distance between each group of bars.
           chart.xAxis
             .showMaxMin(false);
+          chart.stacked(fd.bar_stacked);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'pie') {
@@ -131,6 +133,7 @@ function viz_nvd3(slice) {
 
         } else if (viz_type === 'area') {
           chart = nv.models.stackedAreaChart();
+          chart.style(fd.stacked_style);
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)

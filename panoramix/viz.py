@@ -743,6 +743,15 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = "bar"
     sort_series = True
     verbose_name = "Time Series - Bar Chart"
+    fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
+        'label': 'Chart Options',
+        'fields': (
+            ('show_brush', 'show_legend'),
+            ('rich_tooltip', 'y_axis_zero'),
+            ('y_log_scale', 'contribution'),
+            ('y_axis_format', 'x_axis_showminmax'),
+            ('line_interpolation', 'bar_stacked'),
+        ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
 class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
@@ -754,6 +763,15 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     viz_type = "area"
     verbose_name = "Time Series - Stacked"
     sort_series = True
+    fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
+        'label': 'Chart Options',
+        'fields': (
+            ('show_brush', 'show_legend'),
+            ('rich_tooltip', 'y_axis_zero'),
+            ('y_log_scale', 'contribution'),
+            ('y_axis_format', 'x_axis_showminmax'),
+            ('line_interpolation', 'stacked_style'),
+        ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
 class DistributionPieViz(NVD3Viz):
@@ -805,7 +823,7 @@ class DistributionBarViz(DistributionPieViz):
             ('since', 'until'),
             'metrics', 'groupby',
             'limit',
-            ('show_legend', None),
+            ('show_legend', 'bar_stacked'),
         )
     },)
 
