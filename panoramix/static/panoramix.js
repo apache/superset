@@ -77,7 +77,7 @@ var px = (function() {
         return token.width();
       },
       height: function(){
-        return token.height();
+        return token.height() - 25;
       },
       render: function() {
         $('.btn-group.results span').attr('disabled','disabled');
@@ -222,7 +222,7 @@ var px = (function() {
 
     $(".select2").select2({dropdownAutoWidth : true});
     $(".select2Sortable").select2();
-    $(".select2Sortable").select2Sortable();
+    $(".select2Sortable").select2Sortable({bindOrder: 'sortableStop'});
     $("form").show();
     $('[data-toggle="tooltip"]').tooltip({container: 'body'});
 

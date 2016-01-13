@@ -168,12 +168,7 @@
             <h4 class="modal-title">Query</h4>
           </div>
           <div class="modal-body">
-            <pre id="query_container">
-              {% if viz.query %}
-              {% else %}
-                <img width="250" src="{{ url_for('static', filename="img/penguins.png") }}" alt="Under construction">
-              {% endif %}
-            </pre>
+            <pre id="query_container"></pre>
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>

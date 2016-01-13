@@ -1,13 +1,14 @@
 /*
- Using the awesome lib at http://datamaps.github.io/
+  Using the awesome lib at http://datamaps.github.io/
 */
 
 function viz_world_map(slice) {
-    var render = function() {
+  var render = function() {
     var container = slice.container;
     var div = d3.select(slice.selector);
 
     d3.json(slice.jsonEndpoint(), function(error, json){
+      var fd = json.form_data;
 
       if (error != null){
         slice.error(error.responseText);
@@ -16,14 +17,14 @@ function viz_world_map(slice) {
       var ext = d3.extent(json.data, function(d){return d.m1});
       var extRadius = d3.extent(json.data, function(d){return d.m2});
       var radiusScale = d3.scale.linear()
-          .domain([extRadius[0], extRadius[1]])
-          .range([1, slice.data.form_data.max_bubble_size]);
-      json.data.forEach(function(d){
-        d.radius = radiusScale(d.m2);
-      })
+        .domain([extRadius[0], extRadius[1]])
+        .range([1, fd.max_bubble_size]);
+        json.data.forEach(function(d){
+          d.radius = radiusScale(d.m2);
+        });
       var colorScale = d3.scale.linear()
-          .domain([ext[0], ext[1]])
-          .range(["#FFF", "black"]);
+      .domain([ext[0], ext[1]])
+      .range(["#FFF", "black"]);
       var d = {};
       for (var i=0; i<json.data.length; i++){
         var country = json.data[i];
@@ -69,10 +70,10 @@ function viz_world_map(slice) {
           highlightFillOpacity: 0.85,
           exitDelay: 100,
           key: JSON.stringify
-      },
+        },
       });
       map.updateChoropleth(d);
-      if(slice.data.form_data.show_bubbles){
+      if(fd.show_bubbles){
         map.bubbles(json.data);
         div.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
       }

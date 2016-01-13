@@ -540,11 +540,7 @@ class BubbleViz(NVD3Viz):
                 'key': k,
                 "color": utils.color(str(k)),
                 'values': v })
-        return dumps({
-            'chart_data': chart_data,
-            'query': self.results.query,
-            'duration': self.results.duration,
-        })
+        return dumps(chart_data)
 
 class BigNumberViz(BaseViz):
     viz_type = "big_number"
@@ -740,13 +736,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data += self.to_series(
                 df2, classed='dashed', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
-
-        data = {
-            'chart_data': chart_data,
-            'query': self.results.query,
-            'duration': self.results.duration,
-        }
-        return dumps(data)
+        return dumps(chart_data)
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
@@ -800,11 +790,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.reset_index()
         df.columns = ['x', 'y']
         df['color'] = map(utils.color, df.x)
-        return dumps({
-            'chart_data': df.to_dict(orient="records"),
-            'query': self.results.query,
-            'duration': self.results.duration,
-        })
+        return dumps(df.to_dict(orient="records"))
 
 
 class DistributionBarViz(DistributionPieViz):
@@ -853,11 +839,7 @@ class DistributionBarViz(DistributionPieViz):
                     for i, ds in enumerate(df.timestamp)]
             }
             chart_data.append(d)
-        return dumps({
-            'chart_data': chart_data,
-            'query': self.results.query,
-            'duration': self.results.duration,
-        })
+        return dumps(chart_data)
 
 
 class SunburstViz(BaseViz):

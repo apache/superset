@@ -25,19 +25,17 @@ function viz_nvd3(slice) {
   ];
   var refresh = function() {
     $.getJSON(slice.jsonEndpoint(), function(payload) {
-      var data = payload.data;
-      var viz = payload;
-      var viz_type = viz.form_data.viz_type;
-      var fd = viz.form_data;
+      var fd = payload.form_data;
+      var viz_type = fd.viz_type;
       var f = d3.format('.4s');
       nv.addGraph(function() {
         if (viz_type === 'line') {
-          if (viz.form_data.show_brush) {
+          if (fd.show_brush) {
             chart = nv.models.lineWithFocusChart();
             //chart.lines2.xScale( d3.time.scale.utc());
             chart.lines2.xScale(d3.time.scale.utc());
             chart.x2Axis
-              .showMaxMin(viz.form_data.x_axis_showminmax)
+              .showMaxMin(fd.x_axis_showminmax)
               .tickFormat(formatDate)
               .staggerLabels(true);
           } else {
@@ -46,17 +44,17 @@ function viz_nvd3(slice) {
           // To alter the tooltip header
           // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
           chart.xScale(d3.time.scale.utc());
-          chart.interpolate(viz.form_data.line_interpolation);
+          chart.interpolate(fd.line_interpolation);
           chart.xAxis
-            .showMaxMin(viz.form_data.x_axis_showminmax)
+            .showMaxMin(fd.x_axis_showminmax)
             .tickFormat(formatDate)
             .staggerLabels(true);
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
           if (chart.y2Axis != undefined) {
               chart.y2Axis.tickFormat(d3.format('.3s'));
           }
-          if (viz.form_data.contribution || viz.form_data.num_period_compare) {
+          if (fd.contribution || fd.num_period_compare) {
             chart.yAxis.tickFormat(d3.format('.3p'));
             if (chart.y2Axis != undefined) {
                 chart.y2Axis.tickFormat(d3.format('.3p'));
@@ -70,7 +68,7 @@ function viz_nvd3(slice) {
             .showMaxMin(false)
             .tickFormat(formatDate)
             .staggerLabels(true);
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'dist_bar') {
@@ -85,8 +83,8 @@ function viz_nvd3(slice) {
 
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
-          chart.showLegend(viz.form_data.show_legend);
-          if (viz.form_data.donut) {
+          chart.showLegend(fd.show_legend);
+          if (fd.donut) {
             chart.donut(true);
             chart.donutLabelsOutside(true);
           }
@@ -106,7 +104,7 @@ function viz_nvd3(slice) {
             .showMaxMin(false)
             .tickFormat(formatDate)
             .staggerLabels(true);
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3p'));
 
         } else if (viz_type === 'bubble') {
@@ -138,38 +136,38 @@ function viz_nvd3(slice) {
             .showMaxMin(false)
             .tickFormat(formatDate)
             .staggerLabels(true);
-          chart.showLegend(viz.form_data.show_legend);
+          chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
 
         // make space for labels on right
         //chart.height($(".chart").height() - 50).margin({"right": 50});
-        if ((viz_type === "line" || viz_type === "area") && viz.form_data.rich_tooltip) {
+        if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
           chart.useInteractiveGuideline(true);
         }
-        if (viz.form_data.y_axis_zero) {
+        if (fd.y_axis_zero) {
           chart.forceY([0, 1]);
         }
-        else if (viz.form_data.y_log_scale) {
+        else if (fd.y_log_scale) {
           chart.yScale(d3.scale.log());
         }
-        if (viz.form_data.x_log_scale) {
+        if (fd.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
-        if (viz.form_data.y_axis_format) {
-          chart.yAxis.tickFormat(d3.format(viz.form_data.y_axis_format));
+        if (fd.y_axis_format) {
+          chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
           if (chart.y2Axis != undefined) {
-            chart.y2Axis.tickFormat(d3.format(viz.form_data.y_axis_format));
+            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
           }
         }
 
         chart.duration(0);
-
         d3.select(slice.selector).append("svg")
-          .datum(data.chart_data)
+          .datum(payload.data)
           .transition().duration(500)
           .call(chart);
+
         // if it is a two axis chart, rescale it down just a little so it fits in the div.
         if(chart.hasOwnProperty("x2Axis")) {
           two_axis_chart = $(slice.selector + " > svg");
@@ -177,10 +175,9 @@ function viz_nvd3(slice) {
           h = two_axis_chart.height();
           two_axis_chart.get(0).setAttribute('viewBox', '0 0 '+w+' '+(h+30));
         }
-
         return chart;
       });
-      slice.done(data);
+      slice.done(payload);
   })
   .fail(function(xhr) {
       slice.error(xhr.responseText);

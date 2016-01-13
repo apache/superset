@@ -4,19 +4,15 @@ Modified from http://bl.ocks.org/kerryrodden/7090426
 
 function viz_sunburst(slice) {
   var container = d3.select(slice.selector);
-  var width = slice.width();
-  var height = slice.height() - 25;
   var render = function() {
-    // Breadcrumb dimensions: width, height, spacing, width of tip/tail.
-    var b = {
-      w: 100, h: 30, s: 3, t: 10
-    };
-    var colorScale;
+    var width = slice.width();
+    var height = slice.height() - 5;
 
     // Total size of all segments; we set this later, after loading the data.
     var totalSize = 0;
     var radius = Math.min(width, height) / 2;
 
+    container.select("svg").remove();
     var vis = container.append("svg:svg")
         .attr("width", width)
         .attr("height", height)
@@ -64,7 +60,7 @@ function viz_sunburst(slice) {
           });
       ext = d3.extent(nodes, function(d){return d.m2 / d.m1;});
 
-      colorScale = d3.scale.linear()
+      var colorScale = d3.scale.linear()
           .domain([ext[0], ext[0] +  ((ext[1] - ext[0]) / 2), ext[1]])
           .range(["#00D1C1", "white","#FFB400"]);
 
@@ -112,7 +108,6 @@ function viz_sunburst(slice) {
           .text("m2/m1: " + fp(d.m2/d.m1));
 
       var sequenceArray = getAncestors(d);
-      updateBreadcrumbs(sequenceArray, percentageString);
 
       // Fade all the segments.
       container.selectAll("path")
@@ -163,31 +158,6 @@ function viz_sunburst(slice) {
         current = current.parent;
       }
       return path;
-    }
-
-    // Generate a string that describes the points of a breadcrumb polygon.
-    function breadcrumbPoints(d, i) {
-      var points = [];
-      points.push("0,0");
-      points.push(b.w + ",0");
-      points.push(b.w + b.t + "," + (b.h / 2));
-      points.push(b.w + "," + b.h);
-      points.push("0," + b.h);
-      if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
-        points.push(b.t + "," + (b.h / 2));
-      }
-      return points.join(" ");
-    }
-
-    // Update the breadcrumb trail to show the current sequence and percentage.
-    function updateBreadcrumbs(nodeArray, percentageString) {
-      l = [];
-      for(var i=0; i<nodeArray.length; i++){
-        l.push(nodeArray[i].name)
-      }
-      s = l.join(' > ')
-      gMiddleText.append("text").text(s).classed("middle", true)
-        .attr("y", -75);
     }
 
     function buildHierarchy(rows) {
