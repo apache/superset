@@ -41,6 +41,11 @@
             </a>
         </span>
         <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
+        <span class="alert alert-info" title="Slice Name" data-toggle="tooltip">{{ viz.form_data.slice_name }}
+            <a class="" href="/slicemodelview/edit/{{ viz.form_data.slice_id }}" data-toggle="tooltip" title="Edit Slice metadata">
+              <i class="fa fa-edit"></i>
+            </a>
+        </span>
         <div class="btn-group results pull-right" role="group">
           <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
             <i class="fa fa-code"></i>
