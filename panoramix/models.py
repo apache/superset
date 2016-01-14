@@ -463,8 +463,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry = qry.group_by(*groupby_exprs)
 
         time_filter = [
-            timestamp >= from_dttm,
-            timestamp <= to_dttm,
+            timestamp >= from_dttm.isoformat(),
+            timestamp <= to_dttm.isoformat(),
         ]
         inner_time_filter = copy(time_filter)
         if inner_from_dttm:
