@@ -310,6 +310,32 @@ def ping():
     return "OK"
 
 
+class R(BaseView):
+
+    @utils.log_this
+    @expose("/<url_id>")
+    def index(self, url_id):
+        url = db.session.query(models.Url).filter_by(id=url_id).first()
+        if url:
+            print(url.url)
+            return redirect('/' + url.url)
+        else:
+            flash("URL to nowhere...", "danger")
+            return redirect('/')
+
+    @utils.log_this
+    @expose("/shortner/", methods=['POST', 'GET'])
+    def shortner(self):
+        url = request.form.get('data')
+        obj = models.Url(url=url)
+        db.session.add(obj)
+        db.session.commit()
+        return("{request.headers[Host]}/r/{obj.id}".format(
+            request=request, obj=obj))
+
+appbuilder.add_view_no_menu(R)
+
+
 class Panoramix(BaseView):
 
     @has_access
