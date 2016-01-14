@@ -1,6 +1,6 @@
 /*
-Modified from http://bl.ocks.org/kerryrodden/7090426
-*/
+   Modified from http://bl.ocks.org/kerryrodden/7090426
+   */
 
 function viz_sunburst(slice) {
   var container = d3.select(slice.selector);
@@ -14,23 +14,23 @@ function viz_sunburst(slice) {
 
     container.select("svg").remove();
     var vis = container.append("svg:svg")
-        .attr("width", width)
-        .attr("height", height)
-        .append("svg:g")
-        .attr("id", "container")
-        .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
+    .attr("width", width)
+    .attr("height", height)
+    .append("svg:g")
+    .attr("id", "container")
+    .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
     var gMiddleText = vis.append("svg:g").attr("id", "gMiddleText");
 
     var partition = d3.layout.partition()
-        .size([2 * Math.PI, radius * radius])
-        .value(function(d) { return d.m1; });
+    .size([2 * Math.PI, radius * radius])
+    .value(function(d) { return d.m1; });
 
     var arc = d3.svg.arc()
-        .startAngle(function(d) { return d.x; })
-        .endAngle(function(d) { return d.x + d.dx; })
-        .innerRadius(function(d) { return Math.sqrt(d.y); })
-        .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
+    .startAngle(function(d) { return d.x; })
+    .endAngle(function(d) { return d.x + d.dx; })
+    .innerRadius(function(d) { return Math.sqrt(d.y); })
+    .outerRadius(function(d) { return Math.sqrt(d.y + d.dy); });
 
     var ext;
     d3.json(slice.jsonEndpoint(), function(error, json){
@@ -50,31 +50,31 @@ function viz_sunburst(slice) {
       // Bounding circle underneath the sunburst, to make it easier to detect
       // when the mouse leaves the parent g.
       vis.append("svg:circle")
-          .attr("r", radius)
-          .style("opacity", 0);
+      .attr("r", radius)
+      .style("opacity", 0);
 
       // For efficiency, filter nodes to keep only those large enough to see.
       var nodes = partition.nodes(json)
-          .filter(function(d) {
-            return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
-          });
+      .filter(function(d) {
+        return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
+      });
       ext = d3.extent(nodes, function(d){return d.m2 / d.m1;});
 
       var colorScale = d3.scale.linear()
-          .domain([ext[0], ext[0] +  ((ext[1] - ext[0]) / 2), ext[1]])
-          .range(["#00D1C1", "white","#FFB400"]);
+      .domain([ext[0], ext[0] +  ((ext[1] - ext[0]) / 2), ext[1]])
+      .range(["#00D1C1", "white","#FFB400"]);
 
       var path = vis.data([json]).selectAll("path")
-          .data(nodes)
-          .enter().append("svg:path")
-          .attr("display", function(d) { return d.depth ? null : "none"; })
-          .attr("d", arc)
-          .attr("fill-rule", "evenodd")
-          .style("stroke", "grey")
-          .style("stroke-width", "1px")
-          .style("fill", function(d) { return colorScale(d.m2/d.m1); })
-          .style("opacity", 1)
-          .on("mouseenter", mouseenter);
+      .data(nodes)
+      .enter().append("svg:path")
+      .attr("display", function(d) { return d.depth ? null : "none"; })
+      .attr("d", arc)
+      .attr("fill-rule", "evenodd")
+      .style("stroke", "grey")
+      .style("stroke-width", "1px")
+      .style("fill", function(d) { return colorScale(d.m2/d.m1); })
+      .style("opacity", 1)
+      .on("mouseenter", mouseenter);
 
 
       // Add the mouseleave handler to the bounding circle.
@@ -82,7 +82,7 @@ function viz_sunburst(slice) {
 
       // Get total size of the tree = value of root node from partition.
       totalSize = path.node().__data__.value;
-     };
+    };
     f = d3.format(".3s");
     fp = d3.format(".3p");
     // Fade all but the current sequence, and show it in the breadcrumb trail.
@@ -93,35 +93,59 @@ function viz_sunburst(slice) {
 
       gMiddleText.selectAll("*").remove();
       gMiddleText.append("text")
-          .classed("middle", true)
-          .style("font-size", "50px")
-          .text(percentageString);
+      .classed("middle", true)
+      .style("font-size", "50px")
+      .text(percentageString);
       gMiddleText.append("text")
-          .classed("middle", true)
-          .style("font-size", "20px")
-          .attr("y", "25")
-          .text("m1: " + f(d.m1) + " | m2: " + f(d.m2));
+      .classed("middle", true)
+      .style("font-size", "20px")
+      .attr("y", "25")
+      .text("m1: " + f(d.m1) + " | m2: " + f(d.m2));
       gMiddleText.append("text")
-          .classed("middle", true)
-          .style("font-size", "15px")
-          .attr("y", "50")
-          .text("m2/m1: " + fp(d.m2/d.m1));
+      .classed("middle", true)
+      .style("font-size", "15px")
+      .attr("y", "50")
+      .text("m2/m1: " + fp(d.m2/d.m1));
 
       var sequenceArray = getAncestors(d);
+      function breadcrumbPoints(d, i) {
+        var points = [];
+        points.push("0,0");
+        points.push(b.w + ",0");
+        points.push(b.w + b.t + "," + (b.h / 2));
+        points.push(b.w + "," + b.h);
+        points.push("0," + b.h);
+        if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
+          points.push(b.t + "," + (b.h / 2));
+        }
+        return points.join(" ");
+      }
+
+      // Update the breadcrumb trail to show the current sequence and percentage.
+      function updateBreadcrumbs(nodeArray, percentageString) {
+        l = [];
+        for(var i=0; i<nodeArray.length; i++){
+          l.push(nodeArray[i].name)
+        }
+        s = l.join(' > ')
+        gMiddleText.append("text").text(s).classed("middle", true)
+        .attr("y", -75);
+      }
+      updateBreadcrumbs(sequenceArray, percentageString);
 
       // Fade all the segments.
       container.selectAll("path")
-          .style("stroke-width", "1px")
-          .style("opacity", 0.3);
+      .style("stroke-width", "1px")
+      .style("opacity", 0.3);
 
       // Then highlight only those that are an ancestor of the current segment.
       container.selectAll("path")
-          .filter(function(node) {
-            return (sequenceArray.indexOf(node) >= 0);
-          })
-          .style("opacity", 1)
-          .style("stroke", "black")
-          .style("stroke-width", "2px");
+      .filter(function(node) {
+        return (sequenceArray.indexOf(node) >= 0);
+      })
+      .style("opacity", 1)
+      .style("stroke", "black")
+      .style("stroke-width", "2px");
     }
 
     // Restore everything to full opacity when moving off the visualization.
@@ -129,7 +153,7 @@ function viz_sunburst(slice) {
 
       // Hide the breadcrumb trail
       container.select("#trail")
-          .style("visibility", "hidden");
+      .style("visibility", "hidden");
       gMiddleText.selectAll("*").remove();
 
       // Deactivate all segments during transition.
@@ -138,14 +162,14 @@ function viz_sunburst(slice) {
 
       // Transition each segment to full opacity and then reactivate it.
       container.selectAll("path")
-          .transition()
-          .duration(200)
-          .style("opacity", 1)
-          .style("stroke", "grey")
-          .style("stroke-width", "1px")
-          .each("end", function() {
-            d3.select(this).on("mouseenter", mouseenter);
-          });
+      .transition()
+      .duration(200)
+      .style("opacity", 1)
+      .style("stroke", "grey")
+      .style("stroke-width", "1px")
+      .each("end", function() {
+        d3.select(this).on("mouseenter", mouseenter);
+      });
     }
 
     // Given a node in a partition layout, return an array of all of its ancestor
@@ -200,15 +224,15 @@ function viz_sunburst(slice) {
       }
       function recurse(node){
         if (node.children){
-            var m1 = 0;
-            var m2 = 0;
-            for (var i=0; i<node.children.length; i++){
-                sums = recurse(node.children[i]);
-                m1 += sums[0];
-                m2 += sums[1];
-            }
-            node['m1'] = m1;
-            node['m2'] = m2;
+          var m1 = 0;
+          var m2 = 0;
+          for (var i=0; i<node.children.length; i++){
+            sums = recurse(node.children[i]);
+            m1 += sums[0];
+            m2 += sums[1];
+          }
+          node['m1'] = m1;
+          node['m2'] = m2;
         }
         return [node['m1'], node['m2']]
       }

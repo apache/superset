@@ -55,6 +55,7 @@ def load_examples(sample):
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
+
     print("Loading [Birth names]")
     data.load_birth_names()
 
