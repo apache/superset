@@ -71,7 +71,7 @@ def load_world_bank_health_n_pop():
     tbl.database = get_or_create_db(db.session)
     db.session.merge(tbl)
     db.session.commit()
-    #tbl.fetch_metadata()
+    tbl.fetch_metadata()
 
     defaults = {
         "compare_lag": "10",

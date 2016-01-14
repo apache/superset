@@ -28,6 +28,7 @@ class LiveTest(TestCase):
     def test_slices(self):
         Slc = models.Slice
         for slc in db.session.query(Slc).all():
+            print(slc)
             self.client.get(slc.slice_url)
             viz = slc.viz
             self.client.get(viz.get_url())
