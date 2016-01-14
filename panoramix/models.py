@@ -11,7 +11,6 @@ from dateutil.parser import parse
 from flask import flash
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-import pandas as pd
 from pandas import read_sql_query
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
@@ -457,8 +456,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry = qry.group_by(*groupby_exprs)
 
         time_filter = [
-            timestamp >= from_dttm.isoformat(),
-            timestamp <= to_dttm.isoformat(),
+            timestamp >= from_dttm,
+            timestamp <= to_dttm,
         ]
         inner_time_filter = copy(time_filter)
         if inner_from_dttm:

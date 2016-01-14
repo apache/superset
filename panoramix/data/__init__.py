@@ -45,12 +45,13 @@ def get_slice_json(defaults, **kwargs):
 
 
 def load_world_bank_health_n_pop():
-    tbl = 'wb_health_population'
+    tbl_name = 'wb_health_population'
     with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
         pdf = pd.read_json(f)
+    pdf.columns = [col.replace('.', '_') for col in pdf.columns]
     pdf.year = pd.to_datetime(pdf.year)
     pdf.to_sql(
-        tbl,
+        tbl_name,
         db.engine,
         if_exists='replace',
         chunksize=500,
@@ -63,9 +64,9 @@ def load_world_bank_health_n_pop():
         index=False)
 
     print("Creating table [wb_health_population] reference")
-    tbl = db.session.query(TBL).filter_by(table_name=tbl).first()
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
-        tbl = TBL(table_name='wb_health_population')
+        tbl = TBL(table_name=tbl_name)
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
     tbl.database = get_or_create_db(db.session)
@@ -82,15 +83,15 @@ def load_world_bank_health_n_pop():
         "limit": "25",
         "granularity": "year",
         "groupby": [],
-        "metric": 'sum__SP.POP.TOTL',
-        "metrics": ["sum__SP.POP.TOTL"],
+        "metric": 'sum__SP_POP_TOTL',
+        "metrics": ["sum__SP_POP_TOTL"],
         "row_limit": config.get("ROW_LIMIT"),
         "since": "2014-01-01",
         "until": "2014-01-01",
         "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
-        "secondary_metric": "sum__SP.POP.TOTL",
+        "secondary_metric": "sum__SP_POP_TOTL",
         "entity": "country_code",
         "show_bubbles": "y",
     }
@@ -117,7 +118,7 @@ def load_world_bank_health_n_pop():
                 since='2000',
                 viz_type='big_number',
                 compare_lag="10",
-                metric='sum__SP.POP.TOTL',
+                metric='sum__SP_POP_TOTL',
                 compare_suffix="over 10Y")),
         Slice(
             slice_name="Most Populated Countries",
@@ -127,7 +128,7 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='table',
-                metrics=["sum__SP.POP.TOTL"],
+                metrics=["sum__SP_POP_TOTL"],
                 groupby=['country_name'])),
         Slice(
             slice_name="Growth Rate",
@@ -138,7 +139,7 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type='line',
                 since="1960-01-01",
-                metrics=["sum__SP.POP.TOTL"],
+                metrics=["sum__SP_POP_TOTL"],
                 num_period_compare="10",
                 groupby=['country_name'])),
         Slice(
@@ -149,7 +150,7 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='world_map',
-                metric= "sum__SP.RUR.TOTL.ZS",
+                metric= "sum__SP_RUR_TOTL_ZS",
                 num_period_compare="10",)),
         Slice(
             slice_name="Life Expexctancy VS Rural %",
@@ -164,9 +165,9 @@ def load_world_bank_health_n_pop():
                 series="region",
                 limit="0",
                 entity="country_name",
-                x="sum__SP.RUR.TOTL.ZS",
-                y="sum__SP.DYN.LE00.IN",
-                size="sum__SP.POP.TOTL",
+                x="sum__SP_RUR_TOTL_ZS",
+                y="sum__SP_DYN_LE00_IN",
+                size="sum__SP_POP_TOTL",
                 max_bubble_size="50",
                 flt_col_1="country_code",
                 flt_op_1= "not in",
@@ -181,7 +182,7 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type='sunburst',
                 groupby=["region", "country_name"],
-                secondary_metric="sum__SP.RUR.TOTL",
+                secondary_metric="sum__SP_RUR_TOTL",
                 since= "2011-01-01",
                 until= "2011-01-01",)),
         Slice(
