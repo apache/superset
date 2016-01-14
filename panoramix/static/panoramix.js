@@ -208,6 +208,24 @@ var px = (function() {
     $('legend').click(function () {
       toggle_fieldset($(this), true);
     });
+    $('#shortner').click(function () {
+      $.ajax({
+        type: "POST",
+        url: '/r/shortner/',
+        data: {'data': '/' + window.location.pathname + slice.querystring()},
+        success: function(data) {
+          console.log(data);
+          data += '&nbsp;&nbsp;&nbsp;<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></a>';
+          $('#shortner').popover({content: data, placement: 'left', html: true, trigger: 'manual'});
+          $('#shortner').popover('show');
+          $('#close_shortner').click(function(){
+            $('#shortner').popover('destroy');
+          });
+
+        },
+        error: function() {alert("Error :(");},
+      });
+    });
     $("#viz_type").change(function() {$("#query").submit();});
     collapsed_fieldsets = get_collapsed_fieldsets();
     for(var i=0; i < collapsed_fieldsets.length; i++){

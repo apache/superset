@@ -3,6 +3,7 @@
 {% block head_css %}
 {{super()}}
 <link rel="stylesheet" type="text/css" href="/static/lib/pygments.css" />
+<link href="/static/lib/bootstrap-toggle.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block content_fluid %}
@@ -47,6 +48,9 @@
             </a>
         </span>
         <div class="btn-group results pull-right" role="group">
+          <a role="button" tabindex="0" class="btn btn-default" id="shortner" title="Short URL" data-toggle="popover" data-trigger="focus">
+            <i class="fa fa-link"></i>
+          </a>
           <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
             <i class="fa fa-code"></i>
           </span>
@@ -205,6 +209,7 @@
 
 {% block tail_js %}
 {{ super() }}
+<script src="/static/lib/bootstrap-toggle.min.js"></script>
 <script>
   $(document).ready(px.initExploreView);
   $(document).ready(function() {
@@ -213,6 +218,11 @@
     $('.slice').data('slice', slice);
     slice.render();
   });
+  $(':checkbox')
+  .addClass('pull-right')
+  .attr("data-onstyle", "default")
+  .bootstrapToggle({size: 'mini'});
+  $('div.toggle').addClass('pull-right');
 
   $(window).on('hashchange', function() {
     console.log("change occurred");

@@ -48,6 +48,13 @@ class AuditMixinNullable(AuditMixin):
         return utils.datetime_f(cls.changed_on)
 
 
+class Url(Model, AuditMixinNullable):
+    """Used for the short url feature"""
+    __tablename__ = 'url'
+    id = Column(Integer, primary_key=True)
+    url = Column(Text)
+
+
 class Slice(Model, AuditMixinNullable):
     """A slice is essentially a report or a view on data"""
     __tablename__ = 'slices'
