@@ -360,7 +360,7 @@ class FormFactory(object):
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
             'x_axis_showminmax': BetterBooleanField(
-                "X axis show min/max", default=True,
+                "X show min/max", default=True,
                 description=(
                     "Whether to display the min and max values of the axis")),
             'rich_tooltip': BetterBooleanField(
