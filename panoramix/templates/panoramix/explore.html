@@ -213,10 +213,11 @@
 <script>
   $(document).ready(px.initExploreView);
   $(document).ready(function() {
+    console.log(px);
     var data = $('.slice').data('slice');
     var slice = px.Slice(data);
     $('.slice').data('slice', slice);
-    slice.render();
+    px.druidify();
   });
   $(':checkbox')
   .addClass('pull-right')

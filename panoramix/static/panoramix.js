@@ -159,6 +159,29 @@ var px = (function() {
   function registerViz(name, initViz) {
     visualizations[name] = initViz;
   }
+    function prepForm(){
+      var i = 1;
+      // Assigning the right id to form elements in filters
+      $("#filters > div").each(function() {
+        $(this).attr("id", function() {return "flt_" + i;})
+        $(this).find("#flt_col_0")
+          .attr("id", function() {return "flt_col_" + i;})
+          .attr("name", function() {return "flt_col_" + i;});
+        $(this).find("#flt_op_0")
+          .attr("id", function() {return "flt_op_" + i;})
+          .attr("name", function() {return "flt_op_" + i;});
+        $(this).find("#flt_eq_0")
+          .attr("id", function() {return "flt_eq_" + i;})
+          .attr("name", function() {return "flt_eq_" + i;});
+        i++;
+      });
+    }
+    function druidify(){
+      prepForm();
+      $('div.alert').remove();
+      history.pushState({}, document.title, slice.querystring());
+      slice.render();
+    }
 
   function initExploreView() {
 
@@ -268,23 +291,6 @@ var px = (function() {
         $(this).parent().parent().remove();
       });
     }
-    function prepForm(){
-      var i = 1;
-      // Assigning the right id to form elements in filters
-      $("#filters > div").each(function() {
-        $(this).attr("id", function() {return "flt_" + i;})
-        $(this).find("#flt_col_0")
-          .attr("id", function() {return "flt_col_" + i;})
-          .attr("name", function() {return "flt_col_" + i;});
-        $(this).find("#flt_op_0")
-          .attr("id", function() {return "flt_op_" + i;})
-          .attr("name", function() {return "flt_op_" + i;});
-        $(this).find("#flt_eq_0")
-          .attr("id", function() {return "flt_eq_" + i;})
-          .attr("name", function() {return "flt_eq_" + i;});
-        i++;
-      });
-    }
     $(window).bind("popstate", function(event) {
       // Browser back button
       var returnLocation = history.location || document.location;
@@ -293,12 +299,6 @@ var px = (function() {
       returnLocation.reload();
     });
 
-    function druidify(){
-      prepForm();
-      $('div.alert').remove();
-      history.pushState({}, document.title, slice.querystring());
-      slice.render();
-    }
 
     $("#plus").click(add_filter);
     $("#btn_save").click(function () {
@@ -422,6 +422,7 @@ var px = (function() {
     registerViz: registerViz,
     Slice: Slice,
     Dashboard: Dashboard,
+    druidify: druidify,
     initExploreView: initExploreView,
     initDashboardView: initDashboardView,
   }
