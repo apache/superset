@@ -213,7 +213,6 @@
 <script>
   $(document).ready(px.initExploreView);
   $(document).ready(function() {
-    console.log(px);
     var data = $('.slice').data('slice');
     var slice = px.Slice(data);
     $('.slice').data('slice', slice);
@@ -224,9 +223,5 @@
   .attr("data-onstyle", "default")
   .bootstrapToggle({size: 'mini'});
   $('div.toggle').addClass('pull-right');
-
-  $(window).on('hashchange', function() {
-    console.log("change occurred");
-  });
 </script>
 {% endblock %}
