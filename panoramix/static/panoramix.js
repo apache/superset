@@ -237,14 +237,12 @@ var px = (function() {
         url: '/r/shortner/',
         data: {'data': '/' + window.location.pathname + slice.querystring()},
         success: function(data) {
-          console.log(data);
           data += '&nbsp;&nbsp;&nbsp;<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></a>';
           $('#shortner').popover({content: data, placement: 'left', html: true, trigger: 'manual'});
           $('#shortner').popover('show');
           $('#close_shortner').click(function(){
             $('#shortner').popover('destroy');
           });
-
         },
         error: function() {alert("Error :(");},
       });
@@ -262,7 +260,7 @@ var px = (function() {
     }
 
     $(".select2").select2({dropdownAutoWidth : true});
-    $(".select2Sortable").select2();
+    $(".select2Sortable").select2({dropdownAutoWidth : true});
     $(".select2Sortable").select2Sortable({bindOrder: 'sortableStop'});
     $("form").show();
     $('[data-toggle="tooltip"]').tooltip({container: 'body'});
@@ -356,6 +354,7 @@ var px = (function() {
         .select2({
           createSearchChoice: create_choices,
           initSelection: initSelectionToValue,
+          dropdownAutoWidth : true,
           multiple: false,
           data: l,
         });

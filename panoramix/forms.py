@@ -305,7 +305,16 @@ class FormFactory(object):
                 description="Based on granularity, number of time periods to compare against"),
             'compare_suffix': TextField('Comparison suffix',
                 description="Suffix to apply after the percentage display"),
-            'y_axis_format': TextField('Y axis format',
+            'y_axis_format': FreeFormSelectField('Y axis format',
+                default='.3s',
+                choices=[
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
                 description="D3 format syntax for y axis "
                             "https://github.com/mbostock/\n"
                             "d3/wiki/Formatting"),
@@ -360,9 +369,9 @@ class FormFactory(object):
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
             'x_axis_showminmax': BetterBooleanField(
-                "X show min/max", default=True,
+                "X bounds", default=True,
                 description=(
-                    "Whether to display the min and max values of the axis")),
+                    "Whether to display the min and max values of the X axis")),
             'rich_tooltip': BetterBooleanField(
                 "Rich Tooltip", default=True,
                 description=(
