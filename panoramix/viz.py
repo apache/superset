@@ -289,7 +289,6 @@ class TableViz(BaseViz):
     ]
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'lib/dataTables/jquery.dataTables.min.js',
         'lib/dataTables/dataTables.bootstrap.js',
         'widgets/viz_table.js',
@@ -437,7 +436,6 @@ class WordCloudViz(BaseViz):
         )
     },)
     js_files = [
-        'lib/d3.min.js',
         'lib/d3.layout.cloud.js',
         'widgets/viz_wordcloud.js',
     ]
@@ -463,7 +461,6 @@ class NVD3Viz(BaseViz):
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'lib/nvd3/nv.d3.min.js',
         'widgets/viz_nvd3.js',
     ]
@@ -547,7 +544,6 @@ class BigNumberViz(BaseViz):
     verbose_name = "Big Number"
     is_timeseries = True
     js_files = [
-        'lib/d3.min.js',
         'widgets/viz_bignumber.js',
     ]
     css_files = [
@@ -562,6 +558,7 @@ class BigNumberViz(BaseViz):
             'metric',
             'compare_lag',
             'compare_suffix',
+            'y_axis_format',
         )
     },)
 
@@ -584,7 +581,6 @@ class BigNumberViz(BaseViz):
         form_data = self.form_data
         df = self.get_df()
         df = df.sort(columns=df.columns[0])
-        df['timestamp'] = df[[0]].astype(np.int64) // 10**9
         compare_lag = form_data.get("compare_lag", "")
         compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
         d = {
@@ -592,7 +588,7 @@ class BigNumberViz(BaseViz):
             'compare_lag': compare_lag,
             'compare_suffix': form_data.get('compare_suffix', ''),
         }
-        return json.dumps(d)
+        return dumps(d)
 
 
 class NVD3TimeSeriesViz(NVD3Viz):
@@ -865,7 +861,6 @@ class SunburstViz(BaseViz):
     verbose_name = "Sunburst"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'widgets/viz_sunburst.js']
     css_files = ['widgets/viz_sunburst.css']
     fieldsets = (
@@ -931,7 +926,6 @@ class SankeyViz(BaseViz):
     verbose_name = "Sankey"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'lib/d3-sankey.js',
         'widgets/viz_sankey.js']
     css_files = ['widgets/viz_sankey.css']
@@ -973,7 +967,6 @@ class DirectedForceViz(BaseViz):
     verbose_name = "Directed Force Layout"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'widgets/viz_directed_force.js']
     css_files = ['widgets/viz_directed_force.css']
     fieldsets = (
@@ -1019,7 +1012,6 @@ class WorldMapViz(BaseViz):
     verbose_name = "World Map"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'lib/topojson.min.js',
         'lib/datamaps.all.js',
         'widgets/viz_world_map.js']
@@ -1098,7 +1090,6 @@ class FilterBoxViz(BaseViz):
     verbose_name = "Filters"
     is_timeseries = False
     js_files = [
-        'lib/d3.min.js',
         'widgets/viz_filter_box.js']
     css_files = [
         'widgets/viz_filter_box.css']

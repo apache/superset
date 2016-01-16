@@ -412,7 +412,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 "Datetime column not provided as part table configuration")
         dttm_expr = cols[granularity].expression
         if dttm_expr:
-            timestamp = ColumnClause(dttm_expr, is_literal=True).label('timestamp')
+            timestamp = literal_column(dttm_expr).label('timestamp')
         else:
             timestamp = literal_column(granularity).label('timestamp')
         metrics_exprs = [
@@ -437,8 +437,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 col = cols[s]
                 expr = col.expression
                 if expr:
-                    outer = ColumnClause(expr, is_literal=True).label(s)
-                    inner = ColumnClause(expr, is_literal=True).label('__' + s)
+                    outer = literal_column(expr).label(s)
+                    inner = literal_column(expr).label('__' + s)
                 else:
                     outer = column(s).label(s)
                     inner = column(s).label('__' + s)
@@ -462,15 +462,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
+        tf = '%Y-%m-%d %H:%M:%S.%f'
         time_filter = [
-            timestamp >= from_dttm.isoformat(),
-            timestamp <= to_dttm.isoformat(),
+            timestamp >= from_dttm.strftime(tf),
+            timestamp <= to_dttm.strftime(tf),
         ]
         inner_time_filter = copy(time_filter)
         if inner_from_dttm:
-            inner_time_filter[0] = timestamp >= inner_from_dttm.isoformat()
+            inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
         if inner_to_dttm:
-            inner_time_filter[1] = timestamp <= inner_to_dttm.isoformat()
+            inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
         where_clause_and = []
         having_clause_and = []
         for col, op, eq in filter:

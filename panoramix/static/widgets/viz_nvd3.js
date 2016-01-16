@@ -2,27 +2,6 @@ function viz_nvd3(slice) {
   var chart = undefined;
   var data = {};
 
-  function UTC(dttm){
-    return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
-  }
-  var tickMultiFormat = d3.time.format.multi([
-    [".%L", function(d) { return d.getMilliseconds(); }], // If there are millisections, show  only them
-    [":%S", function(d) { return d.getSeconds(); }], // If there are seconds, show only them
-    ["%a %b %d, %I:%M %p", function(d) { return d.getMinutes()!=0; }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
-    ["%a %b %d, %I %p", function(d) { return d.getHours() != 0; }], // If there are hours that are multiples of 3, show date and AM/PM
-    ["%a %b %d, %Y", function(d) { return d.getDate() != 1; }], // If not the first of the month, do "month day, year."
-    ["%B %Y", function(d) { return d.getMonth() != 0 && d.getDate() == 1; }], // If the first of the month, do "month day, year."
-    ["%Y", function(d) { return true; }] // fall back on month, year
-  ]);
-  function formatDate(dttm) {
-    var d = UTC(new Date(dttm));
-    //d = new Date(d.getTime() - 1 * 60 * 60 * 1000);
-    return tickMultiFormat(d);
-  }
-  colors = [
-    "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
-    "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
-  ];
   var refresh = function() {
     $.getJSON(slice.jsonEndpoint(), function(payload) {
       var fd = payload.form_data;
@@ -36,7 +15,7 @@ function viz_nvd3(slice) {
             chart.lines2.xScale(d3.time.scale.utc());
             chart.x2Axis
               .showMaxMin(fd.x_axis_showminmax)
-              .tickFormat(formatDate)
+              .tickFormat(px.formatDate)
               .staggerLabels(true);
           } else {
             chart = nv.models.lineChart()
@@ -47,7 +26,7 @@ function viz_nvd3(slice) {
           chart.interpolate(fd.line_interpolation);
           chart.xAxis
             .showMaxMin(fd.x_axis_showminmax)
-            .tickFormat(formatDate)
+            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));
@@ -66,7 +45,7 @@ function viz_nvd3(slice) {
               .groupSpacing(0.1);
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate)
+            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
           chart.stacked(fd.bar_stacked);
@@ -104,7 +83,7 @@ function viz_nvd3(slice) {
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate)
+            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3p'));
@@ -137,7 +116,7 @@ function viz_nvd3(slice) {
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(formatDate)
+            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
           chart.yAxis.tickFormat(d3.format('.3s'));

@@ -3,6 +3,28 @@ var px = (function() {
   var visualizations = {};
   var dashboard = undefined;
 
+  function UTC(dttm){
+    return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
+  }
+  var tickMultiFormat = d3.time.format.multi([
+    [".%L", function(d) { return d.getMilliseconds(); }], // If there are millisections, show  only them
+    [":%S", function(d) { return d.getSeconds(); }], // If there are seconds, show only them
+    ["%a %b %d, %I:%M %p", function(d) { return d.getMinutes()!=0; }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
+    ["%a %b %d, %I %p", function(d) { return d.getHours() != 0; }], // If there are hours that are multiples of 3, show date and AM/PM
+    ["%a %b %d, %Y", function(d) { return d.getDate() != 1; }], // If not the first of the month, do "month day, year."
+    ["%B %Y", function(d) { return d.getMonth() != 0 && d.getDate() == 1; }], // If the first of the month, do "month day, year."
+    ["%Y", function(d) { return true; }] // fall back on month, year
+  ]);
+  function formatDate(dttm) {
+    var d = UTC(new Date(dttm));
+    //d = new Date(d.getTime() - 1 * 60 * 60 * 1000);
+    return tickMultiFormat(d);
+  }
+  colors = [
+    "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
+    "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
+  ];
+
   var Slice = function(data, dashboard){
     var timer;
     var token = $('#' + data.token);
@@ -119,7 +141,6 @@ var px = (function() {
       addFilter: function(slice_id, filters) {
         this.filters[slice_id] = filters;
         this.refreshExcept(slice_id);
-        console.log(this.filters);
       },
       readFilters: function() {
         // Returns a list of human readable active filters
@@ -424,5 +445,7 @@ var px = (function() {
     druidify: druidify,
     initExploreView: initExploreView,
     initDashboardView: initDashboardView,
+    formatDate: formatDate,
+    colors: colors,
   }
 })();
