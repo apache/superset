@@ -98,7 +98,8 @@ px.registerViz('big_number', function(slice) {
       var x_axis = d3.svg.axis()
         .scale(scale_x)
         .orient('bottom')
-        .ticks(4);
+        .ticks(4)
+        .tickFormat(px.formatDate);
       g.call(x_axis);
       g.attr('transform', 'translate(0,' + (height - margin) + ')');
 
