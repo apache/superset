@@ -615,8 +615,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 ('show_brush', 'show_legend'),
                 ('rich_tooltip', 'y_axis_zero'),
                 ('y_log_scale', 'contribution'),
-                ('y_axis_format', 'x_axis_showminmax'),
-                ('line_interpolation', None),
+                ('x_axis_format', 'y_axis_format'),
+                ('line_interpolation', 'x_axis_showminmax'),
             ),
         }, {
             'label': 'Advanced Analytics',
@@ -750,8 +750,9 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('y_axis_format', 'x_axis_showminmax'),
+            ('x_axis_format', 'y_axis_format'),
             ('line_interpolation', 'bar_stacked'),
+            ('x_axis_showminmax', None),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
@@ -770,7 +771,8 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('y_axis_format', 'x_axis_showminmax'),
+            ('x_axis_format', 'y_axis_format'),
+            ('x_axis_showminmax'),
             ('line_interpolation', 'stacked_style'),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 

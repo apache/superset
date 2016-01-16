@@ -11,11 +11,9 @@ function viz_nvd3(slice) {
         if (viz_type === 'line') {
           if (fd.show_brush) {
             chart = nv.models.lineWithFocusChart();
-            //chart.lines2.xScale( d3.time.scale.utc());
             chart.lines2.xScale(d3.time.scale.utc());
             chart.x2Axis
               .showMaxMin(fd.x_axis_showminmax)
-              .tickFormat(px.formatDate)
               .staggerLabels(true);
           } else {
             chart = nv.models.lineChart()
@@ -26,30 +24,17 @@ function viz_nvd3(slice) {
           chart.interpolate(fd.line_interpolation);
           chart.xAxis
             .showMaxMin(fd.x_axis_showminmax)
-            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
-          chart.yAxis.tickFormat(d3.format('.3s'));
-          if (chart.y2Axis != undefined) {
-              chart.y2Axis.tickFormat(d3.format('.3s'));
-          }
-          if (fd.contribution || fd.num_period_compare) {
-            chart.yAxis.tickFormat(d3.format('.3p'));
-            if (chart.y2Axis != undefined) {
-                chart.y2Axis.tickFormat(d3.format('.3p'));
-            }
-          }
         } else if (viz_type === 'bar') {
           chart = nv.models.multiBarChart()
               .showControls(true)
               .groupSpacing(0.1);
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
           chart.stacked(fd.bar_stacked);
-          chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'dist_bar') {
           chart = nv.models.multiBarChart()
@@ -60,7 +45,6 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false);
           chart.stacked(fd.bar_stacked);
-          chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
@@ -76,17 +60,14 @@ function viz_nvd3(slice) {
           chart = nv.models.multiBarChart()
             .reduceXTicks(false)
             .rotateLabels(45) ;
-          chart.yAxis.tickFormat(d3.format('.3s'));
 
         } else if (viz_type === 'compare') {
           chart = nv.models.cumulativeLineChart();
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
-          chart.yAxis.tickFormat(d3.format('.3p'));
 
         } else if (viz_type === 'bubble') {
           var row = function(col1, col2){
@@ -95,8 +76,6 @@ function viz_nvd3(slice) {
           chart = nv.models.scatterChart();
           chart.showDistX(true);
           chart.showDistY(true);
-          chart.xAxis.tickFormat(d3.format('.3s'));
-          chart.yAxis.tickFormat(d3.format('.3s'));
           chart.showLegend(fd.show_legend);
           chart.tooltip.contentGenerator(function (obj) {
             p = obj.point;
@@ -116,10 +95,8 @@ function viz_nvd3(slice) {
           chart.xScale(d3.time.scale.utc());
           chart.xAxis
             .showMaxMin(false)
-            .tickFormat(px.formatDate)
             .staggerLabels(true);
           chart.showLegend(fd.show_legend);
-          chart.yAxis.tickFormat(d3.format('.3s'));
         }
 
         // make space for labels on right
@@ -136,7 +113,22 @@ function viz_nvd3(slice) {
         if (fd.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
-        if (fd.y_axis_format) {
+        if (viz_type === 'bubble') {
+          chart.xAxis.tickFormat(d3.format('.3s'));
+        }
+        else if (fd.x_axis_format == 'smart_date') {
+          chart.xAxis.tickFormat(px.formatDate);
+        }
+        else if (fd.x_axis_format !== undefined) {
+          chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
+        }
+        if (fd.contribution || fd.num_period_compare) {
+          chart.yAxis.tickFormat(d3.format('.3p'));
+          if (chart.y2Axis != undefined) {
+              chart.y2Axis.tickFormat(d3.format('.3p'));
+          }
+        }
+        else if (fd.y_axis_format) {
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
           if (chart.y2Axis != undefined) {

@@ -20,6 +20,13 @@ var px = (function() {
     //d = new Date(d.getTime() - 1 * 60 * 60 * 1000);
     return tickMultiFormat(d);
   }
+  function timeFormatFactory(d3timeFormat) {
+    var f = d3.time.format(d3timeFormat)
+    return function(dttm){
+      var d = UTC(new Date(dttm));
+      return f(d);
+    };
+  }
   colors = [
     "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
     "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
@@ -447,5 +454,6 @@ var px = (function() {
     initDashboardView: initDashboardView,
     formatDate: formatDate,
     colors: colors,
+    timeFormatFactory: timeFormatFactory,
   }
 })();
