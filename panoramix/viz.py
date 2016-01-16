@@ -561,6 +561,11 @@ class BigNumberViz(BaseViz):
             'y_axis_format',
         )
     },)
+    form_overrides = {
+        'y_axis_format': {
+            'label': 'Number format',
+        }
+    }
 
     def reassignments(self):
         metric = self.form_data.get('metric')

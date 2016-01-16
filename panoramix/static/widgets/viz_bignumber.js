@@ -9,12 +9,13 @@ px.registerViz('big_number', function(slice) {
         slice.error(error.responseText);
         return '';
       }
-      json = payload.data;
+      var fd = payload.form_data;
+      var json = payload.data;
       var color_range = [-1, 1];
       var compare_pos = -23
       var target_url = 'd3js.org';
 
-      var f = d3.format('.3s');
+      var f = d3.format(fd.y_axis_format);
       var fp = d3.format('+.1%');
       var width = slice.width();
       var height = slice.height();
@@ -107,13 +108,13 @@ px.registerViz('big_number', function(slice) {
       var y_axis = d3.svg.axis()
         .scale(scale_y)
         .orient('left')
-        .tickFormat(d3.format('.3s'))
+        .tickFormat(d3.format(fd.y_axis_format))
         .tickValues(value_ext);
       g.call(y_axis);
       g.selectAll('text')
         .style('text-anchor', 'end')
-        .attr('y','-5')
-        .attr('x','1');
+        .attr('y','-7')
+        .attr('x','-4');
 
       g.selectAll("text")
         .style('font-size', '10px');
