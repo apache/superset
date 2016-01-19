@@ -66,6 +66,7 @@ class Slice(Model, AuditMixinNullable):
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
     params = Column(Text)
+    description = Column(Text)
 
     table = relationship(
         'SqlaTable', foreign_keys=[table_id], backref='slices')
@@ -87,6 +88,10 @@ class Slice(Model, AuditMixinNullable):
             self.datasource,
             form_data=d)
         return viz
+
+    @property
+    def description_markeddown(self):
+        return utils.markdown(self.description)
 
     @property
     def datasource_id(self):
@@ -154,6 +159,7 @@ class Dashboard(Model, AuditMixinNullable):
     position_json = Column(Text)
     description = Column(Text)
     css = Column(Text)
+    json_metadata = Column(Text)
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
@@ -164,6 +170,10 @@ class Dashboard(Model, AuditMixinNullable):
     @property
     def url(self):
         return "/panoramix/dashboard/{}/".format(self.slug or self.id)
+
+    @property
+    def metadata_dejson(self):
+        return json.loads(self.json_metadata)
 
     def dashboard_link(self):
         return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)

@@ -79,13 +79,13 @@ px.registerViz('table', function(slice) {
         paging: false,
         searching: form_data.include_search,
       });
-      slice.container.find('.tooltip').remove();
       // Sorting table by main column
       if (form_data.metrics.length > 0) {
         var main_metric = form_data.metrics[0];
         datatable.column(data.columns.indexOf(main_metric)).order( 'desc' ).draw();
       }
       slice.done(json);
+      slice.container.parents('.widget').find('.tooltip').remove();
     }).fail(function(xhr){
       slice.error(xhr.responseText);
     });

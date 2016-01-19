@@ -91,25 +91,35 @@ body {
                       <nobr class="icons">
                         <a><i class="fa fa-arrows drag"></i></a>
                         <a class="refresh"><i class="fa fa-refresh"></i></a>
-                        <a class="bug" data-slice_id="{{ slice.id }}" data-toggle="tooltip" title="console.log(this.slice);"><i class="fa fa-bug"></i></a>
                       </nobr>
                     </td>
                     <td>
-                      <div class="text-center header"><nobr>{{ slice.slice_name }}</nobr></div>
+                      <div class="text-center header">
+                        <nobr>
+                          {{ slice.slice_name }}
+                          {% if slice.description %}
+                          <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
+                          {% endif %}
+                        </nobr>
+                      </div>
                     </td>
                     <td class="icons text-right">
                       <nobr>
                       <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
-                      <a href="{{ slice.edit_url }}"><i class="fa fa-gear"></i></a>
+                      <a href="{{ slice.edit_url }}"><i class="fa fa-edit"></i></a>
                       <a class="closeslice"><i class="fa fa-close"></i></a>
                       </br>
                     </td>
                   </tr>
                 </tbody>
               </table>
-              <div id="{{ viz.token }}" class="token" style="height: 100%;">
+              <div class="slice_description bs-callout bs-callout-default" style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
+                {{ slice.description_markeddown | safe }}
+              </div>
+              <input type="hidden" slice_id="{{ slice.id }}" value="false">
+              <div id="{{ viz.token }}" class="token">
                 <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
-                <div class="slice_container" id="{{ viz.token }}_con" style="height: 100%; width: 100%;"></div>
+                <div class="slice_container" id="{{ viz.token }}_con"></div>
               </div>
           </li>
         {% endfor %}
@@ -130,9 +140,6 @@ body {
         var dashboard = px.Dashboard({{ dashboard.id }});
         $('#filters').click( function(){
           alert(dashboard.readFilters());
-        });
-        $('a.bug').click( function(){
-          console.log(dashboard.getSlice($(this).data('slice_id')));
         });
       });
     </script>

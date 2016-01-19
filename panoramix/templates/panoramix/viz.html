@@ -1,6 +1,7 @@
 {% if viz.form_data.get("json") == "true" %}
   {{ viz.get_json() }}
 {% else %}
+
   {% if viz.request.args.get("standalone") == "true" %}
     {% extends 'panoramix/standalone.html' %}
   {% else %}
@@ -22,4 +23,5 @@
           <script src="{{ url_for('static', filename=js) }}"></script>
       {% endfor %}
   {% endblock %}
+
 {% endif %}

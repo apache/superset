@@ -11,7 +11,18 @@ html>body{
     margin-left: 365px;
 }
 
+.slice_description{
+    padding: 8px;
+    margin: 5px;
+    border: 1px solid #DDD;
+    background-color: #F8F8F8;
+    border-radius: 5px;
+    font-size: 12px;
+}
 
+.slice_info{
+    cursor: pointer;
+}
 
 .padded{
     padding: 10px;
@@ -23,7 +34,7 @@ html>body{
 }
 
 .slice_container {
-    height: 100%;
+    //height: 100%;
 }
 .container-fluid {
     text-align: left;

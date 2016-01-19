@@ -20,6 +20,7 @@ List of TODO items for Panoramix
     An example of a layer might be "holidays" or "site outages", ...
 * **Worth doing? User defined groups:** People could define mappings in the UI of say "Countries I follow" and apply it to different datasets. For now, this is done by writing CASE-WHEN-type expression which is probably good enough.
 
+
 ## Easy-ish fix
 * datasource in explore mode could be a dropdown
 * Create a set of slices and dashboard on top of the World Bank dataset that ship with load_examples

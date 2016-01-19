@@ -205,7 +205,7 @@ class SliceModelView(PanoramixModelView, DeleteMixin):
         'slice_link', 'viz_type', 'datasource_type',
         'datasource', 'created_by', 'changed_on_']
     edit_columns = [
-        'slice_name', 'viz_type', 'druid_datasource',
+        'slice_name', 'description', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params']
     base_order = ('changed_on','desc')
 
@@ -222,7 +222,8 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on_']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'position_json', 'css']
+        'dashboard_title', 'slug', 'slices', 'position_json', 'css',
+        'json_metadata']
     add_columns = edit_columns
     base_order = ('changed_on','desc')
     description_columns = {
@@ -434,6 +435,15 @@ class Panoramix(BaseView):
                 payload,
                 status=status,
                 mimetype="application/csv")
+
+        slice_id = request.args.get("slice_id")
+        slc = None
+        if slice_id:
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=request.args.get("slice_id"))
+                .first()
+            )
         if request.args.get("json") == "true":
             status = 200
             if config.get("DEBUG"):
@@ -451,9 +461,11 @@ class Panoramix(BaseView):
                 mimetype="application/json")
         else:
             if config.get("DEBUG"):
-                resp = self.render_template("panoramix/viz.html", viz=obj)
+                resp = self.render_template(
+                    "panoramix/viz.html", viz=obj, slice=slc)
             try:
-                resp = self.render_template("panoramix/viz.html", viz=obj)
+                resp = self.render_template(
+                    "panoramix/viz.html", viz=obj, slice=slc)
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)
@@ -490,6 +502,9 @@ class Panoramix(BaseView):
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         dash.position_json = json.dumps(data['positions'], indent=4)
+        dash.json_metadata = json.dumps({
+            'expanded_slices': data['expanded_slices'],
+        }, indent=4)
         dash.css = data['css']
         session.merge(dash)
         session.commit()
