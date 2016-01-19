@@ -107,7 +107,7 @@ var px = (function() {
       },
       height: function(){
         var others = 0;
-        var widget = token.parents('.widget');
+        var widget = container.parents('.widget');
         var slice_description = widget.find('.slice_description');
         if (slice_description.is(":visible"))
           others += widget.find('.slice_description').height() + 25;
