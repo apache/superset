@@ -106,7 +106,13 @@ var px = (function() {
         return token.width();
       },
       height: function(){
-        return token.height() - 25;
+        var others = 0;
+        var widget = container.parents('.widget');
+        var slice_description = widget.find('.slice_description');
+        if (slice_description.is(":visible"))
+          others += widget.find('.slice_description').height() + 25;
+        others += widget.find('.slice_header').height();
+        return widget.height() - others;
       },
       render: function() {
         $('.btn-group.results span').attr('disabled','disabled');
@@ -416,9 +422,17 @@ var px = (function() {
     }).data('gridster');
     $("div.gridster").css('visibility', 'visible');
     $("#savedash").click(function() {
+      var expanded_slices = {};
+      $.each($(".slice_info"), function(i, d){
+        var widget = $(this).parents('.widget');
+        var slice_description = widget.find('.slice_description');
+        if(slice_description.is(":visible"))
+          expanded_slices[$(d).attr('slice_id')] = true;
+      });
       var data = {
           positions: gridster.serialize(),
-          css: $("#dash_css").val()
+          css: $("#dash_css").val(),
+          expanded_slices: expanded_slices,
       };
       $.ajax({
         type: "POST",
@@ -431,6 +445,13 @@ var px = (function() {
     $("a.closeslice").click(function() {
       var li = $(this).parents("li");
       gridster.remove_widget(li);
+    });
+    $(".slice_info").click(function(){
+      var widget = $(this).parents('.widget');
+      var slice_description = widget.find('.slice_description');
+      slice_description.slideToggle(500, function(){
+        widget.find('.refresh').click();
+      });
     });
     $("table.slice_header").mouseover(function() {
       $(this).find("td.icons nobr").show();

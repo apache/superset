@@ -6,7 +6,7 @@ function viz_nvd3(slice) {
     $.getJSON(slice.jsonEndpoint(), function(payload) {
       var fd = payload.form_data;
       var viz_type = fd.viz_type;
-      var f = d3.format('.4s');
+      var f = d3.format('.3s');
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (fd.show_brush) {
@@ -49,6 +49,7 @@ function viz_nvd3(slice) {
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
           chart.showLegend(fd.show_legend);
+          chart.valueFormat(f);
           if (fd.donut) {
             chart.donut(true);
             chart.donutLabelsOutside(true);
@@ -99,8 +100,13 @@ function viz_nvd3(slice) {
           chart.showLegend(fd.show_legend);
         }
 
-        // make space for labels on right
-        //chart.height($(".chart").height() - 50).margin({"right": 50});
+        var height = slice.height();
+        if(chart.hasOwnProperty("x2Axis")) {
+          height += 30;
+        }
+        chart.height(height);
+        slice.container.css('height', height + 'px');
+
         if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
           chart.useInteractiveGuideline(true);
         }
@@ -122,7 +128,9 @@ function viz_nvd3(slice) {
         else if (fd.x_axis_format !== undefined) {
           chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
         }
-        if (fd.contribution || fd.num_period_compare) {
+        if (chart.yAxis !== undefined)
+          chart.yAxis.tickFormat(d3.format('.3s'));
+        if (fd.contribution || fd.num_period_compare || viz_type == 'compare') {
           chart.yAxis.tickFormat(d3.format('.3p'));
           if (chart.y2Axis != undefined) {
               chart.y2Axis.tickFormat(d3.format('.3p'));
@@ -140,15 +148,9 @@ function viz_nvd3(slice) {
         d3.select(slice.selector).append("svg")
           .datum(payload.data)
           .transition().duration(500)
+          .attr('height', height)
           .call(chart);
 
-        // if it is a two axis chart, rescale it down just a little so it fits in the div.
-        if(chart.hasOwnProperty("x2Axis")) {
-          two_axis_chart = $(slice.selector + " > svg");
-          w = two_axis_chart.width();
-          h = two_axis_chart.height();
-          two_axis_chart.get(0).setAttribute('viewBox', '0 0 '+w+' '+(h+30));
-        }
         return chart;
       });
       slice.done(payload);

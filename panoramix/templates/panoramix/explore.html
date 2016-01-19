@@ -42,11 +42,16 @@
             </a>
         </span>
         <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
-        <span class="alert alert-info" title="Slice Name" data-toggle="tooltip">{{ viz.form_data.slice_name }}
-            <a class="" href="/slicemodelview/edit/{{ viz.form_data.slice_id }}" data-toggle="tooltip" title="Edit Slice metadata">
-              <i class="fa fa-edit"></i>
-            </a>
-        </span>
+        {% if slice %}
+          <span class="alert alert-info" title="Slice" data-toggle="tooltip">{{ slice.slice_name }}
+              <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit Slice metadata">
+                {% if slice.description %}
+                  <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
+                {% endif %}
+                <i class="fa fa-edit"></i>
+              </a>
+          </span>
+        {% endif %}
         <div class="btn-group results pull-right" role="group">
           <a role="button" tabindex="0" class="btn btn-default" id="shortner" title="Short URL" data-toggle="popover" data-trigger="focus">
             <i class="fa fa-link"></i>
@@ -160,7 +165,7 @@
         {% include 'appbuilder/flash.html' %}
         <div
           id="{{ viz.token }}"
-          class="viz slice {{ viz.viz_type }}"
+          class="widget viz slice {{ viz.viz_type }}"
           data-slice="{{ viz.json_data }}"
           style="height: 700px;">
           <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
