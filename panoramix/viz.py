@@ -1146,6 +1146,18 @@ class FilterBoxViz(BaseViz):
         return dumps(d)
 
 
+class IFrameViz(BaseViz):
+    viz_type = "iframe"
+    verbose_name = "iFrame"
+    is_timeseries = False
+    js_files = ['widgets/viz_iframe.js']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': ('url',)
+    },)
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1164,6 +1176,7 @@ viz_types_list = [
     SankeyViz,
     WorldMapViz,
     FilterBoxViz,
+    IFrameViz,
 ]
-# This dict is used to
+
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
