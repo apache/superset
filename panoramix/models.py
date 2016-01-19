@@ -173,7 +173,10 @@ class Dashboard(Model, AuditMixinNullable):
 
     @property
     def metadata_dejson(self):
-        return json.loads(self.json_metadata)
+        if self.json_metadata:
+            return json.loads(self.json_metadata)
+        else:
+            return {}
 
     def dashboard_link(self):
         return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)

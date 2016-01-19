@@ -288,6 +288,8 @@ class FormFactory(object):
                     'Bubble Size',
                     default=default_metric,
                     choices=datasource.metrics_combo),
+            'url': TextField(
+                'URL', default='www.airbnb.com',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
