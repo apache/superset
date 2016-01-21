@@ -371,6 +371,9 @@ class FormFactory(object):
                 "Range Filter", default=False,
                 description=(
                     "Whether to display the time range interactive selector")),
+            'show_datatable': BetterBooleanField(
+                "Data Table", default=False,
+                description="Whether to display the interactive data table"),
             'include_search': BetterBooleanField(
                 "Search Box", default=False,
                 description=(
