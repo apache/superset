@@ -2,6 +2,7 @@
 List of TODO items for Panoramix
 
 ## Features
+* Slider form element
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Default slice:** choose a default slice for the dataset instead of default endpoint
 * **refresh freq**: specifying the refresh frequency of a dashboard and specific slices within it, some randomization would be nice

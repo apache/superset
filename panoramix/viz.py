@@ -1158,6 +1158,44 @@ class IFrameViz(BaseViz):
     },)
 
 
+class ParallelCoordinatesViz(BaseViz):
+    viz_type = "para"
+    verbose_name = "Parallel Coordinates"
+    is_timeseries = False
+    js_files = [
+        'lib/para/d3.parcoords.js',
+        'lib/para/divgrid.js',
+        'widgets/viz_para.js']
+    css_files = ['lib/para/d3.parcoords.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'series',
+            'metrics',
+            'secondary_metric',
+            'limit',
+            ('show_datatable', None),
+        )
+    },)
+    def query_obj(self):
+        d = super(ParallelCoordinatesViz, self).query_obj()
+        fd = self.form_data
+        d['metrics'] = fd.get('metrics')
+        second = fd.get('secondary_metric')
+        if second not in d['metrics']:
+            d['metrics'] += [second]
+        d['groupby'] = [fd.get('series')]
+        return d
+
+    def get_json_data(self):
+        df = self.get_df()
+        df = df[[self.form_data.get('series')] + self.form_data.get('metrics')]
+        return df.to_json(orient="records")
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1177,6 +1215,7 @@ viz_types_list = [
     WorldMapViz,
     FilterBoxViz,
     IFrameViz,
+    ParallelCoordinatesViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
