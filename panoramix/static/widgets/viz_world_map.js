@@ -6,6 +6,7 @@ function viz_world_map(slice) {
   var render = function() {
     var container = slice.container;
     var div = d3.select(slice.selector);
+    container.css('height', slice.height());
 
     d3.json(slice.jsonEndpoint(), function(error, json){
       var fd = json.form_data;
