@@ -12,6 +12,7 @@ import parsedatetime
 from panoramix import db
 
 
+
 class memoized(object):
    """Decorator that caches a function's return value each time it is called.
    If called later with the same arguments, the cached value is returned, and
@@ -104,22 +105,16 @@ class JSONEncodedDict(TypeDecorator):
         return value
 
 
-def color(s):
-    """
-    Get a consistent color from the same string using a hash function
-
-    >>> color("foo")
-    '#FF5A5F'
-    """
-    colors = [
+class ColorFactory(object):
+    BNB_COLORS = [
         "#007A87",
         "#00D1C1",
-        "#4EDED2",
-        "#4FA3AB",
         "#565A5C",
         "#7B0051",
         "#898C8C",
         "#8CE071",
+        "#4EDED2",
+        "#4FA3AB",
         "#9CA299",
         "#A14D83",
         "#B4A76C",
@@ -130,10 +125,27 @@ def color(s):
         "#FFC4B3",
         "#FFCA4F",
     ]
-    s = s.encode('utf-8')
-    h = hashlib.md5(s)
-    i = int(h.hexdigest(), 16)
-    return colors[i % len(colors)]
+
+    def __init__(self, hash_based=True):
+        self.d = {}
+        self.hash_based = hash_based
+
+    def get(self, s):
+        """
+        Get a consistent color from the same string using a hash function
+
+        >>> color("foo")
+        '#FF5A5F'
+        """
+        if self.hash_based:
+            s = s.encode('utf-8')
+            h = hashlib.md5(s)
+            i = int(h.hexdigest(), 16)
+        else:
+            if s not in self.d:
+                self.d[s] = len(self.d)
+            i = self.d[s]
+        return self.BNB_COLORS[i % len(self.BNB_COLORS)]
 
 
 def init():
