@@ -3,6 +3,22 @@ var px = (function() {
   var visualizations = {};
   var dashboard = undefined;
 
+  var bnbColors = [
+    //rausch    hackb      kazan      babu      lima        beach     barol
+    '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
+    '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
+    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
+  ];
+  function colorBnb() {
+    // Color factory
+    var seen = {};
+    return function(s){
+      if(seen[s] === undefined)
+        seen[s] = Object.keys(seen).length;
+      return bnbColors[seen[s] % bnbColors.length];
+    };
+  }
+
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
   }
@@ -27,10 +43,6 @@ var px = (function() {
       return f(d);
     };
   }
-  colors = [
-    "#FF5A5F", "#007A87", "#7B0051", "#00D1C1", "#8CE071", "#FFB400",
-    "#FFAA91", "#B4A76C", "#9CA299", "#565A5C"
-  ];
 
   var Slice = function(data, dashboard){
     var timer;
@@ -474,7 +486,8 @@ var px = (function() {
     initExploreView: initExploreView,
     initDashboardView: initDashboardView,
     formatDate: formatDate,
-    colors: colors,
     timeFormatFactory: timeFormatFactory,
+    colorBnb: colorBnb,
+    bnbColors: bnbColors,
   }
 })();

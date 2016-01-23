@@ -27,7 +27,7 @@ px.registerViz('word_cloud', function(slice) {
       scale = d3.scale.linear()
         .range(range)
         .domain(d3.extent(data, function(d) { return d.size; }));
-      var fill = d3.scale.category20();
+      var fill = px.colorBnb();
       var layout = d3.layout.cloud()
         .size(size)
         .words(data)

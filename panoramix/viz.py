@@ -845,6 +845,7 @@ class DistributionBarViz(DistributionPieViz):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []
+        cf = utils.ColorFactory()
         for name, ys in series.items():
             if df[name].dtype.kind not in "biufc":
                 continue
@@ -855,7 +856,6 @@ class DistributionBarViz(DistributionPieViz):
                 series_title = ", ".join(name)
             else:
                 series_title = ", ".join(name[1:])
-            cf = utils.ColorFactory()
             d = {
                 "key": series_title,
                 "color": cf.get(series_title),
