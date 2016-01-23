@@ -107,26 +107,13 @@ class JSONEncodedDict(TypeDecorator):
 
 class ColorFactory(object):
     BNB_COLORS = [
-        "#007A87",
-        "#00D1C1",
-        "#565A5C",
-        "#7B0051",
-        "#898C8C",
-        "#8CE071",
-        "#4EDED2",
-        "#4FA3AB",
-        "#9CA299",
-        "#A14D83",
-        "#B4A76C",
-        "#C9BF97",
-        "#FF5A5F",
-        "#FFAA91",
-        "#FFB400",
-        "#FFC4B3",
-        "#FFCA4F",
+        #rausch    hackb      kazan      babu      lima        beach     barol
+        '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
+        '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
+        '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
     ]
 
-    def __init__(self, hash_based=True):
+    def __init__(self, hash_based=False):
         self.d = {}
         self.hash_based = hash_based
 
