@@ -202,7 +202,7 @@ class SliceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     list_columns = [
-        'slice_link', 'viz_type', 'datasource_type',
+        'slice_link', 'viz_type',
         'datasource', 'created_by', 'changed_on_']
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
@@ -223,7 +223,7 @@ appbuilder.add_view(
 
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
-    list_columns = ['dashboard_link', 'created_by', 'changed_by', 'changed_on_']
+    list_columns = ['dashboard_link', 'changed_by', 'changed_on_']
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'position_json', 'css',
         'json_metadata']
