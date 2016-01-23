@@ -131,12 +131,6 @@ class ColorFactory(object):
         self.hash_based = hash_based
 
     def get(self, s):
-        """
-        Get a consistent color from the same string using a hash function
-
-        >>> color("foo")
-        '#FF5A5F'
-        """
         if self.hash_based:
             s = s.encode('utf-8')
             h = hashlib.md5(s)
