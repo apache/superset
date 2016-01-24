@@ -46,6 +46,13 @@ class AuditMixinNullable(AuditMixin):
     @property
     def changed_on_(cls):
         return utils.datetime_f(cls.changed_on)
+    @property
+    def created_by_(self):
+        return self.created_by or ''
+    @property
+    def changed_by_(self):
+        return self.changed_by or ''
+
 
 
 class Url(Model, AuditMixinNullable):
@@ -79,6 +86,13 @@ class Slice(Model, AuditMixinNullable):
     @property
     def datasource(self):
         return self.table or self.druid_datasource
+
+    @property
+    def datasource_link(self):
+        if self.table:
+            return self.table.link
+        elif self.druid_datasource:
+            return self.druid_datasource.link
 
     @property
     @utils.memoized
@@ -273,6 +287,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def description_markeddown(self):
         return utils.markdown(self.description)
+
+    @property
+    def url(self):
+        return '/tableview/edit/{}'.format(self.id)
+
+    @property
+    def link(self):
+        return '<a href="{self.url}">{self.table_name}</a>'.format(**locals())
 
     @property
     def perm(self):
@@ -744,8 +766,20 @@ class Datasource(Model, AuditMixinNullable, Queryable):
             "(id:{self.id})").format(self=self)
 
     @property
+    def url(self):
+        return '/datasourcemodelview/edit/{}'.format(self.id)
+
+    @property
+    def link(self):
+        return (
+            '<a href="{self.url}">'
+            '{self.datasource_name}</a>').format(**locals())
+
+    @property
     def full_name(self):
-        return "[{self.cluster_name}].[{self.datasource_name}]".format(self=self)
+        return (
+            "[{self.cluster_name}]."
+            "[{self.datasource_name}]").format(self=self)
 
     def __repr__(self):
         return self.datasource_name
