@@ -7,6 +7,7 @@ function viz_nvd3(slice) {
       var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
+      var colorKey = 'key';
       nv.addGraph(function() {
         if (viz_type === 'line') {
           if (fd.show_brush) {
@@ -48,6 +49,7 @@ function viz_nvd3(slice) {
 
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
+          colorKey = 'x';
           chart.showLegend(fd.show_legend);
           chart.valueFormat(f);
           if (fd.donut) {
@@ -144,7 +146,9 @@ function viz_nvd3(slice) {
           }
         }
 
-        chart.duration(0);
+        chart.color(function(d, i){
+          return px.color(d[colorKey]);
+        });
         d3.select(slice.selector).append("svg")
           .datum(payload.data)
           .transition().duration(500)

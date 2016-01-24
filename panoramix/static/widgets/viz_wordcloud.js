@@ -27,7 +27,6 @@ px.registerViz('word_cloud', function(slice) {
       scale = d3.scale.linear()
         .range(range)
         .domain(d3.extent(data, function(d) { return d.size; }));
-      var fill = px.colorBnb();
       var layout = d3.layout.cloud()
         .size(size)
         .words(data)
@@ -47,10 +46,10 @@ px.registerViz('word_cloud', function(slice) {
             .attr("transform", "translate(" + layout.size()[0] / 2 + "," + layout.size()[1] / 2 + ")")
           .selectAll("text")
             .data(words)
-          .enter().append("text")
+            .enter().append("text")
             .style("font-size", function(d) { return d.size + "px"; })
             .style("font-family", "Impact")
-            .style("fill", function(d, i) { return fill(i); })
+            .style("fill", function(d, i) {return px.color(d.text); })
             .attr("text-anchor", "middle")
             .attr("transform", function(d) {
               return "translate(" + [d.x, d.y] + ") rotate(" + d.rotate + ")";
