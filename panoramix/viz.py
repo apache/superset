@@ -532,11 +532,9 @@ class BubbleViz(NVD3Viz):
         for row in df.to_dict(orient='records'):
             series[row['group']].append(row)
         chart_data = []
-        cf = utils.ColorFactory()
         for k, v in series.items():
             chart_data.append({
                 'key': k,
-                "color": cf.get(str(k)),
                 'values': v })
         return dumps(chart_data)
 
@@ -692,7 +690,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         series = df.to_dict('series')
 
         chart_data = []
-        cf = utils.ColorFactory()
         for name in df.T.index.tolist():
             ys = series[name]
             if df[name].dtype.kind not in "biufc":
@@ -706,13 +703,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
                     series_title = ", ".join(name)
                 else:
                     series_title = ", ".join(name[1:])
-            color = cf.get(series_title)
             if title_suffix:
                 series_title += title_suffix
 
             d = {
                 "key": series_title,
-                "color": color,
                 "classed": classed,
                 "values": [
                     {'x': ds, 'y': ys[ds]}
@@ -812,8 +807,6 @@ class DistributionPieViz(NVD3Viz):
         df = self.get_df()
         df = df.reset_index()
         df.columns = ['x', 'y']
-        cf = utils.ColorFactory()
-        df['color'] = map(cf.get, df.x)
         return dumps(df.to_dict(orient="records"))
 
 
@@ -845,7 +838,6 @@ class DistributionBarViz(DistributionPieViz):
         df = self.get_df()
         series = df.to_dict('series')
         chart_data = []
-        cf = utils.ColorFactory()
         for name, ys in series.items():
             if df[name].dtype.kind not in "biufc":
                 continue
@@ -858,7 +850,6 @@ class DistributionBarViz(DistributionPieViz):
                 series_title = ", ".join(name[1:])
             d = {
                 "key": series_title,
-                "color": cf.get(series_title),
                 "values": [
                     {'x': ds, 'y': ys[i]}
                     for i, ds in enumerate(df.timestamp)]

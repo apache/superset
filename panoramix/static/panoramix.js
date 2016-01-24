@@ -74,7 +74,8 @@ var px = (function() {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         if (dashboard !== undefined){
-          qrystr = parser.search + "&extra_filters=" + JSON.stringify(dashboard.filters);
+          var flts = encodeURIComponent(JSON.stringify(dashboard.filters));
+          qrystr = parser.search + "&extra_filters=" + flts;
         }
         else if ($('#query').length == 0){
           qrystr = parser.search;
@@ -489,5 +490,6 @@ var px = (function() {
     timeFormatFactory: timeFormatFactory,
     colorBnb: colorBnb,
     bnbColors: bnbColors,
+    color: colorBnb(),
   }
 })();
