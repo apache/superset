@@ -1,0 +1,17 @@
+.heatmap .axis text {
+  font: 10px sans-serif;
+}
+
+.heatmap .axis path,
+.heatmap .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+
+.heatmap svg {
+  cursor: move;
+}
+.heatmap .axis .tick:first-child {
+  display: none;
+}
