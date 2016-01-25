@@ -20,6 +20,7 @@ function viz_sunburst(slice) {
     .attr("id", "container")
     .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
 
+    var arcs = vis.append("svg:g").attr("id", "arcs");
     var gMiddleText = vis.append("svg:g").attr("id", "gMiddleText");
 
     var partition = d3.layout.partition()
@@ -49,7 +50,7 @@ function viz_sunburst(slice) {
 
       // Bounding circle underneath the sunburst, to make it easier to detect
       // when the mouse leaves the parent g.
-      vis.append("svg:circle")
+      arcs.append("svg:circle")
       .attr("r", radius)
       .style("opacity", 0);
 
@@ -64,7 +65,7 @@ function viz_sunburst(slice) {
       .domain([ext[0], ext[0] +  ((ext[1] - ext[0]) / 2), ext[1]])
       .range(["#00D1C1", "white","#FFB400"]);
 
-      var path = vis.data([json]).selectAll("path")
+      var path = arcs.data([json]).selectAll("path")
       .data(nodes)
       .enter().append("svg:path")
       .attr("display", function(d) { return d.depth ? null : "none"; })
@@ -134,17 +135,17 @@ function viz_sunburst(slice) {
       updateBreadcrumbs(sequenceArray, percentageString);
 
       // Fade all the segments.
-      container.selectAll("path")
+      arcs.selectAll("path")
       .style("stroke-width", "1px")
       .style("opacity", 0.3);
 
       // Then highlight only those that are an ancestor of the current segment.
-      container.selectAll("path")
+      arcs.selectAll("path")
       .filter(function(node) {
         return (sequenceArray.indexOf(node) >= 0);
       })
       .style("opacity", 1)
-      .style("stroke", "black")
+      .style("stroke", "#888")
       .style("stroke-width", "2px");
     }
 
@@ -152,16 +153,16 @@ function viz_sunburst(slice) {
     function mouseleave(d) {
 
       // Hide the breadcrumb trail
-      container.select("#trail")
+      arcs.select("#trail")
       .style("visibility", "hidden");
       gMiddleText.selectAll("*").remove();
 
       // Deactivate all segments during transition.
-      container.selectAll("path").on("mouseenter", null);
+      arcs.selectAll("path").on("mouseenter", null);
       //gMiddleText.selectAll("*").remove();
 
       // Transition each segment to full opacity and then reactivate it.
-      container.selectAll("path")
+      arcs.selectAll("path")
       .transition()
       .duration(200)
       .style("opacity", 1)
