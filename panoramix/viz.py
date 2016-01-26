@@ -1202,24 +1202,26 @@ class HeatmapViz(BaseViz):
         'fields': (
             'granularity',
             ('since', 'until'),
+            'all_columns_x',
+            'all_columns_y',
             'metric',
-            'x',
-            'y',
         )
     },)
     def query_obj(self):
         d = super(HeatmapViz, self).query_obj()
         fd = self.form_data
-        d['metrics'] = fd.get('metrics')
-        second = fd.get('secondary_metric')
-        if second not in d['metrics']:
-            d['metrics'] += [second]
-        d['groupby'] = [fd.get('series')]
+        d['metrics'] = [fd.get('metric')]
+        d['groupby'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
         return d
 
     def get_json_data(self):
         df = self.get_df()
-        df = df[[self.form_data.get('series')] + self.form_data.get('metrics')]
+        df = df[[
+            self.form_data.get('all_columns_x'),
+            self.form_data.get('all_columns_y'),
+            self.form_data.get('metric')
+        ]]
+        df.columns = ['x', 'y', 'v']
         return df.to_json(orient="records")
 
 

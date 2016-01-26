@@ -142,6 +142,14 @@ class FormFactory(object):
                 'Columns',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
+            'all_columns_x': SelectField(
+                'X',
+                choices=self.choicify(datasource.column_names),
+                description="Columns to display"),
+            'all_columns_y': SelectField(
+                'Y',
+                choices=self.choicify(datasource.column_names),
+                description="Columns to display"),
             'granularity': FreeFormSelectField(
                 'Time Granularity', default="one day",
                 choices=self.choicify([
