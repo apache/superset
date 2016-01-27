@@ -62,6 +62,7 @@ px.registerViz('heatmap', function(slice) {
         .attr("height", heatmapDim[Y])
         .style("width", hmWidth + "px")
         .style("height", hmHeight + "px")
+        .style("image-rendering", fd.canvas_image_rendering)
         .style("left", margins.l + "px")
         .style("top", margins.t + "px")
         .style("position", "absolute");

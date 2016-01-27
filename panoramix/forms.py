@@ -116,6 +116,15 @@ class FormFactory(object):
                     'black_white']),
                 default='fire',
                 description=""),
+            'canvas_image_rendering': SelectField(
+                'Rendering', choices=(
+                    ('pixelated', 'pixelated (Sharp)'),
+                    ('auto', 'auto (Smooth)'),
+                ),
+                default='pixelated',
+                description=(
+                    "image-rendering CSS attribute of the canvas object that "
+                    "defines how the browser scales up the image")),
             'xscale_interval': SelectField(
                 'XScale Interval', choices=self.choicify(range(1, 50)),
                 default='1',

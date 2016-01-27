@@ -1212,6 +1212,7 @@ class HeatmapViz(BaseViz):
         'fields': (
             'linear_color_scheme',
             ('xscale_interval', 'yscale_interval'),
+            'canvas_image_rendering',
         )
     },)
     def query_obj(self):
