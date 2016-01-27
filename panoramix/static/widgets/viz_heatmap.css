@@ -10,7 +10,6 @@
 }
 
 .heatmap svg {
-  cursor: move;
 }
 
 .heatmap canvas, .heatmap img {

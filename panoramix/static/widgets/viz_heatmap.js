@@ -1,21 +1,25 @@
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
 px.registerViz('heatmap', function(slice) {
+  var margins = {t:0, r:0, b:50, l:50};
   function refresh() {
     var width = slice.width();
     var height = slice.height();
+    var hmWidth = width - (margins.l + margins.r)
+    var hmHeight = height - (margins.b + margins.t)
     d3.json(slice.jsonEndpoint(), function(error, payload) {
       var matrix = {};
       if (error){
         slice.error(error.responseText);
         return '';
       }
-      var heatmap = payload.data;
+      var fd = payload.form_data;
+      var data = payload.data;
       function ordScale(k, rangeBands, reverse) {
         if (reverse === undefined)
           reverse = false;
         domain = {};
-        $.each(heatmap, function(i, d){
+        $.each(data, function(i, d){
           domain[d[k]] = true;
         });
         domain = Object.keys(domain).sort();
@@ -30,98 +34,106 @@ px.registerViz('heatmap', function(slice) {
       }
       var xScale = ordScale('x');
       var yScale = ordScale('y', undefined, true);
-      var xRbScale = ordScale('x', [0, width]);
-      var yRbScale = ordScale('y', [height, 0]);
+      var xRbScale = ordScale('x', [0, hmWidth]);
+      var yRbScale = ordScale('y', [hmHeight, 0]);
       var X = 0, Y = 1;
-      var canvasDim = [width, height];
       var heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-      ext = d3.extent(heatmap, function(d){return d.v;});
-      var color = d3.scale.linear()
-        .domain(ext)
-        .range(["#fff", "#000"]);
+      ext = d3.extent(data, function(d){return d.v;});
+      function colorScalerFactory(colors, data, accessor){
+        var ext = d3.extent(data, accessor);
+        var points = [];
+        var chunkSize = (ext[1] - ext[0]) / colors.length;
+        $.each(colors, function(i, c){
+          points.push(i * chunkSize)
+        });
+        return d3.scale.linear().domain(points).range(colors);
+      }
+      var color = colorScalerFactory(['white', 'yellow', 'red', 'black'], data, function(d){return d.v});
+
 
       var scale = [
         d3.scale.linear()
           .domain([0, heatmapDim[X]])
-          .range([0, canvasDim[X]]),
+          .range([0, hmWidth]),
         d3.scale.linear()
           .domain([0, heatmapDim[Y]])
-          .range([canvasDim[Y], 0])
+          .range([0, hmHeight])
       ];
 
-      var container = d3.select(slice.selector);
+      var container = d3.select(slice.selector)
+        .style("left", "0px")
+        .style("position", "relative")
+        .style("top", "0px");
 
       var canvas = container.append("canvas")
         .attr("width", heatmapDim[X])
         .attr("height", heatmapDim[Y])
-        .attr("image-rendering", "pixelated")
-        .style("width", canvasDim[X] + "px")
-        .style("height", canvasDim[Y] + "px")
+        .style("width", hmWidth + "px")
+        .style("height", hmHeight + "px")
+        .style("left", margins.l + "px")
+        .style("top", margins.t + "px")
         .style("position", "absolute");
 
       var svg = container.append("svg")
-        .attr("width", canvasDim[X])
-        .attr("height", canvasDim[Y])
-        .style("position", "relative");
+        .attr("width", width)
+        .attr("height", height)
+        .style("left", "0px")
+        .style("top", "0px")
+        .style("position", "absolute");
+
+      var rect = svg.append('g')
+        .attr("transform", "translate(" + margins.l + "," + margins.t + ")")
+        .append('rect')
+        .style('fill-opacity', 0)
+        .attr('stroke', 'black')
+        .attr("width", hmWidth)
+        .attr("height", hmHeight);
 
       var tip = d3.tip()
           .attr('class', 'd3-tip')
           .offset(function(){
               var k = d3.mouse(this);
-              var x = k[0] - (width / 2);
-              return [k[1] - 15, x];
+              var x = k[0] - (hmWidth/ 2);
+              return [k[1] - 20, x];
           })
           .html(function (d) {
               var k = d3.mouse(this);
               var m = Math.floor(scale[0].invert(k[0]));
               var n = Math.floor(scale[1].invert(k[1]));
-              var obj = matrix[m][n];
-              if (obj !== undefined) {
+              if(m in matrix && n in matrix[m]) {
+                var obj = matrix[m][n];
                 var s = "";
-                s += "<div><b>X: </b>" + obj.x + "<div>"
-                s += "<div><b>Y: </b>" + obj.y + "<div>"
-                s += "<div><b>V: </b>" + obj.v + "<div>"
+                s += "<div><b>" + fd.all_columns_x + ": </b>" + obj.x + "<div>"
+                s += "<div><b>" + fd.all_columns_y +": </b>" + obj.y + "<div>"
+                s += "<div><b>" + fd.metric + ": </b>" + obj.v + "<div>"
                 return s;
               }
           })
-      svg.call(tip);
+      rect.call(tip);
 
-      var zoom = d3.behavior.zoom()
-        .center(canvasDim.map(
-          function(v) {return v / 2}))
-        .scaleExtent([1, 10])
-        .x(scale[X])
-        .y(scale[Y])
-        .on("zoom", zoomEvent);
-
-      svg.append("rect")
-        .style("pointer-events", "all")
-        .attr("width", canvasDim[X])
-        .attr("height", canvasDim[Y])
-        .attr("id", "mycanvas")
-        .style("fill", "none")
-        .call(zoom);
-
-      var axis = [
-        d3.svg.axis()
+      xAxis = d3.svg.axis()
           .scale(xRbScale)
-          .orient("top"),
-        d3.svg.axis()
+          .orient("bottom");
+      yAxis = d3.svg.axis()
           .scale(yRbScale)
-          .orient("right")
-      ];
+          .orient("left");
 
-      var axisElement = [
         svg.append("g")
           .attr("class", "x axis")
-          .attr("transform", "translate(-1," + (canvasDim[Y]-1) + ")"),
+          .attr("transform", "translate(" + margins.l + "," + (margins.t + hmHeight) + ")")
+          .call(xAxis)
+          .selectAll("text")
+              .style("text-anchor", "end")
+              .attr("transform", "rotate(-45)")
+              .style("font-weight", "bold");
         svg.append("g")
           .attr("class", "y axis")
-      ];
+          .attr("transform", "translate(" + margins.l + ", 0)")
+          .call(yAxis);
 
-     svg.on('mousemove', tip.show);
-     svg.on('mouseout', tip.hide);
+     rect.on('mousemove', tip.show);
+     rect.on('mouseout', tip.hide);
 
       var context = canvas.node().getContext("2d");
       context.imageSmoothingEnabled = false;
@@ -129,14 +141,13 @@ px.registerViz('heatmap', function(slice) {
       var imageDim;
       var imageScale;
       createImageObj();
-      drawAxes();
 
       // Compute the pixel colors; scaled by CSS.
       function createImageObj() {
         imageObj = new Image();
         image = context.createImageData(heatmapDim[0], heatmapDim[1]);
         var pixs = {};
-        $.each(heatmap, function(i, d) {
+        $.each(data, function(i, d) {
             var c = d3.rgb(color(d.v));
             var x = xScale(d.x);
             var y = yScale(d.y);
@@ -162,36 +173,10 @@ px.registerViz('heatmap', function(slice) {
         }
         context.putImageData(image, 0, 0);
         imageObj.src = canvas.node().toDataURL();
-        imageDim = [imageObj.width, imageObj.height];
-        imageScale = imageDim.map(
-          function(v, i){return v / canvasDim[i]});
       }
-
-      function drawAxes() {
-        console.log(scale[0].domain());
-        axisElement[0].call(axis[0]);
-        axisElement[1].call(axis[1]);
-      }
-
-      function zoomEvent() {
-        var s = d3.event.scale;
-        var n = imageDim.map(
-          function(v) {return v * s});
-        var t = d3.event.translate.map(function(v, i) {
-          return Math.min(
-            0,
-            Math.max(v, canvasDim[i] - n[i] / imageScale[i]));
-        });
-        zoom.translate(t);
-        var it = t.map(
-          function(v, i) {return v * imageScale[i]});
-        context.clearRect(0, 0, canvasDim[X], canvasDim[Y]);
-        context.drawImage(imageObj, it[X], it[Y], n[X], n[Y]);
-        drawAxes();
-      }
+      slice.done();
 
     });
-      slice.done();
   }
   return {
     render: refresh,
