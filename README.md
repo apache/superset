@@ -8,6 +8,13 @@ Panoramix
 Panoramix is a data exploration platform designed to be visual, intuitive
 and interactive.
 
+
+Video - Introduction to Panoramix
+---------------------------------
+[![Panoramix - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+
+Screenshosts
+------------
 ![img](http://i.imgur.com/bi09J9X.png)
 ![img](http://i.imgur.com/aOaH0ty.png)
 
