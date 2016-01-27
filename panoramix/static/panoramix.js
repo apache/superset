@@ -1,23 +1,50 @@
-var px = (function() {
-
-  var visualizations = {};
-  var dashboard = undefined;
-
+var color = function(){
+  // Color related utility functions go in this object
   var bnbColors = [
     //rausch    hackb      kazan      babu      lima        beach     barol
     '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
     '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
     '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
   ];
-  function colorBnb() {
+  var spectrums = {
+    'fire': ['white', 'yellow', 'red', 'black'],
+    'blue_white_yellow': ['#00d1c1', 'white', '#ffb400'],
+    'white_black': ['white', 'black'],
+    'black_white': ['black', 'white'],
+  }
+  var colorBnb = function() {
     // Color factory
     var seen = {};
     return function(s){
       if(seen[s] === undefined)
         seen[s] = Object.keys(seen).length;
-      return bnbColors[seen[s] % bnbColors.length];
+      return this.bnbColors[seen[s] % this.bnbColors.length];
     };
+  };
+  colorScalerFactory = function (colors, data, accessor){
+    // Returns a linear scaler our of an array of color
+    if(!Array.isArray(colors))
+      colors = spectrums[colors];
+    var ext = d3.extent(data, accessor);
+    var points = [];
+    var chunkSize = (ext[1] - ext[0]) / colors.length;
+    $.each(colors, function(i, c){
+      points.push(i * chunkSize)
+    });
+    return d3.scale.linear().domain(points).range(colors);
   }
+  return {
+    bnbColors: bnbColors,
+    category21: colorBnb(),
+    colorScalerFactory: colorScalerFactory,
+  }
+};
+
+var px = (function() {
+
+  var visualizations = {};
+  var dashboard = undefined;
+
 
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
@@ -488,8 +515,6 @@ var px = (function() {
     initDashboardView: initDashboardView,
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
-    colorBnb: colorBnb,
-    bnbColors: bnbColors,
-    color: colorBnb(),
+    color: color(),
   }
 })();

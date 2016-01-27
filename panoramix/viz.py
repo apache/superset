@@ -1206,6 +1206,13 @@ class HeatmapViz(BaseViz):
             'all_columns_y',
             'metric',
         )
+    },
+    {
+        'label': 'Heatmap Options',
+        'fields': (
+            'linear_color_scheme',
+            ('xscale_interval', 'yscale_interval'),
+        )
     },)
     def query_obj(self):
         d = super(HeatmapViz, self).query_obj()
@@ -1216,12 +1223,15 @@ class HeatmapViz(BaseViz):
 
     def get_json_data(self):
         df = self.get_df()
-        df = df[[
-            self.form_data.get('all_columns_x'),
-            self.form_data.get('all_columns_y'),
-            self.form_data.get('metric')
-        ]]
-        df.columns = ['x', 'y', 'v']
+        fd = self.form_data
+        x = fd.get('all_columns_x')
+        y = fd.get('all_columns_y')
+        v = fd.get('metric')
+        if x == y:
+            df.columns = ['x', 'y', 'v']
+        else:
+            df = df[[x, y, v]]
+            df.columns = ['x', 'y', 'v']
         return df.to_json(orient="records")
 
 

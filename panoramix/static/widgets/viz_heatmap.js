@@ -39,17 +39,8 @@ px.registerViz('heatmap', function(slice) {
       var X = 0, Y = 1;
       var heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-      ext = d3.extent(data, function(d){return d.v;});
-      function colorScalerFactory(colors, data, accessor){
-        var ext = d3.extent(data, accessor);
-        var points = [];
-        var chunkSize = (ext[1] - ext[0]) / colors.length;
-        $.each(colors, function(i, c){
-          points.push(i * chunkSize)
-        });
-        return d3.scale.linear().domain(points).range(colors);
-      }
-      var color = colorScalerFactory(['white', 'yellow', 'red', 'black'], data, function(d){return d.v});
+      var color = px.color.colorScalerFactory(
+        fd.linear_color_scheme, data, function(d){return d.v});
 
 
       var scale = [
@@ -111,12 +102,18 @@ px.registerViz('heatmap', function(slice) {
               }
           })
       rect.call(tip);
+      var xscale_skip = 2;
+      var yscale_skip = 2;
 
       xAxis = d3.svg.axis()
           .scale(xRbScale)
+          .tickValues(xRbScale.domain().filter(
+            function(d, i) { return !(i % (parseInt(fd.xscale_interval))); }))
           .orient("bottom");
       yAxis = d3.svg.axis()
           .scale(yRbScale)
+          .tickValues(yRbScale.domain().filter(
+            function(d, i) { return !(i % (parseInt(fd.yscale_interval))); }))
           .orient("left");
 
         svg.append("g")

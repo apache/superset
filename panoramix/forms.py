@@ -110,6 +110,24 @@ class FormFactory(object):
                     ['stack', 'stream', 'expand']),
                 default='stack',
                 description=""),
+            'linear_color_scheme': SelectField(
+                'Color Scheme', choices=self.choicify([
+                    'fire', 'blue_white_yellow', 'white_black',
+                    'black_white']),
+                default='fire',
+                description=""),
+            'xscale_interval': SelectField(
+                'XScale Interval', choices=self.choicify(range(1, 50)),
+                default='1',
+                description=(
+                    "Number of step to take between ticks when "
+                    "printing the x scale")),
+            'yscale_interval': SelectField(
+                'YScale Interval', choices=self.choicify(range(1, 50)),
+                default='1',
+                description=(
+                    "Number of step to take between ticks when "
+                    "printing the y scale")),
             'bar_stacked': BetterBooleanField(
                 'Stacked Bars',
                 default=False,
