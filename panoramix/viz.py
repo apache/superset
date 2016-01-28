@@ -1213,6 +1213,7 @@ class HeatmapViz(BaseViz):
             'linear_color_scheme',
             ('xscale_interval', 'yscale_interval'),
             'canvas_image_rendering',
+            'normalize_across',
         )
     },)
     def query_obj(self):
@@ -1233,6 +1234,23 @@ class HeatmapViz(BaseViz):
         else:
             df = df[[x, y, v]]
             df.columns = ['x', 'y', 'v']
+        norm = fd.get('normalize_across')
+        overall = False
+        if norm == 'heatmap':
+            overall = True
+        else:
+            gb = df.groupby(norm, group_keys=False)
+            if len(gb) <= 1:
+                overall = True
+            else:
+                df['perc'] = (
+                    gb.apply(
+                        lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
+                )
+        if overall:
+            v = df.v
+            min_ = v.min()
+            df['perc'] = (v - min_) / (v.max() - min_)
         return df.to_json(orient="records")
 
 

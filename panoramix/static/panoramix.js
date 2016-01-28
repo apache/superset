@@ -25,7 +25,11 @@ var color = function(){
     // Returns a linear scaler our of an array of color
     if(!Array.isArray(colors))
       colors = spectrums[colors];
-    var ext = d3.extent(data, accessor);
+    if(data !== undefined)
+      var ext = d3.extent(data, accessor);
+    else
+      var ext = [0,1];
+
     var points = [];
     var chunkSize = (ext[1] - ext[0]) / colors.length;
     $.each(colors, function(i, c){

@@ -7,6 +7,7 @@ px.registerViz('heatmap', function(slice) {
     var height = slice.height();
     var hmWidth = width - (margins.l + margins.r)
     var hmHeight = height - (margins.b + margins.t)
+    var fp = d3.format('.3p');
     d3.json(slice.jsonEndpoint(), function(error, payload) {
       var matrix = {};
       if (error){
@@ -39,9 +40,7 @@ px.registerViz('heatmap', function(slice) {
       var X = 0, Y = 1;
       var heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-      var color = px.color.colorScalerFactory(
-        fd.linear_color_scheme, data, function(d){return d.v});
-
+      var color = px.color.colorScalerFactory(fd.linear_color_scheme);
 
       var scale = [
         d3.scale.linear()
@@ -99,6 +98,7 @@ px.registerViz('heatmap', function(slice) {
                 s += "<div><b>" + fd.all_columns_x + ": </b>" + obj.x + "<div>"
                 s += "<div><b>" + fd.all_columns_y +": </b>" + obj.y + "<div>"
                 s += "<div><b>" + fd.metric + ": </b>" + obj.v + "<div>"
+                s += "<div><b>%: </b>" + fp(obj.perc) + "<div>"
                 return s;
               }
           })
@@ -146,7 +146,7 @@ px.registerViz('heatmap', function(slice) {
         image = context.createImageData(heatmapDim[0], heatmapDim[1]);
         var pixs = {};
         $.each(data, function(i, d) {
-            var c = d3.rgb(color(d.v));
+            var c = d3.rgb(color(d.perc));
             var x = xScale(d.x);
             var y = yScale(d.y);
             pixs[x + (y*xScale.domain().length)] = c;

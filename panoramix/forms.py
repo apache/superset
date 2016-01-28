@@ -116,6 +116,14 @@ class FormFactory(object):
                     'black_white']),
                 default='fire',
                 description=""),
+            'normalize_across': SelectField(
+                'Normalize Across', choices=self.choicify([
+                    'heatmap', 'x', 'y']),
+                default='heatmap',
+                description=(
+                    "Color will be rendered based on a ratio "
+                    "of the cell against the sum of across this "
+                    "criteria")),
             'canvas_image_rendering': SelectField(
                 'Rendering', choices=(
                     ('pixelated', 'pixelated (Sharp)'),
