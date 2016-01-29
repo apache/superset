@@ -110,6 +110,41 @@ class FormFactory(object):
                     ['stack', 'stream', 'expand']),
                 default='stack',
                 description=""),
+            'linear_color_scheme': SelectField(
+                'Color Scheme', choices=self.choicify([
+                    'fire', 'blue_white_yellow', 'white_black',
+                    'black_white']),
+                default='fire',
+                description=""),
+            'normalize_across': SelectField(
+                'Normalize Across', choices=self.choicify([
+                    'heatmap', 'x', 'y']),
+                default='heatmap',
+                description=(
+                    "Color will be rendered based on a ratio "
+                    "of the cell against the sum of across this "
+                    "criteria")),
+            'canvas_image_rendering': SelectField(
+                'Rendering', choices=(
+                    ('pixelated', 'pixelated (Sharp)'),
+                    ('auto', 'auto (Smooth)'),
+                ),
+                default='pixelated',
+                description=(
+                    "image-rendering CSS attribute of the canvas object that "
+                    "defines how the browser scales up the image")),
+            'xscale_interval': SelectField(
+                'XScale Interval', choices=self.choicify(range(1, 50)),
+                default='1',
+                description=(
+                    "Number of step to take between ticks when "
+                    "printing the x scale")),
+            'yscale_interval': SelectField(
+                'YScale Interval', choices=self.choicify(range(1, 50)),
+                default='1',
+                description=(
+                    "Number of step to take between ticks when "
+                    "printing the y scale")),
             'bar_stacked': BetterBooleanField(
                 'Stacked Bars',
                 default=False,
@@ -140,6 +175,14 @@ class FormFactory(object):
                 description="One or many fields to pivot as columns"),
             'all_columns': SelectMultipleSortableField(
                 'Columns',
+                choices=self.choicify(datasource.column_names),
+                description="Columns to display"),
+            'all_columns_x': SelectField(
+                'X',
+                choices=self.choicify(datasource.column_names),
+                description="Columns to display"),
+            'all_columns_y': SelectField(
+                'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
             'granularity': FreeFormSelectField(

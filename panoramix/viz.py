@@ -1190,6 +1190,69 @@ class ParallelCoordinatesViz(BaseViz):
         df = df[[self.form_data.get('series')] + self.form_data.get('metrics')]
         return df.to_json(orient="records")
 
+class HeatmapViz(BaseViz):
+    viz_type = "heatmap"
+    verbose_name = "Heatmap"
+    is_timeseries = False
+    js_files = ['lib/d3.tip.js', 'widgets/viz_heatmap.js']
+    css_files = ['lib/d3.tip.css', 'widgets/viz_heatmap.css']
+    fieldsets = (
+    {
+        'label': None,
+        'fields': (
+            'granularity',
+            ('since', 'until'),
+            'all_columns_x',
+            'all_columns_y',
+            'metric',
+        )
+    },
+    {
+        'label': 'Heatmap Options',
+        'fields': (
+            'linear_color_scheme',
+            ('xscale_interval', 'yscale_interval'),
+            'canvas_image_rendering',
+            'normalize_across',
+        )
+    },)
+    def query_obj(self):
+        d = super(HeatmapViz, self).query_obj()
+        fd = self.form_data
+        d['metrics'] = [fd.get('metric')]
+        d['groupby'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
+        return d
+
+    def get_json_data(self):
+        df = self.get_df()
+        fd = self.form_data
+        x = fd.get('all_columns_x')
+        y = fd.get('all_columns_y')
+        v = fd.get('metric')
+        if x == y:
+            df.columns = ['x', 'y', 'v']
+        else:
+            df = df[[x, y, v]]
+            df.columns = ['x', 'y', 'v']
+        norm = fd.get('normalize_across')
+        overall = False
+        if norm == 'heatmap':
+            overall = True
+        else:
+            gb = df.groupby(norm, group_keys=False)
+            if len(gb) <= 1:
+                overall = True
+            else:
+                df['perc'] = (
+                    gb.apply(
+                        lambda x: (x.v - x.v.min()) / (x.v.max() - x.v.min()))
+                )
+        if overall:
+            v = df.v
+            min_ = v.min()
+            df['perc'] = (v - min_) / (v.max() - min_)
+        return df.to_json(orient="records")
+
 
 viz_types_list = [
     TableViz,
@@ -1211,6 +1274,7 @@ viz_types_list = [
     FilterBoxViz,
     IFrameViz,
     ParallelCoordinatesViz,
+    HeatmapViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

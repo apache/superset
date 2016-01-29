@@ -147,7 +147,7 @@ function viz_nvd3(slice) {
         }
 
         chart.color(function(d, i){
-          return px.color(d[colorKey]);
+          return px.color.category21(d[colorKey]);
         });
         d3.select(slice.selector).append("svg")
           .datum(payload.data)

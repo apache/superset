@@ -49,7 +49,7 @@ px.registerViz('word_cloud', function(slice) {
             .enter().append("text")
             .style("font-size", function(d) { return d.size + "px"; })
             .style("font-family", "Impact")
-            .style("fill", function(d, i) {return px.color(d.text); })
+            .style("fill", function(d, i) {return px.color.category21(d.text); })
             .attr("text-anchor", "middle")
             .attr("transform", function(d) {
               return "translate(" + [d.x, d.y] + ") rotate(" + d.rotate + ")";
