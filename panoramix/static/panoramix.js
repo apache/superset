@@ -522,9 +522,7 @@ var px = (function() {
     initDashboardView: initDashboardView,
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
-    colorBnb: colorBnb,
-    bnbColors: bnbColors,
-    color: colorBnb(),
+    color: color(),
     renderSlice: renderSlice,
   }
 })();
