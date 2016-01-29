@@ -11,11 +11,11 @@ List of TODO items for Panoramix
     the same way that you can groupby for series, you could chart by. The form fieldset would be common and use
     a single field to "grid by", a limit number of chart as an N * N grid size.
 * **Free form SQL editor:** Having an Airpal-like easy SQL editor
-* **Advanced dashboard configuration:** define which slices are immune to which filters, how often widgets should refresh, 
+* **Advanced dashboard configuration:** define which slices are immune to which filters, how often widgets should refresh,
     maybe this should start as a json blob...
 * **Getting proper JS testing:** unit tests on the Python side are pretty solid, but now we need a test
     suite for the JS part of the site, testing all the ajax-type calls
-* **Annotations layers:** allow for people to maintain data annotations, 
+* **Annotations layers:** allow for people to maintain data annotations,
     attached to a layer and time range. These layers can be added on top of some visualizations as annotations.
     An example of a layer might be "holidays" or "site outages", ...
 * **Worth doing? User defined groups:** People could define mappings in the UI of say "Countries I follow" and apply it to different datasets. For now, this is done by writing CASE-WHEN-type expression which is probably good enough.

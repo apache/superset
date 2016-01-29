@@ -553,6 +553,38 @@ class Panoramix(BaseView):
             pos_dict=pos_dict)
 
     @has_access
+    @expose("/sql/<database_id>/")
+    @utils.log_this
+    def sql(self, database_id):
+        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        return self.render_template(
+            "panoramix/sql.html",
+            database_id=database_id,
+            db=mydb)
+
+    @has_access
+    @expose("/runsql/", methods=['POST', 'GET'])
+    @utils.log_this
+    def runsql(self):
+        session = db.session()
+        data = json.loads(request.form.get('data'))
+        sql = data.get('sql')
+        database_id = data.get('database_id')
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        content = ""
+        if mydb:
+            print("SUPER!")
+            from pandas import read_sql_query
+            eng = mydb.get_sqla_engine()
+            df = read_sql_query(sql=sql, con=eng)
+            content = df.to_html(
+                classes="dataframe table table-striped table-bordered table-condensed")
+        else:
+            print("ELSE")
+        session.commit()
+        return content
+
+    @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         session = db.session()
