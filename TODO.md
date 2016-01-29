@@ -7,8 +7,6 @@ List of TODO items for Panoramix
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Default slice:** choose a default slice for the dataset instead of default endpoint
 * **refresh freq**: specifying the refresh frequency of a dashboard and specific slices within it, some randomization would be nice
-* **Color hash in JS:** it'd be nice to use the same hash function for color attribution of series
-    on the js side as on the python side (`panoramix.utils.color`)
 * **Widget sets / chart grids:** a way to have all charts support making a series of charts and putting them in a grid.
     the same way that you can groupby for series, you could chart by. The form fieldset would be common and use
     a single field to "grid by", a limit number of chart as an N * N grid size.

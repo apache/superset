@@ -221,12 +221,12 @@
     var data = $('.slice').data('slice');
     var slice = px.Slice(data);
     $('.slice').data('slice', slice);
-    px.druidify();
+    px.renderSlice();
+    $(':checkbox')
+    .addClass('pull-right')
+    .attr("data-onstyle", "default")
+    .bootstrapToggle({size: 'mini'});
+    $('div.toggle').addClass('pull-right');
   });
-  $(':checkbox')
-  .addClass('pull-right')
-  .attr("data-onstyle", "default")
-  .bootstrapToggle({size: 'mini'});
-  $('div.toggle').addClass('pull-right');
 </script>
 {% endblock %}

@@ -254,11 +254,14 @@ var px = (function() {
         i++;
       });
     }
-    function druidify(){
+    function renderSlice(){
       prepForm();
+      slice.render();
+    }
+    function druidify(){
       $('div.alert').remove();
       history.pushState({}, document.title, slice.querystring());
-      slice.render();
+      renderSlice();
     }
 
   function initExploreView() {
@@ -519,6 +522,9 @@ var px = (function() {
     initDashboardView: initDashboardView,
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
-    color: color(),
+    colorBnb: colorBnb,
+    bnbColors: bnbColors,
+    color: colorBnb(),
+    renderSlice: renderSlice,
   }
 })();
