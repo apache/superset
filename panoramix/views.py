@@ -113,7 +113,7 @@ appbuilder.add_view_no_menu(MetricInlineView)
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'created_by', 'changed_on_']
+    list_columns = ['database_name', 'sql_link', 'created_by', 'changed_on_']
     add_columns = ['database_name', 'sqlalchemy_uri']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
@@ -134,6 +134,7 @@ class DatabaseView(PanoramixModelView, DeleteMixin):
 
     def pre_update(self, db):
         self.pre_add(db)
+
 
 appbuilder.add_view(
     DatabaseView,
@@ -563,24 +564,56 @@ class Panoramix(BaseView):
             db=mydb)
 
     @has_access
+    @expose("/table/<table_id>/")
+    @utils.log_this
+    def table(self, table_id):
+        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+        return self.render_template(
+            "panoramix/ajah.html",
+            content=t.html)
+
+    @has_access
+    @expose("/select_star/<table_id>/")
+    @utils.log_this
+    def select_star(self, table_id):
+        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+        fields = ", ".join(
+            [c.column_name for c in t.columns if not c.expression] or "*")
+        s = "SELECT\n{fields}\nFROM {t.table_name}\nLIMIT 1000".format(**locals())
+        return self.render_template(
+            "panoramix/ajah.html",
+            content=s)
+
+    @has_access
     @expose("/runsql/", methods=['POST', 'GET'])
     @utils.log_this
     def runsql(self):
         session = db.session()
+        limit = 1000
         data = json.loads(request.form.get('data'))
         sql = data.get('sql')
         database_id = data.get('database_id')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
         content = ""
         if mydb:
-            print("SUPER!")
             from pandas import read_sql_query
+            from sqlalchemy import select, text
+            from sqlalchemy.sql.expression import TextAsFrom
             eng = mydb.get_sqla_engine()
+            if limit:
+                sql = sql.strip().strip(';')
+                qry = (
+                    select('*')
+                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                    .limit(limit)
+                )
+                sql= str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
             df = read_sql_query(sql=sql, con=eng)
             content = df.to_html(
-                classes="dataframe table table-striped table-bordered table-condensed")
-        else:
-            print("ELSE")
+                index=False,
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed sql_results"))
         session.commit()
         return content
 

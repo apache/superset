@@ -8,8 +8,12 @@
     .topsql {
       height: 250px;
     }
+    .dataTables_filter {
+      padding-top: 5px;
+      padding-right: 5px;
+    }
     .bordered {
-      padding: 5px 10px;
+      padding: 0px 0px;
       border: 1px solid grey;
       border-radius: 5px;
       background-color: #EEE;
@@ -26,8 +30,8 @@
     .fillheight {
       height: 100%;
     }
-    #interactive {
-      padding-top: 10px;
+    .interactions {
+      padding-bottom: 10px;
     }
     #results {
       overflow: auto;
@@ -41,7 +45,23 @@
 {% endblock %}
 
 {% block content %}
+<div class="sqlcontent" style="display: none;">
   <h2>db: [{{ db }}]</h2>
+  <div class="row interactions">
+    <div class="col-xs-7 fillheight">
+      <input type="hidden" id="database_id" value="{{ database_id }}">
+      <button class="btn btn-primary" id="run">Run!</button>
+      <button class="btn btn-default" id="create_view">Create View</button>
+    </div>
+    <div class="col-xs-5 fillheight">
+      <select id="dbtable">
+        {% for table in db.tables %}
+          <option value="{{ table.id }}">{{ table }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-default" id="select_star">SELECT *</button>
+    </div>
+  </div>
   <div class="topsql row">
     <div class="col-xs-7 fillheight">
       <textarea id="sql" class="fillup">SELECT * FROM information_schema.tables;
@@ -54,52 +74,26 @@
     </div>
   </div>
   <div id="interactive">
-    <input type="hidden" id="database_id" value="{{ database_id }}">
-    <button class="btn btn-primary" id="run">Run!</button>
-    <button class="btn btn-default" id="view">Create View</button>
   </div>
   <div id="results_section">
     <hr/>
     <img id="loading" width="25" style="display: none;" src="/static/img/loading.gif">
   </div>
   <div>
-    <div id="results" class="bordered"></div>
+    <div id="results" class="bordered" style="display: none;"></div>
   </div>
+</div>
 {% endblock %}
 
 {% block tail_js %}
 {{ super() }}
 <script src="/static/lib/bootstrap-toggle.min.js"></script>
+<script src="/static/lib/ace/ace.js"></script>
 <script src="/static/lib/dataTables/jquery.dataTables.min.js"></script>
 <script src="/static/lib/dataTables/dataTables.bootstrap.js"></script>
 <script>
   $(document).ready(function() {
-    $("#run").click(function() {
-      $('#results').hide(0);
-      $('#loading').show(0);
-      $.ajax({
-        type: "POST",
-        url: '/panoramix/runsql/',
-        data: {
-          'data': JSON.stringify({
-          'database_id': $('#database_id').val(),
-          'sql': $('#sql').val(),
-        })},
-        success: function(data) {
-          $('#loading').hide(0);
-          $('#results').show(0);
-          $('#results').html(data);
-
-          var datatable = $('table').DataTable({
-            paging: false,
-            searching: true,
-          });
-        },
-        error: function() {
-          $('#loading').hide(0);
-        },
-      });
-    });
+    px.initSqlEditorView();
   });
 </script>
 {% endblock %}

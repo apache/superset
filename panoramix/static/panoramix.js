@@ -443,6 +443,62 @@ var px = (function() {
     });
   }
 
+  function initSqlEditorView() {
+    var editor = ace.edit("sql");
+    var textarea = $('#sql').hide();
+    editor.setTheme("ace/theme/crimson_editor");
+    editor.setOptions({
+        minLines: 16,
+        maxLines: Infinity,
+    });
+    editor.getSession().setMode("ace/mode/sql");
+    editor.focus();
+
+    $("select").select2({dropdownAutoWidth : true});
+    function showTableMetadata() {
+      $(".metadata").load('/panoramix/table/' + $("#dbtable").val()  + '/');
+    }
+    $("#dbtable").on("change", showTableMetadata);
+    showTableMetadata();
+    $("#create_view").click(function(){alert("Not implemented");});
+    $(".sqlcontent").show();
+    $("#select_star").click(function(){
+      $.ajax('/panoramix/select_star/' + $("#dbtable").val()  + '/')
+        .done(function(msg){
+          editor.setValue(msg);
+        });
+    });
+    $("#run").click(function() {
+      $('#results').hide(0);
+      $('#loading').show(0);
+      $.ajax({
+        type: "POST",
+        url: '/panoramix/runsql/',
+        data: {
+          'data': JSON.stringify({
+          'database_id': $('#database_id').val(),
+          'sql': editor.getSession().getValue(),
+        })},
+        success: function(data) {
+          $('#loading').hide(0);
+          $('#results').show(0);
+          $('#results').html(data);
+
+          var datatable = $('table.sql_results').DataTable({
+            paging: false,
+            searching: true,
+            aaSorting: [],
+          });
+        },
+        error: function(err, err2) {
+          $('#loading').hide(0);
+          $('#results').show(0);
+          $('#results').html(err.responseText);
+        },
+      });
+    });
+  }
+
   function initDashboardView() {
     var gridster = $(".gridster ul").gridster({
       widget_margins: [5, 5],
@@ -546,5 +602,6 @@ var px = (function() {
     timeFormatFactory: timeFormatFactory,
     color: color(),
     renderSlice: renderSlice,
+    initSqlEditorView: initSqlEditorView,
   }
 })();
