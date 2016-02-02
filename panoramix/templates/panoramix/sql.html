@@ -18,6 +18,10 @@
       border-radius: 5px;
       background-color: #EEE;
     }
+    div.alert {
+      padding: 5px;
+      margin: 0px;
+    }
     .metadata {
       overflow: auto;
       width: 300px;
@@ -36,6 +40,7 @@
     #results {
       overflow: auto;
       font-size: 12px;
+      margin-bottom: 5px;
     }
     #results table tbody tr td{
       padding: 2px 4px;
@@ -56,7 +61,10 @@
     <div class="col-xs-5 fillheight">
       <select id="dbtable">
         {% for table in db.tables %}
-          <option value="{{ table.id }}">{{ table }}</option>
+          <option value="{{ table.id }}"
+              {{ "selected" if table.id|string == table_id }}>
+            {{ table }}
+          </option>
         {% endfor %}
       </select>
       <button class="btn btn-default" id="select_star">SELECT *</button>

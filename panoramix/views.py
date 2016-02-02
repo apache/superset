@@ -146,7 +146,8 @@ appbuilder.add_view(
 
 class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
+    list_columns = [
+        'table_link', 'database', 'sql_link', 'changed_by_', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
@@ -278,7 +279,7 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
     list_columns = [
         'datasource_link', 'cluster', 'owner',
         'created_by', 'created_on',
-        'changed_by', 'changed_on',
+        'changed_by_', 'changed_on',
         'offset']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
@@ -561,6 +562,7 @@ class Panoramix(BaseView):
         return self.render_template(
             "panoramix/sql.html",
             database_id=database_id,
+            table_id=request.args.get('table_id'),
             db=mydb)
 
     @has_access
@@ -579,7 +581,7 @@ class Panoramix(BaseView):
         t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
         fields = ", ".join(
             [c.column_name for c in t.columns if not c.expression] or "*")
-        s = "SELECT\n{fields}\nFROM {t.table_name}\nLIMIT 1000".format(**locals())
+        s = "SELECT\n{fields}\nFROM {t.table_name}".format(**locals())
         return self.render_template(
             "panoramix/ajah.html",
             content=s)
@@ -608,12 +610,18 @@ class Panoramix(BaseView):
                     .limit(limit)
                 )
                 sql= str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
-            df = read_sql_query(sql=sql, con=eng)
-            content = df.to_html(
-                index=False,
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed sql_results"))
+            try:
+                df = read_sql_query(sql=sql, con=eng)
+                content = df.to_html(
+                    index=False,
+                    classes=(
+                        "dataframe table table-striped table-bordered "
+                        "table-condensed sql_results"))
+            except Exception as e:
+                content = (
+                    '<div class="alert alert-danger">'
+                    "{}</div>"
+                ).format(e.message)
         session.commit()
         return content
 

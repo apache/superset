@@ -270,8 +270,12 @@ class Database(Model, AuditMixinNullable):
         return str(conn)
 
     @property
+    def sql_url(self):
+        return '/panoramix/sql/{}/'.format(self.id)
+
+    @property
     def sql_link(self):
-        return '<a href="/panoramix/sql/{}/">SQL</a>'.format(self.id)
+        return '<a href="{}">SQL</a>'.format(self.sql_url)
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
@@ -448,6 +452,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
+
+    @property
+    def sql_url(self):
+        return self.database.sql_url + "?table_id=" + str(self.id)
+
+    @property
+    def sql_link(self):
+        return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def query(
             self, groupby, metrics,

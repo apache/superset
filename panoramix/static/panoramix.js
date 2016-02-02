@@ -468,6 +468,7 @@ var px = (function() {
           editor.setValue(msg);
         });
     });
+    $("#select_star").click();
     $("#run").click(function() {
       $('#results').hide(0);
       $('#loading').show(0);
