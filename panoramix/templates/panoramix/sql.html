@@ -54,7 +54,7 @@
   <h2>db: [{{ db }}]</h2>
   <div class="row interactions">
     <div class="col-xs-7 fillheight">
-      <input type="hidden" id="database_id" value="{{ database_id }}">
+      <input type="hidden" id="database_id" value="{{ db.id }}">
       <button class="btn btn-primary" id="run">Run!</button>
       <button class="btn btn-default" id="create_view">Create View</button>
     </div>
@@ -62,7 +62,7 @@
       <select id="dbtable">
         {% for t in tables %}
           <option value="{{ t }}"
-              {{ "selected" if t == table }}>
+              {{ "selected" if t == table_name else '' }}>
             {{ t }}
           </option>
         {% endfor %}
@@ -75,9 +75,7 @@
       <textarea id="sql" class="fillup"></textarea>
     </div>
     <div class="col-xs-5 fillheight">
-      <div class="metadata fillup bordered">
-      Tables
-      </div>
+      <div class="metadata fillup bordered"></div>
     </div>
   </div>
   <div id="interactive">

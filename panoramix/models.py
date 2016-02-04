@@ -464,7 +464,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def sql_url(self):
-        return self.database.sql_url + "?table_id=" + str(self.id)
+        return self.database.sql_url + "?table_name=" + str(self.table_name)
 
     @property
     def sql_link(self):

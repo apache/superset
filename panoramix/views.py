@@ -565,11 +565,12 @@ class Panoramix(BaseView):
             models.Database).filter_by(id=database_id).first()
         engine = mydb.get_sqla_engine()
         tables = engine.table_names()
+
+        table_name=request.args.get('table_name')
         return self.render_template(
             "panoramix/sql.html",
-            database_id=database_id,
-            table_id=request.args.get('table_id'),
             tables=tables,
+            table_name=table_name,
             db=mydb)
 
     @has_access
@@ -598,7 +599,7 @@ class Panoramix(BaseView):
             models.Database).filter_by(id=database_id).first()
         t = mydb.get_table(table_name)
         fields = ", ".join(
-            [c.name for c in t.get_columns()] or "*")
+            [c.name for c in t.columns] or "*")
         s = "SELECT\n{fields}\nFROM {table_name}".format(**locals())
         return self.render_template(
             "panoramix/ajah.html",
