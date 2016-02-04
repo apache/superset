@@ -478,7 +478,7 @@ var px = (function() {
       });
       var data = {
           positions: gridster.serialize(),
-          css: $("#dash_css").val(),
+          css: editor.getValue(),
           expanded_slices: expanded_slices,
       };
       $.ajax({
@@ -489,13 +489,27 @@ var px = (function() {
         error: function() {alert("Error :(")},
       });
     });
+
+    var editor = ace.edit("dash_css");
+    editor.$blockScrolling = Infinity
+
+    editor.setTheme("ace/theme/crimson_editor");
+    editor.setOptions({
+        minLines: 16,
+        maxLines: Infinity,
+    });
+    editor.getSession().setMode("ace/mode/css");
+
     $(".select2").select2({dropdownAutoWidth : true});
     $("#css_template").on("change", function() {
       var css = $(this).find('option:selected').data('css');
+      editor.setValue(css);
       $('#dash_css').val(css);
       $("#user_style").html(css);
-
-    })
+    });
+    $('#filters').click( function(){
+      alert(dashboard.readFilters());
+    });
     $("a.closeslice").click(function() {
       var li = $(this).parents("li");
       gridster.remove_widget(li);
@@ -513,8 +527,9 @@ var px = (function() {
     $("table.slice_header").mouseout(function() {
       $(this).find("td.icons nobr").hide();
     });
-    $("#dash_css").on("keyup", function(){
-      css = $(this).val();
+    editor.on("change", function(){
+      css = editor.getValue();
+      $('#dash_css').val(css);
       $("#user_style").html(css);
     });
   }
