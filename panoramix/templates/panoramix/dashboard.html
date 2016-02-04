@@ -23,7 +23,14 @@
         <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
       </div>
       <div class="modal-body">
-        <textarea id="dash_css" rows="30" cols="60">
+        <select id="css_template" class="select2">
+          {% for t in templates %}
+            <option value="{{ t.id }}" data-css="{{t.css}}">
+              {{ t.template_name }}
+            </option>
+          {% endfor %}
+        </select><br>
+        <textarea id="dash_css" rows="30" cols="60" style="margin-top: 5px;">
           {%- if dashboard.css %}
             {{- dashboard.css }}
           {% else %}
@@ -58,7 +65,7 @@ body {
             <i class="fa fa-filter"></i>
           </button>
           <button type="button" id="css" class="btn btn-default" data-toggle="modal" data-target="#css_modal">
-            <i class="fa fa-code"></i>
+            <i class="fa fa-css3"></i>
           </button>
           <a id="editdash" class="btn btn-default" href="/dashboardmodelview/edit/{{ dashboard.id }}">
               <i class="fa fa-edit"></i>

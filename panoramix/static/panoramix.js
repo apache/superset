@@ -489,6 +489,13 @@ var px = (function() {
         error: function() {alert("Error :(")},
       });
     });
+    $(".select2").select2({dropdownAutoWidth : true});
+    $("#css_template").on("change", function() {
+      var css = $(this).find('option:selected').data('css');
+      $('#dash_css').val(css);
+      $("#user_style").html(css);
+
+    })
     $("a.closeslice").click(function() {
       var li = $(this).parents("li");
       gridster.remove_widget(li);

@@ -198,6 +198,20 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
+class CssTemplateModelView(PanoramixModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.CssTemplate)
+    list_columns = ['template_name']
+    edit_columns = ['template_name', 'css']
+    add_columns = edit_columns
+
+appbuilder.add_view(
+    CssTemplateModelView,
+    "CSS Templates",
+    icon="fa-css3",
+    category="",
+    category_icon='',)
+
+
 class SliceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     can_add = False
@@ -539,6 +553,8 @@ class Panoramix(BaseView):
         else:
             qry = qry.filter_by(slug=identifier)
 
+        templates = session.query(models.CssTemplate).all()
+
         dashboard = qry.first()
         pos_dict = {}
         if dashboard.position_json:
@@ -547,6 +563,7 @@ class Panoramix(BaseView):
                 for o in json.loads(dashboard.position_json)}
         return self.render_template(
             "panoramix/dashboard.html", dashboard=dashboard,
+            templates=templates,
             pos_dict=pos_dict)
 
     @has_access

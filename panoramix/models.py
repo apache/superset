@@ -62,6 +62,14 @@ class Url(Model, AuditMixinNullable):
     url = Column(Text)
 
 
+class CssTemplate(Model, AuditMixinNullable):
+    """CSS templates for dashboards"""
+    __tablename__ = 'css_templates'
+    id = Column(Integer, primary_key=True)
+    template_name = Column(String(250))
+    css = Column(Text)
+
+
 class Slice(Model, AuditMixinNullable):
     """A slice is essentially a report or a view on data"""
     __tablename__ = 'slices'
