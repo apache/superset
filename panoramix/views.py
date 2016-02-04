@@ -198,20 +198,6 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class CssTemplateModelView(PanoramixModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.CssTemplate)
-    list_columns = ['template_name']
-    edit_columns = ['template_name', 'css']
-    add_columns = edit_columns
-
-appbuilder.add_view(
-    CssTemplateModelView,
-    "CSS Templates",
-    icon="fa-css3",
-    category="",
-    category_icon='',)
-
-
 class SliceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Slice)
     can_add = False
@@ -637,3 +623,20 @@ appbuilder.add_link(
     category='Sources',
     category_icon='fa-database',
     icon="fa-cog")
+
+
+class CssTemplateModelView(PanoramixModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.CssTemplate)
+    list_columns = ['template_name']
+    edit_columns = ['template_name', 'css']
+    add_columns = edit_columns
+
+appbuilder.add_separator("Sources")
+appbuilder.add_view(
+    CssTemplateModelView,
+    "CSS Templates",
+    icon="fa-css3",
+    category="Sources",
+    category_icon='',)
+
+
