@@ -269,6 +269,14 @@ class Database(Model, AuditMixinNullable):
         conn.password = self.password
         return str(conn)
 
+    @property
+    def sql_url(self):
+        return '/panoramix/sql/{}/'.format(self.id)
+
+    @property
+    def sql_link(self):
+        return '<a href="{}">SQL</a>'.format(self.sql_url)
+
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
     type = "table"
@@ -309,6 +317,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return (
             "[{self.database}].[{self.table_name}]"
             "(id:{self.id})").format(self=self)
+
     @property
     def full_name(self):
         return "[{self.database}].[{self.table_name}]".format(self=self)
@@ -319,6 +328,18 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
+
+    @property
+    def html(self):
+        import pandas as pd
+        t = ((c.column_name, c.type) for c in self.columns)
+        df = pd.DataFrame(t)
+        df.columns = ['field', 'type']
+        return df.to_html(
+            index=False,
+            classes=(
+                "dataframe table table-striped table-bordered "
+                "table-condensed"))
 
     @property
     def name(self):
@@ -431,6 +452,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
+
+    @property
+    def sql_url(self):
+        return self.database.sql_url + "?table_id=" + str(self.id)
+
+    @property
+    def sql_link(self):
+        return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def query(
             self, groupby, metrics,

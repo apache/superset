@@ -137,9 +137,6 @@
       $(document).ready(function() {
         px.initDashboardView();
         var dashboard = px.Dashboard({{ dashboard.id }});
-        $('#filters').click( function(){
-          alert(dashboard.readFilters());
-        });
       });
     </script>
 {% endblock %}

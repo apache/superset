@@ -113,7 +113,7 @@ appbuilder.add_view_no_menu(MetricInlineView)
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'created_by', 'changed_on_']
+    list_columns = ['database_name', 'sql_link', 'created_by', 'changed_on_']
     add_columns = ['database_name', 'sqlalchemy_uri']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
@@ -135,6 +135,7 @@ class DatabaseView(PanoramixModelView, DeleteMixin):
     def pre_update(self, db):
         self.pre_add(db)
 
+
 appbuilder.add_view(
     DatabaseView,
     "Databases",
@@ -145,7 +146,8 @@ appbuilder.add_view(
 
 class TableView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
-    list_columns = ['table_link', 'database', 'changed_by', 'changed_on_']
+    list_columns = [
+        'table_link', 'database', 'sql_link', 'changed_by_', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
@@ -277,7 +279,7 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
     list_columns = [
         'datasource_link', 'cluster', 'owner',
         'created_by', 'created_on',
-        'changed_by', 'changed_on',
+        'changed_by_', 'changed_on',
         'offset']
     related_views = [ColumnInlineView, MetricInlineView]
     edit_columns = [
@@ -551,6 +553,77 @@ class Panoramix(BaseView):
             "panoramix/dashboard.html", dashboard=dashboard,
             templates=templates,
             pos_dict=pos_dict)
+
+    @has_access
+    @expose("/sql/<database_id>/")
+    @utils.log_this
+    def sql(self, database_id):
+        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        return self.render_template(
+            "panoramix/sql.html",
+            database_id=database_id,
+            table_id=request.args.get('table_id'),
+            db=mydb)
+
+    @has_access
+    @expose("/table/<table_id>/")
+    @utils.log_this
+    def table(self, table_id):
+        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+        return self.render_template(
+            "panoramix/ajah.html",
+            content=t.html)
+
+    @has_access
+    @expose("/select_star/<table_id>/")
+    @utils.log_this
+    def select_star(self, table_id):
+        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+        fields = ", ".join(
+            [c.column_name for c in t.columns if not c.expression] or "*")
+        s = "SELECT\n{fields}\nFROM {t.table_name}".format(**locals())
+        return self.render_template(
+            "panoramix/ajah.html",
+            content=s)
+
+    @has_access
+    @expose("/runsql/", methods=['POST', 'GET'])
+    @utils.log_this
+    def runsql(self):
+        session = db.session()
+        limit = 1000
+        data = json.loads(request.form.get('data'))
+        sql = data.get('sql')
+        database_id = data.get('database_id')
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        content = ""
+        if mydb:
+            from pandas import read_sql_query
+            from sqlalchemy import select, text
+            from sqlalchemy.sql.expression import TextAsFrom
+            eng = mydb.get_sqla_engine()
+            if limit:
+                sql = sql.strip().strip(';')
+                qry = (
+                    select('*')
+                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                    .limit(limit)
+                )
+                sql= str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+            try:
+                df = read_sql_query(sql=sql, con=eng)
+                content = df.to_html(
+                    index=False,
+                    classes=(
+                        "dataframe table table-striped table-bordered "
+                        "table-condensed sql_results"))
+            except Exception as e:
+                content = (
+                    '<div class="alert alert-danger">'
+                    "{}</div>"
+                ).format(e.message)
+        session.commit()
+        return content
 
     @has_access
     @expose("/refresh_datasources/")

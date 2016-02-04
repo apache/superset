@@ -49,6 +49,12 @@ var px = (function() {
   var visualizations = {};
   var dashboard = undefined;
 
+  function getParam(name) {
+    name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+    var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+    results = regex.exec(location.search);
+    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+  }
 
   function UTC(dttm){
     return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
@@ -333,12 +339,6 @@ var px = (function() {
     for(var i=0; i < collapsed_fieldsets.length; i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
     }
-    function getParam(name) {
-      name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
-      var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
-      results = regex.exec(location.search);
-      return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
-    }
 
     $(".select2").select2({dropdownAutoWidth : true});
     $(".select2Sortable").select2({dropdownAutoWidth : true});
@@ -440,6 +440,73 @@ var px = (function() {
           data: l,
         });
       $(this).remove();
+    });
+  }
+
+  function initSqlEditorView() {
+    var editor = ace.edit("sql");
+    editor.$blockScrolling = Infinity
+
+    var textarea = $('#sql').hide();
+    editor.setTheme("ace/theme/crimson_editor");
+    editor.setOptions({
+        minLines: 16,
+        maxLines: Infinity,
+    });
+    editor.getSession().setMode("ace/mode/sql");
+    editor.focus();
+    $("select").select2({dropdownAutoWidth : true});
+    function showTableMetadata() {
+      $(".metadata").load('/panoramix/table/' + $("#dbtable").val()  + '/');
+    }
+    $("#dbtable").on("change", showTableMetadata);
+    showTableMetadata();
+    $("#create_view").click(function(){alert("Not implemented");});
+    $(".sqlcontent").show();
+    $("#select_star").click(function(){
+      $.ajax('/panoramix/select_star/' + $("#dbtable").val()  + '/')
+        .done(function(msg){
+          editor.setValue(msg);
+        });
+    });
+    editor.setValue(getParam('sql'));
+    $(window).bind("popstate", function(event) {
+      // Browser back button
+      var returnLocation = history.location || document.location;
+      // Could do something more lightweight here, but we're not optimizing
+      // for the use of the back button anyways
+      editor.setValue(getParam('sql'));
+      $("#run").click();
+    });
+    $("#run").click(function() {
+      $('#results').hide(0);
+      $('#loading').show(0);
+      history.pushState({}, document.title, '?sql=' + encodeURIComponent(editor.getValue()));
+      $.ajax({
+        type: "POST",
+        url: '/panoramix/runsql/',
+        data: {
+          'data': JSON.stringify({
+          'database_id': $('#database_id').val(),
+          'sql': editor.getSession().getValue(),
+        })},
+        success: function(data) {
+          $('#loading').hide(0);
+          $('#results').show(0);
+          $('#results').html(data);
+
+          var datatable = $('table.sql_results').DataTable({
+            paging: false,
+            searching: true,
+            aaSorting: [],
+          });
+        },
+        error: function(err, err2) {
+          $('#loading').hide(0);
+          $('#results').show(0);
+          $('#results').html(err.responseText);
+        },
+      });
     });
   }
 
@@ -546,5 +613,6 @@ var px = (function() {
     timeFormatFactory: timeFormatFactory,
     color: color(),
     renderSlice: renderSlice,
+    initSqlEditorView: initSqlEditorView,
   }
 })();
