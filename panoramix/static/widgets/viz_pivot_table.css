@@ -1,3 +1,3 @@
-li.widget.pivot_table div.slice_container {
-    overflow: auto;
+.gridster li.widget.pivot_table, div.widget.pivot_table{
+    overflow: auto; !important
 }

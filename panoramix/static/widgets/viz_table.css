@@ -1,7 +1,8 @@
-li.widget.table div.token {
-    overflow: auto;
+.gridster li.widget.table, div.widget.table{
+    overflow: auto; !important
 }
-td.filtered {
+
+.widget.table td.filtered {
     background-color: #005a63;
     color: white;
 }
