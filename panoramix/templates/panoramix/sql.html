@@ -60,10 +60,10 @@
     </div>
     <div class="col-xs-5 fillheight">
       <select id="dbtable">
-        {% for table in db.tables %}
-          <option value="{{ table.id }}"
-              {{ "selected" if table.id|string == table_id }}>
-            {{ table }}
+        {% for t in tables %}
+          <option value="{{ t }}"
+              {{ "selected" if t == table }}>
+            {{ t }}
           </option>
         {% endfor %}
       </select>

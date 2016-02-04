@@ -13,6 +13,9 @@ from pydruid.client import doublesum
 from sqlalchemy import create_engine
 import sqlalchemy as sqla
 from wtforms.validators import ValidationError
+import pandas as pd
+from sqlalchemy import select, text
+from sqlalchemy.sql.expression import TextAsFrom
 
 from panoramix import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
@@ -558,33 +561,49 @@ class Panoramix(BaseView):
     @expose("/sql/<database_id>/")
     @utils.log_this
     def sql(self, database_id):
-        mydb = db.session.query(models.Database).filter_by(id=database_id).first()
+        mydb = db.session.query(
+            models.Database).filter_by(id=database_id).first()
+        engine = mydb.get_sqla_engine()
+        tables = engine.table_names()
         return self.render_template(
             "panoramix/sql.html",
             database_id=database_id,
             table_id=request.args.get('table_id'),
+            tables=tables,
             db=mydb)
 
     @has_access
-    @expose("/table/<table_id>/")
+    @expose("/table/<database_id>/<table_name>/")
     @utils.log_this
-    def table(self, table_id):
-        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+    def table(self, database_id, table_name):
+        mydb = db.session.query(
+            models.Database).filter_by(id=database_id).first()
+        cols = mydb.get_columns(table_name)
+        df = pd.DataFrame([(c['name'], c['type']) for c in cols])
+        df.columns = ['col', 'type']
         return self.render_template(
             "panoramix/ajah.html",
-            content=t.html)
+            content=df.to_html(
+                    index=False,
+                    na_rep='',
+                    classes=(
+                        "dataframe table table-striped table-bordered "
+                        "table-condensed sql_results")))
 
     @has_access
-    @expose("/select_star/<table_id>/")
+    @expose("/select_star/<database_id>/<table_name>/")
     @utils.log_this
-    def select_star(self, table_id):
-        t = db.session.query(models.SqlaTable).filter_by(id=table_id).first()
+    def select_star(self, database_id, table_name):
+        mydb = db.session.query(
+            models.Database).filter_by(id=database_id).first()
+        t = mydb.get_table(table_name)
         fields = ", ".join(
-            [c.column_name for c in t.columns if not c.expression] or "*")
-        s = "SELECT\n{fields}\nFROM {t.table_name}".format(**locals())
+            [c.name for c in t.get_columns()] or "*")
+        s = "SELECT\n{fields}\nFROM {table_name}".format(**locals())
         return self.render_template(
             "panoramix/ajah.html",
-            content=s)
+            content=s
+        )
 
     @has_access
     @expose("/runsql/", methods=['POST', 'GET'])
@@ -598,9 +617,6 @@ class Panoramix(BaseView):
         mydb = session.query(models.Database).filter_by(id=database_id).first()
         content = ""
         if mydb:
-            from pandas import read_sql_query
-            from sqlalchemy import select, text
-            from sqlalchemy.sql.expression import TextAsFrom
             eng = mydb.get_sqla_engine()
             if limit:
                 sql = sql.strip().strip(';')
@@ -611,9 +627,10 @@ class Panoramix(BaseView):
                 )
                 sql= str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
             try:
-                df = read_sql_query(sql=sql, con=eng)
+                df = pd.read_sql_query(sql=sql, con=eng)
                 content = df.to_html(
                     index=False,
+                    na_rep='',
                     classes=(
                         "dataframe table table-striped table-bordered "
                         "table-condensed sql_results"))

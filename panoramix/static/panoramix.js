@@ -444,8 +444,10 @@ var px = (function() {
   }
 
   function initSqlEditorView() {
+    var database_id = $('#database_id').val();
     var editor = ace.edit("sql");
     editor.$blockScrolling = Infinity
+    editor.getSession().setUseWrapMode(true);
 
     var textarea = $('#sql').hide();
     editor.setTheme("ace/theme/crimson_editor");
@@ -457,14 +459,15 @@ var px = (function() {
     editor.focus();
     $("select").select2({dropdownAutoWidth : true});
     function showTableMetadata() {
-      $(".metadata").load('/panoramix/table/' + $("#dbtable").val()  + '/');
+      $(".metadata").load(
+        '/panoramix/table/' + database_id + '/' + $("#dbtable").val()  + '/');
     }
     $("#dbtable").on("change", showTableMetadata);
     showTableMetadata();
     $("#create_view").click(function(){alert("Not implemented");});
     $(".sqlcontent").show();
     $("#select_star").click(function(){
-      $.ajax('/panoramix/select_star/' + $("#dbtable").val()  + '/')
+      $.ajax('/panoramix/select_star/' + database_id + '/' + $("#dbtable").val()  + '/')
         .done(function(msg){
           editor.setValue(msg);
         });

@@ -263,6 +263,15 @@ class Database(Model, AuditMixinNullable):
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
+    def get_columns(self, table_name):
+
+        from sqlalchemy import create_engine
+        from sqlalchemy.engine import reflection
+
+        engine = self.get_sqla_engine()
+        insp = reflection.Inspector.from_engine(engine)
+        return insp.get_columns(table_name)
+
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
