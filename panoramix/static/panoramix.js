@@ -16,6 +16,8 @@ var color = function(){
     // Color factory
     var seen = {};
     return function(s){
+      // next line is for dashed series that should have the same color
+      s = s.replace('---', '');
       if(seen[s] === undefined)
         seen[s] = Object.keys(seen).length;
       return this.bnbColors[seen[s] % this.bnbColors.length];
