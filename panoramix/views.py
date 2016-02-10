@@ -535,7 +535,6 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
-    @utils.log_this
     def dashboard(self, dashboard_id):
         session = db.session()
         qry = session.query(models.Dashboard)
@@ -546,14 +545,21 @@ class Panoramix(BaseView):
 
         templates = session.query(models.CssTemplate).all()
 
-        dashboard = qry.first()
+        dash = qry.first()
+
+        # Hack to log the dashboard_id properly, even when getting a slug
+        @utils.log_this
+        def dashboard(**kwargs):
+            pass
+        dashboard(dashboard_id=dash.id)
+
         pos_dict = {}
-        if dashboard.position_json:
+        if dash.position_json:
             pos_dict = {
                 int(o['slice_id']):o
-                for o in json.loads(dashboard.position_json)}
+                for o in json.loads(dash.position_json)}
         return self.render_template(
-            "panoramix/dashboard.html", dashboard=dashboard,
+            "panoramix/dashboard.html", dashboard=dash,
             templates=templates,
             pos_dict=pos_dict)
 
