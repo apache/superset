@@ -86,7 +86,7 @@ class Slice(Model, AuditMixinNullable):
     table = relationship(
         'SqlaTable', foreign_keys=[table_id], backref='slices')
     druid_datasource = relationship(
-        'Datasource', foreign_keys=[druid_datasource_id], backref='slices')
+        'DruidDatasource', foreign_keys=[druid_datasource_id], backref='slices')
 
     def __repr__(self):
         return self.slice_name
@@ -742,7 +742,7 @@ class TableColumn(Model, AuditMixinNullable):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT')
 
 
-class Cluster(Model, AuditMixinNullable):
+class DruidCluster(Model, AuditMixinNullable):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
@@ -772,10 +772,10 @@ class Cluster(Model, AuditMixinNullable):
 
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
-            Datasource.sync_to_db(datasource, self)
+            DruidDatasource.sync_to_db(datasource, self)
 
 
-class Datasource(Model, AuditMixinNullable, Queryable):
+class DruidDatasource(Model, AuditMixinNullable, Queryable):
     type = "druid"
 
     baselink = "datasourcemodelview"
@@ -792,7 +792,7 @@ class Datasource(Model, AuditMixinNullable, Queryable):
     cluster_name = Column(
         String(250), ForeignKey('clusters.cluster_name'))
     cluster = relationship(
-        'Cluster', backref='datasources', foreign_keys=[cluster_name])
+        'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
 
     @property
@@ -1059,7 +1059,7 @@ class Metric(Model):
     datasource_name = Column(
         String(250),
         ForeignKey('datasources.datasource_name'))
-    datasource = relationship('Datasource', backref='metrics')
+    datasource = relationship('DruidDatasource', backref='metrics')
     json = Column(Text)
     description = Column(Text)
 
@@ -1072,13 +1072,13 @@ class Metric(Model):
         return obj
 
 
-class Column(Model, AuditMixinNullable):
+class DruidColumn(Model, AuditMixinNullable):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
         String(250),
         ForeignKey('datasources.datasource_name'))
-    datasource = relationship('Datasource', backref='columns')
+    datasource = relationship('DruidDatasource', backref='columns')
     column_name = Column(String(256))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))

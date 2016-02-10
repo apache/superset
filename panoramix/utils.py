@@ -172,7 +172,7 @@ def init():
     table_perms = [
             table.perm for table in session.query(models.SqlaTable).all()]
     table_perms += [
-            table.perm for table in session.query(models.Datasource).all()]
+            table.perm for table in session.query(models.DruidDatasource).all()]
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table.perm)
 

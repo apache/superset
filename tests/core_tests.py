@@ -26,6 +26,7 @@ class LiveTest(TestCase):
         cli.load_examples(sample=True)
 
     def test_slices(self):
+        # Testing by running all the examples
         Slc = models.Slice
         for slc in db.session.query(Slc).all():
             print(slc)
