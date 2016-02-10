@@ -1,4 +1,5 @@
 import imp
+import doctest
 import os
 import unittest
 os.environ['PANORAMIX_CONFIG'] = 'tests.panoramix_test_config'
@@ -42,6 +43,13 @@ class LiveTest(TestCase):
     def test_dashboard(self):
         for dash in db.session.query(models.Dashboard).all():
             self.client.get(dash.url)
+
+    def test_doctests(self):
+        modules = [utils]
+        for mod in modules:
+            failed, tests = doctest.testmod(mod)
+            if failed:
+                raise Exception("Failed a doctest")
 
     def tearDown(self):
         pass
