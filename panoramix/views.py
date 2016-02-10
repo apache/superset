@@ -71,8 +71,8 @@ appbuilder.add_link(
 
 appbuilder.add_separator("Sources")
 
-class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
-    datamodel = SQLAInterface(models.Column)
+class DruidColumnInlineView(CompactCRUDMixin, PanoramixModelView):
+    datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'datasource', 'groupby',
         'count_distinct', 'sum', 'min', 'max']
@@ -85,7 +85,7 @@ class ColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     def post_update(self, col):
         col.generate_metrics()
 
-appbuilder.add_view_no_menu(ColumnInlineView)
+appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
 class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
@@ -99,8 +99,8 @@ class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
-    datamodel = SQLAInterface(models.Metric)
+class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):
+    datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
@@ -111,7 +111,7 @@ class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
     validators_columns = {
         'json': [validate_json],
     }
-appbuilder.add_view_no_menu(MetricInlineView)
+appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
@@ -185,8 +185,8 @@ appbuilder.add_view(
 appbuilder.add_separator("Sources")
 
 
-class ClusterModelView(PanoramixModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.Cluster)
+class DruidClusterModelView(PanoramixModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.DruidCluster)
     add_columns = [
         'cluster_name',
         'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
@@ -196,7 +196,7 @@ class ClusterModelView(PanoramixModelView, DeleteMixin):
     list_columns = ['cluster_name', 'metadata_last_refreshed']
 
 appbuilder.add_view(
-    ClusterModelView,
+    DruidClusterModelView,
     "Druid Clusters",
     icon="fa-cubes",
     category="Sources",
@@ -277,14 +277,14 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
-class DatasourceModelView(PanoramixModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.Datasource)
+class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
+    datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner',
         'created_by', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    related_views = [ColumnInlineView, MetricInlineView]
+    related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset']
@@ -303,7 +303,7 @@ class DatasourceModelView(PanoramixModelView, DeleteMixin):
         self.post_add(datasource)
 
 appbuilder.add_view(
-    DatasourceModelView,
+    DruidDatasourceModelView,
     "Druid Datasources",
     category="Sources",
     icon="fa-cube")
@@ -362,7 +362,7 @@ class Panoramix(BaseView):
         else:
             datasource = (
                 db.session
-                .query(models.Datasource)
+                .query(models.DruidDatasource)
                 .filter_by(id=datasource_id)
                 .first()
             )
@@ -489,8 +489,8 @@ class Panoramix(BaseView):
         model = None
         if model_view == 'TableColumnInlineView':
             model = models.TableColumn
-        elif model_view == 'ColumnInlineView':
-            model = models.Column
+        elif model_view == 'DruidColumnInlineView':
+            model = models.DruidColumn
 
         obj = db.session.query(model).filter_by(id=id_).first()
         if obj:
@@ -647,7 +647,7 @@ class Panoramix(BaseView):
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         session = db.session()
-        for cluster in session.query(models.Cluster).all():
+        for cluster in session.query(models.DruidCluster).all():
             try:
                 cluster.refresh_datasources()
             except Exception as e:
@@ -699,7 +699,7 @@ class Panoramix(BaseView):
         session = db.session()
         datasets_sqla = (session.query(models.SqlaTable)
                                         .filter_by(is_featured=True).all())
-        datasets_druid = (session.query(models.Datasource)
+        datasets_druid = (session.query(models.DruidDatasource)
                                          .filter_by(is_featured=True).all())
         featured_datasets = datasets_sqla + datasets_druid
         return self.render_template(
