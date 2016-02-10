@@ -202,8 +202,8 @@ def log_this(f):
         log = models.Log(
             action=f.__name__,
             json=json.dumps(d),
-            dashboard_id=d.get('dashboard_id'),
-            slice_id=d.get('slice_id'),
+            dashboard_id=d.get('dashboard_id') or None,
+            slice_id=d.get('slice_id') or None,
             user_id=user_id)
         db.session.add(log)
         db.session.commit()
