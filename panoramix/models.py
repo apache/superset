@@ -1050,7 +1050,7 @@ class Log(Model):
     dttm = Column(DateTime, default=func.now())
 
 
-class Metric(Model):
+class DruidMetric(Model):
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
@@ -1098,9 +1098,9 @@ class DruidColumn(Model, AuditMixinNullable):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT')
 
     def generate_metrics(self):
-        M = Metric
+        M = DruidMetric
         metrics = []
-        metrics.append(Metric(
+        metrics.append(DruidMetric(
             metric_name='count',
             verbose_name='COUNT(*)',
             metric_type='count',
@@ -1125,7 +1125,7 @@ class DruidColumn(Model, AuditMixinNullable):
         if self.min and self.isnum:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
-            metrics.append(Metric(
+            metrics.append(DruidMetric(
                 metric_name=name,
                 metric_type='min',
                 verbose_name='MIN({})'.format(self.column_name),
@@ -1135,7 +1135,7 @@ class DruidColumn(Model, AuditMixinNullable):
         if self.max and self.isnum:
             mt = corrected_type.lower() + 'Max'
             name = 'max__' + self.column_name
-            metrics.append(Metric(
+            metrics.append(DruidMetric(
                 metric_name=name,
                 metric_type='max',
                 verbose_name='MAX({})'.format(self.column_name),
@@ -1145,7 +1145,7 @@ class DruidColumn(Model, AuditMixinNullable):
         if self.count_distinct:
             mt = 'count_distinct'
             name = 'count_distinct__' + self.column_name
-            metrics.append(Metric(
+            metrics.append(DruidMetric(
                 metric_name=name,
                 verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
                 metric_type='count_distinct',

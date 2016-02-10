@@ -85,7 +85,7 @@ class DruidColumnInlineView(CompactCRUDMixin, PanoramixModelView):
     def post_update(self, col):
         col.generate_metrics()
 
-appbuilder.add_view_no_menu(ColumnInlineView)
+appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
 class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
@@ -99,8 +99,8 @@ class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
-    datamodel = SQLAInterface(models.Metric)
+class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):
+    datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
@@ -111,7 +111,7 @@ class MetricInlineView(CompactCRUDMixin, PanoramixModelView):
     validators_columns = {
         'json': [validate_json],
     }
-appbuilder.add_view_no_menu(MetricInlineView)
+appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
@@ -284,7 +284,7 @@ class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
         'created_by', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    related_views = [DruidColumnInlineView, MetricInlineView]
+    related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset']
