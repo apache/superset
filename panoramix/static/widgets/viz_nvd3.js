@@ -26,7 +26,6 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(fd.x_axis_showminmax)
             .staggerLabels(true);
-          chart.showLegend(fd.show_legend);
         } else if (viz_type === 'bar') {
           chart = nv.models.multiBarChart()
               .showControls(true)
@@ -34,7 +33,6 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false)
             .staggerLabels(true);
-          chart.showLegend(fd.show_legend);
           chart.stacked(fd.bar_stacked);
 
         } else if (viz_type === 'dist_bar') {
@@ -46,11 +44,9 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false);
           chart.stacked(fd.bar_stacked);
-
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
           colorKey = 'x';
-          chart.showLegend(fd.show_legend);
           chart.valueFormat(f);
           if (fd.donut) {
             chart.donut(true);
@@ -70,7 +66,6 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false)
             .staggerLabels(true);
-          chart.showLegend(fd.show_legend);
 
         } else if (viz_type === 'bubble') {
           var row = function(col1, col2){
@@ -79,7 +74,6 @@ function viz_nvd3(slice) {
           chart = nv.models.scatterChart();
           chart.showDistX(true);
           chart.showDistY(true);
-          chart.showLegend(fd.show_legend);
           chart.tooltip.contentGenerator(function (obj) {
             p = obj.point;
             var s = "<table>"
@@ -99,7 +93,10 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false)
             .staggerLabels(true);
-          chart.showLegend(fd.show_legend);
+        }
+        if ("showLegend" in chart) {
+            if ('show_legend' in fd)
+              chart.showLegend(fd.show_legend);
         }
 
         var height = slice.height();

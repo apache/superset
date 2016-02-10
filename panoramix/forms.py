@@ -17,7 +17,7 @@ class BetterBooleanField(BooleanField):
     """
     def __call__(self, **kwargs):
         html = super(BetterBooleanField, self).__call__(**kwargs)
-        html += u'<input type="hidden" name="show_brush" value="false">'
+        html += u'<input type="hidden" name="{}" value="false">'.format(self.name)
         return widgets.HTMLString(html)
 
 
