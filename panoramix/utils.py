@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date, timedelta
 import functools
 import hashlib
 import json
@@ -52,6 +52,7 @@ def parse_human_datetime(s):
     >>> parse_human_datetime("now") <= datetime.now()
     True
     >>> parse_human_datetime("yesterday") <= datetime.now()
+    True
     >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
     True
     """
@@ -118,6 +119,15 @@ class ColorFactory(object):
         self.hash_based = hash_based
 
     def get(self, s):
+        """
+        >>> cf = ColorFactory()
+        >>> cf.get('item_1')
+        '#ff5a5f'
+        >>> cf.get('item_2')
+        '#7b0051'
+        >>> cf.get('item_1')
+        '#ff5a5f'
+        """
         if self.hash_based:
             s = s.encode('utf-8')
             h = hashlib.md5(s)
@@ -202,6 +212,9 @@ def log_this(f):
 
 
 def datetime_f(dttm):
+    """
+    Formats datetime to take less room is recent
+    """
     if dttm:
         dttm = dttm.isoformat()
         now_iso = datetime.now().isoformat()
@@ -215,7 +228,10 @@ def datetime_f(dttm):
 def json_iso_dttm_ser(obj):
     """
     json serializer that deals with dates
-    usage: json.dumps(object, default=utils.json_ser)
+
+    >>> dttm = datetime(1970, 1, 1)
+    >>> json.dumps({'dttm': dttm}, default=json_iso_dttm_ser)
+    '{"dttm": "1970-01-01T00:00:00"}'
     """
     if isinstance(obj, datetime):
         obj = obj.isoformat()
