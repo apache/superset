@@ -46,7 +46,7 @@ function viz_nvd3(slice) {
           chart.xAxis
             .showMaxMin(false);
           chart.stacked(fd.bar_stacked);
-
+          chart.showLegend(fd.show_legend);
         } else if (viz_type === 'pie') {
           chart = nv.models.pieChart()
           colorKey = 'x';
