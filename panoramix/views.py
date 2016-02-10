@@ -534,15 +534,15 @@ class Panoramix(BaseView):
                 mimetype="application/json")
 
     @has_access
-    @expose("/dashboard/<identifier>/")
+    @expose("/dashboard/<dashboard_id>/")
     @utils.log_this
-    def dashboard(self, identifier):
+    def dashboard(self, dashboard_id):
         session = db.session()
         qry = session.query(models.Dashboard)
-        if identifier.isdigit():
-            qry = qry.filter_by(id=int(identifier))
+        if dashboard_id.isdigit():
+            qry = qry.filter_by(id=int(dashboard_id))
         else:
-            qry = qry.filter_by(slug=identifier)
+            qry = qry.filter_by(slug=dashboard_id)
 
         templates = session.query(models.CssTemplate).all()
 

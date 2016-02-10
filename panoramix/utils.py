@@ -187,14 +187,16 @@ def log_this(f):
         if g.user:
             user_id = g.user.id
         from panoramix import models
+        d = request.args.to_dict()
+        d.update(kwargs)
         log = models.Log(
             action=f.__name__,
-            json=json.dumps(request.args.to_dict()),
+            json=json.dumps(d),
+            dashboard_id=d.get('dashboard_id'),
+            slice_id=d.get('slice_id'),
             user_id=user_id)
-
         db.session.add(log)
         db.session.commit()
-
         return f(*args, **kwargs)
     return wrapper
 
