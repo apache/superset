@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.7.0'
+version = '0.7.1'
 
 setup(
     name='panoramix',
@@ -20,7 +20,6 @@ setup(
         'alembic>=0.8.2, <0.9.0',
         'cryptography>=1.1.1, <2.0.0',
         'flask-appbuilder>=1.6.0, <2.0.0',
-        'flask-login==0.2.11',
         'flask-migrate>=1.5.1, <2.0.0',
         'flask-script>=2.0.5, <3.0.0',
         'flask-sqlalchemy==2.0',
