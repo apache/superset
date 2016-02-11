@@ -114,6 +114,19 @@ class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
+class DruidPostAggregatorInlineView(CompactCRUDMixin, PanoramixModelView):
+    datamodel = SQLAInterface(models.DruidPostAggregator)
+    list_columns = ['name', 'verbose_name']
+    edit_columns = [
+        'name', 'description', 'verbose_name', 'datasource', 'json']
+    add_columns = edit_columns
+    page_size = 500
+    validators_columns = {
+        'json': [validate_json],
+    }
+appbuilder.add_view_no_menu(DruidPostAggregatorInlineView)
+
+
 class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by', 'changed_on_']
@@ -284,10 +297,13 @@ class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
         'created_by', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    related_views = [DruidColumnInlineView, DruidMetricInlineView]
+    related_views = [
+        DruidColumnInlineView, DruidMetricInlineView,
+        DruidPostAggregatorInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset']
+    add_columns = edit_columns
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
