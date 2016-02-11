@@ -1,4 +1,5 @@
 coveralls
+mock
 nose
 sphinx
 sphinx_bootstrap_theme
