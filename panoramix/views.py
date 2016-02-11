@@ -147,7 +147,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class TableView(PanoramixModelView, DeleteMixin):
+class TableModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'changed_by_', 'changed_on_']
@@ -176,7 +176,7 @@ class TableView(PanoramixModelView, DeleteMixin):
         self.post_add(table)
 
 appbuilder.add_view(
-    TableView,
+    TableModelView,
     "Tables",
     category="Sources",
     icon='fa-table',)

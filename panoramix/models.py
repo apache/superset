@@ -304,7 +304,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)
 
-    baselink = "tableview"
+    baselink = "tablemodelview"
 
     def __repr__(self):
         return self.table_name
@@ -315,7 +315,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def url(self):
-        return '/tableview/edit/{}'.format(self.id)
+        return '/tablemodelview/edit/{}'.format(self.id)
 
     @property
     def link(self):

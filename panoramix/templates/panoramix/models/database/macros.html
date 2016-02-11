@@ -18,7 +18,7 @@
           $.each(data, function(i, d){
             var id = 'tbl_' + d;
             div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
-            $('#' + id).click(function(){window.location = '/tableview/add';})
+            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
           });
       }).fail(function(error) {
           alert("ERROR: " + error.responseText);
