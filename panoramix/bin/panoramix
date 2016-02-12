@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from datetime import datetime
+import logging
 from subprocess import Popen
 
 from flask.ext.script import Manager
@@ -61,6 +63,25 @@ def load_examples(sample):
 
     print("Loading [Birth names]")
     data.load_birth_names()
+
+@manager.command
+def refresh_druid():
+    """Refresh all druid datasources"""
+    session = db.session()
+    from panoramix import models
+    for cluster in session.query(models.DruidCluster).all():
+        try:
+            cluster.refresh_datasources()
+        except Exception as e:
+            print(
+                "Error while processing cluster '{}'\n{}".format(
+                    cluster, str(e)))
+            logging.exception(e)
+        cluster.metadata_last_refreshed = datetime.now()
+        print(
+            "Refreshed metadata from cluster "
+            "[" + cluster.cluster_name + "]")
+    session.commit()
 
 
 if __name__ == "__main__":
