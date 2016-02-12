@@ -862,6 +862,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @classmethod
     def sync_to_db(cls, name, cluster):
+        print("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
@@ -1078,7 +1079,7 @@ class DruidMetric(Model):
         return obj
 
 
-class DruidColumn(Model, AuditMixinNullable):
+class DruidColumn(Model):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
@@ -1121,7 +1122,7 @@ class DruidColumn(Model, AuditMixinNullable):
         if self.sum and self.isnum:
             mt = corrected_type.lower() + 'Sum'
             name = 'sum__' + self.column_name
-            metrics.append(Metric(
+            metrics.append(DruidMetric(
                 metric_name=name,
                 metric_type='sum',
                 verbose_name='SUM({})'.format(self.column_name),
