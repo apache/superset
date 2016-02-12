@@ -660,7 +660,7 @@ class Panoramix(BaseView):
                 flash(
                     "Error while processing cluster '{}'".format(cluster),
                     "alert")
-                return redirect('/clustermodelview/list/')
+                return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
                 "Refreshed metadata from cluster "
