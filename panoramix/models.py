@@ -1166,7 +1166,7 @@ class DruidColumn(Model, AuditMixinNullable):
                 session.query(M)
                 .filter(M.metric_name == metric.metric_name)
                 .filter(M.datasource_name == self.datasource_name)
-                .filter(Cluster.cluster_name == self.datasource.cluster_name)
+                .filter(DruidCluster.cluster_name == self.datasource.cluster_name)
                 .first()
             )
             metric.datasource_name = self.datasource_name
