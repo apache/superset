@@ -878,13 +878,13 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         for col in cols:
             col_obj = (
                 session
-                .query(Column)
+                .query(DruidColumn)
                 .filter_by(datasource_name=name, column_name=col)
                 .first()
             )
             datatype = cols[col]['type']
             if not col_obj:
-                col_obj = Column(datasource_name=name, column_name=col)
+                col_obj = DruidColumn(datasource_name=name, column_name=col)
                 session.add(col_obj)
             if datatype == "STRING":
                 col_obj.groupby = True
