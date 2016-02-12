@@ -154,6 +154,8 @@ def init():
 
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
+        if perm.permission.name == 'datasource_access':
+            continue
         if perm.view_menu.name not in (
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
                 'Security'):
@@ -164,18 +166,19 @@ def init():
         s = perm.permission.name
         if(
                 perm.view_menu.name not in (
-                    'UserDBModelView',
-                    'RoleModelView',
                     'ResetPasswordView',
+                    'RoleModelView',
+                    'UserDBModelView',
                     'Security') and
                 perm.permission.name not in (
-                    'can_edit',
-                    'can_add',
-                    'can_save',
-                    'can_download',
-                    'muldelete',
                     'all_datasource_access',
+                    'can_add',
+                    'can_download',
+                    'can_delete',
+                    'can_edit',
+                    'can_save',
                     'datasource_access',
+                    'muldelete',
                 )):
             sm.add_permission_role(gamma, perm)
     session = db.session()
