@@ -867,6 +867,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if not datasource:
             datasource = cls(datasource_name=name)
             session.add(datasource)
+            flash("Adding new datasource [{}]".format(name), "success")
+        else:
+            flash("Refreshing datasource [{}]".format(name), "info")
         datasource.cluster = cluster
 
         cols = datasource.latest_metadata()

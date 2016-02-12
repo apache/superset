@@ -659,7 +659,7 @@ class Panoramix(BaseView):
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'".format(cluster),
-                    "alert")
+                    "danger")
                 return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(
