@@ -52,6 +52,9 @@ class AuditMixinNullable(AuditMixin):
     @property
     def changed_by_(self):
         return self.changed_by or ''
+    @property
+    def owner_(self):
+        return self.owner or ''
 
 
 

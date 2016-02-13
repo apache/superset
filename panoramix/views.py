@@ -153,7 +153,7 @@ class TableModelView(PanoramixModelView, DeleteMixin):
         'table_link', 'database', 'sql_link', 'changed_by_', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'description', 'owner_',
         'main_dttm_col', 'default_endpoint', 'offset']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on','desc')
@@ -280,13 +280,13 @@ appbuilder.add_view(
 class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
-        'datasource_link', 'cluster', 'owner',
+        'datasource_link', 'cluster', 'owner_',
         'created_by', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
+        'datasource_name', 'cluster', 'description', 'owner_',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset']
     page_size = 500
     base_order = ('datasource_name', 'asc')
