@@ -820,19 +820,55 @@ class DistributionBarViz(DistributionPieViz):
         'fields': (
             'granularity',
             ('since', 'until'),
-            'metrics', 'groupby',
-            'limit',
+        )
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'groupby',
+            'columns',
+            'metrics',
+            'row_limit',
             ('show_legend', 'bar_stacked'),
         )
     },)
+    form_overrides = {
+        'groupby': {
+            'label': 'Series',
+        },
+        'columns': {
+            'label': 'Breakdowns',
+            'description': "Defines how each series is broken down",
+        },
+    }
+
+    def query_obj(self):
+        d = super(DistributionPieViz, self).query_obj()
+        fd = self.form_data
+        d['is_timeseries'] = False
+        gb = fd.get('groupby') or []
+        cols = fd.get('columns') or []
+        d['groupby'] = set(gb + cols)
+        if len(d['groupby']) < len(gb) + len(cols):
+            raise Exception("Can't have overlap between Series and Breakdowns")
+        if not self.metrics:
+            raise Exception("Pick at least one metric")
+        if not self.groupby:
+            raise Exception("Pick at least one field for [Series]")
+        return d
 
     def get_df(self):
         df = super(DistributionPieViz, self).get_df()
-        df = df.pivot_table(
+        fd = self.form_data
+
+        row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
+        row.sort(ascending=False)
+        columns = fd.get('columns') or []
+        pt = df.pivot_table(
             index=self.groupby,
+            columns=columns,
             values=self.metrics)
-        df = df.sort(self.metrics[0], ascending=False)
-        return df
+        pt = pt.reindex(row.index)
+        return pt
 
     def get_json_data(self):
         df = self.get_df()
@@ -841,18 +877,18 @@ class DistributionBarViz(DistributionPieViz):
         for name, ys in series.items():
             if df[name].dtype.kind not in "biufc":
                 continue
-            df['timestamp'] = pd.to_datetime(df.index, utc=False)
             if isinstance(name, string_types):
                 series_title = name
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)
             else:
-                series_title = ", ".join(name[1:])
+                l = [str(s) for s in name[1:]]
+                series_title = ", ".join(l)
             d = {
                 "key": series_title,
                 "values": [
-                    {'x': ds, 'y': ys[i]}
-                    for i, ds in enumerate(df.timestamp)]
+                    {'x': i, 'y': v}
+                    for i, v in ys.iteritems()]
             }
             chart_data.append(d)
         return dumps(chart_data)
