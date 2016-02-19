@@ -6,6 +6,9 @@ from six import string_types
 import sqlparse
 import requests
 import textwrap
+import glob
+from pyhocon import ConfigFactory
+
 
 from dateutil.parser import parse
 from flask import flash
@@ -765,15 +768,34 @@ class DruidCluster(Model, AuditMixinNullable):
             self.broker_endpoint)
         return cli
 
+    def parse_config(self, config_file):
+        params = {}
+        conf = ConfigFactory.parse_file(config_file)
+        params['name'] = conf['name']
+        params['dimensions'] = conf['dimensions']
+        params['metrics_spec'] = conf['metrics_spec']
+        params['replication'] = conf.get('replication', 2)
+        params['sql'] = conf.get('batch_ingestion.sql', None)
+        params['num_shards'] = conf.get('batch_ingestion.num_shards', 1)
+        params['ts_column'] = conf['batch_ingestion.ts_column']
+        params['sources'] = conf['batch_ingestion.sources']
+        return params
+
     def refresh_datasources(self):
         endpoint = (
             "http://{self.coordinator_host}:{self.coordinator_port}/"
             "{self.coordinator_endpoint}/datasources"
         ).format(self=self)
 
-        datasources = json.loads(requests.get(endpoint).text)
-        for datasource in datasources:
-            DruidDatasource.sync_to_db(datasource, self)
+        if not config.get('AIROLAP_CONFIGS', None):
+            datasources = json.loads(requests.get(endpoint).text)
+            for datasource in datasources:
+                DruidDatasource.sync_to_db(datasource, self)
+        else:
+            config_files = glob.glob(config.get('AIROLAP_CONFIGS'))
+            for conf in config_files:
+                datasource = self.parse_config(conf)
+                DruidDatasource.sync_to_db2(datasource, self)
 
 
 class DruidDatasource(Model, AuditMixinNullable, Queryable):
@@ -860,6 +882,54 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def generate_metrics(self):
         for col in self.columns:
             col.generate_metrics()
+
+    @classmethod
+    def sync_to_db2(cls, datasource_config, cluster):
+        name = datasource_config['name']
+        print("Syncing Druid datasource with AirOLAP config [{}]".format(name))
+        session = get_session()
+        datasource = session.query(cls).filter_by(datasource_name=name).first()
+        if not datasource:
+            datasource = cls(datasource_name=name)
+            session.add(datasource)
+            flash("Adding new datasource [{}]".format(name), "success")
+        else:
+            flash("Refreshing datasource [{}]".format(name), "info")
+        datasource.cluster = cluster
+
+        dimensions = datasource_config['dimensions']
+        for dim in dimensions:
+            col_obj = (
+                session
+                .query(DruidColumn)
+                .filter_by(datasource_name=name, column_name=dim)
+                .first()
+            )
+            if not col_obj:
+                col_obj = DruidColumn(datasource_name=name, column_name=dim)
+                session.add(col_obj)
+
+            col_obj.groupby = True
+            col_obj.filterable = True
+            col_obj.type = "STRING"
+            col_obj.datasource = datasource
+            session.commit()
+
+        '''
+        metrics = datasource_config['metrcis_spec']
+        for metric in metrics:
+            col = metric.get('fieldName')
+            col_obj = (
+                session
+                .query(DruidColumn)
+                .filter_by(datasource_name=name, column_name=col)
+                .first()
+            )
+            if not col_obj:
+                col_obj = DruidColumn(datasource_name=name, column_name=col)
+                session.add(col_obj)
+            col_obj.datasource = datasource
+        '''
 
     @classmethod
     def sync_to_db(cls, name, cluster):
