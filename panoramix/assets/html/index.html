@@ -1,0 +1,12 @@
+{% extends "refactor/base.html" %}
+
+{% block content_fluid %}
+  <div id="app">
+    Oops! React.js is not working properly.
+  </div>
+{% endblock %}
+
+{% block tail_js %}
+  <script src="/static/refactor/javascripts/dist/index.entry.js"></script>
+  {{ super() }}
+{% endblock %}

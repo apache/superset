@@ -20,10 +20,11 @@ migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 
 class MyIndexView(IndexView):
-    index_template = 'index.html'
+    index_template = 'refactor/index.html'
 
 appbuilder = AppBuilder(
-    app, db.session, base_template='panoramix/base.html',
+    app, db.session,
+    base_template='refactor/base.html',
     indexview=MyIndexView,
     security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
 

@@ -1,0 +1,59 @@
+{
+  "name": "panoramix",
+  "version": "0.1.0",
+  "description": "Any database to any visualization",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "webpack -d --watch --colors",
+    "prod": "webpack -p --colors"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mistercrunch/panoramix.git"
+  },
+  "keywords": [
+    "big",
+    "data",
+    "exploratory",
+    "analysis",
+    "react",
+    "d3",
+    "airbnb",
+    "nerds",
+    "database",
+    "flask"
+  ],
+  "author": "Airbnb",
+  "bugs": {
+    "url": "https://github.com/mistercrunch/panoramix/issues"
+  },
+  "homepage": "https://github.com/mistercrunch/panoramix#readme",
+  "dependencies": {
+    "babel-loader": "^6.2.1",
+    "babel-polyfill": "^6.3.14",
+    "babel-preset-es2015": "^6.3.13",
+    "babel-preset-react": "^6.3.13",
+    "bootstrap": "^3.3.6",
+    "brace": "^0.7.0",
+    "d3": "^3.5.14",
+    "d3-cloud": "^1.2.1",
+    "d3-sankey": "^0.2.1",
+    "d3-tip": "^0.6.7",
+    "jquery": "^2.2.0",
+    "jquery-ui": "^1.10.5",
+    "react": "^0.14.7",
+    "react-bootstrap": "^0.28.3",
+    "react-dom": "^0.14.7",
+    "select2": "^4.0.1",
+    "topojson": "^1.6.22",
+    "webpack": "^1.12.12"
+  },
+  "devDependencies": {
+    "css-loader": "^0.23.1",
+    "style-loader": "^0.13.0"
+  }
+}

@@ -14,3 +14,9 @@ dist
 panoramix.egg-info/
 app.db
 *.bak
+
+# Node.js, webpack artifacts
+*.entry.js
+*.js.map
+node_modules
+npm-debug.log
