@@ -2,43 +2,46 @@
 {% import 'appbuilder/baselib.html' as baselib %}
 
 {% block head_css %}
-    {{super()}}
-    <link rel="shortcut icon" href="/static/refactor/images/favicon.png" />
-    <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/panoramix.css" />
+  {{super()}}
+  <link rel="shortcut icon" href="/static/refactor/images/favicon.png" />
+  <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/vendor/jquery-ui.min.css" />
+  <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/panoramix.css" />
 
-    <!-- Replace with custom theme css -->
-    <!-- <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/themes/bootswatch.paper.min.css" /> -->
-    <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/themes/panoramix-bootstrap-theme.css" />
+  <!-- Replace with custom bootstrap theme -->
+  <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/themes/bootswatch.paper.min.css" />
+  <!-- <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/themes/panoramix-bootstrap-theme.css" /> -->
 {% endblock %}
 
 {% block body %}
 
-    {% include 'appbuilder/general/confirm.html' %}
-    {% include 'appbuilder/general/alert.html' %}
+  {% include 'appbuilder/general/confirm.html' %}
+  {% include 'appbuilder/general/alert.html' %}
 
-    {% block navbar %}
-        <header class="top" role="header">
-        {% include 'appbuilder/navbar.html' %}
-        </header>
-    {% endblock %}
+  {% block navbar %}
+    <header class="top" role="header">
+      {% include 'appbuilder/navbar.html' %}
+    </header>
+  {% endblock %}
 
-    {% block uncontained %}{% endblock %}
+  {% block uncontained %}{% endblock %}
 
-    <div class="container">
-      <div class="row">
-          {% block messages %}
-            {% include 'appbuilder/flash.html' %}
-          {% endblock %}
-          {% block content %}{% endblock %}
-      </div>
+  <div class="container">
+    <div class="row">
+      {% block messages %}
+        {% include 'appbuilder/flash.html' %}
+      {% endblock %}
+      {% block content %}{% endblock %}
     </div>
-    <div class="container-fluid">
-        {% block content_fluid %}{% endblock %}
-    </div>
+  </div>
+  <div class="container-fluid">
+    {% block content_fluid %}{% endblock %}
+  </div>
 
 {% endblock %}
 
 {% block tail_js %}
-    <script src="/static/refactor/javascripts/dist/base.entry.js"></script>
-    {{ super() }}
+  {{ super() }}
+  <!-- @TODO get this to shim correctly with a require('jquery-ui') -->
+  <script src="/static/refactor/javascripts/vendor/jquery-ui.min.js"></script>
+  <script src="/static/refactor/javascripts/dist/base.entry.js"></script>
 {% endblock %}

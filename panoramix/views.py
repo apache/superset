@@ -470,10 +470,10 @@ class Panoramix(BaseView):
         else:
             if config.get("DEBUG"):
                 resp = self.render_template(
-                    "panoramix/viz.html", viz=obj, slice=slc)
+                    "refactor/viz.html", viz=obj, slice=slc)
             try:
                 resp = self.render_template(
-                    "panoramix/viz.html", viz=obj, slice=slc)
+                    "refactor/viz.html", viz=obj, slice=slc)
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)

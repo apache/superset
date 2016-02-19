@@ -9,7 +9,8 @@ var config = {
   entry: {
     base: APP_DIR + '/javascripts/base.js',
     index: APP_DIR + '/javascripts/index.jsx',
-    // explore: APP_DIR + '/javascripts/dist/explore.js',
+    // dashboard: APP_DIR + '/javascripts/dist/dashboard.js',
+    explore: APP_DIR + '/javascripts/explore.js',
   },
   output: {
     path: BUILD_DIR,

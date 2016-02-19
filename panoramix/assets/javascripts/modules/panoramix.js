@@ -50,6 +50,7 @@ var px = (function() {
 
   var visualizations = {};
   var dashboard = undefined;
+  var slice = undefined;
 
   function getParam(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -59,7 +60,7 @@ var px = (function() {
   }
 
   function UTC(dttm){
-    return v = new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
+    return new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(),  dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
   }
   var tickMultiFormat = d3.time.format.multi([
     [".%L", function(d) { return d.getMilliseconds(); }], // If there are millisections, show  only them
@@ -95,7 +96,7 @@ var px = (function() {
     var timer;
     var stopwatch = function () {
         dttm += 10;
-        num = dttm / 1000;
+        var num = dttm / 1000;
         $('#timer').text(num.toFixed(2) + " sec");
     }
     var qrystr = '';
@@ -275,24 +276,29 @@ var px = (function() {
   function initExploreView() {
 
     function get_collapsed_fieldsets(){
-        collapsed_fieldsets = $("#collapsed_fieldsets").val();
-        if (collapsed_fieldsets != undefined && collapsed_fieldsets != "")
+        var collapsed_fieldsets = $("#collapsed_fieldsets").val();
+
+        if (collapsed_fieldsets != undefined && collapsed_fieldsets != "") {
           collapsed_fieldsets = collapsed_fieldsets.split('||');
-        else
+        }
+        else {
           collapsed_fieldsets = [];
+        }
         return collapsed_fieldsets;
     }
 
     function toggle_fieldset(legend, animation) {
         var parent = legend.parent();
-        fieldset = parent.find(".legend_label").text();
-        collapsed_fieldsets = get_collapsed_fieldsets();
+        var fieldset = parent.find(".legend_label").text();
+        var collapsed_fieldsets = get_collapsed_fieldsets();
 
         if (!parent.hasClass("collapsed")){
-          if (animation)
+          if (animation) {
             parent.find(".fieldset_content").slideUp();
-          else
+          }
+          else {
             parent.find(".fieldset_content").hide();
+          }
 
           parent.addClass("collapsed");
           parent.find("span.collapser").text("[+]");
@@ -301,10 +307,12 @@ var px = (function() {
             collapsed_fieldsets.push(fieldset);
           }
         } else {
-          if (animation)
+          if (animation) {
             parent.find(".fieldset_content").slideDown();
-          else
+          }
+          else {
             parent.find(".fieldset_content").show();
+          }
           parent.removeClass("collapsed");
           parent.find("span.collapser").text("[-]");
 
@@ -320,6 +328,7 @@ var px = (function() {
     $('legend').click(function () {
       toggle_fieldset($(this), true);
     });
+
     $('#shortner').click(function () {
       $.ajax({
         type: "POST",
@@ -337,7 +346,7 @@ var px = (function() {
       });
     });
     $("#viz_type").change(function() {$("#query").submit();});
-    collapsed_fieldsets = get_collapsed_fieldsets();
+    var collapsed_fieldsets = get_collapsed_fieldsets();
     for(var i=0; i < collapsed_fieldsets.length; i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
     }
@@ -346,7 +355,8 @@ var px = (function() {
     $(".select2Sortable").select2({dropdownAutoWidth : true});
     $(".select2Sortable").select2Sortable({bindOrder: 'sortableStop'});
     $("form").show();
-    $('[data-toggle="tooltip"]').tooltip({container: 'body'});
+    $('[data-toggle="tooltip"]').tooltip();
+    $(".ui-helper-hidden-accessible").remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
     function set_filters(){
       for (var i = 1; i < 10; i++){
@@ -359,7 +369,7 @@ var px = (function() {
     set_filters();
 
     function add_filter(i) {
-      cp = $("#flt0").clone();
+      var cp = $("#flt0").clone();
       $(cp).appendTo("#filters");
       $(cp).show();
       if (i != undefined){
@@ -421,7 +431,7 @@ var px = (function() {
       return obj;
     }
     $(".select2_freeform").each(function(){
-      parent = $(this).parent();
+      var parent = $(this).parent();
       var name = $(this).attr('name');
       var l = [];
       var selected = '';
@@ -431,10 +441,9 @@ var px = (function() {
               selected = this.options[i].value;
           }
       }
-      obj = parent.append(
+      var obj = parent.append(
           '<input class="' + $(this).attr('class') + '" name="'+ name +'" type="text" value="' + selected + '">');
-      $("input[name='" + name  +"']")
-        .select2({
+      $("input[name='" + name  +"']").select2({
           createSearchChoice: create_choices,
           initSelection: initSelectionToValue,
           dropdownAutoWidth : true,
