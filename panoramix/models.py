@@ -847,7 +847,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         results = client.time_boundary(datasource=self.datasource_name)
         if not results:
             return
-        max_time = results[0]['result']['minTime']
+        max_time = results[0]['result']['maxTime']
         max_time = parse(max_time)
         intervals = (max_time - timedelta(seconds=1)).isoformat() + '/'
         intervals += (max_time + timedelta(seconds=1)).isoformat()
