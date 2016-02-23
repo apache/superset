@@ -97,16 +97,7 @@ BABEL_DEFAULT_FOLDER = 'translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
-    'fr': {'flag': 'fr', 'name': 'French'},
 }
-"""
-'pt': {'flag':'pt', 'name':'Portuguese'},
-'pt_BR': {'flag':'br', 'name': 'Pt Brazil'},
-'es': {'flag':'es', 'name':'Spanish'},
-'de': {'flag':'de', 'name':'German'},
-'zh': {'flag':'cn', 'name':'Chinese'},
-'ru': {'flag':'ru', 'name':'Russian'}
-"""
 # ---------------------------------------------------
 # Image and file configuration
 # ---------------------------------------------------

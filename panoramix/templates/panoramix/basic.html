@@ -1,0 +1,38 @@
+<html>
+  <head>
+    <title>{% block title %}{{ app_name }}{% endblock %}</title>
+    {% block head_meta %}{% endblock %}
+    {% block head_css %}
+        <link rel="stylesheet" type="text/css" href="/static/refactor/node_modules/font-awesome/css/font-awesome.min.css" />
+        <link rel="stylesheet" type="text/css" href="/static/refactor/node_modules/select2/dist/css/select2.min.css" />
+        <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/themes/bootswatch.paper.min.css" />
+        <link rel="stylesheet" type="text/css" href="/static/refactor/stylesheets/panoramix.css" />
+    {% endblock %}
+    {% block head_js %}
+        <script src="/static/refactor/node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="/static/refactor/node_modules/select2/dist/js/select2.full.min.js"></script>
+        <script src="/static/refactor/javascripts/vendor/jquery-ui.min.js"></script>
+        <script src="/static/refactor/javascripts/vendor/select2.sortable.js"></script>
+    {% endblock %}
+  </head>
+
+  <body>
+    {% block navbar %}
+      {% if not viz or viz.request.args.get("standalone") != "true" %}
+        <header class="top" role="header">
+          {% include 'appbuilder/navbar.html' %}
+        </header>
+      {% endif %}
+    {% endblock %}
+
+    {% block body %}
+      <div id="app">
+        Oops! React.js is not working properly.
+      </div>
+    {% endblock %}
+
+    {% block tail_js %}
+        <script src="/static/refactor/javascripts/dist/base.entry.js"></script>
+    {% endblock %}
+  </body>
+</html>

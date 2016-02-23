@@ -46,6 +46,7 @@
     "d3-tip": "^0.6.7",
     "d3.layout.cloud": "^1.2.0",
     "exports-loader": "^0.6.3",
+    "font-awesome": "^4.5.0",
     "gridster": "^0.5.6",
     "imports-loader": "^0.6.5",
     "jquery": "^2.2.1",
