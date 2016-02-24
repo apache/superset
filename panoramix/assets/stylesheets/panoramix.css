@@ -61,10 +61,6 @@ form div {
     text-align: right;
 }
 
-.select2-results .select2-highlighted {
-    background-color: #005c66;
-}
-
 .notbtn {
     cursor: default;
 }
@@ -154,10 +150,6 @@ legend {
   border: 5px solid black;
 }
 
-.datasource .select2-container-multi .select2-choices {
-  height: 70px;
-  overflow: auto;
-}
 .datasource form div.form-control {
   margin-bottom: 5px !important;
 }

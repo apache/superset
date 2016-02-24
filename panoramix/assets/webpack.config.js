@@ -7,10 +7,9 @@ var BUILD_DIR = path.resolve(__dirname, './javascripts/dist'); // output
 var config = {
   // for now generate one compiled js file per entry point / html page
   entry: {
-    base: APP_DIR + '/javascripts/base.js',
     index: APP_DIR + '/javascripts/index.jsx',
-    // dashboard: APP_DIR + '/javascripts/dist/dashboard.js',
     explore: APP_DIR + '/javascripts/explore.js',
+    // dashboard: APP_DIR + '/javascripts/dist/dashboard.js',
   },
   output: {
     path: BUILD_DIR,
@@ -31,19 +30,7 @@ var config = {
       }
     ]
   },
-  plugins: [
-    // // @TODO: this will be used in the future to expose these packages through global window vars
-    // new webpack.ProvidePlugin({
-    //     '$': "jquery",
-    //     'window.$': "jquery",
-
-    //     'jQuery': "jquery",
-    //     'window.jQuery': "jquery",
-
-    //     'window.d3': "d3",
-    //     'window.px':  APP_DIR + '/javascripts/modules/panoramix.js'
-    // })
-  ]
+  plugins: []
 };
 
 module.exports = config;

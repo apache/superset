@@ -54,7 +54,7 @@
     "react": "^0.14.7",
     "react-bootstrap": "^0.28.3",
     "react-dom": "^0.14.7",
-    "select2": "^4.0.1",
+    "select2": "3.5",
     "topojson": "^1.6.22",
     "webpack": "^1.12.12"
   },

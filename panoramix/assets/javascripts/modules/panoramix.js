@@ -1,5 +1,5 @@
-var $  = window.$  || require('jquery');
-var d3 = window.d3 || require('d3');
+var $  = require('jquery'), jQuery = $;
+var d3 = require('d3');
 
 var color = function(){
   // Color related utility functions go in this object
@@ -447,7 +447,8 @@ var px = (function() {
           }
       }
       var obj = parent.append(
-          '<input class="' + $(this).attr('class') + '" name="'+ name +'" type="text" value="' + selected + '">');
+          '<input class="' + $(this).attr('class') + '" name="'+ name +'" type="text" value="' + selected + '">'
+      );
       $("input[name='" + name  +"']").select2({
           createSearchChoice: create_choices,
           initSelection: initSelectionToValue,

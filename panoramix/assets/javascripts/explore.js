@@ -2,16 +2,21 @@
 // Init explorer view -> load vis dependencies -> read data (from dynamic html) -> render slice
 // nb: to add a new vis, you must also add a Python fn in viz.py
 
-// css
-require('../vendor/pygments.css');
-require('../vendor/bootstrap-toggle/bootstrap-toggle.min.css');
-
 // js
-var $  = window.$  || require('jquery');
-var px = window.px || require('./modules/panoramix.js');
+var $ = window.$ = require('jquery');
+var jQuery = window.jQuery = $;
+var px = require('./modules/panoramix.js');
+var d3 = require('d3');
+
+require('bootstrap');
+require('jquery-ui');
 require('select2');
 require('../vendor/bootstrap-toggle/bootstrap-toggle.min.js');
 require('../vendor/select2.sortable.js');
+
+// css
+require('../vendor/pygments.css');
+require('../vendor/bootstrap-toggle/bootstrap-toggle.min.css');
 
 // vis sources
 var sourceMap = {

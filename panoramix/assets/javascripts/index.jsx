@@ -1,7 +1,8 @@
+var $ = require('jquery');
+var jQuery = $;
 import React from 'react';
 import { render } from 'react-dom';
 import { Jumbotron } from 'react-bootstrap';
-require('bootstrap');
 
 class App extends React.Component {
   render () {
