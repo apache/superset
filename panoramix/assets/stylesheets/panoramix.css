@@ -101,7 +101,7 @@ legend.legend-style {
     font-weight: bold;
 }
 .nvtooltip {
-    position: relative !important;
+    //position: relative !important;
     z-index: 888;
 }
 
