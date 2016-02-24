@@ -1,9 +1,8 @@
-{% extends "panoramix/base.html" %}
+{% extends "panoramix/basic.html" %}
 
 {% block head_css %}
 {{super()}}
 <link rel="stylesheet" type="text/css" href="/static/lib/pygments.css" />
-<link href="/static/lib/bootstrap-toggle.min.css" rel="stylesheet">
 {% endblock %}
 
 {% block content_fluid %}
@@ -124,13 +123,13 @@
                   <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
                   <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
                   <button type="button" class="btn btn-sm remove" aria-label="Delete filter">
-                    <span class="glyphicon glyphicon-minus"  aria-hidden="true"></span>
+                    <span class="fa fa-minus"  aria-hidden="true"></span>
                   </button>
                 </div>
               </div>
               <div id="filters"></div>
               <button type="button" id="plus" class="btn btn-sm" aria-label="Add a filter">
-                <span class="glyphicon glyphicon-plus" aria-hidden="true"></span>
+                <span class="fa fa-plus" aria-hidden="true"></span>
               </button>
             </div>
           </fieldset>
