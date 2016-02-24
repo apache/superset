@@ -2,19 +2,6 @@
 
 {% block head_css %}
 {{super()}}
-<link rel="shortcut icon" href="{{ url_for('static', filename='chaudron.png') }}" />
-<link rel="stylesheet" type="text/css" href="/static/panoramix-bootstrap-theme.css" />
-<link rel="stylesheet" type="text/css" href="/static/panoramix.css" />
-<link rel="stylesheet" type="text/css" href="/static/lib/jquery-ui/jquery-ui.min.css" />
+  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/panoramix.css" />
+  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/themes/bootswatch.paper.min.css" />
 {% endblock %}
-
-{% block tail_js %}
-<script src="/static/lib/d3.min.js"></script>
-<script src="/static/panoramix.js"></script>
-<script src="/static/lib/jquery-ui/jquery-ui.min.js"></script>
-<script src="/static/lib/select2.sortable.js"></script>
-{{ super() }}
-{% endblock %}
-{% block footer %}
-{% endblock %}
-
