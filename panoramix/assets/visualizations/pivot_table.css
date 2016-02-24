@@ -1,4 +1,8 @@
-.gridster li.widget.pivot_table,
-div.widget.pivot_table{
+.gridster li.widget.pivot_table, div.widget.pivot_table {
     overflow: auto !important;
+}
+
+.widget.table td {
+    padding: 5px 1px;
+    font-size: small;
 }

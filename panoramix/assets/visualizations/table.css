@@ -7,3 +7,8 @@ div.widget.table {
     background-color: #005a63;
     color: white;
 }
+
+.widget.table td {
+    padding: 5px 1px;
+    font-size: small;
+}

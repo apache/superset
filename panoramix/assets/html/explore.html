@@ -18,7 +18,7 @@
     </div>
   {% endmacro %}
 
-  <div class="datasource">
+  <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
       <div class="header">
           <span class="btn btn-default notbtn">
@@ -45,10 +45,10 @@
           {% endif %}
           <div class="btn-group results pull-right" role="group">
             <a role="button" tabindex="0" class="btn btn-default" id="shortner" title="Short URL" data-toggle="popover" data-trigger="focus">
-              <i class="fa fa-link"></i>
+              <i class="fa fa-link"></i>&nbsp;
             </a>
             <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
-              <i class="fa fa-code"></i>
+              <i class="fa fa-code"></i>&nbsp;
             </span>
             <span class="btn btn-default " id="json" title="Export to .json" data-toggle="tooltip">
               <i class="fa fa-file-code-o"></i>
