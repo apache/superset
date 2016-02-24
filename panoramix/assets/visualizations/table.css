@@ -1,0 +1,9 @@
+.gridster li.widget.table,
+div.widget.table {
+    overflow: auto !important;
+}
+
+.widget.table td.filtered {
+    background-color: #005a63;
+    color: white;
+}

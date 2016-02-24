@@ -8,20 +8,4 @@
     {% extends 'refactor/explore.html' %}
   {% endif %}
 
-
-  {% block head_css %}
-      {{super()}}
-      {% for css in viz.css_files %}
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
-      {% endfor %}
-  {% endblock %}
-
-
-  {% block tail %}
-      {{super()}}
-      {% for js in viz.js_files %}
-        <script src="{{ url_for('static', filename=js) }}"></script>
-      {% endfor %}
-  {% endblock %}
-
 {% endif %}

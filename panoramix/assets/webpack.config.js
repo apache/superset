@@ -32,12 +32,16 @@ var config = {
     ]
   },
   plugins: [
-    // @TODO: this will be used in the future to expose these packages through global window vars
+    // // @TODO: this will be used in the future to expose these packages through global window vars
     // new webpack.ProvidePlugin({
-    //     $: "jquery",
-    //     jQuery: "jquery",
-    //     d3: "d3",
-    //     px: './modules/panoramix.js'
+    //     '$': "jquery",
+    //     'window.$': "jquery",
+
+    //     'jQuery': "jquery",
+    //     'window.jQuery': "jquery",
+
+    //     'window.d3': "d3",
+    //     'window.px':  APP_DIR + '/javascripts/modules/panoramix.js'
     // })
   ]
 };

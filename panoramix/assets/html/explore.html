@@ -1,11 +1,5 @@
 {% extends "refactor/base.html" %}
 
-{% block head_css %}
-  {{super()}}
-  <link rel="stylesheet" type="text/css" href="/static/lib/pygments.css" />
-  <link href="/static/lib/bootstrap-toggle.min.css" rel="stylesheet">
-{% endblock %}
-
 {% block content_fluid %}
   {% set datasource = viz.datasource %}
   {% set form = viz.form %}

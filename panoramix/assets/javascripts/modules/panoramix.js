@@ -1,3 +1,6 @@
+var $  = window.$  || require('jquery');
+var d3 = window.d3 || require('d3');
+
 var color = function(){
   // Color related utility functions go in this object
   var bnbColors = [
@@ -7,8 +10,8 @@ var color = function(){
     '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
   ];
   var spectrums = {
-    'fire': ['white', 'yellow', 'red', 'black'],
     'blue_white_yellow': ['#00d1c1', 'white', '#ffb400'],
+    'fire': ['white', 'yellow', 'red', 'black'],
     'white_black': ['white', 'black'],
     'black_white': ['black', 'white'],
   }
@@ -346,6 +349,7 @@ var px = (function() {
       });
     });
     $("#viz_type").change(function() {$("#query").submit();});
+
     var collapsed_fieldsets = get_collapsed_fieldsets();
     for(var i=0; i < collapsed_fieldsets.length; i++){
       toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
@@ -382,6 +386,7 @@ var px = (function() {
         $(this).parent().parent().remove();
       });
     }
+
     $(window).bind("popstate", function(event) {
       // Browser back button
       var returnLocation = history.location || document.location;
@@ -409,7 +414,7 @@ var px = (function() {
         $("#query").submit();
       }
     });
-    add_filter();
+
     $(".druidify").click(druidify);
 
     function create_choices(term, data) {
