@@ -1,5 +1,4 @@
-.gridster li.widget.table,
-div.widget.table {
+.gridster .widget.table {
     overflow: auto !important;
 }
 
@@ -9,6 +8,6 @@ div.widget.table {
 }
 
 .widget.table td {
-    padding: 5px 1px;
+    padding: 1px 5px;
     font-size: small;
 }
