@@ -1,7 +1,7 @@
 {% extends "panoramix/base.html" %}
 {% block content %}
 <div class="header">
-  <h1><i class='fa fa-star'></i> Featured Datasets </h1>
+  <h3><i class='fa fa-star'></i> Featured Datasets </h3>
 </div>
 <hr/>
 <table class="table table-hover dataTable table-bordered" id="dataset-table" style="display:None">
@@ -16,7 +16,7 @@
     <tbody>
     {% for dataset in featured_datasets %}
         <tr>
-            <td> 
+            <td>
               <div class="intable-longtext">
                 <h4>{{ dataset.table_name }}</h4>
                 <p>{{ utils.markdown(dataset.description) | safe }}</p>
@@ -34,13 +34,13 @@
 
 {% block head_css %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="/static/lib/dataTables/dataTables.bootstrap.css" />
+<link rel="stylesheet" type="text/css" href="/static/assets/vendor/dataTables/dataTables.bootstrap.css" />
 {% endblock %}
 
 {% block tail_js %}
 {{ super() }}
-<script src="/static/lib/dataTables/jquery.dataTables.min.js"></script>
-<script src="/static/lib/dataTables/dataTables.bootstrap.js"></script>
+<script src="/static/assets/vendor/dataTables/jquery.dataTables.min.js"></script>
+<script src="/static/assets/vendor/dataTables/dataTables.bootstrap.js"></script>
 <script>
     $(document).ready(function() {
         $('#dataset-table').DataTable({
