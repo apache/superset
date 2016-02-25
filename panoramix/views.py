@@ -242,7 +242,7 @@ class DashboardModelView(PanoramixModelView, DeleteMixin):
             "the dashboard view"),
         'css': (
             "The css for individual dashboards can be altered here, or "
-            "in the dashboard view where changes are immediatly "
+            "in the dashboard view where changes are immediately "
             "visible"),
         'slug': "To get a readable URL for your dashboard",
     }
