@@ -1,7 +1,8 @@
 import logging
 import os
-from flask import Flask
+from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
+from flask.ext.appbuilder.baseviews import expose
 from flask.ext.migrate import Migrate
 from panoramix import config
 
@@ -20,7 +21,9 @@ migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 
 class MyIndexView(IndexView):
-    index_template = 'panoramix/featured_datasets.html'
+    @expose('/')
+    def index(self):
+        return redirect('/panoramix/featured')
 
 appbuilder = AppBuilder(
     app, db.session,

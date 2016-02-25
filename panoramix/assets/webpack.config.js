@@ -10,6 +10,7 @@ var config = {
     //dashboard: APP_DIR + '/javascripts/dist/dashboard.js',
     explore: APP_DIR + '/javascripts/explore.js',
     sql: APP_DIR + '/javascripts/sql.js',
+    featured: APP_DIR + '/javascripts/featured.js',
   },
   output: {
     path: BUILD_DIR,
