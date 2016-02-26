@@ -34,7 +34,7 @@ var sourceMap = {
   markup:         'markup.js',
   para:           'parallel_coordinates.js',
   pie:            'nvd3_vis.js',
-  // pivot_table:    undefined,
+  pivot_table:    'pivot_table.js',
   sankey:         'sankey.js',
   sunburst:       'sunburst.js',
   table:          'table.js',
