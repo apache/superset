@@ -7,10 +7,10 @@ var BUILD_DIR = path.resolve(__dirname, './javascripts/dist'); // output
 var config = {
   // for now generate one compiled js file per entry point / html page
   entry: {
-    //dashboard: APP_DIR + '/javascripts/dist/dashboard.js',
+    dashboard: APP_DIR + '/javascripts/dashboard.js',
     explore: APP_DIR + '/javascripts/explore.js',
-    sql: APP_DIR + '/javascripts/sql.js',
     featured: APP_DIR + '/javascripts/featured.js',
+    sql: APP_DIR + '/javascripts/sql.js',
   },
   output: {
     path: BUILD_DIR,

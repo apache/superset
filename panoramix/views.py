@@ -560,7 +560,7 @@ class Panoramix(BaseView):
                 int(o['slice_id']):o
                 for o in json.loads(dash.position_json)}
         return self.render_template(
-            "panoramix/dashboard.html", dashboard=dash,
+            "refactor/dashboard.html", dashboard=dash,
             templates=templates,
             pos_dict=pos_dict)
 
@@ -575,7 +575,7 @@ class Panoramix(BaseView):
 
         table_name=request.args.get('table_name')
         return self.render_template(
-            "panoramix/sql.html",
+            "refactor/sql.html",
             tables=tables,
             table_name=table_name,
             db=mydb)

@@ -4,6 +4,8 @@ var d3 = window.d3 || require('d3');
 // CSS
 require('./big_number.css');
 
+var px = require('../javascripts/modules/panoramix.js');
+
 function bigNumberVis(slice) {
   var data_attribute = slice.data;
   var div = d3.select(slice.selector);
