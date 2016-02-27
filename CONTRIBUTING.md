@@ -28,10 +28,6 @@ open to whoever wants to implement it.
 Look through the GitHub issues for features. Anything tagged with
 "feature" is open to whoever wants to implement it.
 
-We've created the operators, hooks, macros and executors we needed, but we 
-made sure that this part of Panoramix is extensible. New operators,
-hooks and operators are very welcomed!
-
 ### Documentation
 
 Panoramix could always use better documentation,
@@ -55,7 +51,7 @@ If you are proposing a feature:
 
 [API Documentation](http://pythonhosted.com/panoramix)
 
-## Setting up a development environment
+## Setting up a Python development environment
 
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
@@ -84,7 +80,61 @@ If you are proposing a feature:
     # start a dev web server
     panoramix runserver -d
 
-For every development session you may have to 
+
+## Setting up the node / npm javascript environment
+
+`panoramix/assets` contains all npm-managed, front end assets.
+Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
+While these may be phased out over time, these packages are currently not
+managed with npm.
+
+
+### Using npm to generate bundled files
+
+#### npm
+First, npm must be available in your environment. If it is not you can run the following commands
+(taken from [this source](https://gist.github.com/DanHerbert/9520689))
+```
+brew install node --without-npm
+echo prefix=~/.npm-packages >> ~/.npmrc
+curl -L https://www.npmjs.com/install.sh | sh
+```
+
+The final step is to add
+`~/.node/bin` to your `PATH` so commands you install globally are usable.
+Add something like this to your `.bashrc` file.
+```
+export PATH="$HOME/.node/bin:$PATH"
+```
+
+#### npm packages
+To install third party libraries defined in `package.json`, run the
+following within this directory which will install them in a
+new `node_modules/` folder within `assets/`.
+
+```
+npm install
+```
+
+To parse and generate bundled files for panoramix, run either of the
+following commands. The `dev` flag will keep the npm script running and
+re-run it upon any changes within the assets directory.
+
+```
+# Compiles the production / optimized js & css
+npm run prod
+
+# Start a web server that manages and updates your assets as you modify them
+npm run dev
+```
+
+For every development session you will have to start a flask dev server
+as well as an npm watcher
+
+```
+panoramix runserver -d -p 8081
+npm run dev
+```
 
 ## Testing
 
