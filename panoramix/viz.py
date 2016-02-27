@@ -32,8 +32,6 @@ class BaseViz(object):
             'metrics', 'groupby',
         )
     },)
-    js_files = []
-    css_files = []
     form_overrides = {}
 
     def __init__(self, datasource, form_data):
@@ -283,16 +281,8 @@ class TableViz(BaseViz):
             'all_columns',
         )
     },)
-    css_files = [
-        'lib/dataTables/dataTables.bootstrap.css',
-        'widgets/viz_table.css',
-    ]
     is_timeseries = False
-    js_files = [
-        'lib/dataTables/jquery.dataTables.min.js',
-        'lib/dataTables/dataTables.bootstrap.js',
-        'widgets/viz_table.js',
-    ]
+
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
@@ -328,14 +318,7 @@ class TableViz(BaseViz):
 class PivotTableViz(BaseViz):
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
-    css_files = [
-        'lib/dataTables/dataTables.bootstrap.css',
-        'widgets/viz_pivot_table.css']
     is_timeseries = False
-    js_files = [
-        'lib/dataTables/jquery.dataTables.min.js',
-        'lib/dataTables/dataTables.bootstrap.js',
-        'widgets/viz_pivot_table.js']
     fieldsets = (
     {
         'label': None,
@@ -396,7 +379,6 @@ class PivotTableViz(BaseViz):
 class MarkupViz(BaseViz):
     viz_type = "markup"
     verbose_name = "Markup Widget"
-    js_files = ['widgets/viz_markup.js']
     fieldsets = (
     {
         'label': None,
@@ -435,10 +417,6 @@ class WordCloudViz(BaseViz):
             'rotation',
         )
     },)
-    js_files = [
-        'lib/d3.layout.cloud.js',
-        'widgets/viz_wordcloud.js',
-    ]
 
     def query_obj(self):
         d = super(WordCloudViz, self).query_obj()
@@ -460,14 +438,6 @@ class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
-    js_files = [
-        'lib/nvd3/nv.d3.min.js',
-        'widgets/viz_nvd3.js',
-    ]
-    css_files = [
-        'lib/nvd3/nv.d3.css',
-        'widgets/viz_nvd3.css',
-    ]
 
 
 class BubbleViz(NVD3Viz):
@@ -542,12 +512,6 @@ class BigNumberViz(BaseViz):
     viz_type = "big_number"
     verbose_name = "Big Number"
     is_timeseries = True
-    js_files = [
-        'widgets/viz_bignumber.js',
-    ]
-    css_files = [
-        'widgets/viz_bignumber.css',
-    ]
     fieldsets = (
     {
         'label': None,
@@ -898,9 +862,6 @@ class SunburstViz(BaseViz):
     viz_type = "sunburst"
     verbose_name = "Sunburst"
     is_timeseries = False
-    js_files = [
-        'widgets/viz_sunburst.js']
-    css_files = ['widgets/viz_sunburst.css']
     fieldsets = (
     {
         'label': None,
@@ -963,10 +924,6 @@ class SankeyViz(BaseViz):
     viz_type = "sankey"
     verbose_name = "Sankey"
     is_timeseries = False
-    js_files = [
-        'lib/d3-sankey.js',
-        'widgets/viz_sankey.js']
-    css_files = ['widgets/viz_sankey.css']
     fieldsets = (
     {
         'label': None,
@@ -1004,9 +961,6 @@ class DirectedForceViz(BaseViz):
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
     is_timeseries = False
-    js_files = [
-        'widgets/viz_directed_force.js']
-    css_files = ['widgets/viz_directed_force.css']
     fieldsets = (
     {
         'label': None,
@@ -1049,11 +1003,6 @@ class WorldMapViz(BaseViz):
     viz_type = "world_map"
     verbose_name = "World Map"
     is_timeseries = False
-    js_files = [
-        'lib/topojson.min.js',
-        'lib/datamaps.all.js',
-        'widgets/viz_world_map.js']
-    css_files = ['widgets/viz_world_map.css']
     fieldsets = (
     {
         'label': None,
@@ -1127,10 +1076,6 @@ class FilterBoxViz(BaseViz):
     viz_type = "filter_box"
     verbose_name = "Filters"
     is_timeseries = False
-    js_files = [
-        'widgets/viz_filter_box.js']
-    css_files = [
-        'widgets/viz_filter_box.css']
     fieldsets = (
     {
         'label': None,
@@ -1181,7 +1126,6 @@ class IFrameViz(BaseViz):
     viz_type = "iframe"
     verbose_name = "iFrame"
     is_timeseries = False
-    js_files = ['widgets/viz_iframe.js']
     fieldsets = (
     {
         'label': None,
@@ -1193,11 +1137,6 @@ class ParallelCoordinatesViz(BaseViz):
     viz_type = "para"
     verbose_name = "Parallel Coordinates"
     is_timeseries = False
-    js_files = [
-        'lib/para/d3.parcoords.js',
-        'lib/para/divgrid.js',
-        'widgets/viz_para.js']
-    css_files = ['lib/para/d3.parcoords.css']
     fieldsets = (
     {
         'label': None,
@@ -1230,8 +1169,6 @@ class HeatmapViz(BaseViz):
     viz_type = "heatmap"
     verbose_name = "Heatmap"
     is_timeseries = False
-    js_files = ['lib/d3.tip.js', 'widgets/viz_heatmap.js']
-    css_files = ['lib/d3.tip.css', 'widgets/viz_heatmap.css']
     fieldsets = (
     {
         'label': None,
