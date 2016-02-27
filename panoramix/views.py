@@ -471,10 +471,10 @@ class Panoramix(BaseView):
         else:
             if config.get("DEBUG"):
                 resp = self.render_template(
-                    "refactor/viz.html", viz=obj, slice=slc)
+                    "panoramix/viz.html", viz=obj, slice=slc)
             try:
                 resp = self.render_template(
-                    "refactor/viz.html", viz=obj, slice=slc)
+                    "panoramix/viz.html", viz=obj, slice=slc)
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)
@@ -560,7 +560,7 @@ class Panoramix(BaseView):
                 int(o['slice_id']):o
                 for o in json.loads(dash.position_json)}
         return self.render_template(
-            "refactor/dashboard.html", dashboard=dash,
+            "panoramix/dashboard.html", dashboard=dash,
             templates=templates,
             pos_dict=pos_dict)
 
@@ -575,7 +575,7 @@ class Panoramix(BaseView):
 
         table_name=request.args.get('table_name')
         return self.render_template(
-            "refactor/sql.html",
+            "panoramix/sql.html",
             tables=tables,
             table_name=table_name,
             db=mydb)
@@ -718,7 +718,7 @@ class Panoramix(BaseView):
         )
         featured_datasets = datasets_sqla + datasets_druid
         return self.render_template(
-            'refactor/featured.html',
+            'panoramix/featured.html',
             featured_datasets=featured_datasets,
             utils=utils)
 
