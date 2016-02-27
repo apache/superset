@@ -1,6 +1,7 @@
 // JS
 var d3 = window.d3 || require('d3');
-var Datamap = require('../vendor/datamaps/datamaps.all.js');
+//var Datamap = require('../vendor/datamaps/datamaps.all.js');
+var Datamap = require('datamaps');
 
 // CSS
 require('./world_map.css');

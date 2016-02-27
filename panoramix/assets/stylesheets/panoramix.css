@@ -101,7 +101,7 @@ legend.legend-style {
     z-index: 888;
 }
 .nvtooltip table td{
-    font-size: small !important;
+    font-size: 11px !important;
 }
 legend {
     width: auto;

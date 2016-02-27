@@ -46,6 +46,7 @@
     "d3-sankey": "^0.2.1",
     "d3-tip": "^0.6.7",
     "d3.layout.cloud": "^1.2.0",
+    "datamaps": "^0.4.4",
     "datatables": "^1.10.9",
     "datatables-bootstrap3-plugin": "^0.4.0",
     "exports-loader": "^0.6.3",
