@@ -11,12 +11,13 @@ var d3 = require('d3');
 require('bootstrap');
 require('jquery-ui');
 require('select2');
-require('../vendor/bootstrap-toggle/bootstrap-toggle.min.js');
+require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
 require('../vendor/select2.sortable.js');
 
 // css
 require('../vendor/pygments.css');
-require('../vendor/bootstrap-toggle/bootstrap-toggle.min.css');
+require('../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
+
 function initExploreView() {
 
   function druidify(){

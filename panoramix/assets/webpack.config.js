@@ -26,7 +26,7 @@ var config = {
       },
       {
         test: /\.css$/,
-        exclude: APP_DIR + '/node_modules',
+        //exclude: APP_DIR + '/node_modules',
         loader: "style-loader!css-loader" // load css via require('../*.css')
       },
     ]

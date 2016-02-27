@@ -9,7 +9,8 @@ require('brace/mode/css');
 require('brace/theme/crimson_editor');
 
 require('select2');
-require('./../node_modules/gridster/dist/jquery.gridster.min.js');
+require('../node_modules/gridster/dist/jquery.gridster.min.js');
+require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
 var dashboard;
 

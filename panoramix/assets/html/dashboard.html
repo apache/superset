@@ -2,7 +2,7 @@
 
 {% block head_css %}
     {{ super() }}
-    <link rel="stylesheet" href="{{ url_for('static', filename="assets/vendor/gridster/jquery.gridster.min.css") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename="assets/node_modules/gridster/dist/jquery.gridster.min.css") }}">
     <style id="user_style" type="text/css">
       {{ dashboard.css }}
     </style>
