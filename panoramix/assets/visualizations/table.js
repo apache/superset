@@ -1,17 +1,10 @@
-// This is a hack because shimming for $ extensions is not working.
-$('head').append([
-  '<script type="text/javascript" src="/static/refactor/vendor/dataTables/jquery.dataTables.min.js"></script>',
-  '<script type="text/javascript" src="/static/refactor/vendor/dataTables/dataTables.bootstrap.js"></script>',
-]);
+var $ = window.$ = require('jquery');
+var jQuery = window.jQuery = $;
 
-// require('datatables');
-// console.log(jQuery.fn.dataTable);
-// require('../vendor/dataTables/jquery.dataTables.min.js');
-// require('../vendor/dataTables/dataTables.bootstrap.js');
-
+require('datatables');
 // CSS
 require('./table.css');
-require('../vendor/dataTables/dataTables.bootstrap.css');
+require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css')
 
 function tableVis(slice) {
   var data = slice.data;

@@ -2,7 +2,7 @@
     overflow: auto !important;
 }
 
-.widget.table td {
+.widget.pivot_table td,th {
     padding: 1px 5px;
     font-size: small;
 }

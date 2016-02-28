@@ -174,3 +174,10 @@ getting the foundation for free
 * The Flask ecosystem - Simply amazing. So much Plug, easy play.
 * NVD3 - One of the best charting library out there
 * Much more, check out the requirements.txt file!
+
+
+Contributing
+------------
+
+Interested in contributing? Casual hacking? Check out the `CONTRIBUTING.md`
+file in the repository to get started!

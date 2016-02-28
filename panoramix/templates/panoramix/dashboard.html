@@ -1,17 +1,14 @@
-{% extends "panoramix/base.html" %}
+{% extends "panoramix/basic.html" %}
 
 {% block head_css %}
     {{ super() }}
-    {% for css in dashboard.css_files %}
-        <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename=css) }}">
-    {% endfor %}
-    <link rel="stylesheet" href="{{ url_for('static', filename="lib/gridster/jquery.gridster.min.css") }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename="assets/node_modules/gridster/dist/jquery.gridster.min.css") }}">
     <style id="user_style" type="text/css">
       {{ dashboard.css }}
     </style>
 {% endblock %}
 
-{% block content_fluid %}
+{% block body %}
 <div class="dashboard">
 
 <!-- Modal -->
@@ -32,6 +29,7 @@
           {% endfor %}
         </select><br>
         <textarea id="dash_css" rows="30" cols="60">{{ dashboard.css }}</textarea>
+        <input type="hidden" id="dashboard_id" value="{{ dashboard.id }}" />
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-default" data-dismiss="modal">
@@ -126,17 +124,6 @@
 </div>
 {% endblock %}
 
-{% block tail %}
-    {{ super() }}
-    {% for js in dashboard.js_files %}
-        <script src="{{ url_for('static', filename=js) }}"></script>
-    {% endfor %}
-    <script src="/static/lib/gridster/jquery.gridster.with-extras.min.js"></script>
-    <script src="/static/lib/ace/ace.js"></script>
-    <script>
-      $(document).ready(function() {
-        px.initDashboardView();
-        var dashboard = px.Dashboard({{ dashboard.id }});
-      });
-    </script>
+{% block tail_js %}
+  <script src="/static/assets/javascripts/dist/dashboard.entry.js"></script>
 {% endblock %}

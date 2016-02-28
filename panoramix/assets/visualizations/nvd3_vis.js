@@ -1,10 +1,10 @@
 // JS
 var $  = window.$ || require('jquery');
 var px = window.px || require('../javascripts/modules/panoramix.js');
-require('../vendor/nvd3/nv.d3.min.js');
+require('nvd3');
 
 // CSS
-require('../vendor/nvd3/nv.d3.css');
+require('../node_modules/nvd3/build/nv.d3.min.css');
 
 function nvd3Vis(slice) {
   var chart = undefined;

@@ -2,6 +2,7 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 require('select2');
 require('datatables');
+require('bootstrap');
 
 var ace = require('brace');
 require('brace/mode/sql');

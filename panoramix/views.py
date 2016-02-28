@@ -64,7 +64,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 
 appbuilder.add_link(
     "Featured Datasets",
-    href='/panoramix/featured_datasets',
+    href='/panoramix/featured',
     category='Sources',
     category_icon='fa-table',
     icon="fa-star")
@@ -471,10 +471,10 @@ class Panoramix(BaseView):
         else:
             if config.get("DEBUG"):
                 resp = self.render_template(
-                    "refactor/viz.html", viz=obj, slice=slc)
+                    "panoramix/viz.html", viz=obj, slice=slc)
             try:
                 resp = self.render_template(
-                    "refactor/viz.html", viz=obj, slice=slc)
+                    "panoramix/viz.html", viz=obj, slice=slc)
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)
@@ -703,8 +703,8 @@ class Panoramix(BaseView):
             art=ascii_art.error), 500
 
     @has_access
-    @expose("/featured_datasets", methods=['GET'])
-    def featured_datasets(self):
+    @expose("/featured", methods=['GET'])
+    def featured(self):
         session = db.session()
         datasets_sqla = (
             session.query(models.SqlaTable)
@@ -718,7 +718,7 @@ class Panoramix(BaseView):
         )
         featured_datasets = datasets_sqla + datasets_druid
         return self.render_template(
-            'panoramix/featured_datasets.html',
+            'panoramix/featured.html',
             featured_datasets=featured_datasets,
             utils=utils)
 
