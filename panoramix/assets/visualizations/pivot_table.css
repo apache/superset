@@ -1,0 +1,8 @@
+.gridster .widget.pivot_table {
+    overflow: auto !important;
+}
+
+.widget.pivot_table td,th {
+    padding: 1px 5px;
+    font-size: small;
+}

@@ -1,9 +1,9 @@
-{% extends "panoramix/base.html" %}
+{% extends "panoramix/basic.html" %}
 
 {% block head_css %}
   {{super()}}
-  <link rel="stylesheet" type="text/css" href="/static/lib/dataTables/jquery.dataTables.min.css" />
-  <link rel="stylesheet" type="text/css" href="/static/lib/dataTables/dataTables.bootstrap.css" />
+  <link rel="stylesheet" type="text/css" href="/static/assets/vendor/dataTables/jquery.dataTables.min.css" />
+  <link rel="stylesheet" type="text/css" href="/static/assets/vendor/dataTables/dataTables.bootstrap.css" />
   <style type="text/css">
     .topsql {
       height: 250px;
@@ -42,63 +42,58 @@
       font-size: 12px;
       margin-bottom: 5px;
     }
-    #results table tbody tr td{
-      padding: 2px 4px;
+    table tbody tr td {
+      padding: 1px 4px;
+      font-size: small;
     }
 
   </style>
 {% endblock %}
 
-{% block content %}
-<div class="sqlcontent" style="display: none;">
-  <h2>db: [{{ db }}]</h2>
-  <div class="row interactions">
-    <div class="col-xs-7 fillheight">
-      <input type="hidden" id="database_id" value="{{ db.id }}">
-      <button class="btn btn-primary" id="run">Run!</button>
-      <button class="btn btn-default" id="create_view">Create View</button>
+{% block body %}
+<div class="container-fluid">
+  <div class="sqlcontent" style="display: none;">
+    <h3>db: [{{ db }}]</h3>
+    <div class="row interactions">
+      <div class="col-xs-7">
+        <input type="hidden" id="database_id" value="{{ db.id }}">
+        <button class="btn btn-primary" id="run">Run!</button>
+        <button class="btn btn-default" id="create_view">Create View</button>
+      </div>
+      <div class="col-xs-5">
+        <select id="dbtable">
+          {% for t in tables %}
+            <option value="{{ t }}"
+                {{ "selected" if t == table_name else '' }}>
+              {{ t }}
+            </option>
+          {% endfor %}
+        </select>
+        <button class="btn btn-default" id="select_star">SELECT *</button>
+      </div>
     </div>
-    <div class="col-xs-5 fillheight">
-      <select id="dbtable">
-        {% for t in tables %}
-          <option value="{{ t }}"
-              {{ "selected" if t == table_name else '' }}>
-            {{ t }}
-          </option>
-        {% endfor %}
-      </select>
-      <button class="btn btn-default" id="select_star">SELECT *</button>
+    <div class="topsql row">
+      <div class="col-xs-7 fillheight">
+        <textarea id="sql" class="fillup"></textarea>
+      </div>
+      <div class="col-xs-5 fillheight">
+        <div class="metadata fillup bordered"></div>
+      </div>
     </div>
-  </div>
-  <div class="topsql row">
-    <div class="col-xs-7 fillheight">
-      <textarea id="sql" class="fillup"></textarea>
+    <div id="interactive">
     </div>
-    <div class="col-xs-5 fillheight">
-      <div class="metadata fillup bordered"></div>
+    <div id="results_section">
+      <hr/>
+      <img id="loading" width="25" style="display: none;" src="/static/img/loading.gif">
     </div>
-  </div>
-  <div id="interactive">
-  </div>
-  <div id="results_section">
-    <hr/>
-    <img id="loading" width="25" style="display: none;" src="/static/img/loading.gif">
-  </div>
-  <div>
-    <div id="results" class="bordered" style="display: none;"></div>
+    <div>
+      <div id="results" class="bordered" style="display: none;"></div>
+    </div>
   </div>
 </div>
 {% endblock %}
 
 {% block tail_js %}
 {{ super() }}
-<script src="/static/lib/bootstrap-toggle.min.js"></script>
-<script src="/static/lib/ace/ace.js"></script>
-<script src="/static/lib/dataTables/jquery.dataTables.min.js"></script>
-<script src="/static/lib/dataTables/dataTables.bootstrap.js"></script>
-<script>
-  $(document).ready(function() {
-    px.initSqlEditorView();
-  });
-</script>
+<script src="/static/assets/javascripts/dist/sql.entry.js"></script>
 {% endblock %}

@@ -64,7 +64,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 
 appbuilder.add_link(
     "Featured Datasets",
-    href='/panoramix/featured_datasets',
+    href='/panoramix/featured',
     category='Sources',
     category_icon='fa-table',
     icon="fa-star")
@@ -150,7 +150,8 @@ appbuilder.add_view(
 class TableModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
-        'table_link', 'database', 'sql_link', 'changed_by_', 'changed_on_']
+        'table_link', 'database', 'sql_link', 'is_featured',
+        'changed_by_', 'changed_on_']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
@@ -702,16 +703,22 @@ class Panoramix(BaseView):
             art=ascii_art.error), 500
 
     @has_access
-    @expose("/featured_datasets", methods=['GET'])
-    def featured_datasets(self):
+    @expose("/featured", methods=['GET'])
+    def featured(self):
         session = db.session()
-        datasets_sqla = (session.query(models.SqlaTable)
-                                        .filter_by(is_featured=True).all())
-        datasets_druid = (session.query(models.DruidDatasource)
-                                         .filter_by(is_featured=True).all())
+        datasets_sqla = (
+            session.query(models.SqlaTable)
+            .filter_by(is_featured=True)
+            .all()
+        )
+        datasets_druid = (
+            session.query(models.DruidDatasource)
+            .filter_by(is_featured=True)
+            .all()
+        )
         featured_datasets = datasets_sqla + datasets_druid
         return self.render_template(
-            'panoramix/featured_datasets.html',
+            'panoramix/featured.html',
             featured_datasets=featured_datasets,
             utils=utils)
 

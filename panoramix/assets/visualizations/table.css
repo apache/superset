@@ -1,0 +1,13 @@
+.gridster .widget.table {
+    overflow: auto !important;
+}
+
+.widget.table td.filtered {
+    background-color: #005a63;
+    color: white;
+}
+
+.widget.table td {
+    padding: 1px 5px;
+    font-size: small;
+}
