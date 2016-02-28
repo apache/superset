@@ -18,12 +18,14 @@ require('../vendor/select2.sortable.js');
 require('../vendor/pygments.css');
 require('../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
+var slice;
+
 function initExploreView() {
 
   function druidify(){
     $('div.alert').remove();
     history.pushState({}, document.title, slice.querystring());
-    renderSlice();
+    px.renderSlice();
   }
 
   function get_collapsed_fieldsets(){
@@ -217,7 +219,7 @@ $(document).ready(function() {
 
 
   var data  = $('.slice').data('slice');
-  var slice = px.Slice(data);
+  slice = px.Slice(data);
 
   //
   $('.slice').data('slice', slice);
