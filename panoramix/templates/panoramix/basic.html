@@ -12,8 +12,10 @@
         <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/select2/select2.css" />
         <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/select2/select2-bootstrap.css" />
         <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/panoramix.css" />
-        <!-- Replace with custom bootstrap theme -->
-        <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/themes/bootswatch.paper.min.css" />
+        {% set CSS_THEME = appbuilder.get_app.config.get("CSS_THEME") %}
+        {% if CSS_THEME %}
+          <link rel="stylesheet" type="text/css" href="{{ CSS_THEME }}" />
+        {% endif %}
     {% endblock %}
     {% block head_js %}{% endblock %}
   </head>

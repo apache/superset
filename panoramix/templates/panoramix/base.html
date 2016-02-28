@@ -3,5 +3,8 @@
 {% block head_css %}
 {{super()}}
   <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/panoramix.css" />
-  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/themes/bootswatch.paper.min.css" />
+  {% set CSS_THEME = appbuilder.get_app.config.get("CSS_THEME") %}
+  {% if CSS_THEME %}
+    <link rel="stylesheet" type="text/css" href="{{ CSS_THEME }}" />
+  {% endif %}
 {% endblock %}

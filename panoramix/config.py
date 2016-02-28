@@ -114,23 +114,22 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 # ---------------------------------------------------
 # Theme configuration
-# these are located on static/appbuilder/css/themes
-# you can create your own and easily use them placing them on the
-# same dir structure to override
 # ---------------------------------------------------
-# APP_THEME = "bootstrap-theme.css"  # default bootstrap
-# APP_THEME = "cerulean.css"
-# APP_THEME = "amelia.css"
-# APP_THEME = "cosmo.css"
-# APP_THEME = "cyborg.css"
-# APP_THEME = "flatly.css"
-# APP_THEME = "journal.css"
-# APP_THEME = "readable.css"
-# APP_THEME = "simplex.css"
-# APP_THEME = "slate.css"
-# APP_THEME = "spacelab.css"
-# APP_THEME = "united.css"
-# APP_THEME = "yeti.css"
+CSS_THEME = '/static/assets/stylesheets/themes/panoramix-bootstrap-theme.css'
+# CSS_THEME = '/static/assets/stylesheets/themes/bootswatch.paper.min.css'
+# CSS_THEME = "/static/appbuilder/css/bootstrap.min.css"  # default bootstrap
+# CSS_THEME = "/static/appbuilder/css/themes/cerulean.css"
+# CSS_THEME = "/static/appbuilder/css/themes/amelia.css"
+# CSS_THEME = "/static/appbuilder/css/themes/cosmo.css"
+# CSS_THEME = "/static/appbuilder/css/themes/cyborg.css"
+# CSS_THEME = "/static/appbuilder/css/themes/flatly.css"
+# CSS_THEME = "/static/appbuilder/css/themes/journal.css"
+# CSS_THEME = "/static/appbuilder/css/themes/readable.css"
+# CSS_THEME = "/static/appbuilder/css/themes/simplex.css"
+# CSS_THEME = "/static/appbuilder/css/themes/slate.css"
+# CSS_THEME = "/static/appbuilder/css/themes/spacelab.css"
+# CSS_THEME = "/static/appbuilder/css/themes/united.css"
+# CSS_THEME = "/static/appbuilder/css/themes/yeti.css"
 
 try:
     from panoramix_config import *
