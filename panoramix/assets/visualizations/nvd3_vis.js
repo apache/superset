@@ -178,6 +178,7 @@ function nvd3Vis(slice) {
           return px.color.category21(d[colorKey]);
         });
 
+        d3.select(slice.selector).html('');
         d3.select(slice.selector).append("svg")
           .datum(payload.data)
           .transition().duration(500)

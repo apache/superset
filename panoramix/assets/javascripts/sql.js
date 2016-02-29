@@ -18,7 +18,7 @@ $(document).ready(function() {
   function initSqlEditorView() {
     var database_id = $('#database_id').val();
     var editor = ace.edit("sql");
-    editor.$blockScrolling = Infinity
+    editor.$blockScrolling = Infinity;
     editor.getSession().setUseWrapMode(true);
 
     var textarea = $('#sql').hide();

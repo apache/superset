@@ -29,8 +29,21 @@ var Dashboard = function (dashboardData) {
         });
         this.slices = sliceObjects;
     },
-    addFilter: function (slice_id, filters) {
-      this.filters[slice_id] = filters;
+    setFilter: function(slice_id, col, vals) {
+      console.log([slice_id, col, vals]);
+      this.addFilter(slice_id, col, vals, false)
+    },
+    addFilter: function(slice_id, col, vals, merge) {
+      if (merge === undefined) {
+        merge = true;
+      }
+      if (!(slice_id in this.filters)) {this.filters[slice_id] = {};}
+      if (!(col in this.filters[slice_id]) || !merge) {
+        this.filters[slice_id][col] = vals;
+      }
+      else {
+        this.filters[slice_id][col] = d3.merge([this.filters[slice_id][col], vals]);
+      }
       this.refreshExcept(slice_id);
     },
     readFilters: function () {
@@ -45,8 +58,22 @@ var Dashboard = function (dashboardData) {
         }
       });
     },
-    clearFilter: function (slice_id) {
+    clearFilters: function(slice_id) {
       delete this.filters[slice_id];
+      this.refreshExcept(slice_id);
+    },
+    removeFilter: function(slice_id, col, vals) {
+      if (slice_id in this.filters) {
+        if (col in this.filters[slice_id]) {
+          var a = [];
+          this.filters[slice_id][col].forEach(function (v) {
+            if (vals.indexOf(v) < 0) {
+              a.push(v);
+            }
+          });
+          this.filters[slice_id][col] = a;
+        }
+      }
       this.refreshExcept(slice_id);
     },
     getSlice: function (slice_id) {
