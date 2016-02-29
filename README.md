@@ -13,7 +13,7 @@ Video - Introduction to Panoramix
 ---------------------------------
 [![Panoramix - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
 
-Screenshosts
+Screenshots
 ------------
 ![img](http://i.imgur.com/bi09J9X.png)
 ![img](http://i.imgur.com/aOaH0ty.png)
@@ -179,5 +179,4 @@ getting the foundation for free
 Contributing
 ------------
 
-Interested in contributing? Casual hacking? Check out the `CONTRIBUTING.md`
-file in the repository to get started!
+Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/mistercrunch/panoramix/blob/master/CONTRIBUTING.md)
