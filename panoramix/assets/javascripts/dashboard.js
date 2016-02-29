@@ -10,52 +10,49 @@ require('brace/theme/crimson_editor');
 
 require('select2');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
-require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
 var dashboard;
 
-var Dashboard = function(id){
-  var dash = {
-    slices: [],
-    filters: {},
-    id: id,
-    addFilter: function(slice_id, filters) {
+var Dashboard = function(obj){
+  obj['slices'] = [];
+  obj['filters'] = {};
+  obj['addFilter'] = function(slice_id, filters) {
       this.filters[slice_id] = filters;
       this.refreshExcept(slice_id);
-    },
-    readFilters: function() {
+    };
+  obj['readFilters'] = function() {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
-    },
-    refreshExcept: function(slice_id) {
-      this.slices.forEach(function(slice){
-        if(slice.data.slice_id != slice_id){
-          slice.render();
-        }
-      });
-    },
-    clearFilter: function(slice_id) {
+  };
+  obj['refreshExcept'] = function(slice_id) {
+    this.slices.forEach(function(slice){
+      if(slice.data.slice_id != slice_id && obj.metadata.filter_immune_slices.indexOf(slice.data.slice_id) == -1){
+        slice.render();
+      }
+    });
+  };
+  obj['clearFilter'] = function(slice_id) {
       delete this.filters[slice_id];
       this.refreshExcept(slice_id);
-    },
-    getSlice: function(slice_id) {
+  };
+  obj['getSlice'] = function(slice_id) {
       for(var i=0; i<this.slices.length; i++){
         if (this.slices[i].data.slice_id == slice_id)
           return this.slices[i];
       }
-    }
   }
+
   $('.dashboard li.widget').each(function() {
     var data = $(this).data('slice');
-    var slice = px.Slice(data, dash);
+    var slice = px.Slice(data, obj);
     $(this).find('a.refresh').click(function(){
       slice.render();
     });
-    dash.slices.push(slice);
+    obj.slices.push(slice);
     slice.render();
   });
-  dashboard = dash;
-  return dash;
+  dashboard = obj;
+  return obj;
 }
 
 function initDashboardView() {
@@ -151,5 +148,5 @@ function initDashboardView() {
 
 $(document).ready(function() {
   initDashboardView();
-  var dashboard = Dashboard($('#dashboard_id').val());
+  var dashboard = Dashboard($('.dashboard').data('dashboard'));
 });
