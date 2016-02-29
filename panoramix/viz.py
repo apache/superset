@@ -8,7 +8,6 @@ from markdown import markdown
 from pandas.io.json import dumps
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
-import numpy as np
 import pandas as pd
 
 from panoramix import app, utils
@@ -160,7 +159,7 @@ class BaseViz(object):
         extra_filters = form_data.get('extra_filters', [])
         if extra_filters:
             extra_filters = json.loads(extra_filters)
-            for slice_id, slice_filters in extra_filters.items():
+            for slice_filters in extra_filters.values():
                 if slice_filters:
                     for col, vals in slice_filters:
                         if col and vals:
@@ -296,8 +295,8 @@ class TableViz(BaseViz):
             d['groupby'] = []
         return d
 
-    def get_df(self):
-        df = super(TableViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(TableViz, self).get_df(query_obj)
         if (
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
@@ -353,8 +352,8 @@ class PivotTableViz(BaseViz):
         d['groupby'] = list(set(groupby) | set(columns))
         return d
 
-    def get_df(self):
-        df = super(PivotTableViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(PivotTableViz, self).get_df(query_obj)
         if (
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
@@ -486,8 +485,8 @@ class BubbleViz(NVD3Viz):
             raise Exception("Pick a metric for x, y and size")
         return d
 
-    def get_df(self):
-        df = super(BubbleViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(BubbleViz, self).get_df(query_obj)
         df = df.fillna(0)
         df['x'] = df[[self.x_metric]]
         df['y'] = df[[self.y_metric]]
@@ -673,9 +672,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             d = {
                 "key": series_title,
                 "classed": classed,
-                "values": [
-                    {'x': ds, 'y': ys[ds]}
-                    for i, ds in enumerate(df.timestamp)]
+                "values": [{'x': ds, 'y': ys[ds]} for ds in df.timestamp],
             }
             chart_data.append(d)
         return chart_data
@@ -759,8 +756,8 @@ class DistributionPieViz(NVD3Viz):
         d['is_timeseries'] = False
         return d
 
-    def get_df(self):
-        df = super(DistributionPieViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(DistributionPieViz, self).get_df(query_obj)
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
@@ -820,8 +817,8 @@ class DistributionBarViz(DistributionPieViz):
             raise Exception("Pick at least one field for [Series]")
         return d
 
-    def get_df(self):
-        df = super(DistributionPieViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(DistributionPieViz, self).get_df(query_obj)
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
@@ -892,8 +889,8 @@ class SunburstViz(BaseViz):
         },
     }
 
-    def get_df(self):
-        df = super(SunburstViz, self).get_df()
+    def get_df(self, query_obj=None):
+        df = super(SunburstViz, self).get_df(query_obj)
         return df
 
     def get_json_data(self):
@@ -1101,7 +1098,7 @@ class FilterBoxViz(BaseViz):
             self.form_data['metric']]
         return qry
 
-    def get_df(self):
+    def get_df(self, query_obj=None):
         qry = self.query_obj()
 
         filters = [g for g in qry['groupby']]
