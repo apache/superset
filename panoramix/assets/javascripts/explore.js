@@ -8,8 +8,10 @@ var jQuery = window.jQuery = $;
 var px = require('./modules/panoramix.js');
 var d3 = require('d3');
 
-require('bootstrap');
 require('jquery-ui');
+$.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
+require('bootstrap');
+
 require('select2');
 require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
 require('../vendor/select2.sortable.js');
@@ -109,7 +111,7 @@ function initExploreView() {
   $(".select2Sortable").select2({dropdownAutoWidth : true});
   $(".select2Sortable").select2Sortable({bindOrder: 'sortableStop'});
   $("form").show();
-  $('[data-toggle="tooltip"]').tooltip();
+  $('[data-toggle="tooltip"]').tooltip({container: 'body'});
   $(".ui-helper-hidden-accessible").remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
   function set_filters(){
