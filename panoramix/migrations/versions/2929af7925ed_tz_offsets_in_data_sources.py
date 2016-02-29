@@ -12,7 +12,6 @@ down_revision = '1e2841a4128'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 def upgrade():
     op.add_column('datasources', sa.Column('offset', sa.Integer(), nullable=True))

@@ -44,6 +44,7 @@ def parse_human_datetime(s):
     Use the parsedatetime lib to return ``datetime.datetime`` from human
     generated strings
 
+    >>> from datetime import date, timedelta
     >>> parse_human_datetime('2015-04-03')
     datetime.datetime(2015, 4, 3, 0, 0)
     >>> parse_human_datetime('2/3/1969')

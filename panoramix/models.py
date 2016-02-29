@@ -2,10 +2,10 @@ from copy import deepcopy, copy
 from collections import namedtuple
 from datetime import timedelta, datetime
 import json
+import logging
 from six import string_types
 import sqlparse
 import requests
-import textwrap
 
 from dateutil.parser import parse
 from flask import flash
@@ -134,6 +134,7 @@ class Slice(Model, AuditMixinNullable):
         try:
             slice_params = json.loads(self.params)
         except Exception as e:
+            logging.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
         slice_params['slice_name'] = self.slice_name
@@ -150,7 +151,8 @@ class Slice(Model, AuditMixinNullable):
     @property
     def slice_link(self):
         url = self.slice_url
-        return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.slice_name}</a>'.format(
+            url=url, self=self)
 
     @property
     def js_files(self):
@@ -350,7 +352,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def table_link(self):
         url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.table_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.table_name}</a>'.format(
+            url=url, self=self)
 
     @property
     def metrics_combo(self):
@@ -732,7 +735,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def datasource_link(self):
         url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.datasource_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.datasource_name}</a>'.format(
+            url=url, self=self)
 
     def get_metric_obj(self, metric_name):
         return [

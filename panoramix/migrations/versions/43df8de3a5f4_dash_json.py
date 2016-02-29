@@ -12,10 +12,11 @@ down_revision = '7dbf98566af7'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
+
 
 def upgrade():
     op.add_column('dashboards', sa.Column('json_metadata', sa.Text(), nullable=True))
+
 
 def downgrade():
     op.drop_column('dashboards', 'json_metadata')

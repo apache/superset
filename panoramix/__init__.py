@@ -4,7 +4,6 @@ from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.appbuilder.baseviews import expose
 from flask.ext.migrate import Migrate
-from panoramix import config, views
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -34,3 +33,4 @@ appbuilder = AppBuilder(
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
+from panoramix import config, views
