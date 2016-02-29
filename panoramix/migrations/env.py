@@ -3,7 +3,6 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 from logging.config import fileConfig
 import logging
-from panoramix import db, models
 from flask.ext.appbuilder import Base
 
 # this is the Alembic Config object, which provides

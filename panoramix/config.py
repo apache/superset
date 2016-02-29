@@ -1,3 +1,9 @@
+"""
+All configuration in this file can be overridden by providing a local_config
+in your PYTHONPATH.
+
+There' a ``from local_config import *`` at the end of this file.
+"""
 import os
 from flask_appbuilder.security.manager import AUTH_DB
 # from flask_appbuilder.security.manager import (
@@ -5,12 +11,6 @@ from flask_appbuilder.security.manager import AUTH_DB
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 from dateutil import tz
 
-"""
-All configuration in this file can be overridden by providing a local_config
-in your PYTHONPATH.
-
-There' a ``from local_config import *`` at the end of this file.
-"""
 
 # ---------------------------------------------------------
 # Panoramix specifix config
@@ -133,5 +133,5 @@ CSS_THEME = '/static/assets/stylesheets/themes/panoramix-bootstrap-theme.css'
 
 try:
     from panoramix_config import *
-except:
+except Exception:
     pass

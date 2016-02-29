@@ -12,7 +12,6 @@ down_revision = 'd827694c7555'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 def upgrade():
     op.add_column('logs', sa.Column('dashboard_id', sa.Integer(), nullable=True))

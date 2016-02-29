@@ -2,28 +2,28 @@ from copy import deepcopy, copy
 from collections import namedtuple
 from datetime import timedelta, datetime
 import json
+import logging
 from six import string_types
 import sqlparse
 import requests
-import textwrap
 
 from dateutil.parser import parse
 from flask import flash
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-from pandas import read_sql_query
+import pandas as pd
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
+
 import sqlalchemy as sqla
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
     Table, create_engine, MetaData, desc, select, and_, func)
+from sqlalchemy.engine import reflection
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
-
-
 
 from panoramix import app, db, get_session, utils
 from panoramix.viz import viz_types
@@ -134,6 +134,7 @@ class Slice(Model, AuditMixinNullable):
         try:
             slice_params = json.loads(self.params)
         except Exception as e:
+            logging.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
         slice_params['slice_name'] = self.slice_name
@@ -150,16 +151,15 @@ class Slice(Model, AuditMixinNullable):
     @property
     def slice_link(self):
         url = self.slice_url
-        return '<a href="{url}">{self.slice_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.slice_name}</a>'.format(
+            url=url, self=self)
 
     @property
     def js_files(self):
-        from panoramix.viz import viz_types
         return viz_types[self.viz_type].js_files
 
     @property
     def css_files(self):
-        from panoramix.viz import viz_types
         return viz_types[self.viz_type].css_files
 
     def get_viz(self):
@@ -264,10 +264,6 @@ class Database(Model, AuditMixinNullable):
             autoload_with=self.get_sqla_engine())
 
     def get_columns(self, table_name):
-
-        from sqlalchemy import create_engine
-        from sqlalchemy.engine import reflection
-
         engine = self.get_sqla_engine()
         insp = reflection.Inspector.from_engine(engine)
         return insp.get_columns(table_name)
@@ -340,7 +336,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def html(self):
-        import pandas as pd
         t = ((c.column_name, c.type) for c in self.columns)
         df = pd.DataFrame(t)
         df.columns = ['field', 'type']
@@ -357,7 +352,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def table_link(self):
         url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.table_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.table_name}</a>'.format(
+            url=url, self=self)
 
     @property
     def metrics_combo(self):
@@ -366,101 +362,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 (m.metric_name, m.verbose_name or m.metric_name)
                 for m in self.metrics],
             key=lambda x: x[1])
-
-    def query_bkp(
-            self, groupby, metrics,
-            granularity,
-            from_dttm, to_dttm,
-            limit_spec=None,
-            filter=None,
-            is_timeseries=True,
-            timeseries_limit=15,
-            row_limit=None,
-            extras=None):  # pragma: no cover
-        """
-        Unused, legacy way of querying by building a SQL string without
-        using the sqlalchemy expression API (new approach which supports
-        all dialects)
-        """
-        from pandas import read_sql_query
-        qry_start_dttm = datetime.now()
-        metrics_exprs = [
-            "{} AS {}".format(m.expression, m.metric_name)
-            for m in self.metrics if m.metric_name in metrics]
-        from_dttm_iso = from_dttm.isoformat()
-        to_dttm_iso = to_dttm.isoformat()
-
-        if metrics:
-            main_metric_expr = [
-                m.expression for m in self.metrics
-                if m.metric_name == metrics[0]][0]
-        else:
-            main_metric_expr = "COUNT(*)"
-
-        select_exprs = []
-        groupby_exprs = []
-
-        if groupby:
-            select_exprs = copy(groupby)
-            groupby_exprs = [s for s in groupby]
-            inner_groupby_exprs = [s for s in groupby]
-        select_exprs += metrics_exprs
-        if granularity != "all":
-            select_exprs += ['ds as timestamp']
-            groupby_exprs += ['ds']
-
-        select_exprs = ",\n".join(select_exprs)
-        groupby_exprs = ",\n".join(groupby_exprs)
-
-        where_clause = [
-            "ds >= '{from_dttm_iso}'",
-            "ds < '{to_dttm_iso}'"
-        ]
-        for col, op, eq in filter:
-            if op in ('in', 'not in'):
-                l = ["'{}'".format(s) for s in eq.split(",")]
-                l = ", ".join(l)
-                op = op.upper()
-                where_clause.append(
-                    "{col} {op} ({l})".format(**locals())
-                )
-        where_clause = " AND\n".join(where_clause).format(**locals())
-        on_clause = " AND ".join(["{g} = __{g}".format(g=g) for g in groupby])
-        limiting_join = ""
-        if timeseries_limit and groupby:
-            inner_select = ", ".join([
-                "{g} as __{g}".format(g=g) for g in inner_groupby_exprs])
-            inner_groupby_exprs = ", ".join(inner_groupby_exprs)
-            limiting_join = (
-                "JOIN ( \n"
-                "    SELECT {inner_select} \n"
-                "    FROM {self.table_name} \n"
-                "    WHERE \n"
-                "        {where_clause}\n"
-                "    GROUP BY {inner_groupby_exprs}\n"
-                "    ORDER BY {main_metric_expr} DESC\n"
-                "    LIMIT {timeseries_limit}\n"
-                ") z ON {on_clause}\n"
-            ).format(**locals())
-
-        sql = (
-            "SELECT\n"
-            "    {select_exprs}\n"
-            "FROM {self.table_name}\n"
-            "{limiting_join}"
-            "WHERE\n"
-            "    {where_clause}\n"
-            "GROUP BY\n"
-            "    {groupby_exprs}\n"
-        ).format(**locals())
-        df = read_sql_query(
-            sql=sql,
-            con=self.database.get_sqla_engine()
-        )
-        textwrap.dedent(sql)
-
-        return QueryResult(
-            df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
     @property
     def sql_url(self):
@@ -596,7 +497,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
             qry.compile(engine, compile_kwargs={"literal_binds": True}))
-        df = read_sql_query(
+        df = pd.read_sql_query(
             sql=sql,
             con=engine
         )
@@ -834,7 +735,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def datasource_link(self):
         url = "/panoramix/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.datasource_name}</a>'.format(**locals())
+        return '<a href="{url}">{self.datasource_name}</a>'.format(
+            url=url, self=self)
 
     def get_metric_obj(self, metric_name):
         return [
@@ -1026,8 +928,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
         if (
                 not is_timeseries and
-                granularity == "all"
-                and 'timestamp' in df.columns):
+                granularity == "all" and
+                'timestamp' in df.columns):
             del df['timestamp']
 
         # Reordering columns
@@ -1075,7 +977,7 @@ class DruidMetric(Model):
     def json_obj(self):
         try:
             obj = json.loads(self.json)
-        except:
+        except Exception:
             obj = {}
         return obj
 

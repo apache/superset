@@ -12,7 +12,6 @@ down_revision = '8e80a26a31db'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 def upgrade():
     op.add_column('slices', sa.Column('description', sa.Text(), nullable=True))
