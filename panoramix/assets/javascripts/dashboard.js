@@ -14,7 +14,7 @@ require('../node_modules/gridster/dist/jquery.gridster.min.js');
 var dashboard;
 
 var Dashboard = function(obj){
-  obj['slices'] = [];
+  //obj['slices'] = [];
   obj['filters'] = {};
   obj['addFilter'] = function(slice_id, filters) {
       this.filters[slice_id] = filters;
@@ -41,16 +41,15 @@ var Dashboard = function(obj){
           return this.slices[i];
       }
   }
-
-  $('.dashboard li.widget').each(function() {
-    var data = $(this).data('slice');
+  obj.slices.forEach(function(data, i){
     var slice = px.Slice(data, obj);
-    $(this).find('a.refresh').click(function(){
+    $("#slice_" + data.slice_id).find('a.refresh').click(function(){
       slice.render();
     });
     obj.slices.push(slice);
     slice.render();
   });
+
   dashboard = obj;
   return obj;
 }
