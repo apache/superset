@@ -216,9 +216,17 @@ var px = (function() {
         if(dashboard !== undefined)
           dashboard.addFilter(slice_id, col, vals);
       },
+      setFilter: function(col, vals) {
+        if(dashboard !== undefined)
+          dashboard.setFilter(slice_id, col, vals);
+      },
       clearFilter: function() {
         if(dashboard !== undefined)
           delete dashboard.clearFilter(slice_id);
+      },
+      removeFilter: function(col, vals) {
+        if(dashboard !== undefined)
+          delete dashboard.removeFilter(slice_id, col, vals);
       },
     };
     var visType = data.form_data.viz_type;

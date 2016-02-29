@@ -55,7 +55,7 @@ function initExploreView() {
   function get_collapsed_fieldsets(){
     var collapsed_fieldsets = $("#collapsed_fieldsets").val();
 
-    if (collapsed_fieldsets != undefined && collapsed_fieldsets != "") {
+    if (collapsed_fieldsets !== undefined && collapsed_fieldsets !== "") {
       collapsed_fieldsets = collapsed_fieldsets.split('||');
     }
     else {
@@ -68,7 +68,7 @@ function initExploreView() {
     var parent = legend.parent();
     var fieldset = parent.find(".legend_label").text();
     var collapsed_fieldsets = get_collapsed_fieldsets();
-
+    var index;
     if (!parent.hasClass("collapsed")){
       if (animation) {
         parent.find(".fieldset_content").slideUp();
@@ -79,7 +79,7 @@ function initExploreView() {
 
       parent.addClass("collapsed");
       parent.find("span.collapser").text("[+]");
-      var index = collapsed_fieldsets.indexOf(fieldset);
+      index = collapsed_fieldsets.indexOf(fieldset);
       if (index === -1 && fieldset !== "" && fieldset !== undefined) {
         collapsed_fieldsets.push(fieldset);
       }
@@ -94,7 +94,7 @@ function initExploreView() {
       parent.find("span.collapser").text("[-]");
 
       // removing from array, js is overcomplicated
-      var index = collapsed_fieldsets.indexOf(fieldset);
+      index = collapsed_fieldsets.indexOf(fieldset);
       if (index !== -1) {
         collapsed_fieldsets.splice(index, 1);
       }
@@ -176,7 +176,7 @@ function initExploreView() {
   function set_filters(){
     for (var i = 1; i < 10; i++){
       var eq = px.getParam("flt_eq_" + i);
-      if (eq != ''){
+      if (eq !== ''){
         add_filter(i);
       }
     }
@@ -187,7 +187,7 @@ function initExploreView() {
     var cp = $("#flt0").clone();
     $(cp).appendTo("#filters");
     $(cp).show();
-    if (i != undefined){
+    if (i !== undefined){
       $(cp).find("#flt_eq_0").val(px.getParam("flt_eq_" + i));
       $(cp).find("#flt_op_0").val(px.getParam("flt_op_" + i));
       $(cp).find("#flt_col_0").val(px.getParam("flt_col_" + i));
@@ -210,7 +210,7 @@ function initExploreView() {
   $("#plus").click(add_filter);
   $("#btn_save").click(function () {
     var slice_name = prompt("Name your slice!");
-    if (slice_name != "" && slice_name != null) {
+    if (slice_name !== "" && slice_name !== null) {
       $("#slice_name").val(slice_name);
       prepForm();
       $("#action").val("save");

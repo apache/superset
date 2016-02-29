@@ -66,12 +66,11 @@ function tableVis(slice) {
           if(!d.isMetric){
             var td = d3.select(this);
             if (td.classed('filtered')){
-              slice.clearFilter(d.col, [d.val]);
-              table.selectAll('.filtered').classed('filtered', false);
+              slice.removeFilter(d.col, [d.val]);
+              d3.select(this).classed('filtered', false);
             } else {
-              table.selectAll('.filtered').classed('filtered', false);
               d3.select(this).classed('filtered', true);
-              slice.addFilter([[d.col, [d.val]]]);
+              slice.addFilter(d.col, [d.val]);
             }
           }
        })

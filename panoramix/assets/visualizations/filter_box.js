@@ -10,15 +10,15 @@ function filterBox(slice) {
   var d3token = d3.select(slice.selector);
 
   var fltChanged = function() {
-    var filters = []
     for (var filter in filtersObj) {
       var obj = filtersObj[filter];
       var val = obj.val();
+      var vals = [];
       if (val !== '') {
-        filters.push([filter, val.split(',')]);
+        vals = val.split(',');
       }
+      slice.setFilter(filter, vals);
     }
-    slice.addFilter(filters);
   }
 
   var refresh = function() {
