@@ -2,6 +2,7 @@ from datetime import datetime
 import functools
 import hashlib
 import json
+import logging
 
 from dateutil.parser import parse
 from sqlalchemy.types import TypeDecorator, TEXT
@@ -45,6 +46,7 @@ def parse_human_datetime(s):
     generated strings
 
     >>> from datetime import date, timedelta
+    >>> from dateutil.relativedelta import relativedelta
     >>> parse_human_datetime('2015-04-03')
     datetime.datetime(2015, 4, 3, 0, 0)
     >>> parse_human_datetime('2/3/1969')
@@ -55,12 +57,18 @@ def parse_human_datetime(s):
     True
     >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
     True
+    >>> parse_human_datetime('one year ago').date() == (datetime.now() - relativedelta(years=1) ).date()
+    True
     """
     try:
         dttm = parse(s)
     except:
-        cal = parsedatetime.Calendar()
-        dttm = dttm_from_timtuple(cal.parse(s)[0])
+        try:
+            cal = parsedatetime.Calendar()
+            dttm = dttm_from_timtuple(cal.parse(s)[0])
+        except Exception as e:
+            logging.exception(e)
+            raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 
 
