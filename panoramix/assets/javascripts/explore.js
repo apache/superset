@@ -106,17 +106,54 @@ function initExploreView() {
     toggle_fieldset($(this), true);
   });
 
+  function copyURLToClipboard (url) {
+    var textArea = document.createElement("textarea");
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-1000px';
+    textArea.value = url;
+
+    document.body.appendChild(textArea);
+    textArea.select();
+
+    try {
+      var successful = document.execCommand('copy');
+      if (!successful) {
+        throw "Not successful";
+      }
+    } catch (err) {
+      window.alert("Sorry, your browser does not support copying. Use Ctrl / Cmd + C!");
+    }
+    document.body.removeChild(textArea);
+    return successful;
+  }
+
   $('#shortner').click(function () {
     $.ajax({
       type: "POST",
       url: '/r/shortner/',
       data: {'data': '/' + window.location.pathname + slice.querystring()},
       success: function(data) {
-        data += '&nbsp;&nbsp;&nbsp;<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></a>';
-        $('#shortner').popover({content: data, placement: 'left', html: true, trigger: 'manual'});
-        $('#shortner').popover('show');
+        var close   = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></i></a>';
+        var copy    = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_url"></i></a>';
+        var spaces  = '&nbsp;&nbsp;&nbsp;'
+        var popover = data + spaces + copy + spaces + close;
+
+        var $shortner = $('#shortner')
+          .popover({content: popover, placement: 'left', html: true, trigger: 'manual'})
+          .popover('show');
+
+        $('#copy_url').tooltip().click(function() {
+          var success = copyURLToClipboard(data);
+
+          if (success) {
+            $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
+            window.setTimeout(function() {
+              $shortner.popover('destroy');
+            }, 1200);
+          }
+        });
         $('#close_shortner').click(function(){
-          $('#shortner').popover('destroy');
+          $shortner.popover('destroy');
         });
       },
       error: function() {alert("Error :(");},
