@@ -11,141 +11,146 @@ require('brace/theme/crimson_editor');
 require('select2');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
-var dashboard;
-
-var Dashboard = function(obj){
-  //obj['slices'] = [];
-  obj['filters'] = {};
-  obj['addFilter'] = function(slice_id, filters) {
-      this.filters[slice_id] = filters;
-      this.refreshExcept(slice_id);
-    };
-  obj['readFilters'] = function() {
-      // Returns a list of human readable active filters
-      return JSON.stringify(this.filters, null, 4);
-  };
-  obj['refreshExcept'] = function(slice_id) {
-    this.slices.forEach(function(slice){
-      if(slice.data.slice_id != slice_id && obj.metadata.filter_immune_slices.indexOf(slice.data.slice_id) == -1){
+var Dashboard = function(dashboardData){
+  var dashboard = $.extend(dashboardData, {
+    filters: {},
+    init: function() {
+      this.initDashboardView();
+      var sliceObjects = [];
+      var dash = this;
+      dashboard.slices.forEach(function(data, i){
+        var slice = px.Slice(data, dash);
+        $("#slice_" + data.slice_id).find('a.refresh').click(function(){
+          slice.render();
+        });
+        sliceObjects.push(slice);
         slice.render();
-      }
-    });
-  };
-  obj['clearFilter'] = function(slice_id) {
-      delete this.filters[slice_id];
-      this.refreshExcept(slice_id);
-  };
-  obj['getSlice'] = function(slice_id) {
-      for(var i=0; i<this.slices.length; i++){
-        if (this.slices[i].data.slice_id == slice_id)
-          return this.slices[i];
-      }
-  }
-  obj.slices.forEach(function(data, i){
-    var slice = px.Slice(data, obj);
-    $("#slice_" + data.slice_id).find('a.refresh').click(function(){
-      slice.render();
-    });
-    obj.slices.push(slice);
-    slice.render();
-  });
-
-  dashboard = obj;
-  return obj;
-}
-
-function initDashboardView() {
-  var gridster = $(".gridster ul").gridster({
-    widget_margins: [5, 5],
-    widget_base_dimensions: [100, 100],
-    draggable: {
-      handle: '.drag',
+      });
+      this.slices = sliceObjects;
     },
-    resize: {
-      enabled: true,
-      stop: function(e, ui, element) {
-        var slice_data = $(element).data('slice');
-        dashboard.getSlice(slice_data.slice_id).resize();
-      }
+    addFilter: function(slice_id, filters) {
+        console.log([slice_id, filters]);
+        this.filters[slice_id] = filters;
+        this.refreshExcept(slice_id);
     },
-    serialize_params: function(_w, wgd) {
-      return {
-        slice_id: $(_w).attr('slice_id'),
-        col: wgd.col,
-        row: wgd.row,
-        size_x: wgd.size_x,
-        size_y: wgd.size_y
-      };
+    readFilters: function() {
+        // Returns a list of human readable active filters
+        return JSON.stringify(this.filters, null, 4);
     },
-  }).data('gridster');
-  $("div.gridster").css('visibility', 'visible');
-  $("#savedash").click(function() {
-    var expanded_slices = {};
-    $.each($(".slice_info"), function(i, d){
-      var widget = $(this).parents('.widget');
-      var slice_description = widget.find('.slice_description');
-      if(slice_description.is(":visible"))
-        expanded_slices[$(d).attr('slice_id')] = true;
-    });
-    var data = {
-        positions: gridster.serialize(),
-        css: editor.getValue(),
-        expanded_slices: expanded_slices,
-    };
-    $.ajax({
-      type: "POST",
-      url: '/panoramix/save_dash/' + dashboard.id + '/',
-      data: {'data': JSON.stringify(data)},
-      success: function() {alert("Saved!")},
-      error: function() {alert("Error :(")},
-    });
-  });
+    refreshExcept: function(slice_id) {
+      var immune = this.metadata.filter_immune_slices;
+      this.slices.forEach(function(slice){
+        if(slice.data.slice_id != slice_id && immune.indexOf(slice.data.slice_id) == -1){
+          slice.render();
+        }
+      });
+    },
+    clearFilter: function(slice_id) {
+        delete this.filters[slice_id];
+        this.refreshExcept(slice_id);
+    },
+    getSlice: function(slice_id) {
+        for(var i=0; i<this.slices.length; i++){
+          if (this.slices[i].data.slice_id == slice_id)
+            return this.slices[i];
+        }
+    },
+    initDashboardView: function() {
+      dashboard = this;
+      var gridster = $(".gridster ul").gridster({
+        widget_margins: [5, 5],
+        widget_base_dimensions: [100, 100],
+        draggable: {
+          handle: '.drag',
+        },
+        resize: {
+          enabled: true,
+          stop: function(e, ui, element) {
+            var slice_data = $(element).data('slice');
+            dashboard.getSlice(slice_data.slice_id).resize();
+          }
+        },
+        serialize_params: function(_w, wgd) {
+          return {
+            slice_id: $(_w).attr('slice_id'),
+            col: wgd.col,
+            row: wgd.row,
+            size_x: wgd.size_x,
+            size_y: wgd.size_y
+          };
+        },
+      }).data('gridster');
+      $("div.gridster").css('visibility', 'visible');
+      $("#savedash").click(function() {
+        var expanded_slices = {};
+        $.each($(".slice_info"), function(i, d){
+          var widget = $(this).parents('.widget');
+          var slice_description = widget.find('.slice_description');
+          if(slice_description.is(":visible"))
+            expanded_slices[$(d).attr('slice_id')] = true;
+        });
+        var data = {
+            positions: gridster.serialize(),
+            css: editor.getValue(),
+            expanded_slices: expanded_slices,
+        };
+        $.ajax({
+          type: "POST",
+          url: '/panoramix/save_dash/' + dashboard.id + '/',
+          data: {'data': JSON.stringify(data)},
+          success: function() {alert("Saved!")},
+          error: function() {alert("Error :(")},
+        });
+      });
 
-  var editor = ace.edit("dash_css");
-  editor.$blockScrolling = Infinity
+      var editor = ace.edit("dash_css");
+      editor.$blockScrolling = Infinity
 
-  editor.setTheme("ace/theme/crimson_editor");
-  editor.setOptions({
-      minLines: 16,
-      maxLines: Infinity,
-  });
-  editor.getSession().setMode("ace/mode/css");
+      editor.setTheme("ace/theme/crimson_editor");
+      editor.setOptions({
+          minLines: 16,
+          maxLines: Infinity,
+      });
+      editor.getSession().setMode("ace/mode/css");
 
-  $(".select2").select2({dropdownAutoWidth : true});
-  $("#css_template").on("change", function() {
-    var css = $(this).find('option:selected').data('css');
-    editor.setValue(css);
-    $('#dash_css').val(css);
-    $("#user_style").html(css);
+      $(".select2").select2({dropdownAutoWidth : true});
+      $("#css_template").on("change", function() {
+        var css = $(this).find('option:selected').data('css');
+        editor.setValue(css);
+        $('#dash_css').val(css);
+        $("#user_style").html(css);
+      });
+      $('#filters').click( function(){
+        alert(dashboard.readFilters());
+      });
+      $("a.closeslice").click(function() {
+        var li = $(this).parents("li");
+        gridster.remove_widget(li);
+      });
+      $(".slice_info").click(function(){
+        var widget = $(this).parents('.widget');
+        var slice_description = widget.find('.slice_description');
+        slice_description.slideToggle(500, function(){
+          widget.find('.refresh').click();
+        });
+      });
+      $("table.slice_header").mouseover(function() {
+        $(this).find("td.icons nobr").show();
+      });
+      $("table.slice_header").mouseout(function() {
+        $(this).find("td.icons nobr").hide();
+      });
+      editor.on("change", function(){
+        var css = editor.getValue();
+        $('#dash_css').val(css);
+        $("#user_style").html(css);
+      });
+    }
   });
-  $('#filters').click( function(){
-    alert(dashboard.readFilters());
-  });
-  $("a.closeslice").click(function() {
-    var li = $(this).parents("li");
-    gridster.remove_widget(li);
-  });
-  $(".slice_info").click(function(){
-    var widget = $(this).parents('.widget');
-    var slice_description = widget.find('.slice_description');
-    slice_description.slideToggle(500, function(){
-      widget.find('.refresh').click();
-    });
-  });
-  $("table.slice_header").mouseover(function() {
-    $(this).find("td.icons nobr").show();
-  });
-  $("table.slice_header").mouseout(function() {
-    $(this).find("td.icons nobr").hide();
-  });
-  editor.on("change", function(){
-    var css = editor.getValue();
-    $('#dash_css').val(css);
-    $("#user_style").html(css);
-  });
+  dashboard.init();
+  return dashboard;
 }
 
 $(document).ready(function() {
-  initDashboardView();
   var dashboard = Dashboard($('.dashboard').data('dashboard'));
 });
