@@ -516,9 +516,11 @@ class Panoramix(BaseView):
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         dash.position_json = json.dumps(data['positions'], indent=4)
-        dash.json_metadata = json.dumps({
-            'expanded_slices': data['expanded_slices'],
-        }, indent=4)
+        md = dash.metadata_dejson
+        if 'filter_immune_slices' not in md:
+            md['filter_immune_slices'] = []
+        md['expanded_slices'] = data['expanded_slices']
+        dash.json_metadata = json.dumps(md, indent=4)
         dash.css = data['css']
         session.merge(dash)
         session.commit()

@@ -217,6 +217,17 @@ class Dashboard(Model, AuditMixinNullable):
             l += o.css_files
         return list(set(l))
 
+    @property
+    def json_data(self):
+        d = {
+            'id': self.id,
+            'metadata': self.metadata_dejson,
+            'dashboard_title': self.dashboard_title,
+            'slug': self.slug,
+            'slices': [slc.data for slc in self.slices],
+        }
+        return json.dumps(d)
+
 
 class Queryable(object):
     @property
