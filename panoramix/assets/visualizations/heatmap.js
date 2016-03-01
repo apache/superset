@@ -15,8 +15,8 @@ function heatmapVis(slice) {
   function refresh() {
     var width = slice.width();
     var height = slice.height();
-    var hmWidth = width - (margins.l + margins.r)
-    var hmHeight = height - (margins.b + margins.t)
+    var hmWidth = width - (margins.l + margins.r);
+    var hmHeight = height - (margins.b + margins.t);
     var fp = d3.format('.3p');
     d3.json(slice.jsonEndpoint(), function(error, payload) {
       var matrix = {};
@@ -109,10 +109,10 @@ function heatmapVis(slice) {
               if(m in matrix && n in matrix[m]) {
                 var obj = matrix[m][n];
                 var s = "";
-                s += "<div><b>" + fd.all_columns_x + ": </b>" + obj.x + "<div>"
-                s += "<div><b>" + fd.all_columns_y +": </b>" + obj.y + "<div>"
-                s += "<div><b>" + fd.metric + ": </b>" + obj.v + "<div>"
-                s += "<div><b>%: </b>" + fp(obj.perc) + "<div>"
+                s += "<div><b>" + fd.all_columns_x + ": </b>" + obj.x + "<div>";
+                s += "<div><b>" + fd.all_columns_y +": </b>" + obj.y + "<div>";
+                s += "<div><b>" + fd.metric + ": </b>" + obj.v + "<div>";
+                s += "<div><b>%: </b>" + fp(obj.perc) + "<div>";
                 return s;
               }
           });
@@ -168,7 +168,7 @@ function heatmapVis(slice) {
             var y = yScale(d.y);
             pixs[x + (y*xScale.domain().length)] = c;
             if (matrix[x] === undefined)
-              matrix[x] = {}
+              matrix[x] = {};
             if (matrix[x][y] === undefined)
               matrix[x][y] = d;
         });

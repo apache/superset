@@ -12,7 +12,7 @@ function markupWidget(slice) {
       .fail(function(xhr) {
         slice.error(xhr.responseText);
       });
-  };
+  }
 
   return {
     render: refresh,

@@ -13,14 +13,14 @@ function bigNumberVis(slice) {
   function render() {
     d3.json(slice.jsonEndpoint(), function(error, payload){
       //Define the percentage bounds that define color from red to green
-      if (error != null){
+      if (error !== null){
         slice.error(error.responseText);
         return '';
       }
       var fd = payload.form_data;
       var json = payload.data;
       var color_range = [-1, 1];
-      var compare_pos = -23
+      var compare_pos = -23;
       var target_url = 'd3js.org';
 
       var f = d3.format(fd.y_axis_format);
@@ -66,12 +66,12 @@ function bigNumberVis(slice) {
           .attr('stroke-linecap',"round")
           .attr('stroke', "grey");
 
-      var g = svg.append('g')
+      g = svg.append('g')
          .attr('class', 'digits')
          .attr('opacity', 1);
 
       var y = height / 2;
-      if (v_compare != null) {
+      if (v_compare !== null) {
         y = (height / 8) * 3;
       }
 
@@ -91,7 +91,7 @@ function bigNumberVis(slice) {
       var c = scale_color(v_compare);
 
       //Printing compare %
-      if (v_compare != null) {
+      if (v_compare !== null) {
         g.append('text')
           .attr('x', width / 2)
           .attr('y', (height / 16) *12)
@@ -103,7 +103,7 @@ function bigNumberVis(slice) {
       }
 
       var g_axis = svg.append('g').attr('class', 'axis').attr('opacity', 0);
-      var g = g_axis.append('g');
+      g = g_axis.append('g');
       var x_axis = d3.svg.axis()
         .scale(scale_x)
         .orient('bottom')
@@ -112,7 +112,7 @@ function bigNumberVis(slice) {
       g.call(x_axis);
       g.attr('transform', 'translate(0,' + (height - margin) + ')');
 
-      var g = g_axis.append('g').attr('transform', 'translate(' + (width - margin) + ',0)');
+      g = g_axis.append('g').attr('transform', 'translate(' + (width - margin) + ',0)');
       var y_axis = d3.svg.axis()
         .scale(scale_y)
         .orient('left')
@@ -143,12 +143,12 @@ function bigNumberVis(slice) {
       });
       slice.done(payload);
     });
-  };
+  }
 
   return {
     render: render,
     resize: render,
-  }
-};
+  };
+}
 
 module.exports = bigNumberVis;

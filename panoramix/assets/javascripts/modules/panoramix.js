@@ -38,7 +38,7 @@ var color = function(){
     'fire': ['white', 'yellow', 'red', 'black'],
     'white_black': ['white', 'black'],
     'black_white': ['black', 'white'],
-  }
+  };
   var colorBnb = function() {
     // Color factory
     var seen = {};
@@ -52,32 +52,34 @@ var color = function(){
   };
   var colorScalerFactory = function (colors, data, accessor){
     // Returns a linear scaler our of an array of color
-    if(!Array.isArray(colors))
+    if (!Array.isArray(colors)) {
       colors = spectrums[colors];
-    if(data !== undefined)
-      var ext = d3.extent(data, accessor);
-    else
-      var ext = [0,1];
+    }
+
+    var ext = [0,1];
+    if (data !== undefined) {
+      ext = d3.extent(data, accessor);
+    }
 
     var points = [];
     var chunkSize = (ext[1] - ext[0]) / colors.length;
     $.each(colors, function(i, c){
-      points.push(i * chunkSize)
+      points.push(i * chunkSize);
     });
     return d3.scale.linear().domain(points).range(colors);
-  }
+  };
   return {
     bnbColors: bnbColors,
     category21: colorBnb(),
     colorScalerFactory: colorScalerFactory,
-  }
+  };
 };
 
 var px = (function() {
 
   var visualizations = {};
-  var dashboard = undefined;
-  var slice = undefined;
+  var dashboard;
+  var slice;
 
   function getParam(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
@@ -92,10 +94,10 @@ var px = (function() {
   var tickMultiFormat = d3.time.format.multi([
     [".%L", function(d) { return d.getMilliseconds(); }], // If there are millisections, show  only them
     [":%S", function(d) { return d.getSeconds(); }], // If there are seconds, show only them
-    ["%a %b %d, %I:%M %p", function(d) { return d.getMinutes()!=0; }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
-      ["%a %b %d, %I %p", function(d) { return d.getHours() != 0; }], // If there are hours that are multiples of 3, show date and AM/PM
-        ["%a %b %d, %Y", function(d) { return d.getDate() != 1; }], // If not the first of the month, do "month day, year."
-          ["%B %Y", function(d) { return d.getMonth() != 0 && d.getDate() == 1; }], // If the first of the month, do "month day, year."
+    ["%a %b %d, %I:%M %p", function(d) { return d.getMinutes() !== 0; }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
+      ["%a %b %d, %I %p", function(d) { return d.getHours() !== 0; }], // If there are hours that are multiples of 3, show date and AM/PM
+        ["%a %b %d, %Y", function(d) { return d.getDate() !== 1; }], // If not the first of the month, do "month day, year."
+          ["%B %Y", function(d) { return d.getMonth() !== 0 && d.getDate() === 1; }], // If the first of the month, do "month day, year."
             ["%Y", function(d) { return true; }] // fall back on month, year
   ]);
   function formatDate(dttm) {
@@ -104,7 +106,7 @@ var px = (function() {
     return tickMultiFormat(d);
   }
   function timeFormatFactory(d3timeFormat) {
-    var f = d3.time.format(d3timeFormat)
+    var f = d3.time.format(d3timeFormat);
     return function(dttm){
       var d = UTC(new Date(dttm));
       return f(d);
@@ -118,20 +120,19 @@ var px = (function() {
     var selector = '#' + container_id;
     var container = $(selector);
     var slice_id = data.slice_id;
-    var name = data['viz_name'];
+    var name = data.viz_name;
     var dttm = 0;
-    var timer;
     var stopwatch = function () {
       dttm += 10;
       var num = dttm / 1000;
       $('#timer').text(num.toFixed(2) + " sec");
-    }
+    };
     var qrystr = '';
     var always = function(data) {
       //Private f, runs after done and error
       clearInterval(timer);
       $('#timer').removeClass('btn-warning');
-    }
+    };
     slice = {
       data: data,
       container: container,
@@ -144,7 +145,7 @@ var px = (function() {
           var flts = encodeURIComponent(JSON.stringify(dashboard.filters));
           qrystr = parser.search + "&extra_filters=" + flts;
         }
-        else if ($('#query').length == 0){
+        else if ($('#query').length === 0){
           qrystr = parser.search;
         }
         else {
@@ -160,16 +161,17 @@ var px = (function() {
       },
       done: function (data) {
         clearInterval(timer);
-        token.find("img.loading").hide()
+        token.find("img.loading").hide();
         container.show();
-        if(data !== undefined)
+        if (data !== undefined) {
           $("#query_container").html(data.query);
+        }
         $('#timer').removeClass('btn-warning');
         $('#timer').addClass('btn-success');
         $('span.query').removeClass('disabled');
-        $('#json').click(function(){window.location=data.json_endpoint});
-        $('#standalone').click(function(){window.location=data.standalone_endpoint});
-        $('#csv').click(function(){window.location=data.csv_endpoint});
+        $('#json').click(function(){window.location=data.json_endpoint;});
+        $('#standalone').click(function(){window.location=data.standalone_endpoint;});
+        $('#csv').click(function(){window.location=data.csv_endpoint;});
         $('.btn-group.results span').removeAttr('disabled');
         always(data);
       },
@@ -231,9 +233,9 @@ var px = (function() {
     };
     var visType = data.form_data.viz_type;
     px.registerViz(visType);
-    slice['viz'] = visualizations[data.form_data.viz_type](slice);
+    slice.viz = visualizations[data.form_data.viz_type](slice);
     return slice;
-  }
+  };
 
   function registerViz(name) {
     var visSource = sourceMap[name];
@@ -252,7 +254,7 @@ var px = (function() {
     var i = 1;
     // Assigning the right id to form elements in filters
     $("#filters > div").each(function() {
-      $(this).attr("id", function() {return "flt_" + i;})
+      $(this).attr("id", function() {return "flt_" + i;});
       $(this).find("#flt_col_0")
       .attr("id", function() {return "flt_col_" + i;})
       .attr("name", function() {return "flt_col_" + i;});
@@ -279,7 +281,7 @@ var px = (function() {
     color: color(),
     renderSlice: renderSlice,
     getParam: getParam,
-  }
+  };
 })();
 
 module.exports = px;

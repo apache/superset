@@ -16,12 +16,12 @@ function worldMapChart(slice) {
     d3.json(slice.jsonEndpoint(), function(error, json){
       var fd = json.form_data;
 
-      if (error != null){
+      if (error !== null){
         slice.error(error.responseText);
         return '';
       }
-      var ext = d3.extent(json.data, function(d){return d.m1});
-      var extRadius = d3.extent(json.data, function(d){return d.m2});
+      var ext = d3.extent(json.data, function(d){return d.m1;});
+      var extRadius = d3.extent(json.data, function(d){return d.m2;});
       var radiusScale = d3.scale.linear()
         .domain([extRadius[0], extRadius[1]])
         .range([1, fd.max_bubble_size]);
@@ -37,7 +37,7 @@ function worldMapChart(slice) {
       var d = {};
       for (var i=0; i<json.data.length; i++){
         var country = json.data[i];
-        country['fillColor'] = colorScale(country.m1);
+        country.fillColor = colorScale(country.m1);
         d[country.country] = country;
       }
 
@@ -95,7 +95,7 @@ function worldMapChart(slice) {
       slice.done(json);
 
     });
-  }
+  };
 
   return {
     render: render,

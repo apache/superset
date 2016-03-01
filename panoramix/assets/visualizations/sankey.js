@@ -30,7 +30,7 @@ function sankeyVis(slice) {
       var path = sankey.link();
 
       d3.json(slice.jsonEndpoint(), function(error, json) {
-        if (error != null){
+        if (error !== null){
           slice.error(error.responseText);
           return '';
         }
@@ -98,7 +98,7 @@ function sankeyVis(slice) {
         }
         slice.done(json);
       });
-  }
+  };
   return {
     render: render,
     resize: render,
