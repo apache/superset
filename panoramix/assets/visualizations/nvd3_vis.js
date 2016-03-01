@@ -7,7 +7,7 @@ require('nvd3');
 require('../node_modules/nvd3/build/nv.d3.min.css');
 
 function nvd3Vis(slice) {
-  var chart = undefined;
+  var chart;
   var data = {};
 
   var render = function() {
@@ -29,7 +29,7 @@ function nvd3Vis(slice) {
                 .showMaxMin(fd.x_axis_showminmax)
                 .staggerLabels(false);
             } else {
-              chart = nv.models.lineChart()
+              chart = nv.models.lineChart();
             }
             // To alter the tooltip header
             // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
@@ -66,7 +66,7 @@ function nvd3Vis(slice) {
             break;
 
           case 'pie':
-            chart = nv.models.pieChart()
+            chart = nv.models.pieChart();
             colorKey = 'x';
             chart.valueFormat(f);
             if (fd.donut) {
@@ -170,13 +170,13 @@ function nvd3Vis(slice) {
 
         if (fd.contribution || fd.num_period_compare || viz_type == 'compare') {
           chart.yAxis.tickFormat(d3.format('.3p'));
-          if (chart.y2Axis != undefined) {
+          if (chart.y2Axis !== undefined) {
               chart.y2Axis.tickFormat(d3.format('.3p'));
           }
         } else if (fd.y_axis_format) {
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
-          if (chart.y2Axis != undefined) {
+          if (chart.y2Axis !== undefined) {
             chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
           }
         }
@@ -212,6 +212,6 @@ function nvd3Vis(slice) {
     render: render,
     resize: update,
   };
-};
+}
 
 module.exports = nvd3Vis;

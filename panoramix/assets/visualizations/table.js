@@ -4,7 +4,7 @@ var jQuery = window.jQuery = $;
 require('datatables');
 // CSS
 require('./table.css');
-require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css')
+require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
 function tableVis(slice) {
   var data = slice.data;
@@ -29,62 +29,62 @@ function tableVis(slice) {
       }
 
       var table = d3.select(slice.selector).append('table')
-        .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true);
+      .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true);
 
       table.append('thead').append('tr')
-       .selectAll('th')
-       .data(data.columns).enter()
-       .append('th')
-       .text(function(d){return d});
+      .selectAll('th')
+      .data(data.columns).enter()
+      .append('th')
+      .text(function(d){return d;});
 
       table.append('tbody')
-       .selectAll('tr')
-       .data(data.records).enter()
-       .append('tr')
-       .selectAll('td')
-       .data(function(row, i) {
-          return data.columns.map(function(c) {
-            return {col: c, val: row[c], isMetric: metrics.indexOf(c) >=0};
-          });
-       }).enter()
-       .append('td')
-       .style('background-image', function(d){
-          if (d.isMetric){
-            var perc = Math.round((d.val / maxes[d.col]) * 100);
-            return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
+      .selectAll('tr')
+      .data(data.records).enter()
+      .append('tr')
+      .selectAll('td')
+      .data(function(row, i) {
+        return data.columns.map(function(c) {
+          return {col: c, val: row[c], isMetric: metrics.indexOf(c) >=0};
+        });
+      }).enter()
+      .append('td')
+      .style('background-image', function(d){
+        if (d.isMetric){
+          var perc = Math.round((d.val / maxes[d.col]) * 100);
+          return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
+        }
+      })
+      .attr('title', function(d){
+        if (!isNaN(d.val))
+          return fC(d.val);
+      })
+      .attr('data-sort', function(d){
+        if (d.isMetric)
+          return d.val;
+      })
+      .on("click", function(d){
+        if(!d.isMetric){
+          var td = d3.select(this);
+          if (td.classed('filtered')){
+            slice.removeFilter(d.col, [d.val]);
+            d3.select(this).classed('filtered', false);
+          } else {
+            d3.select(this).classed('filtered', true);
+            slice.addFilter(d.col, [d.val]);
           }
-       })
-       .attr('title', function(d){
-         if (!isNaN(d.val))
-           return fC(d.val);
-       })
-       .attr('data-sort', function(d){
-          if (d.isMetric)
-            return d.val;
-       })
-       .on("click", function(d){
-          if(!d.isMetric){
-            var td = d3.select(this);
-            if (td.classed('filtered')){
-              slice.removeFilter(d.col, [d.val]);
-              d3.select(this).classed('filtered', false);
-            } else {
-              d3.select(this).classed('filtered', true);
-              slice.addFilter(d.col, [d.val]);
-            }
-          }
-       })
-       .style("cursor", function(d){
-         if(!d.isMetric){
+        }
+      })
+      .style("cursor", function(d){
+        if(!d.isMetric){
           return 'pointer';
         }
-       })
-       .html(function(d){
-          if (d.isMetric)
-            return f(d.val);
-          else
-            return d.val;
-       });
+      })
+      .html(function(d){
+        if (d.isMetric)
+          return f(d.val);
+        else
+          return d.val;
+      });
       var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
         searching: form_data.include_search,
@@ -105,6 +105,6 @@ function tableVis(slice) {
     render: refresh,
     resize: function(){},
   };
-};
+}
 
 module.exports = tableVis;
