@@ -240,27 +240,6 @@ var px = (function() {
       console.error("require(", visType, ") failed.");
     }
   }
-  function prepForm(){
-    var i = 1;
-    // Assigning the right id to form elements in filters
-    $("#filters > div").each(function() {
-      $(this).attr("id", function() {return "flt_" + i;})
-      $(this).find("#flt_col_0")
-      .attr("id", function() {return "flt_col_" + i;})
-      .attr("name", function() {return "flt_col_" + i;});
-      $(this).find("#flt_op_0")
-      .attr("id", function() {return "flt_op_" + i;})
-      .attr("name", function() {return "flt_op_" + i;});
-      $(this).find("#flt_eq_0")
-      .attr("id", function() {return "flt_eq_" + i;})
-      .attr("name", function() {return "flt_eq_" + i;});
-      i++;
-    });
-  }
-  function renderSlice(){
-    prepForm();
-    slice.render();
-  }
 
   // Export public functions
   return {
@@ -269,7 +248,6 @@ var px = (function() {
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
     color: color(),
-    renderSlice: renderSlice,
     getParam: getParam,
   }
 })();

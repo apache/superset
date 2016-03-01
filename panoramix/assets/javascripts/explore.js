@@ -21,13 +21,35 @@ require('../vendor/pygments.css');
 require('../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
 var slice;
+function prepForm(){
+  var i = 1;
+  // Assigning the right id to form elements in filters
+  $("#filters > div").each(function() {
+    $(this).attr("id", function() {return "flt_" + i;})
+    $(this).find("#flt_col_0")
+    .attr("id", function() {return "flt_col_" + i;})
+    .attr("name", function() {return "flt_col_" + i;});
+    $(this).find("#flt_op_0")
+    .attr("id", function() {return "flt_op_" + i;})
+    .attr("name", function() {return "flt_op_" + i;});
+    $(this).find("#flt_eq_0")
+    .attr("id", function() {return "flt_eq_" + i;})
+    .attr("name", function() {return "flt_eq_" + i;});
+    i++;
+  });
+}
+
+function renderSlice(){
+  prepForm();
+  slice.render();
+}
 
 function initExploreView() {
 
   function druidify(){
     $('div.alert').remove();
     history.pushState({}, document.title, slice.querystring());
-    px.renderSlice();
+    renderSlice();
   }
 
   function get_collapsed_fieldsets(){
@@ -227,7 +249,7 @@ $(document).ready(function() {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
-  px.renderSlice();
+  renderSlice();
 
   // make checkbox inputs display as toggles
   $(':checkbox')
