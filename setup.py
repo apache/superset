@@ -29,7 +29,7 @@ setup(
         'markdown>=2.6.2, <3.0.0',
         'numpy>=1.9, <2',
         'pandas==0.16.2, <0.17',
-        'parsedatetime>=1.5, <2.0.0',
+        'parsedatetime==2.0.0',
         'pydruid>=0.2.2, <0.3',
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
