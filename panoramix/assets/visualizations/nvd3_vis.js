@@ -27,7 +27,7 @@ function nvd3Vis(slice) {
               chart.lines2.xScale(d3.time.scale.utc());
               chart.x2Axis
                 .showMaxMin(fd.x_axis_showminmax)
-                .staggerLabels(true);
+                .staggerLabels(false);
             } else {
               chart = nv.models.lineChart()
             }
@@ -153,9 +153,16 @@ function nvd3Vis(slice) {
         }
         else if (fd.x_axis_format == 'smart_date') {
           chart.xAxis.tickFormat(px.formatDate);
+          if(chart.hasOwnProperty("x2Axis")) {
+            chart.x2Axis.tickFormat(px.formatDate);
+          }
         }
         else if (fd.x_axis_format !== undefined) {
-          chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
+          var tf = px.timeFormatFactory(fd.x_axis_format);
+          chart.xAxis.tickFormat(tf);
+          if(chart.hasOwnProperty("x2Axis")) {
+            chart.x2Axis.tickFormat(tf);
+          }
         }
         if (chart.yAxis !== undefined) {
           chart.yAxis.tickFormat(d3.format('.3s'));
