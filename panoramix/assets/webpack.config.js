@@ -11,6 +11,7 @@ var config = {
     explore: APP_DIR + '/javascripts/explore.js',
     featured: APP_DIR + '/javascripts/featured.js',
     sql: APP_DIR + '/javascripts/sql.js',
+    standalone: APP_DIR + '/javascripts/standalone.js',
   },
   output: {
     path: BUILD_DIR,

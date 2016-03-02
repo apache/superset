@@ -104,6 +104,8 @@ class BaseViz(object):
 
     def get_url(self, **kwargs):
         d = self.orig_form_data.copy()
+        if 'json' in d:
+            del d['json']
         if 'action' in d:
             del d['action']
         d.update(kwargs)
