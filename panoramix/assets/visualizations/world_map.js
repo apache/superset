@@ -7,30 +7,30 @@ var Datamap = require('datamaps');
 require('./world_map.css');
 
 function worldMapChart(slice) {
-  var render = function() {
+  var render = function () {
     var container = slice.container;
     var div = d3.select(slice.selector);
 
     container.css('height', slice.height());
 
-    d3.json(slice.jsonEndpoint(), function(error, json) {
+    d3.json(slice.jsonEndpoint(), function (error, json) {
       var fd = json.form_data;
 
       if (error !== null) {
         slice.error(error.responseText);
         return '';
       }
-      var ext = d3.extent(json.data, function(d) {
+      var ext = d3.extent(json.data, function (d) {
         return d.m1;
       });
-      var extRadius = d3.extent(json.data, function(d) {
+      var extRadius = d3.extent(json.data, function (d) {
         return d.m2;
       });
       var radiusScale = d3.scale.linear()
         .domain([extRadius[0], extRadius[1]])
         .range([1, fd.max_bubble_size]);
 
-      json.data.forEach(function(d) {
+      json.data.forEach(function (d) {
         d.radius = radiusScale(d.m2);
       });
 
@@ -63,9 +63,9 @@ function worldMapChart(slice) {
           highlightBorderColor: '#fff',
           highlightFillColor: '#005a63',
           highlightBorderWidth: 1,
-          popupTemplate: function(geo, data) {
+          popupTemplate: function (geo, data) {
             return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>' + f(data.m1) + '</div>';
-          },
+          }
         },
         bubblesConfig: {
           borderWidth: 1,
@@ -73,7 +73,7 @@ function worldMapChart(slice) {
           borderColor: '#005a63',
           popupOnHover: true,
           radius: null,
-          popupTemplate: function(geo, data) {
+          popupTemplate: function (geo, data) {
             return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>' + f(data.m2) + '</div>';
           },
           fillOpacity: 0.5,
@@ -86,7 +86,7 @@ function worldMapChart(slice) {
           highlightFillOpacity: 0.85,
           exitDelay: 100,
           key: JSON.stringify
-        },
+        }
       });
 
       map.updateChoropleth(d);
@@ -103,7 +103,7 @@ function worldMapChart(slice) {
 
   return {
     render: render,
-    resize: render,
+    resize: render
   };
 }
 

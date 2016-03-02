@@ -6,7 +6,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var px = require('./modules/panoramix.js');
-var d3 = require('d3');
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
@@ -25,29 +24,29 @@ var slice;
 function prepForm() {
   var i = 1;
   // Assigning the right id to form elements in filters
-  $("#filters > div").each(function() {
-    $(this).attr("id", function() {
-      return "flt_" + i;
-    })
+  $("#filters > div").each(function () {
+    $(this).attr("id", function () {
+        return "flt_" + i;
+      });
     $(this).find("#flt_col_0")
-      .attr("id", function() {
+      .attr("id", function () {
         return "flt_col_" + i;
       })
-      .attr("name", function() {
+      .attr("name", function () {
         return "flt_col_" + i;
       });
     $(this).find("#flt_op_0")
-      .attr("id", function() {
+      .attr("id", function () {
         return "flt_op_" + i;
       })
-      .attr("name", function() {
+      .attr("name", function () {
         return "flt_op_" + i;
       });
     $(this).find("#flt_eq_0")
-      .attr("id", function() {
+      .attr("id", function () {
         return "flt_eq_" + i;
       })
-      .attr("name", function() {
+      .attr("name", function () {
         return "flt_eq_" + i;
       });
     i++;
@@ -83,20 +82,8 @@ function initExploreView() {
     var fieldset = parent.find(".legend_label").text();
     var collapsed_fieldsets = get_collapsed_fieldsets();
     var index;
-    if (!parent.hasClass("collapsed")) {
-      if (animation) {
-        parent.find(".fieldset_content").slideUp();
-      } else {
-        parent.find(".fieldset_content").hide();
-      }
 
-      parent.addClass("collapsed");
-      parent.find("span.collapser").text("[+]");
-      index = collapsed_fieldsets.indexOf(fieldset);
-      if (index === -1 && fieldset !== "" && fieldset !== undefined) {
-        collapsed_fieldsets.push(fieldset);
-      }
-    } else {
+    if (parent.hasClass("collapsed")) {
       if (animation) {
         parent.find(".fieldset_content").slideDown();
       } else {
@@ -110,11 +97,25 @@ function initExploreView() {
       if (index !== -1) {
         collapsed_fieldsets.splice(index, 1);
       }
+    } else { // not collapsed
+      if (animation) {
+        parent.find(".fieldset_content").slideUp();
+      } else {
+        parent.find(".fieldset_content").hide();
+      }
+
+      parent.addClass("collapsed");
+      parent.find("span.collapser").text("[+]");
+      index = collapsed_fieldsets.indexOf(fieldset);
+      if (index === -1 && fieldset !== "" && fieldset !== undefined) {
+        collapsed_fieldsets.push(fieldset);
+      }
     }
+
     $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
   }
 
-  $('legend').click(function() {
+  $('legend').click(function () {
     toggle_fieldset($(this), true);
   });
 
@@ -130,7 +131,7 @@ function initExploreView() {
     try {
       var successful = document.execCommand('copy');
       if (!successful) {
-        throw "Not successful";
+        throw new Error("Not successful");
       }
     } catch (err) {
       window.alert("Sorry, your browser does not support copying. Use Ctrl / Cmd + C!");
@@ -139,17 +140,17 @@ function initExploreView() {
     return successful;
   }
 
-  $('#shortner').click(function() {
+  $('#shortner').click(function () {
     $.ajax({
       type: "POST",
       url: '/r/shortner/',
       data: {
-        'data': '/' + window.location.pathname + slice.querystring()
+        data: '/' + window.location.pathname + slice.querystring()
       },
-      success: function(data) {
+      success: function (data) {
         var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></i></a>';
         var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_url"></i></a>';
-        var spaces = '&nbsp;&nbsp;&nbsp;'
+        var spaces = '&nbsp;&nbsp;&nbsp;';
         var popover = data + spaces + copy + spaces + close;
 
         var $shortner = $('#shortner')
@@ -161,26 +162,25 @@ function initExploreView() {
           })
           .popover('show');
 
-        $('#copy_url').tooltip().click(function() {
+        $('#copy_url').tooltip().click(function () {
           var success = copyURLToClipboard(data);
-
           if (success) {
             $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
-            window.setTimeout(function() {
-              $shortner.popover('destroy');
-            }, 1200);
+            window.setTimeout(destroyPopover, 1200);
           }
         });
-        $('#close_shortner').click(function() {
+        $('#close_shortner').click(destroyPopover);
+
+        function destroyPopover() {
           $shortner.popover('destroy');
-        });
+        }
       },
-      error: function() {
+      error: function () {
         alert("Error :(");
-      },
+      }
     });
   });
-  $("#viz_type").change(function() {
+  $("#viz_type").change(function () {
     $("#query").submit();
   });
 
@@ -224,12 +224,12 @@ function initExploreView() {
       $(cp).find("#flt_col_0").val(px.getParam("flt_col_" + i));
     }
     $(cp).find('select').select2();
-    $(cp).find('.remove').click(function() {
+    $(cp).find('.remove').click(function () {
       $(this).parent().parent().remove();
     });
   }
 
-  $(window).bind("popstate", function(event) {
+  $(window).bind("popstate", function (event) {
     // Browser back button
     var returnLocation = history.location || document.location;
     // Could do something more lightweight here, but we're not optimizing
@@ -237,9 +237,8 @@ function initExploreView() {
     returnLocation.reload();
   });
 
-
   $("#plus").click(add_filter);
-  $("#btn_save").click(function() {
+  $("#btn_save").click(function () {
     var slice_name = prompt("Name your slice!");
     if (slice_name !== "" && slice_name !== null) {
       $("#slice_name").val(slice_name);
@@ -248,7 +247,7 @@ function initExploreView() {
       $("#query").submit();
     }
   });
-  $("#btn_overwrite").click(function() {
+  $("#btn_overwrite").click(function () {
     var flag = confirm("Overwrite slice [" + $("#slice_name").val() + "] !?");
     if (flag) {
       $("#action").val("overwrite");
@@ -260,7 +259,7 @@ function initExploreView() {
   $(".druidify").click(druidify);
 
   function create_choices(term, data) {
-    var filtered = $(data).filter(function() {
+    var filtered = $(data).filter(function () {
       return this.text.localeCompare(term) === 0;
     });
     if (filtered.length === 0) {
@@ -278,17 +277,7 @@ function initExploreView() {
     });
   }
 
-  function list_data(arr) {
-    var obj = [];
-    for (var i = 0; i < arr.length; i++) {
-      obj.push({
-        id: arr[i],
-        text: arr[i]
-      });
-    }
-    return obj;
-  }
-  $(".select2_freeform").each(function() {
+  $(".select2_freeform").each(function () {
     var parent = $(this).parent();
     var name = $(this).attr('name');
     var l = [];
@@ -302,7 +291,7 @@ function initExploreView() {
         selected = this.options[i].value;
       }
     }
-    var obj = parent.append(
+    parent.append(
       '<input class="' + $(this).attr('class') + '" name="' + name + '" type="text" value="' + selected + '">'
     );
     $("input[name='" + name + "']").select2({
@@ -310,19 +299,18 @@ function initExploreView() {
       initSelection: initSelectionToValue,
       dropdownAutoWidth: true,
       multiple: false,
-      data: l,
+      data: l
     });
     $(this).remove();
   });
 }
 
-$(document).ready(function() {
+$(document).ready(function () {
   initExploreView();
 
   // Dynamically register this visualization
   var visType = window.viz_type.value;
   px.registerViz(visType);
-
 
   var data = $('.slice').data('slice');
   slice = px.Slice(data);

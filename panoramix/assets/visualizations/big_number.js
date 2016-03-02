@@ -7,11 +7,10 @@ require('./big_number.css');
 var px = require('../javascripts/modules/panoramix.js');
 
 function bigNumberVis(slice) {
-  var data_attribute = slice.data;
   var div = d3.select(slice.selector);
 
   function render() {
-    d3.json(slice.jsonEndpoint(), function(error, payload) {
+    d3.json(slice.jsonEndpoint(), function (error, payload) {
       //Define the percentage bounds that define color from red to green
       if (error !== null) {
         slice.error(error.responseText);
@@ -20,8 +19,6 @@ function bigNumberVis(slice) {
       var fd = payload.form_data;
       var json = payload.data;
       var color_range = [-1, 1];
-      var compare_pos = -23;
-      var target_url = 'd3js.org';
 
       var f = d3.format(fd.y_axis_format);
       var fp = d3.format('+.1%');
@@ -40,10 +37,10 @@ function bigNumberVis(slice) {
           v_compare = (v / data[pos][1]) - 1;
         }
       }
-      var date_ext = d3.extent(data, function(d) {
+      var date_ext = d3.extent(data, function (d) {
         return d[0];
       });
-      var value_ext = d3.extent(data, function(d) {
+      var value_ext = d3.extent(data, function (d) {
         return d[1];
       });
 
@@ -56,18 +53,19 @@ function bigNumberVis(slice) {
         .interpolate(d3.interpolateHsl)
         .range(colorRange).clamp(true);
       var line = d3.svg.line()
-        .x(function(d) {
+        .x(function (d) {
           return scale_x(d[0]);
         })
-        .y(function(d) {
+        .y(function (d) {
           return scale_y(d[1]);
         })
         .interpolate("basis");
 
       //Drawing trend line
       var g = svg.append('g');
-      var path = g.append('path')
-        .attr('d', function(d) {
+
+      g.append('path')
+        .attr('d', function (d) {
           return line(data);
         })
         .attr('stroke-width', 5)
@@ -137,14 +135,14 @@ function bigNumberVis(slice) {
       g.selectAll("text")
         .style('font-size', '10px');
 
-      div.on('mouseover', function(d) {
+      div.on('mouseover', function (d) {
           var div = d3.select(this);
           div.select('path').transition().duration(500).attr('opacity', 1)
             .style('stroke-width', '2px');
           div.select('g.digits').transition().duration(500).attr('opacity', 0.1);
           div.select('g.axis').transition().duration(500).attr('opacity', 1);
         })
-        .on('mouseout', function(d) {
+        .on('mouseout', function (d) {
           var div = d3.select(this);
           div.select('path').transition().duration(500).attr('opacity', 0.5)
             .style('stroke-width', '5px');
@@ -157,7 +155,7 @@ function bigNumberVis(slice) {
 
   return {
     render: render,
-    resize: render,
+    resize: render
   };
 }
 

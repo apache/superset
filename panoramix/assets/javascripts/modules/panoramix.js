@@ -1,5 +1,5 @@
-var $ = require('jquery'),
-  jQuery = $;
+var $ = require('jquery');
+var jQuery = $;
 var d3 = require('d3');
 
 // vis sources
@@ -23,35 +23,36 @@ var sourceMap = {
   sunburst: 'sunburst.js',
   table: 'table.js',
   word_cloud: 'word_cloud.js',
-  world_map: 'world_map.js',
+  world_map: 'world_map.js'
 };
 
-var color = function() {
+var color = function () {
   // Color related utility functions go in this object
   var bnbColors = [
     //rausch    hackb      kazan      babu      lima        beach     barol
     '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
     '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
-    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
+    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e'
   ];
   var spectrums = {
-    'blue_white_yellow': ['#00d1c1', 'white', '#ffb400'],
-    'fire': ['white', 'yellow', 'red', 'black'],
-    'white_black': ['white', 'black'],
-    'black_white': ['black', 'white'],
+    blue_white_yellow: ['#00d1c1', 'white', '#ffb400'],
+    fire: ['white', 'yellow', 'red', 'black'],
+    white_black: ['white', 'black'],
+    black_white: ['black', 'white']
   };
-  var colorBnb = function() {
+  var colorBnb = function () {
     // Color factory
     var seen = {};
-    return function(s) {
+    return function (s) {
       // next line is for dashed series that should have the same color
       s = s.replace('---', '');
-      if (seen[s] === undefined)
+      if (seen[s] === undefined) {
         seen[s] = Object.keys(seen).length;
+      }
       return this.bnbColors[seen[s] % this.bnbColors.length];
     };
   };
-  var colorScalerFactory = function(colors, data, accessor) {
+  var colorScalerFactory = function (colors, data, accessor) {
     // Returns a linear scaler our of an array of color
     if (!Array.isArray(colors)) {
       colors = spectrums[colors];
@@ -64,7 +65,7 @@ var color = function() {
 
     var points = [];
     var chunkSize = (ext[1] - ext[0]) / colors.length;
-    $.each(colors, function(i, c) {
+    $.each(colors, function (i, c) {
       points.push(i * chunkSize);
     });
     return d3.scale.linear().domain(points).range(colors);
@@ -72,14 +73,13 @@ var color = function() {
   return {
     bnbColors: bnbColors,
     category21: colorBnb(),
-    colorScalerFactory: colorScalerFactory,
+    colorScalerFactory: colorScalerFactory
   };
 };
 
-var px = (function() {
+var px = (function () {
 
   var visualizations = {};
-  var dashboard;
   var slice;
 
   function getParam(name) {
@@ -93,25 +93,25 @@ var px = (function() {
     return new Date(dttm.getUTCFullYear(), dttm.getUTCMonth(), dttm.getUTCDate(), dttm.getUTCHours(), dttm.getUTCMinutes(), dttm.getUTCSeconds());
   }
   var tickMultiFormat = d3.time.format.multi([
-    [".%L", function(d) {
+    [".%L", function (d) {
       return d.getMilliseconds();
     }], // If there are millisections, show  only them
-    [":%S", function(d) {
+    [":%S", function (d) {
       return d.getSeconds();
     }], // If there are seconds, show only them
-    ["%a %b %d, %I:%M %p", function(d) {
+    ["%a %b %d, %I:%M %p", function (d) {
       return d.getMinutes() !== 0;
     }], // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
-    ["%a %b %d, %I %p", function(d) {
+    ["%a %b %d, %I %p", function (d) {
       return d.getHours() !== 0;
     }], // If there are hours that are multiples of 3, show date and AM/PM
-    ["%a %b %d, %Y", function(d) {
+    ["%a %b %d, %Y", function (d) {
       return d.getDate() !== 1;
     }], // If not the first of the month, do "month day, year."
-    ["%B %Y", function(d) {
+    ["%B %Y", function (d) {
       return d.getMonth() !== 0 && d.getDate() === 1;
     }], // If the first of the month, do "month day, year."
-    ["%Y", function(d) {
+    ["%Y", function (d) {
       return true;
     }] // fall back on month, year
   ]);
@@ -124,28 +124,27 @@ var px = (function() {
 
   function timeFormatFactory(d3timeFormat) {
     var f = d3.time.format(d3timeFormat);
-    return function(dttm) {
+    return function (dttm) {
       var d = UTC(new Date(dttm));
       return f(d);
     };
   }
 
-  var Slice = function(data, dashboard) {
+  var Slice = function (data, dashboard) {
     var timer;
     var token = $('#' + data.token);
     var container_id = data.token + '_con';
     var selector = '#' + container_id;
     var container = $(selector);
     var slice_id = data.slice_id;
-    var name = data.viz_name;
     var dttm = 0;
-    var stopwatch = function() {
+    var stopwatch = function () {
       dttm += 10;
       var num = dttm / 1000;
       $('#timer').text(num.toFixed(2) + " sec");
     };
     var qrystr = '';
-    var always = function(data) {
+    var always = function (data) {
       //Private f, runs after done and error
       clearInterval(timer);
       $('#timer').removeClass('btn-warning');
@@ -155,7 +154,7 @@ var px = (function() {
       container: container,
       container_id: container_id,
       selector: selector,
-      querystring: function() {
+      querystring: function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         if (dashboard !== undefined) {
@@ -168,13 +167,13 @@ var px = (function() {
         }
         return qrystr;
       },
-      jsonEndpoint: function() {
+      jsonEndpoint: function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         var endpoint = parser.pathname + this.querystring() + "&json=true";
         return endpoint;
       },
-      done: function(data) {
+      done: function (data) {
         clearInterval(timer);
         token.find("img.loading").hide();
         container.show();
@@ -184,19 +183,19 @@ var px = (function() {
         $('#timer').removeClass('btn-warning');
         $('#timer').addClass('btn-success');
         $('span.query').removeClass('disabled');
-        $('#json').click(function() {
+        $('#json').click(function () {
           window.location = data.json_endpoint;
         });
-        $('#standalone').click(function() {
+        $('#standalone').click(function () {
           window.location = data.standalone_endpoint;
         });
-        $('#csv').click(function() {
+        $('#csv').click(function () {
           window.location = data.csv_endpoint;
         });
         $('.btn-group.results span').removeAttr('disabled');
         always(data);
       },
-      error: function(msg) {
+      error: function (msg) {
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg + '</div>';
         container.html(err);
@@ -205,19 +204,20 @@ var px = (function() {
         $('#timer').addClass('btn-danger');
         always(data);
       },
-      width: function() {
+      width: function () {
         return token.width();
       },
-      height: function() {
+      height: function () {
         var others = 0;
         var widget = container.parents('.widget');
         var slice_description = widget.find('.slice_description');
-        if (slice_description.is(":visible"))
+        if (slice_description.is(":visible")) {
           others += widget.find('.slice_description').height() + 25;
+        }
         others += widget.find('.slice_header').height();
         return widget.height() - others;
       },
-      render: function() {
+      render: function () {
         $('.btn-group.results span').attr('disabled', 'disabled');
         token.find("img.loading").show();
         container.hide();
@@ -228,29 +228,33 @@ var px = (function() {
         $('#timer').addClass('btn-warning');
         this.viz.render();
       },
-      resize: function() {
+      resize: function () {
         token.find("img.loading").show();
         container.hide();
         container.html('');
         this.viz.render();
         this.viz.resize();
       },
-      addFilter: function(col, vals) {
-        if (dashboard !== undefined)
+      addFilter: function (col, vals) {
+        if (dashboard !== undefined) {
           dashboard.addFilter(slice_id, col, vals);
+        }
       },
-      setFilter: function(col, vals) {
-        if (dashboard !== undefined)
+      setFilter: function (col, vals) {
+        if (dashboard !== undefined) {
           dashboard.setFilter(slice_id, col, vals);
+        }
       },
-      clearFilter: function() {
-        if (dashboard !== undefined)
+      clearFilter: function () {
+        if (dashboard !== undefined) {
           delete dashboard.clearFilter(slice_id);
+        }
       },
-      removeFilter: function(col, vals) {
-        if (dashboard !== undefined)
+      removeFilter: function (col, vals) {
+        if (dashboard !== undefined) {
           delete dashboard.removeFilter(slice_id, col, vals);
-      },
+        }
+      }
     };
     var visType = data.form_data.viz_type;
     px.registerViz(visType);
@@ -267,45 +271,8 @@ var px = (function() {
         visualizations[name] = visFactory;
       }
     } else {
-      console.error("require(", visType, ") failed.");
+      throw new Error("require(" + name + ") failed.");
     }
-  }
-
-  function prepForm() {
-    var i = 1;
-    // Assigning the right id to form elements in filters
-    $("#filters > div").each(function() {
-      $(this).attr("id", function() {
-        return "flt_" + i;
-      });
-      $(this).find("#flt_col_0")
-        .attr("id", function() {
-          return "flt_col_" + i;
-        })
-        .attr("name", function() {
-          return "flt_col_" + i;
-        });
-      $(this).find("#flt_op_0")
-        .attr("id", function() {
-          return "flt_op_" + i;
-        })
-        .attr("name", function() {
-          return "flt_op_" + i;
-        });
-      $(this).find("#flt_eq_0")
-        .attr("id", function() {
-          return "flt_eq_" + i;
-        })
-        .attr("name", function() {
-          return "flt_eq_" + i;
-        });
-      i++;
-    });
-  }
-
-  function renderSlice() {
-    prepForm();
-    slice.render();
   }
 
   // Export public functions
@@ -315,7 +282,7 @@ var px = (function() {
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
     color: color(),
-    getParam: getParam,
+    getParam: getParam
   };
 })();
 

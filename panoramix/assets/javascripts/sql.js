@@ -8,7 +8,7 @@ var ace = require('brace');
 require('brace/mode/sql');
 require('brace/theme/crimson_editor');
 
-$(document).ready(function() {
+$(document).ready(function () {
   function getParam(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
     var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
@@ -22,11 +22,11 @@ $(document).ready(function() {
     editor.$blockScrolling = Infinity;
     editor.getSession().setUseWrapMode(true);
 
-    var textarea = $('#sql').hide();
+    $('#sql').hide();
     editor.setTheme("ace/theme/crimson_editor");
     editor.setOptions({
       minLines: 16,
-      maxLines: Infinity,
+      maxLines: Infinity
     });
     editor.getSession().setMode("ace/mode/sql");
     editor.focus();
@@ -40,26 +40,28 @@ $(document).ready(function() {
     }
     $("#dbtable").on("change", showTableMetadata);
     showTableMetadata();
-    $("#create_view").click(function() {
+    $("#create_view").click(function () {
       alert("Not implemented");
     });
     $(".sqlcontent").show();
-    $("#select_star").click(function() {
+
+    function selectStarOnClick() {
       $.ajax('/panoramix/select_star/' + database_id + '/' + $("#dbtable").val() + '/')
-        .done(function(msg) {
+        .done(function (msg) {
           editor.setValue(msg);
         });
-    });
+    }
+
+    $("#select_star").click(selectStarOnClick);
+
     editor.setValue(getParam('sql'));
-    $(window).bind("popstate", function(event) {
-      // Browser back button
-      var returnLocation = history.location || document.location;
+    $(window).bind("popstate", function (event) {
       // Could do something more lightweight here, but we're not optimizing
       // for the use of the back button anyways
       editor.setValue(getParam('sql'));
       $("#run").click();
     });
-    $("#run").click(function() {
+    $("#run").click(function () {
       $('#results').hide(0);
       $('#loading').show(0);
       history.pushState({}, document.title, '?sql=' + encodeURIComponent(editor.getValue()));
@@ -67,27 +69,27 @@ $(document).ready(function() {
         type: "POST",
         url: '/panoramix/runsql/',
         data: {
-          'data': JSON.stringify({
-            'database_id': $('#database_id').val(),
-            'sql': editor.getSession().getValue(),
+          data: JSON.stringify({
+            database_id: $('#database_id').val(),
+            sql: editor.getSession().getValue()
           })
         },
-        success: function(data) {
+        success: function (data) {
           $('#loading').hide(0);
           $('#results').show(0);
           $('#results').html(data);
 
-          var datatable = $('table.sql_results').DataTable({
+          $('table.sql_results').DataTable({
             paging: false,
             searching: true,
-            aaSorting: [],
+            aaSorting: []
           });
         },
-        error: function(err, err2) {
+        error: function (err, err2) {
           $('#loading').hide(0);
           $('#results').show(0);
           $('#results').html(err.responseText);
-        },
+        }
       });
     });
   }

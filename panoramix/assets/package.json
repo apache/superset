@@ -9,7 +9,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack -d --watch --colors",
-    "prod": "webpack -p --colors"
+    "prod": "webpack -p --colors",
+    "lint": "npm run --silent lint:js",
+    "lint:js": "eslint --ignore-path=.eslintignore --ext .js .; exit 0;"
   },
   "repository": {
     "type": "git",
@@ -65,6 +67,7 @@
   },
   "devDependencies": {
     "css-loader": "^0.23.1",
+    "eslint": "^2.2.0",
     "style-loader": "^0.13.0"
   }
 }
