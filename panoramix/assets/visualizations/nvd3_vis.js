@@ -5,6 +5,7 @@ require('nvd3');
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
+require('./nvd3_vis.css');
 
 function nvd3Vis(slice) {
   var chart;
