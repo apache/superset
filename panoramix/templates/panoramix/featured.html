@@ -24,7 +24,7 @@
                 </div>
               </td>
               <td class="small_table">{{ dataset.database }}</td>
-              <td class="small_table">{{ dataset.owner }}</td>
+              <td class="small_table">{{ dataset.owner or '' }}</td>
               <td class="small_table"><a class="btn btn-default" href="{{ dataset.default_endpoint }}"><i class='fa fa-line-chart'/></a></td>
          </tr>
       {% endfor %}

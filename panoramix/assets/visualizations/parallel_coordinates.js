@@ -1,7 +1,7 @@
 // JS
 var d3 = window.d3 || require('d3');
 d3.parcoords = require('../vendor/parallel_coordinates/d3.parcoords.js');
-d3.divgrid   = require('../vendor/parallel_coordinates/divgrid.js');
+d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
 
 // CSS
 require('../vendor/parallel_coordinates/d3.parcoords.css');
@@ -9,20 +9,22 @@ require('../vendor/parallel_coordinates/d3.parcoords.css');
 function parallelCoordVis(slice) {
 
   function refresh() {
-      $('#code').attr('rows', '15')
-      $.getJSON(slice.jsonEndpoint(), function(payload) {
+    $('#code').attr('rows', '15');
+    $.getJSON(slice.jsonEndpoint(), function(payload) {
         var data = payload.data;
         var fd = payload.form_data;
-        var ext = d3.extent(data, function(d){
+        var ext = d3.extent(data, function(d) {
           return d[fd.secondary_metric];
         });
-        ext = [ext[0], (ext[1]-ext[0])/2,ext[1]];
+        ext = [ext[0], (ext[1] - ext[0]) / 2, ext[1]];
         var cScale = d3.scale.linear()
           .domain(ext)
           .range(['red', 'grey', 'blue'])
           .interpolate(d3.interpolateLab);
 
-        var color = function(d){return cScale(d[fd.secondary_metric])};
+        var color = function(d) {
+          return cScale(d[fd.secondary_metric]);
+        };
         var container = d3.select(slice.selector);
         var eff_height = fd.show_datatable ? (slice.height() / 2) : slice.height();
 
@@ -48,23 +50,27 @@ function parallelCoordVis(slice) {
           // create data table, row hover highlighting
           var grid = d3.divgrid();
           container.append("div")
-            .datum(data.slice(0,10))
+            .datum(data.slice(0, 10))
             .attr('id', "grid")
             .call(grid)
             .classed("parcoords", true)
             .selectAll(".row")
             .on({
-              "mouseover": function(d) { parcoords.highlight([d]) },
+              "mouseover": function(d) {
+                parcoords.highlight([d]);
+              },
               "mouseout": parcoords.unhighlight
             });
           // update data table on brush event
           parcoords.on("brush", function(d) {
             d3.select("#grid")
-              .datum(d.slice(0,10))
+              .datum(d.slice(0, 10))
               .call(grid)
               .selectAll(".row")
               .on({
-                "mouseover": function(d) { parcoords.highlight([d]) },
+                "mouseover": function(d) {
+                  parcoords.highlight([d]);
+                },
                 "mouseout": parcoords.unhighlight
               });
           });
@@ -72,14 +78,14 @@ function parallelCoordVis(slice) {
         slice.done();
       })
       .fail(function(xhr) {
-          slice.error(xhr.responseText);
-        });
-      };
+        slice.error(xhr.responseText);
+      });
+  }
 
   return {
     render: refresh,
     resize: refresh,
   };
-};
+}
 
 module.exports = parallelCoordVis;

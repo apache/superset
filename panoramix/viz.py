@@ -156,15 +156,13 @@ class BaseViz(object):
                 filters.append((col, op, eq))
 
         # Extra filters (coming from dashboard)
-        extra_filters = form_data.get('extra_filters', [])
+        extra_filters = form_data.get('extra_filters')
         if extra_filters:
             extra_filters = json.loads(extra_filters)
             for slice_filters in extra_filters.values():
-                if slice_filters:
-                    for col, vals in slice_filters:
-                        if col and vals:
-                            filters += [(col, 'in', ",".join(vals))]
-
+                for col, vals in slice_filters.items():
+                    if col and vals:
+                        filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):

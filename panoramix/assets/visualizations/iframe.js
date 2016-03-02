@@ -3,7 +3,7 @@ var $ = window.$ || require('jquery');
 function iframeWidget(slice) {
 
   function refresh() {
-    $('#code').attr('rows', '15')
+    $('#code').attr('rows', '15');
     $.getJSON(slice.jsonEndpoint(), function(payload) {
         slice.container.html('<iframe style="width:100%;"></iframe>');
         var iframe = slice.container.find('iframe');
@@ -14,7 +14,7 @@ function iframeWidget(slice) {
       .fail(function(xhr) {
         slice.error(xhr.responseText);
       });
-  };
+  }
 
   return {
     render: refresh,
@@ -22,4 +22,4 @@ function iframeWidget(slice) {
   };
 }
 
-module.exports = iframeWidget
+module.exports = iframeWidget;
