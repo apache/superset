@@ -4,7 +4,7 @@
     {{ super() }}
     <link rel="stylesheet" href="{{ url_for('static', filename="assets/node_modules/gridster/dist/jquery.gridster.min.css") }}">
     <style id="user_style" type="text/css">
-      {{ dashboard.css }}
+      {{ dashboard.css or '' }}
     </style>
 {% endblock %}
 
@@ -14,7 +14,7 @@
 <!-- Modal -->
 <div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
   <div class="modal-dialog" role="document">
-    <div class="modal-content">
+    <div class="modal-content css">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>

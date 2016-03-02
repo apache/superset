@@ -11,6 +11,17 @@ body {
     margin-left: 365px;
 }
 
+.modal-content.css {
+    transition: opacity 0.5s ease;
+    opacity: 0.5;
+    border-color: black;
+}
+
+.modal-content.css:hover {
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
 .slice_description{
     padding: 8px;
     margin: 5px;
