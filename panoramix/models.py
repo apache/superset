@@ -1088,3 +1088,16 @@ class DruidColumn(Model):
             if not m:
                 session.add(metric)
                 session.commit()
+
+
+class DruidPostAggregator(Model):
+    __tablename__ = 'post_aggregators'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(512))
+    verbose_name = Column(String(1024))
+    datasource_name = Column(
+        String(250),
+        ForeignKey('datasources.datasource_name'))
+    datasource = relationship('DruidDatasource', backref='post_aggregators')
+    json = Column(Text)
+    description = Column(Text)
