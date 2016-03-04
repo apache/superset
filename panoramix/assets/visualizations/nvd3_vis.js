@@ -130,6 +130,7 @@ function nvd3Vis(slice) {
           }
 
           var height = slice.height();
+          height -= 15;  // accounting for the staggered xAxis
 
           if (chart.hasOwnProperty("x2Axis")) {
             height += 30;
