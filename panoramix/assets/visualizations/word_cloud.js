@@ -6,7 +6,7 @@ function wordCloudChart(slice) {
   var chart = d3.select(slice.selector);
 
   function refresh() {
-    d3.json(slice.jsonEndpoint(), function(error, json) {
+    d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText);
         return '';
@@ -14,20 +14,20 @@ function wordCloudChart(slice) {
       var data = json.data;
       var range = [
         json.form_data.size_from,
-        json.form_data.size_to,
+        json.form_data.size_to
       ];
       var rotation = json.form_data.rotation;
       var f_rotation;
-      if (rotation == "square") {
-        f_rotation = function() {
+      if (rotation === "square") {
+        f_rotation = function () {
           return ~~(Math.random() * 2) * 90;
         };
-      } else if (rotation == "flat") {
-        f_rotation = function() {
+      } else if (rotation === "flat") {
+        f_rotation = function () {
           return 0;
         };
       } else {
-        f_rotation = function() {
+        f_rotation = function () {
           return (~~(Math.random() * 6) - 3) * 30;
         };
       }
@@ -35,7 +35,7 @@ function wordCloudChart(slice) {
 
       var scale = d3.scale.linear()
         .range(range)
-        .domain(d3.extent(data, function(d) {
+        .domain(d3.extent(data, function (d) {
           return d.size;
         }));
 
@@ -45,7 +45,7 @@ function wordCloudChart(slice) {
         .padding(5)
         .rotate(f_rotation)
         .font("serif")
-        .fontSize(function(d) {
+        .fontSize(function (d) {
           return scale(d.size);
         })
         .on("end", draw);
@@ -63,18 +63,18 @@ function wordCloudChart(slice) {
           .selectAll("text")
           .data(words)
           .enter().append("text")
-          .style("font-size", function(d) {
+          .style("font-size", function (d) {
             return d.size + "px";
           })
           .style("font-family", "Impact")
-          .style("fill", function(d, i) {
+          .style("fill", function (d) {
             return px.color.category21(d.text);
           })
           .attr("text-anchor", "middle")
-          .attr("transform", function(d) {
+          .attr("transform", function (d) {
             return "translate(" + [d.x, d.y] + ") rotate(" + d.rotate + ")";
           })
-          .text(function(d) {
+          .text(function (d) {
             return d.text;
           });
       }
@@ -84,7 +84,7 @@ function wordCloudChart(slice) {
 
   return {
     render: refresh,
-    resize: refresh,
+    resize: refresh
   };
 }
 

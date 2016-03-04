@@ -4,10 +4,10 @@ require('datatables');
 require('datatables-bootstrap3-plugin');
 require('bootstrap');
 
-$(document).ready(function() {
+$(document).ready(function () {
   $('#dataset-table').DataTable({
-    "bPaginate": false,
-    "order": [
+    bPaginate: false,
+    order: [
       [1, "asc"]
     ]
   });

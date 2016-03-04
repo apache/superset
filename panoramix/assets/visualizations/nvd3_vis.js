@@ -1,7 +1,8 @@
 // JS
-var $ = window.$ || require('jquery');
+var $  = window.$ || require('jquery');
+var d3 = window.d3 || require('d3');
 var px = window.px || require('../javascripts/modules/panoramix.js');
-require('nvd3');
+var nv = require('nvd3');
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
@@ -9,19 +10,17 @@ require('./nvd3_vis.css');
 
 function nvd3Vis(slice) {
   var chart;
-  var data = {};
 
-  var render = function() {
-    $.getJSON(slice.jsonEndpoint(), function(payload) {
+  var render = function () {
+    $.getJSON(slice.jsonEndpoint(), function (payload) {
         var fd = payload.form_data;
         var viz_type = fd.viz_type;
 
         var f = d3.format('.3s');
         var colorKey = 'key';
 
-        nv.addGraph(function() {
+        nv.addGraph(function () {
           switch (viz_type) {
-
             case 'line':
               if (fd.show_brush) {
                 chart = nv.models.lineWithFocusChart();
@@ -93,13 +92,13 @@ function nvd3Vis(slice) {
               break;
 
             case 'bubble':
-              var row = function(col1, col2) {
+              var row = function (col1, col2) {
                 return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></tr>";
               };
               chart = nv.models.scatterChart();
               chart.showDistX(true);
               chart.showDistY(true);
-              chart.tooltip.contentGenerator(function(obj) {
+              chart.tooltip.contentGenerator(function (obj) {
                 var p = obj.point;
                 var s = "<table>";
                 s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
@@ -122,7 +121,7 @@ function nvd3Vis(slice) {
               break;
 
             default:
-              console.error("unrecognized visualization for nvd3", viz_type);
+              throw new Error("Unrecognized visualization for nvd3" + viz_type);
           }
 
           if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
@@ -151,7 +150,7 @@ function nvd3Vis(slice) {
           }
           if (viz_type === 'bubble') {
             chart.xAxis.tickFormat(d3.format('.3s'));
-          } else if (fd.x_axis_format == 'smart_date') {
+          } else if (fd.x_axis_format === 'smart_date') {
             chart.xAxis.tickFormat(px.formatDate);
           } else if (fd.x_axis_format !== undefined) {
             chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
@@ -160,7 +159,7 @@ function nvd3Vis(slice) {
             chart.yAxis.tickFormat(d3.format('.3s'));
           }
 
-          if (fd.contribution || fd.num_period_compare || viz_type == 'compare') {
+          if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
             chart.yAxis.tickFormat(d3.format('.3p'));
             if (chart.y2Axis !== undefined) {
               chart.y2Axis.tickFormat(d3.format('.3p'));
@@ -173,7 +172,7 @@ function nvd3Vis(slice) {
             }
           }
 
-          chart.color(function(d, i) {
+          chart.color(function (d, i) {
             return px.color.category21(d[colorKey]);
           });
 
@@ -189,12 +188,12 @@ function nvd3Vis(slice) {
 
         slice.done(payload);
       })
-      .fail(function(xhr) {
+      .fail(function (xhr) {
         slice.error(xhr.responseText);
       });
   };
 
-  var update = function() {
+  var update = function () {
     if (chart && chart.update) {
       chart.update();
     }
@@ -202,7 +201,7 @@ function nvd3Vis(slice) {
 
   return {
     render: render,
-    resize: update,
+    resize: update
   };
 }
 

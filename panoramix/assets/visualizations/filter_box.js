@@ -1,4 +1,6 @@
 // JS
+var $ = window.$ = require('jquery');
+var jQuery = window.jQuery = $;
 var d3 = window.d3 || require('d3');
 
 // CSS
@@ -8,7 +10,7 @@ function filterBox(slice) {
   var filtersObj = {};
   var d3token = d3.select(slice.selector);
 
-  var fltChanged = function() {
+  var fltChanged = function () {
     for (var filter in filtersObj) {
       var obj = filtersObj[filter];
       var val = obj.val();
@@ -20,25 +22,27 @@ function filterBox(slice) {
     }
   };
 
-  var refresh = function() {
+  var refresh = function () {
     d3token.selectAll("*").remove();
     var container = d3token
       .append('div')
       .classed('padded', true);
 
-    $.getJSON(slice.jsonEndpoint(), function(payload) {
+    $.getJSON(slice.jsonEndpoint(), function (payload) {
         var maxes = {};
+
         for (var filter in payload.data) {
           var data = payload.data[filter];
-          maxes[filter] = d3.max(data, function(d) {
+          maxes[filter] = d3.max(data, function (d) {
             return d.metric;
           });
           var id = 'fltbox__' + filter;
 
           var div = container.append('div');
+
           div.append("label").text(filter);
-          var sel = div
-            .append('div')
+
+          div.append('div')
             .attr('name', filter)
             .classed('form-control', true)
             .attr('multiple', '')
@@ -50,28 +54,30 @@ function filterBox(slice) {
               dropdownAutoWidth: true,
               data: data,
               multiple: true,
-              formatResult: function(result, container, query, escapeMarkup) {
-                var perc = Math.round((result.metric / maxes[result.filter]) * 100);
-                var style = 'padding: 2px 5px;';
-                style += "background-image: ";
-                style += "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
-
-                $(container).attr('style', 'padding: 0px; background: white;');
-                $(container).addClass('filter_box');
-                return '<div style="' + style + '"><span>' + result.text + '</span></div>';
-              },
+              formatResult: select2Formatter
             })
             .on('change', fltChanged);
         }
         slice.done();
+
+        function select2Formatter(result, container /*, query, escapeMarkup*/) {
+          var perc = Math.round((result.metric / maxes[result.filter]) * 100);
+          var style = 'padding: 2px 5px;';
+          style += "background-image: ";
+          style += "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
+
+          $(container).attr('style', 'padding: 0px; background: white;');
+          $(container).addClass('filter_box');
+          return '<div style="' + style + '"><span>' + result.text + '</span></div>';
+        }
       })
-      .fail(function(xhr) {
+      .fail(function (xhr) {
         slice.error(xhr.responseText);
       });
   };
   return {
     render: refresh,
-    resize: refresh,
+    resize: refresh
   };
 }
 

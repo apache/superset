@@ -11,17 +11,16 @@ require('brace/theme/crimson_editor');
 require('select2');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
-
-var Dashboard = function(dashboardData) {
+var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
     filters: {},
-    init: function() {
+    init: function () {
       this.initDashboardView();
       var sliceObjects = [],
         dash = this;
-      dashboard.slices.forEach(function(data) {
+      dashboard.slices.forEach(function (data) {
         var slice = px.Slice(data, dash);
-        $("#slice_" + data.slice_id).find('a.refresh').click(function() {
+        $("#slice_" + data.slice_id).find('a.refresh').click(function () {
           slice.render();
         });
         sliceObjects.push(slice);
@@ -29,11 +28,10 @@ var Dashboard = function(dashboardData) {
       });
       this.slices = sliceObjects;
     },
-    setFilter: function(slice_id, col, vals) {
-      console.log([slice_id, col, vals]);
+    setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
     },
-    addFilter: function(slice_id, col, vals, merge) {
+    addFilter: function (slice_id, col, vals, merge) {
       if (merge === undefined) {
         merge = true;
       }
@@ -47,27 +45,27 @@ var Dashboard = function(dashboardData) {
       }
       this.refreshExcept(slice_id);
     },
-    readFilters: function() {
+    readFilters: function () {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
     },
-    refreshExcept: function(slice_id) {
+    refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slices;
-      this.slices.forEach(function(slice) {
+      this.slices.forEach(function (slice) {
         if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
         }
       });
     },
-    clearFilters: function(slice_id) {
+    clearFilters: function (slice_id) {
       delete this.filters[slice_id];
       this.refreshExcept(slice_id);
     },
-    removeFilter: function(slice_id, col, vals) {
+    removeFilter: function (slice_id, col, vals) {
       if (slice_id in this.filters) {
         if (col in this.filters[slice_id]) {
           var a = [];
-          this.filters[slice_id][col].forEach(function(v) {
+          this.filters[slice_id][col].forEach(function (v) {
             if (vals.indexOf(v) < 0) {
               a.push(v);
             }
@@ -77,29 +75,29 @@ var Dashboard = function(dashboardData) {
       }
       this.refreshExcept(slice_id);
     },
-    getSlice: function(slice_id) {
-      this.slices.forEach(function(slice, i) {
+    getSlice: function (slice_id) {
+      this.slices.forEach(function (slice, i) {
         if (slice.slice_id === slice_id) {
           return slice;
         }
       });
     },
-    initDashboardView: function() {
+    initDashboardView: function () {
       dashboard = this;
       var gridster = $(".gridster ul").gridster({
         widget_margins: [5, 5],
         widget_base_dimensions: [100, 100],
         draggable: {
-          handle: '.drag',
+          handle: '.drag'
         },
         resize: {
           enabled: true,
-          stop: function(e, ui, element) {
+          stop: function (e, ui, element) {
             var slice_data = $(element).data('slice');
             dashboard.getSlice(slice_data.slice_id).resize();
           }
         },
-        serialize_params: function(_w, wgd) {
+        serialize_params: function (_w, wgd) {
           return {
             slice_id: $(_w).attr('slice_id'),
             col: wgd.col,
@@ -107,34 +105,35 @@ var Dashboard = function(dashboardData) {
             size_x: wgd.size_x,
             size_y: wgd.size_y
           };
-        },
+        }
       }).data('gridster');
       $("div.gridster").css('visibility', 'visible');
-      $("#savedash").click(function() {
+      $("#savedash").click(function () {
         var expanded_slices = {};
-        $.each($(".slice_info"), function(i, d) {
+        $.each($(".slice_info"), function (i, d) {
           var widget = $(this).parents('.widget');
           var slice_description = widget.find('.slice_description');
-          if (slice_description.is(":visible"))
+          if (slice_description.is(":visible")) {
             expanded_slices[$(d).attr('slice_id')] = true;
+          }
         });
         var data = {
           positions: gridster.serialize(),
           css: editor.getValue(),
-          expanded_slices: expanded_slices,
+          expanded_slices: expanded_slices
         };
         $.ajax({
           type: "POST",
           url: '/panoramix/save_dash/' + dashboard.id + '/',
           data: {
-            'data': JSON.stringify(data)
+            data: JSON.stringify(data)
           },
-          success: function() {
+          success: function () {
             alert("Saved!");
           },
-          error: function() {
+          error: function () {
             alert("Error :(");
-          },
+          }
         });
       });
 
@@ -144,40 +143,40 @@ var Dashboard = function(dashboardData) {
       editor.setTheme("ace/theme/crimson_editor");
       editor.setOptions({
         minLines: 16,
-        maxLines: Infinity,
+        maxLines: Infinity
       });
       editor.getSession().setMode("ace/mode/css");
 
       $(".select2").select2({
         dropdownAutoWidth: true
       });
-      $("#css_template").on("change", function() {
+      $("#css_template").on("change", function () {
         var css = $(this).find('option:selected').data('css');
         editor.setValue(css);
         $('#dash_css').val(css);
         $("#user_style").html(css);
       });
-      $('#filters').click(function() {
+      $('#filters').click(function () {
         alert(dashboard.readFilters());
       });
-      $("a.closeslice").click(function() {
+      $("a.closeslice").click(function () {
         var li = $(this).parents("li");
         gridster.remove_widget(li);
       });
-      $(".slice_info").click(function() {
+      $(".slice_info").click(function () {
         var widget = $(this).parents('.widget');
         var slice_description = widget.find('.slice_description');
-        slice_description.slideToggle(500, function() {
+        slice_description.slideToggle(500, function () {
           widget.find('.refresh').click();
         });
       });
-      $("table.slice_header").mouseover(function() {
+      $("table.slice_header").mouseover(function () {
         $(this).find("td.icons nobr").show();
       });
-      $("table.slice_header").mouseout(function() {
+      $("table.slice_header").mouseout(function () {
         $(this).find("td.icons nobr").hide();
       });
-      editor.on("change", function() {
+      editor.on("change", function () {
         var css = editor.getValue();
         $('#dash_css').val(css);
         $("#user_style").html(css);
@@ -188,6 +187,6 @@ var Dashboard = function(dashboardData) {
   return dashboard;
 };
 
-$(document).ready(function() {
-  var dashboard = Dashboard($('.dashboard').data('dashboard'));
+$(document).ready(function () {
+  Dashboard($('.dashboard').data('dashboard'));
 });

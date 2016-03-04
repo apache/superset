@@ -24,7 +24,7 @@ function heatmapVis(slice) {
     var hmWidth = width - (margins.l + margins.r);
     var hmHeight = height - (margins.b + margins.t);
     var fp = d3.format('.3p');
-    d3.json(slice.jsonEndpoint(), function(error, payload) {
+    d3.json(slice.jsonEndpoint(), function (error, payload) {
       var matrix = {};
       if (error) {
         slice.error(error.responseText);
@@ -38,10 +38,10 @@ function heatmapVis(slice) {
           reverse = false;
         }
         var domain = {};
-        $.each(data, function(i, d) {
+        $.each(data, function (i, d) {
           domain[d[k]] = true;
         });
-        domain = Object.keys(domain).sort(function(a, b) {
+        domain = Object.keys(domain).sort(function (a, b) {
           return b - a;
         });
         if (reverse) {
@@ -104,12 +104,12 @@ function heatmapVis(slice) {
 
       var tip = d3.tip()
         .attr('class', 'd3-tip')
-        .offset(function() {
+        .offset(function () {
           var k = d3.mouse(this);
           var x = k[0] - (hmWidth / 2);
           return [k[1] - 20, x];
         })
-        .html(function(d) {
+        .html(function (d) {
           var k = d3.mouse(this);
           var m = Math.floor(scale[0].invert(k[0]));
           var n = Math.floor(scale[1].invert(k[1]));
@@ -126,21 +126,18 @@ function heatmapVis(slice) {
 
       rect.call(tip);
 
-      var xscale_skip = 2;
-      var yscale_skip = 2;
-
       var xAxis = d3.svg.axis()
         .scale(xRbScale)
         .tickValues(xRbScale.domain().filter(
-          function(d, i) {
-            return !(i % (parseInt(fd.xscale_interval)));
+          function (d, i) {
+            return !(i % (parseInt(fd.xscale_interval, 10)));
           }))
         .orient("bottom");
       var yAxis = d3.svg.axis()
         .scale(yRbScale)
         .tickValues(yRbScale.domain().filter(
-          function(d, i) {
-            return !(i % (parseInt(fd.yscale_interval)));
+          function (d, i) {
+            return !(i % (parseInt(fd.yscale_interval, 10)));
           }))
         .orient("left");
 
@@ -163,9 +160,6 @@ function heatmapVis(slice) {
 
       var context = canvas.node().getContext("2d");
       context.imageSmoothingEnabled = false;
-      var imageObj;
-      var imageDim;
-      var imageScale;
       createImageObj();
 
       // Compute the pixel colors; scaled by CSS.
@@ -173,15 +167,17 @@ function heatmapVis(slice) {
         var imageObj = new Image();
         var image = context.createImageData(heatmapDim[0], heatmapDim[1]);
         var pixs = {};
-        $.each(data, function(i, d) {
+        $.each(data, function (i, d) {
           var c = d3.rgb(color(d.perc));
           var x = xScale(d.x);
           var y = yScale(d.y);
           pixs[x + (y * xScale.domain().length)] = c;
-          if (matrix[x] === undefined)
+          if (matrix[x] === undefined) {
             matrix[x] = {};
-          if (matrix[x][y] === undefined)
+          }
+          if (matrix[x][y] === undefined) {
             matrix[x][y] = d;
+          }
         });
 
         var p = -1;
@@ -206,7 +202,7 @@ function heatmapVis(slice) {
   }
   return {
     render: refresh,
-    resize: refresh,
+    resize: refresh
   };
 }
 

@@ -1,5 +1,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
+var d3 = require('d3');
 
 require('datatables');
 // CSS
@@ -13,7 +14,13 @@ function tableVis(slice) {
   var fC = d3.format('0,000');
 
   function refresh() {
-    $.getJSON(slice.jsonEndpoint(), function(json) {
+    $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
+
+    function onError(xhr) {
+      slice.error(xhr.responseText);
+    }
+
+    function onSuccess(json) {
       var data = json.data;
       var metrics = json.form_data.metrics;
 
@@ -36,7 +43,7 @@ function tableVis(slice) {
         .selectAll('th')
         .data(data.columns).enter()
         .append('th')
-        .text(function(d) {
+        .text(function (d) {
           return d;
         });
 
@@ -45,8 +52,8 @@ function tableVis(slice) {
         .data(data.records).enter()
         .append('tr')
         .selectAll('td')
-        .data(function(row, i) {
-          return data.columns.map(function(c) {
+        .data(function (row, i) {
+          return data.columns.map(function (c) {
             return {
               col: c,
               val: row[c],
@@ -55,21 +62,23 @@ function tableVis(slice) {
           });
         }).enter()
         .append('td')
-        .style('background-image', function(d) {
+        .style('background-image', function (d) {
           if (d.isMetric) {
             var perc = Math.round((d.val / maxes[d.col]) * 100);
             return "linear-gradient(to right, lightgrey, lightgrey " + perc + "%, rgba(0,0,0,0) " + perc + "%";
           }
         })
-        .attr('title', function(d) {
-          if (!isNaN(d.val))
+        .attr('title', function (d) {
+          if (!isNaN(d.val)) {
             return fC(d.val);
+          }
         })
-        .attr('data-sort', function(d) {
-          if (d.isMetric)
+        .attr('data-sort', function (d) {
+          if (d.isMetric) {
             return d.val;
+          }
         })
-        .on("click", function(d) {
+        .on("click", function (d) {
           if (!d.isMetric) {
             var td = d3.select(this);
             if (td.classed('filtered')) {
@@ -81,20 +90,21 @@ function tableVis(slice) {
             }
           }
         })
-        .style("cursor", function(d) {
+        .style("cursor", function (d) {
           if (!d.isMetric) {
             return 'pointer';
           }
         })
-        .html(function(d) {
-          if (d.isMetric)
+        .html(function (d) {
+          if (d.isMetric) {
             return f(d.val);
-          else
+          } else {
             return d.val;
+          }
         });
       var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
-        searching: form_data.include_search,
+        searching: form_data.include_search
       });
       // Sorting table by main column
       if (form_data.metrics.length > 0) {
@@ -103,14 +113,12 @@ function tableVis(slice) {
       }
       slice.done(json);
       slice.container.parents('.widget').find('.tooltip').remove();
-    }).fail(function(xhr) {
-      slice.error(xhr.responseText);
-    });
+    }
   }
 
   return {
     render: refresh,
-    resize: function() {},
+    resize: function () {}
   };
 }
 

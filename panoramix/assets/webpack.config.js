@@ -1,6 +1,4 @@
-var webpack = require('webpack');
-var path    = require('path');
-
+var path      = require('path');
 var APP_DIR   = path.resolve(__dirname, './'); // input
 var BUILD_DIR = path.resolve(__dirname, './javascripts/dist'); // output
 
@@ -11,14 +9,14 @@ var config = {
     explore: APP_DIR + '/javascripts/explore.js',
     featured: APP_DIR + '/javascripts/featured.js',
     sql: APP_DIR + '/javascripts/sql.js',
-    standalone: APP_DIR + '/javascripts/standalone.js',
+    standalone: APP_DIR + '/javascripts/standalone.js'
   },
   output: {
     path: BUILD_DIR,
     filename: '[name].entry.js'
   },
-  module : {
-    loaders : [
+  module: {
+    loaders: [
       {
         test: /\.jsx?/,
         include: APP_DIR,
@@ -29,7 +27,7 @@ var config = {
         test: /\.css$/,
         //exclude: APP_DIR + '/node_modules',
         loader: "style-loader!css-loader" // load css via require('../*.css')
-      },
+      }
     ]
   },
   plugins: []
