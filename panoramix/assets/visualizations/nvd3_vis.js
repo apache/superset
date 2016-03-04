@@ -199,10 +199,16 @@ function nvd3Vis(slice) {
     }
   };
 
+  $(window).resize(function(){
+    update();
+  });
+
+
   return {
     render: render,
     resize: update
   };
 }
+
 
 module.exports = nvd3Vis;
