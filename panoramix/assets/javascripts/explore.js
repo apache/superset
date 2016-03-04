@@ -330,4 +330,6 @@ $(document).ready(function () {
     });
 
   $('div.toggle').addClass('pull-right');
+  slice.setResizeOnWindowResize();
+
 });

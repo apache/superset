@@ -217,6 +217,15 @@ var px = (function () {
         others += widget.find('.slice_header').height();
         return widget.height() - others;
       },
+      setResizeOnWindowResize: function () {
+        var resizeTimer;
+        $(window).on('resize', function (e) {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(function () {
+            slice.resize();
+          }, 500);
+        });
+      },
       render: function () {
         $('.btn-group.results span').attr('disabled', 'disabled');
         token.find("img.loading").show();
