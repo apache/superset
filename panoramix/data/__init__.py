@@ -318,13 +318,14 @@ def load_birth_names():
         "datasource_id": "1",
         "datasource_name": "birth_names",
         "datasource_type": "table",
+        "flt_op_1": "in",
         "limit": "25",
         "granularity": "ds",
         "groupby": [],
         "metric": 'sum__num',
         "metrics": ["sum__num"],
         "row_limit": config.get("ROW_LIMIT"),
-        "since": "100 years",
+        "since": "100 years ago",
         "until": "now",
         "viz_type": "table",
         "where": "",
@@ -340,7 +341,9 @@ def load_birth_names():
             table=tbl,
             params=get_slice_json(
                 defaults,
-                groupby=['name'], flt_eq_1="girl", row_limit=50)),
+                groupby=['name'],
+                flt_col_1='gender',
+                flt_eq_1="girl", row_limit=50)),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -348,7 +351,10 @@ def load_birth_names():
             table=tbl,
             params=get_slice_json(
                 defaults,
-                groupby=['name'], flt_eq_1="boy", row_limit=50)),
+                groupby=['name'],
+                flt_col_1='gender',
+                flt_eq_1="boy",
+                row_limit=50)),
         Slice(
             slice_name="Participants",
             viz_type='big_number',
