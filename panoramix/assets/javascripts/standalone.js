@@ -9,5 +9,5 @@ $(document).ready(function () {
   var data = $('.slice').data('slice');
   slice = px.Slice(data);
   slice.render();
-  slice.setResizeOnWindowResize();
+  slice.bindResizeToWindowResize();
 });

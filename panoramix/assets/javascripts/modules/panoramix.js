@@ -217,7 +217,7 @@ var px = (function () {
         others += widget.find('.slice_header').height();
         return widget.height() - others;
       },
-      setResizeOnWindowResize: function () {
+      bindResizeToWindowResize: function () {
         var resizeTimer;
         $(window).on('resize', function (e) {
           clearTimeout(resizeTimer);
