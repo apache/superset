@@ -333,7 +333,7 @@ def load_birth_names():
     }
     /*
     var bnbColors = [
-        //rausch    hackb      kazan      babu      lima        beach     barol
+        //rausch    hackb      kazan      babu      lima        beach     tirol
         '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
         '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
         '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
@@ -389,7 +389,7 @@ def load_birth_names():
     }
     /*
     var bnbColors = [
-        //rausch    hackb      kazan      babu      lima        beach     barol
+        //rausch    hackb      kazan      babu      lima        beach     tirol
         '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
         '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
         '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
