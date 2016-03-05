@@ -67,7 +67,7 @@ class CssTemplate(Model, AuditMixinNullable):
     __tablename__ = 'css_templates'
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
-    css = Column(Text)
+    css = Column(Text, default='')
 
 
 class Slice(Model, AuditMixinNullable):

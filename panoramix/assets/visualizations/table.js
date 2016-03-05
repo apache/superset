@@ -2,9 +2,8 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var d3 = require('d3');
 
-require('datatables');
-// CSS
 require('./table.css');
+require('datatables');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
 function tableVis(slice) {
