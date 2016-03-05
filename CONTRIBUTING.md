@@ -152,16 +152,25 @@ Generate the documentation with:
 
     cd docs && ./build.sh
 
+## CSS Themes
+As part of the npm build process, CSS for Panoramix is compiled from ```Less```, a dynamic stylesheet language.
+
+It's possible to customize or add your own theme to Panoramix, either by overriding CSS rules or preferably
+by modifying the Less variables or files in ```assets/stylesheets/less/```.
+
+The ```variables.less``` and ```bootswatch.less``` files that ship with Panoramix are derived from
+[Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
+swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
 ## Pull Request Guidelines
 
-Before you submit a pull request from your forked repo, check that it 
+Before you submit a pull request from your forked repo, check that it
 meets these guidelines:
 
 1.  The pull request should include tests, either as doctests,
     unit tests, or both.
 2.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make 
+    as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
 3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
     `from __future__ import ` will be required in every `.py` file soon.
