@@ -43,6 +43,7 @@
     "bootstrap-datepicker": "^1.6.0",
     "bootstrap-toggle": "^2.2.1",
     "brace": "^0.7.0",
+    "css-loader": "^0.23.1",
     "d3": "^3.5.14",
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.2.1",
@@ -57,17 +58,19 @@
     "imports-loader": "^0.6.5",
     "jquery": "^2.2.1",
     "jquery-ui": "^1.10.5",
+    "less-loader": "^2.2.2",
     "nvd3": "1.8.2",
     "react": "^0.14.7",
     "react-bootstrap": "^0.28.3",
     "react-dom": "^0.14.7",
     "select2": "3.5",
+    "style-loader": "^0.13.0",
     "topojson": "^1.6.22",
     "webpack": "^1.12.12"
   },
   "devDependencies": {
-    "css-loader": "^0.23.1",
     "eslint": "^2.2.0",
-    "style-loader": "^0.13.0"
+    "file-loader": "^0.8.5",
+    "url-loader": "^0.5.7"
   }
 }

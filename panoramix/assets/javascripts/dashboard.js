@@ -85,7 +85,7 @@ var Dashboard = function (dashboardData) {
     initDashboardView: function () {
       dashboard = this;
       var gridster = $(".gridster ul").gridster({
-        widget_margins: [5, 5],
+        widget_margins: [10, 10],
         widget_base_dimensions: [100, 100],
         draggable: {
           handle: '.drag'

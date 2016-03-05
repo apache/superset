@@ -5,6 +5,7 @@ var BUILD_DIR = path.resolve(__dirname, './javascripts/dist'); // output
 var config = {
   // for now generate one compiled js file per entry point / html page
   entry: {
+    'css-theme': APP_DIR + '/javascripts/css-theme.js',
     dashboard: APP_DIR + '/javascripts/dashboard.js',
     explore: APP_DIR + '/javascripts/explore.js',
     featured: APP_DIR + '/javascripts/featured.js',
@@ -21,12 +22,21 @@ var config = {
         test: /\.jsx?/,
         include: APP_DIR,
         exclude: APP_DIR + '/node_modules',
-        loader: 'babel' // transpile jsx + ES2015/6 -> ES5
+        loader: 'babel'
       },
+    /* for require('*.css') */
       {
         test: /\.css$/,
-        //exclude: APP_DIR + '/node_modules',
-        loader: "style-loader!css-loader" // load css via require('../*.css')
+        include: APP_DIR,
+        loader: "style-loader!css-loader"
+      },
+    /* for require('*.less') */
+      { test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "url-loader?limit=10000&minetype=application/font-woff" },
+      { test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "file-loader" },
+      {
+        test: /\.less$/,
+        include: APP_DIR,
+        loader: "style!css!less"
       }
     ]
   },
