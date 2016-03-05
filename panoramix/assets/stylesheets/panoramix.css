@@ -191,11 +191,13 @@ img.loading {
 }
 .gridster li.widget{
   list-style-type: none;
-  border: 1px solid gray;
+  border-radius: 0;
+  padding: 10px;
+  margin: 5px;
+  border: 1px solid #ccc;
+  box-shadow: 2px 1px 5px -2px #aaa;
   overflow: hidden;
-  box-shadow: 2px 2px 2px #AAA;
-  border-radius: 5px;
-  background-color: white;
+  background-color: #fff;
 }
 .dashboard .gridster .dragging,
 .dashboard .gridster .resizing {
@@ -224,15 +226,6 @@ img.loading {
 .dashboard table.slice_header {
   width: 100%;
   height: 20px;
-}
-.dashboard li.widget.line,
-  .dashboard li.widget.bar,
-  .dashboard li.widget.compare,
-  .dashboard li.widget.area,
-  .dashboard li.widget.pie,
-  .dashboard li.widget.dist_bar,
-  .dashboard li.widget.sunburst {
- overflow: visible;  /* This allows elements within these widget typesin a dashboard to overflow */
 }
 .dashboard  div.nvtooltip {
   z-index: 888;  /* this lets tool tips go on top of other slices  */

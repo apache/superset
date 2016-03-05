@@ -112,25 +112,6 @@ IMG_UPLOAD_URL = '/static/uploads/'
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
 
-# ---------------------------------------------------
-# Theme configuration
-# ---------------------------------------------------
-CSS_THEME = '/static/assets/stylesheets/themes/panoramix-bootstrap-theme.css'
-# CSS_THEME = '/static/assets/stylesheets/themes/bootswatch.paper.min.css'
-# CSS_THEME = "/static/appbuilder/css/bootstrap.min.css"  # default bootstrap
-# CSS_THEME = "/static/appbuilder/css/themes/cerulean.css"
-# CSS_THEME = "/static/appbuilder/css/themes/amelia.css"
-# CSS_THEME = "/static/appbuilder/css/themes/cosmo.css"
-# CSS_THEME = "/static/appbuilder/css/themes/cyborg.css"
-# CSS_THEME = "/static/appbuilder/css/themes/flatly.css"
-# CSS_THEME = "/static/appbuilder/css/themes/journal.css"
-# CSS_THEME = "/static/appbuilder/css/themes/readable.css"
-# CSS_THEME = "/static/appbuilder/css/themes/simplex.css"
-# CSS_THEME = "/static/appbuilder/css/themes/slate.css"
-# CSS_THEME = "/static/appbuilder/css/themes/spacelab.css"
-# CSS_THEME = "/static/appbuilder/css/themes/united.css"
-# CSS_THEME = "/static/appbuilder/css/themes/yeti.css"
-
 try:
     from panoramix_config import *
 except Exception:

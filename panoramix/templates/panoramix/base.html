@@ -1,10 +1,11 @@
 {% extends "appbuilder/baselayout.html" %}
 
-{% block head_css %}
-{{super()}}
-  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/panoramix.css" />
-  {% set CSS_THEME = appbuilder.get_app.config.get("CSS_THEME") %}
-  {% if CSS_THEME %}
-    <link rel="stylesheet" type="text/css" href="{{ CSS_THEME }}" />
-  {% endif %}
-{% endblock %}
+  {% block head_css %}
+    {{super()}}
+    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/panoramix.css" />
+  {% endblock %}
+
+  {% block head_js %}
+    {{super()}}
+    <script src="/static/assets/javascripts/dist/css-theme.entry.js"></script>
+  {% endblock %}
