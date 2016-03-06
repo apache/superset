@@ -116,7 +116,8 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'created_by', 'changed_on_']
+    list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
+    order_columns = utils.list_minus(list_columns, ['created_by_'])
     add_columns = ['database_name', 'sqlalchemy_uri']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
@@ -151,7 +152,7 @@ class TableModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
-        'changed_by_', 'changed_on_']
+        'changed_by_', 'changed_on']
     add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
@@ -210,7 +211,8 @@ class SliceModelView(PanoramixModelView, DeleteMixin):
     can_add = False
     list_columns = [
         'slice_link', 'viz_type',
-        'datasource_link', 'created_by_', 'changed_on_']
+        'datasource_link', 'created_by_', 'changed_on']
+    order_columns = utils.list_minus(list_columns, ['created_by_'])
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params']
@@ -234,7 +236,8 @@ appbuilder.add_view(
 
 class DashboardModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.Dashboard)
-    list_columns = ['dashboard_link', 'created_by_', 'changed_on_']
+    list_columns = ['dashboard_link', 'created_by_', 'changed_on']
+    order_columns = utils.list_minus(list_columns, ['created_by_'])
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'position_json', 'css',
         'json_metadata']
@@ -287,9 +290,11 @@ class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner',
-        'created_by', 'created_on',
+        'created_by_', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
+    order_columns = utils.list_minus(
+        list_columns, ['created_by_', 'changed_by_'])
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',

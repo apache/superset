@@ -39,6 +39,13 @@ class memoized(object):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
 
+def list_minus(l, minus):
+    """Returns l without what is in minus
+
+    >>> list_without([1, 2, 3], [2])
+    [1, 3]
+    """
+    return [o for o in l if o not in minus]
 
 def parse_human_datetime(s):
     """
@@ -233,7 +240,7 @@ def datetime_f(dttm):
             dttm = dttm[11:]
         elif now_iso[:4] == dttm[:4]:
             dttm = dttm[5:]
-    return Markup("<nobr>{}</nobr>".format(dttm))
+    return "<nobr>{}</nobr>".format(dttm)
 
 
 def json_iso_dttm_ser(obj):

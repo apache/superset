@@ -44,15 +44,11 @@ class AuditMixinNullable(AuditMixin):
         return Column(Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
     @property
-    def changed_on_(cls):
-        return utils.datetime_f(cls.changed_on)
-    @property
     def created_by_(self):
-        return self.created_by or ''
+        return '{}'.format(self.created_by or '')
     @property
     def changed_by_(self):
-        return self.changed_by or ''
-
+        return '{}'.format(self.changed_by or '')
 
 
 class Url(Model, AuditMixinNullable):
