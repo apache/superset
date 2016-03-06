@@ -11,8 +11,7 @@ require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
 
-require('./panoramix_select2.js');
-
+require('./panoramix-select2.js');
 
 require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
 require('../vendor/select2.sortable.js');

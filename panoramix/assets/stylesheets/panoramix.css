@@ -2,6 +2,10 @@ body {
     margin: 0px !important;
 }
 
+input.form-control {
+    background-color: white;
+}
+
 .col-left-fixed {
     width:350px;
     position: absolute;
