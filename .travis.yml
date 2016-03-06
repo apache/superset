@@ -2,9 +2,13 @@ language: python
 python:
   - "2.7"
   - "3.4"
+env:
+  global:
+    - NODE_PATH=$HOME/.node_modules/
 cache:
   directories:
     - $HOME/.wheelhouse/
+    - $NODE_PATH
 install:
   - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse -r requirements.txt
   - pip install --find-links=$HOME/.wheelhouse --no-index -rrequirements.txt
@@ -13,6 +17,6 @@ install:
   - npm install
   - npm run prod
   - npm run lint
-# command to run tests
+  - cd $TRAVIS_BUILD_DIR
 script: bash run_tests.sh
 after_success: coveralls

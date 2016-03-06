@@ -42,7 +42,7 @@ class memoized(object):
 def list_minus(l, minus):
     """Returns l without what is in minus
 
-    >>> list_without([1, 2, 3], [2])
+    >>> list_minus([1, 2, 3], [2])
     [1, 3]
     """
     return [o for o in l if o not in minus]
