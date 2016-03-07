@@ -5,7 +5,7 @@ var d3 = window.d3 || require('d3');
 
 // CSS
 require('./filter_box.css');
-require('../javascripts/panoramix-select2.js')
+require('../javascripts/panoramix-select2.js');
 
 
 function filterBox(slice) {
