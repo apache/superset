@@ -7,21 +7,17 @@ var d3 = window.d3 || require('d3');
 require('./filter_box.css');
 require('../javascripts/panoramix-select2.js');
 
-
 function filterBox(slice) {
   var filtersObj = {};
   var d3token = d3.select(slice.selector);
 
   var fltChanged = function () {
-    for (var filter in filtersObj) {
-      var obj = filtersObj[filter];
-      var val = obj.val();
-      var vals = [];
-      if (val !== '') {
-        vals = val.split(',');
-      }
-      slice.setFilter(filter, vals);
+    var val = $(this).val();
+    var vals = [];
+    if (val !== '') {
+      vals = val.split(',');
     }
+    slice.setFilter($(this).attr('name'), vals);
   };
 
   var refresh = function () {
