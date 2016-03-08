@@ -31,6 +31,8 @@ List of TODO items for Panoramix
     some visualizations as annotations. An example of a layer might be
     "holidays" or "site outages", ...
 * **Slack integration** - TBD
+* **Sexy Viz Selector:** the visualization selector should be a nice large
+    modal with nice thumbnails for each one of the viz
 
 
 ## Easy-ish fix
