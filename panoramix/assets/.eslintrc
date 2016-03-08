@@ -58,7 +58,7 @@
     "max-depth": [2, 5],
     "max-len": [0, 80, 4],
     "max-nested-callbacks": [1, 2],
-    "max-params": [1, 3],
+    "max-params": [1, 4],
     "new-parens": [2],
     "newline-after-var": [0],
     "no-bitwise": [0],
