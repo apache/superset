@@ -257,6 +257,7 @@ def json_iso_dttm_ser(obj):
 
 
 def markdown(s):
+    s = s or ''
     return md(s, [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
