@@ -9,6 +9,7 @@ require('brace/mode/css');
 require('brace/theme/crimson_editor');
 
 require('./panoramix-select2.js');
+require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
 var Dashboard = function (dashboardData) {

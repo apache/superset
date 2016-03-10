@@ -2,6 +2,8 @@ var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
 
+require('../../stylesheets/panoramix.css');
+
 // vis sources
 var sourceMap = {
   area: 'nvd3_vis.js',

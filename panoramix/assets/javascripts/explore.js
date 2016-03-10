@@ -14,7 +14,6 @@ require('bootstrap');
 require('./panoramix-select2.js');
 
 require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
-require('../vendor/select2.sortable.js');
 
 // css
 require('../vendor/pygments.css');

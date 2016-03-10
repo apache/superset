@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.7.1'
+version = '0.8.0'
 
 setup(
     name='panoramix',
@@ -9,10 +9,6 @@ setup(
         "and druid.io"),
     version=version,
     packages=find_packages(),
-    package_data={'': [
-        'panoramix/migrations/alembic.ini',
-        'panoramix/data/birth_names.csv.gz',
-    ]},
     include_package_data=True,
     zip_safe=False,
     scripts=['panoramix/bin/panoramix'],
