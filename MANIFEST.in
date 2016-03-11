@@ -1,4 +1,8 @@
 recursive-include panoramix/templates *
 recursive-include panoramix/static *
+recursive-exclude panoramix/static/assets/node_modules *
+recursive-include panoramix/static/assets/node_modules/font-awesome *
+recursive-exclude panoramix/static/docs *
+recursive-exclude tests *
 recursive-include panoramix/data *
 recursive-include panoramix/migrations *

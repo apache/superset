@@ -220,9 +220,6 @@ img.loading {
   font-size: 14px;
   padding: 5px;
 }
-.dashboard div.gridster {
-  visibility: hidden
-}
 .dashboard div.slice_content {
   width: 100%;
   height: 100%;

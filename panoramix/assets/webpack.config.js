@@ -30,9 +30,14 @@ var config = {
         include: APP_DIR,
         loader: "style-loader!css-loader"
       },
-    /* for require('*.less') */
+    /* for css linking images */
+      { test: /\.png$/, loader: "url-loader?limit=100000" },
+      { test: /\.jpg$/, loader: "file-loader" },
+      { test: /\.gif$/, loader: "file-loader" },
+    /* for font-awesome */
       { test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "url-loader?limit=10000&minetype=application/font-woff" },
       { test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "file-loader" },
+    /* for require('*.less') */
       {
         test: /\.less$/,
         include: APP_DIR,
