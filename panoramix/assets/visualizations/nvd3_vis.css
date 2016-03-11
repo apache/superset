@@ -1,3 +1,8 @@
 g.dashed path {
    stroke-dasharray: 5, 5;
 }
+
+.nvtooltip tr.highlight td {
+  font-weight: bold;
+  font-size: 15px !important;
+}

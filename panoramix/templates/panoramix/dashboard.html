@@ -70,52 +70,61 @@
         {% for slice in dashboard.slices %}
           {% set pos = pos_dict.get(slice.id, {}) %}
           {% set viz = slice.viz %}
+
           <li
-              id="slice_{{ slice.id }}"
-              slice_id="{{ slice.id }}"
-              class="widget {{ slice.viz.viz_type }}"
-              data-row="{{ pos.row or 1 }}"
-              data-col="{{ pos.col or loop.index }}"
-              data-sizex="{{ pos.size_x or 4 }}"
-              data-sizey="{{ pos.size_y or 4 }}">
-              <table class="slice_header">
-                <tbody>
-                  <tr>
-                    <td class="icons">
-                      <nobr class="icons">
-                        <a><i class="fa fa-arrows drag"></i></a>
-                        <a class="refresh"><i class="fa fa-refresh"></i></a>
-                      </nobr>
-                    </td>
-                    <td>
-                      <div class="text-center header">
-                        <nobr>
-                          {{ slice.slice_name }}
-                          {% if slice.description %}
-                          <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
-                          {% endif %}
-                        </nobr>
-                      </div>
-                    </td>
-                    <td class="icons text-right">
-                      <nobr>
-                      <a href="{{ slice.slice_url }}"><i class="fa fa-play"></i></a>
-                      <a href="{{ slice.edit_url }}"><i class="fa fa-edit"></i></a>
-                      <a class="closeslice"><i class="fa fa-close"></i></a>
-                      </br>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-              <div class="slice_description bs-callout bs-callout-default" style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
-                {{ slice.description_markeddown | safe }}
+            id="slice_{{ slice.id }}"
+            slice_id="{{ slice.id }}"
+            class="widget {{ slice.viz.viz_type }}"
+            data-row="{{ pos.row or 1 }}"
+            data-col="{{ pos.col or loop.index }}"
+            data-sizex="{{ pos.size_x or 4 }}"
+            data-sizey="{{ pos.size_y or 4 }}">
+
+            <div class="row chart-header">
+              <div class="col-md-12 text-center header">
+                {{ slice.slice_name }}
+                {% if slice.description %}
+                  <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
+                {% endif %}
               </div>
+              <div class="row text-center">
+                <div class="chart-controls col-md-12">
+                  <a title="Move chart">
+                    <i class="fa fa-arrows drag"></i>
+                  </a>
+                  <a class="refresh" title="Refresh data">
+                    <i class="fa fa-repeat"></i>
+                  </a>
+                  <a href="{{ slice.edit_url }}" title="Edit chart">
+                    <i class="fa fa-pencil"></i>
+                  </a>
+                  <a href="{{ slice.slice_url }}" title="Explore chart">
+                    <i class="fa fa-share"></i>
+                  </a>
+                  <a class="remove-chart" title="Remove chart from dashboard">
+                    <i class="fa fa-close"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div
+                class="slice_description bs-callout bs-callout-default col-md-12"
+                style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
+                          {{ slice.description_markeddown | safe }}
+              </div>
+            </div>
+
+            <div class="row chart-container">
               <input type="hidden" slice_id="{{ slice.id }}" value="false">
-              <div id="{{ viz.token }}" class="token">
+              <div id="{{ viz.token }}" class="token col-md-12">
                 <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
                 <div class="slice_container" id="{{ viz.token }}_con"></div>
               </div>
+            </div>
           </li>
+
         {% endfor %}
     </ul>
 </div>

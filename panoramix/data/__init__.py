@@ -327,7 +327,7 @@ def load_birth_names():
     .navbar:hover {
         opacity: 1;
     }
-    .slice_header .header{
+    .chart-header .header{
         font-weight: normal;
         font-size: 12px;
     }
@@ -375,7 +375,7 @@ def load_birth_names():
     .navbar:hover {
         opacity: 1;
     }
-    .slice_header .header{
+    .chart-header .header{
         font-weight: normal;
         font-size: 12px;
     }

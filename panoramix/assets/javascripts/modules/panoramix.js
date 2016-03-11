@@ -216,7 +216,7 @@ var px = (function () {
         if (slice_description.is(":visible")) {
           others += widget.find('.slice_description').height() + 25;
         }
-        others += widget.find('.slice_header').height();
+        others += widget.find('.chart-header').height();
         return widget.height() - others;
       },
       bindResizeToWindowResize: function () {
