@@ -227,12 +227,7 @@ img.loading {
 .dashboard  div.nvtooltip {
   z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
-.dashboard td.icons {
-  width: 50px;
-}
-.dashboard td.icons {
-  display: none;
-}
+
 div.header {
   font-weight: bold;
 }
