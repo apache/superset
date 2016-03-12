@@ -138,6 +138,8 @@ var px = (function () {
     var container_id = data.token + '_con';
     var selector = '#' + container_id;
     var container = $(selector);
+    // Will keep data during background refresh
+    var overlay = null;
     var slice_id = data.slice_id;
     var dttm = 0;
     var stopwatch = function () {
@@ -178,6 +180,10 @@ var px = (function () {
       done: function (data) {
         clearInterval(timer);
         token.find("img.loading").hide();
+        if(overlay !== null){
+          overlay.remove();
+          overlay = null;
+        }
         container.show();
         if (data !== undefined) {
           $("#query_container").html(data.query);
@@ -231,8 +237,10 @@ var px = (function () {
       render: function () {
         $('.btn-group.results span').attr('disabled', 'disabled');
         token.find("img.loading").show();
+        overlay = container.clone();
         container.hide();
         container.html('');
+        container.parent().append(overlay);
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
@@ -254,6 +262,11 @@ var px = (function () {
       setFilter: function (col, vals) {
         if (dashboard !== undefined) {
           dashboard.setFilter(slice_id, col, vals);
+        }
+      },
+      getFilter: function(col){
+        if (dashboard !== undefined) {
+          return dashboard.getFilter(slice_id, col);
         }
       },
       clearFilter: function () {

@@ -32,6 +32,10 @@ var Dashboard = function (dashboardData) {
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
     },
+    getFilter: function(slice_id, col){
+        return this.filters[slice_id] && this.filters[slice_id][col] ?
+            this.filters[slice_id][col]: [];
+    },
     addFilter: function (slice_id, col, vals, merge) {
       if (merge === undefined) {
         merge = true;
@@ -159,6 +163,9 @@ var Dashboard = function (dashboardData) {
       });
       $('#filters').click(function () {
         alert(dashboard.readFilters());
+      });
+      $('#refresh').click(function () {
+        dashboard.refreshExcept(null);
       });
       $("a.closeslice").click(function () {
         var li = $(this).parents("li");

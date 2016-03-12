@@ -177,7 +177,10 @@ legend {
   max-width: 350px;
 }
 img.loading {
-  width: 40px;
+    width: 40px;
+    position: absolute;
+    top: 5px;
+    left: 5px;
 }
 
 .dashboard a i {

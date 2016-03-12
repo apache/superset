@@ -10,7 +10,6 @@ require('../javascripts/panoramix-select2.js');
 function filterBox(slice) {
   var filtersObj = {};
   var d3token = d3.select(slice.selector);
-
   var fltChanged = function () {
     var val = $(this).val();
     var vals = [];
@@ -45,7 +44,6 @@ function filterBox(slice) {
             .classed('form-control', true)
             .attr('multiple', '')
             .attr('id', id);
-
           filtersObj[filter] = $('#' + id).select2({
               placeholder: "Select [" + filter + ']',
               containment: 'parent',
@@ -54,6 +52,7 @@ function filterBox(slice) {
               multiple: true,
               formatResult: select2Formatter
             })
+            .select2('val', slice.getFilter(filter))
             .on('change', fltChanged);
         }
         slice.done();
