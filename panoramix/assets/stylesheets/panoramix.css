@@ -178,9 +178,6 @@ legend {
 }
 img.loading {
     width: 40px;
-    position: absolute;
-    top: 5px;
-    left: 5px;
 }
 
 .dashboard a i {

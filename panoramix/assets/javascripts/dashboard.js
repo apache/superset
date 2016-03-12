@@ -164,9 +164,6 @@ var Dashboard = function (dashboardData) {
       $('#filters').click(function () {
         alert(dashboard.readFilters());
       });
-      $('#refresh').click(function () {
-        dashboard.refreshExcept(null);
-      });
       $("a.closeslice").click(function () {
         var li = $(this).parents("li");
         gridster.remove_widget(li);
