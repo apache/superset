@@ -35,6 +35,10 @@ QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
 class AuditMixinNullable(AuditMixin):
+    created_on = Column(DateTime, default=datetime.now, nullable=True)
+    changed_on = Column(
+        DateTime, default=datetime.now,
+        onupdate=datetime.now, nullable=True)
     @declared_attr
     def created_by_fk(cls):
         return Column(Integer, ForeignKey('ab_user.id'),
