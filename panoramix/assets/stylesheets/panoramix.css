@@ -196,11 +196,10 @@ img.loading {
 .gridster li.widget{
   list-style-type: none;
   border-radius: 0;
-  padding: 10px;
   margin: 5px;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
-  overflow: hidden;
+  overflow: auto;
   background-color: #fff;
 }
 .dashboard .gridster .dragging,
@@ -224,22 +223,35 @@ img.loading {
   width: 100%;
   height: 100%;
 }
-.dashboard table.slice_header {
-  width: 100%;
-  height: 20px;
-}
+
 .dashboard  div.nvtooltip {
   z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
-.dashboard td.icons {
-  width: 50px;
-}
-.dashboard td.icons nobr {
-  display: none;
-}
+
 div.header {
   font-weight: bold;
 }
 li.widget:hover {
   z-index: 1000;
+}
+
+li.widget .chart-header {
+  padding: 5px;
+  background-color: #f1f1f1;
+}
+li.widget .chart-controls {
+  opacity: 0;
+  height: 0;
+  background-color: #f1f1f1;
+}
+li.widget .chart-header:hover .chart-controls {
+  opacity: 1;
+  height: auto;
+  transition: all 0.5s ease;
+}
+li.widget .chart-controls a {
+  margin-right: 5px;
+}
+li.widget .slice_container {
+  overflow: auto;
 }

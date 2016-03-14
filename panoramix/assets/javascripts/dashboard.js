@@ -52,11 +52,13 @@ var Dashboard = function (dashboardData) {
     },
     refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slices;
-      this.slices.forEach(function (slice) {
-        if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
-          slice.render();
-        }
-      });
+      if (immune) {
+        this.slices.forEach(function (slice) {
+          if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
+            slice.render();
+          }
+        });
+      }
     },
     clearFilters: function (slice_id) {
       delete this.filters[slice_id];
@@ -86,6 +88,7 @@ var Dashboard = function (dashboardData) {
     initDashboardView: function () {
       dashboard = this;
       var gridster = $(".gridster ul").gridster({
+        autogrow_cols: true,
         widget_margins: [10, 10],
         widget_base_dimensions: [100, 100],
         draggable: {
@@ -95,7 +98,9 @@ var Dashboard = function (dashboardData) {
           enabled: true,
           stop: function (e, ui, element) {
             var slice_data = $(element).data('slice');
-            dashboard.getSlice(slice_data.slice_id).resize();
+            if (slice_data) {
+              dashboard.getSlice(slice_data.slice_id).resize();
+            }
           }
         },
         serialize_params: function (_w, wgd) {
@@ -160,10 +165,11 @@ var Dashboard = function (dashboardData) {
       $('#filters').click(function () {
         alert(dashboard.readFilters());
       });
-      $("a.closeslice").click(function () {
+      $("a.remove-chart").click(function () {
         var li = $(this).parents("li");
         gridster.remove_widget(li);
       });
+
       $(".slice_info").click(function () {
         var widget = $(this).parents('.widget');
         var slice_description = widget.find('.slice_description');
@@ -171,12 +177,7 @@ var Dashboard = function (dashboardData) {
           widget.find('.refresh').click();
         });
       });
-      $("table.slice_header").mouseover(function () {
-        $(this).find("td.icons nobr").show();
-      });
-      $("table.slice_header").mouseout(function () {
-        $(this).find("td.icons nobr").hide();
-      });
+
       editor.on("change", function () {
         var css = editor.getValue();
         $('#dash_css').val(css);
