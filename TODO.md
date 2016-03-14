@@ -2,6 +2,7 @@
 List of TODO items for Panoramix
 
 ## Important
+* **Caching:** integrate with flask-cache
 * **Getting proper JS testing:** unit tests on the Python side are pretty
     solid, but now we need a test suite for the JS part of the site,
     testing all the ajax-type calls
