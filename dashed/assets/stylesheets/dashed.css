@@ -26,6 +26,12 @@ input.form-control {
     margin-left: 365px;
 }
 
+.favstar {
+    margin-right: 10px;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
 .slice_description{
     padding: 8px;
     margin: 5px;
@@ -84,7 +90,10 @@ form div {
 
 .notbtn {
     cursor: default;
+    box-shadow: none;
+    border: 1px solid #ccc;
 }
+
 hr {
     margin-top: 15px;
     margin-bottom: 15px;

@@ -17,6 +17,7 @@ var Dashboard = function (dashboardData) {
     filters: {},
     init: function () {
       this.initDashboardView();
+      px.initFavStars();
       var sliceObjects = [],
         dash = this;
       dashboard.slices.forEach(function (data) {

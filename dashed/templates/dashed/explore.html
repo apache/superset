@@ -42,7 +42,9 @@
           </span>
           <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
           {% if slice %}
-            <span class="alert alert-info" title="Slice" data-toggle="tooltip">{{ slice.slice_name }}
+            <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip">
+                <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
+                {{ slice.slice_name }}
                 <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit Slice metadata">
                   {% if slice.description %}
                     <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
