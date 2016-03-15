@@ -5,6 +5,7 @@ import unittest
 os.environ['PANORAMIX_CONFIG'] = 'tests.panoramix_test_config'
 from flask.ext.testing import LiveServerTestCase, TestCase
 
+import panoramix
 from panoramix import app, db, models, utils
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/panoramix")
@@ -21,7 +22,7 @@ class LiveTest(TestCase):
         pass
 
     def test_init(self):
-        utils.init()
+        utils.init(panoramix)
 
     def test_load_examples(self):
         cli.load_examples(sample=True)

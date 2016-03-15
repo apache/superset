@@ -1,3 +1,7 @@
+"""
+This module contains data related to countries and is used for geo mapping
+"""
+
 countries = [
     {
         "name": "Angola",

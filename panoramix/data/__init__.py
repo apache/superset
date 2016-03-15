@@ -274,33 +274,14 @@ def load_world_bank_health_n_pop():
     dash = Dash(
         dashboard_title=dash_name,
         position_json=json.dumps(l, indent=4),
+        slug="world_health",
     )
     for s in slices:
         dash.slices.append(s)
     db.session.commit()
 
 
-def load_birth_names():
-    session = db.session
-    with gzip.open(os.path.join(DATA_FOLDER, 'birth_names.json.gz')) as f:
-        pdf = pd.read_json(f)
-    pdf.ds = pd.to_datetime(pdf.ds, unit='ms')
-    pdf.to_sql(
-        'birth_names',
-        db.engine,
-        if_exists='replace',
-        chunksize=500,
-        dtype={
-            'ds': DateTime,
-            'gender': String(16),
-            'state': String(10),
-            'name': String(255),
-        },
-        index=False)
-    l = []
-    print("Done loading table!")
-    print("-" * 80)
-
+def load_css_templates():
     print('Creating default CSS templates')
     CSS = models.CssTemplate
 
@@ -399,6 +380,27 @@ def load_birth_names():
     obj.css = css
     db.session.merge(obj)
     db.session.commit()
+
+
+def load_birth_names():
+    with gzip.open(os.path.join(DATA_FOLDER, 'birth_names.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='ms')
+    pdf.to_sql(
+        'birth_names',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'ds': DateTime,
+            'gender': String(16),
+            'state': String(10),
+            'name': String(255),
+        },
+        index=False)
+    l = []
+    print("Done loading table!")
+    print("-" * 80)
 
     print("Creating table reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
@@ -500,12 +502,15 @@ def load_birth_names():
                 defaults,
                 viz_type="markup", markup_type="html",
                 code="""\
-    <div style="text-align:center">
-        <h1>Birth Names Dashboard</h1>
-        <p>The source dataset came from <a href="https://github.com/hadley/babynames">[here]</a></p>
-        <img src="http://monblog.system-linux.net/image/tux/baby-tux_overlord59-tux.png">
-    </div>
-    """
+<div style="text-align:center">
+    <h1>Birth Names Dashboard</h1>
+    <p>
+        The source dataset came from
+        <a href="https://github.com/hadley/babynames">[here]</a>
+    </p>
+    <img src="http://monblog.system-linux.net/image/tux/baby-tux_overlord59-tux.png">
+</div>
+"""
                 )),
         Slice(
             slice_name="Name Cloud",
@@ -531,7 +536,7 @@ def load_birth_names():
         merge_slice(slc)
 
     print("Creating a dashboard")
-    dash = session.query(Dash).filter_by(dashboard_title="Births").first()
+    dash = db.session.query(Dash).filter_by(dashboard_title="Births").first()
 
     if dash:
         db.session.delete(dash)
@@ -608,7 +613,8 @@ def load_birth_names():
     dash = Dash(
         dashboard_title="Births",
         position_json=json.dumps(l, indent=4),
+        slug="births",
     )
     for s in slices:
         dash.slices.append(s)
-    session.commit()
+    db.session.commit()

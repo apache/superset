@@ -1,6 +1,7 @@
 from copy import deepcopy, copy
 from collections import namedtuple
 from datetime import timedelta, datetime
+import functools
 import json
 import logging
 from six import string_types
@@ -8,7 +9,7 @@ import sqlparse
 import requests
 
 from dateutil.parser import parse
-from flask import flash
+from flask import flash, request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 import pandas as pd
@@ -39,31 +40,39 @@ class AuditMixinNullable(AuditMixin):
     changed_on = Column(
         DateTime, default=datetime.now,
         onupdate=datetime.now, nullable=True)
+
     @declared_attr
     def created_by_fk(cls):
         return Column(Integer, ForeignKey('ab_user.id'),
                       default=cls.get_user_id, nullable=True)
+
     @declared_attr
     def changed_by_fk(cls):
         return Column(Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
+
     @property
     def created_by_(self):
         return '{}'.format(self.created_by or '')
-    @property
+
+    @property # noqa
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
 
 class Url(Model, AuditMixinNullable):
+
     """Used for the short url feature"""
+
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)
     url = Column(Text)
 
 
 class CssTemplate(Model, AuditMixinNullable):
+
     """CSS templates for dashboards"""
+
     __tablename__ = 'css_templates'
     id = Column(Integer, primary_key=True)
     template_name = Column(String(250))
@@ -71,7 +80,9 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 class Slice(Model, AuditMixinNullable):
+
     """A slice is essentially a report or a view on data"""
+
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
@@ -154,17 +165,6 @@ class Slice(Model, AuditMixinNullable):
         return '<a href="{url}">{self.slice_name}</a>'.format(
             url=url, self=self)
 
-    @property
-    def js_files(self):
-        return viz_types[self.viz_type].js_files
-
-    @property
-    def css_files(self):
-        return viz_types[self.viz_type].css_files
-
-    def get_viz(self):
-        pass
-
 
 dashboard_slices = Table('dashboard_slices', Model.metadata,
     Column('id', Integer, primary_key=True),
@@ -174,7 +174,9 @@ dashboard_slices = Table('dashboard_slices', Model.metadata,
 
 
 class Dashboard(Model, AuditMixinNullable):
+
     """A dash to slash"""
+
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
     dashboard_title = Column(String(500))
@@ -202,20 +204,6 @@ class Dashboard(Model, AuditMixinNullable):
 
     def dashboard_link(self):
         return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)
-
-    @property
-    def js_files(self):
-        l = []
-        for o in self.slices:
-            l += [f for f in o.js_files if f not in l]
-        return l
-
-    @property
-    def css_files(self):
-        l = []
-        for o in self.slices:
-            l += o.css_files
-        return list(set(l))
 
     @property
     def json_data(self):
@@ -266,6 +254,37 @@ class Database(Model, AuditMixinNullable):
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
+
+    def grains(self):
+
+        """Defines time granularity database-specific expressions. The idea
+        here is to make it easy for users to change the time grain form a
+        datetime (maybe the source grain is arbitrary timestamps, daily
+        or 5 minutes increments) to another, "truncated" datetime. Since
+        each database has slightly different but similar datetime functions,
+        this allows a mapping between database engines and actual functions.
+        """
+
+        Grain = namedtuple('Grain', 'name function')
+        DB_TIME_GRAINS = {
+            'presto': (
+                Grain('Time Column', '{col}'),
+                Grain('week', "date_trunc('week', {col})"),
+                Grain('month', "date_trunc('month', {col})"),
+            ),
+            'mysql': (
+                Grain('Time Column', '{col}'),
+                Grain('day', 'DATE({col})'),
+                Grain('week', 'DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY)'),
+                Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
+            ),
+        }
+        for db_type, grains in DB_TIME_GRAINS.items():
+            if self.sqlalchemy_uri.startswith(db_type):
+                return grains
+
+    def grains_dict(self):
+        return {grain.name: grain for grain in self.grains()}
 
     def get_table(self, table_name):
         meta = MetaData()
@@ -346,6 +365,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return l
 
     @property
+    def any_dttm_col(self):
+        cols = self.dttm_cols
+        if cols:
+            return cols[0]
+
+    @property
     def html(self):
         t = ((c.column_name, c.type) for c in self.columns)
         df = pd.DataFrame(t)
@@ -386,8 +411,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
-            limit_spec=None,
-            filter=None,
+            filter=None,  # noqa
             is_timeseries=True,
             timeseries_limit=15, row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
@@ -400,14 +424,21 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         cols = {col.column_name: col for col in self.columns}
         qry_start_dttm = datetime.now()
-        if not self.main_dttm_col:
+
+        if not granularity and is_timeseries:
             raise Exception(
-                "Datetime column not provided as part table configuration")
-        dttm_expr = cols[granularity].expression
-        if dttm_expr:
+                "Datetime column not provided as part table configuration "
+                "and is required by this type of chart")
+        if granularity:
+            dttm_expr = cols[granularity].expression or granularity
+
+            # Transforming time grain into an expression based on configuration
+            time_grain_sqla = extras.get('time_grain_sqla')
+            if time_grain_sqla:
+                udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
+                dttm_expr = udf.function.format(col=dttm_expr)
             timestamp = literal_column(dttm_expr).label('timestamp')
-        else:
-            timestamp = literal_column(granularity).label('timestamp')
+
         metrics_exprs = [
             literal_column(m.expression).label(m.metric_name)
             for m in self.metrics if m.metric_name in metrics]
@@ -455,16 +486,17 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
-        tf = '%Y-%m-%d %H:%M:%S.%f'
-        time_filter = [
-            timestamp >= from_dttm.strftime(tf),
-            timestamp <= to_dttm.strftime(tf),
-        ]
-        inner_time_filter = copy(time_filter)
-        if inner_from_dttm:
-            inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
-        if inner_to_dttm:
-            inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+        if granularity:
+            tf = '%Y-%m-%d %H:%M:%S.%f'
+            time_filter = [
+                timestamp >= from_dttm.strftime(tf),
+                timestamp <= to_dttm.strftime(tf),
+            ]
+            inner_time_filter = copy(time_filter)
+            if inner_from_dttm:
+                inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
+            if inner_to_dttm:
+                inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
         where_clause_and = []
         having_clause_and = []
         for col, op, eq in filter:
@@ -483,7 +515,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             where_clause_and += [text(extras['where'])]
         if extras and 'having' in extras:
             having_clause_and += [text(extras['having'])]
-        qry = qry.where(and_(*(time_filter + where_clause_and)))
+        if granularity:
+            qry = qry.where(and_(*(time_filter + where_clause_and)))
         qry = qry.having(and_(*having_clause_and))
         if groupby:
             qry = qry.order_by(desc(main_metric_expr))
@@ -813,8 +846,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
-            limit_spec=None,
-            filter=None,
+            filter=None,  # noqa
             is_timeseries=True,
             timeseries_limit=None,
             row_limit=None,
@@ -888,7 +920,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             pre_qry['limit_spec'] = {
                 "type": "default",
                 "limit": timeseries_limit,
-                'intervals': inner_from_dttm.isoformat() + '/' + inner_to_dttm.isoformat(),
+                'intervals': (
+                    inner_from_dttm.isoformat() + '/' +
+                    inner_to_dttm.isoformat()),
                 "columns": [{
                     "dimension": metrics[0] if metrics else self.metrics[0],
                     "direction": "descending",
@@ -902,7 +936,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if df is not None and not df.empty:
                 dims = qry['dimensions']
                 filters = []
-                for index, row in df.iterrows():
+                for _, row in df.iterrows():
                     fields = []
                     for dim in dims:
                         f = Filter.build_filter(Dimension(dim) == row[dim])
@@ -969,6 +1003,29 @@ class Log(Model):
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=func.now())
+
+    @classmethod
+    def log_this(cls, f):
+        """Decorator to log user actions"""
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            user_id = None
+            if g.user:
+                user_id = g.user.id
+            d = request.args.to_dict()
+            d.update(kwargs)
+            log = cls(
+                action=f.__name__,
+                json=json.dumps(d),
+                dashboard_id=d.get('dashboard_id') or None,
+                slice_id=d.get('slice_id') or None,
+                user_id=user_id)
+            db.session.add(log)
+            db.session.commit()
+            return f(*args, **kwargs)
+        return wrapper
+
+
 
 
 class DruidMetric(Model):

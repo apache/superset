@@ -1,4 +1,10 @@
 {% extends "panoramix/basic.html" %}
+
+{% block head_js %}
+  {{ super() }}
+  <script src="/static/assets/javascripts/dist/featured.entry.js"></script>
+{% endblock %}
+
 {% block body %}
 <div class="container">
   <div class="header">
@@ -34,7 +40,3 @@
 </div>
 {% endblock %}
 
-{% block tail_js %}
-  {{ super() }}
-  <script src="/static/assets/javascripts/dist/featured.entry.js"></script>
-{% endblock %}
