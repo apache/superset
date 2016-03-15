@@ -1,14 +1,12 @@
 {% extends "panoramix/basic.html" %}
 
-{% block head_css %}
-    {{ super() }}
-    <style id="user_style" type="text/css">
-      {{ dashboard.css or '' }}
-    </style>
+{% block head_js %}
+  {{ super() }}
+  <script src="/static/assets/javascripts/dist/dashboard.entry.js"></script>
 {% endblock %}
 
 {% block body %}
-<div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}">
+<div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}" data-css="{{ dashboard.css }}">
 
 <!-- Modal -->
 <div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
@@ -17,10 +15,11 @@
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
         <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
+        <h6><strong>Styling applies to this dashboard only</strong></h6>
       </div>
       <div class="modal-body">
         <select id="css_template" class="select2" style="margin-bottom: 5px;">
-          <option value="" data-css="">-= CSS templates =-</option>
+          <option value="" data-css="">CSS template</option>
           {% for t in templates %}
             <option value="{{ t.id }}" data-css="{{t.css}}">
               {{ t.template_name }}
@@ -81,14 +80,21 @@
             data-sizey="{{ pos.size_y or 4 }}">
 
             <div class="row chart-header">
+
               <div class="col-md-12 text-center header">
                 {{ slice.slice_name }}
                 {% if slice.description %}
-                  <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
+                  <a title="Toggle chart description">
+                    <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
+                  </a>
                 {% endif %}
+                <a title="Toggle chart controls">
+                  <i class="fa fa-ellipsis-h controls-toggle"></i>
+                </a>
               </div>
-              <div class="row text-center">
-                <div class="chart-controls col-md-12">
+
+              <div class="row text-center chart-controls">
+                <div class="col-md-12">
                   <a title="Move chart">
                     <i class="fa fa-arrows drag"></i>
                   </a>
@@ -106,6 +112,7 @@
                   </a>
                 </div>
               </div>
+
             </div>
 
             <div class="row">
@@ -129,8 +136,4 @@
     </ul>
 </div>
 </div>
-{% endblock %}
-
-{% block tail_js %}
-  <script src="/static/assets/javascripts/dist/dashboard.entry.js"></script>
 {% endblock %}

@@ -15,17 +15,6 @@ input.form-control {
     margin-left: 365px;
 }
 
-.modal-content.css {
-    transition: opacity 0.5s ease;
-    opacity: 0.5;
-    border-color: black;
-}
-
-.modal-content.css:hover {
-    transition: opacity 0.5s ease;
-    opacity: 1;
-}
-
 .slice_description{
     padding: 8px;
     margin: 5px;
@@ -39,7 +28,7 @@ input.form-control {
     cursor: pointer;
 }
 
-.padded{
+.padded {
     padding: 10px;
 }
 
@@ -48,9 +37,6 @@ input.form-control {
     overflow: auto;
 }
 
-.slice_container {
-    //height: 100%;
-}
 .container-fluid {
     text-align: left;
 }
@@ -199,7 +185,7 @@ img.loading {
   margin: 5px;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
-  overflow: auto;
+  overflow: hidden;
   background-color: #fff;
 }
 .dashboard .gridster .dragging,
@@ -239,19 +225,16 @@ li.widget .chart-header {
   padding: 5px;
   background-color: #f1f1f1;
 }
+
+li.widget .chart-header a {
+  margin-left: 5px;
+}
+
 li.widget .chart-controls {
-  opacity: 0;
-  height: 0;
+  display: none;
   background-color: #f1f1f1;
 }
-li.widget .chart-header:hover .chart-controls {
-  opacity: 1;
-  height: auto;
-  transition: all 0.5s ease;
-}
-li.widget .chart-controls a {
-  margin-right: 5px;
-}
+
 li.widget .slice_container {
   overflow: auto;
 }

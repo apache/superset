@@ -217,7 +217,7 @@ var px = (function () {
           others += widget.find('.slice_description').height() + 25;
         }
         others += widget.find('.chart-header').height();
-        return widget.height() - others;
+        return widget.height() - others - 10;
       },
       bindResizeToWindowResize: function () {
         var resizeTimer;
