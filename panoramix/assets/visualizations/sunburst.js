@@ -1,35 +1,30 @@
 var d3 = window.d3 || require('d3');
+var px = require('../javascripts/modules/panoramix.js');
 require('./sunburst.css');
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
-
 function sunburstVis(slice) {
   var container = d3.select(slice.selector);
+
   var render = function () {
-    var width = slice.width();
-    var height = slice.height() - 5;
+    // vars with shared scope within this function
+    var margin = { top: 5, right: 5, bottom: 5, left: 5 };
+    var containerWidth   =  slice.width();
+    var containerHeight  = slice.height();
+    var breadcrumbHeight = containerHeight * 0.075;
+    var visWidth         = containerWidth - margin.left - margin.right;
+    var visHeight        = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
+    var radius           = Math.min(visWidth, visHeight) / 2;
+    var colorByCategory  = true; // color by category if primary/secondary metrics match
 
-    // Total size of all segments; we set this later, after loading the data.
-    var totalSize = 0;
-    var radius = Math.min(width, height) / 2;
+    var maxBreadcrumbs, breadcrumbDims, // set based on data
+        totalSize, // total size of all segments; set after loading the data.
+        breadcrumbs, vis, arcs, gMiddleText; // dom handles
 
-    container.select("svg").remove();
-
-    var vis = container.append("svg:svg")
-      .attr("width", width)
-      .attr("height", height)
-      .append("svg:g")
-      .attr("id", "container")
-      .attr("transform", "translate(" + width / 2 + "," + height / 2 + ")");
-
-    var arcs = vis.append("svg:g").attr("id", "arcs");
-    var gMiddleText = vis.append("svg:g").attr("id", "gMiddleText");
-
+    // Helper + path gen functions
     var partition = d3.layout.partition()
       .size([2 * Math.PI, radius * radius])
-      .value(function (d) {
-        return d.m1;
-      });
+      .value(function (d) { return d.m1; });
 
     var arc = d3.svg.arc()
       .startAngle(function (d) {
@@ -45,21 +40,59 @@ function sunburstVis(slice) {
         return Math.sqrt(d.y + d.dy);
       });
 
-    var ext;
-    d3.json(slice.jsonEndpoint(), function (error, json) {
+    var f = d3.format(".3s");
+    var fp = d3.format(".3p");
 
+    container.select("svg").remove();
+
+    var svg = container.append("svg:svg")
+      .attr("width", containerWidth)
+      .attr("height", containerHeight);
+
+    d3.json(slice.jsonEndpoint(), function (error, rawData) {
       if (error !== null) {
         slice.error(error.responseText);
         return '';
       }
-      var tree = buildHierarchy(json.data);
 
-      createVisualization(tree);
-      slice.done(json);
+      createBreadcrumbs(rawData);
+      createVisualization(rawData);
+
+      slice.done(rawData);
     });
 
+    function createBreadcrumbs(rawData) {
+      maxBreadcrumbs = 8.75; //rawData.form_data.groupby.length + 1.75; // +extra for %label and buffer
+
+      breadcrumbDims = {
+        width: visWidth / maxBreadcrumbs,
+        height: breadcrumbHeight,
+        spacing: 3,
+        tipTailWidth: 10
+      };
+
+      breadcrumbs = svg.append("svg:g")
+        .attr("class", "breadcrumbs")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+      breadcrumbs.append("svg:text")
+        .attr("class", "end-label");
+    }
+
     // Main function to draw and set up the visualization, once we have the data.
-    function createVisualization(json) {
+    function createVisualization(rawData) {
+      var tree = buildHierarchy(rawData.data);
+
+      vis = svg.append("svg:g")
+        .attr("class", "sunburst-vis")
+        .attr("transform", "translate(" + (containerWidth / 2) + "," + (breadcrumbHeight + (containerHeight / 2)) + ")")
+        .on("mouseleave", mouseleave);
+
+      arcs = vis.append("svg:g")
+        .attr("id", "arcs");
+
+      gMiddleText = vis.append("svg:g")
+        .attr("class", "center-label");
 
       // Bounding circle underneath the sunburst, to make it easier to detect
       // when the mouse leaves the parent g.
@@ -68,86 +101,71 @@ function sunburstVis(slice) {
         .style("opacity", 0);
 
       // For efficiency, filter nodes to keep only those large enough to see.
-      var nodes = partition.nodes(json)
+      var nodes = partition.nodes(tree)
         .filter(function (d) {
           return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
         });
-      ext = d3.extent(nodes, function (d) {
-        return d.m2 / d.m1;
-      });
 
-      var colorScale = d3.scale.linear()
-        .domain([ext[0], ext[0] + ((ext[1] - ext[0]) / 2), ext[1]])
-        .range(["#00D1C1", "white", "#FFB400"]);
+      var ext, colorScale;
 
-      var path = arcs.data([json]).selectAll("path")
+      if (slice.metric !== slice.secondary_metric) {
+        colorByCategory = false;
+
+        ext = d3.extent(nodes, function (d) {
+          return d.m2 / d.m1;
+        });
+
+        colorScale = d3.scale.linear()
+          .domain([ext[0], ext[0] + ((ext[1] - ext[0]) / 2), ext[1]])
+          .range(["#00D1C1", "white", "#FFB400"]);
+      }
+
+      var path = arcs.data([tree]).selectAll("path")
         .data(nodes)
-        .enter().append("svg:path")
+       .enter().append("svg:path")
         .attr("display", function (d) {
           return d.depth ? null : "none";
         })
         .attr("d", arc)
         .attr("fill-rule", "evenodd")
-        .style("stroke", "grey")
-        .style("stroke-width", "1px")
         .style("fill", function (d) {
-          return colorScale(d.m2 / d.m1);
+          return colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1);
         })
         .style("opacity", 1)
         .on("mouseenter", mouseenter);
 
-      // Add the mouseleave handler to the bounding circle.
-      container.select("#container").on("mouseleave", mouseleave);
-
       // Get total size of the tree = value of root node from partition.
       totalSize = path.node().__data__.value;
     }
-    var f = d3.format(".3s");
-    var fp = d3.format(".3p");
 
     // Fade all but the current sequence, and show it in the breadcrumb trail.
     function mouseenter(d) {
 
       var percentage = (d.m1 / totalSize).toPrecision(3);
       var percentageString = fp(percentage);
+      var metricsMatch = Math.abs(d.m1 - d.m2) < 0.000001;
 
       gMiddleText.selectAll("*").remove();
+
       gMiddleText.append("text")
-        .classed("middle", true)
-        .style("font-size", "50px")
+        .attr("class", "path-percent")
+        .attr("y", "-10")
         .text(percentageString);
 
       gMiddleText.append("text")
-        .classed("middle", true)
-        .style("font-size", "20px")
+        .attr("class", "path-metrics")
         .attr("y", "25")
-        .text("m1: " + f(d.m1) + " | m2: " + f(d.m2));
+        .text("m1: " + f(d.m1) + (metricsMatch ? "" : ", m2: " + f(d.m2)));
 
       gMiddleText.append("text")
-        .classed("middle", true)
-        .style("font-size", "15px")
+        .attr("class", "path-ratio")
         .attr("y", "50")
         .text("m2/m1: " + fp(d.m2 / d.m1));
 
       var sequenceArray = getAncestors(d);
 
-      // Update the breadcrumb trail to show the current sequence and percentage.
-      function updateBreadcrumbs(nodeArray) {
-        var l = [];
-        for (var i = 0; i < nodeArray.length; i++) {
-          l.push(nodeArray[i].name);
-        }
-        var s = l.join(' > ');
-        gMiddleText.append("text")
-          .text(s)
-          .classed("middle", true)
-          .attr("y", -75);
-      }
-      updateBreadcrumbs(sequenceArray);
-
       // Fade all the segments.
       arcs.selectAll("path")
-        .style("stroke-width", "1px")
         .style("opacity", 0.3);
 
       // Then highlight only those that are an ancestor of the current segment.
@@ -156,16 +174,17 @@ function sunburstVis(slice) {
           return (sequenceArray.indexOf(node) >= 0);
         })
         .style("opacity", 1)
-        .style("stroke", "#888")
-        .style("stroke-width", "2px");
+        .style("stroke-width", "2px")
+        .style("stroke", "#000");
+
+      updateBreadcrumbs(sequenceArray, percentageString);
     }
 
     // Restore everything to full opacity when moving off the visualization.
     function mouseleave(d) {
 
       // Hide the breadcrumb trail
-      arcs.select("#trail")
-        .style("visibility", "hidden");
+      breadcrumbs.style("visibility", "hidden");
 
       gMiddleText.selectAll("*").remove();
 
@@ -178,8 +197,8 @@ function sunburstVis(slice) {
         .transition()
         .duration(200)
         .style("opacity", 1)
-        .style("stroke", "grey")
-        .style("stroke-width", "1px")
+        .style("stroke", null)
+        .style("stroke-width", null)
         .each("end", function () {
           d3.select(this).on("mouseenter", mouseenter);
         });
@@ -197,6 +216,57 @@ function sunburstVis(slice) {
       return path;
     }
 
+    // Generate a string that describes the points of a breadcrumb polygon.
+    function breadcrumbPoints(d, i) {
+      var points = [];
+      points.push("0,0");
+      points.push(breadcrumbDims.width + ",0");
+      points.push(breadcrumbDims.width + breadcrumbDims.tipTailWidth + "," + (breadcrumbDims.height / 2));
+      points.push(breadcrumbDims.width+ "," + breadcrumbDims.height);
+      points.push("0," + breadcrumbDims.height);
+      if (i > 0) { // Leftmost breadcrumb; don't include 6th vertex.
+        points.push(breadcrumbDims.tipTailWidth + "," + (breadcrumbDims.height / 2));
+      }
+      return points.join(" ");
+    }
+
+    function updateBreadcrumbs(sequenceArray, percentageString) {
+      var g = breadcrumbs.selectAll("g")
+        .data(sequenceArray, function (d) { return d.name + d.depth; });
+
+      // Add breadcrumb and label for entering nodes.
+      var entering = g.enter().append("svg:g");
+
+      entering.append("svg:polygon")
+          .attr("points", breadcrumbPoints)
+          .style("fill", function (d) { return colorByCategory ? px.color.category21(d.name) : null; });
+
+      entering.append("svg:text")
+          .attr("x", (breadcrumbDims.width + breadcrumbDims.tipTailWidth) / 2)
+          .attr("y", breadcrumbDims.height / 2)
+          .attr("dy", "0.35em")
+          .attr("class", "step-label")
+          .text(function (d) { return d.name; });
+
+      // Set position for entering and updating nodes.
+      g.attr("transform", function (d, i) {
+        return "translate(" + i * (breadcrumbDims.width + breadcrumbDims.spacing) + ", 0)";
+      });
+
+      // Remove exiting nodes.
+      g.exit().remove();
+
+      // Now move and update the percentage at the end.
+      breadcrumbs.select(".end-label")
+          .attr("x", (sequenceArray.length + 0.5) * (breadcrumbDims.width + breadcrumbDims.spacing))
+          .attr("y", breadcrumbDims.height / 2)
+          .attr("dy", "0.35em")
+          .text(percentageString);
+
+      // Make the breadcrumb trail visible, if it's hidden.
+      breadcrumbs.style("visibility", null);
+    }
+
     function buildHierarchy(rows) {
       var root = {
         name: "root",
@@ -206,16 +276,19 @@ function sunburstVis(slice) {
         var row = rows[i];
         var m1 = Number(row[row.length - 2]);
         var m2 = Number(row[row.length - 1]);
-        var parts = row.slice(0, row.length - 2);
+        var levels = row.slice(0, row.length - 2);
         if (isNaN(m1)) { // e.g. if this is a header row
           continue;
         }
         var currentNode = root;
-        for (var j = 0; j < parts.length; j++) {
+        for (var j = 0; j < levels.length; j++) {
           var children = currentNode.children;
-          var nodeName = parts[j];
+          var nodeName = levels[j];
+          // If the next node has the name "0", it will
+          var isLeafNode = (j >= levels.length - 1) || levels[j+1] === 0;
           var childNode;
-          if (j + 1 < parts.length) {
+
+          if (!isLeafNode) {
             // Not yet at the end of the sequence; move down the tree.
             var foundChild = false;
             for (var k = 0; k < children.length; k++) {
@@ -234,7 +307,7 @@ function sunburstVis(slice) {
               children.push(childNode);
             }
             currentNode = childNode;
-          } else {
+          } else if (nodeName !== 0) {
             // Reached the end of the sequence; create a leaf node.
             childNode = {
               name: nodeName,
@@ -265,6 +338,7 @@ function sunburstVis(slice) {
       return root;
     }
   };
+
   return {
     render: render,
     resize: render

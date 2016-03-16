@@ -881,7 +881,8 @@ class SunburstViz(BaseViz):
             'label': 'Secondary Metric',
             'description': (
                 "This secondary metric is used to "
-                "define the color as a ratio against the primary metric"),
+                "define the color as a ratio against the primary metric. "
+                "If the two metrics match, color is mapped level groups"),
         },
         'groupby': {
             'label': 'Hierarchy',
