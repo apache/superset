@@ -167,6 +167,16 @@ var px = (function () {
         } else {
           qrystr = '?' + $('#query').serialize();
         }
+        return this.overrideGranularity(qrystr);
+      },
+      overrideGranularity: function(qrystr){
+        if (dashboard !== undefined &&
+            dashboard.granularity !== undefined &&
+            dashboard.granularity.since &&
+            dashboard.granularity.until) {
+            return qrystr.replace(/(since)\=([^\&]*)/, 'since=' + dashboard.granularity.since)
+                    .replace(/(until)\=([^\&]*)/, 'until=' + dashboard.granularity.until);
+        }
         return qrystr;
       },
       jsonEndpoint: function () {
