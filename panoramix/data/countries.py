@@ -494,11 +494,11 @@ countries = [
         "cca3": "THA"
     },
     {
-        "name": "S\u00e3o Tom\u00e9 and Pr\u00edncipe",
+        "name": "Sao Tome and Principe",
         "area": 964,
         "cioc": "STP",
         "cca2": "ST",
-        "capital": "S\u00e3o Tom\u00e9",
+        "capital": "Sao Tome",
         "lat": 1,
         "lng": 7,
         "cca3": "STP"
@@ -688,7 +688,7 @@ countries = [
         "area": 4167,
         "cioc": "",
         "cca2": "PF",
-        "capital": u"Papeet\u0113",
+        "capital": "Papeete",
         "lat": -15,
         "lng": -140,
         "cca3": "PYF"
@@ -758,7 +758,7 @@ countries = [
         "area": 56785,
         "cioc": "TOG",
         "cca2": "TG",
-        "capital": u"Lom\u00e9",
+        "capital": "Lome",
         "lat": 8,
         "lng": 1.16666666,
         "cca3": "TGO"
@@ -778,7 +778,7 @@ countries = [
         "area": 549,
         "cioc": "GUM",
         "cca2": "GU",
-        "capital": u"Hag\u00e5t\u00f1a",
+        "capital": "Hagatna",
         "lat": 13.46666666,
         "lng": 144.78333333,
         "cca3": "GUM"
@@ -838,7 +838,7 @@ countries = [
         "area": 51100,
         "cioc": "CRC",
         "cca2": "CR",
-        "capital": u"San Jos\u00e9",
+        "capital": "San Jose",
         "lat": 10,
         "lng": -84,
         "cca3": "CRI"
@@ -848,7 +848,7 @@ countries = [
         "area": 475442,
         "cioc": "CMR",
         "cca2": "CM",
-        "capital": u"Yaound\u00e9",
+        "capital": "Yaounde",
         "lat": 6,
         "lng": 12,
         "cca3": "CMR"
@@ -1074,7 +1074,7 @@ countries = [
         "cca3": "BLR"
     },
     {
-        "name": u"Saint Barth\u00e9lemy",
+        "name": "Saint Barthelemy",
         "area": 21,
         "cioc": "",
         "cca2": "BL",
@@ -1278,7 +1278,7 @@ countries = [
         "area": 7747,
         "cioc": "",
         "cca2": "TF",
-        "capital": u"Port-aux-Fran\u00e7ais",
+        "capital": "Port-aux-Francais",
         "lat": -49.25,
         "lng": 69.167,
         "cca3": "ATF"
@@ -1384,7 +1384,7 @@ countries = [
         "cca3": "PER"
     },
     {
-        "name": u"R\u00e9union",
+        "name": "Reunion",
         "area": 2511,
         "cioc": "",
         "cca2": "RE",
@@ -1488,7 +1488,7 @@ countries = [
         "area": 1141748,
         "cioc": "COL",
         "cca2": "CO",
-        "capital": u"Bogot\u00e1",
+        "capital": "Bogota",
         "lat": 4,
         "lng": -72,
         "cca3": "COL"
@@ -1538,7 +1538,7 @@ countries = [
         "area": 33846,
         "cioc": "MDA",
         "cca2": "MD",
-        "capital": u"Chi\u0219in\u0103u",
+        "capital": "Chisinau",
         "lat": 47,
         "lng": 29,
         "cca3": "MDA"
@@ -1598,7 +1598,7 @@ countries = [
         "area": 300,
         "cioc": "MDV",
         "cca2": "MV",
-        "capital": u"Mal\u00e9",
+        "capital": "Male",
         "lat": 3.25,
         "lng": 73,
         "cca3": "MDV"
@@ -1624,7 +1624,7 @@ countries = [
         "cca3": "SPM"
     },
     {
-        "name": u"Cura\u00e7ao",
+        "name": "Curacao",
         "area": 444,
         "cioc": "",
         "cca2": "CW",
@@ -1708,7 +1708,7 @@ countries = [
         "area": 1393,
         "cioc": "",
         "cca2": "FO",
-        "capital": u"T\u00f3rshavn",
+        "capital": "Torshavn",
         "lat": 62,
         "lng": -7,
         "cca3": "FRO"
@@ -1864,7 +1864,7 @@ countries = [
         "cca3": "TUV"
     },
     {
-        "name": u"\u00c5land Islands",
+        "name": "Aland Islands",
         "area": 1580,
         "cioc": "",
         "cca2": "AX",
@@ -1918,7 +1918,7 @@ countries = [
         "area": 8515767,
         "cioc": "BRA",
         "cca2": "BR",
-        "capital": u"Bras\u00edlia",
+        "capital": "Brasilia",
         "lat": -10,
         "lng": -55,
         "cca3": "BRA"
@@ -2338,7 +2338,7 @@ countries = [
         "area": 266000,
         "cioc": "",
         "cca2": "EH",
-        "capital": u"El Aai\u00fan",
+        "capital": "El Aaiun",
         "lat": 24.5,
         "lng": -13,
         "cca3": "ESH"
@@ -2398,7 +2398,7 @@ countries = [
         "area": 18575,
         "cioc": "",
         "cca2": "NC",
-        "capital": u"Noum\u00e9a",
+        "capital": "Noumea",
         "lat": -21.5,
         "lng": 165.5,
         "cca3": "NCL"
