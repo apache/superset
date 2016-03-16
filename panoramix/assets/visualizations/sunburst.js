@@ -8,10 +8,10 @@ function sunburstVis(slice) {
 
   var render = function () {
     // vars with shared scope within this function
-    var margin = { top: 5, right: 5, bottom: 5, left: 5 };
-    var containerWidth   =  slice.width();
+    var margin = { top: 10, right: 5, bottom: 10, left: 5 };
+    var containerWidth   = slice.width();
     var containerHeight  = slice.height();
-    var breadcrumbHeight = containerHeight * 0.075;
+    var breadcrumbHeight = containerHeight * 0.065;
     var visWidth         = containerWidth - margin.left - margin.right;
     var visHeight        = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
     var radius           = Math.min(visWidth, visHeight) / 2;
@@ -62,11 +62,12 @@ function sunburstVis(slice) {
     });
 
     function createBreadcrumbs(rawData) {
-      maxBreadcrumbs = 8.75; //rawData.form_data.groupby.length + 1.75; // +extra for %label and buffer
+      var firstRowData = rawData.data[0];
+      maxBreadcrumbs = (firstRowData.length - 2) + 1; // -2 bc row contains 2x metrics, +extra for %label and buffer
 
       breadcrumbDims = {
         width: visWidth / maxBreadcrumbs,
-        height: breadcrumbHeight,
+        height: breadcrumbHeight *0.8, // more margin
         spacing: 3,
         tipTailWidth: 10
       };
@@ -85,7 +86,7 @@ function sunburstVis(slice) {
 
       vis = svg.append("svg:g")
         .attr("class", "sunburst-vis")
-        .attr("transform", "translate(" + (containerWidth / 2) + "," + (breadcrumbHeight + (containerHeight / 2)) + ")")
+        .attr("transform", "translate(" + (margin.left + (visWidth / 2)) + "," + (margin.top + breadcrumbHeight + (visHeight / 2)) + ")")
         .on("mouseleave", mouseleave);
 
       arcs = vis.append("svg:g")
@@ -108,7 +109,7 @@ function sunburstVis(slice) {
 
       var ext, colorScale;
 
-      if (slice.metric !== slice.secondary_metric) {
+      if (rawData.form_data.metric !== rawData.form_data.secondary_metric) {
         colorByCategory = false;
 
         ext = d3.extent(nodes, function (d) {
@@ -164,8 +165,10 @@ function sunburstVis(slice) {
 
       var sequenceArray = getAncestors(d);
 
-      // Fade all the segments.
+      // Reset and fade all the segments.
       arcs.selectAll("path")
+        .style("stroke-width", null)
+        .style("stroke", null)
         .style("opacity", 0.3);
 
       // Then highlight only those that are an ancestor of the current segment.
