@@ -144,7 +144,11 @@ Tests can then be run with:
 
 Lint the project with:
 
+    # for python changes
     flake8 changes tests
+
+    # for javascript
+    npm run lint
 
 ## API documentation
 
