@@ -1,9 +1,8 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/panoramix.js');
 
 require('datatables');
-require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css')
+require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 require('bootstrap');
 
 $(document).ready(function () {
