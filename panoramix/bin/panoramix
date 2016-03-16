@@ -7,6 +7,7 @@ from subprocess import Popen
 from flask.ext.script import Manager
 from panoramix import app
 from flask.ext.migrate import MigrateCommand
+import panoramix
 from panoramix import db
 from panoramix import data, utils
 
@@ -49,7 +50,7 @@ def runserver(debug, port, timeout, workers):
 @manager.command
 def init():
     """Inits the Panoramix application"""
-    utils.init()
+    utils.init(panoramix)
 
 @manager.option(
     '-s', '--sample', action='store_true',
@@ -57,6 +58,8 @@ def init():
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
+
+    data.load_css_templates()
 
     print("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()

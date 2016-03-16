@@ -25,7 +25,7 @@ CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
+SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/panoramix.db'
@@ -48,7 +48,7 @@ SHOW_STACKTRACE = True
 APP_NAME = "Panoramix"
 
 # Uncomment to setup Setup an App icon
-APP_ICON = "/static/img/chaudron_white.png"
+# APP_ICON = "/static/img/something.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -113,6 +113,6 @@ IMG_UPLOAD_URL = '/static/uploads/'
 # IMG_SIZE = (300, 200, True)
 
 try:
-    from panoramix_config import *
+    from panoramix_config import *  # noqa
 except Exception:
     pass

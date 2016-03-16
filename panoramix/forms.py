@@ -1,20 +1,21 @@
 from wtforms import (
-    Field, Form, SelectMultipleField, SelectField, TextField, TextAreaField,
+    Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
 from wtforms import validators, widgets
 from copy import copy
 from panoramix import app
-from six import string_types
 from collections import OrderedDict
 config = app.config
 
 
 class BetterBooleanField(BooleanField):
+
     """
     Fixes behavior of html forms omitting non checked <input>
     (which doesn't distinguish False from NULL/missing )
     If value is unchecked, this hidden <input> fills in False value
     """
+
     def __call__(self, **kwargs):
         html = super(BetterBooleanField, self).__call__(**kwargs)
         html += u'<input type="hidden" name="{}" value="false">'.format(self.name)
@@ -22,9 +23,9 @@ class BetterBooleanField(BooleanField):
 
 
 class SelectMultipleSortableField(SelectMultipleField):
-    """
-    Works along with select2sortable to preserves the sort order
-    """
+
+    """Works along with select2sortable to preserves the sort order"""
+
     def iter_choices(self):
         d = OrderedDict()
         for value, label in self.choices:
@@ -39,6 +40,9 @@ class SelectMultipleSortableField(SelectMultipleField):
 
 
 class FreeFormSelect(widgets.Select):
+
+    """A WTF widget that allows for free form entry"""
+
     def __call__(self, field, **kwargs):
         kwargs.setdefault('id', field.id)
         if self.multiple:
@@ -54,13 +58,20 @@ class FreeFormSelect(widgets.Select):
         html.append('</select>')
         return widgets.HTMLString(''.join(html))
 
+
 class FreeFormSelectField(SelectField):
+
+    """ A WTF SelectField that allows for free form input """
+
     widget = FreeFormSelect()
     def pre_validate(self, form):
         return
 
 
 class OmgWtForm(Form):
+
+    """Panoramixification of the WTForm Form object"""
+
     fieldsets = {}
     css_classes = dict()
 
@@ -74,6 +85,7 @@ class OmgWtForm(Form):
 
 
 class FormFactory(object):
+    """Used to create the forms in the explore view dynamically"""
     series_limits = [0, 5, 10, 25, 50, 100, 500]
     fieltype_class = {
         SelectField: 'select2',
@@ -231,12 +243,15 @@ class FormFactory(object):
                 ]),
                 description="Charge in the force layout"),
             'granularity_sqla': SelectField(
-                'Time Column', default=datasource.main_dttm_col,
+                'Time Column',
+                default=datasource.main_dttm_col or datasource.any_dttm_col,
                 choices=self.choicify(datasource.dttm_cols),
                 description=(
-                    "The time granularity for the visualization. Note that you "
+                    "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
-                    "column in the table editor")),
+                    "column in the table editor. Also note that the "
+                    "filter bellow is applied against this column or "
+                    "expression")),
             'resample_rule': FreeFormSelectField(
                 'Resample Rule', default='',
                 choices=self.choicify(('1T', '1H', '1D', '7D', '1M', '1AS')),
@@ -347,7 +362,9 @@ class FormFactory(object):
                     "complex expression, parenthesis and anything else "
                     "supported by the backend it is directed towards.")),
             'compare_lag': TextField('Comparison Period Lag',
-                description="Based on granularity, number of time periods to compare against"),
+                description=(
+                    "Based on granularity, number of time periods to "
+                    "compare against")),
             'compare_suffix': TextField('Comparison suffix',
                 description="Suffix to apply after the percentage display"),
             'x_axis_format': FreeFormSelectField('X axis format',
@@ -356,7 +373,8 @@ class FormFactory(object):
                     ('smart_date', 'Adaptative formating'),
                     ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
                     ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
-                    ("%Y-%m-%d %H:%M:%S", '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
+                    ("%Y-%m-%d %H:%M:%S",
+                        '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
                     ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
                 ],
                 description="D3 format syntax for y axis "
@@ -474,12 +492,10 @@ class FormFactory(object):
     def choicify(l):
         return [("{}".format(obj), "{}".format(obj)) for obj in l]
 
-    def get_form(self, previous=False):
-        px_form_fields = self.field_dict
+    def get_form(self):
         viz = self.viz
-        datasource = viz.datasource
         field_css_classes = {}
-        for name, obj in px_form_fields.items():
+        for name, obj in self.field_dict.items():
             field_css_classes[name] = ['form-control']
             s = self.fieltype_class.get(obj.field_class)
             if s:
@@ -489,7 +505,7 @@ class FormFactory(object):
             field_css_classes[field] += ['input-sm']
 
         class QueryForm(OmgWtForm):
-            fieldsets = copy(viz.fieldsetizer())
+            fieldsets = copy(viz.fieldsets)
             css_classes = field_css_classes
             standalone = HiddenField()
             async = HiddenField()
@@ -501,7 +517,7 @@ class FormFactory(object):
             collapsed_fieldsets = HiddenField()
             viz_type = self.field_dict.get('viz_type')
 
-        filter_cols = datasource.filterable_column_names or ['']
+        filter_cols = viz.datasource.filterable_column_names or ['']
         for i in range(10):
             setattr(QueryForm, 'flt_col_' + str(i), SelectField(
                 'Filter 1',
@@ -514,18 +530,16 @@ class FormFactory(object):
             setattr(
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
-        for fieldset in viz.fieldsetizer():
-            for ff in fieldset['fields']:
-                if ff:
-                    if isinstance(ff, string_types):
-                        ff = [ff]
-                    for s in ff:
-                        if s:
-                            setattr(QueryForm, s, px_form_fields[s])
 
+        for field in viz.flat_form_fields():
+            setattr(QueryForm, field, self.field_dict[field])
+
+        def add_to_form(attrs):
+            for attr in attrs:
+                setattr(QueryForm, attr, self.field_dict[attr])
 
         # datasource type specific form elements
-        if datasource.__class__.__name__ == 'SqlaTable':
+        if viz.datasource.__class__.__name__ == 'SqlaTable':
             QueryForm.fieldsets += ({
                 'label': 'SQL',
                 'fields': ['where', 'having'],
@@ -533,12 +547,36 @@ class FormFactory(object):
                     "This section exposes ways to include snippets of "
                     "SQL in your query"),
             },)
-            setattr(QueryForm, 'where', px_form_fields['where'])
-            setattr(QueryForm, 'having', px_form_fields['having'])
+            add_to_form(('where', 'having'))
+            grains = viz.datasource.database.grains()
 
-            if 'granularity' in viz.flat_form_fields():
-                setattr(
-                    QueryForm,
-                    'granularity', px_form_fields['granularity_sqla'])
-                field_css_classes['granularity'] = ['form-control', 'select2']
+            if not viz.datasource.any_dttm_col:
+                return QueryForm
+            if grains:
+                time_fields = ('granularity_sqla', 'time_grain_sqla')
+                self.field_dict['time_grain_sqla'] = SelectField(
+                    'Time Grain',
+                    choices=self.choicify((grain.name for grain in grains)),
+                    default="Time Column",
+                    description=(
+                        "The time granularity for the visualization. This "
+                        "applies a date transformation to alter "
+                        "your time column and defines a new time granularity."
+                        "The options here are defined on a per database "
+                        "engine basis in the Panoramix source code"))
+                add_to_form(time_fields)
+                field_css_classes['time_grain_sqla'] = ['form-control', 'select2']
+            else:
+                time_fields = 'granularity_sqla'
+                add_to_form((time_fields, ))
+            add_to_form(('since', 'until'))
+            QueryForm.fieldsets = ({
+                'label': 'Time',
+                'fields': (
+                    time_fields,
+                    ('since', 'until'),
+                ),
+                'description': "Time related form attributes",
+            },) + tuple(QueryForm.fieldsets)
+            field_css_classes['granularity'] = ['form-control', 'select2']
         return QueryForm

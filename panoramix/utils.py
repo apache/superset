@@ -1,16 +1,14 @@
 from datetime import datetime
-import functools
 import hashlib
+import functools
 import json
 import logging
 
 from dateutil.parser import parse
 from sqlalchemy.types import TypeDecorator, TEXT
-from flask import g, request, Markup
 from markdown import markdown as md
 import parsedatetime
-
-from panoramix import db
+from flask_appbuilder.security.sqla import models as ab_models
 
 
 class memoized(object):
@@ -64,12 +62,14 @@ def parse_human_datetime(s):
     True
     >>> date.today() - timedelta(1) == parse_human_datetime('yesterday').date()
     True
-    >>> parse_human_datetime('one year ago').date() == (datetime.now() - relativedelta(years=1) ).date()
+    >>> year_ago_1 = parse_human_datetime('one year ago').date()
+    >>> year_ago_2 = (datetime.now() - relativedelta(years=1) ).date()
+    >>> year_ago_1 == year_ago_2
     True
     """
     try:
         dttm = parse(s)
-    except:
+    except Exception:
         try:
             cal = parsedatetime.Calendar()
             dttm = dttm_from_timtuple(cal.parse(s)[0])
@@ -154,14 +154,13 @@ class ColorFactory(object):
         return self.BNB_COLORS[i % len(self.BNB_COLORS)]
 
 
-def init():
+def init(panoramix):
     """
     Inits the Panoramix application with security roles and such
     """
-    from panoramix import appbuilder
-    from panoramix import models
-    from flask_appbuilder.security.sqla import models as ab_models
-    sm = appbuilder.sm
+    db = panoramix.db
+    models = panoramix.models
+    sm = panoramix.appbuilder.sm
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
 
@@ -178,7 +177,6 @@ def init():
         sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")
     for perm in perms:
-        s = perm.permission.name
         if(
                 perm.view_menu.name not in (
                     'ResetPasswordView',
@@ -203,30 +201,6 @@ def init():
             table.perm for table in session.query(models.DruidDatasource).all()]
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
-
-
-def log_this(f):
-    '''
-    Decorator to log user actions
-    '''
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        user_id = None
-        if g.user:
-            user_id = g.user.id
-        from panoramix import models
-        d = request.args.to_dict()
-        d.update(kwargs)
-        log = models.Log(
-            action=f.__name__,
-            json=json.dumps(d),
-            dashboard_id=d.get('dashboard_id') or None,
-            slice_id=d.get('slice_id') or None,
-            user_id=user_id)
-        db.session.add(log)
-        db.session.commit()
-        return f(*args, **kwargs)
-    return wrapper
 
 
 def datetime_f(dttm):

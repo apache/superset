@@ -33,4 +33,4 @@ appbuilder = AppBuilder(
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
-from panoramix import config, views
+from panoramix import config, views  # noqa

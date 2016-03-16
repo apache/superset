@@ -26,8 +26,6 @@ class BaseViz(object):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'metrics', 'groupby',
         )
     },)
@@ -81,23 +79,16 @@ class BaseViz(object):
                 s = Markup(s)
             return s
 
-    def fieldsetizer(self):
-        """
-        Makes form_fields support either a list approach or a fieldsets
-        approach
-        """
-        return self.fieldsets
-
     @classmethod
     def flat_form_fields(cls):
         l = set()
         for d in cls.fieldsets:
             for obj in d['fields']:
-                if isinstance(obj, (tuple, list)):
-                    l |= {a for a in obj}
+                if obj and isinstance(obj, (tuple, list)):
+                    l |= {a for a in obj if a}
                 elif obj:
                     l.add(obj)
-        return l
+        return tuple(l)
 
     def reassignments(self):
         pass
@@ -111,7 +102,7 @@ class BaseViz(object):
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
         for key in d.keys():
-            if d[key] == False:
+            if d[key] is False:
                 del d[key]
         href = Href(
             '/panoramix/explore/{self.datasource.type}/'
@@ -174,7 +165,8 @@ class BaseViz(object):
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
-        granularity = form_data.get("granularity")
+        granularity = \
+            form_data.get("granularity") or form_data.get("granularity_sqla")
         limit = int(form_data.get("limit", 0))
         row_limit = int(
             form_data.get("row_limit", config.get("ROW_LIMIT")))
@@ -193,6 +185,7 @@ class BaseViz(object):
         extras = {
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
+            'time_grain_sqla': form_data.get("time_grain_sqla", ''),
         }
         d = {
             'granularity': granularity,
@@ -259,10 +252,8 @@ class TableViz(BaseViz):
     verbose_name = "Table View"
     fieldsets = (
     {
-        'label': None,
+        'label': "Chart Options",
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'row_limit',
             ('include_search', None),
         )
@@ -322,8 +313,6 @@ class PivotTableViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'groupby',
             'columns',
             'metrics',
@@ -409,8 +398,6 @@ class WordCloudViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'series', 'metric', 'limit',
             ('size_from', 'size_to'),
             'rotation',
@@ -447,8 +434,6 @@ class BubbleViz(NVD3Viz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'series', 'entity',
             'x', 'y',
             'size', 'limit',
@@ -515,8 +500,6 @@ class BigNumberViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'metric',
             'compare_lag',
             'compare_suffix',
@@ -567,7 +550,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
         {
             'label': None,
             'fields': (
-                'granularity', ('since', 'until'),
                 'metrics',
                 'groupby', 'limit',
             ),
@@ -743,8 +725,6 @@ class DistributionPieViz(NVD3Viz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'metrics', 'groupby',
             'limit',
             ('donut', 'show_legend'),
@@ -777,12 +757,6 @@ class DistributionBarViz(DistributionPieViz):
     is_timeseries = False
     fieldsets = (
     {
-        'label': None,
-        'fields': (
-            'granularity',
-            ('since', 'until'),
-        )
-    }, {
         'label': 'Chart Options',
         'fields': (
             'groupby',
@@ -803,7 +777,7 @@ class DistributionBarViz(DistributionPieViz):
     }
 
     def query_obj(self):
-        d = super(DistributionPieViz, self).query_obj()
+        d = super(DistributionPieViz, self).query_obj()  # noqa
         fd = self.form_data
         d['is_timeseries'] = False
         gb = fd.get('groupby') or []
@@ -818,7 +792,7 @@ class DistributionBarViz(DistributionPieViz):
         return d
 
     def get_df(self, query_obj=None):
-        df = super(DistributionPieViz, self).get_df(query_obj)
+        df = super(DistributionPieViz, self).get_df(query_obj)  # noqa
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
@@ -863,8 +837,6 @@ class SunburstViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'groupby',
             'metric', 'secondary_metric',
             'row_limit',
@@ -925,8 +897,6 @@ class SankeyViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'groupby',
             'metric',
             'row_limit',
@@ -962,8 +932,6 @@ class DirectedForceViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'groupby',
             'metric',
             'row_limit',
@@ -1004,8 +972,6 @@ class WorldMapViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'entity',
             'country_fieldtype',
             'metric',
@@ -1077,8 +1043,6 @@ class FilterBoxViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'groupby',
             'metric',
         )
@@ -1138,8 +1102,6 @@ class ParallelCoordinatesViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'series',
             'metrics',
             'secondary_metric',
@@ -1170,8 +1132,6 @@ class HeatmapViz(BaseViz):
     {
         'label': None,
         'fields': (
-            'granularity',
-            ('since', 'until'),
             'all_columns_x',
             'all_columns_y',
             'metric',

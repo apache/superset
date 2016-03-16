@@ -20,14 +20,15 @@ from sqlalchemy.sql.expression import TextAsFrom
 from panoramix import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
+log_this = models.Log.log_this
 
 
-def validate_json(form, field):
+def validate_json(form, field):  # noqa
     try:
         json.loads(field.data)
     except Exception as e:
         logging.exception(e)
-        raise ValidationError("Json isn't valid")
+        raise ValidationError("json isn't valid")
 
 
 class DeleteMixin(object):
@@ -161,7 +162,9 @@ class TableModelView(PanoramixModelView, DeleteMixin):
     base_order = ('changed_on','desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
-        'description': Markup("Supports <a href='https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'description': Markup(
+            "Supports <a href='https://daringfireball.net/projects/markdown/'>"
+            "markdown</a>"),
     }
 
     def post_add(self, table):
@@ -303,7 +306,9 @@ class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
     base_order = ('datasource_name', 'asc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
-        'description': Markup("Supports <a href='https://daringfireball.net/projects/markdown/'>markdown</a>"),
+        'description': Markup(
+            "Supports <a href='"
+            "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
 
     def post_add(self, datasource):
@@ -332,7 +337,7 @@ def ping():
 
 class R(BaseView):
 
-    @utils.log_this
+    @log_this
     @expose("/<url_id>")
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
@@ -343,7 +348,7 @@ class R(BaseView):
             flash("URL to nowhere...", "danger")
             return redirect('/')
 
-    @utils.log_this
+    @log_this
     @expose("/shortner/", methods=['POST', 'GET'])
     def shortner(self):
         url = request.form.get('data')
@@ -361,7 +366,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
-    @utils.log_this
+    @log_this
     def explore(self, datasource_type, datasource_id):
         if datasource_type == "table":
             datasource = (
@@ -561,8 +566,8 @@ class Panoramix(BaseView):
         dash = qry.first()
 
         # Hack to log the dashboard_id properly, even when getting a slug
-        @utils.log_this
-        def dashboard(**kwargs):
+        @log_this
+        def dashboard(**kwargs):  # noqa
             pass
         dashboard(dashboard_id=dash.id)
 
@@ -578,7 +583,7 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/sql/<database_id>/")
-    @utils.log_this
+    @log_this
     def sql(self, database_id):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
@@ -594,7 +599,7 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/table/<database_id>/<table_name>/")
-    @utils.log_this
+    @log_this
     def table(self, database_id, table_name):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
@@ -612,7 +617,7 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
-    @utils.log_this
+    @log_this
     def select_star(self, database_id, table_name):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
@@ -627,7 +632,7 @@ class Panoramix(BaseView):
 
     @has_access
     @expose("/runsql/", methods=['POST', 'GET'])
-    @utils.log_this
+    @log_this
     def runsql(self):
         session = db.session()
         limit = 1000
