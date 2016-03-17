@@ -571,13 +571,16 @@ class FormFactory(object):
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
             add_to_form(('since', 'until'))
-            QueryForm.fieldsets = ({
-                'label': 'Time',
-                'fields': (
-                    time_fields,
-                    ('since', 'until'),
-                ),
-                'description': "Time related form attributes",
-            },) + tuple(QueryForm.fieldsets)
             field_css_classes['granularity'] = ['form-control', 'select2']
+        else:
+            time_fields = 'granularity'
+
+        QueryForm.fieldsets = ({
+            'label': 'Time',
+            'fields': (
+                time_fields,
+                ('since', 'until'),
+            ),
+            'description': "Time related form attributes",
+        },) + tuple(QueryForm.fieldsets)
         return QueryForm
