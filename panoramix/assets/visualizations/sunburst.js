@@ -190,7 +190,7 @@ function sunburstVis(slice) {
     function mouseleave(d) {
 
       // Hide the breadcrumb trail
-      // breadcrumbs.style("visibility", "hidden");
+      breadcrumbs.style("visibility", "hidden");
 
       gMiddleText.selectAll("*").remove();
 
