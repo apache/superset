@@ -1,3 +1,5 @@
+"""Flask web views for Panoramix"""
+
 from datetime import datetime
 import json
 import logging
@@ -44,7 +46,7 @@ class PanoramixModelView(ModelView):
     page_size = 500
 
 
-class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):
+class TableColumnInlineView(CompactCRUDMixin, PanoramixModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
@@ -72,7 +74,8 @@ appbuilder.add_link(
 
 appbuilder.add_separator("Sources")
 
-class DruidColumnInlineView(CompactCRUDMixin, PanoramixModelView):
+
+class DruidColumnInlineView(CompactCRUDMixin, PanoramixModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'datasource', 'groupby',
@@ -89,7 +92,7 @@ class DruidColumnInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
+class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -100,7 +103,7 @@ class SqlMetricInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):
+class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -115,7 +118,7 @@ class DruidMetricInlineView(CompactCRUDMixin, PanoramixModelView):
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
-class DatabaseView(PanoramixModelView, DeleteMixin):
+class DatabaseView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
@@ -149,7 +152,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class TableModelView(PanoramixModelView, DeleteMixin):
+class TableModelView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
@@ -191,7 +194,7 @@ appbuilder.add_view(
 appbuilder.add_separator("Sources")
 
 
-class DruidClusterModelView(PanoramixModelView, DeleteMixin):
+class DruidClusterModelView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
     add_columns = [
         'cluster_name',
@@ -209,7 +212,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class SliceModelView(PanoramixModelView, DeleteMixin):
+class SliceModelView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     list_columns = [
@@ -237,7 +240,7 @@ appbuilder.add_view(
     category_icon='',)
 
 
-class DashboardModelView(PanoramixModelView, DeleteMixin):
+class DashboardModelView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
@@ -289,7 +292,7 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
-class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):
+class DruidDatasourceModelView(PanoramixModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner',
@@ -362,6 +365,8 @@ appbuilder.add_view_no_menu(R)
 
 
 class Panoramix(BaseView):
+
+    """The base views for Panoramix!"""
 
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
@@ -502,6 +507,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
+        """endpoint for checking/unchecking any boolean in a sqla model"""
         model = None
         if model_view == 'TableColumnInlineView':
             model = models.TableColumn
@@ -518,6 +524,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
+        """Save a dashboard's metadata"""
         data = json.loads(request.form.get('data'))
         positions = data['positions']
         slice_ids = [int(d['slice_id']) for d in positions]
@@ -540,6 +547,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
+        """Tests a sqla connection"""
         try:
             uri = request.form.get('uri')
             engine = create_engine(uri)
@@ -554,6 +562,7 @@ class Panoramix(BaseView):
     @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
+        """Server side rendering for a dashboard"""
         session = db.session()
         qry = session.query(models.Dashboard)
         if dashboard_id.isdigit():

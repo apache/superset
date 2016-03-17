@@ -1,3 +1,5 @@
+"""Package's main module!"""
+
 import logging
 import os
 from flask import Flask, redirect

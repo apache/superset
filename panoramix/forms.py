@@ -493,6 +493,7 @@ class FormFactory(object):
         return [("{}".format(obj), "{}".format(obj)) for obj in l]
 
     def get_form(self):
+        """Returns a form object based on the viz/datasource/context"""
         viz = self.viz
         field_css_classes = {}
         for name, obj in self.field_dict.items():
