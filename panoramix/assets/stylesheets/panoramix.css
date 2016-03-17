@@ -2,6 +2,10 @@ body {
     margin: 0px !important;
 }
 
+.modal-dialog {
+    z-index: 1100;
+}
+
 input.form-control {
     background-color: white;
 }
