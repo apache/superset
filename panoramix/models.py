@@ -198,6 +198,7 @@ class Dashboard(Model, AuditMixinNullable):
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
+    granularity = {'since': None, 'until': None}
 
     def __repr__(self):
         return self.dashboard_title
@@ -222,10 +223,15 @@ class Dashboard(Model, AuditMixinNullable):
             'id': self.id,
             'metadata': self.metadata_dejson,
             'dashboard_title': self.dashboard_title,
+            'granularity': self.granularity,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
         }
         return json.dumps(d)
+
+    def set_granularity(self, since, until):
+        self.granularity['since'] = since
+        self.granularity['until'] = until
 
 
 class Queryable(object):

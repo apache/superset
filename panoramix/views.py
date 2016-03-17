@@ -580,6 +580,11 @@ class Panoramix(BaseView):
             pass
         dashboard(dashboard_id=dash.id)
 
+        since = request.args.get('since')
+        until = request.args.get('until')
+        if since and until:
+            dash.set_granularity(since, until)
+
         pos_dict = {}
         if dash.position_json:
             pos_dict = {
