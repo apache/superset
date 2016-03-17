@@ -36,6 +36,10 @@ QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
 class AuditMixinNullable(AuditMixin):
+
+    """Altering the AuditMixin to use nullable fields, allows creating
+    objects programmatically outside of CRUD"""
+
     created_on = Column(DateTime, default=datetime.now, nullable=True)
     changed_on = Column(
         DateTime, default=datetime.now,
@@ -142,6 +146,7 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def slice_url(self):
+        """Defines the url to access the slice"""
         try:
             slice_params = json.loads(self.params)
         except Exception as e:
@@ -175,7 +180,7 @@ dashboard_slices = Table('dashboard_slices', Model.metadata,
 
 class Dashboard(Model, AuditMixinNullable):
 
-    """A dash to slash"""
+    """The dashboard object!"""
 
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
@@ -240,6 +245,9 @@ class Queryable(object):
 
 
 class Database(Model, AuditMixinNullable):
+
+    """An ORM object that stores Database related information"""
+
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
@@ -256,15 +264,14 @@ class Database(Model, AuditMixinNullable):
         return self.sqlalchemy_uri
 
     def grains(self):
+        """Defines time granularity database-specific expressions.
 
-        """Defines time granularity database-specific expressions. The idea
-        here is to make it easy for users to change the time grain form a
-        datetime (maybe the source grain is arbitrary timestamps, daily
+        The idea here is to make it easy for users to change the time grain
+        form a datetime (maybe the source grain is arbitrary timestamps, daily
         or 5 minutes increments) to another, "truncated" datetime. Since
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-
         Grain = namedtuple('Grain', 'name function')
         DB_TIME_GRAINS = {
             'presto': (
@@ -314,6 +321,9 @@ class Database(Model, AuditMixinNullable):
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
+
+    """An ORM object for SqlAlchemy table references"""
+
     type = "table"
 
     __tablename__ = 'tables'
@@ -554,6 +564,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
     def fetch_metadata(self):
+        """Fetches the metadata for the table and merges it in"""
         table = self.database.get_table(self.table_name)
         try:
             table = self.database.get_table(self.table_name)
@@ -653,6 +664,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
 
 class SqlMetric(Model, AuditMixinNullable):
+
+    """ORM object for metrics, each table can have multiple metrics"""
+
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
@@ -666,6 +680,9 @@ class SqlMetric(Model, AuditMixinNullable):
 
 
 class TableColumn(Model, AuditMixinNullable):
+
+    """ORM object for table columns, each table can have multiple columns"""
+
     __tablename__ = 'table_columns'
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
@@ -693,6 +710,9 @@ class TableColumn(Model, AuditMixinNullable):
 
 
 class DruidCluster(Model, AuditMixinNullable):
+
+    """ORM object referencing the Druid clusters"""
+
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
@@ -726,6 +746,9 @@ class DruidCluster(Model, AuditMixinNullable):
 
 
 class DruidDatasource(Model, AuditMixinNullable, Queryable):
+
+    """ORM object referencing Druid datasources (tables)"""
+
     type = "druid"
 
     baselink = "datasourcemodelview"
@@ -793,6 +816,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         ][0]
 
     def latest_metadata(self):
+        """Returns segment metadata from the latest segment"""
         client = self.cluster.get_pydruid_client()
         results = client.time_boundary(datasource=self.datasource_name)
         if not results:
@@ -813,6 +837,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @classmethod
     def sync_to_db(cls, name, cluster):
+        """Fetches the metadata for that datasource and merges it into
+        the Panoramix database"""
         print("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
@@ -855,8 +881,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             timeseries_limit=None,
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
-            extras=None,
+            extras=None,  # noqa
             select=None):
+        """Runs a query against Druid and returns a dataframe.
+        This query interface is common to SqlAlchemy and Druid"""
+        # TODO refactor into using a TBD Query object
         qry_start_dttm = datetime.now()
 
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -996,6 +1025,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
 
 class Log(Model):
+
+    """ORM object used to log Panoramix actions to the database"""
+
     __tablename__ = 'logs'
 
     id = Column(Integer, primary_key=True)
@@ -1033,6 +1065,9 @@ class Log(Model):
 
 
 class DruidMetric(Model):
+
+    """ORM object referencing Druid metrics for a datasource"""
+
     __tablename__ = 'metrics'
     id = Column(Integer, primary_key=True)
     metric_name = Column(String(512))
@@ -1055,6 +1090,9 @@ class DruidMetric(Model):
 
 
 class DruidColumn(Model):
+
+    """ORM model for storing Druid datasource column metadata"""
+
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
@@ -1080,6 +1118,7 @@ class DruidColumn(Model):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT')
 
     def generate_metrics(self):
+        """Generate metrics based on the column metadata"""
         M = DruidMetric
         metrics = []
         metrics.append(DruidMetric(

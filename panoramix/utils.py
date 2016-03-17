@@ -1,3 +1,5 @@
+"""Utility functions used across Panoramix"""
+
 from datetime import datetime
 import hashlib
 import functools
@@ -12,10 +14,12 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 
 class memoized(object):
+
     """Decorator that caches a function's return value each time it is called.
     If called later with the same arguments, the cached value is returned, and
     not re-evaluated.
     """
+
     def __init__(self, func):
         self.func = func
         self.cache = {}
@@ -47,8 +51,7 @@ def list_minus(l, minus):
 
 def parse_human_datetime(s):
     """
-    Use the parsedatetime lib to return ``datetime.datetime`` from human
-    generated strings
+    Returns ``datetime.datetime`` from human readable strings
 
     >>> from datetime import date, timedelta
     >>> from dateutil.relativedelta import relativedelta
@@ -92,8 +95,7 @@ def merge_perm(sm, permission_name, view_menu_name):
 
 def parse_human_timedelta(s):
     """
-    Use the parsedatetime lib to return ``datetime.datetime`` from human
-    generated strings
+    Returns ``datetime.datetime`` from natural language time deltas
 
     >>> parse_human_datetime("now") <= datetime.now()
     True
@@ -107,7 +109,9 @@ def parse_human_timedelta(s):
 
 
 class JSONEncodedDict(TypeDecorator):
+
     """Represents an immutable structure as a json-encoded string."""
+
     impl = TEXT
     def process_bind_param(self, value, dialect):
         if value is not None:
@@ -122,6 +126,9 @@ class JSONEncodedDict(TypeDecorator):
 
 
 class ColorFactory(object):
+
+    """Used to generated arrays of colors server side"""
+
     BNB_COLORS = [
         #rausch    hackb      kazan      babu      lima        beach     barol
         '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
@@ -134,7 +141,8 @@ class ColorFactory(object):
         self.hash_based = hash_based
 
     def get(self, s):
-        """
+        """Gets a color from a string and memoize the association
+
         >>> cf = ColorFactory()
         >>> cf.get('item_1')
         '#ff5a5f'
@@ -155,9 +163,7 @@ class ColorFactory(object):
 
 
 def init(panoramix):
-    """
-    Inits the Panoramix application with security roles and such
-    """
+    """Inits the Panoramix application with security roles and such"""
     db = panoramix.db
     models = panoramix.models
     sm = panoramix.appbuilder.sm
@@ -204,9 +210,7 @@ def init(panoramix):
 
 
 def datetime_f(dttm):
-    """
-    Formats datetime to take less room is recent
-    """
+    """Formats datetime to take less room when it is recent"""
     if dttm:
         dttm = dttm.isoformat()
         now_iso = datetime.now().isoformat()
