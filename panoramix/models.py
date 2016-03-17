@@ -429,15 +429,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             raise Exception(
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart")
-        if granularity:
-            dttm_expr = cols[granularity].expression or granularity
-
-            # Transforming time grain into an expression based on configuration
-            time_grain_sqla = extras.get('time_grain_sqla')
-            if time_grain_sqla:
-                udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
-                dttm_expr = udf.function.format(col=dttm_expr)
-            timestamp = literal_column(dttm_expr).label('timestamp')
 
         metrics_exprs = [
             literal_column(m.expression).label(m.metric_name)
@@ -476,17 +467,23 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs.append(s)
             metrics_exprs = []
 
-        if is_timeseries:
-            select_exprs += [timestamp]
-            groupby_exprs += [timestamp]
-
-        select_exprs += metrics_exprs
-        qry = select(select_exprs)
-        from_clause = table(self.table_name)
-        if not columns:
-            qry = qry.group_by(*groupby_exprs)
-
         if granularity:
+            dttm_expr = cols[granularity].expression or granularity
+            timestamp = literal_column(dttm_expr).label('timestamp')
+
+            # Transforming time grain into an expression based on configuration
+            time_grain_sqla = extras.get('time_grain_sqla')
+            if time_grain_sqla:
+                udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
+                timestamp_grain = literal_column(
+                    udf.function.format(col=dttm_expr)).label('timestamp')
+            else:
+                timestamp_grain = timestamp
+
+            if is_timeseries:
+                select_exprs += [timestamp_grain]
+                groupby_exprs += [timestamp_grain]
+
             tf = '%Y-%m-%d %H:%M:%S.%f'
             time_filter = [
                 timestamp >= from_dttm.strftime(tf),
@@ -497,6 +494,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+
+        select_exprs += metrics_exprs
+        qry = select(select_exprs)
+        from_clause = table(self.table_name)
+        if not columns:
+            qry = qry.group_by(*groupby_exprs)
+
         where_clause_and = []
         having_clause_and = []
         for col, op, eq in filter:
