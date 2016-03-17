@@ -9,6 +9,7 @@ pylint:
   disable:
     - cyclic-import
     - invalid-name
+    - logging-format-interpolation
   options:
     docstring-min-length: 10
 pep8:
@@ -20,6 +21,3 @@ ignore-paths:
 ignore-patterns:
     - ^example/doc_.*\.py$
     - (^|/)docs(/|$)
-python-targets:
-    - 2
-    - 3

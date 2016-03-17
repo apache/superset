@@ -13,9 +13,9 @@ Features
     providers (database, OpenID, LDAP, OAuth & REMOTE_USER through
     Flask AppBuilder)
 - A simple semantic layer, allowing users to control how data sources are
-  displayed in the UI by defining which fields should show up in which
-  drop-down and which aggregation and function metrics are made available
-  to the user
+    displayed in the UI by defining which fields should show up in which
+    drop-down and which aggregation and function metrics are made available
+    to the user
 - Integration with most RDBMS through SqlAlchemy
 - Deep integration with Druid.io
 
@@ -25,8 +25,8 @@ Contents
 .. toctree::
     :maxdepth: 2
 
+    installation
     user_guide
-
 
 
 Indices and tables

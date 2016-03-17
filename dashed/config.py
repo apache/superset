@@ -1,15 +1,14 @@
-"""
-All configuration in this file can be overridden by providing a local_config
-in your PYTHONPATH.
+"""The main config file for Dashed
 
-There' a ``from local_config import *`` at the end of this file.
+All configuration in this file can be overridden by providing a local_config
+in your PYTHONPATH as there is a ``from local_config import *``
+at the end of this file.
 """
 import os
 from flask_appbuilder.security.manager import AUTH_DB
-# from flask_appbuilder.security.manager import (
-#    AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH)
-BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 from dateutil import tz
+
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 # ---------------------------------------------------------
@@ -111,6 +110,9 @@ IMG_UPLOAD_FOLDER = BASE_DIR + '/app/static/uploads/'
 IMG_UPLOAD_URL = '/static/uploads/'
 # Setup image size default is (300, 200, True)
 # IMG_SIZE = (300, 200, True)
+
+CACHE_DEFAULT_TIMEOUT = None
+CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 try:
     from dashed_config import *  # noqa

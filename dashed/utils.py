@@ -13,9 +13,10 @@ import parsedatetime
 from flask_appbuilder.security.sqla import models as ab_models
 
 
-class memoized(object):
+class memoized(object):  # noqa
 
-    """Decorator that caches a function's return value each time it is called.
+    """Decorator that caches a function's return value each time it is called
+
     If called later with the same arguments, the cached value is returned, and
     not re-evaluated.
     """
@@ -23,6 +24,7 @@ class memoized(object):
     def __init__(self, func):
         self.func = func
         self.cache = {}
+
     def __call__(self, *args):
         try:
             return self.cache[args]
@@ -34,12 +36,15 @@ class memoized(object):
             # uncachable -- for instance, passing a list as an argument.
             # Better to not cache than to blow up entirely.
             return self.func(*args)
+
     def __repr__(self):
         """Return the function's docstring."""
         return self.func.__doc__
+
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
 
 def list_minus(l, minus):
     """Returns l without what is in minus
@@ -48,6 +53,7 @@ def list_minus(l, minus):
     [1, 3]
     """
     return [o for o in l if o not in minus]
+
 
 def parse_human_datetime(s):
     """
@@ -113,6 +119,7 @@ class JSONEncodedDict(TypeDecorator):
     """Represents an immutable structure as a json-encoded string."""
 
     impl = TEXT
+
     def process_bind_param(self, value, dialect):
         if value is not None:
             value = json.dumps(value)
@@ -130,7 +137,7 @@ class ColorFactory(object):
     """Used to generated arrays of colors server side"""
 
     BNB_COLORS = [
-        #rausch    hackb      kazan      babu      lima        beach     barol
+        # rausch    hackb      kazan      babu      lima        beach     barol
         '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
         '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
         '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
@@ -202,9 +209,9 @@ def init(dashed):
             sm.add_permission_role(gamma, perm)
     session = db.session()
     table_perms = [
-            table.perm for table in session.query(models.SqlaTable).all()]
+        table.perm for table in session.query(models.SqlaTable).all()]
     table_perms += [
-            table.perm for table in session.query(models.DruidDatasource).all()]
+        table.perm for table in session.query(models.DruidDatasource).all()]
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
 
@@ -239,7 +246,8 @@ def markdown(s):
     return md(s, [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
-        'markdown.extensions.codehilite',])
+        'markdown.extensions.codehilite',
+    ])
 
 
 def readfile(filepath):

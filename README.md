@@ -44,32 +44,24 @@ Dashed provides:
     slicing and dicing large, realtime datasets
 
 
-Buzz Phrases
-------------
-
-* Analytics at the speed of thought!
-* Instantaneous learning curve
-* Realtime analytics when querying [Druid.io](http://druid.io)
-* Extentsible to infinity
-
 Database Support
 ----------------
 
 Dashed was originally designed on to of Druid.io, but quickly broadened
 its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
+[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
 
 What is Druid?
 -------------
 From their website at http://druid.io
 
-*Druid is an open-source analytics data store designed for 
-business intelligence (OLAP) queries on event data. Druid provides low 
-latency (real-time) data ingestion, flexible data exploration, 
-and fast data aggregation. Existing Druid deployments have scaled to 
-trillions of events and petabytes of data. Druid is best used to 
+*Druid is an open-source analytics data store designed for
+business intelligence (OLAP) queries on event data. Druid provides low
+latency (real-time) data ingestion, flexible data exploration,
+and fast data aggregation. Existing Druid deployments have scaled to
+trillions of events and petabytes of data. Druid is best used to
 power analytic dashboards and applications.*
 
 
@@ -109,50 +101,28 @@ your datasources for Dashed to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
 Configuration
+=======
+[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
+
+
+Installation & Configuration
+----------------------------
+
+(See in the documentation)
+[http://mistercrunch.github.io/panoramix-docs/installation.html]
+
+
+What is Druid?
 -------------
+From their website at http://druid.io
 
-To configure your application, you need to create a file (module) 
-`dashed_config.py` and make sure it is in your PYTHONPATH. Here are some
-of the parameters you can copy / paste in that configuration module:
+*Druid is an open-source analytics data store designed for
+business intelligence (OLAP) queries on event data. Druid provides low
+latency (real-time) data ingestion, flexible data exploration,
+and fast data aggregation. Existing Druid deployments have scaled to
+trillions of events and petabytes of data. Druid is best used to
+power analytic dashboards and applications.*
 
-```
-#---------------------------------------------------------
-# Dashed specifix config
-#---------------------------------------------------------
-ROW_LIMIT = 5000
-WEBSERVER_THREADS = 8
-
-DASHED_WEBSERVER_PORT = 8088
-#---------------------------------------------------------
-
-#---------------------------------------------------------
-# Flask App Builder configuration
-#---------------------------------------------------------
-# Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
-
-# The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/dashed.db'
-
-# Flask-WTF flag for CSRF
-CSRF_ENABLED = True
-
-# Whether to run the web server in debug mode or not
-DEBUG = True
-```
-
-This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Dashed. Please consult
-the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en/latest/config.html) for more information on how to configure Dashed.
-
-
-* From the UI, enter the information about your clusters in the 
-``Admin->Clusters`` menu by hitting the + sign. 
-
-* Once the Druid cluster connection information is entered, hit the 
-``Admin->Refresh Metadata`` menu item to populate
-
-* Navigate to your datasources
 
 More screenshots
 ----------------

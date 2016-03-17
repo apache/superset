@@ -5,9 +5,16 @@ body {
 .modal-dialog {
     z-index: 1100;
 }
+.label {
+    font-size: 100%;
+}
 
 input.form-control {
     background-color: white;
+}
+
+.chart-header a.danger {
+    color: red;
 }
 
 .col-left-fixed {
@@ -57,8 +64,17 @@ form div {
   color: white;
 }
 
-.header span{
-    margin-left: 3px;
+.header span {
+    margin-left: 5px;
+}
+
+.widget-is-cached {
+    display: none;
+}
+
+.header span.label {
+    margin-left: 5px;
+    margin-right: 5px;
 }
 
 #timer {
@@ -234,9 +250,19 @@ li.widget .chart-header a {
   margin-left: 5px;
 }
 
-li.widget .chart-controls {
+#is_cached {
   display: none;
+  cursor: pointer;
+}
+
+li.widget .chart-controls {
   background-color: #f1f1f1;
+  position: absolute;
+  right: 0;
+  left: 0;
+  padding: 0px 5px;
+  opacity: 0.75;
+  display: none;
 }
 
 li.widget .slice_container {

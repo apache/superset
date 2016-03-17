@@ -1,6 +1,4 @@
-"""
-This module contains data related to countries and is used for geo mapping
-"""
+"""This module contains data related to countries and is used for geo mapping"""
 
 countries = [
     {
@@ -2481,6 +2479,7 @@ for lookup in lookups:
     all_lookups[lookup] = {}
     for country in countries:
         all_lookups[lookup][country[lookup].lower()] = country
+
 
 def get(field, symbol):
     """

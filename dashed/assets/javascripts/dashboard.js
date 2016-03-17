@@ -22,7 +22,7 @@ var Dashboard = function (dashboardData) {
       dashboard.slices.forEach(function (data) {
         var slice = px.Slice(data, dash);
         $("#slice_" + data.slice_id).find('a.refresh').click(function () {
-          slice.render();
+          slice.render(true);
         });
         sliceObjects.push(slice);
         slice.render();
@@ -90,7 +90,7 @@ var Dashboard = function (dashboardData) {
       var gridster = $(".gridster ul").gridster({
         autogrow_cols: true,
         widget_margins: [10, 10],
-        widget_base_dimensions: [100, 100],
+        widget_base_dimensions: [95, 95],
         draggable: {
           handle: '.drag'
         },
@@ -113,6 +113,16 @@ var Dashboard = function (dashboardData) {
           };
         }
       }).data('gridster');
+
+      // Displaying widget controls on hover
+      $('.chart-header').hover(
+        function () {
+          $(this).find('.chart-controls').fadeIn(300);
+        },
+        function () {
+          $(this).find('.chart-controls').fadeOut(300);
+        }
+      );
       $("div.gridster").css('visibility', 'visible');
       $("#savedash").click(function () {
         var expanded_slices = {};
@@ -167,6 +177,11 @@ var Dashboard = function (dashboardData) {
       });
       $('#filters').click(function () {
         alert(dashboard.readFilters());
+      });
+      $('#refresh_dash').click(function () {
+        dashboard.slices.forEach(function (slice) {
+          slice.render(true);
+        });
       });
       $("a.remove-chart").click(function () {
         var li = $(this).parents("li");
@@ -226,4 +241,5 @@ var Dashboard = function (dashboardData) {
 
 $(document).ready(function () {
   Dashboard($('.dashboard').data('dashboard'));
+  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 });

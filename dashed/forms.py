@@ -1,3 +1,5 @@
+"""Contains the logic to create cohesive forms on the explore view"""
+
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
@@ -10,8 +12,8 @@ config = app.config
 
 class BetterBooleanField(BooleanField):
 
-    """
-    Fixes behavior of html forms omitting non checked <input>
+    """Fixes the html checkbox to distinguish absent from unchecked
+
     (which doesn't distinguish False from NULL/missing )
     If value is unchecked, this hidden <input> fills in False value
     """
@@ -61,9 +63,10 @@ class FreeFormSelect(widgets.Select):
 
 class FreeFormSelectField(SelectField):
 
-    """ A WTF SelectField that allows for free form input """
+    """A WTF SelectField that allows for free form input"""
 
     widget = FreeFormSelect()
+
     def pre_validate(self, form):
         return
 
@@ -85,7 +88,9 @@ class OmgWtForm(Form):
 
 
 class FormFactory(object):
+
     """Used to create the forms in the explore view dynamically"""
+
     series_limits = [0, 5, 10, 25, 50, 100, 500]
     fieltype_class = {
         SelectField: 'select2',
@@ -278,7 +283,8 @@ class FormFactory(object):
                 description=(
                     "Timestamp from filter. This supports free form typing and "
                     "natural language as in '1 day ago', '28 days' or '3 years'")),
-            'until': FreeFormSelectField('Until', default="now",
+            'until': FreeFormSelectField(
+                'Until', default="now",
                 choices=self.choicify([
                     'now',
                     '1 day ago',
@@ -286,7 +292,7 @@ class FormFactory(object):
                     '28 days ago',
                     '90 days ago',
                     '1 year ago'])
-                ),
+            ),
             'max_bubble_size': FreeFormSelectField(
                 'Max Bubble Size', default="25",
                 choices=self.choicify([
@@ -297,8 +303,8 @@ class FormFactory(object):
                     '50',
                     '75',
                     '100',
-                    ])
-                ),
+                ])
+            ),
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',
@@ -323,8 +329,8 @@ class FormFactory(object):
                 'Periods',
                 validators=[validators.optional()],
                 description=(
-                "Defines the size of the rolling window function, "
-                "relative to the time granularity selected")),
+                    "Defines the size of the rolling window function, "
+                    "relative to the time granularity selected")),
             'series': SelectField(
                 'Series', choices=group_by_choices,
                 default=default_groupby,
@@ -332,14 +338,16 @@ class FormFactory(object):
                     "Defines the grouping of entities. "
                     "Each serie is shown as a specific color on the chart and "
                     "has a legend toggle")),
-            'entity': SelectField('Entity', choices=group_by_choices,
+            'entity': SelectField(
+                'Entity', choices=group_by_choices,
                 default=default_groupby,
                 description="This define the element to be plotted on the chart"),
             'x': SelectField(
                 'X Axis', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="Metric assigned to the [X] axis"),
-            'y': SelectField('Y Axis', choices=datasource.metrics_combo,
+            'y': SelectField(
+                'Y Axis', choices=datasource.metrics_combo,
                 default=default_metric,
                 description="Metric assigned to the [Y] axis"),
             'size': SelectField(
@@ -355,19 +363,23 @@ class FormFactory(object):
                     "clause, as an AND to other criteria. You can include "
                     "complex expression, parenthesis and anything else "
                     "supported by the backend it is directed towards.")),
-            'having': TextField('Custom HAVING clause', default='',
+            'having': TextField(
+                'Custom HAVING clause', default='',
                 description=(
                     "The text in this box gets included in your query's HAVING"
                     " clause, as an AND to other criteria. You can include "
                     "complex expression, parenthesis and anything else "
                     "supported by the backend it is directed towards.")),
-            'compare_lag': TextField('Comparison Period Lag',
+            'compare_lag': TextField(
+                'Comparison Period Lag',
                 description=(
                     "Based on granularity, number of time periods to "
                     "compare against")),
-            'compare_suffix': TextField('Comparison suffix',
+            'compare_suffix': TextField(
+                'Comparison suffix',
                 description="Suffix to apply after the percentage display"),
-            'x_axis_format': FreeFormSelectField('X axis format',
+            'x_axis_format': FreeFormSelectField(
+                'X axis format',
                 default='smart_date',
                 choices=[
                     ('smart_date', 'Adaptative formating'),
@@ -380,7 +392,8 @@ class FormFactory(object):
                 description="D3 format syntax for y axis "
                             "https://github.com/mbostock/\n"
                             "d3/wiki/Formatting"),
-            'y_axis_format': FreeFormSelectField('Y axis format',
+            'y_axis_format': FreeFormSelectField(
+                'Y axis format',
                 default='.3s',
                 choices=[
                     ('.3s', '".3s" | 12.3k'),
@@ -506,10 +519,14 @@ class FormFactory(object):
             field_css_classes[field] += ['input-sm']
 
         class QueryForm(OmgWtForm):
+
+            """The dynamic form object used for the explore view"""
+
             fieldsets = copy(viz.fieldsets)
             css_classes = field_css_classes
             standalone = HiddenField()
             async = HiddenField()
+            force = HiddenField()
             extra_filters = HiddenField()
             json = HiddenField()
             slice_id = HiddenField()

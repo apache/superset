@@ -2,7 +2,6 @@
 List of TODO items for Dashed
 
 ## Important
-* **Caching:** integrate with flask-cache
 * **Getting proper JS testing:** unit tests on the Python side are pretty
     solid, but now we need a test suite for the JS part of the site,
     testing all the ajax-type calls
@@ -14,7 +13,6 @@ List of TODO items for Dashed
 * **Stars:** set dashboards, slices and datasets as favorites
 * **Homepage:** a page that has links to your Slices and Dashes, favorited
     content, feed of recent actions (people viewing your objects)
-* **Comments:** allow for people to comment on slices and dashes
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Default slice:** choose a default slice for the dataset instead of
     default endpoint
@@ -34,9 +32,11 @@ List of TODO items for Dashed
 * **Slack integration** - TBD
 * **Sexy Viz Selector:** the visualization selector should be a nice large
     modal with nice thumbnails for each one of the viz
+* **Comments:** allow for people to comment on slices and dashes
 
 
 ## Easy-ish fix
+* Kill switch for Druid in docs
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
 * Slider form element

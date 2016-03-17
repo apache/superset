@@ -53,18 +53,17 @@ function prepForm() {
   });
 }
 
-function renderSlice() {
+function druidify() {
+  $('.query-and-save button').attr('disabled', 'disabled');
+  $('.btn-group.results span,a').attr('disabled', 'disabled');
+  $('div.alert').remove();
+  $('#is_cached').hide();
+  history.pushState({}, document.title, slice.querystring());
   prepForm();
   slice.render();
 }
 
 function initExploreView() {
-
-  function druidify() {
-    $('div.alert').remove();
-    history.pushState({}, document.title, slice.querystring());
-    renderSlice();
-  }
 
   function get_collapsed_fieldsets() {
     var collapsed_fieldsets = $("#collapsed_fieldsets").val();
@@ -199,9 +198,7 @@ function initExploreView() {
     bindOrder: 'sortableStop'
   });
   $("form").show();
-  $('[data-toggle="tooltip"]').tooltip({
-    container: 'body'
-  });
+  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
   $(".ui-helper-hidden-accessible").remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
   function set_filters() {
@@ -319,7 +316,7 @@ $(document).ready(function () {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
-  renderSlice();
+  druidify();
 
   // make checkbox inputs display as toggles
   $(':checkbox')

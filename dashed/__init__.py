@@ -6,6 +6,7 @@ from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.appbuilder.baseviews import expose
 from flask.ext.migrate import Migrate
+from flask.ext.cache import Cache
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -18,6 +19,9 @@ logging.getLogger().setLevel(logging.DEBUG)
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 db = SQLA(app)
+
+cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
+
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 
