@@ -1,3 +1,5 @@
+"""Loads datasets, dashboards and slices in a new panoramix instance"""
+
 import gzip
 import json
 import os
@@ -46,6 +48,7 @@ def get_slice_json(defaults, **kwargs):
 
 
 def load_world_bank_health_n_pop():
+    """Loads the world bank health dataset, slices and a dashboard"""
     tbl_name = 'wb_health_population'
     with gzip.open(os.path.join(DATA_FOLDER, 'countries.json.gz')) as f:
         pdf = pd.read_json(f)
@@ -282,6 +285,7 @@ def load_world_bank_health_n_pop():
 
 
 def load_css_templates():
+    """Loads 2 css templates to demonstrate the feature"""
     print('Creating default CSS templates')
     CSS = models.CssTemplate
 

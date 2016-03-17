@@ -1,3 +1,8 @@
+"""
+This module contains the "Viz" objects that represent the backend of all
+the visualizations that Panoramix can render
+"""
+
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 import json
@@ -19,6 +24,9 @@ config = app.config
 
 
 class BaseViz(object):
+
+    """All visualizations derive this base class"""
+
     viz_type = None
     verbose_name = "Base Viz"
     is_timeseries = False
@@ -110,12 +118,14 @@ class BaseViz(object):
         return href(d)
 
     def get_df(self, query_obj=None):
+        """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
 
         self.error_msg = ""
         self.results = None
 
+        # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
@@ -138,6 +148,7 @@ class BaseViz(object):
         return FormFactory(self).get_form()
 
     def query_filters(self):
+        """Processes the filters for the query"""
         form_data = self.form_data
         # Building filters
         filters = []
@@ -159,9 +170,7 @@ class BaseViz(object):
         return filters
 
     def query_obj(self):
-        """
-        Building a query object
-        """
+        """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
@@ -387,10 +396,12 @@ class MarkupViz(BaseViz):
 
 
 class WordCloudViz(BaseViz):
-    """
-    Integration with the nice library at:
+
+    """Integration with the nice library at:
+
     https://github.com/jasondavies/d3-cloud
     """
+
     viz_type = "word_cloud"
     verbose_name = "Word Cloud"
     is_timeseries = False
@@ -421,12 +432,18 @@ class WordCloudViz(BaseViz):
 
 
 class NVD3Viz(BaseViz):
+
+    """Base class for all nvd3 vizs"""
+
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
 
 
 class BubbleViz(NVD3Viz):
+
+    """Based on the NVD3 bubble chart"""
+
     viz_type = "bubble"
     verbose_name = "Bubble Chart"
     is_timeseries = False

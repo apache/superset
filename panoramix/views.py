@@ -365,6 +365,7 @@ appbuilder.add_view_no_menu(R)
 
 
 class Panoramix(BaseView):
+
     """The base views for Panoramix!"""
 
     @has_access

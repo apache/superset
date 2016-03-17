@@ -1,3 +1,7 @@
+"""
+A collection of ORM sqlalchemy models for Panoramix
+"""
+
 from copy import deepcopy, copy
 from collections import namedtuple
 from datetime import timedelta, datetime
@@ -37,8 +41,10 @@ QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 class AuditMixinNullable(AuditMixin):
 
-    """Altering the AuditMixin to use nullable fields, allows creating
-    objects programmatically outside of CRUD"""
+    """Altering the AuditMixin to use nullable fields
+
+    Allows creating objects programmatically outside of CRUD
+    """
 
     created_on = Column(DateTime, default=datetime.now, nullable=True)
     changed_on = Column(
@@ -223,6 +229,7 @@ class Dashboard(Model, AuditMixinNullable):
 
 
 class Queryable(object):
+    """A common interface to objects that are queryable (tables and datasources)"""
     @property
     def column_names(self):
         return sorted([c.column_name for c in self.columns])
@@ -837,8 +844,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @classmethod
     def sync_to_db(cls, name, cluster):
-        """Fetches the metadata for that datasource and merges it into
-        the Panoramix database"""
+        """Fetches metadata for that datasource and merges the Panoramix db"""
         print("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
@@ -884,7 +890,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             extras=None,  # noqa
             select=None):
         """Runs a query against Druid and returns a dataframe.
-        This query interface is common to SqlAlchemy and Druid"""
+
+        This query interface is common to SqlAlchemy and Druid
+        """
         # TODO refactor into using a TBD Query object
         qry_start_dttm = datetime.now()
 

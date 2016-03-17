@@ -8,8 +8,11 @@ autodetect: yes
 pylint:
   disable:
     - cyclic-import
+    - invalid-name
   options:
     docstring-min-length: 10
+pep8:
+  full: true
 ignore-paths:
     - docs
     - panoramix/migrations/env.py
