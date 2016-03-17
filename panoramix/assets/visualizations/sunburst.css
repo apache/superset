@@ -2,13 +2,13 @@
   shape-rendering: crispEdges;
 }
 .sunburst path {
-  stroke: #fff;
-  stroke-width: 1px;
+  stroke: #333;
+  stroke-width: 0.5px;
 }
-
 .sunburst .center-label {
   text-anchor: middle;
   fill: #000;
+  pointer-events: none;
 }
 .sunburst .path-percent {
   font-size: 4em;
@@ -20,20 +20,14 @@
   font-size: 1.2em;
 }
 
-.sunburst .breadcrumbs {
-  fill: #00D1C1; /*default*/
-}
-
 .sunburst .breadcrumbs text {
   font-weight: 600;
   font-size: 1.2em;
   text-anchor: middle;
-  fill: #fff;
-}
-.sunburst .breadcrumbs text.end-label {
   fill: #000;
 }
 
+/* dashboard specific */
 .dashboard .sunburst text {
   font-size: 1em;
 }

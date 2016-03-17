@@ -1,5 +1,7 @@
 var d3 = window.d3 || require('d3');
 var px = require('../javascripts/modules/panoramix.js');
+var wrapSvgText = require('../javascripts/modules/utils.js').wrapSvgText;
+
 require('./sunburst.css');
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
@@ -11,7 +13,7 @@ function sunburstVis(slice) {
     var margin = { top: 10, right: 5, bottom: 10, left: 5 };
     var containerWidth   = slice.width();
     var containerHeight  = slice.height();
-    var breadcrumbHeight = containerHeight * 0.065;
+    var breadcrumbHeight = containerHeight * 0.085;
     var visWidth         = containerWidth - margin.left - margin.right;
     var visHeight        = containerHeight - margin.top - margin.bottom - breadcrumbHeight;
     var radius           = Math.min(visWidth, visHeight) / 2;
@@ -19,6 +21,7 @@ function sunburstVis(slice) {
 
     var maxBreadcrumbs, breadcrumbDims, // set based on data
         totalSize, // total size of all segments; set after loading the data.
+        colorScale,
         breadcrumbs, vis, arcs, gMiddleText; // dom handles
 
     // Helper + path gen functions
@@ -107,7 +110,7 @@ function sunburstVis(slice) {
           return (d.dx > 0.005); // 0.005 radians = 0.29 degrees
         });
 
-      var ext, colorScale;
+      var ext;
 
       if (rawData.form_data.metric !== rawData.form_data.secondary_metric) {
         colorByCategory = false;
@@ -187,7 +190,7 @@ function sunburstVis(slice) {
     function mouseleave(d) {
 
       // Hide the breadcrumb trail
-      breadcrumbs.style("visibility", "hidden");
+      // breadcrumbs.style("visibility", "hidden");
 
       gMiddleText.selectAll("*").remove();
 
@@ -235,21 +238,26 @@ function sunburstVis(slice) {
 
     function updateBreadcrumbs(sequenceArray, percentageString) {
       var g = breadcrumbs.selectAll("g")
-        .data(sequenceArray, function (d) { return d.name + d.depth; });
+        .data(sequenceArray, function (d) {
+          return d.name + d.depth;
+        });
 
       // Add breadcrumb and label for entering nodes.
       var entering = g.enter().append("svg:g");
 
       entering.append("svg:polygon")
           .attr("points", breadcrumbPoints)
-          .style("fill", function (d) { return colorByCategory ? px.color.category21(d.name) : null; });
+          .style("fill", function (d) {
+            return colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1);
+          });
 
       entering.append("svg:text")
           .attr("x", (breadcrumbDims.width + breadcrumbDims.tipTailWidth) / 2)
-          .attr("y", breadcrumbDims.height / 2)
+          .attr("y", breadcrumbDims.height / 4)
           .attr("dy", "0.35em")
           .attr("class", "step-label")
-          .text(function (d) { return d.name; });
+          .text(function (d) { return d.name; })
+          .call(wrapSvgText, breadcrumbDims.width, breadcrumbDims.height / 2);
 
       // Set position for entering and updating nodes.
       g.attr("transform", function (d, i) {
