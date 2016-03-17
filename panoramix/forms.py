@@ -567,13 +567,15 @@ class FormFactory(object):
                         "engine basis in the Panoramix source code"))
                 add_to_form(time_fields)
                 field_css_classes['time_grain_sqla'] = ['form-control', 'select2']
+                field_css_classes['granularity_sqla'] = ['form-control', 'select2']
             else:
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
             add_to_form(('since', 'until'))
-            field_css_classes['granularity'] = ['form-control', 'select2']
         else:
             time_fields = 'granularity'
+            add_to_form(('granularity',))
+            field_css_classes['granularity'] = ['form-control', 'select2']
 
         QueryForm.fieldsets = ({
             'label': 'Time',
