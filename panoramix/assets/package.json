@@ -11,7 +11,7 @@
     "dev": "webpack -d --watch --colors",
     "prod": "webpack -p --colors",
     "lint": "npm run --silent lint:js",
-    "lint:js": "eslint --ignore-path=.eslintignore --ext .js .; exit 0;"
+    "lint:js": "eslint --ignore-path=.eslintignore --ext .js ."
   },
   "repository": {
     "type": "git",
