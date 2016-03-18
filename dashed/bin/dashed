@@ -1,0 +1,91 @@
+#!/usr/bin/env python
+
+from datetime import datetime
+import logging
+from subprocess import Popen
+
+from flask.ext.script import Manager
+from dashed import app
+from flask.ext.migrate import MigrateCommand
+import dashed
+from dashed import db
+from dashed import data, utils
+
+config = app.config
+
+manager = Manager(app)
+manager.add_command('db', MigrateCommand)
+
+
+@manager.option(
+    '-d', '--debug', action='store_true',
+    help="Start the web server in debug mode")
+@manager.option(
+    '-p', '--port', default=config.get("DASHED_WEBSERVER_PORT"),
+    help="Specify the port on which to run the web server")
+@manager.option(
+    '-w', '--workers', default=config.get("DASHED_WORKERS", 16),
+    help="Number of gunicorn web server workers to fire up")
+@manager.option(
+    '-t', '--timeout', default=config.get("DASHED_WEBSERVER_TIMEOUT"),
+    help="Specify the timeout (seconds) for the gunicorn web server")
+def runserver(debug, port, timeout, workers):
+    """Starts a Dashed web server"""
+    debug = debug or config.get("DEBUG")
+    if debug:
+        app.run(
+            host='0.0.0.0',
+            port=int(port),
+            debug=True)
+    else:
+        cmd = (
+            "gunicorn "
+            "-w {workers} "
+            "--timeout {timeout} "
+            "-b 0.0.0.0:{port} "
+            "dashed:app").format(**locals())
+        print("Starting server with command: " + cmd)
+        Popen(cmd, shell=True).wait()
+
+@manager.command
+def init():
+    """Inits the Dashed application"""
+    utils.init(dashed)
+
+@manager.option(
+    '-s', '--sample', action='store_true',
+    help="Only load 1000 rows (faster, used for testing)")
+def load_examples(sample):
+    """Loads a set of Slices and Dashboards and a supporting dataset """
+    print("Loading examples into {}".format(db))
+
+    data.load_css_templates()
+
+    print("Loading [World Bank's Health Nutrition and Population Stats]")
+    data.load_world_bank_health_n_pop()
+
+    print("Loading [Birth names]")
+    data.load_birth_names()
+
+@manager.command
+def refresh_druid():
+    """Refresh all druid datasources"""
+    session = db.session()
+    from dashed import models
+    for cluster in session.query(models.DruidCluster).all():
+        try:
+            cluster.refresh_datasources()
+        except Exception as e:
+            print(
+                "Error while processing cluster '{}'\n{}".format(
+                    cluster, str(e)))
+            logging.exception(e)
+        cluster.metadata_last_refreshed = datetime.now()
+        print(
+            "Refreshed metadata from cluster "
+            "[" + cluster.cluster_name + "]")
+    session.commit()
+
+
+if __name__ == "__main__":
+    manager.run()

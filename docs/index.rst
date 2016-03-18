@@ -1,5 +1,3 @@
-.. image:: img/tux_panoramix.png
-
 Overview
 =======================================
 

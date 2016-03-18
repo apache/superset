@@ -1,5 +1,5 @@
 # TODO
-List of TODO items for Panoramix
+List of TODO items for Dashed
 
 ## Important
 * **Caching:** integrate with flask-cache
@@ -8,7 +8,7 @@ List of TODO items for Panoramix
     testing all the ajax-type calls
 * **Viz Plugins:** Allow people to define and share visualization plugins.
     ideally one would only need to drop in a set of files in a folder and
-    Panoramix would discover and expose the plugins
+    Dashed would discover and expose the plugins
 
 ## Features
 * **Stars:** set dashboards, slices and datasets as favorites

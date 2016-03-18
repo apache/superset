@@ -2,11 +2,11 @@ User Guide
 ==========
 
 The user guide is a collection of short videos showing different aspect
-of Panoramix.
+of Dashed.
 
 Quick Intro
 '''''''''''
-This video demonstrates how Panoramix works at a high level, it shows how
+This video demonstrates how Dashed works at a high level, it shows how
 to navigate through datasets and dashboards that are already available.
 
 - Coming soon!
@@ -41,7 +41,7 @@ to toggle them on dashboards.
 
 Adding a Table
 ''''''''''''''
-This videos shows you how to expose a new table in Panoramix, and how to
+This videos shows you how to expose a new table in Dashed, and how to
 define the semantics on how this can be accessed by others in the ``Explore``
 and ``Dashboard`` views.
 

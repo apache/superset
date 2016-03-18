@@ -4,15 +4,15 @@ babel
 .coverage
 _build
 _static
-panoramix/bin/panoramixc
+dashed/bin/dashedc
 build
 *.db
 tmp
-panoramix_config.py
+dashed_config.py
 local_config.py
 env
 dist
-panoramix.egg-info/
+dashed.egg-info/
 app.db
 *.bak
 

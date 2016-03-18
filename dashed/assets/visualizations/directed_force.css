@@ -1,0 +1,19 @@
+.directed_force path.link {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.directed_force circle {
+  fill: #ccc;
+  stroke: #000;
+  stroke-width: 1.5px;
+  stroke-opacity: 1;
+  opacity: 0.75;
+}
+
+.directed_force text {
+  fill: #000;
+  font: 10px sans-serif;
+  pointer-events: none;
+}

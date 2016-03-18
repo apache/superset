@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 version = '0.8.0'
 
 setup(
-    name='panoramix',
+    name='dashed',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    scripts=['panoramix/bin/panoramix'],
+    scripts=['dashed/bin/dashed'],
     install_requires=[
         'alembic>=0.8.2, <0.9.0',
         'cryptography>=1.1.1, <2.0.0',
@@ -36,7 +36,7 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/mistercrunch/panoramix',
+    url='https://github.com/airbnb/dashed',
     download_url=(
-        'https://github.com/mistercrunch/panoramix/tarball/' + version),
+        'https://github.com/airbnb/dashed/tarball/' + version),
 )

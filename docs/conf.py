@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# panoramix documentation build configuration file, created by
+# dashed documentation build configuration file, created by
 # sphinx-quickstart on Thu Dec 17 15:42:06 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -50,7 +50,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'panoramix'
+project = u'dashed'
 copyright = u'2015, Maxime Beauchemin, Airbnb'
 author = u'Maxime Beauchemin'
 
@@ -120,7 +120,7 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # documentation.
 html_theme_options = {
     #'bootswatch_theme': 'simplex',
-    'navbar_title': 'Panoramix Documentation',
+    'navbar_title': 'Dashed Documentation',
     'navbar_fixed_top': "false",
     #'navbar_class': "navbar navbar-default",
 }
@@ -210,7 +210,7 @@ html_show_sourcelink = False
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'panoramixdoc'
+htmlhelp_basename = 'dasheddoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -232,7 +232,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'panoramix.tex', u'Panoramix Documentation',
+  (master_doc, 'dashed.tex', u'Dashed Documentation',
    u'Maxime Beauchemin', 'manual'),
 ]
 
@@ -262,7 +262,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'Panoramix', u'panoramix Documentation',
+    (master_doc, 'Dashed', u'dashed Documentation',
      [author], 1)
 ]
 
@@ -276,8 +276,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'Panoramix', u'Panoramix Documentation',
-   author, 'Panoramix', 'One line description of project.',
+  (master_doc, 'Dashed', u'Dashed Documentation',
+   author, 'Dashed', 'One line description of project.',
    'Miscellaneous'),
 ]
 
