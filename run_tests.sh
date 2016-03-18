@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-rm /tmp/panoramix_unittests.db
-export PANORAMIX_CONFIG=tests.panoramix_test_config
-panoramix/bin/panoramix db upgrade
-nosetests tests/core_tests.py --with-coverage --cover-package=panoramix -v
+rm /tmp/dashed_unittests.db
+export DASHED_CONFIG=tests.dashed_test_config
+dashed/bin/dashed db upgrade
+nosetests tests/core_tests.py --with-coverage --cover-package=dashed -v

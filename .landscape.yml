@@ -15,8 +15,8 @@ pep8:
   full: true
 ignore-paths:
     - docs
-    - panoramix/migrations/env.py
-    - panoramix/ascii_art.py
+    - dashed/migrations/env.py
+    - dashed/ascii_art.py
 ignore-patterns:
     - ^example/doc_.*\.py$
     - (^|/)docs(/|$)

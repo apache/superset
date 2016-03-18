@@ -1,30 +1,30 @@
-Panoramix
+Dashed
 =========
 
-[![Join the chat at https://gitter.im/mistercrunch/panoramix](https://badges.gitter.im/mistercrunch/panoramix.svg)](https://gitter.im/mistercrunch/panoramix?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-![img](https://travis-ci.org/mistercrunch/panoramix.svg?branch=master)
-[![Coverage Status](https://coveralls.io/repos/mistercrunch/panoramix/badge.svg?branch=master&service=github)](https://coveralls.io/github/mistercrunch/panoramix?branch=master)
-[![Code Health](https://landscape.io/github/mistercrunch/panoramix/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/mistercrunch/panoramix/master)
+[![Join the chat at https://gitter.im/mistercrunch/dashed](https://badges.gitter.im/mistercrunch/dashed.svg)](https://gitter.im/mistercrunch/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![img](https://travis-ci.org/mistercrunch/dashed.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/mistercrunch/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/mistercrunch/dashed?branch=master)
+[![Code Health](https://landscape.io/github/mistercrunch/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/mistercrunch/dashed/master)
 
-Panoramix is a data exploration platform designed to be visual, intuitive
+Dashed is a data exploration platform designed to be visual, intuitive
 and interactive.
 
 
-Video - Introduction to Panoramix
+Video - Introduction to Dashed
 ---------------------------------
-[![Panoramix - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+[![Dashed - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
 
 Screenshots
 ------------
 ![img](http://i.imgur.com/bi09J9X.png)
 ![img](http://i.imgur.com/aOaH0ty.png)
 
-Panoramix
+Dashed
 ---------
-Panoramix's main goal is to make it easy to slice, dice and visualize data.
+Dashed's main goal is to make it easy to slice, dice and visualize data.
 It empowers its user to perform **analytics at the speed of thought**.
 
-Panoramix provides:
+Dashed provides:
 * A quick way to intuitively visualize datasets
 * Create and share interactive dashboards
 * A rich set of visualizations to analyze your data, as well as a flexible
@@ -37,7 +37,7 @@ Panoramix provides:
     displayed in the UI,
     by defining which fields should show up in which dropdown and which
     aggregation and function (metrics) are made available to the user
-* Deep integration with Druid allows for Panoramix to stay blazing fast while
+* Deep integration with Druid allows for Dashed to stay blazing fast while
     slicing and dicing large, realtime datasets
 
 
@@ -52,7 +52,7 @@ Buzz Phrases
 Database Support
 ----------------
 
-Panoramix was originally designed on to of Druid.io, but quickly broadened
+Dashed was originally designed on to of Druid.io, but quickly broadened
 its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
@@ -73,53 +73,53 @@ power analytic dashboards and applications.*
 Installation
 ------------
 
-Panoramix is currently only tested using Python 2.7.*. Python 3 support is
+Dashed is currently only tested using Python 2.7.*. Python 3 support is
 on the roadmap, Python 2.6 won't be supported.
 
-Follow these few simple steps to install Panoramix.
+Follow these few simple steps to install Dashed.
 
 ```
-# Install panoramix
-pip install panoramix
+# Install dashed
+pip install dashed
 
 # Create an admin user
-fabmanager create-admin --app panoramix
+fabmanager create-admin --app dashed
 
 # Initialize the database
-panoramix db upgrade
+dashed db upgrade
 
 # Create default roles and permissions
-panoramix init
+dashed init
 
 # Load some data to play with
-panoramix load_examples
+dashed load_examples
 
 # Start the development web server
-panoramix runserver -d
+dashed runserver -d
 ```
 
 After installation, you should be able to point your browser to the right
 hostname:port [http://localhost:8088](http://localhost:8088), login using
 the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of 
-your datasources for Panoramix to be aware of, and they should show up in
+your datasources for Dashed to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
 Configuration
 -------------
 
 To configure your application, you need to create a file (module) 
-`panoramix_config.py` and make sure it is in your PYTHONPATH. Here are some
+`dashed_config.py` and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module:
 
 ```
 #---------------------------------------------------------
-# Panoramix specifix config
+# Dashed specifix config
 #---------------------------------------------------------
 ROW_LIMIT = 5000
 WEBSERVER_THREADS = 8
 
-PANORAMIX_WEBSERVER_PORT = 8088
+DASHED_WEBSERVER_PORT = 8088
 #---------------------------------------------------------
 
 #---------------------------------------------------------
@@ -129,7 +129,7 @@ PANORAMIX_WEBSERVER_PORT = 8088
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/panoramix.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/dashed.db'
 
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
@@ -139,8 +139,8 @@ DEBUG = True
 ```
 
 This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Panoramix. Please consult
-the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en/latest/config.html) for more information on how to configure Panoramix.
+Flask App Builder, the web framework used by Dashed. Please consult
+the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en/latest/config.html) for more information on how to configure Dashed.
 
 
 * From the UI, enter the information about your clusters in the 
@@ -161,14 +161,14 @@ More screenshots
 
 Related Links
 -------------
-* [Panoramix Google Group] (https://groups.google.com/forum/#!forum/airbnb_panoramix)
-* [Gitter (live chat) Channel](https://gitter.im/mistercrunch/panoramix)
+* [Dashed Google Group] (https://groups.google.com/forum/#!forum/airbnb_dashed)
+* [Gitter (live chat) Channel](https://gitter.im/mistercrunch/dashed)
 
 
 Tip of the Hat
 --------------
 
-Panoramix would not be possible without these great frameworks / libs
+Dashed would not be possible without these great frameworks / libs
 
 * Flask App Builder - Allowing us to focus on building the app quickly while
 getting the foundation for free
@@ -180,4 +180,4 @@ getting the foundation for free
 Contributing
 ------------
 
-Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/mistercrunch/panoramix/blob/master/CONTRIBUTING.md)
+Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/mistercrunch/dashed/blob/master/CONTRIBUTING.md)
