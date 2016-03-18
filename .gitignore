@@ -12,6 +12,8 @@ local_config.py
 env
 dist
 dashed.egg-info/
+dashed/
+docs/
 app.db
 *.bak
 
