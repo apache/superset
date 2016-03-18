@@ -3,7 +3,6 @@ babel
 .DS_Store
 .coverage
 _build
-_static
 dashed/bin/dashedc
 build
 *.db
