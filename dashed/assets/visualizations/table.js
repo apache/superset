@@ -36,7 +36,8 @@ function tableVis(slice) {
       }
 
       var table = d3.select(slice.selector).append('table')
-        .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true);
+        .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true)
+        .attr('width', '100%');
 
       table.append('thead').append('tr')
         .selectAll('th')

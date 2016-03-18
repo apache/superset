@@ -1,8 +1,0 @@
-.select2-highlighted > .filter_box {
-    background-color: transparent;
-    border: 1px dashed black;
-}
-
-.dashboard .filter_box .slice_container > div {
-  padding-top: 0;
-}
