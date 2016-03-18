@@ -1,24 +1,39 @@
-.sunburst text.middle{
-    text-anchor: middle;
+.sunburst text {
+  shape-rendering: crispEdges;
 }
-
-.sunburst #sequence {
-}
-
-.sunburst #legend {
-  padding: 10px 0 0 3px;
-}
-
-.sunburst #sequence text, #legend text {
-  font-weight: 600;
-  fill: #fff;
-}
-
 .sunburst path {
-  stroke: #fff;
+  stroke: #333;
+  stroke-width: 0.5px;
+}
+.sunburst .center-label {
+  text-anchor: middle;
+  fill: #000;
+  pointer-events: none;
+}
+.sunburst .path-percent {
+  font-size: 4em;
+}
+.sunburst .path-metrics {
+  font-size: 1.75em;
+}
+.sunburst .path-ratio {
+  font-size: 1.2em;
 }
 
-.sunburst #percentage {
+.sunburst .breadcrumbs text {
+  font-weight: 600;
+  font-size: 1.2em;
+  text-anchor: middle;
+  fill: #000;
+}
+
+/* dashboard specific */
+.dashboard .sunburst text {
+  font-size: 1em;
+}
+.dashboard .sunburst .path-percent {
   font-size: 2.5em;
 }
-
+.dashboard .sunburst .path-metrics {
+  font-size: 1em;
+}
