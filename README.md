@@ -1,10 +1,10 @@
 Dashed
 =========
 
-[![Join the chat at https://gitter.im/mistercrunch/dashed](https://badges.gitter.im/mistercrunch/dashed.svg)](https://gitter.im/mistercrunch/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-![img](https://travis-ci.org/mistercrunch/dashed.svg?branch=master)
-[![Coverage Status](https://coveralls.io/repos/mistercrunch/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/mistercrunch/dashed?branch=master)
-[![Code Health](https://landscape.io/github/mistercrunch/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/mistercrunch/dashed/master)
+[![Join the chat at https://gitter.im/airbnb/dashed](https://badges.gitter.im/airbnb/dashed.svg)](https://gitter.im/airbnb/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+![img](https://travis-ci.org/airbnb/dashed.svg?branch=master)
+[![Coverage Status](https://coveralls.io/repos/airbnb/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/dashed?branch=master)
+[![Code Health](https://landscape.io/github/airbnb/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/airbnb/dashed/master)
 
 Dashed is a data exploration platform designed to be visual, intuitive
 and interactive.
@@ -33,7 +33,7 @@ Dashed provides:
     on who can access which features, and integration with major
     authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
     through Flask AppBuiler)
-* A simple semantic layer, allowing to control how data sources are 
+* A simple semantic layer, allowing to control how data sources are
     displayed in the UI,
     by defining which fields should show up in which dropdown and which
     aggregation and function (metrics) are made available to the user
@@ -162,7 +162,7 @@ More screenshots
 Related Links
 -------------
 * [Dashed Google Group] (https://groups.google.com/forum/#!forum/airbnb_dashed)
-* [Gitter (live chat) Channel](https://gitter.im/mistercrunch/dashed)
+* [Gitter (live chat) Channel](https://gitter.im/airbnb/dashed)
 
 
 Tip of the Hat
@@ -180,4 +180,4 @@ getting the foundation for free
 Contributing
 ------------
 
-Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/mistercrunch/dashed/blob/master/CONTRIBUTING.md)
+Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/airbnb/dashed/blob/master/CONTRIBUTING.md)
