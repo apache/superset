@@ -10,6 +10,8 @@ Dashed
 Dashed is a data exploration platform designed to be visual, intuitive
 and interactive.
 
+[this project used to be named **Panoramix**]
+
 
 Video - Introduction to Dashed
 ---------------------------------
