@@ -6,6 +6,7 @@ Dashed
 [![Coverage Status](https://coveralls.io/repos/airbnb/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/dashed?branch=master)
 [![Code Health](https://landscape.io/github/airbnb/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/airbnb/dashed/master)
 [![PyPi downloads](https://pypip.in/d/dashed/badge.png)](https://crate.io/packages/dashed/)
+[![Requirements Status](https://requires.io/github/airbnb/dashed/requirements.svg?branch=master)](https://requires.io/github/airbnb/dashed/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/dashed](https://badges.gitter.im/airbnb/dashed.svg)](https://gitter.im/airbnb/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Dashed is a data exploration platform designed to be visual, intuitive
