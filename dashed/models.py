@@ -285,10 +285,10 @@ class Database(Model, AuditMixinNullable):
                 Grain('Time Column', '{col}'),
                 Grain('week', "date_trunc('week', CAST({col} AS DATE))"),
                 Grain('month', "date_trunc('month', CAST({col} AS DATE))"),
-                Grain('week_ending', "date_add('day', 5, \
-                    date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
-                Grain('week_start', "date_add('day', -1, \
-                    date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
+                Grain("week_ending", "date_add('day', 5, "
+                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
+                Grain("week_start", "date_add('day', -1, "
+                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
             ),
             'mysql': (
                 Grain('Time Column', '{col}'),
