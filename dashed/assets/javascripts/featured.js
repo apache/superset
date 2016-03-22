@@ -1,6 +1,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/dashed.js');
+require('./modules/dashed.js');
 
 require('bootstrap');
 require('datatables');
