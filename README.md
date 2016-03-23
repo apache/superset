@@ -3,7 +3,7 @@ Dashed
 
 [![PyPI version](https://badge.fury.io/py/dashed.svg)](https://badge.fury.io/py/dashed)
 [![Coverage Status](https://coveralls.io/repos/airbnb/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/dashed?branch=master)
-[![Code Health](https://landscape.io/github/airbnb/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/airbnb/dashed/master)
+[![Code Health](https://landscape.io/github/airbnb/dashed/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/dashed/master)
 [![Requirements Status](https://requires.io/github/airbnb/dashed/requirements.svg?branch=master)](https://requires.io/github/airbnb/dashed/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/dashed](https://badges.gitter.im/airbnb/dashed.svg)](https://gitter.im/airbnb/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
