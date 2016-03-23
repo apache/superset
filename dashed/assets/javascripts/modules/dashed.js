@@ -156,6 +156,7 @@ var px = (function () {
       container: container,
       container_id: container_id,
       selector: selector,
+      druidify: null,
       querystring: function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
@@ -184,6 +185,7 @@ var px = (function () {
         clearInterval(timer);
         token.find("img.loading").hide();
         container.show();
+        var that = this;
 
         var cachedSelector = null;
         if (dashboard === undefined) {
@@ -191,7 +193,7 @@ var px = (function () {
           if (data !== undefined && data.is_cached) {
             cachedSelector
               .click(function () {
-                slice.render(true);
+                that.druidify(true);
               })
               .attr('title', 'Served from data cached at ' + data.cached_dttm + '. Click to force-refresh')
               .show()
@@ -269,10 +271,11 @@ var px = (function () {
           }, 500);
         });
       },
-      render: function (force) {
+      render: function (force, druidify) {
         if (force === undefined) {
           force = false;
         }
+        this.druidify = druidify;
         this.force = force;
         token.find("img.loading").show();
         container.hide();

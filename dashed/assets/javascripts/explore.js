@@ -53,14 +53,17 @@ function prepForm() {
   });
 }
 
-function druidify() {
+function druidify(force) {
+  if (force === undefined) {
+    force = false;
+  }
   $('.query-and-save button').attr('disabled', 'disabled');
   $('.btn-group.results span,a').attr('disabled', 'disabled');
   $('div.alert').remove();
   $('#is_cached').hide();
   history.pushState({}, document.title, slice.querystring());
   prepForm();
-  slice.render();
+  slice.render(force, druidify);
 }
 
 function initExploreView() {
