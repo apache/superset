@@ -63,7 +63,7 @@ function druidify(force) {
   $('#is_cached').hide();
   history.pushState({}, document.title, slice.querystring());
   prepForm();
-  slice.render(force, druidify);
+  slice.render(force);
 }
 
 function initExploreView() {
@@ -256,7 +256,9 @@ function initExploreView() {
     }
   });
 
-  $(".druidify").click(druidify);
+  $(".druidify").click(function () {
+    druidify(true);
+  });
 
   function create_choices(term, data) {
     var filtered = $(data).filter(function () {
@@ -319,7 +321,7 @@ $(document).ready(function () {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
-  druidify();
+  druidify(false);
 
   // make checkbox inputs display as toggles
   $(':checkbox')
