@@ -10,6 +10,7 @@ install:
   - pip install --find-links=$HOME/.wheelhouse --no-index -rrequirements.txt
   - python setup.py install
   - cd dashed/assets
+  - "touch $HOME/.npm/foo.lock; rm -f $HOME/.npm/*.lock"
   - npm install
   - npm run prod
   - cd $TRAVIS_BUILD_DIR

@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-version = '0.8.0'
+version = '0.8.2'
 
 setup(
     name='dashed',
