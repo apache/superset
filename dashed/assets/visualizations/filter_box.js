@@ -56,7 +56,7 @@ function filterBox(slice) {
             })
             .on('change', fltChanged);
         }
-        slice.done();
+        slice.done(payload);
 
         function select2Formatter(result, container /*, query, escapeMarkup*/) {
           var perc = Math.round((result.metric / maxes[result.filter]) * 100);

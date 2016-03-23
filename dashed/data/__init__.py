@@ -111,8 +111,7 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='filter_box',
-                groupby=['region'],
-                )),
+                groupby=['region', 'country_name'])),
         Slice(
             slice_name="World's Population",
             viz_type='big_number',
@@ -155,8 +154,8 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='world_map',
-                metric= "sum__SP_RUR_TOTL_ZS",
-                num_period_compare="10",)),
+                metric="sum__SP_RUR_TOTL_ZS",
+                num_period_compare="10")),
         Slice(
             slice_name="Life Expexctancy VS Rural %",
             viz_type='bubble',
@@ -165,8 +164,8 @@ def load_world_bank_health_n_pop():
             params=get_slice_json(
                 defaults,
                 viz_type='bubble',
-                since= "2011-01-01",
-                until= "2011-01-01",
+                since="2011-01-01",
+                until="2011-01-01",
                 series="region",
                 limit="0",
                 entity="country_name",
@@ -175,7 +174,7 @@ def load_world_bank_health_n_pop():
                 size="sum__SP_POP_TOTL",
                 max_bubble_size="50",
                 flt_col_1="country_code",
-                flt_op_1= "not in",
+                flt_op_1="not in",
                 flt_eq_1="TCA,MNP,DMA,MHL,MCO,SXM,CYM,TUV,IMY,KNA,ASM,ADO,AMA,PLW",
                 num_period_compare="10",)),
         Slice(
@@ -188,8 +187,8 @@ def load_world_bank_health_n_pop():
                 viz_type='sunburst',
                 groupby=["region", "country_name"],
                 secondary_metric="sum__SP_RUR_TOTL",
-                since= "2011-01-01",
-                until= "2011-01-01",)),
+                since="2011-01-01",
+                until="2011-01-01",)),
         Slice(
             slice_name="World's Pop Growth",
             viz_type='area',
@@ -214,60 +213,60 @@ def load_world_bank_health_n_pop():
     js = """\
 [
     {
-        "size_y": 1,
+        "size_y": 2,
         "size_x": 3,
         "col": 1,
-        "slice_id": "269",
+        "slice_id": "1",
         "row": 1
     },
     {
         "size_y": 3,
         "size_x": 3,
         "col": 1,
-        "slice_id": "270",
-        "row": 2
+        "slice_id": "2",
+        "row": 3
     },
     {
-        "size_y": 7,
+        "size_y": 8,
         "size_x": 3,
         "col": 10,
-        "slice_id": "271",
+        "slice_id": "3",
         "row": 1
     },
     {
         "size_y": 3,
         "size_x": 6,
         "col": 1,
-        "slice_id": "272",
-        "row": 5
+        "slice_id": "4",
+        "row": 6
     },
     {
-        "size_y": 4,
+        "size_y": 5,
         "size_x": 6,
         "col": 4,
-        "slice_id": "273",
+        "slice_id": "5",
         "row": 1
     },
     {
         "size_y": 4,
         "size_x": 6,
         "col": 7,
-        "slice_id": "274",
-        "row": 8
+        "slice_id": "6",
+        "row": 9
     },
     {
         "size_y": 3,
         "size_x": 3,
         "col": 7,
-        "slice_id": "275",
-        "row": 5
+        "slice_id": "7",
+        "row": 6
     },
     {
         "size_y": 4,
         "size_x": 6,
         "col": 1,
-        "slice_id": "276",
-        "row": 8
+        "slice_id": "8",
+        "row": 9
     }
 ]
     """
@@ -287,7 +286,7 @@ def load_world_bank_health_n_pop():
 def load_css_templates():
     """Loads 2 css templates to demonstrate the feature"""
     print('Creating default CSS templates')
-    CSS = models.CssTemplate
+    CSS = models.CssTemplate  # noqa
 
     obj = db.session.query(CSS).filter_by(template_name='Flat').first()
     if not obj:
@@ -387,6 +386,7 @@ def load_css_templates():
 
 
 def load_birth_names():
+    """Loading birth name dataset from a zip file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'birth_names.json.gz')) as f:
         pdf = pd.read_json(f)
     pdf.ds = pd.to_datetime(pdf.ds, unit='ms')
@@ -409,7 +409,7 @@ def load_birth_names():
     print("Creating table reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
-        obj = TBL(table_name = 'birth_names')
+        obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
     obj.database = get_or_create_db(db.session)
     obj.is_featured = True
@@ -514,8 +514,7 @@ def load_birth_names():
     </p>
     <img src="http://monblog.system-linux.net/image/tux/baby-tux_overlord59-tux.png">
 </div>
-"""
-                )),
+""")),
         Slice(
             slice_name="Name Cloud",
             viz_type='word_cloud',

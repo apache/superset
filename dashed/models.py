@@ -1,6 +1,4 @@
-"""
-A collection of ORM sqlalchemy models for Dashed
-"""
+"""A collection of ORM sqlalchemy models for Dashed"""
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -58,7 +56,8 @@ class AuditMixinNullable(AuditMixin):
 
     @declared_attr
     def changed_by_fk(cls):
-        return Column(Integer, ForeignKey('ab_user.id'),
+        return Column(
+            Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
     @property
@@ -103,6 +102,7 @@ class Slice(Model, AuditMixinNullable):
     viz_type = Column(String(250))
     params = Column(Text)
     description = Column(Text)
+    cache_timeout = Column(Integer)
 
     table = relationship(
         'SqlaTable', foreign_keys=[table_id], backref='slices')
@@ -177,7 +177,8 @@ class Slice(Model, AuditMixinNullable):
             url=url, self=self)
 
 
-dashboard_slices = Table('dashboard_slices', Model.metadata,
+dashboard_slices = Table(
+    'dashboard_slices', Model.metadata,
     Column('id', Integer, primary_key=True),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
     Column('slice_id', Integer, ForeignKey('slices.id')),
@@ -229,7 +230,9 @@ class Dashboard(Model, AuditMixinNullable):
 
 
 class Queryable(object):
+
     """A common interface to objects that are queryable (tables and datasources)"""
+
     @property
     def column_names(self):
         return sorted([c.column_name for c in self.columns])
@@ -260,6 +263,7 @@ class Database(Model, AuditMixinNullable):
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
+    cache_timeout = Column(Integer)
 
     def __repr__(self):
         return self.database_name
@@ -280,7 +284,7 @@ class Database(Model, AuditMixinNullable):
         this allows a mapping between database engines and actual functions.
         """
         Grain = namedtuple('Grain', 'name function')
-        DB_TIME_GRAINS = {
+        db_time_grains = {
             'presto': (
                 Grain('Time Column', '{col}'),
                 Grain('week', "date_trunc('week', CAST({col} AS DATE))"),
@@ -297,7 +301,7 @@ class Database(Model, AuditMixinNullable):
                 Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
             ),
         }
-        for db_type, grains in DB_TIME_GRAINS.items():
+        for db_type, grains in db_time_grains.items():
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
@@ -350,6 +354,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     database = relationship(
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)
+    cache_timeout = Column(Integer)
 
     baselink = "tablemodelview"
 
@@ -428,7 +433,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
-    def query(
+    def query(  # sqla
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -438,7 +443,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_from_dttm=None, inner_to_dttm=None,
             extras=None,
             columns=None):
-
+        """Querying any sqla table from this common interface"""
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
@@ -586,8 +591,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 "couldn't fetch column information", "danger")
             return
 
-        TC = TableColumn
-        M = SqlMetric
+        TC = TableColumn  # noqa shortcut to class
+        M = SqlMetric  # noqa
         metrics = []
         any_date_col = None
         for col in table.columns:
@@ -778,6 +783,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     cluster = relationship(
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
+    cache_timeout = Column(Integer)
 
     @property
     def metrics_combo(self):
@@ -892,7 +898,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             extras=None,  # noqa
-            select=None):
+            select=None,):  # noqa
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
@@ -1074,8 +1080,6 @@ class Log(Model):
         return wrapper
 
 
-
-
 class DruidMetric(Model):
 
     """ORM object referencing Druid metrics for a datasource"""
@@ -1131,7 +1135,7 @@ class DruidColumn(Model):
 
     def generate_metrics(self):
         """Generate metrics based on the column metadata"""
-        M = DruidMetric
+        M = DruidMetric  # noqa
         metrics = []
         metrics.append(DruidMetric(
             metric_name='count',

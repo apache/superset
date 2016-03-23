@@ -40,24 +40,27 @@
 
 <div class="title">
     <div class="row">
-      <div class="col-md-2"></div>
-      <div class="col-md-8">
+      <div class="col-md-3"></div>
+      <div class="col-md-6">
         <h2>
           {{ dashboard.dashboard_title }}
         </h2>
       </div>
-      <div class="col-md-2">
+      <div class="col-md-3">
         <div class="btn-group pull-right" role="group" >
+          <button type="button" id="refresh_dash" class="btn btn-default" data-toggle="tooltip" title="Force refresh the whole dashboard">
+            <i class="fa fa-refresh"></i>
+          </button>
           <button type="button" id="filters" class="btn btn-default" data-toggle="tooltip" title="View the list of active filters">
             <i class="fa fa-filter"></i>
           </button>
           <button type="button" id="css" class="btn btn-default" data-toggle="modal" data-target="#css_modal">
-            <i class="fa fa-css3" data-toggle="tooltip" title="CSS"></i>
+            <i class="fa fa-css3" data-toggle="tooltip" title="Edit the dashboard's CSS"></i>
           </button>
-          <a id="editdash" class="btn btn-default" href="/dashboardmodelview/edit/{{ dashboard.id }}">
+          <a id="editdash" class="btn btn-default" href="/dashboardmodelview/edit/{{ dashboard.id }}" title="Edit this dashboard's property" data-toggle="tooltip" >
               <i class="fa fa-edit"></i>
           </a>
-          <button type="button" id="savedash" class="btn btn-default">
+          <button type="button" id="savedash" class="btn btn-default" data-toggle="tooltip" title="Save the current positioning and CSS">
             <i class="fa fa-save"></i>
           </button>
         </div>
@@ -83,50 +86,44 @@
 
               <div class="col-md-12 text-center header">
                 {{ slice.slice_name }}
-                {% if slice.description %}
-                  <a title="Toggle chart description">
-                    <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}"></i>
-                  </a>
-                {% endif %}
-                <a title="Toggle chart controls">
-                  <i class="fa fa-ellipsis-h controls-toggle"></i>
-                </a>
               </div>
-
-              <div class="row text-center chart-controls">
-                <div class="col-md-12">
-                  <a title="Move chart">
+              <div class="col-md-12 chart-controls">
+                <div class="pull-left">
+                  <a title="Move chart" data-toggle="tooltip">
                     <i class="fa fa-arrows drag"></i>
                   </a>
-                  <a class="refresh" title="Refresh data">
+                  <a class="refresh" title="Force refresh data" data-toggle="tooltip">
                     <i class="fa fa-repeat"></i>
                   </a>
-                  <a href="{{ slice.edit_url }}" title="Edit chart">
+                </div>
+                <div class="pull-right">
+                  {% if slice.description %}
+                    <a title="Toggle chart description">
+                      <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}" title="{{ slice.description }}" data-toggle="tooltip"></i>
+                    </a>
+                  {% endif %}
+                  <a href="{{ slice.edit_url }}" title="Edit chart" data-toggle="tooltip">
                     <i class="fa fa-pencil"></i>
                   </a>
-                  <a href="{{ slice.slice_url }}" title="Explore chart">
+                  <a href="{{ slice.slice_url }}" title="Explore chart" data-toggle="tooltip">
                     <i class="fa fa-share"></i>
                   </a>
-                  <a class="remove-chart" title="Remove chart from dashboard">
+                  <a class="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
                     <i class="fa fa-close"></i>
                   </a>
                 </div>
               </div>
 
             </div>
-
-            <div class="row">
-              <div
-                class="slice_description bs-callout bs-callout-default col-md-12"
-                style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
-                          {{ slice.description_markeddown | safe }}
-              </div>
+            <div
+              class="slice_description bs-callout bs-callout-default"
+              style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
+                        {{ slice.description_markeddown | safe }}
             </div>
-
             <div class="row chart-container">
               <input type="hidden" slice_id="{{ slice.id }}" value="false">
               <div id="{{ viz.token }}" class="token col-md-12">
-                <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
+                <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
                 <div class="slice_container" id="{{ viz.token }}_con"></div>
               </div>
             </div>

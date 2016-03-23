@@ -43,42 +43,47 @@
                 </a>
             </span>
           {% endif %}
-          <div class="btn-group results pull-right" role="group">
-            <a role="button" tabindex="0" class="btn btn-default" id="shortner" title="Short URL" data-toggle="popover" data-trigger="focus">
-              <i class="fa fa-link"></i>&nbsp;
-            </a>
-            <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
-              <i class="fa fa-code"></i>&nbsp;
+          <div class="pull-right">
+            <span id="is_cached" class="label label-default" title="Force refresh" data-toggle="tooltip">
+              <i class="fa fa-refresh"></i>
+              cached
             </span>
-            <span class="btn btn-default " id="json" title="Export to .json" data-toggle="tooltip">
-              <i class="fa fa-file-code-o"></i>
-              .json
-            </span>
-            <span class="btn btn-default " id="csv" title="Export to .csv format" data-toggle="tooltip">
-              <i class="fa fa-file-text-o"></i>.csv
-            </span>
-            <span class="btn btn-warning notbtn" id="timer">0 sec</span>
-            <span class="btn btn-info disabled query"
-              data-toggle="modal" data-target="#query_modal">query</span>
+            <div class="btn-group results" role="group">
+              <a role="button" tabindex="0" class="btn btn-default" id="shortner" title="Short URL" data-toggle="popover" data-trigger="focus">
+                <i class="fa fa-link"></i>&nbsp;
+              </a>
+              <span class="btn btn-default" id="standalone" title="Standalone version, use to embed anywhere" data-toggle="tooltip">
+                <i class="fa fa-code"></i>&nbsp;
+              </span>
+              <span class="btn btn-default " id="json" title="Export to .json" data-toggle="tooltip">
+                <i class="fa fa-file-code-o"></i>
+                .json
+              </span>
+              <span class="btn btn-default " id="csv" title="Export to .csv format" data-toggle="tooltip">
+                <i class="fa fa-file-text-o"></i>.csv
+              </span>
+              <span class="btn btn-warning notbtn" id="timer">0 sec</span>
+              <span class="btn btn-info disabled query"
+                data-toggle="modal" data-target="#query_modal">query</span>
+            </div>
           </div>
-          <hr/>
+        <hr/>
       </div>
         <div id="form_container" class="col-left-fixed">
           <div class="row center-block">
+            <div class="btn-group query-and-save">
               <button type="button" class="btn btn-primary druidify">
-                <i class="fa fa-bolt"></i>
-                Query
+                <i class="fa fa-bolt"></i>Query
               </button>
-            {% if viz.form_data.slice_id %}
+              {% if viz.form_data.slice_id %}
                 <button type="button" class="btn btn-default" id="btn_overwrite">
-                  <i class="fa fa-save"></i>
-                  Overwrite
+                  <i class="fa fa-save"></i>Overwrite
                 </button>
-            {% endif %}
+              {% endif %}
               <button type="button" class="btn btn-default" id="btn_save">
-                <i class="fa fa-plus-circle"></i>
-                Save as
+                <i class="fa fa-plus-circle"></i>Save as
               </button>
+            </div>
           </div>
           <br/>
           {% for fieldset in form.fieldsets %}
@@ -162,7 +167,7 @@
             class="widget viz slice {{ viz.viz_type }}"
             data-slice="{{ viz.json_data }}"
             style="height: 700px;">
-            <img src="{{ url_for("static", filename="img/loading.gif") }}" class="loading" alt="loading">
+            <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
             <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
           </div>
         </div>

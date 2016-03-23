@@ -78,7 +78,7 @@ function wordCloudChart(slice) {
             return d.text;
           });
       }
-      slice.done(data);
+      slice.done(json);
     });
   }
 

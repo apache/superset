@@ -122,18 +122,19 @@ class DatabaseView(DashedModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
-    add_columns = ['database_name', 'sqlalchemy_uri']
+    add_columns = ['database_name', 'sqlalchemy_uri', 'cache_timeout']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "dashed/models/database/add.html"
     edit_template = "dashed/models/database/edit.html"
-    base_order = ('changed_on','desc')
+    base_order = ('changed_on', 'desc')
     description_columns = {
         'sqlalchemy_uri': (
             "Refer to the SqlAlchemy docs for more information on how "
             "to structure your URI here: "
             "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html")
     }
+
     def pre_add(self, db):
         conn = sqla.engine.url.make_url(db.sqlalchemy_uri)
         db.password = conn.password
@@ -157,12 +158,13 @@ class TableModelView(DashedModelView, DeleteMixin):  # noqa
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on']
-    add_columns = ['table_name', 'database', 'default_endpoint', 'offset']
+    add_columns = [
+        'table_name', 'database', 'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'description', 'owner',
-        'main_dttm_col', 'default_endpoint', 'offset']
+        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
-    base_order = ('changed_on','desc')
+    base_order = ('changed_on', 'desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
         'description': Markup(
@@ -176,9 +178,9 @@ class TableModelView(DashedModelView, DeleteMixin):  # noqa
         except Exception as e:
             logging.exception(e)
             flash(
-            "Table [{}] doesn't seem to exist, "
-            "couldn't fetch metadata".format(table.table_name),
-            "danger")
+                "Table [{}] doesn't seem to exist, "
+                "couldn't fetch metadata".format(table.table_name),
+                "danger")
         utils.merge_perm(sm, 'datasource_access', table.perm)
 
     def post_update(self, table):
@@ -221,8 +223,8 @@ class SliceModelView(DashedModelView, DeleteMixin):  # noqa
     order_columns = utils.list_minus(list_columns, ['created_by_'])
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
-        'table', 'dashboards', 'params']
-    base_order = ('changed_on','desc')
+        'table', 'dashboards', 'params', 'cache_timeout']
+    base_order = ('changed_on', 'desc')
     description_columns = {
         'description': Markup(
             "The content here can be displayed as widget headers in the "
@@ -248,7 +250,7 @@ class DashboardModelView(DashedModelView, DeleteMixin):  # noqa
         'dashboard_title', 'slug', 'slices', 'position_json', 'css',
         'json_metadata']
     add_columns = edit_columns
-    base_order = ('changed_on','desc')
+    base_order = ('changed_on', 'desc')
     description_columns = {
         'position_json': (
             "This json object describes the positioning of the widgets in "
@@ -261,6 +263,7 @@ class DashboardModelView(DashedModelView, DeleteMixin):  # noqa
             "visible"),
         'slug': "To get a readable URL for your dashboard",
     }
+
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
         if obj.slug:
@@ -283,7 +286,7 @@ class LogModelView(DashedModelView):
     datamodel = SQLAInterface(models.Log)
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
-    base_order = ('dttm','desc')
+    base_order = ('dttm', 'desc')
 
 appbuilder.add_view(
     LogModelView,
@@ -304,7 +307,8 @@ class DruidDatasourceModelView(DashedModelView, DeleteMixin):  # noqa
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'default_endpoint', 'offset']
+        'is_featured', 'is_hidden', 'default_endpoint', 'offset',
+        'cache_timeout']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
@@ -340,6 +344,8 @@ def ping():
 
 class R(BaseView):
 
+    """used for short urls"""
+
     @log_this
     @expose("/<url_id>")
     def index(self, url_id):
@@ -373,82 +379,37 @@ class Dashed(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
-        if datasource_type == "table":
-            datasource = (
-                db.session
-                .query(models.SqlaTable)
-                .filter_by(id=datasource_id)
+        datasource_class = models.SqlaTable \
+            if datasource_type == "table" else models.DruidDatasource
+        datasource = (
+            db.session
+            .query(datasource_class)
+            .filter_by(id=datasource_id)
+            .first()
+        )
+        slice_id = request.args.get("slice_id")
+        slc = None
+        if slice_id:
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=slice_id)
                 .first()
             )
-        else:
-            datasource = (
-                db.session
-                .query(models.DruidDatasource)
-                .filter_by(id=datasource_id)
-                .first()
-            )
-
-            all_datasource_access = self.appbuilder.sm.has_access(
-                'all_datasource_access', 'all_datasource_access')
-            datasource_access = self.appbuilder.sm.has_access(
-                'datasource_access', datasource.perm)
-            if not (all_datasource_access or datasource_access):
-                flash(
-                    "You don't seem to have access to this datasource",
-                    "danger")
-                return redirect('/slicemodelview/list/')
-        action = request.args.get('action')
-        if action in ('save', 'overwrite'):
-            session = db.session()
-
-            # TODO use form processing form wtforms
-            d = request.args.to_dict(flat=False)
-            del d['action']
-            del d['previous_viz_type']
-            as_list = ('metrics', 'groupby', 'columns')
-            for k in d:
-                v = d.get(k)
-                if k in as_list and not isinstance(v, list):
-                    d[k] = [v] if v else []
-                if k not in as_list and isinstance(v, list):
-                    d[k] = v[0]
-
-            table_id = druid_datasource_id = None
-            datasource_type = request.args.get('datasource_type')
-            if datasource_type in ('datasource', 'druid'):
-                druid_datasource_id = request.args.get('datasource_id')
-            elif datasource_type == 'table':
-                table_id = request.args.get('datasource_id')
-
-            slice_name = request.args.get('slice_name')
-
-            if action == "save":
-                slc = models.Slice()
-                msg = "Slice [{}] has been saved".format(slice_name)
-            elif action == "overwrite":
-                slc = (
-                    session.query(models.Slice)
-                    .filter_by(id=request.args.get("slice_id"))
-                    .first()
-                )
-                msg = "Slice [{}] has been overwritten".format(slice_name)
-
-            slc.params = json.dumps(d, indent=4, sort_keys=True)
-            slc.datasource_name = request.args.get('datasource_name')
-            slc.viz_type = request.args.get('viz_type')
-            slc.druid_datasource_id = druid_datasource_id
-            slc.table_id = table_id
-            slc.datasource_type = datasource_type
-            slc.slice_name = slice_name
-
-            session.merge(slc)
-            session.commit()
-            flash(msg, "info")
-            return redirect(slc.slice_url)
-
-
         if not datasource:
             flash("The datasource seem to have been deleted", "alert")
+
+        all_datasource_access = self.appbuilder.sm.has_access(
+            'all_datasource_access', 'all_datasource_access')
+        datasource_access = self.appbuilder.sm.has_access(
+            'datasource_access', datasource.perm)
+        if not (all_datasource_access or datasource_access):
+            flash("You don't seem to have access to this datasource", "danger")
+            return redirect('/slicemodelview/list/')
+
+        action = request.args.get('action')
+        if action in ('save', 'overwrite'):
+            return self.save(request.args, slc)
+
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
@@ -456,45 +417,38 @@ class Dashed(BaseView):
             viz_type = "table"
         obj = viz.viz_types[viz_type](
             datasource,
-            form_data=request.args)
-        if request.args.get("csv") == "true":
+            form_data=request.args,
+            slice=slc)
+        if request.args.get("json") == "true":
+            status = 200
+            try:
+                payload = obj.get_json()
+            except Exception as e:
+                logging.exception(e)
+                if config.get("DEBUG"):
+                    raise e
+                payload = str(e)
+                status = 500
+            resp = Response(
+                payload,
+                status=status,
+                mimetype="application/json")
+            return resp
+        elif request.args.get("csv") == "true":
             status = 200
             payload = obj.get_csv()
             return Response(
                 payload,
                 status=status,
                 mimetype="application/csv")
-
-        slice_id = request.args.get("slice_id")
-        slc = None
-        if slice_id:
-            slc = (
-                db.session.query(models.Slice)
-                .filter_by(id=request.args.get("slice_id"))
-                .first()
-            )
-        if request.args.get("json") == "true":
-            status = 200
-            if config.get("DEBUG"):
-                payload = obj.get_json()
-            else:
-                try:
-                    payload = obj.get_json()
-                except Exception as e:
-                    logging.exception(e)
-                    payload = str(e)
-                    status = 500
-            return Response(
-                payload,
-                status=status,
-                mimetype="application/json")
         else:
-            if config.get("DEBUG"):
-                resp = self.render_template(
-                    "dashed/viz.html", viz=obj, slice=slc)
+            if request.args.get("standalone") == "true":
+                template = "dashed/standalone.html"
+            else:
+                template = "dashed/explore.html"
+
             try:
-                resp = self.render_template(
-                    "dashed/viz.html", viz=obj, slice=slc)
+                resp = self.render_template(template, viz=obj, slice=slc)
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)
@@ -503,6 +457,53 @@ class Dashed(BaseView):
                     status=500,
                     mimetype="application/json")
             return resp
+
+    def save(self, args, slc):
+        """Saves (inserts or overwrite a slice) """
+        session = db.session()
+        slice_name = args.get('slice_name')
+        action = args.get('action')
+
+        # TODO use form processing form wtforms
+        d = args.to_dict(flat=False)
+        del d['action']
+        del d['previous_viz_type']
+        as_list = ('metrics', 'groupby', 'columns')
+        for k in d:
+            v = d.get(k)
+            if k in as_list and not isinstance(v, list):
+                d[k] = [v] if v else []
+            if k not in as_list and isinstance(v, list):
+                d[k] = v[0]
+
+        table_id = druid_datasource_id = None
+        datasource_type = args.get('datasource_type')
+        if datasource_type in ('datasource', 'druid'):
+            druid_datasource_id = args.get('datasource_id')
+        elif datasource_type == 'table':
+            table_id = args.get('datasource_id')
+
+        if action == "save":
+            slc = models.Slice()
+            msg = "Slice [{}] has been saved".format(slice_name)
+        elif action == "overwrite":
+            msg = "Slice [{}] has been overwritten".format(slice_name)
+
+        slc.params = json.dumps(d, indent=4, sort_keys=True)
+        slc.datasource_name = args.get('datasource_name')
+        slc.viz_type = args.get('viz_type')
+        slc.druid_datasource_id = druid_datasource_id
+        slc.table_id = table_id
+        slc.datasource_type = datasource_type
+        slc.slice_name = slice_name
+
+        if action == "save":
+            session.add(slc)
+        elif action == "overwrite":
+            session.merge(slc)
+        session.commit()
+        flash(msg, "info")
+        return redirect(slc.slice_url)
 
     @has_access
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
@@ -516,10 +517,9 @@ class Dashed(BaseView):
 
         obj = db.session.query(model).filter_by(id=id_).first()
         if obj:
-            setattr(obj, attr, value=='true')
+            setattr(obj, attr, value == 'true')
             db.session.commit()
         return Response("OK", mimetype="application/json")
-
 
     @has_access
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
@@ -529,7 +529,7 @@ class Dashed(BaseView):
         positions = data['positions']
         slice_ids = [int(d['slice_id']) for d in positions]
         session = db.session()
-        Dash = models.Dashboard
+        Dash = models.Dashboard  # noqa
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         dash.position_json = json.dumps(data['positions'], indent=4)
@@ -583,7 +583,7 @@ class Dashed(BaseView):
         pos_dict = {}
         if dash.position_json:
             pos_dict = {
-                int(o['slice_id']):o
+                int(o['slice_id']): o
                 for o in json.loads(dash.position_json)}
         return self.render_template(
             "dashed/dashboard.html", dashboard=dash,
@@ -599,7 +599,7 @@ class Dashed(BaseView):
         engine = mydb.get_sqla_engine()
         tables = engine.table_names()
 
-        table_name=request.args.get('table_name')
+        table_name = request.args.get('table_name')
         return self.render_template(
             "dashed/sql.html",
             tables=tables,
@@ -618,11 +618,11 @@ class Dashed(BaseView):
         return self.render_template(
             "dashed/ajah.html",
             content=df.to_html(
-                    index=False,
-                    na_rep='',
-                    classes=(
-                        "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results")))
+                index=False,
+                na_rep='',
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed sql_results")))
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -643,6 +643,7 @@ class Dashed(BaseView):
     @expose("/runsql/", methods=['POST', 'GET'])
     @log_this
     def runsql(self):
+        """Runs arbitrary sql and returns and html table"""
         session = db.session()
         limit = 1000
         data = json.loads(request.form.get('data'))
@@ -659,7 +660,7 @@ class Dashed(BaseView):
                     .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
                     .limit(limit)
                 )
-                sql= str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
             try:
                 df = pd.read_sql_query(sql=sql, con=eng)
                 content = df.to_html(
@@ -679,6 +680,7 @@ class Dashed(BaseView):
     @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
+        """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         for cluster in session.query(models.DruidCluster).all():
             try:
@@ -700,6 +702,7 @@ class Dashed(BaseView):
 
     @expose("/autocomplete/<datasource>/<column>/")
     def autocomplete(self, datasource, column):
+        """used for filter autocomplete"""
         client = utils.get_pydruid_client()
         top = client.topn(
             datasource=datasource,
@@ -731,6 +734,7 @@ class Dashed(BaseView):
     @has_access
     @expose("/featured", methods=['GET'])
     def featured(self):
+        """views that shows the Featured Datasets"""
         session = db.session()
         datasets_sqla = (
             session.query(models.SqlaTable)
@@ -769,6 +773,4 @@ appbuilder.add_view(
     "CSS Templates",
     icon="fa-css3",
     category="Sources",
-    category_icon='',)
-
-
+    category_icon='')
