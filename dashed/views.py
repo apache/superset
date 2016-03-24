@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import logging
 import re
+import time
 import traceback
 
 from flask import (
@@ -67,8 +68,8 @@ class TableColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 appbuilder.add_link(
-    "Featured Datasets",
-    href='/dashed/featured',
+    "Welcome!",
+    href='/dashed/welcome',
     category='Sources',
     category_icon='fa-table',
     icon="fa-star")
@@ -218,6 +219,10 @@ appbuilder.add_view(
 class SliceModelView(DashedModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
+    label_columns = {
+        'created_by_': 'Creator',
+        'datasource_link': 'Datasource',
+    }
     list_columns = [
         'slice_link', 'viz_type',
         'datasource_link', 'created_by_', 'changed_on']
@@ -234,7 +239,6 @@ class SliceModelView(DashedModelView, DeleteMixin):  # noqa
             "markdown</a>"),
     }
 
-
 appbuilder.add_view(
     SliceModelView,
     "Slices",
@@ -243,8 +247,19 @@ appbuilder.add_view(
     category_icon='',)
 
 
+class SliceAsync(SliceModelView):  # noqa
+    list_columns = [
+        'slice_link', 'viz_type',
+        'created_by_', 'modified', 'icons']
+
+appbuilder.add_view_no_menu(SliceAsync)
+
+
 class DashboardModelView(DashedModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
+    label_columns = {
+        'created_by_': 'Creator',
+    }
     list_columns = ['dashboard_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
     edit_columns = [
@@ -281,6 +296,12 @@ appbuilder.add_view(
     icon="fa-dashboard",
     category="",
     category_icon='',)
+
+
+class DashboardModelViewAsync(DashboardModelView):  # noqa
+    list_columns = ['dashboard_link', 'created_by_', 'modified']
+
+appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
 class LogModelView(DashedModelView):
@@ -523,6 +544,22 @@ class Dashed(BaseView):
         return Response("OK", mimetype="application/json")
 
     @has_access
+    @expose("/activity_per_day")
+    def activity_per_day(self):
+        """endpoint to power the calendar heatmap on the welcome page"""
+        Log = models.Log
+        qry = (
+            db.session
+                .query(
+                    Log.dt,
+                    sqla.func.count())
+                .group_by(Log.dt)
+                .all()
+        )
+        payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
+        return Response(json.dumps(payload), mimetype="application/json")
+
+    @has_access
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
@@ -757,25 +794,11 @@ class Dashed(BaseView):
             art=ascii_art.error), 500
 
     @has_access
-    @expose("/featured", methods=['GET'])
-    def featured(self):
-        """views that shows the Featured Datasets"""
-        session = db.session()
-        datasets_sqla = (
-            session.query(models.SqlaTable)
-            .filter_by(is_featured=True)
-            .all()
-        )
-        datasets_druid = (
-            session.query(models.DruidDatasource)
-            .filter_by(is_featured=True)
-            .all()
-        )
-        featured_datasets = datasets_sqla + datasets_druid
-        return self.render_template(
-            'dashed/featured.html',
-            featured_datasets=featured_datasets,
-            utils=utils)
+    @expose("/welcome")
+    def welcome(self):
+        """Personalized welcome page"""
+        return self.render_template('dashed/welcome.html', utils=utils)
+
 
 appbuilder.add_view_no_menu(Dashed)
 appbuilder.add_link(

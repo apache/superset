@@ -28,7 +28,7 @@ migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
-        return redirect('/dashed/featured')
+        return redirect('/dashed/welcome')
 
 appbuilder = AppBuilder(
     app, db.session,

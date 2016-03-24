@@ -2,7 +2,7 @@
 
 from copy import deepcopy, copy
 from collections import namedtuple
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
 import functools
 import json
 import logging
@@ -15,12 +15,13 @@ from flask import flash, request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 import pandas as pd
+import humanize
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
 
 import sqlalchemy as sqla
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
     Table, create_engine, MetaData, desc, select, and_, func)
 from sqlalchemy.engine import reflection
 from sqlalchemy.orm import relationship
@@ -67,6 +68,22 @@ class AuditMixinNullable(AuditMixin):
     @property # noqa
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
+
+    @property
+    def modified(self):
+        s = humanize.naturaltime(datetime.now() - self.changed_on)
+        return "<nobr>{}</nobr>".format(s)
+
+    @property
+    def icons(self):
+        return """
+        <a
+                href="{self.datasource_edit_url}"
+                data-toggle="tooltip"
+                title="{self.datasource}">
+            <i class="fa fa-database"></i>
+        </a>
+        """.format(**locals())
 
 
 class Url(Model, AuditMixinNullable):
@@ -122,6 +139,13 @@ class Slice(Model, AuditMixinNullable):
             return self.table.link
         elif self.druid_datasource:
             return self.druid_datasource.link
+
+    @property
+    def datasource_edit_url(self):
+        if self.table:
+            return self.table.url
+        elif self.druid_datasource:
+            return self.druid_datasource.url
 
     @property
     @utils.memoized
@@ -1057,6 +1081,7 @@ class Log(Model):
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=func.now())
+    dt = Column(Date, default=date.today())
 
     @classmethod
     def log_this(cls, f):

@@ -8,7 +8,7 @@ var config = {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     dashboard: APP_DIR + '/javascripts/dashboard.js',
     explore: APP_DIR + '/javascripts/explore.js',
-    featured: APP_DIR + '/javascripts/featured.js',
+    welcome: APP_DIR + '/javascripts/welcome.js',
     sql: APP_DIR + '/javascripts/sql.js',
     standalone: APP_DIR + '/javascripts/standalone.js'
   },

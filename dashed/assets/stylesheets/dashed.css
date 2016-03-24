@@ -68,6 +68,10 @@ form div {
 }
 .navbar-brand a {
   color: white;
+  text-decoration: none;
+}
+.navbar-brand a:hover {
+  color: white;
 }
 
 .header span {

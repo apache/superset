@@ -183,7 +183,7 @@ def init(dashed):
     for perm in perms:
         if perm.permission.name == 'datasource_access':
             continue
-        if perm.view_menu.name not in (
+        if perm.view_menu and perm.view_menu.name not in (
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
                 'Security'):
             sm.add_permission_role(alpha, perm)
@@ -191,7 +191,7 @@ def init(dashed):
     gamma = sm.add_role("Gamma")
     for perm in perms:
         if(
-                perm.view_menu.name not in (
+                perm.view_menu and perm.view_menu.name not in (
                     'ResetPasswordView',
                     'RoleModelView',
                     'UserDBModelView',
