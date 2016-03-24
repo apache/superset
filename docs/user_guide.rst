@@ -9,7 +9,7 @@ Quick Intro
 This video demonstrates how Dashed works at a high level, it shows how
 to navigate through datasets and dashboards that are already available.
 
-- Coming soon!
+.. youtube:: https://www.youtube.com/watch?v=3Txm_nj_R7M
 
 Dashboard Creation
 ''''''''''''''''''

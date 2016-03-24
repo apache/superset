@@ -33,6 +33,7 @@ import sphinx_bootstrap_theme
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.youtube',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
