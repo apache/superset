@@ -29,21 +29,23 @@
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
       <div class="header">
-          <span class="btn btn-default notbtn">
-            <strong>{{ datasource.full_name }}</strong>
+          <span class="btn btn-default notbtn" title="datasource" data-toggle="tooltip">
+            {{ datasource.full_name }}
             {% if datasource.description %}
             <a data-toggle="modal" data-target="#sourceinfo_modal">
               <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
             </a>
             {% endif %}
-              <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit datasource">
+              <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit">
                 <i class="fa fa-edit"></i>
               </a>
           </span>
           <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
           {% if slice %}
-            <span class="alert alert-info" title="Slice" data-toggle="tooltip">{{ slice.slice_name }}
-                <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit Slice metadata">
+            <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip" data-placement="bottom">
+                <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
+                {{ slice.slice_name }}
+                <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit">
                   {% if slice.description %}
                     <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
                   {% endif %}

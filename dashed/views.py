@@ -6,7 +6,8 @@ import logging
 import re
 import traceback
 
-from flask import request, redirect, flash, Response, render_template, Markup
+from flask import (
+    g, request, redirect, flash, Response, render_template, Markup)
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
@@ -558,6 +559,30 @@ class Dashed(BaseView):
                 traceback.format_exc(),
                 status=500,
                 mimetype="application/json")
+
+    @expose("/favstar/<class_name>/<obj_id>/<action>/")
+    def favstar(self, class_name, obj_id, action):
+        session = db.session()
+        FavStar = models.FavStar
+        count = 0
+        favs = session.query(FavStar).filter_by(
+            class_name=class_name, obj_id=obj_id, user_id=g.user.id).all()
+        if action == 'select':
+            if not favs:
+                session.add(
+                    FavStar(
+                        class_name=class_name, obj_id=obj_id, user_id=g.user.id,
+                        dttm=datetime.now()))
+            count = 1
+        elif action == 'unselect':
+            for fav in favs:
+                session.delete(fav)
+        else:
+            count = len(favs)
+        session.commit()
+        return Response(
+            json.dumps({'count': count}),
+            mimetype="application/json")
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")

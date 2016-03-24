@@ -132,6 +132,46 @@ var px = (function () {
     };
   }
 
+  function initFavStars() {
+      var baseUrl = '/dashed/favstar/';
+      // Init star behavihor for favorite
+      function show() {
+        if ($(this).hasClass('selected')) {
+          $(this).html('<i class="fa fa-star"></i>');
+        } else {
+          $(this).html('<i class="fa fa-star-o"></i>');
+        }
+      }
+      $('.favstar')
+        .attr('title', 'Click to favorite/unfavorite')
+        .each(show)
+        .each(function () {
+          var url = baseUrl + $(this).attr("class_name");
+          var star = this;
+          url += '/' + $(this).attr("obj_id") + '/';
+          $.getJSON(url + 'count/', function (data) {
+            if (data.count > 0) {
+              $(star)
+                .addClass('selected')
+                .each(show);
+              }
+          });
+        })
+        .click(function () {
+          $(this).toggleClass('selected');
+          var url = baseUrl + $(this).attr("class_name");
+          url += '/' + $(this).attr("obj_id") + '/';
+          if ($(this).hasClass('selected')) {
+            url += 'select/';
+          } else {
+            url += 'unselect/';
+          }
+          $.get(url);
+          $(this).each(show);
+        })
+        .tooltip();
+  }
+
   var Slice = function (data, dashboard) {
     var timer;
     var token = $('#' + data.token);
@@ -334,7 +374,8 @@ var px = (function () {
     formatDate: formatDate,
     timeFormatFactory: timeFormatFactory,
     color: color(),
-    getParam: getParam
+    getParam: getParam,
+    initFavStars: initFavStars
   };
 })();
 

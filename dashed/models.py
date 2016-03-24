@@ -1204,3 +1204,13 @@ class DruidColumn(Model):
             if not m:
                 session.add(metric)
                 session.commit()
+
+
+class FavStar(Model):
+    __tablename__ = 'favstar'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('ab_user.id'))
+    class_name = Column(String(50))
+    obj_id = Column(Integer)
+    dttm = Column(DateTime, default=func.now())

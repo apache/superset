@@ -117,6 +117,8 @@ function initExploreView() {
     $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
   }
 
+  px.initFavStars();
+
   $('legend').click(function () {
     toggle_fieldset($(this), true);
   });
