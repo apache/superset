@@ -1080,7 +1080,7 @@ class Log(Model):
         return wrapper
 
 
-class DruidMetric(Model):
+class DruidMetric(Model, AuditMixinNullable):
 
     """ORM object referencing Druid metrics for a datasource"""
 
@@ -1105,7 +1105,7 @@ class DruidMetric(Model):
         return obj
 
 
-class DruidColumn(Model):
+class DruidColumn(Model, AuditMixinNullable):
 
     """ORM model for storing Druid datasource column metadata"""
 
