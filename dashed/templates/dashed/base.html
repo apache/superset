@@ -1,9 +1,9 @@
 {% extends "appbuilder/baselayout.html" %}
 
   {% block head_css %}
-    {{super()}}
-    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/dashed.css" />
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/dashed.css" />
+    {{super()}}
   {% endblock %}
 
   {% block head_js %}

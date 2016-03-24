@@ -51,14 +51,12 @@ var Dashboard = function (dashboardData) {
       return JSON.stringify(this.filters, null, 4);
     },
     refreshExcept: function (slice_id) {
-      var immune = this.metadata.filter_immune_slices;
-      if (immune) {
-        this.slices.forEach(function (slice) {
-          if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
-            slice.render();
-          }
-        });
-      }
+      var immune = this.metadata.filter_immune_slice || [];
+      this.slices.forEach(function (slice) {
+        if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
+          slice.render();
+        }
+      });
     },
     clearFilters: function (slice_id) {
       delete this.filters[slice_id];
@@ -79,11 +77,12 @@ var Dashboard = function (dashboardData) {
       this.refreshExcept(slice_id);
     },
     getSlice: function (slice_id) {
-      this.slices.forEach(function (slice, i) {
-        if (slice.slice_id === slice_id) {
-          return slice;
+      slice_id = parseInt(slice_id, 10);
+      for (var i=0; i < this.slices.length; i++) {
+        if (this.slices[i].data.slice_id === slice_id) {
+          return this.slices[i];
         }
-      });
+      }
     },
     initDashboardView: function () {
       dashboard = this;
@@ -97,10 +96,7 @@ var Dashboard = function (dashboardData) {
         resize: {
           enabled: true,
           stop: function (e, ui, element) {
-            var slice_data = $(element).data('slice');
-            if (slice_data) {
-              dashboard.getSlice(slice_data.slice_id).resize();
-            }
+            dashboard.getSlice($(element).attr('slice_id')).resize();
           }
         },
         serialize_params: function (_w, wgd) {

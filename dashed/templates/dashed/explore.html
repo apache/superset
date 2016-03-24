@@ -1,5 +1,13 @@
 {% extends "dashed/basic.html" %}
 
+{% block title %}
+  {% if slice %}
+    [slice] {{ slice.slice_name }}
+  {% else %}
+    [explore] {{ viz.datasource.table_name }}
+  {% endif %}
+{% endblock %}
+
 {% block body %}
   {% set datasource = viz.datasource %}
   {% set form = viz.form %}
@@ -45,7 +53,6 @@
           {% endif %}
           <div class="pull-right">
             <span id="is_cached" class="label label-default" title="Force refresh" data-toggle="tooltip">
-              <i class="fa fa-refresh"></i>
               cached
             </span>
             <div class="btn-group results" role="group">
