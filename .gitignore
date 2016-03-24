@@ -1,4 +1,5 @@
 *.pyc
+panoramix
 babel
 .DS_Store
 .coverage
