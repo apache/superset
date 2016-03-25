@@ -1096,7 +1096,9 @@ class DruidMetric(Model):
     datasource_name = Column(
         String(250),
         ForeignKey('datasources.datasource_name'))
-    datasource = relationship('DruidDatasource', backref='metrics')
+    # Setting enable_typechecks=False disables polymorphic inheritance.
+    datasource = relationship('DruidDatasource', backref='metrics',
+                              enable_typechecks=False)
     json = Column(Text)
     description = Column(Text)
 
