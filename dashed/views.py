@@ -207,12 +207,14 @@ class DruidClusterModelView(DashedModelView, DeleteMixin):  # noqa
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
 
-appbuilder.add_view(
-    DruidClusterModelView,
-    "Druid Clusters",
-    icon="fa-cubes",
-    category="Sources",
-    category_icon='fa-database',)
+
+if config['DRUID_IS_ACTIVE']:
+    appbuilder.add_view(
+        DruidClusterModelView,
+        "Druid Clusters",
+        icon="fa-cubes",
+        category="Sources",
+        category_icon='fa-database',)
 
 
 class SliceModelView(DashedModelView, DeleteMixin):  # noqa
@@ -326,11 +328,12 @@ class DruidDatasourceModelView(DashedModelView, DeleteMixin):  # noqa
     def post_update(self, datasource):
         self.post_add(datasource)
 
-appbuilder.add_view(
-    DruidDatasourceModelView,
-    "Druid Datasources",
-    category="Sources",
-    icon="fa-cube")
+if config['DRUID_IS_ACTIVE']:
+    appbuilder.add_view(
+        DruidDatasourceModelView,
+        "Druid Datasources",
+        category="Sources",
+        icon="fa-cube")
 
 
 @app.route('/health')
@@ -778,12 +781,14 @@ class Dashed(BaseView):
             utils=utils)
 
 appbuilder.add_view_no_menu(Dashed)
-appbuilder.add_link(
-    "Refresh Druid Metadata",
-    href='/dashed/refresh_datasources/',
-    category='Sources',
-    category_icon='fa-database',
-    icon="fa-cog")
+
+if config['DRUID_IS_ACTIVE']:
+    appbuilder.add_link(
+        "Refresh Druid Metadata",
+        href='/dashed/refresh_datasources/',
+        category='Sources',
+        category_icon='fa-database',
+        icon="fa-cog")
 
 
 class CssTemplateModelView(DashedModelView, DeleteMixin):
