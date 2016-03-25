@@ -841,8 +841,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         max_time = results[0]['result']['maxTime']
         max_time = parse(max_time)
         # Query segmentMetadata for 7 days back. However, due to a bug,
-        # we need to set this interval to more than 1 day ago to exclude realtime segments, which
-        # trigged a bug (fixed in druid 0.8.2).
+        # we need to set this interval to more than 1 day ago to exclude
+        # realtime segments, which trigged a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         intervals = (max_time - timedelta(days=7)).isoformat() + '/'
         intervals += (max_time - timedelta(days=1)).isoformat()
@@ -1119,7 +1119,8 @@ class DruidColumn(Model):
         String(250),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
-    datasource = relationship('DruidDatasource', backref='columns', enable_typechecks=False)
+    datasource = relationship('DruidDatasource', backref='columns',
+                              enable_typechecks=False)
     column_name = Column(String(256))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
