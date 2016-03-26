@@ -53,6 +53,7 @@ APP_NAME = "Dashed"
 # tz.tzutc() : Using utc timezone
 # tz.tzlocal() : Using local timezone
 # other tz can be overridden by providing a local_config
+DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
 
 # ----------------------------------------------------
