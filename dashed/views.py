@@ -547,14 +547,14 @@ class Dashed(BaseView):
     @expose("/activity_per_day")
     def activity_per_day(self):
         """endpoint to power the calendar heatmap on the welcome page"""
-        Log = models.Log
+        Log = models.Log  # noqa
         qry = (
             db.session
-                .query(
-                    Log.dt,
-                    sqla.func.count())
-                .group_by(Log.dt)
-                .all()
+            .query(
+                Log.dt,
+                sqla.func.count())
+            .group_by(Log.dt)
+            .all()
         )
         payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")

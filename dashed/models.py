@@ -72,7 +72,7 @@ class AuditMixinNullable(AuditMixin):
     @property
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
-        return "<nobr>{}</nobr>".format(s)
+        return '<span class="no-wrap">{}</nobr>'.format(s)
 
     @property
     def icons(self):
