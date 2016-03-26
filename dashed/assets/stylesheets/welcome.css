@@ -1,0 +1,21 @@
+.welcome .widget{
+  border-radius: 0;
+  border: 1px solid #ccc;
+  box-shadow: 2px 1px 5px -2px #aaa;
+  background-color: #fff;
+}
+
+.welcome .widget .header {
+  background-color: #f1f1f1;
+  text-align: center;
+}
+
+.welcome .widget>div {
+  padding: 3px;
+  overflow: auto;
+  max-height: 500px;
+}
+
+.table i {
+  padding-top: 6px;
+}

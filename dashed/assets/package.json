@@ -43,6 +43,7 @@
     "bootstrap-datepicker": "^1.6.0",
     "bootstrap-toggle": "^2.2.1",
     "brace": "^0.7.0",
+    "cal-heatmap": "3.5.4",
     "css-loader": "^0.23.1",
     "d3": "^3.5.14",
     "d3-cloud": "^1.2.1",

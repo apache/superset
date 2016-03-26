@@ -9,6 +9,10 @@ body {
     font-size: 100%;
 }
 
+.no-wrap {
+    white-space: nowrap;
+}
+
 input.form-control {
     background-color: white;
 }
@@ -67,6 +71,10 @@ form div {
   padding-top: 1px;
 }
 .navbar-brand a {
+  color: white;
+  text-decoration: none;
+}
+.navbar-brand a:hover {
   color: white;
 }
 
