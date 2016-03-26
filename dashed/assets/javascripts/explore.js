@@ -53,15 +53,17 @@ function prepForm() {
   });
 }
 
-function druidify(force) {
+function druidify(force, pushState) {
   if (force === undefined) {
     force = false;
+  }
+  if (pushState !== false) {
+    history.pushState({}, document.title, slice.querystring());
   }
   $('.query-and-save button').attr('disabled', 'disabled');
   $('.btn-group.results span,a').attr('disabled', 'disabled');
   $('div.alert').remove();
   $('#is_cached').hide();
-  history.pushState({}, document.title, slice.querystring());
   prepForm();
   slice.render(force);
 }
@@ -323,7 +325,7 @@ $(document).ready(function () {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
-  druidify(false);
+  druidify(false, false);
 
   // make checkbox inputs display as toggles
   $(':checkbox')
