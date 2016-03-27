@@ -14,10 +14,10 @@ install:
   - python setup.py install
   - cd dashed/assets
   - npm install
+  - npm run lint
   - npm run prod
   - cd $TRAVIS_BUILD_DIR
 script: bash run_tests.sh
 after_success:
   - coveralls
   - cd dashed/assets
-  - npm run lint
