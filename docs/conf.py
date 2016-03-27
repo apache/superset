@@ -120,10 +120,12 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    #'bootswatch_theme': 'simplex',
+    # 'bootswatch_theme': 'cosmo',
     'navbar_title': 'Dashed Documentation',
     'navbar_fixed_top': "false",
-    #'navbar_class': "navbar navbar-default",
+    'navbar_sidebarrel': False,
+    'navbar_site_name': "Topics",
+    #'navbar_class': "navbar navbar-left",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.

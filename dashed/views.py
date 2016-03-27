@@ -67,14 +67,6 @@ class TableColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
-appbuilder.add_link(
-    "Welcome!",
-    href='/dashed/welcome',
-    category='Sources',
-    category_icon='fa-table',
-    icon="fa-star")
-
-appbuilder.add_separator("Sources")
 
 
 class DruidColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
@@ -253,6 +245,9 @@ class SliceAsync(SliceModelView):  # noqa
     list_columns = [
         'slice_link', 'viz_type',
         'created_by_', 'modified', 'icons']
+    label_columns = {
+        'icons': ' ',
+    }
 
 appbuilder.add_view_no_menu(SliceAsync)
 

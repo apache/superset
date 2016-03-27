@@ -24,6 +24,7 @@ function bigNumberVis(slice) {
       var fp = d3.format('+.1%');
       var width = slice.width();
       var height = slice.height();
+      div.selectAll("*").remove();
       var svg = div.append('svg');
       svg.attr("width", width);
       svg.attr("height", height);
