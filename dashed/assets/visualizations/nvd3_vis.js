@@ -27,7 +27,7 @@ function nvd3Vis(slice) {
                 chart.lines2.xScale(d3.time.scale.utc());
                 chart.x2Axis
                   .showMaxMin(fd.x_axis_showminmax)
-                  .staggerLabels(true);
+                  .staggerLabels(false);
               } else {
                 chart = nv.models.lineChart();
               }
@@ -37,7 +37,7 @@ function nvd3Vis(slice) {
               chart.interpolate(fd.line_interpolation);
               chart.xAxis
                 .showMaxMin(fd.x_axis_showminmax)
-                .staggerLabels(true);
+                .staggerLabels(false);
               break;
 
             case 'bar':
@@ -131,9 +131,6 @@ function nvd3Vis(slice) {
           var height = slice.height();
           height -= 15;  // accounting for the staggered xAxis
 
-          if (chart.hasOwnProperty("x2Axis")) {
-            height += 30;
-          }
           chart.height(height);
           slice.container.css('height', height + 'px');
 
@@ -148,6 +145,21 @@ function nvd3Vis(slice) {
           if (fd.x_log_scale) {
             chart.xScale(d3.scale.log());
           }
+          var xAxisFormatter = null;
+          if (viz_type === 'bubble') {
+            xAxisFormatter = d3.format('.3s');
+          } else if (fd.x_axis_format === 'smart_date') {
+            xAxisFormatter = px.formatDate;
+          } else if (fd.x_axis_format !== undefined) {
+            xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
+          }
+          chart.xAxis.tickFormat(xAxisFormatter);
+
+          if (chart.hasOwnProperty("x2Axis")) {
+            chart.x2Axis.tickFormat(xAxisFormatter);
+            height += 30;
+          }
+
           if (viz_type === 'bubble') {
             chart.xAxis.tickFormat(d3.format('.3s'));
           } else if (fd.x_axis_format === 'smart_date') {
