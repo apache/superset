@@ -581,7 +581,7 @@ class BigNumberViz(BaseViz):
     def get_data(self):
         form_data = self.form_data
         df = self.get_df()
-        df = df.sort(columns=df.columns[0])
+        df.sort(columns=df.columns[0], inplace=True)
         compare_lag = form_data.get("compare_lag", "")
         compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
         return {
@@ -802,7 +802,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
-        df = df.sort(self.metrics[0], ascending=False)
+        df.sort(self.metrics[0], ascending=False, inplace=True)
         return df
 
     def get_data(self):

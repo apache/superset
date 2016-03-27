@@ -150,10 +150,11 @@ function nvd3Vis(slice) {
             xAxisFormatter = d3.format('.3s');
           } else if (fd.x_axis_format === 'smart_date') {
             xAxisFormatter = px.formatDate;
+            chart.xAxis.tickFormat(xAxisFormatter);
           } else if (fd.x_axis_format !== undefined) {
             xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
+            chart.xAxis.tickFormat(xAxisFormatter);
           }
-          chart.xAxis.tickFormat(xAxisFormatter);
 
           if (chart.hasOwnProperty("x2Axis")) {
             chart.x2Axis.tickFormat(xAxisFormatter);
