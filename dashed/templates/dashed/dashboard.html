@@ -82,39 +82,40 @@
             data-col="{{ pos.col or loop.index }}"
             data-sizex="{{ pos.size_x or 4 }}"
             data-sizey="{{ pos.size_y or 4 }}">
-
-            <div class="row chart-header">
-
-              <div class="col-md-12 text-center header">
-                {{ slice.slice_name }}
-              </div>
-              <div class="col-md-12 chart-controls">
-                <div class="pull-left">
-                  <a title="Move chart" data-toggle="tooltip">
-                    <i class="fa fa-arrows drag"></i>
-                  </a>
-                  <a class="refresh" title="Force refresh data" data-toggle="tooltip">
-                    <i class="fa fa-repeat"></i>
-                  </a>
+            
+            <div class="chart-header">
+              <div class="row">
+                <div class="col-md-12 text-center header">
+                  {{ slice.slice_name }}
                 </div>
-                <div class="pull-right">
-                  {% if slice.description %}
-                    <a title="Toggle chart description">
-                      <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}" title="{{ slice.description }}" data-toggle="tooltip"></i>
+                <div class="col-md-12 chart-controls">
+                  <div class="pull-left">
+                    <a title="Move chart" data-toggle="tooltip">
+                      <i class="fa fa-arrows drag"></i>
                     </a>
-                  {% endif %}
-                  <a href="{{ slice.edit_url }}" title="Edit chart" data-toggle="tooltip">
-                    <i class="fa fa-pencil"></i>
-                  </a>
-                  <a href="{{ slice.slice_url }}" title="Explore chart" data-toggle="tooltip">
-                    <i class="fa fa-share"></i>
-                  </a>
-                  <a class="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
-                    <i class="fa fa-close"></i>
-                  </a>
+                    <a class="refresh" title="Force refresh data" data-toggle="tooltip">
+                      <i class="fa fa-repeat"></i>
+                    </a>
+                  </div>
+                  <div class="pull-right">
+                    {% if slice.description %}
+                      <a title="Toggle chart description">
+                        <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}" title="{{ slice.description }}" data-toggle="tooltip"></i>
+                      </a>
+                    {% endif %}
+                    <a href="{{ slice.edit_url }}" title="Edit chart" data-toggle="tooltip">
+                      <i class="fa fa-pencil"></i>
+                    </a>
+                    <a href="{{ slice.slice_url }}" title="Explore chart" data-toggle="tooltip">
+                      <i class="fa fa-share"></i>
+                    </a>
+                    <a class="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
+                      <i class="fa fa-close"></i>
+                    </a>
+                  </div>
                 </div>
-              </div>
 
+              </div>
             </div>
             <div
               class="slice_description bs-callout bs-callout-default"

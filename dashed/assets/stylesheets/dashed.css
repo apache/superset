@@ -155,42 +155,6 @@ legend {
 .panel.panel-primary {
   margin: 10px;
 }
-
-.index .carousel img {
-  max-height: 500px;
-}
-.index .carousel {
-  overflow: hidden;
-  height: 500px;
-}
-.index .carousel-caption h1 {
-  font-size: 80px;
-}
-.index .carousel-caption p {
-  font-size: 20px;
-}
-.index div.carousel-caption{
-  background: rgba(0,0,0,0.5);
-  border-radius: 20px;
-  top: 150px;
-  bottom: auto !important;
-}
-.index .carousel-inner > .item > img {
-  margin: 0 auto;
-}
-.index {
-  margin: -20px;
-}
-.index .carousel-indicators li {
-  background-color: #AAA;
-  border: 1px solid black;
-}
-
-.index .carousel-indicators .active {
-  background-color: #000;
-  border: 5px solid black;
-}
-
 .datasource form div.form-control {
   margin-bottom: 5px !important;
 }
@@ -203,7 +167,6 @@ legend {
 img.loading {
   width: 40px;
 }
-
 .dashboard a i {
   cursor: pointer;
 }
@@ -223,7 +186,6 @@ img.loading {
   margin: 5px;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
-  overflow: hidden;
   background-color: #fff;
 }
 .dashboard .gridster .dragging,
