@@ -6,7 +6,7 @@ import os
 import textwrap
 
 import pandas as pd
-from sqlalchemy import String, DateTime
+from sqlalchemy import String, DateTime, Float
 
 from dashed import app, db, models, utils
 
@@ -45,6 +45,65 @@ def get_slice_json(defaults, **kwargs):
     d = defaults.copy()
     d.update(kwargs)
     return json.dumps(d, indent=4, sort_keys=True)
+
+
+def load_energy():
+    """Loads an energy related dataset to use with sankey and graphs"""
+    tbl_name = 'energy_usage'
+    with gzip.open(os.path.join(DATA_FOLDER, 'energy.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.to_sql(
+        tbl_name,
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'source': String(255),
+            'target': String(255),
+            'value': Float(),
+        },
+        index=False)
+
+    print("Creating table [wb_health_population] reference")
+    tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
+    if not tbl:
+        tbl = TBL(table_name=tbl_name)
+    tbl.description = "Energy consumption"
+    tbl.is_featured = True
+    tbl.database = get_or_create_db(db.session)
+    db.session.merge(tbl)
+    db.session.commit()
+    tbl.fetch_metadata()
+
+    merge_slice(
+        Slice(
+            slice_name="Energy Sankey",
+            viz_type='sankey',
+            datasource_type='table',
+            table=tbl,
+            params=textwrap.dedent("""\
+            {
+                "collapsed_fieldsets": "",
+                "datasource_id": "3",
+                "datasource_name": "energy_usage",
+                "datasource_type": "table",
+                "flt_col_0": "source",
+                "flt_eq_0": "",
+                "flt_op_0": "in",
+                "groupby": [
+                    "source",
+                    "target"
+                ],
+                "having": "",
+                "metric": "sum__value",
+                "row_limit": "5000",
+                "slice_id": "",
+                "slice_name": "Energy Sankey",
+                "viz_type": "sankey",
+                "where": ""
+            }
+            """))
+    )
 
 
 def load_world_bank_health_n_pop():
