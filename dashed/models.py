@@ -634,13 +634,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             db.session.flush()
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
-
+                num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+                datatype = str(datatype).upper()
                 if (
                         str(datatype).startswith('VARCHAR') or
                         str(datatype).startswith('STRING')):
                     dbcol.groupby = True
                     dbcol.filterable = True
-                elif str(datatype).upper() in ('DOUBLE', 'FLOAT', 'INT', 'BIGINT'):
+                elif any([t in datatype for t in num_types]):
                     dbcol.sum = True
             db.session.merge(self)
             self.columns.append(dbcol)
@@ -746,7 +747,8 @@ class TableColumn(Model, AuditMixinNullable):
 
     @property
     def isnum(self):
-        return self.type in ('LONG', 'DOUBLE', 'FLOAT')
+        types = ('LONG', 'DOUBLE', 'FLOAT', 'BIGINT', 'INT')
+        return any([t in self.type.upper() for t in types])
 
 
 class DruidCluster(Model, AuditMixinNullable):
