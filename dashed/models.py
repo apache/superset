@@ -634,7 +634,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             db.session.flush()
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
-                num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT')
+                num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
                 datatype = str(datatype).upper()
                 if (
                         str(datatype).startswith('VARCHAR') or

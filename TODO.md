@@ -1,9 +1,6 @@
 # TODO
 List of TODO items for Dashed
 
-range filter formatter
-sankey example is missing
-
 ## Important
 * **Getting proper JS testing:** unit tests on the Python side are pretty
     solid, but now we need a test suite for the JS part of the site,
@@ -39,6 +36,8 @@ sankey example is missing
 
 
 ## Easy-ish fix
+* Build matrix to include mysql using tox
+* Figure out why coverage isn't working
 * Kill switch for Druid in docs
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
