@@ -9,9 +9,8 @@ before_install:
   - rm -rf ~/.npm
   - mkdir ~/.npm
 install:
-  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse -r requirements.txt
-  - pip install --find-links=$HOME/.wheelhouse --no-index -rrequirements.txt
-  - python setup.py install
+  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
+  - pip install --find-links=$HOME/.wheelhouse --no-index .
   - cd dashed/assets
   - npm install
   - npm run lint
@@ -20,4 +19,3 @@ install:
 script: bash run_tests.sh
 after_success:
   - coveralls
-  - cd dashed/assets
