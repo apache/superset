@@ -267,78 +267,78 @@ def load_world_bank_health_n_pop():
     dash_name = "World's Health Bank Dashboard"
     dash = db.session.query(Dash).filter_by(dashboard_title=dash_name).first()
 
-    if dash:
-        db.session.delete(dash)
-    js = """\
-[
-    {
-        "size_y": 2,
-        "size_x": 3,
-        "col": 1,
-        "slice_id": "1",
-        "row": 1
-    },
-    {
-        "size_y": 3,
-        "size_x": 3,
-        "col": 1,
-        "slice_id": "2",
-        "row": 3
-    },
-    {
-        "size_y": 8,
-        "size_x": 3,
-        "col": 10,
-        "slice_id": "3",
-        "row": 1
-    },
-    {
-        "size_y": 3,
-        "size_x": 6,
-        "col": 1,
-        "slice_id": "4",
-        "row": 6
-    },
-    {
-        "size_y": 5,
-        "size_x": 6,
-        "col": 4,
-        "slice_id": "5",
-        "row": 1
-    },
-    {
-        "size_y": 4,
-        "size_x": 6,
-        "col": 7,
-        "slice_id": "6",
-        "row": 9
-    },
-    {
-        "size_y": 3,
-        "size_x": 3,
-        "col": 7,
-        "slice_id": "7",
-        "row": 6
-    },
-    {
-        "size_y": 4,
-        "size_x": 6,
-        "col": 1,
-        "slice_id": "8",
-        "row": 9
-    }
-]
-    """
+    if not dash:
+        dash = Dash()
+    js = textwrap.dedent("""\
+        [
+            {
+                "size_y": 2,
+                "size_x": 3,
+                "col": 1,
+                "slice_id": "1",
+                "row": 1
+            },
+            {
+                "size_y": 3,
+                "size_x": 3,
+                "col": 1,
+                "slice_id": "2",
+                "row": 3
+            },
+            {
+                "size_y": 8,
+                "size_x": 3,
+                "col": 10,
+                "slice_id": "3",
+                "row": 1
+            },
+            {
+                "size_y": 3,
+                "size_x": 6,
+                "col": 1,
+                "slice_id": "4",
+                "row": 6
+            },
+            {
+                "size_y": 5,
+                "size_x": 6,
+                "col": 4,
+                "slice_id": "5",
+                "row": 1
+            },
+            {
+                "size_y": 4,
+                "size_x": 6,
+                "col": 7,
+                "slice_id": "6",
+                "row": 9
+            },
+            {
+                "size_y": 3,
+                "size_x": 3,
+                "col": 7,
+                "slice_id": "7",
+                "row": 6
+            },
+            {
+                "size_y": 4,
+                "size_x": 6,
+                "col": 1,
+                "slice_id": "8",
+                "row": 9
+            }
+        ]
+    """)
     l = json.loads(js)
     for i, pos in enumerate(l):
         pos['slice_id'] = str(slices[i].id)
-    dash = Dash(
-        dashboard_title=dash_name,
-        position_json=json.dumps(l, indent=4),
-        slug="world_health",
-    )
-    for s in slices:
-        dash.slices.append(s)
+
+    dash.dashboard_title = dash_name
+    dash.position_json = json.dumps(l, indent=4)
+    dash.slug = "world_health"
+
+    dash.slices = slices
+    db.session.merge(dash)
     db.session.commit()
 
 
@@ -600,83 +600,81 @@ def load_birth_names():
     print("Creating a dashboard")
     dash = db.session.query(Dash).filter_by(dashboard_title="Births").first()
 
-    if dash:
-        db.session.delete(dash)
-    js = """
-[
-    {
-        "size_y": 4,
-        "size_x": 2,
-        "col": 8,
-        "slice_id": "85",
-        "row": 7
-    },
-    {
-        "size_y": 4,
-        "size_x": 2,
-        "col": 10,
-        "slice_id": "86",
-        "row": 7
-    },
-    {
-        "size_y": 2,
-        "size_x": 2,
-        "col": 1,
-        "slice_id": "87",
-        "row": 1
-    },
-    {
-        "size_y": 2,
-        "size_x": 2,
-        "col": 3,
-        "slice_id": "88",
-        "row": 1
-    },
-    {
-        "size_y": 3,
-        "size_x": 7,
-        "col": 5,
-        "slice_id": "89",
-        "row": 4
-    },
-    {
-        "size_y": 4,
-        "size_x": 7,
-        "col": 1,
-        "slice_id": "90",
-        "row": 7
-    },
-    {
-        "size_y": 3,
-        "size_x": 3,
-        "col": 9,
-        "slice_id": "91",
-        "row": 1
-    },
-    {
-        "size_y": 3,
-        "size_x": 4,
-        "col": 5,
-        "slice_id": "92",
-        "row": 1
-    },
-    {
-        "size_y": 4,
-        "size_x": 4,
-        "col": 1,
-        "slice_id": "93",
-        "row": 3
-    }
-]
-        """
+    if not dash:
+        dash = Dash()
+    js = textwrap.dedent("""\
+        [
+            {
+                "size_y": 4,
+                "size_x": 2,
+                "col": 8,
+                "slice_id": "85",
+                "row": 7
+            },
+            {
+                "size_y": 4,
+                "size_x": 2,
+                "col": 10,
+                "slice_id": "86",
+                "row": 7
+            },
+            {
+                "size_y": 2,
+                "size_x": 2,
+                "col": 1,
+                "slice_id": "87",
+                "row": 1
+            },
+            {
+                "size_y": 2,
+                "size_x": 2,
+                "col": 3,
+                "slice_id": "88",
+                "row": 1
+            },
+            {
+                "size_y": 3,
+                "size_x": 7,
+                "col": 5,
+                "slice_id": "89",
+                "row": 4
+            },
+            {
+                "size_y": 4,
+                "size_x": 7,
+                "col": 1,
+                "slice_id": "90",
+                "row": 7
+            },
+            {
+                "size_y": 3,
+                "size_x": 3,
+                "col": 9,
+                "slice_id": "91",
+                "row": 1
+            },
+            {
+                "size_y": 3,
+                "size_x": 4,
+                "col": 5,
+                "slice_id": "92",
+                "row": 1
+            },
+            {
+                "size_y": 4,
+                "size_x": 4,
+                "col": 1,
+                "slice_id": "93",
+                "row": 3
+            }
+        ]
+        """)
     l = json.loads(js)
     for i, pos in enumerate(l):
         pos['slice_id'] = str(slices[i].id)
-    dash = Dash(
-        dashboard_title="Births",
-        position_json=json.dumps(l, indent=4),
-        slug="births",
-    )
-    for s in slices:
-        dash.slices.append(s)
+    dash.dashboard_title = "Births"
+    dash.position_json = json.dumps(l, indent=4)
+    dash.slug = "births"
+    dash.slices = slices
+    db.session.merge(dash)
     db.session.commit()
