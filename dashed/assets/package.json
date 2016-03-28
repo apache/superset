@@ -9,7 +9,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "webpack -d --watch --colors",
-    "prod": "webpack -p --colors",
+    "prod": "webpack -p --colors --progress",
     "lint": "npm run --silent lint:js",
     "lint:js": "eslint --ignore-path=.eslintignore --ext .js ."
   },

@@ -122,9 +122,12 @@ class Slice(Model, AuditMixinNullable):
     cache_timeout = Column(Integer)
 
     table = relationship(
-        'SqlaTable', foreign_keys=[table_id], backref='slices')
+        'SqlaTable', foreign_keys=[table_id], backref='slices',
+        lazy='subquery')
     druid_datasource = relationship(
-        'DruidDatasource', foreign_keys=[druid_datasource_id], backref='slices')
+        'DruidDatasource', foreign_keys=[druid_datasource_id],
+        backref='slices',
+        lazy='subquery')
 
     def __repr__(self):
         return self.slice_name
@@ -151,9 +154,7 @@ class Slice(Model, AuditMixinNullable):
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
-        viz = viz_types[self.viz_type](
-            self.datasource,
-            form_data=d)
+        viz = viz_types[self.viz_type](self.datasource, form_data=d)
         return viz
 
     @property
