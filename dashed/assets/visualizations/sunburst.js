@@ -293,7 +293,7 @@ function sunburstVis(slice) {
         }
         var currentNode = root;
         for (var j = 0; j < levels.length; j++) {
-          var children = currentNode.children;
+          var children = currentNode.children || [];
           var nodeName = levels[j];
           // If the next node has the name "0", it will
           var isLeafNode = (j >= levels.length - 1) || levels[j+1] === 0;
