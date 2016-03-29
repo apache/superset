@@ -6,6 +6,7 @@ require('./big_number.css');
 
 var px = require('../javascripts/modules/caravel.js');
 
+
 function bigNumberVis(slice) {
   var div = d3.select(slice.selector);
 
@@ -31,7 +32,12 @@ function bigNumberVis(slice) {
       var data = json.data;
       var compare_suffix = ' ' + json.compare_suffix;
       var v_compare = null;
-      var v = data[data.length - 1][1];
+      if (data.length > 1) {
+          var v = data[data.length - 1][1];
+      }
+      else{
+          var v = data[data.length - 1][0];
+      }
       if (json.compare_lag > 0) {
         var pos = data.length - (json.compare_lag + 1);
         if (pos >= 0) {
@@ -96,6 +102,19 @@ function bigNumberVis(slice) {
         .text(f(v))
         .style('font-size', d3.min([height, width]) / 3.5)
         .attr('fill', 'white');
+
+      //Printing big number subheader text
+      if (json.subheader !== null){
+        g.append('text')
+          .attr('x', width / 2)
+          .attr('y', y + d3.min([height, width]) / 4.5)
+          .text(json.subheader)
+          .attr('id', 'subheader_text')
+          .style('font-size', d3.min([height, width]) / 16)
+          .style('text-anchor', 'middle')
+          .attr('fill', c)
+          .attr('stroke', c);
+      }
 
       var c = scale_color(v_compare);
 

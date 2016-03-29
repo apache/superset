@@ -504,6 +504,11 @@ class FormFactory(object):
                     "relative time period. Expects relative time delta "
                     "in natural language (example: 24 hours, 7 days, "
                     "56 weeks, 365 days")),
+            'subheader': TextField(
+                'Subheader',
+                description=(
+                    "Description text that shows up below your Big "
+                    "Number")),
         }
 
     @staticmethod

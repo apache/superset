@@ -601,6 +601,56 @@ class BigNumberViz(BaseViz):
             'compare_suffix': form_data.get('compare_suffix', ''),
         }
 
+class BigNumberTotalViz(BaseViz):
+
+    """Put emphasis on a single metric with this big number viz"""
+
+    viz_type = "big_number_total"
+    verbose_name = "Big Number Total"
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metric',
+            'compare_lag',
+            'compare_suffix',
+            'subheader',
+            'y_axis_format',
+        )
+    },)
+    form_overrides = {
+        'y_axis_format': {
+            'label': 'Number format',
+        }
+    }
+
+    def reassignments(self):
+        metric = self.form_data.get('metric')
+        if not metric:
+            self.form_data['metric'] = self.orig_form_data.get('metrics')
+
+    def query_obj(self):
+        d = super(BigNumberTotalViz, self).query_obj()
+        metric = self.form_data.get('metric')
+        if not metric:
+            raise Exception("Pick a metric!")
+        d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
+        return d
+
+    def get_data(self):
+        form_data = self.form_data
+        df = self.get_df()
+        df = df.sort(columns=df.columns[0])
+        compare_lag = form_data.get("compare_lag", "")
+        compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
+        return {
+            'data': df.values.tolist(),
+            'compare_lag': compare_lag,
+            'compare_suffix': form_data.get('compare_suffix', ''),
+            'subheader': form_data.get('subheader', ''),
+        }
+
 
 class NVD3TimeSeriesViz(NVD3Viz):
 
@@ -1290,6 +1340,7 @@ viz_types_list = [
     MarkupViz,
     WordCloudViz,
     BigNumberViz,
+    BigNumberTotalViz,
     SunburstViz,
     DirectedForceViz,
     SankeyViz,
