@@ -38,7 +38,7 @@ class SelectMultipleSortableField(SelectMultipleField):
                 if value:
                     yield d.pop(value)
         while d:
-            yield d.pop(d.keys()[0])
+            yield d.popitem(last=False)[1]
 
 
 class FreeFormSelect(widgets.Select):
@@ -82,6 +82,7 @@ class OmgWtForm(Form):
         return getattr(self, fieldname)
 
     def field_css_classes(self, fieldname):
+        print(fieldname, self.css_classes[fieldname])
         if fieldname in self.css_classes:
             return " ".join(self.css_classes[fieldname])
         return ""

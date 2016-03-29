@@ -467,8 +467,9 @@ class Caravel(BaseView):
             else:
                 template = "caravel/explore.html"
 
+            resp = self.render_template(template, viz=obj, slice=slc)
             try:
-                resp = self.render_template(template, viz=obj, slice=slc)
+                pass
             except Exception as e:
                 if config.get("DEBUG"):
                     raise(e)

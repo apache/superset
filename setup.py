@@ -19,6 +19,7 @@ setup(
         'flask-cache>=0.13.1, <0.14.0',
         'flask-migrate>=1.5.1, <2.0.0',
         'flask-script>=2.0.5, <3.0.0',
+        'flask-sqlalchemy==2.0.0',
         'flask-testing>=0.4.2, <0.5.0',
         'flask>=0.10.1, <1.0.0',
         'humanize>=0.5.1, <0.6.0',

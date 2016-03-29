@@ -70,7 +70,7 @@ class CaravelTests(unittest.TestCase):
             urls[dash.dashboard_title] = dash.url
         for title, url in urls.items():
             print(url)
-            assert escape(title) in self.client.get(url).data
+            assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
         modules = [utils]
@@ -80,8 +80,8 @@ class CaravelTests(unittest.TestCase):
                 raise Exception("Failed a doctest")
 
     def test_misc(self):
-        assert self.client.get('/health').data == "OK"
-        assert self.client.get('/ping').data == "OK"
+        assert self.client.get('/health').data.decode('utf-8') == "OK"
+        assert self.client.get('/ping').data.decode('utf-8') == "OK"
 
 
 if __name__ == '__main__':
