@@ -233,7 +233,14 @@ class BaseViz(object):
             logging.info("Serving from cache")
         else:
             is_cached = False
-            cache_timeout = self.cache_timeout
+            config_cache_timeout = config.get("CACHE_DEFAULT_TIMEOUT")
+            try:
+                cache_timeout = self.cache_timeout
+            except Exception as e:
+                if config_cache_timeout:
+                   cache_timeout = config_cache_timeout
+                else:
+                   cache_timeout = 0
             payload = {
                 'data': self.get_data(),
                 'query': self.query,
@@ -246,7 +253,7 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=self.cache_timeout)
+            cache.set(cache_key, payload, timeout=cache_timeout)
         payload['is_cached'] = is_cached
         return dumps(payload)
 
