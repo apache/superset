@@ -10,9 +10,6 @@ List of TODO items for Caravel
     Caravel would discover and expose the plugins
 
 ## Features
-* **Stars:** set dashboards, slices and datasets as favorites
-* **Homepage:** a page that has links to your Slices and Dashes, favorited
-    content, feed of recent actions (people viewing your objects)
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Default slice:** choose a default slice for the dataset instead of
     default endpoint
