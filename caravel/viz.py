@@ -237,10 +237,11 @@ class BaseViz(object):
             try:
                 cache_timeout = self.cache_timeout
             except Exception as e:
+                logging.exception(e)
                 if config_cache_timeout:
-                   cache_timeout = config_cache_timeout
+                    cache_timeout = config_cache_timeout
                 else:
-                   cache_timeout = 0
+                    cache_timeout = 0
             payload = {
                 'data': self.get_data(),
                 'query': self.query,
