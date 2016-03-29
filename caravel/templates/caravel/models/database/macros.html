@@ -1,0 +1,29 @@
+{% macro testconn() %}
+  <script>
+    $("#sqlalchemy_uri").parent()
+      .append('<button id="testconn" class="btn">Test Connection</button>');
+    $("#testconn").click(function() {
+      var url = "/caravel/testconn";
+      $.ajax({
+        method: "POST",
+        url: url,
+        data: { uri: $("#sqlalchemy_uri").val() },
+        dataType: 'json'
+      }).done(function(data) {
+          alert("Seems OK!");
+          if ($('#tables').length == 0)
+            $('body div.container').append('<div id="tables"></div>');
+          div = $('#tables')
+          div.html('Tables:<br>');
+          $.each(data, function(i, d){
+            var id = 'tbl_' + d;
+            div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
+            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
+          });
+      }).fail(function(error) {
+          alert("ERROR: " + error.responseText);
+      });
+      return false;
+    });
+  </script>
+{% endmacro %}

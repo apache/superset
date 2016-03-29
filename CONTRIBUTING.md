@@ -30,8 +30,8 @@ Look through the GitHub issues for features. Anything tagged with
 
 ### Documentation
 
-Dashed could always use better documentation,
-whether as part of the official Dashed docs,
+Caravel could always use better documentation,
+whether as part of the official Caravel docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -49,14 +49,14 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
-[API Documentation](http://pythonhosted.com/dashed)
+[API Documentation](http://pythonhosted.com/caravel)
 
 ## Setting up a Python development environment
 
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:mistercrunch/dashed.git
+    # git clone git@github.com:mistercrunch/caravel.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -66,24 +66,24 @@ If you are proposing a feature:
     python setup.py develop
 
     # Create an admin user
-    fabmanager create-admin --app dashed
+    fabmanager create-admin --app caravel
 
     # Initialize the database
-    dashed db upgrade
+    caravel db upgrade
 
     # Create default roles and permissions
-    dashed init
+    caravel init
 
     # Load some data to play with
-    dashed load_examples
+    caravel load_examples
 
     # start a dev web server
-    dashed runserver -d
+    caravel runserver -d
 
 
 ## Setting up the node / npm javascript environment
 
-`dashed/assets` contains all npm-managed, front end assets.
+`caravel/assets` contains all npm-managed, front end assets.
 Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
 While these may be phased out over time, these packages are currently not
 managed with npm.
@@ -116,7 +116,7 @@ new `node_modules/` folder within `assets/`.
 npm install
 ```
 
-To parse and generate bundled files for dashed, run either of the
+To parse and generate bundled files for caravel, run either of the
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
@@ -132,7 +132,7 @@ For every development session you will have to start a flask dev server
 as well as an npm watcher
 
 ```
-dashed runserver -d -p 8081
+caravel runserver -d -p 8081
 npm run dev
 ```
 
@@ -157,12 +157,12 @@ Generate the documentation with:
     cd docs && ./build.sh
 
 ## CSS Themes
-As part of the npm build process, CSS for Dashed is compiled from ```Less```, a dynamic stylesheet language.
+As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
 
-It's possible to customize or add your own theme to Dashed, either by overriding CSS rules or preferably
+It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
 by modifying the Less variables or files in ```assets/stylesheets/less/```.
 
-The ```variables.less``` and ```bootswatch.less``` files that ship with Dashed are derived from
+The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 

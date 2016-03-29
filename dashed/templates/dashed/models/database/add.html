@@ -1,7 +1,0 @@
-{% extends "appbuilder/general/model/add.html" %}
-
-{% import "dashed/models/database/macros.html" as macros %}
-{% block tail_js %}
-  {{ super() }}
-  {{ macros.testconn() }}
-{% endblock %}

@@ -16,8 +16,8 @@ pep8:
   full: true
 ignore-paths:
     - docs
-    - dashed/migrations/env.py
-    - dashed/ascii_art.py
+    - caravel/migrations/env.py
+    - caravel/ascii_art.py
 ignore-patterns:
     - ^example/doc_.*\.py$
     - (^|/)docs(/|$)
