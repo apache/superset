@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Installation &amp; Configuration &mdash; caravel  documentation</title>
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/docs.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="caravel  documentation" href="index.html" />
+    <link rel="next" title="User Guide" href="user_guide.html" />
+    <link rel="prev" title="Overview" href="index.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+  
+  <div id="navbar" class="navbar navbar-default ">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          Caravel Documentation</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Topics <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="user_guide.html">User Guide</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Installation &amp; Configuration</a><ul>
+<li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#caching">Caching</a></li>
+<li><a class="reference internal" href="#druid">Druid</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+  
+  <div class="container mainbody">
+  
+  <div class="section" id="installation-configuration">
+<h1>Installation &amp; Configuration<a class="headerlink" href="#installation-configuration" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>Panoramix is currently only tested using Python 2.7.*. Python 3 support is
+on the roadmap, Python 2.6 won&#8217;t be supported.</p>
+<p>Follow these few simple steps to install Panoramix.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span># Install panoramix
+pip install panoramix
+
+# Create an admin user
+fabmanager create-admin --app panoramix
+
+# Initialize the database
+panoramix db upgrade
+
+# Create default roles and permissions
+panoramix init
+
+# Load some data to play with
+panoramix load_examples
+
+# Start the development web server
+panoramix runserver -d
+</pre></div>
+</div>
+<p>After installation, you should be able to point your browser to the right
+hostname:port [http://localhost:8088](http://localhost:8088), login using
+the credential you entered while creating the admin account, and navigate to
+<cite>Menu -&gt; Admin -&gt; Refresh Metadata</cite>. This action should bring in all of
+your datasources for Panoramix to be aware of, and they should show up in
+<cite>Menu -&gt; Datasources</cite>, from where you can start playing with your data!</p>
+</div>
+<div class="section" id="configuration">
+<h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
+<p>To configure your application, you need to create a file (module)
+<code class="docutils literal"><span class="pre">panoramix_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
+of the parameters you can copy / paste in that configuration module:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
+<span class="c1"># Panoramix specifix config</span>
+<span class="c1">#---------------------------------------------------------</span>
+<span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
+<span class="n">WEBSERVER_THREADS</span> <span class="o">=</span> <span class="mi">8</span>
+
+<span class="n">PANORAMIX_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
+<span class="c1">#---------------------------------------------------------</span>
+
+<span class="c1">#---------------------------------------------------------</span>
+<span class="c1"># Flask App Builder configuration</span>
+<span class="c1">#---------------------------------------------------------</span>
+<span class="c1"># Your App secret key</span>
+<span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\2\1</span><span class="s1">thisismyscretkey</span><span class="se">\1\2</span><span class="s1">\e\y\y\h&#39;</span>
+
+<span class="c1"># The SQLAlchemy connection string.</span>
+<span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////tmp/panoramix.db&#39;</span>
+
+<span class="c1"># Flask-WTF flag for CSRF</span>
+<span class="n">CSRF_ENABLED</span> <span class="o">=</span> <span class="bp">True</span>
+
+<span class="c1"># Whether to run the web server in debug mode or not</span>
+<span class="n">DEBUG</span> <span class="o">=</span> <span class="bp">True</span>
+</pre></div>
+</div>
+<p>This file also allows you to define configuration parameters used by
+Flask App Builder, the web framework used by Panoramix. Please consult
+the <a class="reference external" href="http://flask-appbuilder.readthedocs.org/en/latest/config.html">Flask App Builder Documentation</a>
+for more information on how to configure Panoramix.</p>
+</div>
+<div class="section" id="caching">
+<h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
+<p>Panoramix uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
+caching purpose. Configuring your caching backend is as easy as providing
+a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, constant in your <code class="docutils literal"><span class="pre">panoramix_config.py</span></code> that
+complies with the Flask-Cache specifications.</p>
+<p>Flask-Cache supports multiple caching backends (Redis, Memcache,
+SimpleCache (in-memory), or the local filesystem).</p>
+<p>For setting your timeouts, this is done in the Panoramix metadata and goes
+up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
+data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
+into your global default defined in <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>.</p>
+</div>
+<div class="section" id="druid">
+<h2>Druid<a class="headerlink" href="#druid" title="Permalink to this headline">¶</a></h2>
+<ul>
+<li><dl class="first docutils">
+<dt>From the UI, enter the information about your clusters in the</dt>
+<dd><p class="first last"><code class="docutils literal"><span class="pre">Admin-&gt;Clusters</span></code> menu by hitting the + sign.</p>
+</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>Once the Druid cluster connection information is entered, hit the</dt>
+<dd><p class="first last"><code class="docutils literal"><span class="pre">Admin-&gt;Refresh</span> <span class="pre">Metadata</span></code> menu item to populate</p>
+</dd>
+</dl>
+</li>
+<li><p class="first">Navigate to your datasources</p>
+</li>
+</ul>
+</div>
+</div>
+
+
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+        &copy; Copyright 2015, Maxime Beauchemin, Airbnb.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.6.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
