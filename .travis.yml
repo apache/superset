@@ -10,8 +10,8 @@ before_install:
   - mkdir ~/.npm
 install:
   - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
-  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse -r dev-reqs.txt
   - pip install --find-links=$HOME/.wheelhouse --no-index .
+  - pip install --find-links=$HOME/.wheelhouse --no-index -r dev-reqs.txt
   - cd caravel/assets
   - npm install
   - npm run lint
