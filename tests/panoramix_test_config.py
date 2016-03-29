@@ -1,4 +1,4 @@
-from dashed.config import *
+from caravel.config import *
 
 AUTH_USER_REGISTRATION_ROLE = 'alpha'
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/panoramix_unittests.db'

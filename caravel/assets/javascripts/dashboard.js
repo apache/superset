@@ -1,6 +1,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/dashed.js');
+var px = require('./modules/caravel.js');
 var d3 = require('d3');
 require('bootstrap');
 
@@ -8,7 +8,7 @@ var ace = require('brace');
 require('brace/mode/css');
 require('brace/theme/crimson_editor');
 
-require('./dashed-select2.js');
+require('./caravel-select2.js');
 require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
@@ -137,7 +137,7 @@ var Dashboard = function (dashboardData) {
         };
         $.ajax({
           type: "POST",
-          url: '/dashed/save_dash/' + dashboard.id + '/',
+          url: '/caravel/save_dash/' + dashboard.id + '/',
           data: {
             data: JSON.stringify(data)
           },

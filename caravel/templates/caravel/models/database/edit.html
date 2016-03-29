@@ -1,6 +1,6 @@
 {% extends "appbuilder/general/model/edit.html" %}
 
-{% import "dashed/models/database/macros.html" as macros %}
+{% import "caravel/models/database/macros.html" as macros %}
 {% block tail_js %}
   {{ super() }}
   {{ macros.testconn() }}

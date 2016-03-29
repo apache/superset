@@ -4,7 +4,7 @@ var d3 = window.d3 || require('d3');
 // CSS
 require('./big_number.css');
 
-var px = require('../javascripts/modules/dashed.js');
+var px = require('../javascripts/modules/caravel.js');
 
 function bigNumberVis(slice) {
   var div = d3.select(slice.selector);

@@ -36,7 +36,7 @@ $(document).ready(function () {
 
     function showTableMetadata() {
       $(".metadata").load(
-        '/dashed/table/' + database_id + '/' + $("#dbtable").val() + '/');
+        '/caravel/table/' + database_id + '/' + $("#dbtable").val() + '/');
     }
     $("#dbtable").on("change", showTableMetadata);
     showTableMetadata();
@@ -46,7 +46,7 @@ $(document).ready(function () {
     $(".sqlcontent").show();
 
     function selectStarOnClick() {
-      $.ajax('/dashed/select_star/' + database_id + '/' + $("#dbtable").val() + '/')
+      $.ajax('/caravel/select_star/' + database_id + '/' + $("#dbtable").val() + '/')
         .done(function (msg) {
           editor.setValue(msg);
         });
@@ -67,7 +67,7 @@ $(document).ready(function () {
       history.pushState({}, document.title, '?sql=' + encodeURIComponent(editor.getValue()));
       $.ajax({
         type: "POST",
-        url: '/dashed/runsql/',
+        url: '/caravel/runsql/',
         data: {
           data: JSON.stringify({
             database_id: $('#database_id').val(),

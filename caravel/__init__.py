@@ -10,7 +10,7 @@ from flask.ext.cache import Cache
 
 
 APP_DIR = os.path.dirname(__file__)
-CONFIG_MODULE = os.environ.get('DASHED_CONFIG', 'dashed.config')
+CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 
 # Logging configuration
 logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
@@ -28,15 +28,15 @@ migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
-        return redirect('/dashed/welcome')
+        return redirect('/caravel/welcome')
 
 appbuilder = AppBuilder(
     app, db.session,
-    base_template='dashed/base.html',
+    base_template='caravel/base.html',
     indexview=MyIndexView,
     security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
 
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
-from dashed import config, views  # noqa
+from caravel import config, views  # noqa

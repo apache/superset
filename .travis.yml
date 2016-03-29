@@ -11,7 +11,7 @@ before_install:
 install:
   - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
   - pip install --find-links=$HOME/.wheelhouse --no-index .
-  - cd dashed/assets
+  - cd caravel/assets
   - npm install
   - npm run lint
   - npm run prod

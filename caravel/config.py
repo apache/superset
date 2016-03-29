@@ -1,4 +1,4 @@
-"""The main config file for Dashed
+"""The main config file for Caravel
 
 All configuration in this file can be overridden by providing a local_config
 in your PYTHONPATH as there is a ``from local_config import *``
@@ -12,13 +12,13 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 # ---------------------------------------------------------
-# Dashed specifix config
+# Caravel specifix config
 # ---------------------------------------------------------
 ROW_LIMIT = 50000
 WEBSERVER_THREADS = 8
 
-DASHED_WEBSERVER_PORT = 8088
-DASHED_WEBSERVER_TIMEOUT = 60
+CARAVEL_WEBSERVER_PORT = 8088
+CARAVEL_WEBSERVER_TIMEOUT = 60
 
 CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
@@ -27,7 +27,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/dashed.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -44,7 +44,7 @@ SHOW_STACKTRACE = True
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Dashed"
+APP_NAME = "Caravel"
 
 # Uncomment to setup Setup an App icon
 # APP_ICON = "/static/img/something.png"
@@ -116,6 +116,6 @@ CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 try:
-    from dashed_config import *  # noqa
+    from caravel_config import *  # noqa
 except Exception:
     pass

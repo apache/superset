@@ -1,7 +1,7 @@
 // JS
 var $  = window.$ || require('jquery');
 var d3 = window.d3 || require('d3');
-var px = window.px || require('../javascripts/modules/dashed.js');
+var px = window.px || require('../javascripts/modules/caravel.js');
 var nv = require('nvd3');
 
 // CSS

@@ -1,5 +1,5 @@
 .. warning:: This project used to be name Panoramix and has been renamed
-    to Dashed in March 2016
+    to Caravel in March 2016
 
 Overview
 =======================================

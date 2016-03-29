@@ -1,4 +1,4 @@
-"""A collection of ORM sqlalchemy models for Dashed"""
+"""A collection of ORM sqlalchemy models for Caravel"""
 
 from copy import deepcopy, copy
 from collections import namedtuple
@@ -29,8 +29,8 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
-from dashed import app, db, get_session, utils
-from dashed.viz import viz_types
+from caravel import app, db, get_session, utils
+from caravel.viz import viz_types
 from sqlalchemy.ext.declarative import declared_attr
 
 config = app.config
@@ -186,7 +186,7 @@ class Slice(Model, AuditMixinNullable):
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
-            "/dashed/explore/{self.datasource_type}/"
+            "/caravel/explore/{self.datasource_type}/"
             "{self.datasource_id}/".format(self=self))
         return href(slice_params)
 
@@ -229,7 +229,7 @@ class Dashboard(Model, AuditMixinNullable):
 
     @property
     def url(self):
-        return "/dashed/dashboard/{}/".format(self.slug or self.id)
+        return "/caravel/dashboard/{}/".format(self.slug or self.id)
 
     @property
     def metadata_dejson(self):
@@ -352,7 +352,7 @@ class Database(Model, AuditMixinNullable):
 
     @property
     def sql_url(self):
-        return '/dashed/sql/{}/'.format(self.id)
+        return '/caravel/sql/{}/'.format(self.id)
 
     @property
     def sql_link(self):
@@ -437,7 +437,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def table_link(self):
-        url = "/dashed/explore/{self.type}/{self.id}/".format(self=self)
+        url = "/caravel/explore/{self.type}/{self.id}/".format(self=self)
         return '<a href="{url}">{self.table_name}</a>'.format(
             url=url, self=self)
 
@@ -848,7 +848,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def datasource_link(self):
-        url = "/dashed/explore/{self.type}/{self.id}/".format(self=self)
+        url = "/caravel/explore/{self.type}/{self.id}/".format(self=self)
         return '<a href="{url}">{self.datasource_name}</a>'.format(
             url=url, self=self)
 
@@ -884,7 +884,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @classmethod
     def sync_to_db(cls, name, cluster):
-        """Fetches metadata for that datasource and merges the Dashed db"""
+        """Fetches metadata for that datasource and merges the Caravel db"""
         print("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
@@ -1074,7 +1074,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
 class Log(Model):
 
-    """ORM object used to log Dashed actions to the database"""
+    """ORM object used to log Caravel actions to the database"""
 
     __tablename__ = 'logs'
 

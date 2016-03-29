@@ -1,4 +1,4 @@
-var px = window.px || require('../javascripts/modules/dashed.js');
+var px = window.px || require('../javascripts/modules/caravel.js');
 var d3 = window.d3 || require('d3');
 var cloudLayout = require('d3-cloud');
 

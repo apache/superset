@@ -2,7 +2,7 @@ var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
 
-require('../../stylesheets/dashed.css');
+require('../../stylesheets/caravel.css');
 
 // vis sources
 var sourceMap = {
@@ -46,7 +46,7 @@ var color = function () {
     // Color factory
     var seen = {};
     return function (s) {
-      // next line is for dashed series that should have the same color
+      // next line is for caravel series that should have the same color
       s = s.replace('---', '');
       if (seen[s] === undefined) {
         seen[s] = Object.keys(seen).length;
@@ -133,7 +133,7 @@ var px = (function () {
   }
 
   function initFavStars() {
-      var baseUrl = '/dashed/favstar/';
+      var baseUrl = '/caravel/favstar/';
       // Init star behavihor for favorite
       function show() {
         if ($(this).hasClass('selected')) {

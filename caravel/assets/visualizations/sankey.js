@@ -1,7 +1,7 @@
 // CSS
 require('./sankey.css');
 // JS
-var px = window.px || require('../javascripts/modules/dashed.js');
+var px = window.px || require('../javascripts/modules/caravel.js');
 var d3 = window.d3 || require('d3');
 d3.sankey = require('d3-sankey').sankey;
 

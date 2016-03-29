@@ -1,6 +1,6 @@
 // JS
 var $ = window.$ || require('jquery');
-var px = window.px || require('../javascripts/modules/dashed.js');
+var px = window.px || require('../javascripts/modules/caravel.js');
 var d3 = require('d3');
 
 d3.tip = require('d3-tip'); //using window.d3 doesn't capture events properly bc of multiple instances

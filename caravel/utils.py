@@ -1,4 +1,4 @@
-"""Utility functions used across Dashed"""
+"""Utility functions used across Caravel"""
 
 from datetime import datetime
 import hashlib
@@ -169,11 +169,11 @@ class ColorFactory(object):
         return self.BNB_COLORS[i % len(self.BNB_COLORS)]
 
 
-def init(dashed):
-    """Inits the Dashed application with security roles and such"""
-    db = dashed.db
-    models = dashed.models
-    sm = dashed.appbuilder.sm
+def init(caravel):
+    """Inits the Caravel application with security roles and such"""
+    db = caravel.db
+    models = caravel.models
+    sm = caravel.appbuilder.sm
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
 

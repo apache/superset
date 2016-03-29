@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 version = '0.8.4'
 
 setup(
-    name='dashed',
+    name='caravel',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
@@ -11,7 +11,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    scripts=['dashed/bin/dashed'],
+    scripts=['caravel/bin/caravel'],
     install_requires=[
         'alembic>=0.8.5, <0.9.0',
         'cryptography>=1.1.1, <2.0.0',
@@ -38,7 +38,7 @@ setup(
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/dashed',
+    url='https://github.com/airbnb/caravel',
     download_url=(
-        'https://github.com/airbnb/dashed/tarball/' + version),
+        'https://github.com/airbnb/caravel/tarball/' + version),
 )

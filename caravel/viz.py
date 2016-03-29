@@ -1,7 +1,7 @@
 """This module contains the "Viz" objects
 
 These objects represent the backend of all the visualizations that
-Dashed can render.
+Caravel can render.
 """
 
 from collections import OrderedDict, defaultdict
@@ -17,8 +17,8 @@ from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
 import pandas as pd
 
-from dashed import app, utils, cache
-from dashed.forms import FormFactory
+from caravel import app, utils, cache
+from caravel.forms import FormFactory
 
 from six import string_types
 
@@ -116,7 +116,7 @@ class BaseViz(object):
             if d[key] is False:
                 del d[key]
         href = Href(
-            '/dashed/explore/{self.datasource.type}/'
+            '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         return href(d)
 
@@ -725,7 +725,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df2 = self.get_df(query_object)
             df2.index += delta
             chart_data += self.to_series(
-                df2, classed='dashed', title_suffix="---")
+                df2, classed='caravel', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
         return chart_data
 
@@ -1077,7 +1077,7 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self):
-        from dashed.data import countries
+        from caravel.data import countries
         df = self.get_df()
         cols = [self.form_data.get('entity')]
         metric = self.form_data.get('metric')

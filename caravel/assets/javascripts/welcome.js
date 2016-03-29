@@ -1,7 +1,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 
-require('../stylesheets/dashed.css');
+require('../stylesheets/caravel.css');
 require('../stylesheets/welcome.css');
 require('bootstrap');
 require('datatables');
@@ -37,7 +37,7 @@ $(document).ready(function () {
   cal.init({
     start: new Date().setFullYear(new Date().getFullYear() - 1),
     range: 13,
-    data: '/dashed/activity_per_day',
+    data: '/caravel/activity_per_day',
     domain: "month",
     subDomain: "day",
     itemName: "action",

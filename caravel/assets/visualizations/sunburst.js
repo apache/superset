@@ -1,5 +1,5 @@
 var d3 = window.d3 || require('d3');
-var px = require('../javascripts/modules/dashed.js');
+var px = require('../javascripts/modules/caravel.js');
 var wrapSvgText = require('../javascripts/modules/utils.js').wrapSvgText;
 
 require('./sunburst.css');

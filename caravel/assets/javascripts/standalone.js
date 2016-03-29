@@ -1,6 +1,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/dashed.js');
+var px = require('./modules/caravel.js');
 
 require('bootstrap');
 

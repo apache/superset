@@ -5,7 +5,7 @@ var d3 = window.d3 || require('d3');
 
 // CSS
 require('./filter_box.css');
-require('../javascripts/dashed-select2.js');
+require('../javascripts/caravel-select2.js');
 
 function filterBox(slice) {
   var filtersObj = {};

@@ -5,13 +5,13 @@
 // js
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/dashed.js');
+var px = require('./modules/caravel.js');
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
 
-require('./dashed-select2.js');
+require('./caravel-select2.js');
 
 require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
 

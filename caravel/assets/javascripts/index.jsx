@@ -8,7 +8,7 @@ class App extends React.Component {
   render () {
     return (
       <Jumbotron>
-        <h1>Dashed</h1>
+        <h1>Caravel</h1>
         <p>Extensible visualization tool for exploring data from any database.</p>
       </Jumbotron>
     );

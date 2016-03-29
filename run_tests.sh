@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-rm /tmp/dashed_unittests.db
-export DASHED_CONFIG=tests.dashed_test_config
-dashed/bin/dashed db upgrade
+rm /tmp/caravel_unittests.db
+export CARAVEL_CONFIG=tests.caravel_test_config
+caravel/bin/caravel db upgrade
 python setup.py nosetests

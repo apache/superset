@@ -1,4 +1,4 @@
-"""Loads datasets, dashboards and slices in a new dashed instance"""
+"""Loads datasets, dashboards and slices in a new caravel instance"""
 
 import gzip
 import json
@@ -8,7 +8,7 @@ import textwrap
 import pandas as pd
 from sqlalchemy import String, DateTime, Float
 
-from dashed import app, db, models, utils
+from caravel import app, db, models, utils
 
 # Shortcuts
 DB = models.Database

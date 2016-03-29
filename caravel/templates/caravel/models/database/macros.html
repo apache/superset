@@ -3,7 +3,7 @@
     $("#sqlalchemy_uri").parent()
       .append('<button id="testconn" class="btn">Test Connection</button>');
     $("#testconn").click(function() {
-      var url = "/dashed/testconn";
+      var url = "/caravel/testconn";
       $.ajax({
         method: "POST",
         url: url,

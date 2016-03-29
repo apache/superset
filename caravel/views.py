@@ -1,4 +1,4 @@
-"""Flask web views for Dashed"""
+"""Flask web views for Caravel"""
 
 from datetime import datetime
 import json
@@ -21,7 +21,7 @@ import pandas as pd
 from sqlalchemy import select, text
 from sqlalchemy.sql.expression import TextAsFrom
 
-from dashed import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
@@ -44,11 +44,11 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class DashedModelView(ModelView):
+class CaravelModelView(ModelView):
     page_size = 500
 
 
-class TableColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
+class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
@@ -69,7 +69,7 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
 
-class DruidColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
+class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'datasource', 'groupby',
@@ -86,7 +86,7 @@ class DruidColumnInlineView(CompactCRUDMixin, DashedModelView):  # noqa
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, DashedModelView):  # noqa
+class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -97,7 +97,7 @@ class SqlMetricInlineView(CompactCRUDMixin, DashedModelView):  # noqa
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, DashedModelView):  # noqa
+class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -112,15 +112,15 @@ class DruidMetricInlineView(CompactCRUDMixin, DashedModelView):  # noqa
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
-class DatabaseView(DashedModelView, DeleteMixin):  # noqa
+class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
     add_columns = ['database_name', 'sqlalchemy_uri', 'cache_timeout']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
-    add_template = "dashed/models/database/add.html"
-    edit_template = "dashed/models/database/edit.html"
+    add_template = "caravel/models/database/add.html"
+    edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')
     description_columns = {
         'sqlalchemy_uri': (
@@ -147,7 +147,7 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
-class TableModelView(DashedModelView, DeleteMixin):  # noqa
+class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
@@ -190,7 +190,7 @@ appbuilder.add_view(
 appbuilder.add_separator("Sources")
 
 
-class DruidClusterModelView(DashedModelView, DeleteMixin):  # noqa
+class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
     add_columns = [
         'cluster_name',
@@ -210,7 +210,7 @@ if config['DRUID_IS_ACTIVE']:
         category_icon='fa-database',)
 
 
-class SliceModelView(DashedModelView, DeleteMixin):  # noqa
+class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     label_columns = {
@@ -252,7 +252,7 @@ class SliceAsync(SliceModelView):  # noqa
 appbuilder.add_view_no_menu(SliceAsync)
 
 
-class DashboardModelView(DashedModelView, DeleteMixin):  # noqa
+class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     label_columns = {
         'created_by_': 'Creator',
@@ -301,7 +301,7 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
-class LogModelView(DashedModelView):
+class LogModelView(CaravelModelView):
     datamodel = SQLAInterface(models.Log)
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
@@ -314,7 +314,7 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
-class DruidDatasourceModelView(DashedModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner',
@@ -390,9 +390,9 @@ class R(BaseView):
 appbuilder.add_view_no_menu(R)
 
 
-class Dashed(BaseView):
+class Caravel(BaseView):
 
-    """The base views for Dashed!"""
+    """The base views for Caravel!"""
 
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
@@ -463,9 +463,9 @@ class Dashed(BaseView):
                 mimetype="application/csv")
         else:
             if request.args.get("standalone") == "true":
-                template = "dashed/standalone.html"
+                template = "caravel/standalone.html"
             else:
-                template = "dashed/explore.html"
+                template = "caravel/explore.html"
 
             try:
                 resp = self.render_template(template, viz=obj, slice=slc)
@@ -646,7 +646,7 @@ class Dashed(BaseView):
                 int(o['slice_id']): o
                 for o in json.loads(dash.position_json)}
         return self.render_template(
-            "dashed/dashboard.html", dashboard=dash,
+            "caravel/dashboard.html", dashboard=dash,
             templates=templates,
             pos_dict=pos_dict)
 
@@ -661,7 +661,7 @@ class Dashed(BaseView):
 
         table_name = request.args.get('table_name')
         return self.render_template(
-            "dashed/sql.html",
+            "caravel/sql.html",
             tables=tables,
             table_name=table_name,
             db=mydb)
@@ -676,7 +676,7 @@ class Dashed(BaseView):
         df = pd.DataFrame([(c['name'], c['type']) for c in cols])
         df.columns = ['col', 'type']
         return self.render_template(
-            "dashed/ajah.html",
+            "caravel/ajah.html",
             content=df.to_html(
                 index=False,
                 na_rep='',
@@ -695,7 +695,7 @@ class Dashed(BaseView):
             [c.name for c in t.columns] or "*")
         s = "SELECT\n{}\nFROM {}".format(fields, table_name)
         return self.render_template(
-            "dashed/ajah.html",
+            "caravel/ajah.html",
             content=s
         )
 
@@ -786,7 +786,7 @@ class Dashed(BaseView):
                 "Stacktrace is hidden. Change the SHOW_STACKTRACE "
                 "configuration setting to enable it")
         return render_template(
-            'dashed/traceback.html',
+            'caravel/traceback.html',
             error_msg=error_msg,
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
@@ -795,21 +795,21 @@ class Dashed(BaseView):
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
-        return self.render_template('dashed/welcome.html', utils=utils)
+        return self.render_template('caravel/welcome.html', utils=utils)
 
 
-appbuilder.add_view_no_menu(Dashed)
+appbuilder.add_view_no_menu(Caravel)
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
-        href='/dashed/refresh_datasources/',
+        href='/caravel/refresh_datasources/',
         category='Sources',
         category_icon='fa-database',
         icon="fa-cog")
 
 
-class CssTemplateModelView(DashedModelView, DeleteMixin):
+class CssTemplateModelView(CaravelModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']

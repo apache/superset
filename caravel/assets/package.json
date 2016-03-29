@@ -1,5 +1,5 @@
 {
-  "name": "dashed",
+  "name": "caravel",
   "version": "0.1.0",
   "description": "Any database to any visualization",
   "directories": {
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mistercrunch/dashed.git"
+    "url": "git+https://github.com/mistercrunch/caravel.git"
   },
   "keywords": [
     "big",
@@ -31,9 +31,9 @@
   ],
   "author": "Airbnb",
   "bugs": {
-    "url": "https://github.com/mistercrunch/dashed/issues"
+    "url": "https://github.com/mistercrunch/caravel/issues"
   },
-  "homepage": "https://github.com/mistercrunch/dashed#readme",
+  "homepage": "https://github.com/mistercrunch/caravel#readme",
   "dependencies": {
     "babel-loader": "^6.2.1",
     "babel-polyfill": "^6.3.14",

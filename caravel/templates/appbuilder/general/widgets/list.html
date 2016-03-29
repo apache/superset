@@ -64,7 +64,7 @@
                           {{'checked' if item[value] }}
                           name="{{ '{}__{}'.format(pk, value) }}"
                           id="{{ '{}__{}'.format(pk, value) }}"
-                          onchange="$.get('/dashed/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/' + $('#{{ '{}__{}'.format(pk, value) }}')[0].checked ) + '/';">
+                          onchange="$.get('/caravel/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/' + $('#{{ '{}__{}'.format(pk, value) }}')[0].checked ) + '/';">
                     {% else %}
                       {{ item[value]|safe }}
                     {% endif %}

@@ -5,7 +5,7 @@ from wtforms import (
     BooleanField, IntegerField, HiddenField)
 from wtforms import validators, widgets
 from copy import copy
-from dashed import app
+from caravel import app
 from collections import OrderedDict
 config = app.config
 
@@ -73,7 +73,7 @@ class FreeFormSelectField(SelectField):
 
 class OmgWtForm(Form):
 
-    """Dashedification of the WTForm Form object"""
+    """Caravelification of the WTForm Form object"""
 
     fieldsets = {}
     css_classes = dict()
@@ -101,13 +101,13 @@ class FormFactory(object):
 
     def __init__(self, viz):
         self.viz = viz
-        from dashed.viz import viz_types
+        from caravel.viz import viz_types
         viz = self.viz
         datasource = viz.datasource
         default_metric = datasource.metrics_combo[0][0]
         default_groupby = datasource.groupby_column_names[0]
         group_by_choices = [(s, s) for s in datasource.groupby_column_names]
-        # Pool of all the fields that can be used in Dashed
+        # Pool of all the fields that can be used in Caravel
         self.field_dict = {
             'viz_type': SelectField(
                 'Viz',
@@ -180,7 +180,7 @@ class FormFactory(object):
                     ('cca3', 'code ISO 3166-1 alpha-3 (cca3)'),
                 ),
                 description=(
-                    "The country code standard that Dashed should expect "
+                    "The country code standard that Caravel should expect "
                     "to find in the [country] column")),
             'groupby': SelectMultipleSortableField(
                 'Group by',
@@ -581,7 +581,7 @@ class FormFactory(object):
                         "applies a date transformation to alter "
                         "your time column and defines a new time granularity."
                         "The options here are defined on a per database "
-                        "engine basis in the Dashed source code"))
+                        "engine basis in the Caravel source code"))
                 add_to_form(time_fields)
                 field_css_classes['time_grain_sqla'] = ['form-control', 'select2']
                 field_css_classes['granularity_sqla'] = ['form-control', 'select2']
