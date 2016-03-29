@@ -112,7 +112,7 @@
                 {% for fieldname in fieldset.fields %}
                   {% if not fieldname %}
                     <hr/>
-                  {% elif not fieldname.__iter__ %}
+                  {% elif fieldname is string %}
                     {{ panofield(fieldname) }}
                   {% else %}
                   <div class="row">

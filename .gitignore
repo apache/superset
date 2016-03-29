@@ -5,7 +5,8 @@ babel
 _build
 _static
 caravel/bin/caravelc
-envpy3
+env_py3
+.eggs
 build
 *.db
 tmp
