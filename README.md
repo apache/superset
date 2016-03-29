@@ -19,8 +19,8 @@ Video - Introduction to Caravel
 
 Screenshots
 ------------
-![img](http://i.imgur.com/bi09J9X.png)
-![img](http://i.imgur.com/aOaH0ty.png)
+![img](http://i.imgur.com/JRbTnTx.png)
+![img](http://i.imgur.com/4wRtxwb.png)
 
 Caravel
 ---------
@@ -127,10 +127,13 @@ power analytic dashboards and applications.*
 More screenshots
 ----------------
 
-![img](http://i.imgur.com/Rt6gNQ9.png)
-![img](http://i.imgur.com/t7VOtqQ.png)
-![img](http://i.imgur.com/PaiFQnH.png)
-![img](http://i.imgur.com/CdcGHuC.png)
+![img](http://i.imgur.com/MAFZTtU.png)
+![img](http://i.imgur.com/xcy1QjN.png)
+![img](http://i.imgur.com/RWqA8ly.png)
+![img](http://i.imgur.com/D2kZL7q.png)
+![img](http://i.imgur.com/0UPTK61.png)
+![img](http://i.imgur.com/ahHoCuS.png)
+
 
 Related Links
 -------------
