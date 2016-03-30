@@ -124,47 +124,47 @@
 <h1>Installation &amp; Configuration<a class="headerlink" href="#installation-configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>Panoramix is currently only tested using Python 2.7.*. Python 3 support is
+<p>Caravel is currently only tested using Python 2.7.*. Python 3 support is
 on the roadmap, Python 2.6 won&#8217;t be supported.</p>
-<p>Follow these few simple steps to install Panoramix.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span># Install panoramix
-pip install panoramix
+<p>Follow these few simple steps to install Caravel.:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span># Install caravel
+pip install caravel
 
 # Create an admin user
-fabmanager create-admin --app panoramix
+fabmanager create-admin --app caravel
 
 # Initialize the database
-panoramix db upgrade
+caravel db upgrade
 
 # Create default roles and permissions
-panoramix init
+caravel init
 
 # Load some data to play with
-panoramix load_examples
+caravel load_examples
 
 # Start the development web server
-panoramix runserver -d
+caravel runserver -d
 </pre></div>
 </div>
 <p>After installation, you should be able to point your browser to the right
 hostname:port [http://localhost:8088](http://localhost:8088), login using
 the credential you entered while creating the admin account, and navigate to
 <cite>Menu -&gt; Admin -&gt; Refresh Metadata</cite>. This action should bring in all of
-your datasources for Panoramix to be aware of, and they should show up in
+your datasources for Caravel to be aware of, and they should show up in
 <cite>Menu -&gt; Datasources</cite>, from where you can start playing with your data!</p>
 </div>
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
 <p>To configure your application, you need to create a file (module)
-<code class="docutils literal"><span class="pre">panoramix_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
+<code class="docutils literal"><span class="pre">caravel_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
-<span class="c1"># Panoramix specifix config</span>
+<span class="c1"># Caravel specifix config</span>
 <span class="c1">#---------------------------------------------------------</span>
 <span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
 <span class="n">WEBSERVER_THREADS</span> <span class="o">=</span> <span class="mi">8</span>
 
-<span class="n">PANORAMIX_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
+<span class="n">CARAVEL_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
 <span class="c1">#---------------------------------------------------------</span>
 
 <span class="c1">#---------------------------------------------------------</span>
@@ -174,7 +174,7 @@ of the parameters you can copy / paste in that configuration module:</p>
 <span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\2\1</span><span class="s1">thisismyscretkey</span><span class="se">\1\2</span><span class="s1">\e\y\y\h&#39;</span>
 
 <span class="c1"># The SQLAlchemy connection string.</span>
-<span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////tmp/panoramix.db&#39;</span>
+<span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////tmp/caravel.db&#39;</span>
 
 <span class="c1"># Flask-WTF flag for CSRF</span>
 <span class="n">CSRF_ENABLED</span> <span class="o">=</span> <span class="bp">True</span>
@@ -184,19 +184,19 @@ of the parameters you can copy / paste in that configuration module:</p>
 </pre></div>
 </div>
 <p>This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Panoramix. Please consult
+Flask App Builder, the web framework used by Caravel. Please consult
 the <a class="reference external" href="http://flask-appbuilder.readthedocs.org/en/latest/config.html">Flask App Builder Documentation</a>
-for more information on how to configure Panoramix.</p>
+for more information on how to configure Caravel.</p>
 </div>
 <div class="section" id="caching">
 <h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
-<p>Panoramix uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
+<p>Caravel uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
 caching purpose. Configuring your caching backend is as easy as providing
-a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, constant in your <code class="docutils literal"><span class="pre">panoramix_config.py</span></code> that
+a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, constant in your <code class="docutils literal"><span class="pre">caravel_config.py</span></code> that
 complies with the Flask-Cache specifications.</p>
 <p>Flask-Cache supports multiple caching backends (Redis, Memcache,
 SimpleCache (in-memory), or the local filesystem).</p>
-<p>For setting your timeouts, this is done in the Panoramix metadata and goes
+<p>For setting your timeouts, this is done in the Caravel metadata and goes
 up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
 data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
 into your global default defined in <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>.</p>
