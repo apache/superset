@@ -218,10 +218,10 @@ class BaseViz(object):
         if self.slice and self.slice.cache_timeout:
             return self.slice.cache_timeout
         if self.datasource.cache_timeout:
-           return self.datasource.cache_timeout
+            return self.datasource.cache_timeout
         if hasattr(self.datasource, 'database') \
-            and self.datasource.database.cache_timeout:
-           return self.datasource.database.cache_timeout
+                and self.datasource.database.cache_timeout:
+            return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
     def get_json(self):
