@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mistercrunch/caravel.git"
+    "url": "git+https://github.com/airbnb/caravel.git"
   },
   "keywords": [
     "big",
@@ -31,9 +31,9 @@
   ],
   "author": "Airbnb",
   "bugs": {
-    "url": "https://github.com/mistercrunch/caravel/issues"
+    "url": "https://github.com/airbnb/caravel/issues"
   },
-  "homepage": "https://github.com/mistercrunch/caravel#readme",
+  "homepage": "https://github.com/airbnb/caravel#readme",
   "dependencies": {
     "babel-loader": "^6.2.1",
     "babel-polyfill": "^6.3.14",

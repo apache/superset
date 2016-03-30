@@ -56,7 +56,7 @@ If you are proposing a feature:
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:mistercrunch/caravel.git
+    # git clone git@github.com:airbnb/caravel.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env

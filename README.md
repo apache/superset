@@ -112,7 +112,7 @@ Installation & Configuration
 ----------------------------
 
 (See in the documentation)
-[http://mistercrunch.github.io/panoramix-docs/installation.html]
+[http://airbnb.io/caravel/installation.html]
 
 
 What is Druid?
