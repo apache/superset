@@ -4,35 +4,35 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Panoramix is currently only tested using Python 2.7.*. Python 3 support is
+Caravel is currently only tested using Python 2.7.*. Python 3 support is
 on the roadmap, Python 2.6 won't be supported.
 
-Follow these few simple steps to install Panoramix.::
+Follow these few simple steps to install Caravel.::
 
-    # Install panoramix
-    pip install panoramix
+    # Install caravel
+    pip install caravel
 
     # Create an admin user
-    fabmanager create-admin --app panoramix
+    fabmanager create-admin --app caravel
 
     # Initialize the database
-    panoramix db upgrade
+    caravel db upgrade
 
     # Create default roles and permissions
-    panoramix init
+    caravel init
 
     # Load some data to play with
-    panoramix load_examples
+    caravel load_examples
 
     # Start the development web server
-    panoramix runserver -d
+    caravel runserver -d
 
 
 After installation, you should be able to point your browser to the right
 hostname:port [http://localhost:8088](http://localhost:8088), login using
 the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of
-your datasources for Panoramix to be aware of, and they should show up in
+your datasources for Caravel to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
 
@@ -40,16 +40,16 @@ Configuration
 -------------
 
 To configure your application, you need to create a file (module)
-``panoramix_config.py`` and make sure it is in your PYTHONPATH. Here are some
+``caravel_config.py`` and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module: ::
 
     #---------------------------------------------------------
-    # Panoramix specifix config
+    # Caravel specifix config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
     WEBSERVER_THREADS = 8
 
-    PANORAMIX_WEBSERVER_PORT = 8088
+    CARAVEL_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
 
     #---------------------------------------------------------
@@ -59,7 +59,7 @@ of the parameters you can copy / paste in that configuration module: ::
     SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'
 
     # The SQLAlchemy connection string.
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/panoramix.db'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 
     # Flask-WTF flag for CSRF
     CSRF_ENABLED = True
@@ -68,24 +68,24 @@ of the parameters you can copy / paste in that configuration module: ::
     DEBUG = True
 
 This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Panoramix. Please consult
+Flask App Builder, the web framework used by Caravel. Please consult
 the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
-for more information on how to configure Panoramix.
+for more information on how to configure Caravel.
 
 
 Caching
 -------
 
-Panoramix uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
+Caravel uses `Flask-Cache <https://pythonhosted.org/Flask-Cache/>`_ for
 caching purpose. Configuring your caching backend is as easy as providing
-a ``CACHE_CONFIG``, constant in your ``panoramix_config.py`` that
+a ``CACHE_CONFIG``, constant in your ``caravel_config.py`` that
 complies with the Flask-Cache specifications.
 
 Flask-Cache supports multiple caching backends (Redis, Memcache,
 SimpleCache (in-memory), or the local filesystem).
 
-For setting your timeouts, this is done in the Panoramix metadata and goes
+For setting your timeouts, this is done in the Caravel metadata and goes
 up the "timeout searchpath", from your slice configuration, to your
 data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
