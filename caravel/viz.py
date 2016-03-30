@@ -217,11 +217,12 @@ class BaseViz(object):
     def cache_timeout(self):
         if self.slice and self.slice.cache_timeout:
             return self.slice.cache_timeout
-        return (
-            self.datasource.cache_timeout or
-            # Kim: comment this out since it caused a bug for DruidDatasource.
-            # self.datasource.database.cache_timeout or
-            config.get("CACHE_DEFAULT_TIMEOUT"))
+        if self.datasource.cache_timeout:
+           return self.datasource.cache_timeout
+        if hasattr(self.datasource, 'database') \
+            and self.datasource.database.cache_timeout:
+           return self.datasource.database.cache_timeout
+        return config.get("CACHE_DEFAULT_TIMEOUT")
 
     def get_json(self):
         """Handles caching around the json payload retrieval"""
