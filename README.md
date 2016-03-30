@@ -1,6 +1,8 @@
 Caravel
 =========
+![img](http://i.imgur.com/H0Kyvyi.jpg =300x)
 
+[![Build Status](https://travis-ci.org/airbnb/caravel.svg?branch=master)](https://travis-ci.org/airbnb/caravel)
 [![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
 [![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
 [![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
