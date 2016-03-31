@@ -50,7 +50,7 @@ Caravel provides:
 Database Support
 ----------------
 
-Caravel was originally designed on to of Druid.io, but quickly broadened
+Caravel was originally designed on top of Druid.io, but quickly broadened
 its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
