@@ -50,7 +50,7 @@ Caravel provides:
 Database Support
 ----------------
 
-Caravel was originally designed on to of Druid.io, but quickly broadened
+Caravel was originally designed on top of Druid.io, but quickly broadened
 its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
@@ -72,18 +72,6 @@ Installation & Configuration
 ----------------------------
 
 [See in the documentation](http://airbnb.io/caravel/installation.html)
-
-
-What is Druid?
---------------
-From their website at http://druid.io
-
-*Druid is an open-source analytics data store designed for
-business intelligence (OLAP) queries on event data. Druid provides low
-latency (real-time) data ingestion, flexible data exploration,
-and fast data aggregation. Existing Druid deployments have scaled to
-trillions of events and petabytes of data. Druid is best used to
-power analytic dashboards and applications.*
 
 
 More screenshots
