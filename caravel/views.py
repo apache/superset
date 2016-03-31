@@ -20,6 +20,7 @@ from wtforms.validators import ValidationError
 import pandas as pd
 from sqlalchemy import select, text
 from sqlalchemy.sql.expression import TextAsFrom
+from werkzeug.routing import BaseConverter
 
 from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
@@ -823,3 +824,23 @@ appbuilder.add_view(
     icon="fa-css3",
     category="Sources",
     category_icon='')
+
+
+# ---------------------------------------------------------------------
+# Redirecting URL from previous names
+class RegexConverter(BaseConverter):
+    def __init__(self, url_map, *items):
+        super(RegexConverter, self).__init__(url_map)
+        self.regex = items[0]
+app.url_map.converters['regex'] = RegexConverter
+
+
+@app.route('/<regex("panoramix\/.*"):url>')
+def panoramix(url):  # noqa
+    return redirect(request.full_path.replace('panoramix', 'caravel'))
+
+
+@app.route('/<regex("dashed\/.*"):url>')
+def dashed(url):  # noqa
+    return redirect(request.full_path.replace('dashed', 'caravel'))
+# ---------------------------------------------------------------------
