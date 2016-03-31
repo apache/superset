@@ -171,7 +171,7 @@ function sunburstVis(slice) {
         gMiddleText.append("text")
           .attr("class", "path-cond-percent")
           .attr("y", yOffsets[offsetIndex++])
-          .text(conditionalPercString + " of previous");
+          .text(conditionalPercString + " of parent");
       }
 
       gMiddleText.append("text")
