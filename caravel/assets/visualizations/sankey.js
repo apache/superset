@@ -18,10 +18,7 @@ function sankeyVis(slice) {
     var width = slice.width() - margin.left - margin.right;
     var height = slice.height() - margin.top - margin.bottom;
 
-    var formatNumber = d3.format(",.0f"),
-      format = function (d) {
-        return formatNumber(d) + " TWh";
-      };
+    var formatNumber = d3.format(",.0f");
 
     var svg = div.append("svg")
       .attr("width", width + margin.left + margin.right)
@@ -70,7 +67,7 @@ function sankeyVis(slice) {
 
       link.append("title")
         .text(function (d) {
-          return d.source.name + " → " + d.target.name + "\n" + format(d.value);
+          return d.source.name + " → " + d.target.name + "\n" + formatNumber(d.value);
         });
 
       var node = svg.append("g").selectAll(".node")
@@ -103,7 +100,7 @@ function sankeyVis(slice) {
         })
         .append("title")
         .text(function (d) {
-          return d.name + "\n" + format(d.value);
+          return d.name + "\n" + formatNumber(d.value);
         });
 
       node.append("text")
