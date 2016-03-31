@@ -68,55 +68,14 @@ trillions of events and petabytes of data. Druid is best used to
 power analytic dashboards and applications.*
 
 
-Installation
-------------
-
-Caravel is currently only tested using Python 2.7.*. Python 3 support is
-on the roadmap, Python 2.6 won't be supported.
-
-Follow these few simple steps to install Caravel.
-
-```
-# Install caravel
-pip install caravel
-
-# Create an admin user
-fabmanager create-admin --app caravel
-
-# Initialize the database
-caravel db upgrade
-
-# Create default roles and permissions
-caravel init
-
-# Load some data to play with
-caravel load_examples
-
-# Start the development web server
-caravel runserver -d
-```
-
-After installation, you should be able to point your browser to the right
-hostname:port [http://localhost:8088](http://localhost:8088), login using
-the credential you entered while creating the admin account, and navigate to
-`Menu -> Admin -> Refresh Metadata`. This action should bring in all of 
-your datasources for Caravel to be aware of, and they should show up in
-`Menu -> Datasources`, from where you can start playing with your data!
-
-Configuration
-=======
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
-
-
 Installation & Configuration
 ----------------------------
 
-(See in the documentation)
-[http://airbnb.io/caravel/installation.html]
+(See in the documentation)[http://airbnb.io/caravel/installation.html]
 
 
 What is Druid?
--------------
+--------------
 From their website at http://druid.io
 
 *Druid is an open-source analytics data store designed for
