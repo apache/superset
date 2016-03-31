@@ -74,18 +74,6 @@ Installation & Configuration
 [See in the documentation](http://airbnb.io/caravel/installation.html)
 
 
-What is Druid?
---------------
-From their website at http://druid.io
-
-*Druid is an open-source analytics data store designed for
-business intelligence (OLAP) queries on event data. Druid provides low
-latency (real-time) data ingestion, flexible data exploration,
-and fast data aggregation. Existing Druid deployments have scaled to
-trillions of events and petabytes of data. Druid is best used to
-power analytic dashboards and applications.*
-
-
 More screenshots
 ----------------
 
