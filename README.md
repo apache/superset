@@ -71,7 +71,7 @@ power analytic dashboards and applications.*
 Installation & Configuration
 ----------------------------
 
-(See in the documentation)[http://airbnb.io/caravel/installation.html]
+[See in the documentation](http://airbnb.io/caravel/installation.html)
 
 
 What is Druid?
