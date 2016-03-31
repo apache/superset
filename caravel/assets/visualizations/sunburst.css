@@ -10,11 +10,15 @@
   fill: #000;
   pointer-events: none;
 }
-.sunburst .path-percent {
-  font-size: 4em;
+.sunburst .path-abs-percent {
+  font-size: 3.5em;
+  font-weight: 400;
+}
+.sunburst .path-cond-percent {
+  font-size: 2em;
 }
 .sunburst .path-metrics {
-  font-size: 1.75em;
+  font-size: 1.5em;
 }
 .sunburst .path-ratio {
   font-size: 1.2em;
@@ -31,9 +35,15 @@
 .dashboard .sunburst text {
   font-size: 1em;
 }
-.dashboard .sunburst .path-percent {
+.dashboard .sunburst .path-abs-percent {
   font-size: 2.5em;
 }
+.dashboard .sunburst .path-cond-percent {
+  font-size: 1.75em;
+}
 .dashboard .sunburst .path-metrics {
+  font-size: 1em;
+}
+.dashboard .sunburst .path-ratio {
   font-size: 1em;
 }
