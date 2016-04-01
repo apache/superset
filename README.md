@@ -84,10 +84,11 @@ More screenshots
 ![img](http://i.imgur.com/ahHoCuS.png)
 
 
-Related Links
+Resources
 -------------
 * [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
+* [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
 
 
 Tip of the Hat
