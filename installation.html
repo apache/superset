@@ -211,7 +211,11 @@ of the parameters you can copy / paste in that configuration module:</p>
 <span class="c1"># Your App secret key</span>
 <span class="n">SECRET_KEY</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\2\1</span><span class="s1">thisismyscretkey</span><span class="se">\1\2</span><span class="s1">\e\y\y\h&#39;</span>
 
-<span class="c1"># The SQLAlchemy connection string.</span>
+<span class="c1"># The SQLAlchemy connection string to your database backend</span>
+<span class="c1"># This connection defines the path to the database that stores your</span>
+<span class="c1"># caravel metadata (slices, connections, tables, dashboards, ...).</span>
+<span class="c1"># Note that the connection information to connect to the datasources</span>
+<span class="c1"># you want to explore are managed directly in the web UI</span>
 <span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////tmp/caravel.db&#39;</span>
 
 <span class="c1"># Flask-WTF flag for CSRF</span>
