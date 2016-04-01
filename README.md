@@ -99,7 +99,7 @@ Caravel would not be possible without these great frameworks / libs
 getting the foundation for free
 * The Flask ecosystem - Simply amazing. So much Plug, easy play.
 * NVD3 - One of the best charting libraries out there
-* Much more, check out the requirements.txt file!
+* Much more, check out the `install_requires` section in the [setup.py](https://github.com/airbnb/caravel/blob/master/setup.py) file!
 
 
 Contributing
