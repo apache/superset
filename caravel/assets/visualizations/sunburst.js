@@ -43,8 +43,8 @@ function sunburstVis(slice) {
         return Math.sqrt(d.y + d.dy);
       });
 
-    var f = d3.format(".3s");
-    var fp = d3.format(".3p");
+    var formatNum = d3.format(".3s");
+    var formatPerc = d3.format(".3p");
 
     container.select("svg").remove();
 
@@ -145,28 +145,44 @@ function sunburstVis(slice) {
     // Fade all but the current sequence, and show it in the breadcrumb trail.
     function mouseenter(d) {
 
-      var percentage = (d.m1 / totalSize).toPrecision(3);
-      var percentageString = fp(percentage);
-      var metricsMatch = Math.abs(d.m1 - d.m2) < 0.000001;
+      var sequenceArray = getAncestors(d);
+      var parentOfD = sequenceArray[sequenceArray.length - 2] || null;
+
+      var absolutePercentage = (d.m1 / totalSize).toPrecision(3);
+      var conditionalPercentage = parentOfD ? (d.m1 / parentOfD.m1).toPrecision(3) : null;
+
+      var absolutePercString = formatPerc(absolutePercentage);
+      var conditionalPercString = parentOfD ? formatPerc(conditionalPercentage) : "";
+
+      var yOffsets = ["-25", "7", "35", "60"]; // 3 levels of text if inner-most level, 4 otherwise
+      var offsetIndex = 0;
+
+      // If metrics match, assume we are coloring by category
+      var metricsMatch = Math.abs(d.m1 - d.m2) < 0.00001;
 
       gMiddleText.selectAll("*").remove();
 
       gMiddleText.append("text")
-        .attr("class", "path-percent")
-        .attr("y", "-10")
-        .text(percentageString);
+        .attr("class", "path-abs-percent")
+        .attr("y", yOffsets[offsetIndex++])
+        .text(absolutePercString + " of total");
+
+      if (conditionalPercString) {
+        gMiddleText.append("text")
+          .attr("class", "path-cond-percent")
+          .attr("y", yOffsets[offsetIndex++])
+          .text(conditionalPercString + " of parent");
+      }
 
       gMiddleText.append("text")
         .attr("class", "path-metrics")
-        .attr("y", "25")
-        .text("m1: " + f(d.m1) + (metricsMatch ? "" : ", m2: " + f(d.m2)));
+        .attr("y", yOffsets[offsetIndex++])
+        .text("m1: " + formatNum(d.m1) + (metricsMatch ? "" : ", m2: " + formatNum(d.m2)));
 
       gMiddleText.append("text")
         .attr("class", "path-ratio")
-        .attr("y", "50")
-        .text("m2/m1: " + fp(d.m2 / d.m1));
-
-      var sequenceArray = getAncestors(d);
+        .attr("y", yOffsets[offsetIndex++])
+        .text((metricsMatch ? "" : ("m2/m1: " + formatPerc(d.m2 / d.m1))) );
 
       // Reset and fade all the segments.
       arcs.selectAll("path")
@@ -183,7 +199,7 @@ function sunburstVis(slice) {
         .style("stroke-width", "2px")
         .style("stroke", "#000");
 
-      updateBreadcrumbs(sequenceArray, percentageString);
+      updateBreadcrumbs(sequenceArray, absolutePercString);
     }
 
     // Restore everything to full opacity when moving off the visualization.
