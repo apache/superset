@@ -85,6 +85,8 @@
       aria-labelledby="dLabelLocalToc"><ul>
 <li><a class="reference internal" href="#">Installation &amp; Configuration</a><ul>
 <li><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li><a class="reference internal" href="#os-dependencies">OS dependencies</a></li>
+<li><a class="reference internal" href="#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
 <li><a class="reference internal" href="#caching">Caching</a></li>
 <li><a class="reference internal" href="#druid">Druid</a></li>
@@ -126,6 +128,42 @@
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
 <p>Caravel is currently only tested using Python 2.7.*. Python 3 support is
 on the roadmap, Python 2.6 won&#8217;t be supported.</p>
+</div>
+<div class="section" id="os-dependencies">
+<h2>OS dependencies<a class="headerlink" href="#os-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Caravel stores database connection information in its metadata database.
+For that purpose, we use the <code class="docutils literal"><span class="pre">cryptography</span></code> Python library to encrypt
+connection passwords. Unfortunately this library has OS level dependencies.</p>
+<p>You may want to attempt the next step
+(&#8220;Caravel installation and initialization&#8221;) and come back to this step if
+you encounter an error.</p>
+<p>Here&#8217;s how to install them:</p>
+<p>For <strong>Debian</strong> and <strong>Ubuntu</strong>, the following command will ensure that
+the required dependencies are installed:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+</pre></div>
+</div>
+<p>For <strong>Fedora</strong> and <strong>RHEL-derivatives</strong>, the following command will ensure
+that the required dependencies are installed:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>sudo yum install gcc libffi-devel python-devel openssl-devel
+</pre></div>
+</div>
+<p><strong>OSX</strong></p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>brew install pkg-config libffi openssl
+env LDFLAGS=&quot;-L$(brew --prefix openssl)/lib&quot; CFLAGS=&quot;-I$(brew --prefix openssl)/include&quot; pip install cryptography
+</pre></div>
+</div>
+<p><strong>Windows</strong> isn&#8217;t officially supported at this point, but if you want to
+attempt it:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>C:\&gt; \path\to\vcvarsall.bat x86_amd64
+C:\&gt; set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
+C:\&gt; set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
+C:\&gt; pip install cryptography
+</pre></div>
+</div>
+</div>
+<div class="section" id="caravel-installation-and-initialization">
+<h2>Caravel installation and initialization<a class="headerlink" href="#caravel-installation-and-initialization" title="Permalink to this headline">¶</a></h2>
 <p>Follow these few simple steps to install Caravel.:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span># Install caravel
 pip install caravel
