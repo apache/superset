@@ -1215,7 +1215,6 @@ class DruidColumn(Model, AuditMixinNullable):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.count_distinct:
-            mt = 'count_distinct'
             name = 'count_distinct__' + self.column_name
             metrics.append(DruidMetric(
                 metric_name=name,

@@ -28,7 +28,7 @@ config = app.config
 log_this = models.Log.log_this
 
 
-def validate_json(form, field):  # noqa
+def validate_json(field):  # noqa
     try:
         json.loads(field.data)
     except Exception as e:
@@ -783,7 +783,6 @@ class Caravel(BaseView):
         if config.get("SHOW_STACKTRACE"):
             error_msg = traceback.format_exc()
         else:
-            error_msg = "FATAL ERROR\n"
             error_msg = (
                 "Stacktrace is hidden. Change the SHOW_STACKTRACE "
                 "configuration setting to enable it")
@@ -836,11 +835,11 @@ app.url_map.converters['regex'] = RegexConverter
 
 
 @app.route('/<regex("panoramix\/.*"):url>')
-def panoramix(url):  # noqa
+def panoramix():  # noqa
     return redirect(request.full_path.replace('panoramix', 'caravel'))
 
 
 @app.route('/<regex("dashed\/.*"):url>')
-def dashed(url):  # noqa
+def dashed():  # noqa
     return redirect(request.full_path.replace('dashed', 'caravel'))
 # ---------------------------------------------------------------------
