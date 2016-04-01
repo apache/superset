@@ -7,6 +7,43 @@ Getting Started
 Caravel is currently only tested using Python 2.7.*. Python 3 support is
 on the roadmap, Python 2.6 won't be supported.
 
+
+OS dependencies
+---------------
+
+Caravel stores database connection information in its metadata database.
+For that purpose, we use the ``cryptography`` Python library to encrypt
+connection passwords. Unfortunately this library has OS level dependencies.
+
+You may want to attempt the next step
+("Caravel installation and initialization") and come back to this step if
+you encounter an error.
+
+Here's how to install them:
+
+For Debian and Ubuntu, the following command will ensure that the required
+dependencies are installed:
+``sudo apt-get install build-essential libssl-dev libffi-dev python-dev``
+
+For Fedora and RHEL-derivatives, the following command will ensure that the required dependencies are installed:
+``sudo yum install gcc libffi-devel python-devel openssl-devel``
+
+Windows isn't officially supported at this point, but if you want to
+attempt it: ::
+
+    C:\> \path\to\vcvarsall.bat x86_amd64
+    C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
+    C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
+    C:\> pip install cryptography
+
+OSX ::
+ 
+    brew install pkg-config libffi openssl
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
+
+
+Caravel installation and initialization
+---------------------------------------
 Follow these few simple steps to install Caravel.::
 
     # Install caravel
