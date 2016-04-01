@@ -21,25 +21,28 @@ you encounter an error.
 
 Here's how to install them:
 
-For Debian and Ubuntu, the following command will ensure that the required
-dependencies are installed:
-``sudo apt-get install build-essential libssl-dev libffi-dev python-dev``
+For **Debian** and **Ubuntu**, the following command will ensure that
+the required dependencies are installed: ::
 
-For Fedora and RHEL-derivatives, the following command will ensure that the required dependencies are installed:
-``sudo yum install gcc libffi-devel python-devel openssl-devel``
+    sudo apt-get install build-essential libssl-dev libffi-dev python-dev
 
-Windows isn't officially supported at this point, but if you want to
+For **Fedora** and **RHEL-derivatives**, the following command will ensure
+that the required dependencies are installed: ::
+
+    sudo yum install gcc libffi-devel python-devel openssl-devel
+
+**OSX** ::
+
+    brew install pkg-config libffi openssl
+    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
+
+**Windows** isn't officially supported at this point, but if you want to
 attempt it: ::
 
     C:\> \path\to\vcvarsall.bat x86_amd64
     C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
     C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
     C:\> pip install cryptography
-
-OSX ::
- 
-    brew install pkg-config libffi openssl
-    env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
 
 
 Caravel installation and initialization
