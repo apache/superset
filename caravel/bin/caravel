@@ -55,7 +55,7 @@ def init():
 @manager.option(
     '-s', '--sample', action='store_true',
     help="Only load 1000 rows (faster, used for testing)")
-def load_examples(sample):
+def load_examples():
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
 
