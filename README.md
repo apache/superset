@@ -28,11 +28,10 @@ Screenshots
 Caravel
 ---------
 Caravel's main goal is to make it easy to slice, dice and visualize data.
-It empowers its user to perform **analytics at the speed of thought**.
+It empowers users to perform **analytics at the speed of thought**.
 
 Caravel provides:
-* A quick way to intuitively visualize datasets
-* Create and share interactive dashboards
+* A quick way to intuitively visualize datasets by allowing users to create and share interactive dashboards
 * A rich set of visualizations to analyze your data, as well as a flexible
     way to extend the capabilities
 * An extensible, high granularity security model allowing intricate rules
@@ -87,7 +86,7 @@ More screenshots
 
 Related Links
 -------------
-* [Caravel Google Group] (https://groups.google.com/forum/#!forum/airbnb_caravel)
+* [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
 
 
@@ -99,7 +98,7 @@ Caravel would not be possible without these great frameworks / libs
 * Flask App Builder - Allowing us to focus on building the app quickly while
 getting the foundation for free
 * The Flask ecosystem - Simply amazing. So much Plug, easy play.
-* NVD3 - One of the best charting library out there
+* NVD3 - One of the best charting libraries out there
 * Much more, check out the requirements.txt file!
 
 
