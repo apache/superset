@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import uuid
+import hashlib
 
 from flask import flash, request, Markup
 from markdown import markdown
@@ -265,7 +266,8 @@ class BaseViz(object):
 
     @property
     def cache_key(self):
-        return self.get_url(json="true", force="false")
+        url = self.get_url(json="true", force="false")
+        return hashlib.md5(url).hexdigest()
 
     @property
     def csv_endpoint(self):
