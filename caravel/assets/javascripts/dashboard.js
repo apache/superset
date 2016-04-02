@@ -21,12 +21,17 @@ var Dashboard = function (dashboardData) {
       var sliceObjects = [],
         dash = this;
       dashboard.slices.forEach(function (data) {
-        var slice = px.Slice(data, dash);
-        $("#slice_" + data.slice_id).find('a.refresh').click(function () {
-          slice.render(true);
-        });
-        sliceObjects.push(slice);
-        slice.render();
+        if (data.error) {
+          var html = '<div class="alert alert-danger">' + data.error + '</div>';
+          $("#slice_" + data.slice_id).find('.token').html(html);
+        } else {
+          var slice = px.Slice(data, dash);
+          $("#slice_" + data.slice_id).find('a.refresh').click(function () {
+            slice.render(true);
+          });
+          sliceObjects.push(slice);
+          slice.render();
+        }
       });
       this.slices = sliceObjects;
     },

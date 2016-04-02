@@ -151,10 +151,8 @@ class Slice(Model, AuditMixinNullable):
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
-        viz = viz_types[self.viz_type](
-            self.datasource,
-            form_data=d)
-        return viz
+        viz_class = viz_types[self.viz_type]
+        return viz_class(self.datasource, form_data=d)
 
     @property
     def description_markeddown(self):
@@ -166,7 +164,13 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def data(self):
-        d = self.viz.data
+        d = {}
+        self.token = ''
+        try:
+            d = self.viz.data
+            self.token = d.get('token')
+        except Exception as e:
+            d['error'] = str(e)
         d['slice_id'] = self.id
         return d
 
