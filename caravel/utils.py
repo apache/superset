@@ -10,6 +10,7 @@ from dateutil.parser import parse
 from sqlalchemy.types import TypeDecorator, TEXT
 from markdown import markdown as md
 import parsedatetime
+from flask import Markup
 from flask_appbuilder.security.sqla import models as ab_models
 
 
@@ -241,13 +242,16 @@ def json_iso_dttm_ser(obj):
     return obj
 
 
-def markdown(s):
+def markdown(s, markup_wrap=False):
     s = s or ''
-    return md(s, [
+    s = md(s, [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',
     ])
+    if markup_wrap:
+        s = Markup(s)
+    return s
 
 
 def readfile(filepath):

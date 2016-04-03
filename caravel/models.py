@@ -9,6 +9,7 @@ import logging
 from six import string_types
 import sqlparse
 import requests
+import textwrap
 
 from dateutil.parser import parse
 from flask import flash, request, g
@@ -292,12 +293,20 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
+    extra = Column(Text, default=textwrap.dedent("""\
+    {
+        "metadata_params": {},
+        "engine_params": {},
+    }
+    """))
 
     def __repr__(self):
         return self.database_name
 
     def get_sqla_engine(self):
-        return create_engine(self.sqlalchemy_uri_decrypted)
+        extra = self.get_extra()
+        params = extra.get('engine_params', {})
+        return create_engine(self.sqlalchemy_uri_decrypted, **params)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
@@ -336,8 +345,18 @@ class Database(Model, AuditMixinNullable):
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
 
+    def get_extra(self):
+        extra = {}
+        if self.extra:
+            try:
+                extra = json.loads(self.extra)
+            except Exception as e:
+                logging.error(e)
+        return extra
+
     def get_table(self, table_name):
-        meta = MetaData()
+        extra = self.get_extra()
+        meta = MetaData(**extra.get('metadata_params', {}))
         return Table(
             table_name, meta,
             autoload=True,

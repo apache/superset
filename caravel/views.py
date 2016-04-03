@@ -117,7 +117,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
-    add_columns = ['database_name', 'sqlalchemy_uri', 'cache_timeout']
+    add_columns = [
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
@@ -127,7 +128,16 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': (
             "Refer to the SqlAlchemy docs for more information on how "
             "to structure your URI here: "
-            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html")
+            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
+        'extra': utils.markdown(
+            "JSON string containing extra configuration elements. "
+            "The ``engine_params`` object gets unpacked into the "
+            "[sqlalchemy.create_engine]"
+            "(http://docs.sqlalchemy.org/en/latest/core/engines.html#"
+            "sqlalchemy.create_engine) call, while the ``metadata_params`` "
+            "gets unpacked into the [sqlalchemy.MetaData]"
+            "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
+            "#sqlalchemy.schema.MetaData) call. ", True),
     }
 
     def pre_add(self, db):
