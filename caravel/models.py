@@ -609,7 +609,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
-        table = self.database.get_table(self.table_name)
         try:
             table = self.database.get_table(self.table_name)
         except Exception as e:
