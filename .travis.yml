@@ -6,8 +6,7 @@ cache:
   directories:
     - $HOME/.wheelhouse/
 before_install:
-  - rm -rf ~/.npm
-  - mkdir ~/.npm
+  - npm install -g npm@'>=2.7.1'
 install:
   - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
   - pip install --find-links=$HOME/.wheelhouse --no-index .
