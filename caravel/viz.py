@@ -43,6 +43,8 @@ class BaseViz(object):
 
     def __init__(self, datasource, form_data, slice=None):
         self.orig_form_data = form_data
+        if not datasource:
+            raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
