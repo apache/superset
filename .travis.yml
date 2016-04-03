@@ -13,6 +13,7 @@ install:
   - pip install --find-links=$HOME/.wheelhouse --no-index .
   - pip install --find-links=$HOME/.wheelhouse --no-index -r dev-reqs.txt
   - cd caravel/assets
+  - npm --version
   - npm install
   - npm run lint
   - npm run prod

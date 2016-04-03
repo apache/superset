@@ -1,4 +1,3 @@
 coveralls
-Pillow
 sphinx
 sphinx_bootstrap_theme
