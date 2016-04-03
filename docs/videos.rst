@@ -1,7 +1,7 @@
-User Guide
-==========
+Videos
+======
 
-The user guide is a collection of short videos showing different aspect
+Here is a collection of short videos showing different aspect
 of Caravel.
 
 Quick Intro
