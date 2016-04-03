@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Tutorial &mdash; caravel  documentation</title>
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/docs.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="caravel  documentation" href="index.html" />
+    <link rel="next" title="Videos" href="videos.html" />
+    <link rel="prev" title="Installation &amp; Configuration" href="installation.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+  
+  <div id="navbar" class="navbar navbar-default ">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          Caravel Documentation</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Topics <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Tutorial</a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+  
+  <div class="container mainbody">
+  
+  <div class="section" id="tutorial">
+<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
+<p>This basic linear tutorial will take you through connecting to a database,
+adding a table, creating a slice and a dashboard. First you&#8217;ll need to tell
+Caravel where to find the database you want to
+query. First go to the database menu</p>
+<a class="reference internal image-reference" href="_images/db_menu.png"><img alt="_images/db_menu.png" src="_images/db_menu.png" style="width: 151.2px; height: 104.4px;" /></a>
+<p>Now click on the <code class="docutils literal"><span class="pre">+</span></code> button to add a new entry</p>
+<a class="reference internal image-reference" href="_images/db_plus.png"><img alt="_images/db_plus.png" src="_images/db_plus.png" style="width: 170.4px; height: 170.4px;" /></a>
+<p>Fill in an arbitrary reference name for the database, and you SqlAlchemy
+URI. To figure out how to construct your URI, check out the <a class="reference external" href="http://http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html/">SqlAlchemy
+documentation</a>.
+Then you can test your connection. If it works, you&#8217;ll see a positive popup
+and list of the tables that SqlAlchemy has found for that URI.</p>
+<a class="reference internal image-reference" href="_images/db_added.png"><img alt="_images/db_added.png" src="_images/db_added.png" style="width: 637.2px; height: 375.6px;" /></a>
+<p>Once your database has been added, it&#8217;s time to add your table. Navigate
+using the navigation bar at the top to <code class="docutils literal"><span class="pre">Sources</span> <span class="pre">-&gt;</span> <span class="pre">Tables</span></code> and click the
+plus (<code class="docutils literal"><span class="pre">+</span></code>) sign there (similar to the one ).</p>
+<p>Now enter the name of the table in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">Name</span></code> textbox, and select
+the database you just created in the <code class="docutils literal"><span class="pre">Database</span></code> dropdown, hit save. At this
+moment, Caravel fetched the column names, their data types and tries to guess
+which fields are metrics in dimensions. From the list view, edit the table
+that you just created by clicking the tiny pen icon.</p>
+<a class="reference internal image-reference" href="_images/pen.png"><img alt="_images/pen.png" src="_images/pen.png" style="width: 130.2px; height: 39.0px;" /></a>
+<p>Now you&#8217;re in the table editor, click on the &#8220;List Table Column&#8221; tab,
+showing you the list of columns in your table as well as their data types.</p>
+<a class="reference internal image-reference" href="_images/matrix.png"><img alt="_images/matrix.png" src="_images/matrix.png" style="width: 652.8px; height: 287.4px;" /></a>
+<p>Click the checkboxes here that inform Caravel how your columns should be
+shown in the explore view, and which metrics should be created. Make sure
+to inform Caravel about your date columns. You could also create
+&#8220;SQL expression&#8221; columns here, or metrics in that tab as aggregate expressions,
+but let&#8217;s not do that just yet. Hit <code class="docutils literal"><span class="pre">save</span></code>.</p>
+<p>You should now be back in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">List</span></code> view. Click on the name of the
+table you just created. You enter the &#8220;Explore&#8221; view for your table.</p>
+<a class="reference internal image-reference" href="_images/explore.png"><img alt="_images/explore.png" src="_images/explore.png" style="width: 529.2px; height: 349.2px;" /></a>
+<p>The next step is to create a Slice. First, make sure to use a time filter
+that is relevant.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">You can use some &#8220;natural language time expressions&#8221;
+either as relative (as in <code class="docutils literal"><span class="pre">now</span></code>, <code class="docutils literal"><span class="pre">4</span> <span class="pre">weeks</span> <span class="pre">ago</span></code>, or <code class="docutils literal"><span class="pre">1</span> <span class="pre">year</span> <span class="pre">ago</span></code>) as well
+as hard date or time expressions (as in <code class="docutils literal"><span class="pre">3015</span></code>, <code class="docutils literal"><span class="pre">3016-01-01</span></code> or
+<code class="docutils literal"><span class="pre">May</span></code>).</p>
+</div>
+<p>Alter the form&#8217;s option and click <code class="docutils literal"><span class="pre">Query</span></code> until you get to an interesting
+cut of data, and click <code class="docutils literal"><span class="pre">SAVE</span> <span class="pre">AS</span></code>, enter a name, and you just created your first
+slice.</p>
+<a class="reference internal image-reference" href="_images/created.png"><img alt="_images/created.png" src="_images/created.png" style="width: 529.8px; height: 250.2px;" /></a>
+<p>This slice is now accessible in the slice list from the
+<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Slices</span></code> at any time. Note that this view is easily filterable and
+searchable.</p>
+<a class="reference internal image-reference" href="_images/search.png"><img alt="_images/search.png" src="_images/search.png" style="width: 304.2px; height: 307.8px;" /></a>
+<p>Now let&#8217;s create a dashboard. A dashboard is simply a collection of slices
+with metadata around their sizes, positions, CSS style and a few other things.
+Navigate to the dashboard list view <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboard</span></code> and click the plus
+(<code class="docutils literal"><span class="pre">+</span></code>) sign. In the form, enter a name and pick the slice you just created.</p>
+<a class="reference internal image-reference" href="_images/new_dash.png"><img alt="_images/new_dash.png" src="_images/new_dash.png" style="width: 274.2px; height: 211.2px;" /></a>
+<p>Hit <code class="docutils literal"><span class="pre">Save</span></code>, you should be back in <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboard</span></code>. Now enter your
+new dashboard.</p>
+<a class="reference internal image-reference" href="_images/in_new_dash.png"><img alt="_images/in_new_dash.png" src="_images/in_new_dash.png" style="width: 467.4px; height: 379.2px;" /></a>
+<p>Here you are. You can now resize and move the different slice(s), style them
+in the CSS modal window, and save right from here. For now, renaming the
+dashboard or adding on a new slice is done through the dashboard edit view,
+which is the same form as you used when you originally created the dashboard,
+and is accessible by clicking the <code class="docutils literal"><span class="pre">edit</span></code> pen icon from the dashboard list
+view (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboards</span></code>)</p>
+</div>
+
+
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.6.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
