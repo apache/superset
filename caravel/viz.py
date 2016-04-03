@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import uuid
+import hashlib
 
 from flask import flash, request, Markup
 from markdown import markdown
@@ -42,6 +43,8 @@ class BaseViz(object):
 
     def __init__(self, datasource, form_data, slice=None):
         self.orig_form_data = form_data
+        if not datasource:
+            raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
@@ -265,7 +268,8 @@ class BaseViz(object):
 
     @property
     def cache_key(self):
-        return self.get_url(json="true", force="false")
+        url = self.get_url(json="true", force="false")
+        return hashlib.md5(url).hexdigest()
 
     @property
     def csv_endpoint(self):

@@ -633,7 +633,6 @@ class Caravel(BaseView):
             qry = qry.filter_by(slug=dashboard_id)
 
         templates = session.query(models.CssTemplate).all()
-
         dash = qry.first()
 
         # Hack to log the dashboard_id properly, even when getting a slug
