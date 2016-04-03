@@ -285,6 +285,7 @@ class Database(Model, AuditMixinNullable):
     __tablename__ = 'dbs'
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
+    schema_name = Column(String(250))
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
@@ -333,11 +334,16 @@ class Database(Model, AuditMixinNullable):
         return {grain.name: grain for grain in self.grains()}
 
     def get_table(self, table_name):
-        meta = MetaData()
+        # cannot take self.schema_name as empty string
+        # instead use None object
+        if not self.schema_name:
+            self.schema_name = None
+        meta = MetaData(schema=self.schema_name)
         return Table(
             table_name, meta,
             autoload=True,
-            autoload_with=self.get_sqla_engine())
+            autoload_with=self.get_sqla_engine()
+        )
 
     def get_columns(self, table_name):
         engine = self.get_sqla_engine()
@@ -548,6 +554,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
+        from_clause.schema = self.database.schema_name
+
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -589,7 +597,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                     groupby_exprs[i] == column("__" + gb))
 
             from_clause = from_clause.join(subq.alias(), and_(*on_clause))
-
         qry = qry.select_from(from_clause)
 
         engine = self.database.get_sqla_engine()
