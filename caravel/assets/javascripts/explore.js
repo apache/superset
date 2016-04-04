@@ -6,6 +6,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var px = require('./modules/caravel.js');
+var showModal = require('./modules/utils.js').showModal;
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
@@ -181,8 +182,12 @@ function initExploreView() {
           $shortner.popover('destroy');
         }
       },
-      error: function () {
-        alert("Error :(");
+      error: function (error) {
+        showModal({
+          title: "Error",
+          body: "Sorry, an error occurred during this operation:<br/>" + error
+        });
+        console.warn("Short URL error", error);
       }
     });
   });
