@@ -128,9 +128,14 @@ function sankeyVis(slice) {
       slice.done(json);
     });
   };
+
+  var resize = function() {
+    div.select("svg").remove();
+    render();
+  };
   return {
     render: render,
-    resize: render
+    resize: resize
   };
 }
 
