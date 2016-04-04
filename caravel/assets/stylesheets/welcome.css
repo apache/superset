@@ -15,3 +15,7 @@ input {
     margin-left: 5px;
     margin-top: 8px;
 }
+
+.panel-body {
+    overflow: auto;
+}

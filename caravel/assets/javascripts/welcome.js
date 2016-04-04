@@ -31,7 +31,8 @@ function modelViewTable(selector, modelEndpoint) {
       pageLength: 10,
       bLengthChange: false,
       aaSorting: [],
-      searching: true
+      searching: true,
+      bInfo: false
     });
 
     var search = panel.find(".dataTables_filter input");
