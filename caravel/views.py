@@ -115,9 +115,9 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
+    list_columns = ['schema_name', 'database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
-    add_columns = ['database_name', 'sqlalchemy_uri', 'cache_timeout']
+    add_columns = ['schema_name', 'database_name', 'sqlalchemy_uri', 'cache_timeout']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
