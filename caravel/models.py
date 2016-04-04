@@ -575,6 +575,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             having_clause_and += [text(extras['having'])]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
+        else:
+            qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
         if groupby:
             qry = qry.order_by(desc(main_metric_expr))
