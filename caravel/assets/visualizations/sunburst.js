@@ -188,7 +188,7 @@ function sunburstVis(slice) {
       arcs.selectAll("path")
         .style("stroke-width", null)
         .style("stroke", null)
-        .style("opacity", 0.3);
+        .style("opacity", 0.7);
 
       // Then highlight only those that are an ancestor of the current segment.
       arcs.selectAll("path")
