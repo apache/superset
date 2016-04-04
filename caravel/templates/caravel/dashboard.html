@@ -72,17 +72,17 @@
     <ul>
         {% for slice in dashboard.slices %}
           {% set pos = pos_dict.get(slice.id, {}) %}
-          {% set viz = slice.viz %}
+
 
           <li
             id="slice_{{ slice.id }}"
             slice_id="{{ slice.id }}"
-            class="widget {{ slice.viz.viz_type }}"
+            class="widget {{ slice.viz_type }}"
             data-row="{{ pos.row or 1 }}"
             data-col="{{ pos.col or loop.index }}"
             data-sizex="{{ pos.size_x or 4 }}"
             data-sizey="{{ pos.size_y or 4 }}">
-            
+
             <div class="chart-header">
               <div class="row">
                 <div class="col-md-12 text-center header">
@@ -124,9 +124,9 @@
             </div>
             <div class="row chart-container">
               <input type="hidden" slice_id="{{ slice.id }}" value="false">
-              <div id="{{ viz.token }}" class="token col-md-12">
+              <div id="{{ slice.token }}" class="token col-md-12">
                 <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
-                <div class="slice_container" id="{{ viz.token }}_con"></div>
+                <div class="slice_container" id="{{ slice.token }}_con"></div>
               </div>
             </div>
           </li>
