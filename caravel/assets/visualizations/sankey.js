@@ -20,6 +20,7 @@ function sankeyVis(slice) {
 
     var formatNumber = d3.format(",.0f");
 
+    div.selectAll("*").remove();
     var svg = div.append("svg")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
