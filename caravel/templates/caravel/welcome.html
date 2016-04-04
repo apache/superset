@@ -17,18 +17,44 @@
   <hr/>
   <div class="row">
     <div class="col-md-6">
-      <div class="widget">
-        <div class="header"><h4><i class="fa fa-dashboard"></i> Dashboards</h4></div>
-        <div>
-          <table id="dash_table" class="table"></table>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="row">
+            <div class="col-md-12">
+              <span class="pull-left">
+                <h5><i class="fa fa-dashboard"></i> Dashboards</h5>
+              </span>
+              <span class="search pull-right"></span>
+              <span class="pull-right">
+                <h5><i class="fa fa-search"></i></h5>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <img class="loading" src="/static/assets/images/loading.gif"/>
+          <table id="dash_table" class="table table-condensed" width="100%"></table>
         </div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="widget">
-        <div class="header"><h4><i class="fa fa-bar-chart"></i> Slices</h4></div>
-        <div>
-          <table id="slice_table" class="table"></table>
+      <div class="panel panel-default">
+        <div class="panel-heading">
+          <div class="row">
+            <div class="col-md-12">
+              <span class="pull-left">
+                <h5><i class="fa fa-bar-chart"></i> Slices</h5>
+              </span>
+              <span class="search pull-right"></span>
+              <span class="pull-right">
+                <h5><i class="fa fa-search"></i></h5>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="panel-body">
+          <img class="loading" src="/static/assets/images/loading.gif"/>
+          <table id="slice_table" class="table table-condensed" width="100%"></table>
         </div>
       </div>
     </div>
