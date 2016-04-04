@@ -2,6 +2,7 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var px = require('./modules/caravel.js');
 var d3 = require('d3');
+var showModal = require('./modules/utils.js').showModal;
 require('bootstrap');
 
 var ace = require('brace');
@@ -147,10 +148,17 @@ var Dashboard = function (dashboardData) {
             data: JSON.stringify(data)
           },
           success: function () {
-            alert("Saved!");
+            showModal({
+              title: "Success",
+              body: "This dashboard was saved successfully."
+            });
           },
-          error: function () {
-            alert("Error :(");
+          error: function (error) {
+            showModal({
+              title: "Error",
+              body: "Sorry, there was an error saving this dashboard:<br />" + error
+            });
+            console.warn("Save dashboard error", error);
           }
         });
       });
@@ -178,7 +186,10 @@ var Dashboard = function (dashboardData) {
 
       });
       $('#filters').click(function () {
-        alert(dashboard.readFilters());
+        showModal({
+          title: "<span class='fa fa-info-circle'></span> Current Global Filters",
+          body: "The following global filters are currently applied:<br/>" + dashboard.readFilters()
+        });
       });
       $('#refresh_dash').click(function () {
         dashboard.slices.forEach(function (slice) {
