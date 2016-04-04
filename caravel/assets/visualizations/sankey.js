@@ -129,10 +129,11 @@ function sankeyVis(slice) {
     });
   };
 
-  var resize = function() {
+  var resize = function () {
     div.select("svg").remove();
     render();
   };
+
   return {
     render: render,
     resize: resize
