@@ -1,7 +1,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 
-require('datatables');
+require('datatables.net-bs');
 require('./pivot_table.css');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 

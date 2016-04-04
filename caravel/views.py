@@ -248,6 +248,9 @@ class SliceAsync(SliceModelView):  # noqa
         'created_by_', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
+        'created_by_': 'Creator',
+        'viz_type': 'Type',
+        'slice_link': 'Slice',
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
@@ -298,6 +301,10 @@ appbuilder.add_view(
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'created_by_', 'modified']
+    label_columns = {
+        'created_by_': 'Creator',
+        'dashboard_link': 'Dashboard',
+    }
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
