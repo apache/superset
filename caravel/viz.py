@@ -243,7 +243,7 @@ class BaseViz(object):
                 'data': self.get_data(),
                 'query': self.query,
                 'form_data': self.form_data,
-                'json_endpoint': cache_key,
+                'json_endpoint': self.json_endpoint,
                 'csv_endpoint': self.csv_endpoint,
                 'standalone_endpoint': self.standalone_endpoint,
                 'cache_timeout': cache_timeout,
