@@ -30,10 +30,6 @@ def upgrade():
     sa.Column('metadata_last_refreshed', sa.DateTime(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('cluster_name')
     )
@@ -43,12 +39,8 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('dashboard_title', sa.String(length=500), nullable=True),
     sa.Column('position_json', sa.Text(), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('dbs',
@@ -57,12 +49,8 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('database_name', sa.String(length=250), nullable=True),
     sa.Column('sqlalchemy_uri', sa.String(length=1024), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('database_name')
     )
@@ -77,14 +65,8 @@ def upgrade():
     sa.Column('default_endpoint', sa.Text(), nullable=True),
     sa.Column('user_id', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('cluster_name', sa.String(length=250), sa.ForeignKey("clusters.cluster_name"), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=False),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=False),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['cluster_name'], ['clusters.cluster_name'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['user_id'], ['ab_user.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('datasource_name')
     )
@@ -96,13 +78,8 @@ def upgrade():
     sa.Column('main_dttm_col', sa.String(length=250), nullable=True),
     sa.Column('default_endpoint', sa.Text(), nullable=True),
     sa.Column('database_id', sa.Integer(), sa.ForeignKey("dbs.id"), nullable=False),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['database_id'], ['dbs.id'], ),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('table_name')
     )
@@ -121,13 +98,8 @@ def upgrade():
     sa.Column('min', sa.Boolean(), nullable=True),
     sa.Column('filterable', sa.Boolean(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['datasource_name'], ['datasources.datasource_name'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('metrics',
@@ -152,14 +124,8 @@ def upgrade():
     sa.Column('datasource_name', sa.String(length=2000), nullable=True),
     sa.Column('viz_type', sa.String(length=250), nullable=True),
     sa.Column('params', sa.Text(), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['druid_datasource_id'], ['datasources.id'], ),
-    # sa.ForeignKeyConstraint(['table_id'], ['tables.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('sql_metrics',
@@ -174,11 +140,6 @@ def upgrade():
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['table_id'], ['tables.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('table_columns',
@@ -199,19 +160,12 @@ def upgrade():
     sa.Column('description', sa.Text(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    # sa.Column('created_by_fk', sa.Integer(), nullable=True),
-    # sa.Column('changed_by_fk', sa.Integer(), nullable=True),
-    # sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-    # sa.ForeignKeyConstraint(['table_id'], ['tables.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_table('dashboard_slices',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('dashboard_id', sa.Integer(), sa.ForeignKey("dashboards.id"), nullable=True),
     sa.Column('slice_id', sa.Integer(), sa.ForeignKey("slices.id"), nullable=True),
-    # sa.ForeignKeyConstraint(['dashboard_id'], ['dashboards.id'], ),
-    # sa.ForeignKeyConstraint(['slice_id'], ['slices.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
     ### end Alembic commands ###
