@@ -230,8 +230,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     }
     list_columns = [
         'slice_link', 'viz_type',
-        'datasource_link', 'created_by_', 'changed_on']
-    order_columns = utils.list_minus(list_columns, ['created_by_'])
+        'datasource_link', 'created_by_', 'modified']
+    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params', 'cache_timeout']
@@ -271,8 +271,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     label_columns = {
         'created_by_': 'Creator',
     }
-    list_columns = ['dashboard_link', 'created_by_', 'changed_on']
-    order_columns = utils.list_minus(list_columns, ['created_by_'])
+    list_columns = ['dashboard_link', 'created_by_', 'modified']
+    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'position_json', 'css',
         'json_metadata']

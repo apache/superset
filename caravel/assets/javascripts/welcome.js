@@ -1,7 +1,6 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 
-require('../stylesheets/caravel.css');
 require('../stylesheets/welcome.css');
 require('bootstrap');
 require('datatables.net-bs');
