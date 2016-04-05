@@ -257,7 +257,8 @@ class BaseViz(object):
 
     def get_csv(self):
         df = self.get_df()
-        return df.to_csv(index=False)
+        include_index = not isinstance(df.index, pd.RangeIndex)
+        return df.to_csv(index=include_index)
 
     def get_data(self):
         return []
