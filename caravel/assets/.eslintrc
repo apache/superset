@@ -63,7 +63,7 @@
     "newline-after-var": [0],
     "no-bitwise": [0],
     "no-cond-assign": [2],
-    "no-console": [2],
+    "no-console": [1, { allow: ["warn", "error"] }],
     "no-const-assign": [2],
     "no-constant-condition": [2],
     "no-control-regex": [2],

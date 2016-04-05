@@ -1,3 +1,4 @@
+var $ = require('jquery');
 var d3 = require('d3');
 
 /*
@@ -50,6 +51,30 @@ function wrapSvgText(text, width, adjustedY) {
   });
 }
 
+/**
+ * Sets the body and title content of a modal, and shows it. Assumes HTML for modal exists and that
+ * it handles closing (i.e., works with bootstrap)
+ *
+ * @param {object} options object of the form
+ *  {
+ *    title: {string},
+ *    body: {string},
+ *    modalSelector: {string, default: '.misc-modal' },
+ *    titleSelector: {string, default: '.misc-modal .modal-title' },
+ *    bodySelector:  {string, default: '.misc-modal .modal-body' },
+ *   }
+ */
+function showModal(options) {
+  options.modalSelector = options.modalSelector || ".misc-modal";
+  options.titleSelector = options.titleSelector || ".misc-modal .modal-title";
+  options.bodySelector = options.bodySelector || ".misc-modal .modal-body";
+
+  $(options.titleSelector).html(options.title || "");
+  $(options.bodySelector).html(options.body || "");
+  $(options.modalSelector).modal("show");
+}
+
 module.exports = {
-  wrapSvgText: wrapSvgText
+  wrapSvgText: wrapSvgText,
+  showModal: showModal
 };

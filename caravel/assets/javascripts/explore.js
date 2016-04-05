@@ -6,6 +6,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var px = require('./modules/caravel.js');
+var showModal = require('./modules/utils.js').showModal;
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
@@ -53,7 +54,7 @@ function prepForm() {
   });
 }
 
-function druidify(force, pushState) {
+function query(force, pushState) {
   if (force === undefined) {
     force = false;
   }
@@ -89,9 +90,9 @@ function initExploreView() {
 
     if (parent.hasClass("collapsed")) {
       if (animation) {
-        parent.find(".fieldset_content").slideDown();
+        parent.find(".panel-body").slideDown();
       } else {
-        parent.find(".fieldset_content").show();
+        parent.find(".panel-body").show();
       }
       parent.removeClass("collapsed");
       parent.find("span.collapser").text("[-]");
@@ -103,9 +104,9 @@ function initExploreView() {
       }
     } else { // not collapsed
       if (animation) {
-        parent.find(".fieldset_content").slideUp();
+        parent.find(".panel-body").slideUp();
       } else {
-        parent.find(".fieldset_content").hide();
+        parent.find(".panel-body").hide();
       }
 
       parent.addClass("collapsed");
@@ -121,8 +122,9 @@ function initExploreView() {
 
   px.initFavStars();
 
-  $('legend').click(function () {
+  $('form .panel-heading').click(function () {
     toggle_fieldset($(this), true);
+    $(this).css('cursor', 'pointer');
   });
 
   function copyURLToClipboard(url) {
@@ -181,8 +183,12 @@ function initExploreView() {
           $shortner.popover('destroy');
         }
       },
-      error: function () {
-        alert("Error :(");
+      error: function (error) {
+        showModal({
+          title: "Error",
+          body: "Sorry, an error occurred during this operation:<br/>" + error
+        });
+        console.warn("Short URL error", error);
       }
     });
   });
@@ -260,8 +266,8 @@ function initExploreView() {
     }
   });
 
-  $(".druidify").click(function () {
-    druidify(true);
+  $(".query").click(function () {
+    query(true);
   });
 
   function create_choices(term, data) {
@@ -325,7 +331,7 @@ $(document).ready(function () {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
-  druidify(false, false);
+  query(false, false);
 
   // make checkbox inputs display as toggles
   $(':checkbox')

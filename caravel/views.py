@@ -117,7 +117,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
     order_columns = utils.list_minus(list_columns, ['created_by_'])
-    add_columns = ['database_name', 'sqlalchemy_uri', 'cache_timeout']
+    add_columns = [
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
@@ -127,7 +128,16 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'sqlalchemy_uri': (
             "Refer to the SqlAlchemy docs for more information on how "
             "to structure your URI here: "
-            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html")
+            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
+        'extra': utils.markdown(
+            "JSON string containing extra configuration elements. "
+            "The ``engine_params`` object gets unpacked into the "
+            "[sqlalchemy.create_engine]"
+            "(http://docs.sqlalchemy.org/en/latest/core/engines.html#"
+            "sqlalchemy.create_engine) call, while the ``metadata_params`` "
+            "gets unpacked into the [sqlalchemy.MetaData]"
+            "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
+            "#sqlalchemy.schema.MetaData) call. ", True),
     }
 
     def pre_add(self, db):
@@ -220,8 +230,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     }
     list_columns = [
         'slice_link', 'viz_type',
-        'datasource_link', 'created_by_', 'changed_on']
-    order_columns = utils.list_minus(list_columns, ['created_by_'])
+        'datasource_link', 'created_by_', 'modified']
+    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
         'table', 'dashboards', 'params', 'cache_timeout']
@@ -248,6 +258,9 @@ class SliceAsync(SliceModelView):  # noqa
         'created_by_', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
+        'created_by_': 'Creator',
+        'viz_type': 'Type',
+        'slice_link': 'Slice',
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
@@ -258,8 +271,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     label_columns = {
         'created_by_': 'Creator',
     }
-    list_columns = ['dashboard_link', 'created_by_', 'changed_on']
-    order_columns = utils.list_minus(list_columns, ['created_by_'])
+    list_columns = ['dashboard_link', 'created_by_', 'modified']
+    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'position_json', 'css',
         'json_metadata']
@@ -298,6 +311,10 @@ appbuilder.add_view(
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'created_by_', 'modified']
+    label_columns = {
+        'created_by_': 'Creator',
+        'dashboard_link': 'Dashboard',
+    }
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
@@ -759,7 +776,7 @@ class Caravel(BaseView):
                 "[" + cluster.cluster_name + "]",
                 'info')
         session.commit()
-        return redirect("/datasourcemodelview/list/")
+        return redirect("/druiddatasourcemodelview/list/")
 
     @expose("/autocomplete/<datasource>/<column>/")
     def autocomplete(self, datasource, column):

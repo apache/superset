@@ -51,7 +51,7 @@
     "d3-tip": "^0.6.7",
     "datamaps": "^0.4.4",
     "datatables-bootstrap3-plugin": "^0.4.0",
-    "datatables.net": "^1.10.11",
+    "datatables.net-bs": "^1.10.11",
     "exports-loader": "^0.6.3",
     "font-awesome": "^4.5.0",
     "gridster": "^0.5.6",

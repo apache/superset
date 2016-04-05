@@ -116,35 +116,12 @@ span.title-block {
     font-size: 20px;
 }
 
-fieldset.fs-style {
-    font-family: Verdana, Arial, sans-serif;
-    font-size: small;
-    font-weight: normal;
-    border: 1px solid #CCC;
-    background-color: #F4F4F4;
-    border-radius: 6px;
-    padding: 10px;
-    margin: 0px 0px 10px 0px;
-}
-legend.legend-style {
-    font-size: 14px;
-    padding: 0px 6px;
-    cursor: pointer;
-    margin: 0px;
-    color: #444;
-    background-color: transparent;
-    font-weight: bold;
-}
 .nvtooltip {
     //position: relative !important;
     z-index: 888;
 }
 .nvtooltip table td{
     font-size: 11px !important;
-}
-legend {
-    width: auto;
-    border-bottom: 0px;
 }
 .navbar {
   -webkit-box-shadow: 0px 3px 3px #AAA;

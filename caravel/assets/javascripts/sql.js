@@ -1,5 +1,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
+var showModal = require('./modules/utils.js').showModal;
+
 require('select2');
 require('datatables');
 require('bootstrap');
@@ -41,7 +43,10 @@ $(document).ready(function () {
     $("#dbtable").on("change", showTableMetadata);
     showTableMetadata();
     $("#create_view").click(function () {
-      alert("Not implemented");
+      showModal({
+        title: "Error",
+        body: "Sorry, this feature is not yet implemented"
+      });
     });
     $(".sqlcontent").show();
 

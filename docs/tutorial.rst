@@ -15,8 +15,8 @@ Now click on the ``+`` button to add a new entry
    :scale: 30 %
 
 Fill in an arbitrary reference name for the database, and you SqlAlchemy
-URI. To figure out how to construct your URI, check out the `SqlAlchemy 
-documentation  <http://http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html/>`_.
+URI. To figure out how to construct your URI, check out the
+`SqlAlchemy documentation  <http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html>`_.
 Then you can test your connection. If it works, you'll see a positive popup
 and list of the tables that SqlAlchemy has found for that URI.
 
