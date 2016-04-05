@@ -776,7 +776,7 @@ class Caravel(BaseView):
                 "[" + cluster.cluster_name + "]",
                 'info')
         session.commit()
-        return redirect("/datasourcemodelview/list/")
+        return redirect("/druiddatasourcemodelview/list/")
 
     @expose("/autocomplete/<datasource>/<column>/")
     def autocomplete(self, datasource, column):
