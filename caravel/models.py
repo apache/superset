@@ -337,6 +337,14 @@ class Database(Model, AuditMixinNullable):
                 Grain('week', 'DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY)'),
                 Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
             ),
+            'postgresql': (
+                Grain("Time Column", "{col}"),
+                Grain("hour", "DATE_TRUNC('hour', {col})"),
+                Grain("day", "DATE_TRUNC('day', {col})"),
+                Grain("week", "DATE_TRUNC('week', {col})"),
+                Grain("month", "DATE_TRUNC('month', {col})"),
+                Grain("year", "DATE_TRUNC('year', {col})"),
+            ),
         }
         for db_type, grains in db_time_grains.items():
             if self.sqlalchemy_uri.startswith(db_type):
