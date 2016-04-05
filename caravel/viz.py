@@ -1043,7 +1043,20 @@ class SankeyViz(BaseViz):
     def get_data(self):
         df = self.get_df()
         df.columns = ['source', 'target', 'value']
-        return df.to_dict(orient='records')
+        recs = df.to_dict(orient='records')
+        seen = set()
+        hierarchy = {row['source']: row['target'] for row in recs}
+        def find_loop(source, target):
+            if target in seen:
+                raise Exception(
+                    "There's a loop in your Sankey, please provide "
+                    "a DAG. Loop identified at: {}".format((source, target)))
+            seen.add(source)
+            if target in hierarchy:
+                find_loop(target, hierarchy[target])
+        for row in recs:
+            find_loop(row['source'], row['target'])
+        return recs
 
 
 class DirectedForceViz(BaseViz):
