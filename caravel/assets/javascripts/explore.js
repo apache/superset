@@ -192,8 +192,14 @@ function initExploreView() {
       }
     });
   });
+
   $("#viz_type").change(function () {
     $("#query").submit();
+  });
+
+  $("#datasource_id").change(function () {
+    var url = $(this).find('option:selected').attr('url');
+    window.location = url;
   });
 
   var collapsed_fieldsets = get_collapsed_fieldsets();

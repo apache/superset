@@ -467,10 +467,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return self.table_name
 
     @property
+    def explore_url(self):
+        if self.default_endpoint:
+            return self.default_endpoint
+        else:
+            return "/caravel/explore/{self.type}/{self.id}/".format(self=self)
+
+    @property
     def table_link(self):
-        url = "/caravel/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.table_name}</a>'.format(
-            url=url, self=self)
+        return '<a href="{self.explore_url}">{self.table_name}</a>'.format(self=self)
 
     @property
     def metrics_combo(self):
