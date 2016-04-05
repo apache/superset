@@ -35,10 +35,17 @@ function modelViewTable(selector, modelEndpoint) {
       bInfo: false
     });
 
+    // Hack to move the searchbox in the right spot
     var search = panel.find(".dataTables_filter input");
     search.addClass('form-control').detach();
     search.appendTo(panel.find(".search"));
     panel.find('.dataTables_filter').remove();
+
+    // Hack to display the page navigator properly
+    panel.find('.col-sm-5').remove();
+    var nav = panel.find('.col-sm-7');
+    nav.removeClass('col-sm-7');
+    nav.addClass('col-sm-12');
 
     $(selector).slideDown();
     $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
