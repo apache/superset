@@ -296,7 +296,7 @@ class Database(Model, AuditMixinNullable):
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
-        "engine_params": {},
+        "engine_params": {}
     }
     """))
 
