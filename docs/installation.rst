@@ -44,6 +44,9 @@ attempt it: ::
     C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
     C:\> pip install cryptography
 
+    # You may also have to create C:\Temp
+    C:\> md C:\Temp
+
 
 Caravel installation and initialization
 ---------------------------------------

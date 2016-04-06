@@ -29,18 +29,16 @@
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
       <div class="header">
-          <span class="btn btn-default notbtn" title="datasource" data-toggle="tooltip">
-            {{ datasource.full_name }}
-            {% if datasource.description %}
-            <a data-toggle="modal" data-target="#sourceinfo_modal">
-              <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ datasource.description }}"></i>
-            </a>
-            {% endif %}
-              <a class="" href="/{{ datasource.baselink }}/edit/{{ datasource.id }}" data-toggle="tooltip" title="Edit">
-                <i class="fa fa-edit"></i>
-              </a>
+          <span title="Data Source" data-toggle="tooltip">
+            <select id="datasource_id" class="select2">
+              {% for ds in datasources %}
+                <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
+              {% endfor %}
+            </select>
           </span>
-          <span>{{ form.get_field("viz_type")(class_="select2") }}</span>
+          <span title="Visualization Type" data-toggle="tooltip">
+            {{ form.get_field("viz_type")(class_="select2") }}
+          </span>
           {% if slice %}
             <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip" data-placement="bottom">
                 <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>

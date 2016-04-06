@@ -435,12 +435,14 @@ class Caravel(BaseView):
     def explore(self, datasource_type, datasource_id):
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
-        datasource = (
+        datasources = (
             db.session
             .query(datasource_class)
-            .filter_by(id=datasource_id)
-            .first()
+            .all()
         )
+        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+        datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
+        datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
         if slice_id:
@@ -450,7 +452,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash("The datasource seem to have been deleted", "alert")
+            flash("The datasource seems to have been deleted", "alert")
 
         all_datasource_access = self.appbuilder.sm.has_access(
             'all_datasource_access', 'all_datasource_access')
@@ -503,7 +505,8 @@ class Caravel(BaseView):
             else:
                 template = "caravel/explore.html"
 
-            resp = self.render_template(template, viz=obj, slice=slc)
+            resp = self.render_template(
+                template, viz=obj, slice=slc, datasources=datasources)
             try:
                 pass
             except Exception as e:
