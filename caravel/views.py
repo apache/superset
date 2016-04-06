@@ -223,6 +223,7 @@ if config['DRUID_IS_ACTIVE']:
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
+    add_template = "caravel/add_slice.html"
     can_add = False
     label_columns = {
         'created_by_': 'Creator',
@@ -404,6 +405,12 @@ class R(BaseView):
         db.session.commit()
         return("{request.headers[Host]}/r/{obj.id}".format(
             request=request, obj=obj))
+
+    @expose("/msg/")
+    def msg(self):
+        """Redirects to specified url while flash a message"""
+        flash(request.args.get("msg"), "info")
+        return redirect(request.args.get("url"))
 
 appbuilder.add_view_no_menu(R)
 
