@@ -33,6 +33,7 @@ Contents
     installation
     tutorial
     videos
+    gallery
 
 
 Indices and tables
