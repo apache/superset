@@ -30,8 +30,13 @@ Look through the GitHub issues for features. Anything tagged with
 
 ### Documentation
 
+<<<<<<< HEAD
 Dashed could always use better documentation,
 whether as part of the official Dashed docs,
+=======
+Caravel could always use better documentation,
+whether as part of the official Caravel docs,
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -49,14 +54,22 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
+<<<<<<< HEAD
 [API Documentation](http://pythonhosted.com/dashed)
+=======
+[API Documentation](http://pythonhosted.com/caravel)
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 ## Setting up a Python development environment
 
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
+<<<<<<< HEAD
     # git clone git@github.com:mistercrunch/dashed.git
+=======
+    # git clone git@github.com:airbnb/caravel.git
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -66,6 +79,7 @@ If you are proposing a feature:
     python setup.py develop
 
     # Create an admin user
+<<<<<<< HEAD
     fabmanager create-admin --app dashed
 
     # Initialize the database
@@ -79,11 +93,30 @@ If you are proposing a feature:
 
     # start a dev web server
     dashed runserver -d
+=======
+    fabmanager create-admin --app caravel
+
+    # Initialize the database
+    caravel db upgrade
+
+    # Create default roles and permissions
+    caravel init
+
+    # Load some data to play with
+    caravel load_examples
+
+    # start a dev web server
+    caravel runserver -d
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 
 ## Setting up the node / npm javascript environment
 
+<<<<<<< HEAD
 `dashed/assets` contains all npm-managed, front end assets.
+=======
+`caravel/assets` contains all npm-managed, front end assets.
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
 While these may be phased out over time, these packages are currently not
 managed with npm.
@@ -116,7 +149,11 @@ new `node_modules/` folder within `assets/`.
 npm install
 ```
 
+<<<<<<< HEAD
 To parse and generate bundled files for dashed, run either of the
+=======
+To parse and generate bundled files for caravel, run either of the
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
@@ -132,7 +169,11 @@ For every development session you will have to start a flask dev server
 as well as an npm watcher
 
 ```
+<<<<<<< HEAD
 dashed runserver -d -p 8081
+=======
+caravel runserver -d -p 8081
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 npm run dev
 ```
 
@@ -157,12 +198,21 @@ Generate the documentation with:
     cd docs && ./build.sh
 
 ## CSS Themes
+<<<<<<< HEAD
 As part of the npm build process, CSS for Dashed is compiled from ```Less```, a dynamic stylesheet language.
 
 It's possible to customize or add your own theme to Dashed, either by overriding CSS rules or preferably
 by modifying the Less variables or files in ```assets/stylesheets/less/```.
 
 The ```variables.less``` and ```bootswatch.less``` files that ship with Dashed are derived from
+=======
+As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
+
+It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
+by modifying the Less variables or files in ```assets/stylesheets/less/```.
+
+The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 

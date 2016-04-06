@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 #
+<<<<<<< HEAD
 # dashed documentation build configuration file, created by
+=======
+# caravel documentation build configuration file, created by
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 # sphinx-quickstart on Thu Dec 17 15:42:06 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -33,6 +37,7 @@ import sphinx_bootstrap_theme
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.viewcode',
+    'sphinxcontrib.youtube',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -50,7 +55,11 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
+<<<<<<< HEAD
 project = u'dashed'
+=======
+project = u'caravel'
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 copyright = u'2015, Maxime Beauchemin, Airbnb'
 author = u'Maxime Beauchemin'
 
@@ -119,10 +128,17 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
+<<<<<<< HEAD
     #'bootswatch_theme': 'simplex',
     'navbar_title': 'Dashed Documentation',
+=======
+    # 'bootswatch_theme': 'cosmo',
+    'navbar_title': 'Caravel Documentation',
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
     'navbar_fixed_top': "false",
-    #'navbar_class': "navbar navbar-default",
+    'navbar_sidebarrel': False,
+    'navbar_site_name': "Topics",
+    #'navbar_class': "navbar navbar-left",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -185,7 +201,7 @@ html_show_sourcelink = False
 #html_show_sphinx = True
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-#html_show_copyright = True
+html_show_copyright = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
@@ -210,7 +226,11 @@ html_show_sourcelink = False
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
+<<<<<<< HEAD
 htmlhelp_basename = 'dasheddoc'
+=======
+htmlhelp_basename = 'caraveldoc'
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -232,7 +252,11 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
+<<<<<<< HEAD
   (master_doc, 'dashed.tex', u'Dashed Documentation',
+=======
+  (master_doc, 'caravel.tex', u'Caravel Documentation',
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
    u'Maxime Beauchemin', 'manual'),
 ]
 
@@ -262,7 +286,11 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
+<<<<<<< HEAD
     (master_doc, 'Dashed', u'dashed Documentation',
+=======
+    (master_doc, 'Caravel', u'caravel Documentation',
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
      [author], 1)
 ]
 
@@ -276,8 +304,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
+<<<<<<< HEAD
   (master_doc, 'Dashed', u'Dashed Documentation',
    author, 'Dashed', 'One line description of project.',
+=======
+  (master_doc, 'Caravel', u'Caravel Documentation',
+   author, 'Caravel', 'One line description of project.',
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
    'Miscellaneous'),
 ]
 

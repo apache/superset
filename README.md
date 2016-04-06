@@ -1,24 +1,50 @@
+<<<<<<< HEAD
 Dashed
+=======
+Caravel
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 =========
+<img src="http://i.imgur.com/H0Kyvyi.jpg" style="border-radius: 20px; box-shadow:5px 5px 5px gray;" alt="Caravel" width="500"/>
 
+<<<<<<< HEAD
 [![Join the chat at https://gitter.im/mistercrunch/dashed](https://badges.gitter.im/mistercrunch/dashed.svg)](https://gitter.im/mistercrunch/dashed?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 ![img](https://travis-ci.org/mistercrunch/dashed.svg?branch=master)
 [![Coverage Status](https://coveralls.io/repos/mistercrunch/dashed/badge.svg?branch=master&service=github)](https://coveralls.io/github/mistercrunch/dashed?branch=master)
 [![Code Health](https://landscape.io/github/mistercrunch/dashed/immune_to_filter/landscape.svg?style=flat)](https://landscape.io/github/mistercrunch/dashed/master)
 
 Dashed is a data exploration platform designed to be visual, intuitive
+=======
+[![Build Status](https://travis-ci.org/airbnb/caravel.svg?branch=master)](https://travis-ci.org/airbnb/caravel)
+[![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
+[![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
+[![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
+[![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
+[![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
+
+Caravel is a data exploration platform designed to be visual, intuitive
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 and interactive.
 
+[this project used to be named **Panoramix**]
 
+<<<<<<< HEAD
 Video - Introduction to Dashed
 ---------------------------------
 [![Dashed - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+=======
+
+Video - Introduction to Caravel
+---------------------------------
+[![Caravel - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 Screenshots
 ------------
-![img](http://i.imgur.com/bi09J9X.png)
-![img](http://i.imgur.com/aOaH0ty.png)
+![img](http://i.imgur.com/JRbTnTx.png)
+![img](http://i.imgur.com/4wRtxwb.png)
 
+<<<<<<< HEAD
 Dashed
 ---------
 Dashed's main goal is to make it easy to slice, dice and visualize data.
@@ -27,49 +53,59 @@ It empowers its user to perform **analytics at the speed of thought**.
 Dashed provides:
 * A quick way to intuitively visualize datasets
 * Create and share interactive dashboards
+=======
+Caravel
+---------
+Caravel's main goal is to make it easy to slice, dice and visualize data.
+It empowers users to perform **analytics at the speed of thought**.
+
+Caravel provides:
+* A quick way to intuitively visualize datasets by allowing users to create and share interactive dashboards
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 * A rich set of visualizations to analyze your data, as well as a flexible
     way to extend the capabilities
 * An extensible, high granularity security model allowing intricate rules
     on who can access which features, and integration with major
     authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
     through Flask AppBuiler)
-* A simple semantic layer, allowing to control how data sources are 
+* A simple semantic layer, allowing to control how data sources are
     displayed in the UI,
     by defining which fields should show up in which dropdown and which
     aggregation and function (metrics) are made available to the user
+<<<<<<< HEAD
 * Deep integration with Druid allows for Dashed to stay blazing fast while
+=======
+* Deep integration with Druid allows for Caravel to stay blazing fast while
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
     slicing and dicing large, realtime datasets
 
-
-Buzz Phrases
-------------
-
-* Analytics at the speed of thought!
-* Instantaneous learning curve
-* Realtime analytics when querying [Druid.io](http://druid.io)
-* Extentsible to infinity
 
 Database Support
 ----------------
 
+<<<<<<< HEAD
 Dashed was originally designed on to of Druid.io, but quickly broadened
+=======
+Caravel was originally designed on top of Druid.io, but quickly broadened
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 its scope to support other databases through the use of SqlAlchemy, a Python
 ORM that is compatible with
-[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html). 
+[most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
 
 What is Druid?
 -------------
 From their website at http://druid.io
 
-*Druid is an open-source analytics data store designed for 
-business intelligence (OLAP) queries on event data. Druid provides low 
-latency (real-time) data ingestion, flexible data exploration, 
-and fast data aggregation. Existing Druid deployments have scaled to 
-trillions of events and petabytes of data. Druid is best used to 
+*Druid is an open-source analytics data store designed for
+business intelligence (OLAP) queries on event data. Druid provides low
+latency (real-time) data ingestion, flexible data exploration,
+and fast data aggregation. Existing Druid deployments have scaled to
+trillions of events and petabytes of data. Druid is best used to
 power analytic dashboards and applications.*
 
 
+<<<<<<< HEAD
 Installation
 ------------
 
@@ -150,34 +186,58 @@ the [Flask App Builder Documentation](http://flask-appbuilder.readthedocs.org/en
 ``Admin->Refresh Metadata`` menu item to populate
 
 * Navigate to your datasources
+=======
+Installation & Configuration
+----------------------------
+
+[See in the documentation](http://airbnb.io/caravel/installation.html)
+
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 More screenshots
 ----------------
 
-![img](http://i.imgur.com/Rt6gNQ9.png)
-![img](http://i.imgur.com/t7VOtqQ.png)
-![img](http://i.imgur.com/PaiFQnH.png)
-![img](http://i.imgur.com/CdcGHuC.png)
+![img](http://i.imgur.com/MAFZTtU.png)
+![img](http://i.imgur.com/xcy1QjN.png)
+![img](http://i.imgur.com/RWqA8ly.png)
+![img](http://i.imgur.com/D2kZL7q.png)
+![img](http://i.imgur.com/0UPTK61.png)
+![img](http://i.imgur.com/ahHoCuS.png)
 
-Related Links
+
+Resources
 -------------
+<<<<<<< HEAD
 * [Dashed Google Group] (https://groups.google.com/forum/#!forum/airbnb_dashed)
 * [Gitter (live chat) Channel](https://gitter.im/mistercrunch/dashed)
+=======
+* [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
+* [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
+* [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 
 Tip of the Hat
 --------------
 
+<<<<<<< HEAD
 Dashed would not be possible without these great frameworks / libs
+=======
+Caravel would not be possible without these great frameworks / libs
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 
 * Flask App Builder - Allowing us to focus on building the app quickly while
 getting the foundation for free
 * The Flask ecosystem - Simply amazing. So much Plug, easy play.
-* NVD3 - One of the best charting library out there
-* Much more, check out the requirements.txt file!
+* NVD3 - One of the best charting libraries out there
+* Much more, check out the `install_requires` section in the [setup.py](https://github.com/airbnb/caravel/blob/master/setup.py) file!
 
 
 Contributing
 ------------
 
+<<<<<<< HEAD
 Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/mistercrunch/dashed/blob/master/CONTRIBUTING.md)
+=======
+Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/airbnb/caravel/blob/master/CONTRIBUTING.md)
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
