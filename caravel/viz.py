@@ -833,6 +833,7 @@ class DistributionBarViz(DistributionPieViz):
             'metrics',
             'row_limit',
             ('show_legend', 'bar_stacked'),
+            ('y_axis_format', None),
         )
     },)
     form_overrides = {
