@@ -91,6 +91,8 @@
 <li><a class="reference internal" href="#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
 <li><a class="reference internal" href="#caching">Caching</a></li>
+<li><a class="reference internal" href="#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
+<li><a class="reference internal" href="#postgres-redshift">Postgres &amp; Redshift</a></li>
 <li><a class="reference internal" href="#druid">Druid</a></li>
 </ul>
 </li>
@@ -161,6 +163,9 @@ attempt it:</p>
 C:\&gt; set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
 C:\&gt; set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
 C:\&gt; pip install cryptography
+
+# You may also have to create C:\Temp
+C:\&gt; md C:\Temp
 </pre></div>
 </div>
 </div>
@@ -244,6 +249,26 @@ SimpleCache (in-memory), or the local filesystem).</p>
 up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
 data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
 into your global default defined in <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>.</p>
+</div>
+<div class="section" id="deeper-sqlalchemy-integration">
+<h2>Deeper SQLAlchemy integration<a class="headerlink" href="#deeper-sqlalchemy-integration" title="Permalink to this headline">¶</a></h2>
+<p>It is possible to tweak the database connection information using the
+parameters exposed by SQLAlchemy. In the <code class="docutils literal"><span class="pre">Database</span></code> edit view, you will
+find an <code class="docutils literal"><span class="pre">extra</span></code> field as a <code class="docutils literal"><span class="pre">JSON</span></code> blob.</p>
+<img alt="_images/add_db.png" src="_images/add_db.png" />
+<p>This JSON string contains extra configuration elements. The <code class="docutils literal"><span class="pre">engine_params</span></code>
+object gets unpacked into the
+<a class="reference external" href="http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine">sqlalchemy.create_engine</a> call,
+while the <code class="docutils literal"><span class="pre">metadata_params</span></code> get unpacked into the
+<a class="reference external" href="http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData">sqlalchemy.MetaData</a> call. Refer to the SQLAlchemy docs for more information.</p>
+</div>
+<div class="section" id="postgres-redshift">
+<h2>Postgres &amp; Redshift<a class="headerlink" href="#postgres-redshift" title="Permalink to this headline">¶</a></h2>
+<p>Postgres and Redshift use the concept of <strong>schema</strong> as a logical entity
+on top of the <strong>database</strong>. For Caravel to connect to a specific schema,
+you can either specify it in the <code class="docutils literal"><span class="pre">metadata_params</span></code> key of the <code class="docutils literal"><span class="pre">extra</span></code>
+JSON blob described above, or you can use a database user name to connect to
+the database that matches the schema name you are interested it.</p>
 </div>
 <div class="section" id="druid">
 <h2>Druid<a class="headerlink" href="#druid" title="Permalink to this headline">¶</a></h2>
