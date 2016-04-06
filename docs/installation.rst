@@ -138,6 +138,32 @@ data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
 
 
+Deeper SQLAlchemy integration
+-----------------------------
+
+It is possible to tweak the database connection information using the
+parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
+find an ``extra`` field as a ``JSON`` blob.
+
+.. image:: _static/img/tutorial/add_db.png
+
+This JSON string contains extra configuration elements. The ``engine_params``
+object gets unpacked into the
+`sqlalchemy.create_engine <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
+while the ``metadata_params`` get unpacked into the
+`sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+
+
+Postgres & Redshift
+-------------------
+
+Postgres and Redshift use the concept of **schema** as a logical entity
+on top of the **database**. For Caravel to connect to a specific schema,
+you can either specify it in the ``metadata_params`` key of the ``extra``
+JSON blob described above, or you can use a database user name to connect to
+the database that matches the schema name you are interested it.
+
+
 Druid
 -----
 
