@@ -36,6 +36,15 @@ def validate_json(form, field):  # noqa
         raise ValidationError("json isn't valid")
 
 
+def generate_download_headers(extension):
+    filename = datetime.now().strftime("%Y%m%d_%H%M%S")
+    content_disp = "attachment; filename={}.{}".format(filename, extension)
+    headers = {
+        "Content-Disposition": content_disp,
+    }
+    return headers
+
+
 class DeleteMixin(object):
     @action(
         "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
@@ -426,12 +435,14 @@ class Caravel(BaseView):
     def explore(self, datasource_type, datasource_id):
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
-        datasource = (
+        datasources = (
             db.session
             .query(datasource_class)
-            .filter_by(id=datasource_id)
-            .first()
+            .all()
         )
+        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+        datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
+        datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
         if slice_id:
@@ -441,7 +452,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash("The datasource seem to have been deleted", "alert")
+            flash("The datasource seems to have been deleted", "alert")
 
         all_datasource_access = self.appbuilder.sm.has_access(
             'all_datasource_access', 'all_datasource_access')
@@ -477,6 +488,7 @@ class Caravel(BaseView):
             resp = Response(
                 payload,
                 status=status,
+                headers=generate_download_headers("json"),
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":
@@ -485,6 +497,7 @@ class Caravel(BaseView):
             return Response(
                 payload,
                 status=status,
+                headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
             if request.args.get("standalone") == "true":
@@ -492,7 +505,8 @@ class Caravel(BaseView):
             else:
                 template = "caravel/explore.html"
 
-            resp = self.render_template(template, viz=obj, slice=slc)
+            resp = self.render_template(
+                template, viz=obj, slice=slc, datasources=datasources)
             try:
                 pass
             except Exception as e:
