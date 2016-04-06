@@ -4,15 +4,17 @@ babel
 .coverage
 _build
 _static
-dashed/bin/dashedc
+caravel/bin/caravelc
+env_py3
+.eggs
 build
 *.db
 tmp
-dashed_config.py
+caravel_config.py
 local_config.py
 env
 dist
-dashed.egg-info/
+caravel.egg-info/
 app.db
 *.bak
 

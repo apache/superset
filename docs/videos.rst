@@ -1,15 +1,15 @@
-User Guide
-==========
+Videos
+======
 
-The user guide is a collection of short videos showing different aspect
-of Panoramix.
+Here is a collection of short videos showing different aspect
+of Caravel.
 
 Quick Intro
 '''''''''''
-This video demonstrates how Panoramix works at a high level, it shows how
+This video demonstrates how Caravel works at a high level, it shows how
 to navigate through datasets and dashboards that are already available.
 
-- Coming soon!
+.. youtube:: https://www.youtube.com/watch?v=3Txm_nj_R7M
 
 Dashboard Creation
 ''''''''''''''''''
@@ -41,7 +41,7 @@ to toggle them on dashboards.
 
 Adding a Table
 ''''''''''''''
-This videos shows you how to expose a new table in Panoramix, and how to
+This videos shows you how to expose a new table in Caravel, and how to
 define the semantics on how this can be accessed by others in the ``Explore``
 and ``Dashboard`` views.
 

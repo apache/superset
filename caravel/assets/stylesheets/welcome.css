@@ -1,0 +1,21 @@
+.table i {
+  padding-top: 6px;
+}
+
+img.loading {
+    width: 25px;
+}
+
+.welcome table {
+    display: none;
+    width: 100%;
+}
+
+input {
+    margin-left: 5px;
+    margin-top: 8px;
+}
+
+.panel-body {
+    overflow: auto;
+}
