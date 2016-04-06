@@ -3,7 +3,8 @@ var jQuery = window.jQuery = $;
 var showModal = require('./modules/utils.js').showModal;
 
 require('select2');
-require('datatables');
+require('datatables.net-bs');
+require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 require('bootstrap');
 
 var ace = require('brace');
