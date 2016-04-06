@@ -36,6 +36,15 @@ def validate_json(form, field):  # noqa
         raise ValidationError("json isn't valid")
 
 
+def generate_download_headers(extension):
+    filename = datetime.now().strftime("%Y%m%d_%H%M%S")
+    content_disp = "attachment; filename={}.{}".format(filename, extension)
+    headers = {
+        "Content-Disposition": content_disp,
+    }
+    return headers
+
+
 class DeleteMixin(object):
     @action(
         "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
@@ -477,6 +486,7 @@ class Caravel(BaseView):
             resp = Response(
                 payload,
                 status=status,
+                headers=generate_download_headers("json"),
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":
@@ -485,6 +495,7 @@ class Caravel(BaseView):
             return Response(
                 payload,
                 status=status,
+                headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
             if request.args.get("standalone") == "true":
