@@ -1,9 +1,17 @@
 # TODO
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 List of TODO items for Caravel
 =======
 List of TODO items for Dashed
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+List of TODO items for Dashed
+=======
+List of TODO items for Caravel
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 
 ## Important
 * **Getting proper JS testing:** unit tests on the Python side are pretty
@@ -11,11 +19,19 @@ List of TODO items for Dashed
     testing all the ajax-type calls
 * **Viz Plugins:** Allow people to define and share visualization plugins.
     ideally one would only need to drop in a set of files in a folder and
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     Caravel would discover and expose the plugins
 =======
     Dashed would discover and expose the plugins
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+    Dashed would discover and expose the plugins
+=======
+    Caravel would discover and expose the plugins
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 
 ## Features
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
@@ -42,6 +58,11 @@ List of TODO items for Dashed
 
 ## Easy-ish fix
 * Build matrix to include mysql using tox
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
+=======
+* Figure out why coverage isn't working
+* Kill switch for Druid in docs
+>>>>>>> merge from caravel/master
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
 * Slider form element

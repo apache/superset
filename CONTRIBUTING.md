@@ -30,6 +30,7 @@ Look through the GitHub issues for features. Anything tagged with
 
 ### Documentation
 
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 Caravel could always use better documentation,
 whether as part of the official Caravel docs,
@@ -37,6 +38,15 @@ whether as part of the official Caravel docs,
 Dashed could always use better documentation,
 whether as part of the official Dashed docs,
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+Dashed could always use better documentation,
+whether as part of the official Dashed docs,
+=======
+Caravel could always use better documentation,
+whether as part of the official Caravel docs,
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -54,11 +64,19 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 [API Documentation](http://pythonhosted.com/caravel)
 =======
 [API Documentation](http://pythonhosted.com/dashed)
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+[API Documentation](http://pythonhosted.com/dashed)
+=======
+[API Documentation](http://pythonhosted.com/caravel)
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 
 ## Setting up a Python development environment
 
@@ -67,11 +85,19 @@ Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-depend
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     # git clone git@github.com:airbnb/caravel.git
 =======
     # git clone git@github.com:mistercrunch/dashed.git
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+    # git clone git@github.com:mistercrunch/dashed.git
+=======
+    # git clone git@github.com:airbnb/caravel.git
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -81,6 +107,7 @@ Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-depend
     python setup.py develop
 
     # Create an admin user
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     fabmanager create-admin --app caravel
 
@@ -96,6 +123,9 @@ Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-depend
     # start a dev web server
     caravel runserver -d
 =======
+=======
+<<<<<<< HEAD
+>>>>>>> merge from caravel/master
     fabmanager create-admin --app dashed
 
     # Initialize the database
@@ -109,16 +139,42 @@ Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-depend
 
     # start a dev web server
     dashed runserver -d
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 >>>>>>> [panoramix] -> [dashed]
+=======
+=======
+    fabmanager create-admin --app caravel
+
+    # Initialize the database
+    caravel db upgrade
+
+    # Create default roles and permissions
+    caravel init
+
+    # Load some data to play with
+    caravel load_examples
+
+    # start a dev web server
+    caravel runserver -d
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 
 
 ## Setting up the node / npm javascript environment
 
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 `caravel/assets` contains all npm-managed, front end assets.
 =======
 `dashed/assets` contains all npm-managed, front end assets.
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+`dashed/assets` contains all npm-managed, front end assets.
+=======
+`caravel/assets` contains all npm-managed, front end assets.
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
 While these may be phased out over time, these packages are currently not
 managed with npm.
@@ -151,11 +207,19 @@ new `node_modules/` folder within `assets/`.
 npm install
 ```
 
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 To parse and generate bundled files for caravel, run either of the
 =======
 To parse and generate bundled files for dashed, run either of the
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+To parse and generate bundled files for dashed, run either of the
+=======
+To parse and generate bundled files for caravel, run either of the
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
@@ -171,11 +235,19 @@ For every development session you will have to start a flask dev server
 as well as an npm watcher
 
 ```
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 caravel runserver -d -p 8081
 =======
 dashed runserver -d -p 8081
 >>>>>>> [panoramix] -> [dashed]
+=======
+<<<<<<< HEAD
+dashed runserver -d -p 8081
+=======
+caravel runserver -d -p 8081
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 npm run dev
 ```
 
@@ -200,6 +272,7 @@ Generate the documentation with:
     cd docs && ./build.sh
 
 ## CSS Themes
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 <<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
 
@@ -208,13 +281,27 @@ by modifying the Less variables or files in ```assets/stylesheets/less/```.
 
 The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
 =======
+=======
+<<<<<<< HEAD
+>>>>>>> merge from caravel/master
 As part of the npm build process, CSS for Dashed is compiled from ```Less```, a dynamic stylesheet language.
 
 It's possible to customize or add your own theme to Dashed, either by overriding CSS rules or preferably
 by modifying the Less variables or files in ```assets/stylesheets/less/```.
 
 The ```variables.less``` and ```bootswatch.less``` files that ship with Dashed are derived from
+<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 >>>>>>> [panoramix] -> [dashed]
+=======
+=======
+As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
+
+It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
+by modifying the Less variables or files in ```assets/stylesheets/less/```.
+
+The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
+>>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+>>>>>>> merge from caravel/master
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
