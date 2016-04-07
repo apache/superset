@@ -24,25 +24,29 @@ Here's how to install them:
 For **Debian** and **Ubuntu**, the following command will ensure that
 the required dependencies are installed: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip
 
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
+    
+    sudo yum upgrade python-setuptools
+    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
 
-    sudo yum install gcc libffi-devel python-devel openssl-devel
+**OSX**, system python is not recommended. brew's python also ships with pip  ::
 
-**OSX** ::
-
-    brew install pkg-config libffi openssl
+    brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
 
 **Windows** isn't officially supported at this point, but if you want to
-attempt it: ::
+attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
 
     C:\> \path\to\vcvarsall.bat x86_amd64
     C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
     C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
     C:\> pip install cryptography
+
+    # You may also have to create C:\Temp
+    C:\> md C:\Temp
 
 
 Caravel installation and initialization
@@ -69,7 +73,7 @@ Follow these few simple steps to install Caravel.::
 
 
 After installation, you should be able to point your browser to the right
-hostname:port [http://localhost:8088](http://localhost:8088), login using
+hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
 the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of
 your datasources for Caravel to be aware of, and they should show up in
@@ -135,6 +139,32 @@ data source's configuration, to your database's and ultimately falls back
 into your global default defined in ``CACHE_CONFIG``.
 
 
+Deeper SQLAlchemy integration
+-----------------------------
+
+It is possible to tweak the database connection information using the
+parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
+find an ``extra`` field as a ``JSON`` blob.
+
+.. image:: _static/img/tutorial/add_db.png
+
+This JSON string contains extra configuration elements. The ``engine_params``
+object gets unpacked into the
+`sqlalchemy.create_engine <http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine>`_ call,
+while the ``metadata_params`` get unpacked into the
+`sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
+
+
+Postgres & Redshift
+-------------------
+
+Postgres and Redshift use the concept of **schema** as a logical entity
+on top of the **database**. For Caravel to connect to a specific schema,
+you can either specify it in the ``metadata_params`` key of the ``extra``
+JSON blob described above, or you can use a database user name to connect to
+the database that matches the schema name you are interested it.
+
+
 Druid
 -----
 
@@ -145,3 +175,15 @@ Druid
   ``Admin->Refresh Metadata`` menu item to populate
 
 * Navigate to your datasources
+
+Note that you can run the ``caravel refresh_druid`` command to refresh the
+metadata from your Druid cluster(s)
+
+
+Upgrading
+---------
+
+Upgrading should be as straightforward as running::
+
+    pip install caravel --upgrade
+    caravel db upgrade

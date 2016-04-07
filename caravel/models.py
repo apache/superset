@@ -346,6 +346,7 @@ class Database(Model, AuditMixinNullable):
                 Grain("year", "DATE_TRUNC('year', {col})"),
             ),
         }
+        db_time_grains['redshift'] = db_time_grains['postgresql']
         for db_type, grains in db_time_grains.items():
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
@@ -467,10 +468,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return self.table_name
 
     @property
+    def explore_url(self):
+        if self.default_endpoint:
+            return self.default_endpoint
+        else:
+            return "/caravel/explore/{self.type}/{self.id}/".format(self=self)
+
+    @property
     def table_link(self):
-        url = "/caravel/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.table_name}</a>'.format(
-            url=url, self=self)
+        return '<a href="{self.explore_url}">{self.table_name}</a>'.format(self=self)
 
     @property
     def metrics_combo(self):
