@@ -157,11 +157,11 @@ class ColorFactory(object):
 
         >>> cf = ColorFactory()
         >>> cf.get('item_1')
-        '#ff5a5f'
+        u'#ff5a5f'
         >>> cf.get('item_2')
-        '#7b0051'
+        u'#7b0051'
         >>> cf.get('item_1')
-        '#ff5a5f'
+        u'#ff5a5f'
         """
         if self.hash_based:
             s = s.encode('utf-8')
