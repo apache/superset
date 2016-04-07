@@ -24,20 +24,21 @@ Here's how to install them:
 For **Debian** and **Ubuntu**, the following command will ensure that
 the required dependencies are installed: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+    sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip
 
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
+    
+    sudo yum upgrade python-setuptools
+    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
 
-    sudo yum install gcc libffi-devel python-devel openssl-devel
+**OSX**, system python is not recommended. brew's python also ships with pip  ::
 
-**OSX** ::
-
-    brew install pkg-config libffi openssl
+    brew install pkg-config libffi openssl python
     env LDFLAGS="-L$(brew --prefix openssl)/lib" CFLAGS="-I$(brew --prefix openssl)/include" pip install cryptography
 
 **Windows** isn't officially supported at this point, but if you want to
-attempt it: ::
+attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
 
     C:\> \path\to\vcvarsall.bat x86_amd64
     C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
