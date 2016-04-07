@@ -31,7 +31,8 @@ Caravel's main goal is to make it easy to slice, dice and visualize data.
 It empowers users to perform **analytics at the speed of thought**.
 
 Caravel provides:
-* A quick way to intuitively visualize datasets by allowing users to create and share interactive dashboards
+* A quick way to intuitively visualize datasets by allowing users to create
+    and share interactive dashboards
 * A rich set of visualizations to analyze your data, as well as a flexible
     way to extend the capabilities
 * An extensible, high granularity security model allowing intricate rules
@@ -39,9 +40,9 @@ Caravel provides:
     authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
     through Flask AppBuiler)
 * A simple semantic layer, allowing to control how data sources are
-    displayed in the UI,
-    by defining which fields should show up in which dropdown and which
-    aggregation and function (metrics) are made available to the user
+    displayed in the UI, by defining which fields should show up in
+    which dropdown and which aggregation and function (metrics) are
+    made available to the user
 * Deep integration with Druid allows for Caravel to stay blazing fast while
     slicing and dicing large, realtime datasets
 
@@ -50,7 +51,7 @@ Database Support
 ----------------
 
 Caravel was originally designed on top of Druid.io, but quickly broadened
-its scope to support other databases through the use of SqlAlchemy, a Python
+its scope to support other databases through the use of SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
