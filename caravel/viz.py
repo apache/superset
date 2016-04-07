@@ -3,6 +3,10 @@
 These objects represent the backend of all the visualizations that
 Caravel can render.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
@@ -409,7 +413,7 @@ class PivotTableViz(BaseViz):
             na_rep='',
             classes=(
                 "dataframe table table-striped table-bordered "
-                "table-condensed table-hover"))
+                "table-condensed table-hover").split(" "))
 
 
 class MarkupViz(BaseViz):

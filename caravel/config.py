@@ -4,6 +4,11 @@ All configuration in this file can be overridden by providing a local_config
 in your PYTHONPATH as there is a ``from local_config import *``
 at the end of this file.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
 import os
 from flask_appbuilder.security.manager import AUTH_DB
 from dateutil import tz
