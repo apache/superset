@@ -73,7 +73,7 @@ Follow these few simple steps to install Caravel.::
 
 
 After installation, you should be able to point your browser to the right
-hostname:port [http://localhost:8088](http://localhost:8088), login using
+hostname:port `http://localhost:8088 <http://localhost:8088>`_, login using
 the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of
 your datasources for Caravel to be aware of, and they should show up in
