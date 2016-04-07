@@ -94,6 +94,7 @@
 <li><a class="reference internal" href="#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
 <li><a class="reference internal" href="#postgres-redshift">Postgres &amp; Redshift</a></li>
 <li><a class="reference internal" href="#druid">Druid</a></li>
+<li><a class="reference internal" href="#upgrading">Upgrading</a></li>
 </ul>
 </li>
 </ul>
@@ -144,21 +145,22 @@ you encounter an error.</p>
 <p>Here&#8217;s how to install them:</p>
 <p>For <strong>Debian</strong> and <strong>Ubuntu</strong>, the following command will ensure that
 the required dependencies are installed:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>sudo apt-get install build-essential libssl-dev libffi-dev python-dev
+<div class="highlight-python"><div class="highlight"><pre><span></span>sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip
 </pre></div>
 </div>
 <p>For <strong>Fedora</strong> and <strong>RHEL-derivatives</strong>, the following command will ensure
 that the required dependencies are installed:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>sudo yum install gcc libffi-devel python-devel openssl-devel
+<div class="highlight-python"><div class="highlight"><pre><span></span>sudo yum upgrade python-setuptools
+sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
 </pre></div>
 </div>
-<p><strong>OSX</strong></p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>brew install pkg-config libffi openssl
+<p><strong>OSX</strong>, system python is not recommended. brew&#8217;s python also ships with pip</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>brew install pkg-config libffi openssl python
 env LDFLAGS=&quot;-L$(brew --prefix openssl)/lib&quot; CFLAGS=&quot;-I$(brew --prefix openssl)/include&quot; pip install cryptography
 </pre></div>
 </div>
 <p><strong>Windows</strong> isn&#8217;t officially supported at this point, but if you want to
-attempt it:</p>
+attempt it, download <a class="reference external" href="https://bootstrap.pypa.io/get-pip.py">get-pip.py</a>, and run <code class="docutils literal"><span class="pre">python</span> <span class="pre">get-pip.py</span></code> which may need admin access. Then run the following:</p>
 <div class="highlight-python"><div class="highlight"><pre><span></span>C:\&gt; \path\to\vcvarsall.bat x86_amd64
 C:\&gt; set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
 C:\&gt; set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
@@ -192,7 +194,7 @@ caravel runserver -d
 </pre></div>
 </div>
 <p>After installation, you should be able to point your browser to the right
-hostname:port [http://localhost:8088](http://localhost:8088), login using
+hostname:port <a class="reference external" href="http://localhost:8088">http://localhost:8088</a>, login using
 the credential you entered while creating the admin account, and navigate to
 <cite>Menu -&gt; Admin -&gt; Refresh Metadata</cite>. This action should bring in all of
 your datasources for Caravel to be aware of, and they should show up in
@@ -279,6 +281,16 @@ the database that matches the schema name you are interested it.</p>
 <code class="docutils literal"><span class="pre">Admin-&gt;Refresh</span> <span class="pre">Metadata</span></code> menu item to populate</li>
 <li>Navigate to your datasources</li>
 </ul>
+<p>Note that you can run the <code class="docutils literal"><span class="pre">caravel</span> <span class="pre">refresh_druid</span></code> command to refresh the
+metadata from your Druid cluster(s)</p>
+</div>
+<div class="section" id="upgrading">
+<h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
+<p>Upgrading should be as straightforward as running:</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span>pip install caravel --upgrade
+caravel db upgrade
+</pre></div>
+</div>
 </div>
 </div>
 
