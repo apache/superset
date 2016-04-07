@@ -534,6 +534,16 @@ def load_birth_names():
                 viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
+            slice_name="Number of Girls",
+            viz_type='big_number_total',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                viz_type="big_number_total", granularity="ds",
+                flt_col_1='gender', flt_eq_1='girl',
+                subheader='total female participants')),
+        Slice(
             slice_name="Genders",
             viz_type='pie',
             datasource_type='table',
