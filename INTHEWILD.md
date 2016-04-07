@@ -4,7 +4,7 @@ to add your organization and/or project to this document!
 Organizations
 ----------
  - [Airbnb](https://github.com/airbnb)
- - your company name here!
+ - [GfK Data Lab] (http://datalab.gfk.com)
 
 Projects
 ----------
