@@ -174,3 +174,15 @@ Druid
   ``Admin->Refresh Metadata`` menu item to populate
 
 * Navigate to your datasources
+
+Note that you can run the ``caravel refresh_druid`` command to refresh the
+metadata from your Druid cluster(s)
+
+
+Upgrading
+---------
+
+Upgrading should be as straightforward as running::
+
+    pip install caravel --upgrade
+    caravel db upgrade
