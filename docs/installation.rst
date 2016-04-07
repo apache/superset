@@ -147,6 +147,7 @@ parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
 .. image:: _static/img/tutorial/add_db.png
+   :scale: 50 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
 object gets unpacked into the
