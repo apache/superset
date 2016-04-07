@@ -413,7 +413,7 @@ class PivotTableViz(BaseViz):
             na_rep='',
             classes=(
                 "dataframe table table-striped table-bordered "
-                "table-condensed table-hover"))
+                "table-condensed table-hover").split(" "))
 
 
 class MarkupViz(BaseViz):
