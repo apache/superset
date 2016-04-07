@@ -558,7 +558,7 @@ class BigNumberViz(BaseViz):
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = "big_number"
-    verbose_name = "Big Number"
+    verbose_name = "Big Number with Trendline"
     is_timeseries = True
     fieldsets = ({
         'label': None,
@@ -607,7 +607,7 @@ class BigNumberTotalViz(BaseViz):
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = "big_number_total"
-    verbose_name = "Big Number Total"
+    verbose_name = "Big Number"
     is_timeseries = False
     fieldsets = ({
         'label': None,
