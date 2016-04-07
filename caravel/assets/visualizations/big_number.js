@@ -31,7 +31,12 @@ function bigNumberVis(slice) {
       var data = json.data;
       var compare_suffix = ' ' + json.compare_suffix;
       var v_compare = null;
-      var v = data[data.length - 1][1];
+      var v = null;
+      if (data.length > 1) {
+          v = data[data.length - 1][1];
+      } else {
+          v = data[data.length - 1][0];
+      }
       if (json.compare_lag > 0) {
         var pos = data.length - (json.compare_lag + 1);
         if (pos >= 0) {
@@ -96,6 +101,19 @@ function bigNumberVis(slice) {
         .text(f(v))
         .style('font-size', d3.min([height, width]) / 3.5)
         .attr('fill', 'white');
+
+      //Printing big number subheader text
+      if (json.subheader !== null) {
+        g.append('text')
+          .attr('x', width / 2)
+          .attr('y', y + d3.min([height, width]) / 4.5)
+          .text(json.subheader)
+          .attr('id', 'subheader_text')
+          .style('font-size', d3.min([height, width]) / 16)
+          .style('text-anchor', 'middle')
+          .attr('fill', c)
+          .attr('stroke', c);
+      }
 
       var c = scale_color(v_compare);
 

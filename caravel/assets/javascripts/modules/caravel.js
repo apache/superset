@@ -8,6 +8,7 @@ var sourceMap = {
   bar: 'nvd3_vis.js',
   bubble: 'nvd3_vis.js',
   big_number: 'big_number.js',
+  big_number_total: 'big_number.js',
   compare: 'nvd3_vis.js',
   dist_bar: 'nvd3_vis.js',
   directed_force: 'directed_force.js',
