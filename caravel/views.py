@@ -468,7 +468,7 @@ class Caravel(BaseView):
 
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
-            return self.save(request.args, slc)
+            return self.saveOrOverwriteSlice(request.args, slc)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
@@ -522,9 +522,8 @@ class Caravel(BaseView):
                     mimetype="application/json")
             return resp
 
-    def save(self, args, slc):
+    def saveOrOverwriteSlice(self, args, slc):
         """Saves (inserts or overwrite a slice) """
-        session = db.session()
         slice_name = args.get('slice_name')
         action = args.get('action')
 
@@ -549,9 +548,6 @@ class Caravel(BaseView):
 
         if action == "save":
             slc = models.Slice()
-            msg = "Slice [{}] has been saved".format(slice_name)
-        elif action == "overwrite":
-            msg = "Slice [{}] has been overwritten".format(slice_name)
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
@@ -561,13 +557,28 @@ class Caravel(BaseView):
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
 
-        if action == "save":
-            session.add(slc)
-        elif action == "overwrite":
-            session.merge(slc)
+        if action == 'save':
+            self.save_slice(slc)
+        elif action == 'overwrite':
+            self.overwrite_slice(slc)
+
+        return redirect(slc.slice_url)
+
+    @has_access
+    def save_slice(self, slc):
+        session = db.session()
+        msg = "Slice [{}] has been saved".format(slc.slice_name)
+        session.add(slc)
         session.commit()
         flash(msg, "info")
-        return redirect(slc.slice_url)
+
+    @has_access
+    def overwrite_slice(self, slc):
+        session = db.session()
+        msg = "Slice [{}] has been overwritten".format(slc.slice_name)
+        session.merge(slc)
+        session.commit()
+        flash(msg, "info")
 
     @has_access
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
