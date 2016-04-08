@@ -139,7 +139,7 @@ class FormFactory(object):
                 'Color Scheme', choices=self.choicify([
                     'fire', 'blue_white_yellow', 'white_black',
                     'black_white']),
-                default='fire',
+                default='blue_white_yellow',
                 description=""),
             'normalize_across': SelectField(
                 'Normalize Across', choices=self.choicify([
