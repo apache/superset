@@ -337,8 +337,10 @@ class Database(Model, AuditMixinNullable):
             'mysql': (
                 Grain('Time Column', '{col}'),
                 Grain('day', 'DATE({col})'),
-                Grain('week', 'DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY)'),
-                Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
+                Grain("week", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
+                Grain("month", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
