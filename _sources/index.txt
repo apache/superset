@@ -34,6 +34,7 @@ Contents
     tutorial
     videos
     gallery
+    faq
 
 
 Indices and tables

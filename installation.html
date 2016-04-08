@@ -72,6 +72,7 @@
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 </ul>
 </ul>
 </li>
@@ -90,6 +91,7 @@
 <li><a class="reference internal" href="#os-dependencies">OS dependencies</a></li>
 <li><a class="reference internal" href="#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#database-dependencies">Database dependencies</a></li>
 <li><a class="reference internal" href="#caching">Caching</a></li>
 <li><a class="reference internal" href="#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
 <li><a class="reference internal" href="#postgres-redshift">Postgres &amp; Redshift</a></li>
@@ -239,6 +241,62 @@ Flask App Builder, the web framework used by Caravel. Please consult
 the <a class="reference external" href="http://flask-appbuilder.readthedocs.org/en/latest/config.html">Flask App Builder Documentation</a>
 for more information on how to configure Caravel.</p>
 </div>
+<div class="section" id="database-dependencies">
+<h2>Database dependencies<a class="headerlink" href="#database-dependencies" title="Permalink to this headline">¶</a></h2>
+<p>Caravel does not ship bundled with connectivity to databases, except
+for Sqlite, which is part of the Python standard library.
+You&#8217;ll need to install the required packages for the database you
+want to use as your metadata database as well as the packages needed to
+connect to the databases you want to access through Caravel.</p>
+<p>Here&#8217;s a list of some of the recommended packages.</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="15%" />
+<col width="37%" />
+<col width="49%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">database</th>
+<th class="head">pypi package</th>
+<th class="head">SQLAlchemy URI prefix</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>MySQL</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">mysqlclient</span></code></td>
+<td><code class="docutils literal"><span class="pre">mysql://</span></code></td>
+</tr>
+<tr class="row-odd"><td>Postgres</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">psycopg2</span></code></td>
+<td><code class="docutils literal"><span class="pre">postgresql+psycopg2://</span></code></td>
+</tr>
+<tr class="row-even"><td>Presto</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pyhive</span></code></td>
+<td><code class="docutils literal"><span class="pre">presto://</span></code></td>
+</tr>
+<tr class="row-odd"><td>Oracle</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cx_Oracle</span></code></td>
+<td><code class="docutils literal"><span class="pre">oracle://</span></code></td>
+</tr>
+<tr class="row-even"><td>sqlite</td>
+<td>&nbsp;</td>
+<td><code class="docutils literal"><span class="pre">sqlite://</span></code></td>
+</tr>
+<tr class="row-odd"><td>Redshift</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">sqlalchemy-redshift</span></code></td>
+<td><code class="docutils literal"><span class="pre">redshift+psycopg2://</span></code></td>
+</tr>
+<tr class="row-even"><td>MSSQL</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pymssql</span></code></td>
+<td><code class="docutils literal"><span class="pre">mssql://</span></code></td>
+</tr>
+</tbody>
+</table>
+<p>Note that many other database are supported, the main criteria being the
+existence of a functional SqlAlchemy dialect and Python driver. Googling
+the keyword <code class="docutils literal"><span class="pre">sqlalchemy</span></code> in addition of a keyword that describes the
+database you want to connect to should get you to the right place.</p>
+</div>
 <div class="section" id="caching">
 <h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
 <p>Caravel uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
@@ -257,7 +315,7 @@ into your global default defined in <code class="docutils literal"><span class="
 <p>It is possible to tweak the database connection information using the
 parameters exposed by SQLAlchemy. In the <code class="docutils literal"><span class="pre">Database</span></code> edit view, you will
 find an <code class="docutils literal"><span class="pre">extra</span></code> field as a <code class="docutils literal"><span class="pre">JSON</span></code> blob.</p>
-<img alt="_images/add_db.png" src="_images/add_db.png" />
+<a class="reference internal image-reference" href="_images/add_db.png"><img alt="_images/add_db.png" src="_images/add_db.png" style="width: 534.0px; height: 370.8px;" /></a>
 <p>This JSON string contains extra configuration elements. The <code class="docutils literal"><span class="pre">engine_params</span></code>
 object gets unpacked into the
 <a class="reference external" href="http://docs.sqlalchemy.org/en/latest/core/engines.html#sqlalchemy.create_engine">sqlalchemy.create_engine</a> call,
