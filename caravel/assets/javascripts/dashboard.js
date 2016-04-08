@@ -39,6 +39,10 @@ var Dashboard = function (dashboardData) {
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
     },
+    getFilter: function(slice_id, col){
+      return this.filters[slice_id] && this.filters[slice_id][col] ?
+        this.filters[slice_id][col]: [];
+    },
     addFilter: function (slice_id, col, vals, merge) {
       if (merge === undefined) {
         merge = true;
