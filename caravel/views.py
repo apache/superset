@@ -4,13 +4,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import json
 import logging
 import re
 import time
 import traceback
+from datetime import datetime
 
+import pandas as pd
+import sqlalchemy as sqla
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
@@ -19,12 +21,10 @@ from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
 from pydruid.client import doublesum
 from sqlalchemy import create_engine
-import sqlalchemy as sqla
-from wtforms.validators import ValidationError
-import pandas as pd
 from sqlalchemy import select, text
 from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
+from wtforms.validators import ValidationError
 
 from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 

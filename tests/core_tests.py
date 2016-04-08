@@ -1,5 +1,5 @@
-import imp
 import doctest
+import imp
 import os
 import unittest
 

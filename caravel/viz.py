@@ -8,24 +8,23 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import OrderedDict, defaultdict
-from datetime import datetime, timedelta
+import hashlib
 import json
 import logging
 import uuid
-import hashlib
+from collections import OrderedDict, defaultdict
+from datetime import datetime, timedelta
 
+import pandas as pd
 from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
+from six import string_types
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
-import pandas as pd
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
-
-from six import string_types
 
 config = app.config
 

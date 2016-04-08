@@ -4,17 +4,17 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import functools
 import json
 import logging
+from datetime import datetime
 
-from dateutil.parser import parse
-from sqlalchemy.types import TypeDecorator, TEXT
-from markdown import markdown as md
 import parsedatetime
+from dateutil.parser import parse
 from flask import Markup
 from flask_appbuilder.security.sqla import models as ab_models
+from markdown import markdown as md
+from sqlalchemy.types import TypeDecorator, TEXT
 
 
 class memoized(object):  # noqa
