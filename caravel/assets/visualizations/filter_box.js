@@ -54,6 +54,7 @@ function filterBox(slice) {
               multiple: true,
               formatResult: select2Formatter
             })
+            .select2('val', slice.getFilter(filter))
             .on('change', fltChanged);
         }
         slice.done(payload);
