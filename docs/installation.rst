@@ -121,6 +121,40 @@ the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure Caravel.
 
+Database dependencies
+---------------------
+
+Caravel does not ship bundled with connectivity to databases, except
+for Sqlite, which is part of the Python standard library.
+You'll need to install the required packages for the database you
+want to use as your metadata database as well as the packages needed to
+connect to the databases you want to access through Caravel.
+
+Here's a list of some of the recommended packages.
+
++---------------+-------------------------------------+-------------------------------------------------+
+| database      | pypi package                        | SQLAlchemy URI prefix                           |
++===============+=====================================+=================================================+
+|  MySQL        | ``pip install mysqlclient``         | ``mysql://``                                    |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Postgres     | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Presto       | ``pip install pyhive``              | ``presto://``                                   |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Oracle       | ``pip install cx_Oracle``           | ``oracle://``                                   |
++---------------+-------------------------------------+-------------------------------------------------+
+|  sqlite       |                                     | ``sqlite://``                                   |
++---------------+-------------------------------------+-------------------------------------------------+
+|  Redshift     | ``pip install sqlalchemy-redshift`` | ``redshift+psycopg2://``                        |
++---------------+-------------------------------------+-------------------------------------------------+
+|  MSSQL        | ``pip install pymssql``             | ``mssql://``                                    |
++---------------+-------------------------------------+-------------------------------------------------+
+
+Note that many other database are supported, the main criteria being the
+existence of a functional SqlAlchemy dialect and Python driver. Googling
+the keyword ``sqlalchemy`` in addition of a keyword that describes the
+database you want to connect to should get you to the right place.
+
 
 Caching
 -------
@@ -147,7 +181,7 @@ parameters exposed by SQLAlchemy. In the ``Database`` edit view, you will
 find an ``extra`` field as a ``JSON`` blob.
 
 .. image:: _static/img/tutorial/add_db.png
-   :scale: 50 %
+   :scale: 30 %
 
 This JSON string contains extra configuration elements. The ``engine_params``
 object gets unpacked into the
