@@ -10,8 +10,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-from flask_appbuilder.security.manager import AUTH_DB
+
 from dateutil import tz
+from flask_appbuilder.security.manager import AUTH_DB
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 

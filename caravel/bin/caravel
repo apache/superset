@@ -4,16 +4,17 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import logging
+from datetime import datetime
 from subprocess import Popen
 
-from flask.ext.script import Manager
-from caravel import app
 from flask.ext.migrate import MigrateCommand
+from flask.ext.script import Manager
+
 import caravel
-from caravel import db
+from caravel import app
 from caravel import data, utils
+from caravel import db
 
 config = app.config
 

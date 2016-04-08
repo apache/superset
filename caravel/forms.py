@@ -4,13 +4,16 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import OrderedDict
+from copy import copy
+
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
 from wtforms import validators, widgets
-from copy import copy
+
 from caravel import app
-from collections import OrderedDict
+
 config = app.config
 
 

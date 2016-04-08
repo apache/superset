@@ -4,31 +4,31 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from copy import deepcopy, copy
-from collections import namedtuple
-from datetime import timedelta, datetime, date
 import functools
 import json
 import logging
-from six import string_types
-import sqlparse
-import requests
 import textwrap
+from collections import namedtuple
+from copy import deepcopy, copy
+from datetime import timedelta, datetime, date
 
+import humanize
+import pandas as pd
+import requests
+import sqlalchemy as sqla
+import sqlparse
 from dateutil.parser import parse
 from flask import flash, request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-import pandas as pd
-import humanize
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
-
-import sqlalchemy as sqla
+from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
     Table, create_engine, MetaData, desc, select, and_, func)
 from sqlalchemy.engine import reflection
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
@@ -36,7 +36,6 @@ from sqlalchemy_utils import EncryptedType
 
 from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
-from sqlalchemy.ext.declarative import declared_attr
 
 config = app.config
 
