@@ -35,6 +35,7 @@ class BaseViz(object):
 
     viz_type = None
     verbose_name = "Base Viz"
+    credits = ""
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -306,6 +307,7 @@ class TableViz(BaseViz):
 
     viz_type = "table"
     verbose_name = "Table View"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': "Chart Options",
         'fields': (
@@ -360,6 +362,7 @@ class PivotTableViz(BaseViz):
 
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -479,6 +482,7 @@ class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
 
+    credits = '<a href="http://nvd3.org/">NVD3.org</a>'
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
@@ -558,6 +562,7 @@ class BigNumberViz(BaseViz):
 
     viz_type = "big_number"
     verbose_name = "Big Number with Trendline"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = True
     fieldsets = ({
         'label': None,
@@ -607,6 +612,7 @@ class BigNumberTotalViz(BaseViz):
 
     viz_type = "big_number_total"
     verbose_name = "Big Number"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -954,6 +960,9 @@ class SunburstViz(BaseViz):
     viz_type = "sunburst"
     verbose_name = "Sunburst"
     is_timeseries = False
+    credits = (
+        'Kerry Rodden '
+        '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1017,6 +1026,7 @@ class SankeyViz(BaseViz):
     viz_type = "sankey"
     verbose_name = "Sankey"
     is_timeseries = False
+    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1077,6 +1087,7 @@ class DirectedForceViz(BaseViz):
 
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
+    credits = 'd3noob @<a href="http://bl.ocks.org/d3noob/5141278">bl.ocks.org</a>'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1119,6 +1130,7 @@ class WorldMapViz(BaseViz):
     viz_type = "world_map"
     verbose_name = "World Map"
     is_timeseries = False
+    credits = 'datamaps on <a href="https://www.npmjs.com/package/datamaps">npm</a>'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1192,6 +1204,7 @@ class FilterBoxViz(BaseViz):
     viz_type = "filter_box"
     verbose_name = "Filters"
     is_timeseries = False
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1238,6 +1251,7 @@ class IFrameViz(BaseViz):
 
     viz_type = "iframe"
     verbose_name = "iFrame"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1255,6 +1269,9 @@ class ParallelCoordinatesViz(BaseViz):
 
     viz_type = "para"
     verbose_name = "Parallel Coordinates"
+    credits = (
+        '<a href="https://syntagmatic.github.io/parallel-coordinates/">'
+        'Syntagmatic\'s library</a>')
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1290,6 +1307,9 @@ class HeatmapViz(BaseViz):
     viz_type = "heatmap"
     verbose_name = "Heatmap"
     is_timeseries = False
+    credits = (
+        'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
+        'bl.ocks.org</a>')
     fieldsets = ({
         'label': None,
         'fields': (
