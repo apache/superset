@@ -180,6 +180,7 @@
             <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
             <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
           </div>
+          <div class="credits pull-right">{{ "credits: " + viz.credits |safe if viz. credits else "" }}</div>
         </div>
       <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog" role="document">
