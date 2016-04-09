@@ -926,9 +926,8 @@ class DistributionBarViz(DistributionPieViz):
 
     def get_data(self):
         df = self.get_df()
-        series = df.to_dict('series')
         chart_data = []
-        for name, ys in series.items():
+        for name, ys in df.iteritems():
             if df[name].dtype.kind not in "biufc":
                 continue
             if isinstance(name, string_types):
