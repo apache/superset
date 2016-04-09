@@ -1044,18 +1044,30 @@ class SankeyViz(BaseViz):
         df = self.get_df()
         df.columns = ['source', 'target', 'value']
         recs = df.to_dict(orient='records')
-        seen = set()
-        hierarchy = {row['source']: row['target'] for row in recs}
-        def find_loop(source, target):
-            if target in seen:
-                raise Exception(
-                    "There's a loop in your Sankey, please provide "
-                    "a DAG. Loop identified at: {}".format((source, target)))
-            seen.add(source)
-            if target in hierarchy:
-                find_loop(target, hierarchy[target])
+
+        hierarchy = defaultdict(set)
         for row in recs:
-            find_loop(row['source'], row['target'])
+            hierarchy[row['source']].add(row['target'])
+
+        def find_cycle(g):
+            """Whether there's a cycle in a directed graph"""
+            path = set()
+            def visit(vertex):
+                path.add(vertex)
+                for neighbour in g.get(vertex, ()):
+                    if neighbour in path or visit(neighbour):
+                        return (vertex, neighbour)
+                path.remove(vertex)
+            for v in g:
+                cycle = visit(v)
+                if cycle:
+                    return cycle
+
+        cycle = find_cycle(hierarchy)
+        if cycle:
+            raise Exception(
+                "There's a loop in your Sankey, please provide a tree. "
+                "Here's a faulty link: {}".format(cycle))
         return recs
 
 
