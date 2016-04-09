@@ -359,7 +359,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
-        overflow: hidden;
         box-shadow: none;
         border-radius: 0px;
     }
@@ -400,7 +399,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
-        overflow: hidden;
         border-radius: 15px;
         box-shadow: none;
     }
