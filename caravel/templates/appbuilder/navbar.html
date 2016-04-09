@@ -1,33 +1,31 @@
-
-
-
 {% set menu = appbuilder.menu %}
 {% set languages = appbuilder.languages %}
 
 <div class="navbar navbar-static-top {{menu.extra_classes}}" role="navigation">
-   <div class="container-fluid">
-        <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-                <span class="icon-bar"></span>
-            </button>
-                <a class="navbar-brand" style="padding:7px;opacity:0.9;" href="{{appbuilder.get_url_for_index}}">
-                  <img width="50" src="/static/assets/images/caravel_logo.png">
-                </a>
-                <span class="navbar-brand">
-                  <a href="{{appbuilder.get_url_for_index}}">
-                    {{ appbuilder.app_name }}
-                  </a>
-                </span>
-        </div>
-        <div class="navbar-collapse collapse">
-            <ul class="nav navbar-nav">
-                {% include 'appbuilder/navbar_menu.html' %}
-            </ul>
-            <ul class="nav navbar-nav navbar-right">
-                {% include 'appbuilder/navbar_right.html' %}
-            </ul>
-        </div>
-   </div>
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" style="padding:7px;opacity:0.9;" href="{{appbuilder.get_url_for_index}}">
+        <img width="50" src="/static/assets/images/caravel_logo.png">
+      </a>
+      <span class="navbar-brand">
+        <a href="{{appbuilder.get_url_for_index}}">
+          {{ appbuilder.app_name }}
+        </a>
+      </span>
+    </div>
+    <div class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        {% include 'appbuilder/navbar_menu.html' %}
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        <li><a href="http://airbnb.io/caravel"><i class="fa fa-book"></i> Documentation</a></li>
+        {% include 'appbuilder/navbar_right.html' %}
+      </ul>
+    </div>
+  </div>
 </div>
