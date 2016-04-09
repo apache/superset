@@ -468,7 +468,7 @@ class Caravel(BaseView):
 
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
-            return self.saveoroverwriteslice(request.args, slc)
+            return self.save_or_overwrite_slice(request.args, slc)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
@@ -522,7 +522,7 @@ class Caravel(BaseView):
                     mimetype="application/json")
             return resp
 
-    def saveoroverwriteslice(self, args, slc):
+    def save_or_overwrite_slice(self, args, slc):
         """Saves (inserts or overwrite a slice) """
         slice_name = args.get('slice_name')
         action = args.get('action')
@@ -557,14 +557,13 @@ class Caravel(BaseView):
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
 
-        if action == 'save':
+        if action == 'save' and self.appbuilder.sm.has_access('can_add', 'SliceModelView'):
             self.save_slice(slc)
-        elif action == 'overwrite':
+        elif action == 'overwrite' and self.appbuilder.sm.has_access('can_edit', 'SliceModelView'):
             self.overwrite_slice(slc)
 
         return redirect(slc.slice_url)
 
-    @has_access
     def save_slice(self, slc):
         session = db.session()
         msg = "Slice [{}] has been saved".format(slc.slice_name)
@@ -572,7 +571,6 @@ class Caravel(BaseView):
         session.commit()
         flash(msg, "info")
 
-    @has_access
     def overwrite_slice(self, slc):
         session = db.session()
         msg = "Slice [{}] has been overwritten".format(slc.slice_name)
