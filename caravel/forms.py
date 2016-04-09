@@ -113,7 +113,9 @@ class FormFactory(object):
         viz = self.viz
         datasource = viz.datasource
         default_metric = datasource.metrics_combo[0][0]
-        default_groupby = datasource.groupby_column_names[0]
+
+        gb_cols = datasource.groupby_column_names
+        default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = [(s, s) for s in datasource.groupby_column_names]
         # Pool of all the fields that can be used in Caravel
         self.field_dict = {
