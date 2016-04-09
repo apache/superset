@@ -157,13 +157,14 @@ img.loading {
   border-color: #AAA;
   opacity: 0.3;
 }
-.gridster li.widget{
+ul.gridster li.widget{
   list-style-type: none;
   border-radius: 0;
   margin: 5px;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
   background-color: #fff;
+  overflow: visible;
 }
 .dashboard .gridster .dragging,
 .dashboard .gridster .resizing {
