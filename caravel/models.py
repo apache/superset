@@ -191,6 +191,7 @@ class Slice(Model, AuditMixinNullable):
             logging.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
+        slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
