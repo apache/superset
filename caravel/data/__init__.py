@@ -30,11 +30,11 @@ DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
 
 
 def get_or_create_db(session):
-    logging.info("Creating database reference")
+    logger.info("Creating database reference")
     dbobj = session.query(DB).filter_by(database_name='main').first()
     if not dbobj:
         dbobj = DB(database_name="main")
-    logging.info(config.get("SQLALCHEMY_DATABASE_URI"))
+    logger.info(config.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
     session.add(dbobj)
     session.commit()
@@ -72,7 +72,7 @@ def load_energy():
         },
         index=False)
 
-    logging.info("Creating table [wb_health_population] reference")
+    logger.info("Creating table [wb_health_population] reference")
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
@@ -134,7 +134,7 @@ def load_world_bank_health_n_pop():
         },
         index=False)
 
-    logging.info("Creating table [wb_health_population] reference")
+    logger.info("Creating table [wb_health_population] reference")
     tbl = db.session.query(TBL).filter_by(table_name=tbl_name).first()
     if not tbl:
         tbl = TBL(table_name=tbl_name)
@@ -168,7 +168,7 @@ def load_world_bank_health_n_pop():
         "show_bubbles": "y",
     }
 
-    logging.info("Creating slices")
+    logger.info("Creating slices")
     slices = [
         Slice(
             slice_name="Region Filter",
@@ -271,7 +271,7 @@ def load_world_bank_health_n_pop():
     for slc in slices:
         merge_slice(slc)
 
-    logging.info("Creating a World's Health Bank dashboard")
+    logger.info("Creating a World's Health Bank dashboard")
     dash_name = "World's Health Bank Dashboard"
     dash = db.session.query(Dash).filter_by(dashboard_title=dash_name).first()
 
@@ -352,7 +352,7 @@ def load_world_bank_health_n_pop():
 
 def load_css_templates():
     """Loads 2 css templates to demonstrate the feature"""
-    logging.info('Creating default CSS templates')
+    logger.info('Creating default CSS templates')
     CSS = models.CssTemplate  # noqa
 
     obj = db.session.query(CSS).filter_by(template_name='Flat').first()
@@ -468,10 +468,10 @@ def load_birth_names():
         },
         index=False)
     l = []
-    logging.info("Done loading table!")
-    logging.info("-" * 80)
+    logger.info("Done loading table!")
+    logger.info("-" * 80)
 
-    logging.info("Creating table reference")
+    logger.info("Creating table reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name='birth_names')
@@ -503,7 +503,7 @@ def load_birth_names():
         "markup_type": "markdown",
     }
 
-    logging.info("Creating some slices")
+    logger.info("Creating some slices")
     slices = [
         Slice(
             slice_name="Girls",
@@ -613,7 +613,7 @@ def load_birth_names():
     for slc in slices:
         merge_slice(slc)
 
-    logging.info("Creating a dashboard")
+    logger.info("Creating a dashboard")
     dash = db.session.query(Dash).filter_by(dashboard_title="Births").first()
 
     if not dash:

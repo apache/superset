@@ -66,17 +66,17 @@ def init():
     help="Only load 1000 rows (faster, used for testing)")
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    logger.debug("Loading examples into {}".format(db))
+    logger.info("Loading examples into {}".format(db))
 
     data.load_css_templates()
 
-    logger.debug("Loading energy related dataset")
+    logger.info("Loading energy related dataset")
     data.load_energy()
 
-    logger.debug("Loading [World Bank's Health Nutrition and Population Stats]")
+    logger.info("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
 
-    logger.debug("Loading [Birth names]")
+    logger.info("Loading [Birth names]")
     data.load_birth_names()
 
 @manager.command
@@ -88,12 +88,12 @@ def refresh_druid():
         try:
             cluster.refresh_datasources()
         except Exception as e:
-            logger.debug(
+            logger.info(
                 "Error while processing cluster '{}'\n{}".format(
                     cluster, str(e)))
             logger.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
-        logger.debug(
+        logger.info(
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()
