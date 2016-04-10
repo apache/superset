@@ -1,4 +1,8 @@
 """Loads datasets, dashboards and slices in a new caravel instance"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import gzip
 import json
@@ -355,7 +359,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
-        overflow: hidden;
         box-shadow: none;
         border-radius: 0px;
     }
@@ -396,7 +399,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
-        overflow: hidden;
         border-radius: 15px;
         box-shadow: none;
     }
@@ -529,6 +531,16 @@ def load_birth_names():
                 defaults,
                 viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
+        Slice(
+            slice_name="Number of Girls",
+            viz_type='big_number_total',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                viz_type="big_number_total", granularity="ds",
+                flt_col_1='gender', flt_eq_1='girl',
+                subheader='total female participants')),
         Slice(
             slice_name="Genders",
             viz_type='pie',

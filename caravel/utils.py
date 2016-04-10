@@ -1,17 +1,20 @@
 """Utility functions used across Caravel"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from datetime import datetime
-import hashlib
 import functools
 import json
 import logging
+from datetime import datetime
 
-from dateutil.parser import parse
-from sqlalchemy.types import TypeDecorator, TEXT
-from markdown import markdown as md
 import parsedatetime
+from dateutil.parser import parse
 from flask import Markup
 from flask_appbuilder.security.sqla import models as ab_models
+from markdown import markdown as md
+from sqlalchemy.types import TypeDecorator, TEXT
 
 
 class memoized(object):  # noqa
@@ -131,43 +134,6 @@ class JSONEncodedDict(TypeDecorator):
         if value is not None:
             value = json.loads(value)
         return value
-
-
-class ColorFactory(object):
-
-    """Used to generated arrays of colors server side"""
-
-    BNB_COLORS = [
-        # rausch    hackb      kazan      babu      lima        beach     barol
-        '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
-        '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
-        '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
-    ]
-
-    def __init__(self, hash_based=False):
-        self.d = {}
-        self.hash_based = hash_based
-
-    def get(self, s):
-        """Gets a color from a string and memoize the association
-
-        >>> cf = ColorFactory()
-        >>> cf.get('item_1')
-        '#ff5a5f'
-        >>> cf.get('item_2')
-        '#7b0051'
-        >>> cf.get('item_1')
-        '#ff5a5f'
-        """
-        if self.hash_based:
-            s = s.encode('utf-8')
-            h = hashlib.md5(s)
-            i = int(h.hexdigest(), 16)
-        else:
-            if s not in self.d:
-                self.d[s] = len(self.d)
-            i = self.d[s]
-        return self.BNB_COLORS[i % len(self.BNB_COLORS)]
 
 
 def init(caravel):

@@ -1,5 +1,13 @@
+.heatmap .slice_container {
+  position: relative;
+  top: 0;
+  left: 0;
+  height: 100%;
+}
+
 .heatmap .axis text {
   font: 10px sans-serif;
+  text-rendering: optimizeLegibility;
 }
 
 .heatmap .axis path,
@@ -30,6 +38,7 @@
   color: #fff;
   border-radius: 2px;
   pointer-events: none;
+  z-index: 1000;
 }
 
 /* Creates a small triangle extender for the tooltip */

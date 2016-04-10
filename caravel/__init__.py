@@ -1,13 +1,17 @@
 """Package's main module!"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
 import logging
 import os
+
 from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.appbuilder.baseviews import expose
-from flask.ext.migrate import Migrate
 from flask.ext.cache import Cache
-
+from flask.ext.migrate import Migrate
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')

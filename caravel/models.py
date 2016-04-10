@@ -1,30 +1,34 @@
 """A collection of ORM sqlalchemy models for Caravel"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from copy import deepcopy, copy
-from collections import namedtuple
-from datetime import timedelta, datetime, date
 import functools
 import json
 import logging
-from six import string_types
-import sqlparse
-import requests
 import textwrap
+from collections import namedtuple
+from copy import deepcopy, copy
+from datetime import timedelta, datetime, date
 
+import humanize
+import pandas as pd
+import requests
+import sqlalchemy as sqla
+import sqlparse
 from dateutil.parser import parse
 from flask import flash, request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-import pandas as pd
-import humanize
 from pydruid import client
 from pydruid.utils.filters import Dimension, Filter
-
-import sqlalchemy as sqla
+from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
     Table, create_engine, MetaData, desc, select, and_, func)
 from sqlalchemy.engine import reflection
+from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
@@ -32,7 +36,6 @@ from sqlalchemy_utils import EncryptedType
 
 from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
-from sqlalchemy.ext.declarative import declared_attr
 
 config = app.config
 
@@ -191,8 +194,8 @@ class Slice(Model, AuditMixinNullable):
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
-            "/caravel/explore/{self.datasource_type}/"
-            "{self.datasource_id}/".format(self=self))
+            "/caravel/explore/{obj.datasource_type}/"
+            "{obj.datasource_id}/".format(obj=self))
         return href(slice_params)
 
     @property
@@ -202,8 +205,8 @@ class Slice(Model, AuditMixinNullable):
     @property
     def slice_link(self):
         url = self.slice_url
-        return '<a href="{url}">{self.slice_name}</a>'.format(
-            url=url, self=self)
+        return '<a href="{url}">{obj.slice_name}</a>'.format(
+            url=url, obj=self)
 
 
 dashboard_slices = Table(
@@ -244,7 +247,7 @@ class Dashboard(Model, AuditMixinNullable):
             return {}
 
     def dashboard_link(self):
-        return '<a href="{self.url}">{self.dashboard_title}</a>'.format(self=self)
+        return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
 
     @property
     def json_data(self):
@@ -334,8 +337,10 @@ class Database(Model, AuditMixinNullable):
             'mysql': (
                 Grain('Time Column', '{col}'),
                 Grain('day', 'DATE({col})'),
-                Grain('week', 'DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY)'),
-                Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
+                Grain("week", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
+                Grain("month", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
@@ -432,12 +437,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def perm(self):
         return (
-            "[{self.database}].[{self.table_name}]"
-            "(id:{self.id})").format(self=self)
+            "[{obj.database}].[{obj.table_name}]"
+            "(id:{obj.id})").format(obj=self)
 
     @property
     def full_name(self):
-        return "[{self.database}].[{self.table_name}]".format(self=self)
+        return "[{obj.database}].[{obj.table_name}]".format(obj=self)
 
     @property
     def dttm_cols(self):
@@ -472,11 +477,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/caravel/explore/{self.type}/{self.id}/".format(self=self)
+            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
     def table_link(self):
-        return '<a href="{self.explore_url}">{self.table_name}</a>'.format(self=self)
+        return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
     @property
     def metrics_combo(self):
@@ -829,9 +834,9 @@ class DruidCluster(Model, AuditMixinNullable):
 
     def refresh_datasources(self):
         endpoint = (
-            "http://{self.coordinator_host}:{self.coordinator_port}/"
-            "{self.coordinator_endpoint}/datasources"
-        ).format(self=self)
+            "http://{obj.coordinator_host}:{obj.coordinator_port}/"
+            "{obj.coordinator_endpoint}/datasources"
+        ).format(obj=self)
 
         datasources = json.loads(requests.get(endpoint).text)
         for datasource in datasources:
@@ -875,8 +880,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def perm(self):
         return (
-            "[{self.cluster_name}].[{self.datasource_name}]"
-            "(id:{self.id})").format(self=self)
+            "[{obj.cluster_name}].[{obj.datasource_name}]"
+            "(id:{obj.id})").format(obj=self)
 
     @property
     def url(self):
@@ -891,17 +896,17 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def full_name(self):
         return (
-            "[{self.cluster_name}]."
-            "[{self.datasource_name}]").format(self=self)
+            "[{obj.cluster_name}]."
+            "[{obj.datasource_name}]").format(obj=self)
 
     def __repr__(self):
         return self.datasource_name
 
     @property
     def datasource_link(self):
-        url = "/caravel/explore/{self.type}/{self.id}/".format(self=self)
-        return '<a href="{url}">{self.datasource_name}</a>'.format(
-            url=url, self=self)
+        url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+        return '<a href="{url}">{obj.datasource_name}</a>'.format(
+            url=url, obj=self)
 
     def get_metric_obj(self, metric_name):
         return [

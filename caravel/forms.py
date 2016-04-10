@@ -1,12 +1,19 @@
 """Contains the logic to create cohesive forms on the explore view"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from collections import OrderedDict
+from copy import copy
 
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField)
 from wtforms import validators, widgets
-from copy import copy
+
 from caravel import app
-from collections import OrderedDict
+
 config = app.config
 
 
@@ -106,7 +113,9 @@ class FormFactory(object):
         viz = self.viz
         datasource = viz.datasource
         default_metric = datasource.metrics_combo[0][0]
-        default_groupby = datasource.groupby_column_names[0]
+
+        gb_cols = datasource.groupby_column_names
+        default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = [(s, s) for s in datasource.groupby_column_names]
         # Pool of all the fields that can be used in Caravel
         self.field_dict = {
@@ -132,7 +141,7 @@ class FormFactory(object):
                 'Color Scheme', choices=self.choicify([
                     'fire', 'blue_white_yellow', 'white_black',
                     'black_white']),
-                default='fire',
+                default='blue_white_yellow',
                 description=""),
             'normalize_across': SelectField(
                 'Normalize Across', choices=self.choicify([
@@ -500,6 +509,11 @@ class FormFactory(object):
                     "relative time period. Expects relative time delta "
                     "in natural language (example: 24 hours, 7 days, "
                     "56 weeks, 365 days")),
+            'subheader': TextField(
+                'Subheader',
+                description=(
+                    "Description text that shows up below your Big "
+                    "Number")),
         }
 
     @staticmethod

@@ -3,25 +3,28 @@
 These objects represent the backend of all the visualizations that
 Caravel can render.
 """
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
 
-from collections import OrderedDict, defaultdict
-from datetime import datetime, timedelta
+import hashlib
 import json
 import logging
 import uuid
-import hashlib
+from collections import OrderedDict, defaultdict
+from datetime import datetime, timedelta
 
+import pandas as pd
 from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
+from six import string_types
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
-import pandas as pd
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
-
-from six import string_types
 
 from caravel.utils import NoResultsException
 
@@ -34,6 +37,7 @@ class BaseViz(object):
 
     viz_type = None
     verbose_name = "Base Viz"
+    credits = ""
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -307,6 +311,7 @@ class TableViz(BaseViz):
 
     viz_type = "table"
     verbose_name = "Table View"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': "Chart Options",
         'fields': (
@@ -361,6 +366,7 @@ class PivotTableViz(BaseViz):
 
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -413,7 +419,7 @@ class PivotTableViz(BaseViz):
             na_rep='',
             classes=(
                 "dataframe table table-striped table-bordered "
-                "table-condensed table-hover"))
+                "table-condensed table-hover").split(" "))
 
 
 class MarkupViz(BaseViz):
@@ -480,6 +486,7 @@ class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
 
+    credits = '<a href="http://nvd3.org/">NVD3.org</a>'
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
@@ -558,7 +565,8 @@ class BigNumberViz(BaseViz):
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = "big_number"
-    verbose_name = "Big Number"
+    verbose_name = "Big Number with Trendline"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = True
     fieldsets = ({
         'label': None,
@@ -599,6 +607,52 @@ class BigNumberViz(BaseViz):
             'data': df.values.tolist(),
             'compare_lag': compare_lag,
             'compare_suffix': form_data.get('compare_suffix', ''),
+        }
+
+
+class BigNumberTotalViz(BaseViz):
+
+    """Put emphasis on a single metric with this big number viz"""
+
+    viz_type = "big_number_total"
+    verbose_name = "Big Number"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metric',
+            'subheader',
+            'y_axis_format',
+        )
+    },)
+    form_overrides = {
+        'y_axis_format': {
+            'label': 'Number format',
+        }
+    }
+
+    def reassignments(self):
+        metric = self.form_data.get('metric')
+        if not metric:
+            self.form_data['metric'] = self.orig_form_data.get('metrics')
+
+    def query_obj(self):
+        d = super(BigNumberTotalViz, self).query_obj()
+        metric = self.form_data.get('metric')
+        if not metric:
+            raise Exception("Pick a metric!")
+        d['metrics'] = [self.form_data.get('metric')]
+        self.form_data['metric'] = metric
+        return d
+
+    def get_data(self):
+        form_data = self.form_data
+        df = self.get_df()
+        df = df.sort(columns=df.columns[0])
+        return {
+            'data': df.values.tolist(),
+            'subheader': form_data.get('subheader', ''),
         }
 
 
@@ -882,9 +936,8 @@ class DistributionBarViz(DistributionPieViz):
 
     def get_data(self):
         df = self.get_df()
-        series = df.to_dict('series')
         chart_data = []
-        for name, ys in series.items():
+        for name, ys in df.iteritems():
             if df[name].dtype.kind not in "biufc":
                 continue
             if isinstance(name, string_types):
@@ -911,6 +964,9 @@ class SunburstViz(BaseViz):
     viz_type = "sunburst"
     verbose_name = "Sunburst"
     is_timeseries = False
+    credits = (
+        'Kerry Rodden '
+        '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
     fieldsets = ({
         'label': None,
         'fields': (
@@ -974,6 +1030,7 @@ class SankeyViz(BaseViz):
     viz_type = "sankey"
     verbose_name = "Sankey"
     is_timeseries = False
+    credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1000,7 +1057,32 @@ class SankeyViz(BaseViz):
     def get_data(self):
         df = self.get_df()
         df.columns = ['source', 'target', 'value']
-        return df.to_dict(orient='records')
+        recs = df.to_dict(orient='records')
+
+        hierarchy = defaultdict(set)
+        for row in recs:
+            hierarchy[row['source']].add(row['target'])
+
+        def find_cycle(g):
+            """Whether there's a cycle in a directed graph"""
+            path = set()
+            def visit(vertex):
+                path.add(vertex)
+                for neighbour in g.get(vertex, ()):
+                    if neighbour in path or visit(neighbour):
+                        return (vertex, neighbour)
+                path.remove(vertex)
+            for v in g:
+                cycle = visit(v)
+                if cycle:
+                    return cycle
+
+        cycle = find_cycle(hierarchy)
+        if cycle:
+            raise Exception(
+                "There's a loop in your Sankey, please provide a tree. "
+                "Here's a faulty link: {}".format(cycle))
+        return recs
 
 
 class DirectedForceViz(BaseViz):
@@ -1009,6 +1091,7 @@ class DirectedForceViz(BaseViz):
 
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
+    credits = 'd3noob @<a href="http://bl.ocks.org/d3noob/5141278">bl.ocks.org</a>'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1051,6 +1134,7 @@ class WorldMapViz(BaseViz):
     viz_type = "world_map"
     verbose_name = "World Map"
     is_timeseries = False
+    credits = 'datamaps on <a href="https://www.npmjs.com/package/datamaps">npm</a>'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1124,6 +1208,7 @@ class FilterBoxViz(BaseViz):
     viz_type = "filter_box"
     verbose_name = "Filters"
     is_timeseries = False
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1170,6 +1255,7 @@ class IFrameViz(BaseViz):
 
     viz_type = "iframe"
     verbose_name = "iFrame"
+    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1187,6 +1273,9 @@ class ParallelCoordinatesViz(BaseViz):
 
     viz_type = "para"
     verbose_name = "Parallel Coordinates"
+    credits = (
+        '<a href="https://syntagmatic.github.io/parallel-coordinates/">'
+        'Syntagmatic\'s library</a>')
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1222,6 +1311,9 @@ class HeatmapViz(BaseViz):
     viz_type = "heatmap"
     verbose_name = "Heatmap"
     is_timeseries = False
+    credits = (
+        'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
+        'bl.ocks.org</a>')
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1290,6 +1382,7 @@ viz_types_list = [
     MarkupViz,
     WordCloudViz,
     BigNumberViz,
+    BigNumberTotalViz,
     SunburstViz,
     DirectedForceViz,
     SankeyViz,

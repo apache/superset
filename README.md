@@ -90,6 +90,7 @@ Resources
 * [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
 * [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
+* [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 
 Tip of the Hat
