@@ -313,6 +313,7 @@ var px = (function () {
         token.find("img.loading").show();
         container.hide();
         container.html('');
+        container.css('height', slice.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
@@ -322,6 +323,7 @@ var px = (function () {
       resize: function () {
         token.find("img.loading").show();
         container.hide();
+        container.css('height', slice.height());
         container.html('');
         this.viz.render();
         this.viz.resize();
