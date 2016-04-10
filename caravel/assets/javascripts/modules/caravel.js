@@ -276,8 +276,8 @@ var px = (function () {
         var msg = error.responseText;
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg + '</div>';
-        if(error.getResponseHeader("Caravel-Exception") == "NoResultsException"){
-            err = '<div class="alert-nodata">' + msg + '</div>';
+        if (error.getResponseHeader("Caravel-Exception") === "NoResultsException") {
+          err = '<div class="alert-nodata">' + msg + '</div>';
         }
         container.html(err);
         container.show();
