@@ -587,6 +587,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+        else:
+            inner_time_filter = []
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
