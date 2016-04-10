@@ -39,9 +39,10 @@ var Dashboard = function (dashboardData) {
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
     },
-    getFilter: function(slice_id, col){
-      if(this.filters.hasOwnProperty(col))
+    getFilter: function (slice_id, col) {
+      if (this.filters.hasOwnProperty(col)) {
         return this.filters[col];
+      }
       return [];
     },
     addFilter: function (slice_id, col, vals, merge) {
@@ -51,10 +52,10 @@ var Dashboard = function (dashboardData) {
       if (!(col in this.filters)) {
         this.filters[col] = [];
       }
-      if (!merge) {
-        this.filters[col] = vals;
-      } else {
+      if (merge) {
         this.filters[col] = d3.merge([this.filters[col], vals]);
+      } else {
+        this.filters[col] = vals;
       }
       this.refreshExcept(slice_id);
     },

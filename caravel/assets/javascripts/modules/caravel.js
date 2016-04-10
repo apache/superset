@@ -335,7 +335,7 @@ var px = (function () {
           dashboard.setFilter(slice_id, col, vals);
         }
       },
-      getFilter: function(col){
+      getFilter: function (col) {
         if (dashboard !== undefined) {
           return dashboard.getFilter(slice_id, col);
         }
