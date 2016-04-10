@@ -23,6 +23,8 @@ from caravel.forms import FormFactory
 
 from six import string_types
 
+from caravel.utils import NoResultsException
+
 config = app.config
 
 
@@ -135,8 +137,10 @@ class BaseViz(object):
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
-        if df is None or df.empty:
-            raise Exception("No data, review your incantations!")
+        if df is None:
+            raise Exception("Error retrieving data")
+        elif df.empty:
+            raise NoResultsException()
         else:
             if 'timestamp' in df.columns:
                 df.timestamp = pd.to_datetime(df.timestamp, utc=False)

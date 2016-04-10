@@ -258,3 +258,7 @@ def readfile(filepath):
     with open(filepath) as f:
         content = f.read()
     return content
+
+
+class NoResultsException(Exception):
+    pass

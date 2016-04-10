@@ -27,7 +27,7 @@ function heatmapVis(slice) {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       var matrix = {};
       if (error) {
-        slice.error(error.responseText);
+        slice.error(error);
         return '';
       }
       var fd = payload.form_data;
