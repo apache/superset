@@ -556,10 +556,12 @@ class Caravel(BaseView):
         slc.table_id = table_id
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
+        user_slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
+        user_slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
 
-        if action == 'save' and self.appbuilder.sm.has_access('can_add', 'SliceModelView'):
+        if action == 'save' and user_slice_add_perm:
             self.save_slice(slc)
-        elif action == 'overwrite' and self.appbuilder.sm.has_access('can_edit', 'SliceModelView'):
+        elif action == 'overwrite' and user_slice_edit_perm:
             self.overwrite_slice(slc)
 
         return redirect(slc.slice_url)
