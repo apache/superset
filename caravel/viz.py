@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import hashlib
 import json
 import logging
+import logging.config
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
@@ -27,6 +28,8 @@ from caravel import app, utils, cache
 from caravel.forms import FormFactory
 
 config = app.config
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
+logger = logging.getLogger(__name__)
 
 
 class BaseViz(object):
@@ -239,7 +242,7 @@ class BaseViz(object):
             payload = cache.get(cache_key)
         if payload:
             is_cached = True
-            logging.info("Serving from cache")
+            logger.info("Serving from cache")
         else:
             is_cached = False
             cache_timeout = self.cache_timeout
@@ -253,7 +256,7 @@ class BaseViz(object):
                 'cache_timeout': cache_timeout,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
-            logging.info("Caching for the next {} seconds".format(
+            logger.info("Caching for the next {} seconds".format(
                 cache_timeout))
             cache.set(cache_key, payload, timeout=self.cache_timeout)
         payload['is_cached'] = is_cached

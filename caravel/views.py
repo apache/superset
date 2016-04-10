@@ -27,11 +27,11 @@ from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
-from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art, caravel_logging
+from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
-logging.config.dictConfig(caravel_logging.logging_config)
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 

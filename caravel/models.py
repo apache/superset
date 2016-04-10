@@ -35,11 +35,11 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
-from caravel import app, db, get_session, utils, caravel_logging
+from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
 
 config = app.config
-logging.config.dictConfig(caravel_logging.logging_config)
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])

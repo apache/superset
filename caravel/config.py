@@ -118,9 +118,50 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
-# Log Level => INFO or DEBUG
+"""
+Settings for root logger.
+1) Log messages will be printed to console a
+2) also to log file (rotated, with specified size).
+
+Reference:
+1) http://docs.python-guide.org/en/latest/writing/logging/
+2) https://docs.python.org/2/library/logging.config.html
+"""
+
 LOG_LEVEL = 'DEBUG'
-LOG_FILENAME = '/tmp/caravel.log'
+
+LOGGING_CONFIG = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '(%(asctime)s; %(filename)s:%(lineno)d) : %(levelname)s:%(name)s: %(message)s ',
+            'datefmt': "%Y-%m-%d %H:%M:%S",
+        }
+    },
+    'handlers': {
+        'console': {
+            'level': LOG_LEVEL,
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+        },
+        'rotate_file': {
+            'level': LOG_LEVEL,
+            'formatter': 'standard',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': '/tmp/caravel.log',
+            'encoding': 'utf8',
+            'maxBytes': 10000000,
+            'backupCount': 1,
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console', 'rotate_file'],
+            'level': 'DEBUG',
+        },
+    }
+}
 
 try:
     from caravel_config import *  # noqa

@@ -14,12 +14,11 @@ from flask.ext.script import Manager
 
 import caravel
 from caravel import app
-from caravel import caravel_logging
 from caravel import data, utils
 from caravel import db
 
 config = app.config
-logging.config.dictConfig(caravel_logging.logging_config)
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 manager = Manager(app)

@@ -14,7 +14,7 @@ import textwrap
 import pandas as pd
 from sqlalchemy import String, DateTime, Float
 
-from caravel import app, db, models, utils, caravel_logging
+from caravel import app, db, models, utils
 
 # Shortcuts
 DB = models.Database
@@ -23,7 +23,7 @@ TBL = models.SqlaTable
 Dash = models.Dashboard
 
 config = app.config
-logging.config.dictConfig(caravel_logging.logging_config)
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
