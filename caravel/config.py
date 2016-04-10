@@ -10,10 +10,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
-
+from datetime import datetime
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
-
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -141,7 +140,7 @@ LOGGING_CONFIG = {
     'disable_existing_loggers': False,
     'formatters': {
         'standard': {
-            'format': '(%(asctime)s; %(filename)s:%(lineno)d) : %(levelname)s:%(name)s: %(message)s ',
+            'format': '[%(asctime)s] [%(filename)s :: line %(lineno)d)] [%(levelname)s::%(name)s] - %(message)s ',
             'datefmt': "%Y-%m-%d %H:%M:%S",
         }
     },
@@ -154,11 +153,11 @@ LOGGING_CONFIG = {
         'rotate_file': {
             'level': LOG_LEVEL,
             'formatter': 'standard',
-            'class': 'logging.handlers.RotatingFileHandler',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': LOG_LOCATION,
-            'encoding': 'utf8',
-            'maxBytes': 10000000,
-            'backupCount': 1,
+            'when': 'midnight',
+            'interval': 1,
+            'backupCount': 30
         }
     },
     'loggers': {
