@@ -263,6 +263,18 @@ def load_world_bank_health_n_pop():
                 until="now",
                 viz_type='area',
                 groupby=["region"],)),
+        Slice(
+            slice_name="Box plot",
+            viz_type='box_plot',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                whisker_options="Tukey",
+                viz_type='box_plot',
+                groupby=["region"],)),
     ]
     for slc in slices:
         merge_slice(slc)

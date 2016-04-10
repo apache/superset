@@ -16,6 +16,7 @@ from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 
 import pandas as pd
+import numpy as np
 from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
@@ -486,6 +487,113 @@ class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
+
+
+class BoxPlotViz(NVD3Viz):
+
+    """Box plot viz from ND3"""
+
+    viz_type = "box_plot"
+    verbose_name = "Box Plot"
+    sort_series = False
+    is_timeseries = True
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby', 'limit',
+        ),
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'whisker_options',
+        )
+    },)
+
+    def get_df(self, query_obj=None):
+        form_data = self.form_data
+        df = super(BoxPlotViz, self).get_df(query_obj)
+
+        df = df.fillna(0)
+
+        # conform to NVD3 names
+        def Q1(series):  # need to be named functions - can't use lambdas
+            return np.percentile(series, 25)
+
+        def Q3(series):
+            return np.percentile(series, 75)
+
+        whisker_type = form_data.get('whisker_options')
+        if whisker_type == "Tukey":
+
+            def whisker_high(series):
+                upper_outer_lim = Q3(series) + 1.5 * (Q3(series) - Q1(series))
+                series = series[series <= upper_outer_lim]
+                return series[np.abs(series - upper_outer_lim).argmin()]
+
+            def whisker_low(series):
+                lower_outer_lim = Q1(series) - 1.5 * (Q3(series) - Q1(series))
+                # find the closest value above the lower outer limit
+                series = series[series >= lower_outer_lim]
+                return series[np.abs(series - lower_outer_lim).argmin()]
+
+        elif whisker_type == "Min/max (no outliers)":
+
+            def whisker_high(series):
+                return series.max()
+
+            def whisker_low(series):
+                return series.min()
+
+        elif " percentiles" in whisker_type:
+            low, high = whisker_type.replace(" percentiles", "").split("/")
+
+            def whisker_high(series):
+                return np.percentile(series, int(high))
+
+            def whisker_low(series):
+                return np.percentile(series, int(low))
+
+        else:
+            raise ValueError("Unknown whisker type: {}".format(whisker_type))
+
+        def outliers(series):
+            above = series[series > whisker_high(series)]
+            below = series[series < whisker_low(series)]
+            # pandas sometimes doesn't like getting lists back here
+            return set(above.tolist() + below.tolist())
+
+        aggregate = [Q1, np.median, Q3, whisker_high, whisker_low, outliers]
+        df = df.groupby(form_data.get('groupby')).agg(aggregate)
+        return df
+
+    def to_series(self, df, classed='', title_suffix=''):
+        label_sep = " - "
+        chart_data = []
+        for index_value, row in zip(df.index, df.to_dict(orient="records")):
+            if isinstance(index_value, tuple):
+                index_value = label_sep.join(index_value)
+            boxes = defaultdict(dict)
+            for (label, key), value in row.items():
+                if key == "median":
+                    key = "Q2"
+                boxes[label][key] = value
+            for label, box in boxes.items():
+                if len(self.form_data.get("metrics")) > 1:
+                    # need to render data labels with metrics
+                    chart_label = label_sep.join([index_value, label])
+                else:
+                    chart_label = index_value
+                chart_data.append({
+                    "label": chart_label,
+                    "values": box,
+                })
+        return chart_data
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = self.to_series(df)
+        return chart_data
 
 
 class BubbleViz(NVD3Viz):
@@ -1387,6 +1495,7 @@ viz_types_list = [
     IFrameViz,
     ParallelCoordinatesViz,
     HeatmapViz,
+    BoxPlotViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
