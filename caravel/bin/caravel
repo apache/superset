@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import logging.config
 from datetime import datetime
 from subprocess import Popen
 
@@ -15,8 +16,11 @@ import caravel
 from caravel import app
 from caravel import data, utils
 from caravel import db
+from caravel import caravel_logging
 
 config = app.config
+logging.config.dictConfig(caravel_logging.logging_config)
+logger = logging.getLogger(__name__)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
@@ -36,8 +40,9 @@ manager.add_command('db', MigrateCommand)
     help="Specify the timeout (seconds) for the gunicorn web server")
 def runserver(debug, port, timeout, workers):
     """Starts a Caravel web server"""
-    debug = debug or config.get("DEBUG")
-    if debug:
+    debug = config.get('LOG_LEVEL')
+
+    if debug == 'DEBUG':
         app.run(
             host='0.0.0.0',
             port=int(port),
@@ -49,7 +54,7 @@ def runserver(debug, port, timeout, workers):
             "--timeout {timeout} "
             "-b 0.0.0.0:{port} "
             "caravel:app").format(**locals())
-        print("Starting server with command: " + cmd)
+        logger.info("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
 @manager.command
@@ -62,17 +67,17 @@ def init():
     help="Only load 1000 rows (faster, used for testing)")
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    print("Loading examples into {}".format(db))
+    logger.debug("Loading examples into {}".format(db))
 
     data.load_css_templates()
 
-    print("Loading energy related dataset")
+    logger.debug("Loading energy related dataset")
     data.load_energy()
 
-    print("Loading [World Bank's Health Nutrition and Population Stats]")
+    logger.debug("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
 
-    print("Loading [Birth names]")
+    logger.debug("Loading [Birth names]")
     data.load_birth_names()
 
 @manager.command
@@ -84,12 +89,12 @@ def refresh_druid():
         try:
             cluster.refresh_datasources()
         except Exception as e:
-            print(
+            logger.debug(
                 "Error while processing cluster '{}'\n{}".format(
                     cluster, str(e)))
             logging.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
-        print(
+        logger.debug(
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()

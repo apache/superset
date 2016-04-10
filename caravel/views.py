@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import json
 import logging
+import logging.config
 import re
 import time
 import traceback
@@ -26,10 +27,12 @@ from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
-from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art, caravel_logging
 
 config = app.config
 log_this = models.Log.log_this
+logging.config.dictConfig(caravel_logging.logging_config)
+logger = logging.getLogger(__name__)
 
 
 def validate_json(form, field):  # noqa
@@ -403,7 +406,7 @@ class R(BaseView):
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
-            print(url.url)
+            logger.debug(url.url)
             return redirect('/' + url.url)
         else:
             flash("URL to nowhere...", "danger")

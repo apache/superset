@@ -40,9 +40,6 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
 
-# Whether to run the web server in debug mode or not
-DEBUG = False
-
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
 
@@ -120,6 +117,10 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+
+# Log Level => INFO or DEBUG
+LOG_LEVEL = 'DEBUG'
+LOG_FILENAME = '/tmp/caravel.log'
 
 try:
     from caravel_config import *  # noqa
