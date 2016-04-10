@@ -16,9 +16,10 @@ from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 
-from caravel import caravel_logging
+from caravel import app
 
-logging.config.dictConfig(caravel_logging.logging_config)
+config = app.config
+logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 

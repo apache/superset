@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
-import logging
 import logging.config
 import uuid
 from collections import OrderedDict, defaultdict

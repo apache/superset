@@ -5,7 +5,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
-import logging
 import logging.config
 import re
 import time

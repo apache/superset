@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import gzip
 import json
-import logging
 import logging.config
 import os
 import textwrap
