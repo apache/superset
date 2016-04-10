@@ -37,9 +37,30 @@ Gallery
 .. image:: _static/img/viz_thumbnails/sunburst.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/stacked.png
+.. image:: _static/img/viz_thumbnails/area.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/big_number.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/area.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/big_number_total.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/dist_bar.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/heatmap.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/markup.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/para.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/world_map.png
    :scale: 25 %
 
