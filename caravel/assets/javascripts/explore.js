@@ -207,12 +207,13 @@ function initExploreView() {
     toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
   }
   function formatViz(viz) {
-    var $state = $(
-      '<img class="viz-thumb-option" src="/static/assets/images/viz_thumbnails/' + viz.id + '.png" onerror="this.src=\'/static/assets/images/noimg.png\';">' +
+    var url = '/static/assets/images/viz_thumbnails/' + viz.id + '.png';
+    var no_img = '/static/assets/images/noimg.png';
+    return $(
+      '<img class="viz-thumb-option" src="' + url + '" onerror="this.src=\'' + no_img + '\';">' +
       '<span>' + viz.text + '</span>'
     );
-    return $state;
-  };
+  }
 
   $(".select2").select2({
     dropdownAutoWidth: true
