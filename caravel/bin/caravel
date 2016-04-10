@@ -14,9 +14,9 @@ from flask.ext.script import Manager
 
 import caravel
 from caravel import app
+from caravel import caravel_logging
 from caravel import data, utils
 from caravel import db
-from caravel import caravel_logging
 
 config = app.config
 logging.config.dictConfig(caravel_logging.logging_config)
@@ -92,7 +92,7 @@ def refresh_druid():
             logger.debug(
                 "Error while processing cluster '{}'\n{}".format(
                     cluster, str(e)))
-            logging.exception(e)
+            logger.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
         logger.debug(
             "Refreshed metadata from cluster "

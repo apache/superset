@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import functools
 import json
-import logging
+import logging.config
 from datetime import datetime
 
 import parsedatetime
@@ -15,6 +15,11 @@ from flask import Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
+
+from caravel import caravel_logging
+
+logging.config.dictConfig(caravel_logging.logging_config)
+logger = logging.getLogger(__name__)
 
 
 class memoized(object):  # noqa
@@ -87,7 +92,7 @@ def parse_human_datetime(s):
             cal = parsedatetime.Calendar()
             dttm = dttm_from_timtuple(cal.parse(s)[0])
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 

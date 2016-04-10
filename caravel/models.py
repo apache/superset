@@ -191,7 +191,7 @@ class Slice(Model, AuditMixinNullable):
         try:
             slice_params = json.loads(self.params)
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
         slice_params['slice_name'] = self.slice_name
@@ -931,7 +931,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @classmethod
     def sync_to_db(cls, name, cluster):
         """Fetches metadata for that datasource and merges the Caravel db"""
-        logger.debug("Syncing Druid datasource [{}]".format(name))
+        logger.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:

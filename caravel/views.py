@@ -39,7 +39,7 @@ def validate_json(form, field):  # noqa
     try:
         json.loads(field.data)
     except Exception as e:
-        logging.exception(e)
+        logger.exception(e)
         raise ValidationError("json isn't valid")
 
 
@@ -197,7 +197,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         try:
             table.fetch_metadata()
         except Exception as e:
-            logging.exception(e)
+            logger.exception(e)
             flash(
                 "Table [{}] doesn't seem to exist, "
                 "couldn't fetch metadata".format(table.table_name),
@@ -406,7 +406,7 @@ class R(BaseView):
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
-            logger.debug(url.url)
+            logger.info(url.url)
             return redirect('/' + url.url)
         else:
             flash("URL to nowhere...", "danger")
@@ -487,7 +487,7 @@ class Caravel(BaseView):
             try:
                 payload = obj.get_json()
             except Exception as e:
-                logging.exception(e)
+                logger.exception(e)
                 if config.get("DEBUG"):
                     raise e
                 payload = str(e)
@@ -796,7 +796,7 @@ class Caravel(BaseView):
                     "Error while processing cluster '{}'\n{}".format(
                         cluster, str(e)),
                     "danger")
-                logging.exception(e)
+                logger.exception(e)
                 return redirect('/druidclustermodelview/list/')
             cluster.metadata_last_refreshed = datetime.now()
             flash(

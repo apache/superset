@@ -13,12 +13,14 @@ from flask.ext.appbuilder.baseviews import expose
 from flask.ext.cache import Cache
 from flask.ext.migrate import Migrate
 
+from . import caravel_logging
+
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 
 # Logging configuration
-logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-logging.getLogger().setLevel(logging.DEBUG)
+logging.config.dictConfig(caravel_logging.logging_config)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
