@@ -127,6 +127,9 @@ Reference:
 2) https://docs.python.org/2/library/logging.config.html
 """
 
+# Whether to run the web server in debug mode or not
+DEBUG = False
+
 # ---------------------------------------------------
 # Logging Configuration
 # ---------------------------------------------------
