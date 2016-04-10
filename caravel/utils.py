@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import functools
 import json
-import logging.config
+import logging
 from datetime import datetime
 
 import parsedatetime
@@ -19,7 +19,6 @@ from sqlalchemy.types import TypeDecorator, TEXT
 from caravel import app
 
 config = app.config
-logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 

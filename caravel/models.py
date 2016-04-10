@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
-import logging.config
 import textwrap
 from collections import namedtuple
 from copy import deepcopy, copy
@@ -39,7 +38,6 @@ from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
 
 config = app.config
-logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])

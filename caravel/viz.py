@@ -10,7 +10,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import json
-import logging.config
+import logging
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
@@ -27,7 +27,6 @@ from caravel import app, utils, cache
 from caravel.forms import FormFactory
 
 config = app.config
-logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 

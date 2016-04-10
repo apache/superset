@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import gzip
 import json
-import logging.config
+import logging
 import os
 import textwrap
 
@@ -22,7 +22,6 @@ TBL = models.SqlaTable
 Dash = models.Dashboard
 
 config = app.config
-logging.config.dictConfig(config.get('LOGGING_CONFIG'))
 logger = logging.getLogger(__name__)
 
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
