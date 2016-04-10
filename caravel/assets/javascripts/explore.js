@@ -206,12 +206,24 @@ function initExploreView() {
   for (var i = 0; i < collapsed_fieldsets.length; i++) {
     toggle_fieldset($('legend:contains("' + collapsed_fieldsets[i] + '")'), false);
   }
+  function formatViz(viz) {
+    var $state = $(
+      '<img class="viz-thumb-option" src="/static/assets/images/viz_thumbnails/' + viz.id + '.png" onerror="this.src=\'/static/assets/images/noimg.png\';">' +
+      '<span>' + viz.text + '</span>'
+    );
+    return $state;
+  };
 
   $(".select2").select2({
     dropdownAutoWidth: true
   });
   $(".select2Sortable").select2({
     dropdownAutoWidth: true
+  });
+  $(".select2-with-images").select2({
+    dropdownAutoWidth: true,
+    dropdownCssClass: "bigdrop",
+    formatResult: formatViz
   });
   $(".select2Sortable").select2Sortable({
     bindOrder: 'sortableStop'

@@ -173,6 +173,16 @@ img.loading {
   width: 20px;
   margin: 5px;
 }
+img.viz-thumb-option {
+    width: 100px;
+    border: 1px solid gray;
+    margin-right: 5px;
+    border-radius: 5px;
+}
+.select2-drop.bigdrop .select2-results {
+    max-height: 700px;
+}
+
 .dashboard .title {
   text-align: center;
 }

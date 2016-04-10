@@ -22,7 +22,7 @@ Gallery
 .. image:: _static/img/viz_thumbnails/word_cloud.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/filter.png
+.. image:: _static/img/viz_thumbnails/filter_box.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/pivot_table.png
@@ -31,7 +31,7 @@ Gallery
 .. image:: _static/img/viz_thumbnails/force_directed.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/percent_change.png
+.. image:: _static/img/viz_thumbnails/compare.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/sunburst.png
