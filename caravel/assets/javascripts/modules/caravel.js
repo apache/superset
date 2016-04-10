@@ -46,7 +46,7 @@ var color = function () {
     // Color factory
     var seen = {};
     return function (s) {
-      if (!s) return;
+      if (!s) { return; }
       // next line is for caravel series that should have the same color
       s = s.replace('---', '');
       if (seen[s] === undefined) {

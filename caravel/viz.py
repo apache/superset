@@ -516,7 +516,7 @@ class BoxPlotViz(NVD3Viz):
 
         df = df.fillna(0)
 
-        ## conform to NVD3 names
+        # conform to NVD3 names
         def Q1(series):  # need to be named functions - can't use lambdas
             return np.percentile(series, 25)
 
@@ -533,7 +533,7 @@ class BoxPlotViz(NVD3Viz):
 
             def whisker_low(series):
                 lower_outer_lim = Q1(series) - 1.5 * (Q3(series) - Q1(series))
-                ## find the closest value above the lower outer limit
+                # find the closest value above the lower outer limit
                 series = series[series >= lower_outer_lim]
                 return series[np.abs(series - lower_outer_lim).argmin()]
 
@@ -544,7 +544,6 @@ class BoxPlotViz(NVD3Viz):
 
             def whisker_low(series):
                 return series.min()
-
 
         elif " percentiles" in whisker_type:
             low, high = whisker_type.replace(" percentiles", "").split("/")
@@ -561,7 +560,7 @@ class BoxPlotViz(NVD3Viz):
         def outliers(series):
             above = series[series > whisker_high(series)]
             below = series[series < whisker_low(series)]
-            ## pandas sometimes doesn't like getting lists back here
+            # pandas sometimes doesn't like getting lists back here
             return set(above.tolist() + below.tolist())
 
         aggregate = [Q1, np.median, Q3, whisker_high, whisker_low, outliers]
@@ -581,7 +580,7 @@ class BoxPlotViz(NVD3Viz):
                 boxes[label][key] = value
             for label, box in boxes.items():
                 if len(self.form_data.get("metrics")) > 1:
-                    ## need to render data labels with metrics
+                    # need to render data labels with metrics
                     chart_label = label_sep.join([index_value, label])
                 else:
                     chart_label = index_value

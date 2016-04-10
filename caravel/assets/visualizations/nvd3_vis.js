@@ -123,8 +123,8 @@ function nvd3Vis(slice) {
             case 'box_plot':
               colorKey = 'label';
               chart = nv.models.boxPlotChart();
-              chart.x(function(d) { return d.label })
-              chart.staggerLabels(true)
+              chart.x(function (d) { return d.label; });
+              chart.staggerLabels(true);
               chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
               break;
 
