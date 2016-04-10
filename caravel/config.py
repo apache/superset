@@ -128,7 +128,13 @@ Reference:
 2) https://docs.python.org/2/library/logging.config.html
 """
 
+# ---------------------------------------------------
+# Logging Configuration
+# ---------------------------------------------------
+# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
+
 LOG_LEVEL = 'DEBUG'
+LOG_LOCATION = '/tmp/caravel.log'
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -149,7 +155,7 @@ LOGGING_CONFIG = {
             'level': LOG_LEVEL,
             'formatter': 'standard',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/tmp/caravel.log',
+            'filename': LOG_LOCATION,
             'encoding': 'utf8',
             'maxBytes': 10000000,
             'backupCount': 1,
@@ -158,7 +164,7 @@ LOGGING_CONFIG = {
     'loggers': {
         '': {
             'handlers': ['console', 'rotate_file'],
-            'level': 'DEBUG',
+            'level': LOG_LEVEL,
         },
     }
 }
