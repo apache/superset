@@ -17,7 +17,7 @@ function worldMapChart(slice) {
       var fd = json.form_data;
 
       if (error !== null) {
-        slice.error(error.responseText);
+        slice.error(error);
         return '';
       }
       var ext = d3.extent(json.data, function (d) {
