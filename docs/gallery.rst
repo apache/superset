@@ -22,7 +22,7 @@ Gallery
 .. image:: _static/img/viz_thumbnails/word_cloud.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/filter.png
+.. image:: _static/img/viz_thumbnails/filter_box.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/pivot_table.png
@@ -31,15 +31,36 @@ Gallery
 .. image:: _static/img/viz_thumbnails/force_directed.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/percent_change.png
+.. image:: _static/img/viz_thumbnails/compare.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/sunburst.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/stacked.png
+.. image:: _static/img/viz_thumbnails/area.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/big_number.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/area.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/big_number_total.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/dist_bar.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/heatmap.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/markup.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/para.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/world_map.png
    :scale: 25 %
 
