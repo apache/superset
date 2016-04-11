@@ -112,9 +112,6 @@ of the parameters you can copy / paste in that configuration module: ::
     # Flask-WTF flag for CSRF
     CSRF_ENABLED = True
 
-    # Whether to run the web server in debug mode or not
-    DEBUG = True
-
 This file also allows you to define configuration parameters used by
 Flask App Builder, the web framework used by Caravel. Please consult
 the `Flask App Builder Documentation

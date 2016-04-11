@@ -9,8 +9,8 @@
     
     <link rel="stylesheet" href="_static/basic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap.min.css" type="text/css" />
-    <link rel="stylesheet" href="_static/bootstrap-3.3.4/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap-theme.min.css" type="text/css" />
     <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
     <link rel="stylesheet" href="_static/docs.css" type="text/css" />
     
@@ -28,7 +28,7 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
     <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
-    <script type="text/javascript" src="_static/bootstrap-3.3.4/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
     <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
     <link rel="top" title="caravel  documentation" href="index.html" />
     <link rel="next" title="Tutorial" href="tutorial.html" />
@@ -68,7 +68,7 @@
   <ul class="dropdown-menu globaltoc"
       role="menu"
       aria-labelledby="dLabelGlobalToc"><ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="">Installation &amp; Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation &amp; Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
 <li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
@@ -147,52 +147,52 @@ you encounter an error.</p>
 <p>Here&#8217;s how to install them:</p>
 <p>For <strong>Debian</strong> and <strong>Ubuntu</strong>, the following command will ensure that
 the required dependencies are installed:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">build</span><span class="o">-</span><span class="n">essential</span> <span class="n">libssl</span><span class="o">-</span><span class="n">dev</span> <span class="n">libffi</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span>
 </pre></div>
 </div>
 <p>For <strong>Fedora</strong> and <strong>RHEL-derivatives</strong>, the following command will ensure
 that the required dependencies are installed:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>sudo yum upgrade python-setuptools
-sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">yum</span> <span class="n">upgrade</span> <span class="n">python</span><span class="o">-</span><span class="n">setuptools</span>
+<span class="n">sudo</span> <span class="n">yum</span> <span class="n">install</span> <span class="n">gcc</span> <span class="n">libffi</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">python</span><span class="o">-</span><span class="n">wheel</span> <span class="n">openssl</span><span class="o">-</span><span class="n">devel</span>
 </pre></div>
 </div>
 <p><strong>OSX</strong>, system python is not recommended. brew&#8217;s python also ships with pip</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>brew install pkg-config libffi openssl python
-env LDFLAGS=&quot;-L$(brew --prefix openssl)/lib&quot; CFLAGS=&quot;-I$(brew --prefix openssl)/include&quot; pip install cryptography
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">brew</span> <span class="n">install</span> <span class="n">pkg</span><span class="o">-</span><span class="n">config</span> <span class="n">libffi</span> <span class="n">openssl</span> <span class="n">python</span>
+<span class="n">env</span> <span class="n">LDFLAGS</span><span class="o">=</span><span class="s2">&quot;-L$(brew --prefix openssl)/lib&quot;</span> <span class="n">CFLAGS</span><span class="o">=</span><span class="s2">&quot;-I$(brew --prefix openssl)/include&quot;</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">cryptography</span>
 </pre></div>
 </div>
 <p><strong>Windows</strong> isn&#8217;t officially supported at this point, but if you want to
 attempt it, download <a class="reference external" href="https://bootstrap.pypa.io/get-pip.py">get-pip.py</a>, and run <code class="docutils literal"><span class="pre">python</span> <span class="pre">get-pip.py</span></code> which may need admin access. Then run the following:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>C:\&gt; \path\to\vcvarsall.bat x86_amd64
-C:\&gt; set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
-C:\&gt; set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
-C:\&gt; pip install cryptography
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">C</span><span class="p">:</span>\<span class="o">&gt;</span> \<span class="n">path</span>\<span class="n">to</span>\<span class="n">vcvarsall</span><span class="o">.</span><span class="n">bat</span> <span class="n">x86_amd64</span>
+<span class="n">C</span><span class="p">:</span>\<span class="o">&gt;</span> <span class="nb">set</span> <span class="n">LIB</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">OpenSSL</span><span class="o">-</span><span class="mf">1.0</span><span class="o">.</span><span class="mi">1</span><span class="n">f</span><span class="o">-</span><span class="mi">64</span><span class="n">bit</span>\<span class="n">lib</span><span class="p">;</span><span class="o">%</span><span class="n">LIB</span><span class="o">%</span>
+<span class="n">C</span><span class="p">:</span>\<span class="o">&gt;</span> <span class="nb">set</span> <span class="n">INCLUDE</span><span class="o">=</span><span class="n">C</span><span class="p">:</span>\<span class="n">OpenSSL</span><span class="o">-</span><span class="mf">1.0</span><span class="o">.</span><span class="mi">1</span><span class="n">f</span><span class="o">-</span><span class="mi">64</span><span class="n">bit</span>\<span class="n">include</span><span class="p">;</span><span class="o">%</span><span class="n">INCLUDE</span><span class="o">%</span>
+<span class="n">C</span><span class="p">:</span>\<span class="o">&gt;</span> <span class="n">pip</span> <span class="n">install</span> <span class="n">cryptography</span>
 
-# You may also have to create C:\Temp
-C:\&gt; md C:\Temp
+<span class="c1"># You may also have to create C:\Temp</span>
+<span class="n">C</span><span class="p">:</span>\<span class="o">&gt;</span> <span class="n">md</span> <span class="n">C</span><span class="p">:</span>\<span class="n">Temp</span>
 </pre></div>
 </div>
 </div>
 <div class="section" id="caravel-installation-and-initialization">
 <h2>Caravel installation and initialization<a class="headerlink" href="#caravel-installation-and-initialization" title="Permalink to this headline">¶</a></h2>
 <p>Follow these few simple steps to install Caravel.:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span># Install caravel
-pip install caravel
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Install caravel</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">caravel</span>
 
-# Create an admin user
-fabmanager create-admin --app caravel
+<span class="c1"># Create an admin user</span>
+<span class="n">fabmanager</span> <span class="n">create</span><span class="o">-</span><span class="n">admin</span> <span class="o">--</span><span class="n">app</span> <span class="n">caravel</span>
 
-# Initialize the database
-caravel db upgrade
+<span class="c1"># Initialize the database</span>
+<span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
 
-# Create default roles and permissions
-caravel init
+<span class="c1"># Create default roles and permissions</span>
+<span class="n">caravel</span> <span class="n">init</span>
 
-# Load some data to play with
-caravel load_examples
+<span class="c1"># Load some data to play with</span>
+<span class="n">caravel</span> <span class="n">load_examples</span>
 
-# Start the development web server
-caravel runserver -d
+<span class="c1"># Start the development web server</span>
+<span class="n">caravel</span> <span class="n">runserver</span> <span class="o">-</span><span class="n">d</span>
 </pre></div>
 </div>
 <p>After installation, you should be able to point your browser to the right
@@ -207,7 +207,7 @@ your datasources for Caravel to be aware of, and they should show up in
 <p>To configure your application, you need to create a file (module)
 <code class="docutils literal"><span class="pre">caravel_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
 <span class="c1"># Caravel specifix config</span>
 <span class="c1">#---------------------------------------------------------</span>
 <span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
@@ -230,10 +230,7 @@ of the parameters you can copy / paste in that configuration module:</p>
 <span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////tmp/caravel.db&#39;</span>
 
 <span class="c1"># Flask-WTF flag for CSRF</span>
-<span class="n">CSRF_ENABLED</span> <span class="o">=</span> <span class="bp">True</span>
-
-<span class="c1"># Whether to run the web server in debug mode or not</span>
-<span class="n">DEBUG</span> <span class="o">=</span> <span class="bp">True</span>
+<span class="n">CSRF_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
 </pre></div>
 </div>
 <p>This file also allows you to define configuration parameters used by
@@ -345,8 +342,8 @@ metadata from your Druid cluster(s)</p>
 <div class="section" id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
 <p>Upgrading should be as straightforward as running:</p>
-<div class="highlight-python"><div class="highlight"><pre><span></span>pip install caravel --upgrade
-caravel db upgrade
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">caravel</span> <span class="o">--</span><span class="n">upgrade</span>
+<span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
 </pre></div>
 </div>
 </div>
@@ -361,7 +358,7 @@ caravel db upgrade
       
     </p>
     <p>
-      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.3.6.<br/>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.<br/>
     </p>
   </div>
 </footer>
