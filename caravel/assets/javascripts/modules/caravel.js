@@ -274,9 +274,13 @@ var px = (function () {
         $('.query-and-save button').removeAttr('disabled');
         always(data);
       },
-      error: function (msg) {
+      error: function (error) {
+        var msg = error.responseText;
         token.find("img.loading").hide();
         var err = '<div class="alert alert-danger">' + msg + '</div>';
+        if (error.getResponseHeader("Caravel-Exception") === "NoResultsException") {
+          err = '<div class="alert-nodata">' + msg + '</div>';
+        }
         container.html(err);
         container.show();
         $('span.query').removeClass('disabled');
@@ -336,6 +340,11 @@ var px = (function () {
       setFilter: function (col, vals) {
         if (dashboard !== undefined) {
           dashboard.setFilter(slice_id, col, vals);
+        }
+      },
+      getFilter: function (col) {
+        if (dashboard !== undefined) {
+          return dashboard.getFilter(slice_id, col);
         }
       },
       clearFilter: function () {

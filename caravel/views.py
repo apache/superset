@@ -27,6 +27,7 @@ from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel.utils import NoResultsException
 
 config = app.config
 log_this = models.Log.log_this
@@ -40,12 +41,12 @@ def validate_json(form, field):  # noqa
         raise ValidationError("json isn't valid")
 
 
-def generate_download_headers(extension):
+def generate_download_headers(extension, headers=None):
     filename = datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = "attachment; filename={}.{}".format(filename, extension)
-    headers = {
-        "Content-Disposition": content_disp,
-    }
+    if headers is None:
+        headers = {}
+    headers["Content-Disposition"] = content_disp
     return headers
 
 
@@ -481,18 +482,24 @@ class Caravel(BaseView):
             slice_=slc)
         if request.args.get("json") == "true":
             status = 200
+            headers = {}
             try:
                 payload = obj.get_json()
             except Exception as e:
+                t = type(e)
+                headers["Caravel-Exception"] = t.__name__
                 logging.exception(e)
-                if config.get("DEBUG"):
-                    raise e
-                payload = str(e)
+                if t is NoResultsException:
+                    payload = "No results"
+                else:
+                    if config.get("DEBUG"):
+                        raise e
+                    payload = str(e)
                 status = 500
             resp = Response(
                 payload,
                 status=status,
-                headers=generate_download_headers("json"),
+                headers=generate_download_headers("json", headers),
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":
