@@ -315,6 +315,17 @@ class FormFactory(object):
                     '100',
                 ])
             ),
+            'whisker_options': FreeFormSelectField(
+                'Whisker/outlier options', default="Tukey",
+                description=(
+                    "Determines how whiskers and outliers are calculated."),
+                choices=self.choicify([
+                    'Tukey',
+                    'Min/max (no outliers)',
+                    '2/98 percentiles',
+                    '9/91 percentiles',
+                ])
+            ),
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',

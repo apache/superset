@@ -120,6 +120,14 @@ function nvd3Vis(slice) {
                 .staggerLabels(true);
               break;
 
+            case 'box_plot':
+              colorKey = 'label';
+              chart = nv.models.boxPlotChart();
+              chart.x(function (d) { return d.label; });
+              chart.staggerLabels(true);
+              chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
+              break;
+
             default:
               throw new Error("Unrecognized visualization for nvd3" + viz_type);
           }

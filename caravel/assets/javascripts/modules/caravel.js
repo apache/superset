@@ -19,6 +19,7 @@ var sourceMap = {
   markup: 'markup.js',
   para: 'parallel_coordinates.js',
   pie: 'nvd3_vis.js',
+  box_plot: 'nvd3_vis.js',
   pivot_table: 'pivot_table.js',
   sankey: 'sankey.js',
   sunburst: 'sunburst.js',
@@ -45,6 +46,7 @@ var color = function () {
     // Color factory
     var seen = {};
     return function (s) {
+      if (!s) { return; }
       // next line is for caravel series that should have the same color
       s = s.replace('---', '');
       if (seen[s] === undefined) {
