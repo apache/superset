@@ -8,6 +8,7 @@ from flask import escape
 
 import caravel
 from caravel import app, db, models, utils, appbuilder
+from caravel.utils import NoResultsException
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
@@ -66,6 +67,10 @@ class CaravelTests(unittest.TestCase):
 
     def test_csv(self):
         self.client.get('/caravel/explore/table/1/?viz_type=table&granularity=ds&since=100+years&until=now&metrics=count&groupby=name&limit=50&show_brush=y&show_brush=false&show_legend=y&show_brush=false&rich_tooltip=y&show_brush=false&show_brush=false&show_brush=false&show_brush=false&y_axis_format=&x_axis_showminmax=y&show_brush=false&line_interpolation=linear&rolling_type=None&rolling_periods=&time_compare=&num_period_compare=&where=&having=&flt_col_0=gender&flt_op_0=in&flt_eq_0=&flt_col_0=gender&flt_op_0=in&flt_eq_0=&slice_id=14&slice_name=Boys&collapsed_fieldsets=&action=&datasource_name=birth_names&datasource_id=1&datasource_type=table&previous_viz_type=line&csv=true')
+
+    def test_no_results(self):
+        res = self.client.get('/caravel/explore/table/1/?viz_type=table&granularity=ds&since=1500+years&until=1500+years&metrics=count&groupby=name&limit=0&show_brush=y&show_brush=false&show_legend=y&show_brush=false&rich_tooltip=y&show_brush=false&show_brush=false&show_brush=false&show_brush=false&y_axis_format=&x_axis_showminmax=y&show_brush=false&line_interpolation=linear&rolling_type=None&rolling_periods=&time_compare=&num_period_compare=&where=&having=&flt_col_0=gender&flt_op_0=in&flt_eq_0=&flt_col_0=gender&flt_op_0=in&flt_eq_0=&slice_id=14&slice_name=Boys&collapsed_fieldsets=&action=&datasource_name=birth_names&datasource_id=1&datasource_type=table&previous_viz_type=line&csv=true')
+        assert res.status_code == 500 and res.headers["Caravel-Exception"] == "NoResultsException"
 
     def test_dashboard(self):
         self.login()
