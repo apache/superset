@@ -478,7 +478,7 @@ class Caravel(BaseView):
         obj = viz.viz_types[viz_type](
             datasource,
             form_data=request.args,
-            slice=slc)
+            slice_=slc)
         if request.args.get("json") == "true":
             status = 200
             try:
@@ -642,7 +642,7 @@ class Caravel(BaseView):
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
         session = db.session()
-        FavStar = models.FavStar
+        FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
             class_name=class_name, obj_id=obj_id, user_id=g.user.id).all()

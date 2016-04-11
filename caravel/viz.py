@@ -46,14 +46,14 @@ class BaseViz(object):
     },)
     form_overrides = {}
 
-    def __init__(self, datasource, form_data, slice=None):
+    def __init__(self, datasource, form_data, slice_=None):
         self.orig_form_data = form_data
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
-        self.slice = slice
+        self.slice = slice_
 
         # TODO refactor all form related logic out of here and into forms.py
         ff = FormFactory(self)
@@ -1170,12 +1170,14 @@ class SankeyViz(BaseViz):
         def find_cycle(g):
             """Whether there's a cycle in a directed graph"""
             path = set()
+
             def visit(vertex):
                 path.add(vertex)
                 for neighbour in g.get(vertex, ()):
                     if neighbour in path or visit(neighbour):
                         return (vertex, neighbour)
                 path.remove(vertex)
+
             for v in g:
                 cycle = visit(v)
                 if cycle:

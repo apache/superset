@@ -55,18 +55,18 @@ class AuditMixinNullable(AuditMixin):
         onupdate=datetime.now, nullable=True)
 
     @declared_attr
-    def created_by_fk(cls):
+    def created_by_fk(cls):  # noqa
         return Column(Integer, ForeignKey('ab_user.id'),
                       default=cls.get_user_id, nullable=True)
 
     @declared_attr
-    def changed_by_fk(cls):
+    def changed_by_fk(cls):  # noqa
         return Column(
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
     @property
-    def created_by_(self):
+    def created_by_(self):  # noqa
         return '{}'.format(self.created_by or '')
 
     @property # noqa
