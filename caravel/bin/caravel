@@ -39,7 +39,7 @@ def runserver(debug, port, timeout, workers):
     """Starts a Caravel web server"""
     debug = debug or config.get("DEBUG")
 
-    if debug == 'DEBUG':
+    if debug:
         app.run(
             host='0.0.0.0',
             port=int(port),
