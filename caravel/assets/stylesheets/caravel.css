@@ -86,6 +86,12 @@ input[type="checkbox"] {
 form div {
   padding-top: 1px;
 }
+.navbar-brand a {
+  text-decoration: none;
+}
+.navbar-brand a:hover {
+  text-decoration: none;
+}
 
 .header span {
     margin-left: 5px;

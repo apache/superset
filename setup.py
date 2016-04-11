@@ -37,6 +37,7 @@ setup(
         'sqlalchemy-utils==0.32.7',
         'sqlparse==0.1.19',
         'werkzeug==0.11.10',
+        'psycopg2'
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],

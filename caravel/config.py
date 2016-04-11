@@ -33,9 +33,9 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
+# SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+SQLALCHEMY_DATABASE_URI = 'postgresql:///3loq_caravel_test' # 'postgresql://root:password@localhost/myapp'
 
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
@@ -50,7 +50,7 @@ SHOW_STACKTRACE = True
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Caravel"
+APP_NAME = "3LOQ"
 
 # Uncomment to setup Setup an App icon
 APP_ICON = "/static/assets/images/caravel_logo.png"

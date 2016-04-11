@@ -9,7 +9,7 @@
 @rausch:    #ff5a5f; // coral
 @kazan:     #007a87; // dark teal
 @hackberry: #7b0051; // purple
-@babu:      #00d1c1; // light teal
+@babu:      #5998D1; // light Blue
 @lima:      #8ce071; // bright green
 @beach:     #ffb400; // yellow
 @ebisu:     #ffaa91; // peach
@@ -26,7 +26,7 @@
 @gray-light:             #bbb;
 @gray-lighter:           lighten(@gray-base, 93.5%); // #eee
 
-@brand-primary:         @kazan;
+@brand-primary:         @babu;
 @brand-success:         darken(@lima, 15%);
 @brand-info:            @beach;
 @brand-warning:         @hackberry;
@@ -38,7 +38,7 @@
 //## Settings for some of the most global styles.
 
 //** Background color for `<body>`.
-@body-bg:               #fff;
+@body-bg:               #EDF2F5;
 //** Global text color on `<body>`.
 @text-color:            @gray;
 
@@ -407,8 +407,8 @@
 @navbar-inverse-border:                     transparent;
 
 // Inverted navbar links
-@navbar-inverse-link-color:                 #888;
-@navbar-inverse-link-hover-color:           #111;
+@navbar-inverse-link-color:                 @gray;
+@navbar-inverse-link-hover-color:           @brand-primary;
 @navbar-inverse-link-hover-bg:              transparent;
 @navbar-inverse-link-active-color:          @navbar-inverse-link-hover-color;
 @navbar-inverse-link-active-bg:             darken(@navbar-inverse-bg, 10%);
@@ -417,7 +417,7 @@
 
 // Inverted navbar brand label
 @navbar-inverse-brand-color:                @navbar-inverse-link-color;
-@navbar-inverse-brand-hover-color:          @navbar-inverse-link-hover-color;
+@navbar-inverse-brand-hover-color:          @brand-primary;
 @navbar-inverse-brand-hover-bg:             transparent;
 
 // Inverted navbar toggle\
