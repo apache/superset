@@ -143,9 +143,7 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                print(df.timestamp)
-                df.timestamp = df.timestamp.apply(lambda d: datetime.fromtimestamp(mktime(d.timetuple())).strftime('%m-%d'))
-                print(df.timestamp)
+                df.timestamp = pd.to_datetime(df.timestamp, utc=False)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df = df.fillna(0)
@@ -269,6 +267,9 @@ class BaseViz(object):
     def get_data(self):
         return []
 
+    def get_data(self):
+        return json.dumps([])
+
     @property
     def json_endpoint(self):
         return self.get_url(json="true")
@@ -351,10 +352,13 @@ class TableViz(BaseViz):
 
     def get_data(self):
         df = self.get_df()
-        return dict(
+        dict_obj = dict(
             records=df.to_dict(orient="records"),
-            columns=list(df.columns),
+            columns=list(df.columns)
         )
+        # convert Timestamp in the dict_obj to iso timestamp by default.
+        json_conversion = json.dumps(dict_obj, default=utils.json_iso_dttm_ser,)
+        return json.loads(json_conversion)
 
 
 class PivotTableViz(BaseViz):
