@@ -16,6 +16,9 @@ Gallery
 .. image:: _static/img/viz_thumbnails/bar.png
    :scale: 25 %
 
+.. image:: _static/img/viz_thumbnails/world_map.png
+   :scale: 25 %
+
 .. image:: _static/img/viz_thumbnails/sankey.png
    :scale: 25 %
 
@@ -43,9 +46,6 @@ Gallery
 .. image:: _static/img/viz_thumbnails/big_number.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/area.png
-   :scale: 25 %
-
 .. image:: _static/img/viz_thumbnails/big_number_total.png
    :scale: 25 %
 
@@ -59,8 +59,5 @@ Gallery
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/para.png
-   :scale: 25 %
-
-.. image:: _static/img/viz_thumbnails/world_map.png
    :scale: 25 %
 
