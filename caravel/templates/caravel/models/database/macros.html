@@ -7,8 +7,9 @@
       $.ajax({
         method: "POST",
         url: url,
-        data: { uri: $("#sqlalchemy_uri").val() },
-        dataType: 'json'
+        data: JSON.stringify({ uri: $("#sqlalchemy_uri").val(), extras: JSON.parse($("#extra").val()) }),
+        dataType: 'json',
+        contentType: "application/json; charset=utf-8"
       }).done(function(data) {
           alert("Seems OK!");
           if ($('#tables').length == 0)

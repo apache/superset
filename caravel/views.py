@@ -629,8 +629,9 @@ class Caravel(BaseView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
-            uri = request.form.get('uri')
-            engine = create_engine(uri)
+            uri = request.json.get('uri')
+            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args')
+            engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
         except Exception:

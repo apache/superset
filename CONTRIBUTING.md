@@ -111,7 +111,7 @@ export PATH="$HOME/.node/bin:$PATH"
 
 #### npm packages
 To install third party libraries defined in `package.json`, run the
-following within this directory which will install them in a
+following within the `caravel/assets/` directory which will install them in a
 new `node_modules/` folder within `assets/`.
 
 ```
