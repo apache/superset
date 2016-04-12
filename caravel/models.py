@@ -310,10 +310,15 @@ class Database(Model, AuditMixinNullable):
     def get_sqla_engine(self):
         extra = self.get_extra()
         params = extra.get('engine_params', {})
+
         return create_engine(self.sqlalchemy_uri_decrypted, **params)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
+
+    def schema(self):
+        extra = self.get_extra()
+        return extra.get('metadata_params', {}).get('schema', '')
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -372,10 +377,12 @@ class Database(Model, AuditMixinNullable):
     def get_table(self, table_name):
         extra = self.get_extra()
         meta = MetaData(**extra.get('metadata_params', {}))
+
         return Table(
             table_name, meta,
             autoload=True,
-            autoload_with=self.get_sqla_engine())
+            autoload_with=self.get_sqla_engine(),
+            schema=self.schema)
 
     def get_columns(self, table_name):
         engine = self.get_sqla_engine()
@@ -500,6 +507,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
+    @property
+    def schema(self):
+        return self.database.schema()
+
     def query(  # sqla
             self, groupby, metrics,
             granularity,
@@ -593,6 +604,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
+        from_clause.schema = self.schema
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -642,6 +654,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
             qry.compile(engine, compile_kwargs={"literal_binds": True}))
+
         df = pd.read_sql_query(
             sql=sql,
             con=engine
