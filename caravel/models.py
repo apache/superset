@@ -580,12 +580,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # UGLY: I guess correct way is to delegate on SQLAlchemy dialect
             # UPDATE: Datetime depends on each dialect and I haven't found an easy way to manage
             #         Maybe we can allow user to define its custome format at Database definition
-            def get_dtformat(type):
-                if type == 'SMALLDATETIME' or type == 'DATETIME':
+            def get_dtformat(_type):
+                if _type == 'SMALLDATETIME' or _type == 'DATETIME':
                     return '%Y-%m-%d %H:%M:%S'
-                if type == 'DATE':
+                if _type == 'DATE':
                     return '%Y-%m-%d'
-                if type == 'TIME':
+                if _type == 'TIME':
                     return '%H:%M:%S'
                 return '%Y-%m-%d %H:%M:%S.%f'
 
