@@ -197,6 +197,22 @@ JSON blob described above, or you can use a database user name to connect to
 the database that matches the schema name you are interested it.
 
 
+SSL Access to databases
+-----------------------
+This example worked with a MySQL database that requires SSL. The configuration
+may differ with other backends. This is what was put in the ``extra``
+parameter ::
+    {
+        "metadata_params": {},
+        "engine_params": {
+              "connect_args":{
+                  "sslmode":"require",
+                  "sslrootcert": "/path/to/my/pem"
+            }
+         }
+    }
+
+
 Druid
 -----
 
