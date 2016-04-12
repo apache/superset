@@ -719,14 +719,15 @@ class Caravel(BaseView):
         cols = mydb.get_columns(table_name)
         df = pd.DataFrame([(c['name'], c['type']) for c in cols])
         df.columns = ['col', 'type']
+        tbl_cls = (
+            "dataframe table table-striped table-bordered "
+            "table-condensed sql_results").split(' ')
         return self.render_template(
             "caravel/ajah.html",
             content=df.to_html(
                 index=False,
                 na_rep='',
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed sql_results")))
+                classes=tbl_cls))
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -754,6 +755,11 @@ class Caravel(BaseView):
         sql = data.get('sql')
         database_id = data.get('database_id')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if (
+                not self.appbuilder.sm.has_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            raise Exception("test")
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -772,7 +778,7 @@ class Caravel(BaseView):
                     na_rep='',
                     classes=(
                         "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results"))
+                        "table-condensed sql_results").split(' '))
             except Exception as e:
                 content = (
                     '<div class="alert alert-danger">'
