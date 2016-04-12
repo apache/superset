@@ -2,6 +2,10 @@ body {
     margin: 0px !important;
 }
 
+.alert.alert-danger>.debugger {
+    color: red;
+}
+
 .modal-dialog {
     z-index: 1100;
 }
