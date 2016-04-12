@@ -78,6 +78,9 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
             "DATETIME-like"),
+        'expression': utils.markdown(
+            "a valid SQL expression as supported by the underlying backend. "
+            "Example: `substr(name, 1, 1)`", True),
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -106,6 +109,11 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table']
+    description_columns = {
+        'expression': utils.markdown(
+            "a valid SQL expression as supported by the underlying backend. "
+            "Example: `count(DISTINCT userid)`", True),
+    }
     add_columns = edit_columns
     page_size = 500
 appbuilder.add_view_no_menu(SqlMetricInlineView)
