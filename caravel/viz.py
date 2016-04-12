@@ -351,10 +351,13 @@ class TableViz(BaseViz):
 
     def get_data(self):
         df = self.get_df()
-        return dict(
+        dict_obj = dict(
             records=df.to_dict(orient="records"),
-            columns=list(df.columns),
+            columns=list(df.columns)
         )
+        # convert Timestamp in the dict_obj to iso timestamp by default.
+        json_conversion = json.dumps(dict_obj, default=utils.json_iso_dttm_ser,)
+        return json.loads(json_conversion)
 
 
 class PivotTableViz(BaseViz):
