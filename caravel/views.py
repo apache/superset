@@ -185,14 +185,18 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on']
     add_columns = [
-        'table_name', 'database', 'default_endpoint', 'offset', 'cache_timeout']
+        'table_name', 'database', 'schema',
+        'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
+        'schema': (
+            "Schema, as used only in some databases like Postgres, Redshift "
+            "and DB2"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
