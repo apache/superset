@@ -245,20 +245,36 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             payload = {
+                'cache_timeout': cache_timeout,
+                'csv_endpoint': self.csv_endpoint,
                 'data': self.get_data(),
-                'query': self.query,
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
-                'csv_endpoint': self.csv_endpoint,
+                'query': self.query,
                 'standalone_endpoint': self.standalone_endpoint,
-                'cache_timeout': cache_timeout,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             cache.set(cache_key, payload, timeout=self.cache_timeout)
         payload['is_cached'] = is_cached
-        return dumps(payload)
+        return self.json_dumps(payload)
+
+    def json_dumps(self, obj):
+        """Used by get_json, can be overridden to use specific switches"""
+        return dumps(obj)
+
+    @property
+    def data(self):
+        content = {
+            'csv_endpoint': self.csv_endpoint,
+            'form_data': self.form_data,
+            'json_endpoint': self.json_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
+            'token': self.token,
+            'viz_name': self.viz_type,
+        }
+        return content
 
     def get_csv(self):
         df = self.get_df()
@@ -284,18 +300,6 @@ class BaseViz(object):
     @property
     def standalone_endpoint(self):
         return self.get_url(standalone="true")
-
-    @property
-    def data(self):
-        content = {
-            'viz_name': self.viz_type,
-            'json_endpoint': self.json_endpoint,
-            'csv_endpoint': self.csv_endpoint,
-            'standalone_endpoint': self.standalone_endpoint,
-            'token': self.token,
-            'form_data': self.form_data,
-        }
-        return content
 
     @property
     def json_data(self):
@@ -355,6 +359,9 @@ class TableViz(BaseViz):
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
