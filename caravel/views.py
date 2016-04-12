@@ -437,6 +437,7 @@ class Caravel(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
+
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
         datasources = (
@@ -449,6 +450,9 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
+        user_slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
+        user_slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
+
         if slice_id:
             slc = (
                 db.session.query(models.Slice)
@@ -462,13 +466,15 @@ class Caravel(BaseView):
             'all_datasource_access', 'all_datasource_access')
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
+
         if not (all_datasource_access or datasource_access):
             flash("You don't seem to have access to this datasource", "danger")
             return redirect('/slicemodelview/list/')
 
         action = request.args.get('action')
+
         if action in ('save', 'overwrite'):
-            return self.save_or_overwrite_slice(request.args, slc)
+            return self.save_or_overwrite_slice(request.args, slc, user_slice_add_perm, user_slice_edit_perm)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
@@ -510,7 +516,8 @@ class Caravel(BaseView):
                 template = "caravel/explore.html"
 
             resp = self.render_template(
-                template, viz=obj, slice=slc, datasources=datasources)
+                template, viz=obj, slice=slc, datasources=datasources,
+                can_add=user_slice_add_perm, can_edit=user_slice_edit_perm)
             try:
                 pass
             except Exception as e:
@@ -522,7 +529,7 @@ class Caravel(BaseView):
                     mimetype="application/json")
             return resp
 
-    def save_or_overwrite_slice(self, args, slc):
+    def save_or_overwrite_slice(self, args, slc, user_slice_add_perm, user_slice_edit_perm):
         """Saves (inserts or overwrite a slice) """
         slice_name = args.get('slice_name')
         action = args.get('action')
@@ -556,8 +563,6 @@ class Caravel(BaseView):
         slc.table_id = table_id
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
-        user_slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
-        user_slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
 
         if action == 'save' and user_slice_add_perm:
             self.save_slice(slc)

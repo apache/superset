@@ -82,16 +82,14 @@
               <button type="button" class="btn btn-primary query">
                 <i class="fa fa-bolt"></i>Query
               </button>
-              {% if viz.form_data.slice_id and appbuilder.sm.has_access('can_edit', 'SliceModelView') %}
-                  <button type="button" class="btn btn-default" id="btn_overwrite">
+              {% if viz.form_data.slice_id %}
+                  <button type="button" class="btn btn-default {{ "disabled" if not can_edit }}" id="btn_overwrite">
                   <i class="fa fa-save"></i>Overwrite
                   </button>
               {% endif %}
-              {% if appbuilder.sm.has_access('can_add', 'SliceModelView') %}
-                  <button type="button" class="btn btn-default" id="btn_save">
+                  <button type="button" class="btn btn-default {{ "disabled" if not can_add }}" id="btn_save">
                   <i class="fa fa-plus-circle"></i>Save as
                   </button>
-              {% endif %}
             </div>
           </div>
           <br/>
