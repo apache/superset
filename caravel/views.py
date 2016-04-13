@@ -482,7 +482,8 @@ class Caravel(BaseView):
         action = request.args.get('action')
 
         if action in ('save', 'overwrite'):
-            return self.save_or_overwrite_slice(request.args, slc, slice_add_perm, slice_edit_perm)
+            return self.save_or_overwrite_slice(
+                request.args, slc, slice_add_perm, slice_edit_perm)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
@@ -538,7 +539,7 @@ class Caravel(BaseView):
             return resp
 
     def save_or_overwrite_slice(self, args, slc, slice_add_perm, slice_edit_perm):
-        """Saves (inserts or overwrite a slice) """
+        """save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
 
