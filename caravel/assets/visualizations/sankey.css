@@ -18,3 +18,16 @@
 .sankey .link:hover {
   stroke-opacity: .5;
 }
+
+.sankey-tooltip {
+  position: absolute;
+  width: auto;
+  background: #ddd;
+  padding: 10px;
+  font-size: 12px;
+  font-weight: 200;
+  color: #333;
+  border: 1px solid #fff;
+  text-align: center;
+  pointer-events: none;
+}
