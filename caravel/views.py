@@ -450,8 +450,8 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        user_slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
-        user_slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
+        slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
+        slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -474,7 +474,7 @@ class Caravel(BaseView):
         action = request.args.get('action')
 
         if action in ('save', 'overwrite'):
-            return self.save_or_overwrite_slice(request.args, slc, user_slice_add_perm, user_slice_edit_perm)
+            return self.save_or_overwrite_slice(request.args, slc, slice_add_perm, slice_edit_perm)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:
@@ -517,7 +517,7 @@ class Caravel(BaseView):
 
             resp = self.render_template(
                 template, viz=obj, slice=slc, datasources=datasources,
-                can_add=user_slice_add_perm, can_edit=user_slice_edit_perm)
+                can_add=slice_add_perm, can_edit=slice_edit_perm)
             try:
                 pass
             except Exception as e:
@@ -529,7 +529,7 @@ class Caravel(BaseView):
                     mimetype="application/json")
             return resp
 
-    def save_or_overwrite_slice(self, args, slc, user_slice_add_perm, user_slice_edit_perm):
+    def save_or_overwrite_slice(self, args, slc, slice_add_perm, slice_edit_perm):
         """Saves (inserts or overwrite a slice) """
         slice_name = args.get('slice_name')
         action = args.get('action')
@@ -564,9 +564,9 @@ class Caravel(BaseView):
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
 
-        if action == 'save' and user_slice_add_perm:
+        if action == 'save' and slice_add_perm:
             self.save_slice(slc)
-        elif action == 'overwrite' and user_slice_edit_perm:
+        elif action == 'overwrite' and slice_edit_perm:
             self.overwrite_slice(slc)
 
         return redirect(slc.slice_url)
