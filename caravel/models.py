@@ -381,8 +381,7 @@ class Database(Model, AuditMixinNullable):
         return Table(
             table_name, meta,
             autoload=True,
-            autoload_with=self.get_sqla_engine(),
-            schema=self.schema)
+            autoload_with=self.get_sqla_engine())
 
     def get_columns(self, table_name):
         engine = self.get_sqla_engine()
