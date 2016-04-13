@@ -83,11 +83,11 @@
                 <i class="fa fa-bolt"></i>Query
               </button>
               {% if viz.form_data.slice_id %}
-                  <button type="button" class="btn btn-default {{ "disabled" if not can_edit }}" id="btn_overwrite">
+                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_edit }}" id="btn_overwrite">
                   <i class="fa fa-save"></i>Overwrite
                   </button>
               {% endif %}
-                  <button type="button" class="btn btn-default {{ "disabled" if not can_add }}" id="btn_save">
+                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_add }}" id="btn_save">
                   <i class="fa fa-plus-circle"></i>Save as
                   </button>
             </div>
