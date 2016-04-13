@@ -310,7 +310,6 @@ class Database(Model, AuditMixinNullable):
     def get_sqla_engine(self):
         extra = self.get_extra()
         params = extra.get('engine_params', {})
-
         return create_engine(self.sqlalchemy_uri_decrypted, **params)
 
     def safe_sqlalchemy_uri(self):
@@ -377,7 +376,6 @@ class Database(Model, AuditMixinNullable):
     def get_table(self, table_name):
         extra = self.get_extra()
         meta = MetaData(**extra.get('metadata_params', {}))
-
         return Table(
             table_name, meta,
             autoload=True,
@@ -653,7 +651,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
             qry.compile(engine, compile_kwargs={"literal_binds": True}))
-
         df = pd.read_sql_query(
             sql=sql,
             con=engine
