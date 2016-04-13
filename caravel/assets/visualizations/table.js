@@ -104,7 +104,8 @@ function tableVis(slice) {
         });
       var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
-        searching: form_data.include_search
+        searching: form_data.include_search,
+        bInfo: false
       });
       // Sorting table by main column
       if (form_data.metrics.length > 0) {

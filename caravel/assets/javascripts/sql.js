@@ -2,7 +2,8 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var showModal = require('./modules/utils.js').showModal;
 
-require('select2');
+require('./caravel-select2.js');
+
 require('datatables.net-bs');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 require('bootstrap');
@@ -11,12 +12,14 @@ var ace = require('brace');
 require('brace/mode/sql');
 require('brace/theme/crimson_editor');
 
+require('../stylesheets/sql.css');
+
 $(document).ready(function () {
   function getParam(name) {
     name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
     var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
       results = regex.exec(location.search);
-    return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+      return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
   }
 
   function initSqlEditorView() {
@@ -53,9 +56,9 @@ $(document).ready(function () {
 
     function selectStarOnClick() {
       $.ajax('/caravel/select_star/' + database_id + '/' + $("#dbtable").val() + '/')
-        .done(function (msg) {
-          editor.setValue(msg);
-        });
+      .done(function (msg) {
+        editor.setValue(msg);
+      });
     }
 
     $("#select_star").click(selectStarOnClick);
