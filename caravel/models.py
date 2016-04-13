@@ -583,10 +583,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             def get_dtformat(_type):
                 if _type == 'SMALLDATETIME' or _type == 'DATETIME':
                     return '%Y-%m-%d %H:%M:%S'
-                if _type == 'DATE':
-                    return '%Y-%m-%d'
-                if _type == 'TIME':
-                    return '%H:%M:%S'
                 return '%Y-%m-%d %H:%M:%S.%f'
 
             tf = get_dtformat(cols[granularity].type or 'DATE')
