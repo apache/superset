@@ -53,6 +53,8 @@ If you are proposing a feature:
 
 ## Setting up a Python development environment
 
+Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-dependencies) before follows these steps.
+
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs

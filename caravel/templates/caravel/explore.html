@@ -36,6 +36,9 @@
               {% endfor %}
             </select>
           </span>
+          <a href="{{ datasource.url }}" class="btn btn-default-outline" data-toggle="tooltip" title="Edit/configure datasource">
+            <i class="fa fa-edit"></i>&nbsp;
+          </a>
           <span title="Visualization Type" data-toggle="tooltip">
             {{ form.get_field("viz_type")(class_="select2") }}
           </span>
@@ -177,6 +180,7 @@
             <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
             <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
           </div>
+          <div class="credits pull-right">{{ "credits: " + viz.credits |safe if viz. credits else "" }}</div>
         </div>
       <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog" role="document">

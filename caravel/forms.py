@@ -113,7 +113,9 @@ class FormFactory(object):
         viz = self.viz
         datasource = viz.datasource
         default_metric = datasource.metrics_combo[0][0]
-        default_groupby = datasource.groupby_column_names[0]
+
+        gb_cols = datasource.groupby_column_names
+        default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = [(s, s) for s in datasource.groupby_column_names]
         # Pool of all the fields that can be used in Caravel
         self.field_dict = {
@@ -139,7 +141,7 @@ class FormFactory(object):
                 'Color Scheme', choices=self.choicify([
                     'fire', 'blue_white_yellow', 'white_black',
                     'black_white']),
-                default='fire',
+                default='blue_white_yellow',
                 description=""),
             'normalize_across': SelectField(
                 'Normalize Across', choices=self.choicify([
@@ -311,6 +313,17 @@ class FormFactory(object):
                     '50',
                     '75',
                     '100',
+                ])
+            ),
+            'whisker_options': FreeFormSelectField(
+                'Whisker/outlier options', default="Tukey",
+                description=(
+                    "Determines how whiskers and outliers are calculated."),
+                choices=self.choicify([
+                    'Tukey',
+                    'Min/max (no outliers)',
+                    '2/98 percentiles',
+                    '9/91 percentiles',
                 ])
             ),
             'row_limit':

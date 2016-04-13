@@ -55,18 +55,18 @@ class AuditMixinNullable(AuditMixin):
         onupdate=datetime.now, nullable=True)
 
     @declared_attr
-    def created_by_fk(cls):
+    def created_by_fk(cls):  # noqa
         return Column(Integer, ForeignKey('ab_user.id'),
                       default=cls.get_user_id, nullable=True)
 
     @declared_attr
-    def changed_by_fk(cls):
+    def changed_by_fk(cls):  # noqa
         return Column(
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
     @property
-    def created_by_(self):
+    def created_by_(self):  # noqa
         return '{}'.format(self.created_by or '')
 
     @property # noqa
@@ -191,6 +191,7 @@ class Slice(Model, AuditMixinNullable):
             logging.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
+        slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
@@ -337,8 +338,10 @@ class Database(Model, AuditMixinNullable):
             'mysql': (
                 Grain('Time Column', '{col}'),
                 Grain('day', 'DATE({col})'),
-                Grain('week', 'DATE_SUB({col}, INTERVAL DAYOFWEEK({col}) - 1 DAY)'),
-                Grain('month', 'DATE_SUB({col}, INTERVAL DAYOFMONTH({col}) - 1 DAY)'),
+                Grain("week", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
+                Grain("month", "DATE(DATE_SUB({col}, "
+                      "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
@@ -584,6 +587,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+        else:
+            inner_time_filter = []
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)

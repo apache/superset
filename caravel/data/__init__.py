@@ -263,6 +263,18 @@ def load_world_bank_health_n_pop():
                 until="now",
                 viz_type='area',
                 groupby=["region"],)),
+        Slice(
+            slice_name="Box plot",
+            viz_type='box_plot',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                whisker_options="Tukey",
+                viz_type='box_plot',
+                groupby=["region"],)),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -359,7 +371,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
-        overflow: hidden;
         box-shadow: none;
         border-radius: 0px;
     }
@@ -400,7 +411,6 @@ def load_css_templates():
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
-        overflow: hidden;
         border-radius: 15px;
         box-shadow: none;
     }
