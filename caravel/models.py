@@ -315,6 +315,10 @@ class Database(Model, AuditMixinNullable):
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
 
+    def schema(self):
+        extra = self.get_extra()
+        return extra.get('metadata_params', {}).get('schema', '')
+
     def grains(self):
         """Defines time granularity database-specific expressions.
 
@@ -500,6 +504,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
+    @property
+    def schema(self):
+        return self.database.schema() or None
+
     def query(  # sqla
             self, groupby, metrics,
             granularity,
@@ -593,6 +601,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs += metrics_exprs
         qry = select(select_exprs)
         from_clause = table(self.table_name)
+        from_clause.schema = self.schema
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
