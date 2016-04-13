@@ -509,7 +509,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def schema(self):
-        return self.database.schema()
+        return self.database.schema() or None
 
     def query(  # sqla
             self, groupby, metrics,
