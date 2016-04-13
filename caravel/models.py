@@ -595,11 +595,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs += metrics_exprs
         qry = select(select_exprs)
 
+        tbl = table(self.table_name)
         if self.schema:
-            fq_table = '{}.{}'.format(self.schema, self.table_name)
-        else:
-            fq_table = self.table_name
-        from_clause = table(fq_table)
+            tbl.schema = self.schema
+
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -632,7 +631,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if timeseries_limit and groupby:
             subq = select(inner_select_exprs)
-            subq = subq.select_from(table(fq_table))
+            subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
             subq = subq.order_by(desc(main_metric_expr))
@@ -642,9 +641,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 on_clause.append(
                     groupby_exprs[i] == column("__" + gb))
 
-            from_clause = from_clause.join(subq.alias(), and_(*on_clause))
+            tbl = tbl.join(subq.alias(), and_(*on_clause))
 
-        qry = qry.select_from(from_clause)
+        qry = qry.select_from(tbl)
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
