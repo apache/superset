@@ -132,14 +132,14 @@ function sankeyVis(slice) {
         var html;
 
         if (d.sourceLinks) { // is node
-          html = d.name + " Count: <span class='emph'>" + formatNumber(d.value) + "</span>";
+          html = d.name + " Value: <span class='emph'>" + formatNumber(d.value) + "</span>";
         } else {
           var val = formatNumber(d.value);
           var sourcePercent = d3.round((d.value / d.source.value) * 100, 1);
           var targetPercent = d3.round((d.value / d.target.value) * 100, 1);
 
           html = [
-            "<div class=''>Link Weight: <span class='emph'>", val, "</span></div>",
+            "<div class=''>Path Value: <span class='emph'>", val, "</span></div>",
             "<div class='percents'>",
               "<span class='emph'>", (isFinite(sourcePercent) ? sourcePercent : "100"), "%</span> of ", d.source.name, "<br/>",
               "<span class='emph'>" + (isFinite(targetPercent) ? targetPercent : "--") + "%</span> of ", d.target.name, "target",
