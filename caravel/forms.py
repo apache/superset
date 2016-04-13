@@ -617,7 +617,7 @@ class FormFactory(object):
         else:
             time_fields = 'granularity'
             add_to_form(('granularity',))
-            field_css_classes['granularity'] = ['form-control', 'select2']
+            field_css_classes['granularity'] = ['form-control', 'select2Sortable']
         add_to_form(('since', 'until'))
 
         QueryForm.fieldsets = ({
