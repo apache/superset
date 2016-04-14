@@ -449,6 +449,7 @@ class Caravel(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
+        error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
         datasources = (
@@ -469,6 +470,7 @@ class Caravel(BaseView):
             )
         if not datasource:
             flash("The datasource seems to have been deleted", "alert")
+            return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
             'all_datasource_access', 'all_datasource_access')
@@ -476,7 +478,7 @@ class Caravel(BaseView):
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash("You don't seem to have access to this datasource", "danger")
-            return redirect('/slicemodelview/list/')
+            return redirect(error_redirect)
 
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
