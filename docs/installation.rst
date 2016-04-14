@@ -187,14 +187,13 @@ while the ``metadata_params`` get unpacked into the
 `sqlalchemy.MetaData <http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData>`_ call. Refer to the SQLAlchemy docs for more information.
 
 
-Postgres & Redshift
--------------------
+Schemas (Postgres & Redshift)
+-----------------------------
 
-Postgres and Redshift use the concept of **schema** as a logical entity
+Postgres and Redshift, as well as other database,
+use the concept of **schema** as a logical entity
 on top of the **database**. For Caravel to connect to a specific schema,
-you can either specify it in the ``metadata_params`` key of the ``extra``
-JSON blob described above, or you can use a database user name to connect to
-the database that matches the schema name you are interested it.
+there's a **schema** parameter you can set in the table form.
 
 
 SSL Access to databases
@@ -202,6 +201,7 @@ SSL Access to databases
 This example worked with a MySQL database that requires SSL. The configuration
 may differ with other backends. This is what was put in the ``extra``
 parameter ::
+
     {
         "metadata_params": {},
         "engine_params": {
