@@ -31,7 +31,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////Users/sidgupta/Desktop/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -127,7 +127,7 @@ Reference:
 """
 
 # Whether to run the web server in debug mode or not
-DEBUG = False
+DEBUG = True
 
 # ---------------------------------------------------
 # Logging Configuration
@@ -135,8 +135,11 @@ DEBUG = False
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 LOG_LEVEL = 'DEBUG'
-LOG_LOCATION = '/tmp/caravel.log'
-
+LOG_LOCATION = '/Users/sidgupta/Desktop/caravel_new.log'
+ENABLE_CONSOLE = True
+ENABLE_ROTATE_FILE = False
+ENABLE_TIME_ROTATE_FILE = False
+'''
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -156,6 +159,14 @@ LOGGING_CONFIG = {
         'rotate_file': {
             'level': LOG_LEVEL,
             'formatter': 'standard',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_LOCATION,
+            'maxBytes': 10000000,
+            'backupCount': 10
+        },
+        'time_rotate_file': {
+            'level': LOG_LEVEL,
+            'formatter': 'standard',
             'class': 'logging.handlers.TimedRotatingFileHandler',
             'filename': LOG_LOCATION,
             'when': 'midnight',
@@ -164,12 +175,24 @@ LOGGING_CONFIG = {
         }
     },
     'loggers': {
-        '': {
-            'handlers': ['console', 'rotate_file'],
+        'console_output': {
+            'handlers': ['console'],
+            'propagate': ENABLE_CONSOLE,
             'level': LOG_LEVEL,
+        },
+        'rotate_file': {
+            'handlers': ['rotate_file'],
+            'propagate': ENABLE_ROTATE_FILE,
+            'level': LOG_LEVEL,
+        },
+        'time_rotate_file': {
+            'handlers': ['time_rotate_file'],
+            'propagate': ENABLE_TIME_ROTATE_FILE,
+            'level': LOG_LEVEL
         },
     }
 }
+'''
 
 try:
     from caravel_config import *  # noqa

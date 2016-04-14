@@ -25,9 +25,8 @@ cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 # Logging configuration
-logging.config.dictConfig(app.config.get('LOGGING_CONFIG'))
-logger = logging.getLogger(__name__)
-
+#logging.config.dictConfig(app.config.get('LOGGING_CONFIG'))
+#logger = logging.getLogger(__name__)
 
 class MyIndexView(IndexView):
     @expose('/')
