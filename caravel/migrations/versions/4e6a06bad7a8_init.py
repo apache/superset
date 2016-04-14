@@ -58,7 +58,7 @@ def upgrade():
     sa.Column('created_on', sa.DateTime(), nullable=False),
     sa.Column('changed_on', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('datasource_name', sa.String(length=250), nullable=True),
+    sa.Column('datasource_name', sa.String(length=256), nullable=True),
     sa.Column('is_featured', sa.Boolean(), nullable=True),
     sa.Column('is_hidden', sa.Boolean(), nullable=True),
     sa.Column('description', sa.Text(), nullable=True),
