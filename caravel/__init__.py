@@ -13,7 +13,7 @@ from flask.ext.appbuilder.baseviews import expose
 from flask.ext.cache import Cache
 from flask.ext.migrate import Migrate
 
-VERSION = '0.8.6'
+VERSION = '0.8.7'
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
