@@ -275,6 +275,18 @@ def load_world_bank_health_n_pop():
                 whisker_options="Tukey",
                 viz_type='box_plot',
                 groupby=["region"],)),
+        Slice(
+            slice_name="Treemap",
+            viz_type='treemap',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                viz_type='treemap',
+                metrics=["sum__SP_POP_TOTL"],
+                groupby=["region", "country_code"],)),
     ]
     for slc in slices:
         merge_slice(slc)

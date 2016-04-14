@@ -486,6 +486,37 @@ class WordCloudViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+class TreemapViz(BaseViz):
+
+    """Tree map visualisation for hierarchical data."""
+
+    viz_type = "treemap"
+    verbose_name = "Treemap"
+    credits = '<a href="https://d3js.org">d3.js</a>'
+    is_timeseries = False
+
+    def get_df(self, query_obj=None):
+        df = super(TreemapViz, self).get_df(query_obj)
+        df = df.set_index(self.form_data.get("groupby"))
+        return df
+
+    def _nest(self, metric, df):
+        nlevels = df.index.nlevels
+        if nlevels == 1:
+            result = [{"name": n, "value": v}
+                      for n, v in zip(df.index, df[metric])]
+        else:
+            result = [{"name": l, "children": self._nest(metric, df.loc[l])}
+                      for l in df.index.levels[0]]
+        return result
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = [{"name": metric, "children": self._nest(metric, df)}
+                      for metric in df.columns]
+        return chart_data
+
+
 class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
@@ -1505,6 +1536,7 @@ viz_types_list = [
     ParallelCoordinatesViz,
     HeatmapViz,
     BoxPlotViz,
+    TreemapViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
