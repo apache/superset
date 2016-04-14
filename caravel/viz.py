@@ -206,6 +206,7 @@ class BaseViz(object):
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
+            'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
         d = {
             'granularity': granularity,
