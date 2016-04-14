@@ -1,13 +1,14 @@
 from setuptools import setup, find_packages
 
-version = '0.8.6'
+VERSION = '0.8.6'
+
 
 setup(
     name='caravel',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
-    version=version,
+    version=VERSION,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -40,5 +41,5 @@ setup(
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/airbnb/caravel',
     download_url=(
-        'https://github.com/airbnb/caravel/tarball/' + version),
+        'https://github.com/airbnb/caravel/tarball/' + VERSION),
 )

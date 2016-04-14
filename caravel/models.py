@@ -369,11 +369,12 @@ class Database(Model, AuditMixinNullable):
                 logging.error(e)
         return extra
 
-    def get_table(self, table_name):
+    def get_table(self, table_name, schema=None):
         extra = self.get_extra()
         meta = MetaData(**extra.get('metadata_params', {}))
         return Table(
             table_name, meta,
+            schema=schema or None,
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
@@ -417,6 +418,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
+    schema = Column(String(256))
 
     baselink = "tablemodelview"
 
@@ -592,7 +594,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
-        from_clause = table(self.table_name)
+
+        tbl = table(self.table_name)
+        if self.schema:
+            tbl.schema = self.schema
+
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -625,7 +631,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if timeseries_limit and groupby:
             subq = select(inner_select_exprs)
-            subq = subq.select_from(table(self.table_name))
+            subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
             subq = subq.order_by(desc(main_metric_expr))
@@ -635,9 +641,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 on_clause.append(
                     groupby_exprs[i] == column("__" + gb))
 
-            from_clause = from_clause.join(subq.alias(), and_(*on_clause))
+            tbl = tbl.join(subq.alias(), and_(*on_clause))
 
-        qry = qry.select_from(from_clause)
+        qry = qry.select_from(tbl)
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
@@ -653,7 +659,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
-            table = self.database.get_table(self.table_name)
+            table = self.database.get_table(self.table_name, schema=self.schema)
         except Exception as e:
             flash(str(e))
             flash(

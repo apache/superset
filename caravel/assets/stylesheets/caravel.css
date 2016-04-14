@@ -2,7 +2,11 @@ body {
     margin: 0px !important;
 }
 
-.alert.alert-danger>.debugger {
+.emph {
+  font-weight: bold;
+}
+
+.alert.alert-danger > .debugger {
     color: red;
 }
 
