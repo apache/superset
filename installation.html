@@ -94,7 +94,8 @@
 <li><a class="reference internal" href="#database-dependencies">Database dependencies</a></li>
 <li><a class="reference internal" href="#caching">Caching</a></li>
 <li><a class="reference internal" href="#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
-<li><a class="reference internal" href="#postgres-redshift">Postgres &amp; Redshift</a></li>
+<li><a class="reference internal" href="#schemas-postgres-redshift">Schemas (Postgres &amp; Redshift)</a></li>
+<li><a class="reference internal" href="#ssl-access-to-databases">SSL Access to databases</a></li>
 <li><a class="reference internal" href="#druid">Druid</a></li>
 <li><a class="reference internal" href="#upgrading">Upgrading</a></li>
 </ul>
@@ -319,13 +320,29 @@ object gets unpacked into the
 while the <code class="docutils literal"><span class="pre">metadata_params</span></code> get unpacked into the
 <a class="reference external" href="http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html#sqlalchemy.schema.MetaData">sqlalchemy.MetaData</a> call. Refer to the SQLAlchemy docs for more information.</p>
 </div>
-<div class="section" id="postgres-redshift">
-<h2>Postgres &amp; Redshift<a class="headerlink" href="#postgres-redshift" title="Permalink to this headline">¶</a></h2>
-<p>Postgres and Redshift use the concept of <strong>schema</strong> as a logical entity
+<div class="section" id="schemas-postgres-redshift">
+<h2>Schemas (Postgres &amp; Redshift)<a class="headerlink" href="#schemas-postgres-redshift" title="Permalink to this headline">¶</a></h2>
+<p>Postgres and Redshift, as well as other database,
+use the concept of <strong>schema</strong> as a logical entity
 on top of the <strong>database</strong>. For Caravel to connect to a specific schema,
-you can either specify it in the <code class="docutils literal"><span class="pre">metadata_params</span></code> key of the <code class="docutils literal"><span class="pre">extra</span></code>
-JSON blob described above, or you can use a database user name to connect to
-the database that matches the schema name you are interested it.</p>
+there&#8217;s a <strong>schema</strong> parameter you can set in the table form.</p>
+</div>
+<div class="section" id="ssl-access-to-databases">
+<h2>SSL Access to databases<a class="headerlink" href="#ssl-access-to-databases" title="Permalink to this headline">¶</a></h2>
+<p>This example worked with a MySQL database that requires SSL. The configuration
+may differ with other backends. This is what was put in the <code class="docutils literal"><span class="pre">extra</span></code>
+parameter</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;metadata_params&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;engine_params&quot;</span><span class="p">:</span> <span class="p">{</span>
+          <span class="s2">&quot;connect_args&quot;</span><span class="p">:{</span>
+              <span class="s2">&quot;sslmode&quot;</span><span class="p">:</span><span class="s2">&quot;require&quot;</span><span class="p">,</span>
+              <span class="s2">&quot;sslrootcert&quot;</span><span class="p">:</span> <span class="s2">&quot;/path/to/my/pem&quot;</span>
+        <span class="p">}</span>
+     <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="druid">
 <h2>Druid<a class="headerlink" href="#druid" title="Permalink to this headline">¶</a></h2>

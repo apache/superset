@@ -31,7 +31,7 @@ Gallery
 .. image:: _static/img/viz_thumbnails/pivot_table.png
    :scale: 25 %
 
-.. image:: _static/img/viz_thumbnails/force_directed.png
+.. image:: _static/img/viz_thumbnails/directed_force.png
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/compare.png
@@ -59,5 +59,14 @@ Gallery
    :scale: 25 %
 
 .. image:: _static/img/viz_thumbnails/para.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/iframe.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/box_plot.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/treemap.png
    :scale: 25 %
 

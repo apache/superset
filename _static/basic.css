@@ -52,6 +52,8 @@ div.sphinxsidebar {
     width: 230px;
     margin-left: -100%;
     font-size: 90%;
+    word-wrap: break-word;
+    overflow-wrap : break-word;
 }
 
 div.sphinxsidebar ul {
@@ -186,6 +188,13 @@ div.genindex-jumpbox {
 }
 
 /* -- general body styles --------------------------------------------------- */
+
+div.body p, div.body dd, div.body li, div.body blockquote {
+    -moz-hyphens: auto;
+    -ms-hyphens: auto;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+}
 
 a.headerlink {
     visibility: hidden;
