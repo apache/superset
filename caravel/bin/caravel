@@ -7,14 +7,13 @@ from __future__ import unicode_literals
 import logging
 from datetime import datetime
 from subprocess import Popen
+import textwrap
 
 from flask.ext.migrate import MigrateCommand
 from flask.ext.script import Manager
 
 import caravel
-from caravel import app
-from caravel import data, utils
-from caravel import db
+from caravel import app, ascii_art, db, data, utils
 
 config = app.config
 
@@ -56,6 +55,17 @@ def runserver(debug, port, timeout, workers):
 def init():
     """Inits the Caravel application"""
     utils.init(caravel)
+
+@manager.command
+def version():
+    """Prints the current version number"""
+    s = (
+        "\n{boat}\n\n"
+        "-----------------------\n"
+        "Caravel {version}\n"
+        "-----------------------\n").format(
+        boat=ascii_art.boat, version=caravel.VERSION)
+    print(s)
 
 @manager.option(
     '-s', '--sample', action='store_true',
