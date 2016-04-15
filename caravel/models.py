@@ -69,7 +69,7 @@ class AuditMixinNullable(AuditMixin):
     def created_by_(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @property # noqa
+    @property  # noqa
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
@@ -687,14 +687,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
                 num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+                date_types = ('DATE', 'TIME')
+                str_types = ('VARCHAR', 'STRING')
                 datatype = str(datatype).upper()
-                if (
-                        str(datatype).startswith('VARCHAR') or
-                        str(datatype).startswith('STRING')):
+                if any([t in datatype for t in str_types]):
                     dbcol.groupby = True
                     dbcol.filterable = True
                 elif any([t in datatype for t in num_types]):
                     dbcol.sum = True
+                elif any([t in datatype for t in date_types]):
+                    dbcol.is_dttm = True
             db.session.merge(self)
             self.columns.append(dbcol)
 
