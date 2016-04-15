@@ -112,11 +112,13 @@ class FormFactory(object):
         from caravel.viz import viz_types
         viz = self.viz
         datasource = viz.datasource
+        if not datasource.metrics_combo:
+            raise Exception("Please define at least one metric for your table")
         default_metric = datasource.metrics_combo[0][0]
 
         gb_cols = datasource.groupby_column_names
         default_groupby = gb_cols[0] if gb_cols else None
-        group_by_choices = [(s, s) for s in datasource.groupby_column_names]
+        group_by_choices = self.choicify(gb_cols)
         # Pool of all the fields that can be used in Caravel
         self.field_dict = {
             'viz_type': SelectField(
