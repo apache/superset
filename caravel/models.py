@@ -406,7 +406,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
-    table_name = Column(String(250), unique=True)
+    table_name = Column(String(250))
     main_dttm_col = Column(String(250))
     description = Column(Text)
     default_endpoint = Column(Text)
@@ -421,6 +421,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     schema = Column(String(256))
 
     baselink = "tablemodelview"
+
+    __table_args__ = (
+        sqla.UniqueConstraint(
+            'database_id', 'schema', 'table_name',
+            name='_customer_location_uc'),)
 
     def __repr__(self):
         return self.table_name
