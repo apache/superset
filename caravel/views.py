@@ -490,10 +490,14 @@ class Caravel(BaseView):
             return redirect(datasource.default_endpoint)
         if not viz_type:
             viz_type = "table"
-        obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=request.args,
-            slice_=slc)
+        try:
+            obj = viz.viz_types[viz_type](
+                datasource,
+                form_data=request.args,
+                slice_=slc)
+        except Exception as e:
+            flash(str(e), "danger")
+            return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
             try:
