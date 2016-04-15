@@ -1009,10 +1009,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if not isinstance(granularity, string_types):
             granularity = {"type": "duration", "duration": granularity}
             origin = extras.get('druid_time_origin')
-            if origin == 'now':
-                granularity['origin'] = datetime.now().isoformat()
-            elif origin:
-                granularity['origin'] = origin
+            if origin:
+                dttm = utils.parse_human_datetime(origin)
+                granularity['origin'] = dttm.isoformat()
 
         qry = dict(
             datasource=self.datasource_name,
