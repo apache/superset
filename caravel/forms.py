@@ -378,7 +378,7 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'url': TextField(
-                'URL', default='www.airbnb.com',),
+                'URL', default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
