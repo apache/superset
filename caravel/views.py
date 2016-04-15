@@ -140,6 +140,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     order_columns = utils.list_minus(list_columns, ['created_by_'])
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
+    show_columns = add_columns
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
