@@ -1,14 +1,15 @@
+import imp, os
 from setuptools import setup, find_packages
 
-VERSION = '0.8.8'
-
+version = imp.load_source(
+    'version', os.path.join('caravel', 'version.py'))
 
 setup(
     name='caravel',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
-    version=VERSION,
+    version=version.VERSION_STRING,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -41,5 +42,5 @@ setup(
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/airbnb/caravel',
     download_url=(
-        'https://github.com/airbnb/caravel/tarball/' + VERSION),
+        'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
 )
