@@ -185,14 +185,18 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on']
     add_columns = [
-        'table_name', 'database', 'default_endpoint', 'offset', 'cache_timeout']
+        'table_name', 'database', 'schema',
+        'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
+        'schema': (
+            "Schema, as used only in some databases like Postgres, Redshift "
+            "and DB2"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
@@ -445,7 +449,7 @@ class Caravel(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
-
+        error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
         datasources = (
@@ -470,18 +474,17 @@ class Caravel(BaseView):
             )
         if not datasource:
             flash("The datasource seems to have been deleted", "alert")
+            return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
             'all_datasource_access', 'all_datasource_access')
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
-
         if not (all_datasource_access or datasource_access):
             flash("You don't seem to have access to this datasource", "danger")
-            return redirect('/slicemodelview/list/')
+            return redirect(error_redirect)
 
         action = request.args.get('action')
-
         if action in ('save', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
@@ -491,10 +494,14 @@ class Caravel(BaseView):
             return redirect(datasource.default_endpoint)
         if not viz_type:
             viz_type = "table"
-        obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=request.args,
-            slice_=slc)
+        try:
+            obj = viz.viz_types[viz_type](
+                datasource,
+                form_data=request.args,
+                slice_=slc)
+        except Exception as e:
+            flash(str(e), "danger")
+            return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
             try:
@@ -657,7 +664,7 @@ class Caravel(BaseView):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
-            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args')
+            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args', {})
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)

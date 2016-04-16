@@ -25,7 +25,8 @@ var sourceMap = {
   sunburst: 'sunburst.js',
   table: 'table.js',
   word_cloud: 'word_cloud.js',
-  world_map: 'world_map.js'
+  world_map: 'world_map.js',
+  treemap: 'treemap.js'
 };
 
 var color = function () {
