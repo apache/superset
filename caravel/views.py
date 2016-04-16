@@ -460,6 +460,7 @@ class Caravel(BaseView):
         slc = None
         slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
         slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
+        slice_download_perm = self.appbuilder.sm.has_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -526,7 +527,8 @@ class Caravel(BaseView):
 
             resp = self.render_template(
                 template, viz=obj, slice=slc, datasources=datasources,
-                can_add=slice_add_perm, can_edit=slice_edit_perm)
+                can_add=slice_add_perm, can_edit=slice_edit_perm,
+                can_download=slice_download_perm)
             try:
                 pass
             except Exception as e:
@@ -717,7 +719,9 @@ class Caravel(BaseView):
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            pos_dict=pos_dict)
+            pos_dict=pos_dict,
+            dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
+            dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
 
     @has_access
     @expose("/sql/<database_id>/")
