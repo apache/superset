@@ -214,6 +214,15 @@ class FormFactory(object):
                 'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
+            'druid_time_origin': SelectField(
+                'Origin',
+                choices=(
+                    ('', 'default'),
+                    ('now', 'now'),
+                ),
+                description=(
+                    "Defines the origin where time buckets start, "
+                    "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")),
             'granularity': FreeFormSelectField(
                 'Time Granularity', default="one day",
                 choices=self.choicify([
@@ -617,9 +626,10 @@ class FormFactory(object):
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
         else:
-            time_fields = 'granularity'
-            add_to_form(('granularity',))
+            time_fields = ('granularity', 'druid_time_origin')
+            add_to_form(('granularity', 'druid_time_origin'))
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
+            field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
         add_to_form(('since', 'until'))
 
         QueryForm.fieldsets = ({
