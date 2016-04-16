@@ -462,9 +462,12 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = self.appbuilder.sm.has_access('can_add', 'SliceModelView')
-        slice_edit_perm = self.appbuilder.sm.has_access('can_edit', 'SliceModelView')
-        slice_download_perm = self.appbuilder.sm.has_access('can_download', 'SliceModelView')
+        slice_add_perm = self.appbuilder.sm.has_access(
+            'can_add', 'SliceModelView')
+        slice_edit_perm = self.appbuilder.sm.has_access(
+            'can_edit', 'SliceModelView')
+        slice_download_perm = self.appbuilder.sm.has_access(
+            'can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
