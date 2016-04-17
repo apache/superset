@@ -133,7 +133,7 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-FILENAME = '/Users/sidgupta/Desktop/sid.log'
+FILENAME = '/tmp/caravel.log'
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
