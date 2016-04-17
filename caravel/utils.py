@@ -16,11 +16,6 @@ from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 
-from caravel import app
-
-config = app.config
-logger = logging.getLogger(__name__)
-
 
 class memoized(object):  # noqa
 
@@ -92,7 +87,7 @@ def parse_human_datetime(s):
             cal = parsedatetime.Calendar()
             dttm = dttm_from_timtuple(cal.parse(s)[0])
         except Exception as e:
-            logger.exception(e)
+            logging.exception(e)
             raise ValueError("Couldn't parse date string [{}]".format(s))
     return dttm
 

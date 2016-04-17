@@ -38,7 +38,6 @@ from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
 
 config = app.config
-logger = logging.getLogger(__name__)
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
@@ -189,7 +188,7 @@ class Slice(Model, AuditMixinNullable):
         try:
             slice_params = json.loads(self.params)
         except Exception as e:
-            logger.exception(e)
+            logging.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
         slice_params['json'] = "false"
@@ -945,7 +944,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @classmethod
     def sync_to_db(cls, name, cluster):
         """Fetches metadata for that datasource and merges the Caravel db"""
-        logger.info("Syncing Druid datasource [{}]".format(name))
+        print("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:

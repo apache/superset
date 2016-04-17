@@ -5,8 +5,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-from logging.handlers import TimedRotatingFileHandler
 import os
+from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
@@ -39,7 +39,6 @@ if app.config.get('ENABLE_TIME_ROTATE'):
                                        interval=app.config.get('TIME_ROTATE_INTERVAL'),
                                        backupCount=app.config.get('TIME_ROTATE_BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
-    logging.debug("what")
 
 
 class MyIndexView(IndexView):

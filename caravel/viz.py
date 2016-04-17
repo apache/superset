@@ -15,8 +15,8 @@ import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
@@ -28,7 +28,6 @@ from caravel import app, utils, cache
 from caravel.forms import FormFactory
 
 config = app.config
-logger = logging.getLogger(__name__)
 
 
 class BaseViz(object):
@@ -242,7 +241,7 @@ class BaseViz(object):
             payload = cache.get(cache_key)
         if payload:
             is_cached = True
-            logger.info("Serving from cache")
+            logging.info("Serving from cache")
         else:
             is_cached = False
             cache_timeout = self.cache_timeout
@@ -256,7 +255,7 @@ class BaseViz(object):
                 'standalone_endpoint': self.standalone_endpoint,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
-            logger.info("Caching for the next {} seconds".format(
+            logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             cache.set(cache_key, payload, timeout=self.cache_timeout)
         payload['is_cached'] = is_cached

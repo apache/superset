@@ -16,7 +16,6 @@ import caravel
 from caravel import app, ascii_art, db, data, utils
 
 config = app.config
-logger = logging.getLogger(__name__)
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
@@ -50,7 +49,7 @@ def runserver(debug, port, timeout, workers):
             "--timeout {timeout} "
             "-b 0.0.0.0:{port} "
             "caravel:app").format(**locals())
-        logger.info("Starting server with command: " + cmd)
+        print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
 @manager.command
@@ -74,17 +73,17 @@ def version():
     help="Only load 1000 rows (faster, used for testing)")
 def load_examples(sample):
     """Loads a set of Slices and Dashboards and a supporting dataset """
-    logger.info("Loading examples into {}".format(db))
+    print("Loading examples into {}".format(db))
 
     data.load_css_templates()
 
-    logger.info("Loading energy related dataset")
+    print("Loading energy related dataset")
     data.load_energy()
 
-    logger.info("Loading [World Bank's Health Nutrition and Population Stats]")
+    print("Loading [World Bank's Health Nutrition and Population Stats]")
     data.load_world_bank_health_n_pop()
 
-    logger.info("Loading [Birth names]")
+    print("Loading [Birth names]")
     data.load_birth_names()
 
 @manager.command
@@ -96,12 +95,12 @@ def refresh_druid():
         try:
             cluster.refresh_datasources()
         except Exception as e:
-            logger.info(
+            print(
                 "Error while processing cluster '{}'\n{}".format(
                     cluster, str(e)))
             logger.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
-        logger.info(
+        print(
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()

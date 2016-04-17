@@ -10,8 +10,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import os
+
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
@@ -21,7 +23,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROW_LIMIT = 50000
 WEBSERVER_THREADS = 8
 
-CARAVEL_WEBSERVER_PORT = 4000
+CARAVEL_WEBSERVER_PORT = 8088
 CARAVEL_WEBSERVER_TIMEOUT = 60
 
 CUSTOM_SECURITY_MANAGER = None
@@ -37,6 +39,9 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
+
+# Whether to run the web server in debug mode or not
+DEBUG = True
 
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
@@ -117,17 +122,9 @@ CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 """
-Settings for root logger.
-1) Log messages will be printed to console a
-2) also to log file (rotated, with specified size).
-
-Reference:
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
 """
-
-# Whether to run the web server in debug mode or not
-DEBUG = True
 
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
