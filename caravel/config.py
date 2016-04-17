@@ -23,7 +23,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROW_LIMIT = 50000
 WEBSERVER_THREADS = 8
 
-CARAVEL_WEBSERVER_PORT = 8001
+CARAVEL_WEBSERVER_PORT = 8088
 CARAVEL_WEBSERVER_TIMEOUT = 60
 
 CUSTOM_SECURITY_MANAGER = None
@@ -33,7 +33,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////Users/sidgupta/Desktop/caravelx.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -122,30 +122,34 @@ CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 
+# ---------------------------------------------------
+# Enable different visualizations: True or False (refer viz.py)
+# ---------------------------------------------------
+
 VIZ_TYPES = {
-    'TableViz': True,
-    'PivotTableViz': True,
-    'NVD3TimeSeriesViz': True,
-    'NVD3CompareTimeSeriesViz': True,
-    'NVD3TimeSeriesStackedViz': True,
-    'NVD3TimeSeriesBarViz': True,
-    'DistributionBarViz': True,
-    'DistributionPieViz': True,
-    'BubbleViz': True,
-    'MarkupViz': True,
-    'WordCloudViz': True,
-    'BigNumberViz': True,
-    'BigNumberTotalViz': True,
-    'SunburstViz': True,
-    'DirectedForceViz': True,
-    'SankeyViz': True,
-    'WorldMapViz': True,
-    'FilterBoxViz': True,
-    'IFrameViz': True,
-    'ParallelCoordinatesViz': True,
-    'HeatmapViz': True,
-    'BoxPlotViz': True,
-    'TreemapViz': True,
+    'table': True,
+    'pivot_table': False,
+    'markup': False,
+    'word_cloud': True,
+    'treemap': True,
+    'box_plot': True,
+    'bubble': True,
+    'big_number': True,
+    'big_number_total': True,
+    'line': True,
+    'bar': True,
+    'compare': True,
+    'area': True,
+    'pie': True,
+    'dist_bar': True,
+    'sunburst': True,
+    'sankey': True,
+    'directed_force': True,
+    'world_map': True,
+    'filter_box': True,
+    'iframe': True,
+    'para': True,
+    'heatmap': True,
 }
 
 
