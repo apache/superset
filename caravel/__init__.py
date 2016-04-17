@@ -32,7 +32,6 @@ logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
 logging.getLogger().setLevel(logging.DEBUG)
 
 if app.config.get('ENABLE_TIME_ROTATE'):
-    print("Im here")
     logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
     handler = TimedRotatingFileHandler(app.config.get('FILENAME'),
                                        when=app.config.get('ROLLOVER'),
