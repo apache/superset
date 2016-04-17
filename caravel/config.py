@@ -128,8 +128,8 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 VIZ_TYPES = {
     'table': True,
-    'pivot_table': False,
-    'markup': False,
+    'pivot_table': True,
+    'markup': True,
     'word_cloud': True,
     'treemap': True,
     'box_plot': True,
