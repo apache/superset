@@ -34,7 +34,6 @@ List of TODO items for Caravel
 
 ## Easy-ish fix
 * Build matrix to include mysql using tox
-* Figure out why coverage isn't working
 * Kill switch for Druid in docs
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
@@ -52,5 +51,4 @@ List of TODO items for Caravel
 * ...
 
 ## Community
-* Create a proper user documentation (started using Sphinx and boostrap...)
-* Usage vid
+* Turorial vids

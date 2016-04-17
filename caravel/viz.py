@@ -16,6 +16,7 @@ from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 
 import pandas as pd
+import numpy as np
 from flask import flash, request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
@@ -46,14 +47,14 @@ class BaseViz(object):
     },)
     form_overrides = {}
 
-    def __init__(self, datasource, form_data, slice=None):
+    def __init__(self, datasource, form_data, slice_=None):
         self.orig_form_data = form_data
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
-        self.slice = slice
+        self.slice = slice_
 
         # TODO refactor all form related logic out of here and into forms.py
         ff = FormFactory(self)
@@ -206,6 +207,7 @@ class BaseViz(object):
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
+            'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
         d = {
             'granularity': granularity,
@@ -245,20 +247,36 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             payload = {
+                'cache_timeout': cache_timeout,
+                'csv_endpoint': self.csv_endpoint,
                 'data': self.get_data(),
-                'query': self.query,
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
-                'csv_endpoint': self.csv_endpoint,
+                'query': self.query,
                 'standalone_endpoint': self.standalone_endpoint,
-                'cache_timeout': cache_timeout,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logger.info("Caching for the next {} seconds".format(
                 cache_timeout))
             cache.set(cache_key, payload, timeout=self.cache_timeout)
         payload['is_cached'] = is_cached
-        return dumps(payload)
+        return self.json_dumps(payload)
+
+    def json_dumps(self, obj):
+        """Used by get_json, can be overridden to use specific switches"""
+        return dumps(obj)
+
+    @property
+    def data(self):
+        content = {
+            'csv_endpoint': self.csv_endpoint,
+            'form_data': self.form_data,
+            'json_endpoint': self.json_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
+            'token': self.token,
+            'viz_name': self.viz_type,
+        }
+        return content
 
     def get_csv(self):
         df = self.get_df()
@@ -284,18 +302,6 @@ class BaseViz(object):
     @property
     def standalone_endpoint(self):
         return self.get_url(standalone="true")
-
-    @property
-    def data(self):
-        content = {
-            'viz_name': self.viz_type,
-            'json_endpoint': self.json_endpoint,
-            'csv_endpoint': self.csv_endpoint,
-            'standalone_endpoint': self.standalone_endpoint,
-            'token': self.token,
-            'form_data': self.form_data,
-        }
-        return content
 
     @property
     def json_data(self):
@@ -355,6 +361,9 @@ class TableViz(BaseViz):
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
@@ -479,6 +488,37 @@ class WordCloudViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+class TreemapViz(BaseViz):
+
+    """Tree map visualisation for hierarchical data."""
+
+    viz_type = "treemap"
+    verbose_name = "Treemap"
+    credits = '<a href="https://d3js.org">d3.js</a>'
+    is_timeseries = False
+
+    def get_df(self, query_obj=None):
+        df = super(TreemapViz, self).get_df(query_obj)
+        df = df.set_index(self.form_data.get("groupby"))
+        return df
+
+    def _nest(self, metric, df):
+        nlevels = df.index.nlevels
+        if nlevels == 1:
+            result = [{"name": n, "value": v}
+                      for n, v in zip(df.index, df[metric])]
+        else:
+            result = [{"name": l, "children": self._nest(metric, df.loc[l])}
+                      for l in df.index.levels[0]]
+        return result
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = [{"name": metric, "children": self._nest(metric, df)}
+                      for metric in df.columns]
+        return chart_data
+
+
 class NVD3Viz(BaseViz):
 
     """Base class for all nvd3 vizs"""
@@ -487,6 +527,113 @@ class NVD3Viz(BaseViz):
     viz_type = None
     verbose_name = "Base NVD3 Viz"
     is_timeseries = False
+
+
+class BoxPlotViz(NVD3Viz):
+
+    """Box plot viz from ND3"""
+
+    viz_type = "box_plot"
+    verbose_name = "Box Plot"
+    sort_series = False
+    is_timeseries = True
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby', 'limit',
+        ),
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'whisker_options',
+        )
+    },)
+
+    def get_df(self, query_obj=None):
+        form_data = self.form_data
+        df = super(BoxPlotViz, self).get_df(query_obj)
+
+        df = df.fillna(0)
+
+        # conform to NVD3 names
+        def Q1(series):  # need to be named functions - can't use lambdas
+            return np.percentile(series, 25)
+
+        def Q3(series):
+            return np.percentile(series, 75)
+
+        whisker_type = form_data.get('whisker_options')
+        if whisker_type == "Tukey":
+
+            def whisker_high(series):
+                upper_outer_lim = Q3(series) + 1.5 * (Q3(series) - Q1(series))
+                series = series[series <= upper_outer_lim]
+                return series[np.abs(series - upper_outer_lim).argmin()]
+
+            def whisker_low(series):
+                lower_outer_lim = Q1(series) - 1.5 * (Q3(series) - Q1(series))
+                # find the closest value above the lower outer limit
+                series = series[series >= lower_outer_lim]
+                return series[np.abs(series - lower_outer_lim).argmin()]
+
+        elif whisker_type == "Min/max (no outliers)":
+
+            def whisker_high(series):
+                return series.max()
+
+            def whisker_low(series):
+                return series.min()
+
+        elif " percentiles" in whisker_type:
+            low, high = whisker_type.replace(" percentiles", "").split("/")
+
+            def whisker_high(series):
+                return np.percentile(series, int(high))
+
+            def whisker_low(series):
+                return np.percentile(series, int(low))
+
+        else:
+            raise ValueError("Unknown whisker type: {}".format(whisker_type))
+
+        def outliers(series):
+            above = series[series > whisker_high(series)]
+            below = series[series < whisker_low(series)]
+            # pandas sometimes doesn't like getting lists back here
+            return set(above.tolist() + below.tolist())
+
+        aggregate = [Q1, np.median, Q3, whisker_high, whisker_low, outliers]
+        df = df.groupby(form_data.get('groupby')).agg(aggregate)
+        return df
+
+    def to_series(self, df, classed='', title_suffix=''):
+        label_sep = " - "
+        chart_data = []
+        for index_value, row in zip(df.index, df.to_dict(orient="records")):
+            if isinstance(index_value, tuple):
+                index_value = label_sep.join(index_value)
+            boxes = defaultdict(dict)
+            for (label, key), value in row.items():
+                if key == "median":
+                    key = "Q2"
+                boxes[label][key] = value
+            for label, box in boxes.items():
+                if len(self.form_data.get("metrics")) > 1:
+                    # need to render data labels with metrics
+                    chart_label = label_sep.join([index_value, label])
+                else:
+                    chart_label = index_value
+                chart_data.append({
+                    "label": chart_label,
+                    "values": box,
+                })
+        return chart_data
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = self.to_series(df)
+        return chart_data
 
 
 class BubbleViz(NVD3Viz):
@@ -1063,12 +1210,14 @@ class SankeyViz(BaseViz):
         def find_cycle(g):
             """Whether there's a cycle in a directed graph"""
             path = set()
+
             def visit(vertex):
                 path.add(vertex)
                 for neighbour in g.get(vertex, ()):
                     if neighbour in path or visit(neighbour):
                         return (vertex, neighbour)
                 path.remove(vertex)
+
             for v in g:
                 cycle = visit(v)
                 if cycle:
@@ -1388,6 +1537,8 @@ viz_types_list = [
     IFrameViz,
     ParallelCoordinatesViz,
     HeatmapViz,
+    BoxPlotViz,
+    TreemapViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])

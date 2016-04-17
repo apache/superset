@@ -265,6 +265,30 @@ def load_world_bank_health_n_pop():
                 until="now",
                 viz_type='area',
                 groupby=["region"],)),
+        Slice(
+            slice_name="Box plot",
+            viz_type='box_plot',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                whisker_options="Tukey",
+                viz_type='box_plot',
+                groupby=["region"],)),
+        Slice(
+            slice_name="Treemap",
+            viz_type='treemap',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                viz_type='treemap',
+                metrics=["sum__SP_POP_TOTL"],
+                groupby=["region", "country_code"],)),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -276,64 +300,78 @@ def load_world_bank_health_n_pop():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-        [
-            {
-                "size_y": 2,
-                "size_x": 3,
-                "col": 1,
-                "slice_id": "1",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 1,
-                "slice_id": "2",
-                "row": 3
-            },
-            {
-                "size_y": 8,
-                "size_x": 3,
-                "col": 10,
-                "slice_id": "3",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 6,
-                "col": 1,
-                "slice_id": "4",
-                "row": 6
-            },
-            {
-                "size_y": 5,
-                "size_x": 6,
-                "col": 4,
-                "slice_id": "5",
-                "row": 1
-            },
-            {
-                "size_y": 4,
-                "size_x": 6,
-                "col": 7,
-                "slice_id": "6",
-                "row": 9
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 7,
-                "slice_id": "7",
-                "row": 6
-            },
-            {
-                "size_y": 4,
-                "size_x": 6,
-                "col": 1,
-                "slice_id": "8",
-                "row": 9
-            }
-        ]
+    [
+        {
+            "size_y": 2,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "22",
+            "row": 1
+        },
+        {
+            "size_y": 3,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "23",
+            "row": 3
+        },
+        {
+            "size_y": 8,
+            "size_x": 3,
+            "col": 1,
+            "slice_id": "24",
+            "row": 1
+        },
+        {
+            "size_y": 3,
+            "size_x": 6,
+            "col": 4,
+            "slice_id": "25",
+            "row": 6
+        },
+        {
+            "size_y": 5,
+            "size_x": 6,
+            "col": 4,
+            "slice_id": "26",
+            "row": 1
+        },
+        {
+            "size_y": 4,
+            "size_x": 6,
+            "col": 7,
+            "slice_id": "27",
+            "row": 9
+        },
+        {
+            "size_y": 3,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "28",
+            "row": 6
+        },
+        {
+            "size_y": 4,
+            "size_x": 6,
+            "col": 1,
+            "slice_id": "29",
+            "row": 9
+        },
+        {
+            "size_y": 4,
+            "size_x": 5,
+            "col": 8,
+            "slice_id": "30",
+            "row": 13
+        },
+        {
+            "size_y": 4,
+            "size_x": 7,
+            "col": 1,
+            "slice_id": "31",
+            "row": 13
+        }
+    ]
     """)
     l = json.loads(js)
     for i, pos in enumerate(l):

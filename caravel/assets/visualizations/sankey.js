@@ -18,7 +18,7 @@ function sankeyVis(slice) {
     var width = slice.width() - margin.left - margin.right;
     var height = slice.height() - margin.top - margin.bottom;
 
-    var formatNumber = d3.format(",.0f");
+    var formatNumber = d3.format(",.2f");
 
     div.selectAll("*").remove();
     var svg = div.append("svg")
@@ -26,6 +26,10 @@ function sankeyVis(slice) {
       .attr("height", height + margin.top + margin.bottom)
       .append("g")
       .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var tooltip = div.append("div")
+      .attr("class", "sankey-tooltip")
+      .style("opacity", 0);
 
     var sankey = d3.sankey()
       .nodeWidth(15)
@@ -56,7 +60,7 @@ function sankeyVis(slice) {
 
       var link = svg.append("g").selectAll(".link")
         .data(links)
-        .enter().append("path")
+      .enter().append("path")
         .attr("class", "link")
         .attr("d", path)
         .style("stroke-width", function (d) {
@@ -64,16 +68,13 @@ function sankeyVis(slice) {
         })
         .sort(function (a, b) {
           return b.dy - a.dy;
-        });
-
-      link.append("title")
-        .text(function (d) {
-          return d.source.name + " → " + d.target.name + "\n" + formatNumber(d.value);
-        });
+        })
+        .on("mouseover", onmouseover)
+        .on("mouseout", onmouseout);
 
       var node = svg.append("g").selectAll(".node")
         .data(nodes)
-        .enter().append("g")
+       .enter().append("g")
         .attr("class", "node")
         .attr("transform", function (d) {
           return "translate(" + d.x + "," + d.y + ")";
@@ -99,10 +100,8 @@ function sankeyVis(slice) {
         .style("stroke", function (d) {
           return d3.rgb(d.color).darker(2);
         })
-        .append("title")
-        .text(function (d) {
-          return d.name + "\n" + formatNumber(d.value);
-        });
+        .on("mouseover", onmouseover)
+        .on("mouseout", onmouseout);
 
       node.append("text")
         .attr("x", -6)
@@ -122,10 +121,50 @@ function sankeyVis(slice) {
         .attr("text-anchor", "start");
 
       function dragmove(d) {
-        d3.select(this).attr("transform", "translate(" + d.x + "," + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + ")");
+        d3.select(this)
+          .attr("transform", "translate(" + d.x + "," + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + ")");
+
         sankey.relayout();
         link.attr("d", path);
       }
+
+      function getTooltipHtml(d) {
+        var html;
+
+        if (d.sourceLinks) { // is node
+          html = d.name + " Value: <span class='emph'>" + formatNumber(d.value) + "</span>";
+        } else {
+          var val = formatNumber(d.value);
+          var sourcePercent = d3.round((d.value / d.source.value) * 100, 1);
+          var targetPercent = d3.round((d.value / d.target.value) * 100, 1);
+
+          html = [
+            "<div class=''>Path Value: <span class='emph'>", val, "</span></div>",
+            "<div class='percents'>",
+              "<span class='emph'>", (isFinite(sourcePercent) ? sourcePercent : "100"), "%</span> of ", d.source.name, "<br/>",
+              "<span class='emph'>" + (isFinite(targetPercent) ? targetPercent : "--") + "%</span> of ", d.target.name, "target",
+            "</div>"
+          ].join("");
+        }
+        return html;
+      }
+
+      function onmouseover(d) {
+        tooltip
+          .html(function () { return getTooltipHtml(d); })
+         .transition()
+          .duration(200)
+          .style("left", (d3.event.layerX + 10) + "px")
+          .style("top", (d3.event.layerY + 10) + "px")
+          .style("opacity", 0.95);
+      }
+
+      function onmouseout(d) {
+        tooltip.transition()
+          .duration(100)
+          .style("opacity", 0);
+      }
+
       slice.done(json);
     });
   };

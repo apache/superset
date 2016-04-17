@@ -56,21 +56,21 @@ class AuditMixinNullable(AuditMixin):
         onupdate=datetime.now, nullable=True)
 
     @declared_attr
-    def created_by_fk(cls):
+    def created_by_fk(cls):  # noqa
         return Column(Integer, ForeignKey('ab_user.id'),
                       default=cls.get_user_id, nullable=True)
 
     @declared_attr
-    def changed_by_fk(cls):
+    def changed_by_fk(cls):  # noqa
         return Column(
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
     @property
-    def created_by_(self):
+    def created_by_(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @property # noqa
+    @property  # noqa
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
@@ -192,6 +192,7 @@ class Slice(Model, AuditMixinNullable):
             logger.exception(e)
             slice_params = {}
         slice_params['slice_id'] = self.id
+        slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
@@ -369,11 +370,12 @@ class Database(Model, AuditMixinNullable):
                 logging.error(e)
         return extra
 
-    def get_table(self, table_name):
+    def get_table(self, table_name, schema=None):
         extra = self.get_extra()
         meta = MetaData(**extra.get('metadata_params', {}))
         return Table(
             table_name, meta,
+            schema=schema or None,
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
@@ -405,7 +407,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
-    table_name = Column(String(250), unique=True)
+    table_name = Column(String(250))
     main_dttm_col = Column(String(250))
     description = Column(Text)
     default_endpoint = Column(Text)
@@ -417,8 +419,14 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
+    schema = Column(String(256))
 
     baselink = "tablemodelview"
+
+    __table_args__ = (
+        sqla.UniqueConstraint(
+            'database_id', 'schema', 'table_name',
+            name='_customer_location_uc'),)
 
     def __repr__(self):
         return self.table_name
@@ -587,10 +595,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+        else:
+            inner_time_filter = []
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
-        from_clause = table(self.table_name)
+
+        tbl = table(self.table_name)
+        if self.schema:
+            tbl.schema = self.schema
+
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -623,7 +637,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if timeseries_limit and groupby:
             subq = select(inner_select_exprs)
-            subq = subq.select_from(table(self.table_name))
+            subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
             subq = subq.order_by(desc(main_metric_expr))
@@ -633,9 +647,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 on_clause.append(
                     groupby_exprs[i] == column("__" + gb))
 
-            from_clause = from_clause.join(subq.alias(), and_(*on_clause))
+            tbl = tbl.join(subq.alias(), and_(*on_clause))
 
-        qry = qry.select_from(from_clause)
+        qry = qry.select_from(tbl)
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
@@ -651,7 +665,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
-            table = self.database.get_table(self.table_name)
+            table = self.database.get_table(self.table_name, schema=self.schema)
         except Exception as e:
             flash(str(e))
             flash(
@@ -679,14 +693,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if not dbcol:
                 dbcol = TableColumn(column_name=col.name)
                 num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+                date_types = ('DATE', 'TIME')
+                str_types = ('VARCHAR', 'STRING')
                 datatype = str(datatype).upper()
-                if (
-                        str(datatype).startswith('VARCHAR') or
-                        str(datatype).startswith('STRING')):
+                if any([t in datatype for t in str_types]):
                     dbcol.groupby = True
                     dbcol.filterable = True
                 elif any([t in datatype for t in num_types]):
                     dbcol.sum = True
+                elif any([t in datatype for t in date_types]):
+                    dbcol.is_dttm = True
             db.session.merge(self)
             self.columns.append(dbcol)
 
@@ -841,7 +857,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
-    datasource_name = Column(String(250), unique=True)
+    datasource_name = Column(String(256), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
@@ -998,6 +1014,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 granularity).total_seconds() * 1000
         if not isinstance(granularity, string_types):
             granularity = {"type": "duration", "duration": granularity}
+            origin = extras.get('druid_time_origin')
+            if origin:
+                dttm = utils.parse_human_datetime(origin)
+                granularity['origin'] = dttm.isoformat()
 
         qry = dict(
             datasource=self.datasource_name,

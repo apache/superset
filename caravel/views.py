@@ -79,6 +79,9 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
             "DATETIME-like"),
+        'expression': utils.markdown(
+            "a valid SQL expression as supported by the underlying backend. "
+            "Example: `substr(name, 1, 1)`", True),
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -107,6 +110,11 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table']
+    description_columns = {
+        'expression': utils.markdown(
+            "a valid SQL expression as supported by the underlying backend. "
+            "Example: `count(DISTINCT userid)`", True),
+    }
     add_columns = edit_columns
     page_size = 500
 appbuilder.add_view_no_menu(SqlMetricInlineView)
@@ -133,6 +141,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     order_columns = utils.list_minus(list_columns, ['created_by_'])
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
+    show_columns = add_columns
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
@@ -178,14 +187,18 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on']
     add_columns = [
-        'table_name', 'database', 'default_endpoint', 'offset', 'cache_timeout']
+        'table_name', 'database', 'schema',
+        'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
         'offset': "Timezone offset (in hours) for this datasource",
+        'schema': (
+            "Schema, as used only in some databases like Postgres, Redshift "
+            "and DB2"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
@@ -438,6 +451,7 @@ class Caravel(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
+        error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
         datasources = (
@@ -458,6 +472,7 @@ class Caravel(BaseView):
             )
         if not datasource:
             flash("The datasource seems to have been deleted", "alert")
+            return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
             'all_datasource_access', 'all_datasource_access')
@@ -465,7 +480,7 @@ class Caravel(BaseView):
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash("You don't seem to have access to this datasource", "danger")
-            return redirect('/slicemodelview/list/')
+            return redirect(error_redirect)
 
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
@@ -476,10 +491,14 @@ class Caravel(BaseView):
             return redirect(datasource.default_endpoint)
         if not viz_type:
             viz_type = "table"
-        obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=request.args,
-            slice=slc)
+        try:
+            obj = viz.viz_types[viz_type](
+                datasource,
+                form_data=request.args,
+                slice_=slc)
+        except Exception as e:
+            flash(str(e), "danger")
+            return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
             try:
@@ -630,8 +649,9 @@ class Caravel(BaseView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
-            uri = request.form.get('uri')
-            engine = create_engine(uri)
+            uri = request.json.get('uri')
+            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args', {})
+            engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
         except Exception:
@@ -643,7 +663,7 @@ class Caravel(BaseView):
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
         session = db.session()
-        FavStar = models.FavStar
+        FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
             class_name=class_name, obj_id=obj_id, user_id=g.user.id).all()
@@ -719,14 +739,15 @@ class Caravel(BaseView):
         cols = mydb.get_columns(table_name)
         df = pd.DataFrame([(c['name'], c['type']) for c in cols])
         df.columns = ['col', 'type']
+        tbl_cls = (
+            "dataframe table table-striped table-bordered "
+            "table-condensed sql_results").split(' ')
         return self.render_template(
             "caravel/ajah.html",
             content=df.to_html(
                 index=False,
                 na_rep='',
-                classes=(
-                    "dataframe table table-striped table-bordered "
-                    "table-condensed sql_results")))
+                classes=tbl_cls))
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -754,6 +775,11 @@ class Caravel(BaseView):
         sql = data.get('sql')
         database_id = data.get('database_id')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if (
+                not self.appbuilder.sm.has_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            raise Exception("test")
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -772,7 +798,7 @@ class Caravel(BaseView):
                     na_rep='',
                     classes=(
                         "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results"))
+                        "table-condensed sql_results").split(' '))
             except Exception as e:
                 content = (
                     '<div class="alert alert-danger">'
