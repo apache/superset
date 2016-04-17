@@ -717,6 +717,13 @@ class Caravel(BaseView):
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
+        if (
+                not self.appbuilder.sm.has_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            flash(
+                "This view requires the `all_datasource_access` "
+                "permission", "danger")
+            return redirect("/tablemodelview/list/")
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
         engine = mydb.get_sqla_engine()
@@ -778,7 +785,8 @@ class Caravel(BaseView):
         if (
                 not self.appbuilder.sm.has_access(
                     'all_datasource_access', 'all_datasource_access')):
-            raise Exception("test")
+            raise Exception(
+                "This view requires the `all_datasource_access` permission")
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
