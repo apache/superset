@@ -34,10 +34,10 @@ logging.getLogger().setLevel(logging.DEBUG)
 if app.config.get('ENABLE_TIME_ROTATE'):
     print("Im here")
     logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
-    handler = TimedRotatingFileHandler(app.config.get('TIME_ROTATE_FILENAME'),
-                                       when=app.config.get('TIME_ROTATE_ROLLOVER'),
-                                       interval=app.config.get('TIME_ROTATE_INTERVAL'),
-                                       backupCount=app.config.get('TIME_ROTATE_BACKUP_COUNT'))
+    handler = TimedRotatingFileHandler(app.config.get('FILENAME'),
+                                       when=app.config.get('ROLLOVER'),
+                                       interval=app.config.get('INTERVAL'),
+                                       backupCount=app.config.get('BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
 
 

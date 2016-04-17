@@ -133,10 +133,10 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-TIME_ROTATE_FILENAME = '/Users/sidgupta/Desktop/sid.log'
-TIME_ROTATE_ROLLOVER = 'midnight'
-TIME_ROTATE_INTERVAL = 1
-TIME_ROTATE_BACKUP_COUNT = 30
+FILENAME = '/Users/sidgupta/Desktop/sid.log'
+ROLLOVER = 'midnight'
+INTERVAL = 1
+BACKUP_COUNT = 30
 
 
 try:
