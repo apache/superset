@@ -21,7 +21,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 ROW_LIMIT = 50000
 WEBSERVER_THREADS = 8
 
-CARAVEL_WEBSERVER_PORT = 8088
+CARAVEL_WEBSERVER_PORT = 4000
 CARAVEL_WEBSERVER_TIMEOUT = 60
 
 CUSTOM_SECURITY_MANAGER = None
@@ -31,7 +31,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////Users/sidgupta/Desktop/caravel.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -130,69 +130,17 @@ Reference:
 DEBUG = True
 
 # ---------------------------------------------------
-# Logging Configuration
+# Enable Time Rotate Log Handler
 # ---------------------------------------------------
 # LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-LOG_LEVEL = 'DEBUG'
-LOG_LOCATION = '/Users/sidgupta/Desktop/caravel_new.log'
-ENABLE_CONSOLE = True
-ENABLE_ROTATE_FILE = False
-ENABLE_TIME_ROTATE_FILE = False
-'''
-LOGGING_CONFIG = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'standard': {
-            'format': '[%(asctime)s] [%(filename)s :: line %(lineno)d)] '
-                      '[%(levelname)s::%(name)s] - %(message)s ',
-            'datefmt': "%Y-%m-%d %H:%M:%S",
-        }
-    },
-    'handlers': {
-        'console': {
-            'level': LOG_LEVEL,
-            'formatter': 'standard',
-            'class': 'logging.StreamHandler',
-        },
-        'rotate_file': {
-            'level': LOG_LEVEL,
-            'formatter': 'standard',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': LOG_LOCATION,
-            'maxBytes': 10000000,
-            'backupCount': 10
-        },
-        'time_rotate_file': {
-            'level': LOG_LEVEL,
-            'formatter': 'standard',
-            'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': LOG_LOCATION,
-            'when': 'midnight',
-            'interval': 1,
-            'backupCount': 30
-        }
-    },
-    'loggers': {
-        'console_output': {
-            'handlers': ['console'],
-            'propagate': ENABLE_CONSOLE,
-            'level': LOG_LEVEL,
-        },
-        'rotate_file': {
-            'handlers': ['rotate_file'],
-            'propagate': ENABLE_ROTATE_FILE,
-            'level': LOG_LEVEL,
-        },
-        'time_rotate_file': {
-            'handlers': ['time_rotate_file'],
-            'propagate': ENABLE_TIME_ROTATE_FILE,
-            'level': LOG_LEVEL
-        },
-    }
-}
-'''
+ENABLE_TIME_ROTATE = False
+TIME_ROTATE_LOG_LEVEL = 'DEBUG'
+TIME_ROTATE_FILENAME = '/Users/sidgupta/Desktop/sid.log'
+TIME_ROTATE_ROLLOVER = 'midnight'
+TIME_ROTATE_INTERVAL = 1
+TIME_ROTATE_BACKUP_COUNT = 30
+
 
 try:
     from caravel_config import *  # noqa

@@ -4,7 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import logging.config
+import logging
+from logging.handlers import TimedRotatingFileHandler
 import os
 
 from flask import Flask, redirect
@@ -27,8 +28,19 @@ cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 # Logging configuration
-#logging.config.dictConfig(app.config.get('LOGGING_CONFIG'))
-#logger = logging.getLogger(__name__)
+logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
+logging.getLogger().setLevel(logging.DEBUG)
+
+if app.config.get('ENABLE_TIME_ROTATE'):
+    print("Im here")
+    logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
+    handler = TimedRotatingFileHandler(app.config.get('TIME_ROTATE_FILENAME'),
+                                       when=app.config.get('TIME_ROTATE_ROLLOVER'),
+                                       interval=app.config.get('TIME_ROTATE_INTERVAL'),
+                                       backupCount=app.config.get('TIME_ROTATE_BACKUP_COUNT'))
+    logging.getLogger().addHandler(handler)
+    logging.debug("what")
+
 
 class MyIndexView(IndexView):
     @expose('/')
