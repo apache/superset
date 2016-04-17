@@ -14,7 +14,7 @@ import logging
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
-
+import collections
 import pandas as pd
 import numpy as np
 from flask import flash, request, Markup
@@ -1514,30 +1514,13 @@ class HeatmapViz(BaseViz):
         return df.to_dict(orient="records")
 
 
-viz_types_list = [
-    TableViz,
-    PivotTableViz,
-    NVD3TimeSeriesViz,
-    NVD3CompareTimeSeriesViz,
-    NVD3TimeSeriesStackedViz,
-    NVD3TimeSeriesBarViz,
-    DistributionBarViz,
-    DistributionPieViz,
-    BubbleViz,
-    MarkupViz,
-    WordCloudViz,
-    BigNumberViz,
-    BigNumberTotalViz,
-    SunburstViz,
-    DirectedForceViz,
-    SankeyViz,
-    WorldMapViz,
-    FilterBoxViz,
-    IFrameViz,
-    ParallelCoordinatesViz,
-    HeatmapViz,
-    BoxPlotViz,
-    TreemapViz,
-]
+viz_types = collections.OrderedDict()
 
-viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
+temp = config.get('VIZ_TYPES')
+
+
+for key, value in temp.items():
+    if value:
+        viz_types[key] = key
+
+print(viz_types)
