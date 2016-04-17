@@ -36,7 +36,6 @@ manager.add_command('db', MigrateCommand)
 def runserver(debug, port, timeout, workers):
     """Starts a Caravel web server"""
     debug = debug or config.get("DEBUG")
-
     if debug:
         app.run(
             host='0.0.0.0',
@@ -98,7 +97,7 @@ def refresh_druid():
             print(
                 "Error while processing cluster '{}'\n{}".format(
                     cluster, str(e)))
-            logger.exception(e)
+            logging.exception(e)
         cluster.metadata_last_refreshed = datetime.now()
         print(
             "Refreshed metadata from cluster "
