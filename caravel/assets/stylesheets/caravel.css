@@ -29,6 +29,10 @@ input.form-control {
     color: red;
 }
 
+.disabledButton {
+    pointer-events: none;
+}
+
 .col-left-fixed {
     width:350px;
     position: absolute;
