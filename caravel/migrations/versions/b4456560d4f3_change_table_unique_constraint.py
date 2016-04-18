@@ -14,12 +14,20 @@ from alembic import op
 
 
 def upgrade():
-    op.drop_constraint(
-        u'tables_table_name_key', 'tables', type_='unique')
-    op.create_unique_constraint(
-        u'_customer_location_uc', 'tables',
-        ['database_id', 'schema', 'table_name'])
+    try:
+        # Trying since sqlite doesn't like constraints
+        op.drop_constraint(
+            u'tables_table_name_key', 'tables', type_='unique')
+        op.create_unique_constraint(
+            u'_customer_location_uc', 'tables',
+            ['database_id', 'schema', 'table_name'])
+    except Exception:
+        pass
 
 
 def downgrade():
-    op.drop_constraint(u'_customer_location_uc', 'tables', type_='unique')
+    try:
+        # Trying since sqlite doesn't like constraints
+        op.drop_constraint(u'_customer_location_uc', 'tables', type_='unique')
+    except Exception:
+        pass
