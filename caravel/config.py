@@ -121,6 +121,15 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
+
+# ---------------------------------------------------
+# List of viz_types not allowed in your environment
+# For example: Blacklist pivot table and treemap:
+#  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
+# ---------------------------------------------------
+
+VIZ_TYPE_BLACKLIST = []
+
 try:
     from caravel_config import *  # noqa
 except Exception:
