@@ -312,7 +312,6 @@ class TableViz(BaseViz):
 
     viz_type = "table"
     verbose_name = "Table View"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': "Chart Options",
@@ -371,7 +370,6 @@ class PivotTableViz(BaseViz):
 
     viz_type = "pivot_table"
     verbose_name = "Pivot Table"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -434,7 +432,6 @@ class MarkupViz(BaseViz):
 
     viz_type = "markup"
     verbose_name = "Markup Widget"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     fieldsets = ({
         'label': None,
         'fields': ('markup_type', 'code')
@@ -463,7 +460,6 @@ class WordCloudViz(BaseViz):
 
     viz_type = "word_cloud"
     verbose_name = "Word Cloud"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -496,7 +492,6 @@ class TreemapViz(BaseViz):
 
     viz_type = "treemap"
     verbose_name = "Treemap"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
 
@@ -538,7 +533,6 @@ class BoxPlotViz(NVD3Viz):
 
     viz_type = "box_plot"
     verbose_name = "Box Plot"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     sort_series = False
     is_timeseries = True
     fieldsets = ({
@@ -646,7 +640,6 @@ class BubbleViz(NVD3Viz):
 
     viz_type = "bubble"
     verbose_name = "Bubble Chart"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -715,7 +708,6 @@ class BigNumberViz(BaseViz):
 
     viz_type = "big_number"
     verbose_name = "Big Number with Trendline"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = True
     fieldsets = ({
@@ -766,7 +758,6 @@ class BigNumberTotalViz(BaseViz):
 
     viz_type = "big_number_total"
     verbose_name = "Big Number"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -813,7 +804,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     viz_type = "line"
     verbose_name = "Time Series - Line Chart"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     sort_series = False
     is_timeseries = True
     fieldsets = ({
@@ -954,7 +944,6 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     viz_type = "bar"
     sort_series = True
     verbose_name = "Time Series - Bar Chart"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': 'Chart Options',
         'fields': (
@@ -973,7 +962,6 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
 
     viz_type = 'compare'
     verbose_name = "Time Series - Percent Change"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
@@ -982,7 +970,6 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
 
     viz_type = "area"
     verbose_name = "Time Series - Stacked"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     sort_series = True
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': 'Chart Options',
@@ -1002,7 +989,6 @@ class DistributionPieViz(NVD3Viz):
 
     viz_type = "pie"
     verbose_name = "Distribution - NVD3 - Pie Chart"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1039,7 +1025,6 @@ class DistributionBarViz(DistributionPieViz):
 
     viz_type = "dist_bar"
     verbose_name = "Distribution - Bar Chart"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     fieldsets = ({
         'label': 'Chart Options',
@@ -1120,7 +1105,6 @@ class SunburstViz(BaseViz):
 
     viz_type = "sunburst"
     verbose_name = "Sunburst"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     credits = (
         'Kerry Rodden '
@@ -1187,7 +1171,6 @@ class SankeyViz(BaseViz):
 
     viz_type = "sankey"
     verbose_name = "Sankey"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
     fieldsets = ({
@@ -1252,7 +1235,6 @@ class DirectedForceViz(BaseViz):
 
     viz_type = "directed_force"
     verbose_name = "Directed Force Layout"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'd3noob @<a href="http://bl.ocks.org/d3noob/5141278">bl.ocks.org</a>'
     is_timeseries = False
     fieldsets = ({
@@ -1295,7 +1277,6 @@ class WorldMapViz(BaseViz):
 
     viz_type = "world_map"
     verbose_name = "World Map"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     credits = 'datamaps on <a href="https://www.npmjs.com/package/datamaps">npm</a>'
     fieldsets = ({
@@ -1370,7 +1351,6 @@ class FilterBoxViz(BaseViz):
 
     viz_type = "filter_box"
     verbose_name = "Filters"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
@@ -1419,7 +1399,6 @@ class IFrameViz(BaseViz):
 
     viz_type = "iframe"
     verbose_name = "iFrame"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -1438,7 +1417,6 @@ class ParallelCoordinatesViz(BaseViz):
 
     viz_type = "para"
     verbose_name = "Parallel Coordinates"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     credits = (
         '<a href="https://syntagmatic.github.io/parallel-coordinates/">'
         'Syntagmatic\'s library</a>')
@@ -1476,7 +1454,6 @@ class HeatmapViz(BaseViz):
 
     viz_type = "heatmap"
     verbose_name = "Heatmap"
-    enable_viz_type = config.get('VIZ_TYPES')[viz_type]
     is_timeseries = False
     credits = (
         'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
@@ -1562,8 +1539,4 @@ viz_types_list = [
     TreemapViz,
 ]
 
-viz_types = OrderedDict()
-
-for v in viz_types_list:
-    if v.enable_viz_type:
-        viz_types[v.viz_type] = v
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])

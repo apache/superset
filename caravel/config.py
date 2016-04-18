@@ -123,35 +123,12 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 
 # ---------------------------------------------------
-# Enable different visualizations: True or False (refer viz.py)
+# List of viz_types not allowed in your environment
+# For example: Blacklist pivot table and treemap:
+#  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
 # ---------------------------------------------------
 
-VIZ_TYPES = {
-    'table': True,
-    'pivot_table': True,
-    'markup': True,
-    'word_cloud': True,
-    'treemap': True,
-    'box_plot': True,
-    'bubble': True,
-    'big_number': True,
-    'big_number_total': True,
-    'line': True,
-    'bar': True,
-    'compare': True,
-    'area': True,
-    'pie': True,
-    'dist_bar': True,
-    'sunburst': True,
-    'sankey': True,
-    'directed_force': True,
-    'world_map': True,
-    'filter_box': True,
-    'iframe': True,
-    'para': True,
-    'heatmap': True,
-}
-
+VIZ_TYPE_BLACKLIST = []
 
 try:
     from caravel_config import *  # noqa
