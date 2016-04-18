@@ -1539,4 +1539,5 @@ viz_types_list = [
     TreemapViz,
 ]
 
-viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
+                         if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])
