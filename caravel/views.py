@@ -415,7 +415,6 @@ class R(BaseView):
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
-            print(url.url)
             return redirect('/' + url.url)
         else:
             flash("URL to nowhere...", "danger")
