@@ -8,7 +8,7 @@ d3.sankey = require('d3-sankey').sankey;
 function sankeyVis(slice) {
   var div = d3.select(slice.selector);
 
-  var render = function () {
+  var render = function (callback) {
     var margin = {
       top: 5,
       right: 5,
@@ -38,9 +38,16 @@ function sankeyVis(slice) {
 
     var path = sankey.link();
 
+    var doCallback = function () {
+      if (callback) {
+        return callback();
+      }
+    };
+
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText);
+        doCallback();
         return '';
       }
       var links = json.data;
@@ -166,6 +173,7 @@ function sankeyVis(slice) {
       }
 
       slice.done(json);
+      doCallback();
     });
   };
   return {

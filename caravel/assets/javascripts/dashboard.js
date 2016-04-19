@@ -31,7 +31,15 @@ var Dashboard = function (dashboardData) {
             slice.render(true);
           });
           sliceObjects.push(slice);
-          slice.render();
+
+          var fetchAndRender = function (slice) {
+            slice.render(undefined, function () {
+              setTimeout(function () {
+                fetchAndRender(slice);
+              }, 60 * 1000);
+            });
+          };
+          fetchAndRender(slice);
         }
       });
       this.slices = sliceObjects;

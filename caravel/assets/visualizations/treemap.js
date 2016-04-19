@@ -70,12 +70,18 @@ function treemap(slice) {
 
   };
 
-  var render = function () {
+  var render = function (callback) {
+    var doCallback = function () {
+      if (callback) {
+        return callback();
+      }
+    };
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
 
       if (error !== null) {
         slice.error(error.responseText);
+        doCallback();
         return '';
       }
 
@@ -89,7 +95,7 @@ function treemap(slice) {
       }
 
       slice.done(json);
-
+      doCallback();
     });
 
   };

@@ -20,7 +20,7 @@ function filterBox(slice) {
     slice.setFilter($(this).attr('name'), vals);
   };
 
-  var refresh = function () {
+  var refresh = function (callback) {
     d3token.selectAll("*").remove();
     var container = d3token
       .append('div')
@@ -67,6 +67,11 @@ function filterBox(slice) {
           $(container).attr('style', 'padding: 0px; background: white;');
           $(container).addClass('filter_box');
           return '<div style="' + style + '"><span>' + result.text + '</span></div>';
+        }
+      })
+      .always(function () {
+        if (callback) {
+            return callback();
         }
       })
       .fail(function (xhr) {

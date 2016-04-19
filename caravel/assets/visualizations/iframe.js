@@ -2,7 +2,7 @@ var $ = window.$ || require('jquery');
 
 function iframeWidget(slice) {
 
-  function refresh() {
+  function refresh(callback) {
     $('#code').attr('rows', '15');
     $.getJSON(slice.jsonEndpoint(), function (payload) {
         slice.container.html('<iframe style="width:100%;"></iframe>');
@@ -10,6 +10,11 @@ function iframeWidget(slice) {
         iframe.css('height', slice.height());
         iframe.attr('src', payload.form_data.url);
         slice.done();
+      })
+      .always(function () {
+        if (callback) {
+          return callback();
+        }
       })
       .fail(function (xhr) {
         slice.error(xhr.responseText);

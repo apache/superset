@@ -10,13 +10,19 @@ function directedForceVis(slice) {
   var link_length = slice.data.form_data.link_length || 200;
   var charge = slice.data.form_data.charge || -500;
 
-  var render = function () {
+  var render = function (callback) {
     var width = slice.width();
     var height = slice.height() - 25;
     d3.json(slice.jsonEndpoint(), function (error, json) {
+      var doCallback = function () {
+        if (callback) {
+          return callback();
+        }
+      };
 
       if (error !== null) {
         slice.error(error.responseText);
+        doCallback();
         return '';
       }
       var links = json.data;
@@ -164,6 +170,7 @@ function directedForceVis(slice) {
       }
 
       slice.done(json);
+      doCallback();
     });
   };
   return {

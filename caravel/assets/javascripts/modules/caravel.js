@@ -308,26 +308,22 @@ var px = (function () {
           }, 500);
         });
       },
-      render: function (force) {
+      render: function (force, callback) {
         if (force === undefined) {
           force = false;
         }
         this.force = force;
         token.find("img.loading").show();
-        container.hide();
-        container.html('');
         container.css('height', slice.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
-        this.viz.render();
+        this.viz.render(callback);
       },
       resize: function () {
         token.find("img.loading").show();
-        container.hide();
         container.css('height', slice.height());
-        container.html('');
         this.viz.render();
         this.viz.resize();
       },

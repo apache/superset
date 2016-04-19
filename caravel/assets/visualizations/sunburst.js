@@ -8,7 +8,7 @@ require('./sunburst.css');
 function sunburstVis(slice) {
   var container = d3.select(slice.selector);
 
-  var render = function () {
+  var render = function (callback) {
     // vars with shared scope within this function
     var margin = { top: 10, right: 5, bottom: 10, left: 5 };
     var containerWidth   = slice.width();
@@ -52,9 +52,16 @@ function sunburstVis(slice) {
       .attr("width", containerWidth)
       .attr("height", containerHeight);
 
+    var doCallback = function () {
+      if (callback) {
+        return callback();
+      }
+    };
+
     d3.json(slice.jsonEndpoint(), function (error, rawData) {
       if (error !== null) {
         slice.error(error.responseText);
+        doCallback();
         return '';
       }
 
@@ -62,6 +69,7 @@ function sunburstVis(slice) {
       createVisualization(rawData);
 
       slice.done(rawData);
+      doCallback();
     });
 
     function createBreadcrumbs(rawData) {

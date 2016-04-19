@@ -12,8 +12,13 @@ function tableVis(slice) {
   var f = d3.format('.3s');
   var fC = d3.format('0,000');
 
-  function refresh() {
-    $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
+  function refresh(callback) {
+    $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError)
+        .always(function () {
+          if (callback) {
+            return callback();
+          }
+        });
 
     function onError(xhr) {
       slice.error(xhr.responseText);
@@ -35,7 +40,7 @@ function tableVis(slice) {
         maxes[metrics[i]] = d3.max(col(metrics[i]));
       }
 
-      var table = d3.select(slice.selector).append('table')
+      var table = d3.select(slice.selector).html('').append('table')
         .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true)
         .attr('width', '100%');
 

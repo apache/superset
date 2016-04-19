@@ -9,7 +9,7 @@ module.exports = function (slice) {
   var container = slice.container;
   var form_data = slice.data.form_data;
 
-  function refresh() {
+  function refresh(callback) {
     $.getJSON(slice.jsonEndpoint(), function (json) {
       container.html(json.data);
       if (form_data.groupby.length === 1) {
@@ -23,6 +23,10 @@ module.exports = function (slice) {
       slice.done(json);
     }).fail(function (xhr) {
       slice.error(xhr.responseText);
+    }).always(function () {
+      if (callback) {
+        return callback();
+      }
     });
   }
   return {
