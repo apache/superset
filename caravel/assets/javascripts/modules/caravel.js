@@ -193,6 +193,7 @@ var px = (function () {
       clearInterval(timer);
       $('#timer').removeClass('btn-warning');
     };
+    var refreshTimer = null;
     slice = {
       data: data,
       container: container,
@@ -345,6 +346,30 @@ var px = (function () {
       removeFilter: function (col, vals) {
         if (dashboard !== undefined) {
           delete dashboard.removeFilter(slice_id, col, vals);
+        }
+      },
+      stopPeriodicRender: function () {
+        if (refreshTimer) {
+          clearTimeout(refreshTimer);
+          refreshTimer = null;
+        }
+      },
+      startPeriodicRender: function (interval) {
+        this.stopPeriodicRender();
+        var fetchAndRender = function (slice) {
+          slice.render(undefined, function () {
+            if (interval > 0) {
+              refreshTimer = setTimeout(function () {
+                fetchAndRender(slice);
+              }, interval);
+            }
+          });
+        };
+        fetchAndRender(this);
+      },
+      setDashboardRefreshInterval: function (interval) {
+        if (dashboard !== undefined) {
+          dashboard.startPeriodicRender(interval);
         }
       }
     };

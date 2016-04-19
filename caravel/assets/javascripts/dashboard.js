@@ -13,6 +13,8 @@ require('./caravel-select2.js');
 require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
+var DEFAULT_REFRESH_INTERVAL = 60 * 1000;
+
 var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
     filters: {},
@@ -31,18 +33,10 @@ var Dashboard = function (dashboardData) {
             slice.render(true);
           });
           sliceObjects.push(slice);
-
-          var fetchAndRender = function (slice) {
-            slice.render(undefined, function () {
-              setTimeout(function () {
-                fetchAndRender(slice);
-              }, 60 * 1000);
-            });
-          };
-          fetchAndRender(slice);
         }
       });
       this.slices = sliceObjects;
+      this.startPeriodicRender(DEFAULT_REFRESH_INTERVAL);
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -64,6 +58,11 @@ var Dashboard = function (dashboardData) {
     readFilters: function () {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
+    },
+    startPeriodicRender: function (interval) {
+      this.slices.forEach(function (slice) {
+        slice.startPeriodicRender(interval);
+      });
     },
     refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slice || [];
