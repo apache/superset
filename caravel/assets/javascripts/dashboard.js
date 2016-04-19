@@ -13,8 +13,6 @@ require('./caravel-select2.js');
 require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
-var DEFAULT_REFRESH_INTERVAL = 60 * 1000;
-
 var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
     filters: {},
@@ -36,7 +34,7 @@ var Dashboard = function (dashboardData) {
         }
       });
       this.slices = sliceObjects;
-      this.startPeriodicRender(DEFAULT_REFRESH_INTERVAL);
+      this.startPeriodicRender(0);
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -197,6 +195,10 @@ var Dashboard = function (dashboardData) {
           title: "<span class='fa fa-info-circle'></span> Current Global Filters",
           body: "The following global filters are currently applied:<br/>" + dashboard.readFilters()
         });
+      });
+      $("#refresh_dash_interval").on("change", function () {
+        var interval = $(this).find('option:selected').val() * 1000;
+        dashboard.startPeriodicRender(interval);
       });
       $('#refresh_dash').click(function () {
         dashboard.slices.forEach(function (slice) {
