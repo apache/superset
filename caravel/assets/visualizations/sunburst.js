@@ -272,7 +272,7 @@ function sunburstVis(slice) {
           .attr("y", breadcrumbDims.height / 4)
           .attr("dy", "0.35em")
           .attr("class", "step-label")
-          .text(function (d) { return d.name; })
+          .text(function (d) { return d.name.replace(/_/g, " "); })
           .call(wrapSvgText, breadcrumbDims.width, breadcrumbDims.height / 2);
 
       // Set position for entering and updating nodes.
