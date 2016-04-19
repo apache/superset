@@ -126,6 +126,11 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 2) https://docs.python.org/2/library/logging.config.html
 """
 
+# Console Log Settings
+
+LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+LOG_LEVEL = 'DEBUG'
+
 # ---------------------------------------------------
 # Enable Time Rotate Log Handler
 # ---------------------------------------------------

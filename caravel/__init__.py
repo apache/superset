@@ -28,8 +28,8 @@ cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
 # Logging configuration
-logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-logging.getLogger().setLevel(logging.DEBUG)
+logging.basicConfig(format=app.config.get('LOG_FORMAT'))
+logging.getLogger().setLevel(app.config.get('LOG_LEVEL'))
 
 if app.config.get('ENABLE_TIME_ROTATE'):
     logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
