@@ -43,4 +43,9 @@ setup(
     url='https://github.com/airbnb/caravel',
     download_url=(
         'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
+    classifiers=[
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+    ],
 )
