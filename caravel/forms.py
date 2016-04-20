@@ -89,7 +89,6 @@ class OmgWtForm(Form):
         return getattr(self, fieldname)
 
     def field_css_classes(self, fieldname):
-        print(fieldname, self.css_classes[fieldname])
         if fieldname in self.css_classes:
             return " ".join(self.css_classes[fieldname])
         return ""
