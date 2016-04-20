@@ -17,7 +17,7 @@ from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 
 
-def flasher(msg, severity):
+def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:
         flash(msg, severity)

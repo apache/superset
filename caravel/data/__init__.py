@@ -459,7 +459,7 @@ def load_world_bank_health_n_pop():
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "world_health"
 
-    dash.slices = slices
+    dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
 
@@ -650,16 +650,6 @@ def load_birth_names():
                 viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
-            slice_name="Number of Girls",
-            viz_type='big_number_total',
-            datasource_type='table',
-            table=tbl,
-            params=get_slice_json(
-                defaults,
-                viz_type="big_number_total", granularity="ds",
-                flt_col_1='gender', flt_eq_1='girl',
-                subheader='total female participants')),
-        Slice(
             slice_name="Genders",
             viz_type='pie',
             datasource_type='table',
@@ -723,6 +713,16 @@ def load_birth_names():
                 defaults,
                 viz_type="pivot_table", metrics=['sum__num'],
                 groupby=['name'], columns=['state'])),
+        Slice(
+            slice_name="Number of Girls",
+            viz_type='big_number_total',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                viz_type="big_number_total", granularity="ds",
+                flt_col_1='gender', flt_eq_1='girl',
+                subheader='total female participants')),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -805,6 +805,6 @@ def load_birth_names():
     dash.dashboard_title = "Births"
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "births"
-    dash.slices = slices
+    dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
