@@ -109,6 +109,69 @@ def load_energy():
             """))
     )
 
+    merge_slice(
+        Slice(
+            slice_name="Energy Force Layout",
+            viz_type='directed_force',
+            datasource_type='table',
+            table=tbl,
+            params=textwrap.dedent("""\
+            {
+                "charge": "-500",
+                "collapsed_fieldsets": "",
+                "datasource_id": "1",
+                "datasource_name": "energy_usage",
+                "datasource_type": "table",
+                "flt_col_0": "source",
+                "flt_eq_0": "",
+                "flt_op_0": "in",
+                "groupby": [
+                    "source",
+                    "target"
+                ],
+                "having": "",
+                "link_length": "200",
+                "metric": "sum__value",
+                "row_limit": "5000",
+                "slice_id": "229",
+                "slice_name": "Force",
+                "viz_type": "directed_force",
+                "where": ""
+            }
+            """))
+    )
+    merge_slice(
+        Slice(
+            slice_name="Heatmap",
+            viz_type='heatmap',
+            datasource_type='table',
+            table=tbl,
+            params=textwrap.dedent("""\
+            {
+                "all_columns_x": "source",
+                "all_columns_y": "target",
+                "canvas_image_rendering": "pixelated",
+                "collapsed_fieldsets": "",
+                "datasource_id": "1",
+                "datasource_name": "energy_usage",
+                "datasource_type": "table",
+                "flt_col_0": "source",
+                "flt_eq_0": "",
+                "flt_op_0": "in",
+                "having": "",
+                "linear_color_scheme": "blue_white_yellow",
+                "metric": "sum__value",
+                "normalize_across": "heatmap",
+                "slice_id": "229",
+                "slice_name": "Heatmap",
+                "viz_type": "heatmap",
+                "where": "",
+                "xscale_interval": "1",
+                "yscale_interval": "1"
+            }
+            """))
+    )
+
 
 def load_world_bank_health_n_pop():
     """Loads the world bank health dataset, slices and a dashboard"""
@@ -287,6 +350,23 @@ def load_world_bank_health_n_pop():
                 viz_type='treemap',
                 metrics=["sum__SP_POP_TOTL"],
                 groupby=["region", "country_code"],)),
+        Slice(
+            slice_name="Parallel Coordinates",
+            viz_type='para',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="2011-01-01",
+                until="2011-01-01",
+                viz_type='para',
+                limit=100,
+                metrics=[
+                    "sum__SP_POP_TOTL",
+                    'sum__SP_RUR_TOTL_ZS',
+                    'sum__SH_DYN_AIDS'],
+                secondary_metric='sum__SP_POP_TOTL',
+                series=["country_name"],)),
     ]
     for slc in slices:
         merge_slice(slc)
