@@ -979,7 +979,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col_obj.datasource = datasource
             col_obj.generate_metrics()
 
-    def query(
+    def query(  # druid
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
