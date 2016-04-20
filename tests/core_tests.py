@@ -132,33 +132,51 @@ class CoreTests(CaravelTestCase):
         assert "SUCCESS" in resp.data.decode('utf-8')
 
 
-
 SEGMENT_METADATA = [{
-  "id" : "some_id",
-  "intervals" : [ "2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z" ],
-  "columns" : {
-    "__time" : {
-        "type" : "LONG", "hasMultipleValues" : False,
-        "size" : 407240380, "cardinality" : None, "errorMessage" : None },
-    "dim1" : {
-        "type" : "STRING", "hasMultipleValues" : False,
-        "size" : 100000, "cardinality" : 1944, "errorMessage" : None },
-    "dim2" : {
-        "type" : "STRING", "hasMultipleValues" : True,
-        "size" : 100000, "cardinality" : 1504, "errorMessage" : None },
-    "metric1" : {
-        "type" : "FLOAT", "hasMultipleValues" : False,
-        "size" : 100000, "cardinality" : None, "errorMessage" : None }
+  "id": "some_id",
+  "intervals": [ "2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z" ],
+  "columns": {
+    "__time": {
+        "type": "LONG", "hasMultipleValues": False,
+        "size": 407240380, "cardinality": None, "errorMessage": None },
+    "dim1": {
+        "type": "STRING", "hasMultipleValues": False,
+        "size": 100000, "cardinality": 1944, "errorMessage": None },
+    "dim2": {
+        "type": "STRING", "hasMultipleValues": True,
+        "size": 100000, "cardinality": 1504, "errorMessage": None },
+    "metric1": {
+        "type": "FLOAT", "hasMultipleValues": False,
+        "size": 100000, "cardinality": None, "errorMessage": None }
   },
-  "aggregators" : {
-    "metric1" : {
-        "type" : "longSum",
-        "name" : "metric1",
-        "fieldName" : "metric1" }
+  "aggregators": {
+    "metric1": {
+        "type": "longSum",
+        "name": "metric1",
+        "fieldName": "metric1" }
   },
-  "size" : 300000,
-  "numRows" : 5000000
+  "size": 300000,
+  "numRows": 5000000
 }]
+
+RESULT_SET = [
+  {
+    "version": "v1",
+    "timestamp": "2012-01-01T00:00:00.000Z",
+    "event": {
+      "name": 'Canada',
+      "sum__num": 12345678,
+    }
+  },
+  {
+    "version": "v1",
+    "timestamp": "2012-01-01T00:00:00.000Z",
+    "event": {
+      "name": 'USA',
+      "sum__num": 12345678 / 2,
+    }
+  },
+]
 
 
 class DruidTests(CaravelTestCase):
