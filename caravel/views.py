@@ -365,13 +365,13 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'created_by_', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    order_columns = utils.list_minus(
-        list_columns, ['created_by_', 'changed_by_'])
-    related_views = [DruidColumnInlineView, DruidMetricInlineView]
+    related_views = [
+        DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
         'cache_timeout']
+    add_columns = edit_columns
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
@@ -415,7 +415,6 @@ class R(BaseView):
     def index(self, url_id):
         url = db.session.query(models.Url).filter_by(id=url_id).first()
         if url:
-            print(url.url)
             return redirect('/' + url.url)
         else:
             flash("URL to nowhere...", "danger")
