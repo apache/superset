@@ -67,10 +67,19 @@ var Dashboard = function (dashboardData) {
     startPeriodicRender: function (interval) {
       this.stopPeriodicRender();
       var dash = this;
-      var fetchAndRender = function () {
+      var maxRandomDelay = Math.min(interval * 0.1, 5000);
+      var refreshAll = function () {
         dash.slices.forEach(function (slice) {
-          slice.render(true);
+          setTimeout(function () {
+                slice.render(true);
+              },
+              //Randomize to prevent all widgets refreshing at the same time
+              maxRandomDelay * Math.random());
         });
+      };
+
+      var fetchAndRender = function () {
+        refreshAll();
         if (interval > 0) {
           dash.refreshTimer = setTimeout(function () {
             fetchAndRender();
