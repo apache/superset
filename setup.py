@@ -41,6 +41,7 @@ setup(
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/airbnb/caravel',
+    use_2to3=True,
     download_url=(
         'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
 )
