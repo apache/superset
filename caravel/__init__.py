@@ -26,6 +26,11 @@ logging.getLogger().setLevel(logging.DEBUG)
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
+if not app.debug:
+  # In production mode, add log handler to sys.stderr.
+  app.logger.addHandler(logging.StreamHandler())
+  app.logger.setLevel(logging.INFO)
+
 db = SQLA(app)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
