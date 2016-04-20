@@ -159,7 +159,7 @@ SEGMENT_METADATA = [{
   "numRows": 5000000
 }]
 
-RESULT_SET = [
+GB_RESULT_SET = [
   {
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
@@ -192,6 +192,7 @@ class DruidTests(CaravelTestCase):
         instance.time_boundary.return_value = [
             {'result': {'maxTime': '2016-01-01'}}]
         instance.segment_metadata.return_value = SEGMENT_METADATA
+        instance.groupby = GB_RESULT_SET
 
         cluster = (
             db.session
@@ -215,6 +216,8 @@ class DruidTests(CaravelTestCase):
         cluster.get_datasources = Mock(return_value=['test_datasource'])
         cluster.refresh_datasources()
         db.session.commit()
+
+        self.client.get('/caravel/explore/druid/1/')
 
 
 if __name__ == '__main__':
