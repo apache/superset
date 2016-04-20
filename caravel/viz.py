@@ -68,6 +68,7 @@ class BaseViz(object):
         if not form.validate():
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
+                    logging.error("{}: {}".format(k, " ".join(v)))
                     flash("{}: {}".format(k, " ".join(v)), 'danger')
         if previous_viz_type != self.viz_type:
             data = {

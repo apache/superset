@@ -34,7 +34,6 @@ List of TODO items for Caravel
 
 ## Easy-ish fix
 * Build matrix to include mysql using tox
-* Kill switch for Druid in docs
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
 * Slider form element

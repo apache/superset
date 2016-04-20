@@ -21,7 +21,7 @@ from dateutil.parser import parse
 from flask import flash, request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-from pydruid import client
+from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from six import string_types
 from sqlalchemy import (
@@ -830,19 +830,21 @@ class DruidCluster(Model, AuditMixinNullable):
         return self.cluster_name
 
     def get_pydruid_client(self):
-        cli = client.PyDruid(
+        cli = PyDruid(
             "http://{0}:{1}/".format(self.broker_host, self.broker_port),
             self.broker_endpoint)
         return cli
 
-    def refresh_datasources(self):
+    def get_datasources(self):
         endpoint = (
             "http://{obj.coordinator_host}:{obj.coordinator_port}/"
             "{obj.coordinator_endpoint}/datasources"
         ).format(obj=self)
 
-        datasources = json.loads(requests.get(endpoint).text)
-        for datasource in datasources:
+        return json.loads(requests.get(endpoint).text)
+
+    def refresh_datasources(self):
+        for datasource in self.get_datasources():
             DruidDatasource.sync_to_db(datasource, self)
 
 
@@ -950,9 +952,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if not datasource:
             datasource = cls(datasource_name=name)
             session.add(datasource)
-            flash("Adding new datasource [{}]".format(name), "success")
+            logging.info("Adding new datasource [{}]".format(name))
         else:
-            flash("Refreshing datasource [{}]".format(name), "info")
+            logging.info("Refreshing datasource [{}]".format(name))
         datasource.cluster = cluster
 
         cols = datasource.latest_metadata()
@@ -977,7 +979,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col_obj.datasource = datasource
             col_obj.generate_metrics()
 
-    def query(
+    def query(  # druid
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
