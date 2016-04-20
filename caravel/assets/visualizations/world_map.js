@@ -7,24 +7,17 @@ var Datamap = require('datamaps');
 require('./world_map.css');
 
 function worldMapChart(slice) {
-  var render = function (callback) {
+  var render = function () {
     var container = slice.container;
     var div = d3.select(slice.selector);
 
     container.css('height', slice.height());
-
-    var doCallback = function () {
-      if (callback) {
-        return callback();
-      }
-    };
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
       var fd = json.form_data;
 
       if (error !== null) {
         slice.error(error.responseText);
-        doCallback();
         return '';
       }
       var ext = d3.extent(json.data, function (d) {
@@ -104,7 +97,7 @@ function worldMapChart(slice) {
       }
 
       slice.done(json);
-      doCallback();
+
     });
   };
 

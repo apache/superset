@@ -5,17 +5,10 @@ var cloudLayout = require('d3-cloud');
 function wordCloudChart(slice) {
   var chart = d3.select(slice.selector);
 
-  function refresh(callback) {
-    var doCallback = function () {
-      if (callback) {
-        return callback();
-      }
-    };
-
+  function refresh() {
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText);
-        doCallback();
         return '';
       }
       var data = json.data;
@@ -86,7 +79,6 @@ function wordCloudChart(slice) {
           });
       }
       slice.done(json);
-      doCallback();
     });
   }
 

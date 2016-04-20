@@ -34,6 +34,7 @@ var Dashboard = function (dashboardData) {
         }
       });
       this.slices = sliceObjects;
+      this.refreshTimer = null;
       this.startPeriodicRender(0);
     },
     setFilter: function (slice_id, col, vals) {
@@ -57,10 +58,26 @@ var Dashboard = function (dashboardData) {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
     },
+    stopPeriodicRender: function () {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
+      }
+    },
     startPeriodicRender: function (interval) {
-      this.slices.forEach(function (slice) {
-        slice.startPeriodicRender(interval);
-      });
+      this.stopPeriodicRender();
+      var dash = this;
+      var fetchAndRender = function () {
+        dash.slices.forEach(function (slice) {
+          slice.render(true);
+        });
+        if (interval > 0) {
+          dash.refreshTimer = setTimeout(function () {
+            fetchAndRender();
+          }, interval);
+        }
+      };
+      fetchAndRender();
     },
     refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slice || [];

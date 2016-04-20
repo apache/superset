@@ -12,13 +12,8 @@ function tableVis(slice) {
   var f = d3.format('.3s');
   var fC = d3.format('0,000');
 
-  function refresh(callback) {
-    $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError)
-        .always(function () {
-          if (callback) {
-            return callback();
-          }
-        });
+  function refresh() {
+    $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
 
     function onError(xhr) {
       slice.error(xhr.responseText);

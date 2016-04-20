@@ -12,24 +12,18 @@ require('./heatmap.css');
 // https://jsfiddle.net/cyril123/h0reyumq/
 function heatmapVis(slice) {
 
-  function refresh(callback) {
+  function refresh() {
     var margin = {
       top: 10,
       right: 10,
       bottom: 35,
       left: 35
     };
-    var doCallback = function () {
-      if (callback) {
-        return callback();
-      }
-    };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       var matrix = {};
       if (error) {
         slice.error(error.responseText);
-        doCallback();
         return '';
       }
       var fd = payload.form_data;
@@ -228,7 +222,7 @@ function heatmapVis(slice) {
       }
 
       slice.done();
-      doCallback();
+
     });
   }
   return {

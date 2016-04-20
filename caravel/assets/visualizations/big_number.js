@@ -9,7 +9,7 @@ var px = require('../javascripts/modules/caravel.js');
 function bigNumberVis(slice) {
   var div = d3.select(slice.selector);
 
-  function render(callback) {
+  function render() {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       //Define the percentage bounds that define color from red to green
       if (error !== null) {
@@ -173,9 +173,6 @@ function bigNumberVis(slice) {
         });
       }
       slice.done(payload);
-      if (callback) {
-        return callback();
-      }
     });
   }
 

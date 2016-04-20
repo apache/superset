@@ -9,7 +9,7 @@ require('../vendor/parallel_coordinates/d3.parcoords.css');
 
 function parallelCoordVis(slice) {
 
-  function refresh(callback) {
+  function refresh() {
     $('#code').attr('rows', '15');
     $.getJSON(slice.jsonEndpoint(), function (payload) {
         var data = payload.data;
@@ -77,11 +77,6 @@ function parallelCoordVis(slice) {
           });
         }
         slice.done();
-      })
-      .always(function () {
-        if (callback) {
-          return callback();
-        }
       })
       .fail(function (xhr) {
         slice.error(xhr.responseText);

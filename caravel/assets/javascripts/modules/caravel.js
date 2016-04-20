@@ -193,7 +193,6 @@ var px = (function () {
       clearInterval(timer);
       $('#timer').removeClass('btn-warning');
     };
-    var refreshTimer = null;
     slice = {
       data: data,
       container: container,
@@ -309,7 +308,7 @@ var px = (function () {
           }, 500);
         });
       },
-      render: function (force, callback) {
+      render: function (force) {
         if (force === undefined) {
           force = false;
         }
@@ -320,7 +319,7 @@ var px = (function () {
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
         $('#timer').addClass('btn-warning');
-        this.viz.render(callback);
+        this.viz.render();
       },
       resize: function () {
         token.find("img.loading").show();
@@ -346,30 +345,6 @@ var px = (function () {
       removeFilter: function (col, vals) {
         if (dashboard !== undefined) {
           delete dashboard.removeFilter(slice_id, col, vals);
-        }
-      },
-      stopPeriodicRender: function () {
-        if (refreshTimer) {
-          clearTimeout(refreshTimer);
-          refreshTimer = null;
-        }
-      },
-      startPeriodicRender: function (interval) {
-        this.stopPeriodicRender();
-        var fetchAndRender = function (slice) {
-          slice.render(undefined, function () {
-            if (interval > 0) {
-              refreshTimer = setTimeout(function () {
-                fetchAndRender(slice);
-              }, interval);
-            }
-          });
-        };
-        fetchAndRender(this);
-      },
-      setDashboardRefreshInterval: function (interval) {
-        if (dashboard !== undefined) {
-          dashboard.startPeriodicRender(interval);
         }
       }
     };

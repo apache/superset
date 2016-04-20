@@ -11,7 +11,7 @@ require('./nvd3_vis.css');
 function nvd3Vis(slice) {
   var chart;
 
-  var render = function (callback) {
+  var render = function () {
     $.getJSON(slice.jsonEndpoint(), function (payload) {
         var fd = payload.form_data;
         var viz_type = fd.viz_type;
@@ -201,7 +201,6 @@ function nvd3Vis(slice) {
             return px.color.category21(d[colorKey]);
           });
 
-          // d3.select(slice.selector).html('');
           var svg = d3.select(slice.selector).select("svg");
           if (svg.empty()) {
             svg = d3.select(slice.selector).append("svg");
@@ -217,11 +216,6 @@ function nvd3Vis(slice) {
         });
 
         slice.done(payload);
-      })
-      .always(function () {
-        if (callback) {
-          return callback();
-        }
       })
       .fail(function (xhr) {
         slice.error(xhr.responseText);
