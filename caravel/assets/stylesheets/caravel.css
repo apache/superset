@@ -184,6 +184,7 @@ img.loading {
 .dashboard img.loading {
   width: 20px;
   margin: 5px;
+  position: absolute;
 }
 img.viz-thumb-option {
     width: 100px;
