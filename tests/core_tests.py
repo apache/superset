@@ -22,6 +22,7 @@ class CaravelTests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(CaravelTests, self).__init__(*args, **kwargs)
+        app.testing = True
         self.client = app.test_client()
         role_admin = appbuilder.sm.find_role('Admin')
         user = appbuilder.sm.find_user('admin')
@@ -59,7 +60,8 @@ class CaravelTests(unittest.TestCase):
             ]
         for url in urls:
             try:
-                self.client.get(url)
+                res = self.client.get(url)
+                assert res.code == 200
             except Exception as ex:
                 raise Exception(ex.message + ": " + url)
 
