@@ -1,11 +1,8 @@
-<<<<<<< HEAD
-=======
 .. image:: _static/img/caravel.jpg
 
 .. warning:: This project used to be name Panoramix and has been renamed
     to Caravel in March 2016
 
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 Overview
 =======================================
 
