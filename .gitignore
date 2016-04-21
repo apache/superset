@@ -5,7 +5,6 @@ babel
 .coverage
 _build
 _static
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 _images
 caravel/bin/caravelc
 env_py3
@@ -18,17 +17,6 @@ local_config.py
 env
 dist
 caravel.egg-info/
-=======
-dashed/bin/dashedc
-build
-*.db
-tmp
-dashed_config.py
-local_config.py
-env
-dist
-dashed.egg-info/
->>>>>>> [panoramix] -> [dashed]
 app.db
 *.bak
 
