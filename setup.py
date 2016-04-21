@@ -1,26 +1,11 @@
 import imp, os
 from setuptools import setup, find_packages
 
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
 version = imp.load_source(
     'version', os.path.join('caravel', 'version.py'))
 
 setup(
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     name='caravel',
-=======
-    name='dashed',
->>>>>>> [panoramix] -> [dashed]
-=======
-version = '0.8.5'
-
-setup(
-<<<<<<< HEAD
-    name='dashed',
-=======
-    name='caravel',
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
@@ -28,19 +13,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     scripts=['caravel/bin/caravel'],
-=======
-    scripts=['dashed/bin/dashed'],
->>>>>>> [panoramix] -> [dashed]
-=======
-<<<<<<< HEAD
-    scripts=['dashed/bin/dashed'],
-=======
-    scripts=['caravel/bin/caravel'],
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master
     install_requires=[
         'alembic>=0.8.5, <0.9.0',
         'cryptography>=1.1.1, <2.0.0',
@@ -67,8 +40,6 @@ setup(
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     url='https://github.com/airbnb/caravel',
     download_url=(
         'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
@@ -77,20 +48,4 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
-=======
-    url='https://github.com/airbnb/dashed',
-    download_url=(
-        'https://github.com/airbnb/dashed/tarball/' + version),
->>>>>>> [panoramix] -> [dashed]
-=======
-<<<<<<< HEAD
-    url='https://github.com/airbnb/dashed',
-    download_url=(
-        'https://github.com/airbnb/dashed/tarball/' + version),
-=======
-    url='https://github.com/airbnb/caravel',
-    download_url=(
-        'https://github.com/airbnb/caravel/tarball/' + version),
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master
 )

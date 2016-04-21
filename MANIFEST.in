@@ -1,5 +1,3 @@
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 recursive-include caravel/templates *
 recursive-include caravel/static *
 recursive-exclude caravel/static/assets/node_modules *
@@ -8,29 +6,3 @@ recursive-exclude caravel/static/docs *
 recursive-exclude tests *
 recursive-include caravel/data *
 recursive-include caravel/migrations *
-=======
-=======
-<<<<<<< HEAD
->>>>>>> merge from caravel/master
-recursive-include dashed/templates *
-recursive-include dashed/static *
-recursive-exclude dashed/static/assets/node_modules *
-recursive-include dashed/static/assets/node_modules/font-awesome *
-recursive-exclude dashed/static/docs *
-recursive-exclude tests *
-recursive-include dashed/data *
-recursive-include dashed/migrations *
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
->>>>>>> [panoramix] -> [dashed]
-=======
-=======
-recursive-include caravel/templates *
-recursive-include caravel/static *
-recursive-exclude caravel/static/assets/node_modules *
-recursive-include caravel/static/assets/node_modules/font-awesome *
-recursive-exclude caravel/static/docs *
-recursive-exclude tests *
-recursive-include caravel/data *
-recursive-include caravel/migrations *
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master

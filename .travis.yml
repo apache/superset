@@ -9,32 +9,11 @@ cache:
 before_install:
   - npm install -g npm@'>=2.7.1'
 install:
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
   - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
   - pip install --find-links=$HOME/.wheelhouse --no-index .
   - pip install -r dev-reqs.txt
   - cd caravel/assets
   - npm --version
-=======
-=======
-<<<<<<< HEAD
->>>>>>> merge from caravel/master
-  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse -r requirements.txt
-  - pip install --find-links=$HOME/.wheelhouse --no-index -rrequirements.txt
-  - python setup.py install
-  - cd dashed/assets
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
->>>>>>> [panoramix] -> [dashed]
-=======
-=======
-  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
-  - pip install --find-links=$HOME/.wheelhouse --no-index .
-  - pip install --find-links=$HOME/.wheelhouse --no-index -r dev-reqs.txt
-  - cd caravel/assets
-  - npm --version
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master
   - npm install
   - npm run lint
   - npm run prod
@@ -42,16 +21,3 @@ install:
 script: bash run_tests.sh
 after_success:
   - coveralls
-<<<<<<< 4386977960aaa513607464e437084f2dc7435647
-<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
-=======
-  - cd dashed/assets
-  - npm run lint
->>>>>>> [panoramix] -> [dashed]
-=======
-<<<<<<< HEAD
-  - cd dashed/assets
-  - npm run lint
-=======
->>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
->>>>>>> merge from caravel/master
