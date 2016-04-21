@@ -96,7 +96,10 @@ class CoreTests(CaravelTestCase):
                 slc.viz.json_endpoint,
             ]
         for url in urls:
-            self.client.get(url)
+            try:
+                self.client.get(url)
+            except Exception as ex:
+                raise Exception(ex.message + ": " + url)
 
     def test_dashboard(self):
         self.login()
