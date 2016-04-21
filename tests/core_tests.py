@@ -188,6 +188,7 @@ class DruidTests(CaravelTestCase):
 
     @patch('caravel.models.PyDruid')
     def test_client(self, PyDruid):
+        self.login()
         instance = PyDruid.return_value
         instance.time_boundary.return_value = [
             {'result': {'maxTime': '2016-01-01'}}]
