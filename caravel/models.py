@@ -18,7 +18,7 @@ import requests
 import sqlalchemy as sqla
 import sqlparse
 from dateutil.parser import parse
-from flask import flash, request, g
+from flask import request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 from pydruid.client import PyDruid
@@ -36,6 +36,7 @@ from sqlalchemy_utils import EncryptedType
 
 from caravel import app, db, get_session, utils
 from caravel.viz import viz_types
+from caravel.utils import flasher
 
 config = app.config
 
@@ -666,8 +667,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         try:
             table = self.database.get_table(self.table_name, schema=self.schema)
         except Exception as e:
-            flash(str(e))
-            flash(
+            flasher(str(e))
+            flasher(
                 "Table doesn't seem to exist in the specified database, "
                 "couldn't fetch column information", "danger")
             return
@@ -952,9 +953,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if not datasource:
             datasource = cls(datasource_name=name)
             session.add(datasource)
-            logging.info("Adding new datasource [{}]".format(name))
+            flasher("Adding new datasource [{}]".format(name), "success")
         else:
-            logging.info("Refreshing datasource [{}]".format(name))
+            flasher("Refreshing datasource [{}]".format(name), "info")
         datasource.cluster = cluster
 
         cols = datasource.latest_metadata()

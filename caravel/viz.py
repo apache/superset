@@ -16,7 +16,7 @@ from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from flask import flash, request, Markup
+from flask import request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
 from six import string_types
@@ -25,6 +25,7 @@ from werkzeug.urls import Href
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
+from caravel.utils import flasher
 
 config = app.config
 
@@ -68,8 +69,7 @@ class BaseViz(object):
         if not form.validate():
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
-                    logging.error("{}: {}".format(k, " ".join(v)))
-                    flash("{}: {}".format(k, " ".join(v)), 'danger')
+                    flasher("{}: {}".format(k, " ".join(v)), 'danger')
         if previous_viz_type != self.viz_type:
             data = {
                 k: form.data[k]
@@ -197,7 +197,7 @@ class BaseViz(object):
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
-            flash("The date range doesn't seem right.", "danger")
+            flasher("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identical to not raise
 
         # extras are used to query elements specific to a datasource type
