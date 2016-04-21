@@ -193,7 +193,6 @@ class DruidTests(CaravelTestCase):
         instance.time_boundary.return_value = [
             {'result': {'maxTime': '2016-01-01'}}]
         instance.segment_metadata.return_value = SEGMENT_METADATA
-        instance.groupby = GB_RESULT_SET
 
         cluster = (
             db.session
@@ -216,9 +215,23 @@ class DruidTests(CaravelTestCase):
         db.session.add(cluster)
         cluster.get_datasources = Mock(return_value=['test_datasource'])
         cluster.refresh_datasources()
+        datasource_id = cluster.datasources[0].id
         db.session.commit()
 
-        self.client.get('/caravel/explore/druid/1/')
+        resp = self.client.get('/caravel/explore/druid/{}/'.format(datasource_id))
+        assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
+
+        nres = [
+            list(v['event'].items()) + [('timestamp', v['timestamp'])]
+            for v in GB_RESULT_SET]
+        nres = [dict(v) for v in nres]
+        import pandas as pd
+        df = pd.DataFrame(nres)
+        instance.export_pandas.return_value = df
+        resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
+        print('-'*300)
+        print(resp.data.decode('utf-8'))
+        assert "Canada" in resp.data.decode('utf-8')
 
 
 if __name__ == '__main__':
