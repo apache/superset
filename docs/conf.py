@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 #
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 # caravel documentation build configuration file, created by
+=======
+# dashed documentation build configuration file, created by
+>>>>>>> [panoramix] -> [dashed]
 # sphinx-quickstart on Thu Dec 17 15:42:06 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -51,7 +55,11 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 project = u'caravel'
+=======
+project = u'dashed'
+>>>>>>> [panoramix] -> [dashed]
 copyright = u'2015, Maxime Beauchemin, Airbnb'
 author = u'Maxime Beauchemin'
 
@@ -120,8 +128,13 @@ html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     # 'bootswatch_theme': 'cosmo',
     'navbar_title': 'Caravel Documentation',
+=======
+    #'bootswatch_theme': 'simplex',
+    'navbar_title': 'Dashed Documentation',
+>>>>>>> [panoramix] -> [dashed]
     'navbar_fixed_top': "false",
     'navbar_sidebarrel': False,
     'navbar_site_name': "Topics",
@@ -213,7 +226,11 @@ html_show_copyright = False
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 htmlhelp_basename = 'caraveldoc'
+=======
+htmlhelp_basename = 'dasheddoc'
+>>>>>>> [panoramix] -> [dashed]
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -235,7 +252,11 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
   (master_doc, 'caravel.tex', u'Caravel Documentation',
+=======
+  (master_doc, 'dashed.tex', u'Dashed Documentation',
+>>>>>>> [panoramix] -> [dashed]
    u'Maxime Beauchemin', 'manual'),
 ]
 
@@ -265,7 +286,11 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     (master_doc, 'Caravel', u'caravel Documentation',
+=======
+    (master_doc, 'Dashed', u'dashed Documentation',
+>>>>>>> [panoramix] -> [dashed]
      [author], 1)
 ]
 
@@ -279,8 +304,13 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
   (master_doc, 'Caravel', u'Caravel Documentation',
    author, 'Caravel', 'One line description of project.',
+=======
+  (master_doc, 'Dashed', u'Dashed Documentation',
+   author, 'Dashed', 'One line description of project.',
+>>>>>>> [panoramix] -> [dashed]
    'Miscellaneous'),
 ]
 

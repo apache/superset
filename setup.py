@@ -5,7 +5,11 @@ version = imp.load_source(
     'version', os.path.join('caravel', 'version.py'))
 
 setup(
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     name='caravel',
+=======
+    name='dashed',
+>>>>>>> [panoramix] -> [dashed]
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
@@ -13,7 +17,11 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     scripts=['caravel/bin/caravel'],
+=======
+    scripts=['dashed/bin/dashed'],
+>>>>>>> [panoramix] -> [dashed]
     install_requires=[
         'alembic>=0.8.5, <0.9.0',
         'cryptography>=1.1.1, <2.0.0',
@@ -40,6 +48,7 @@ setup(
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     url='https://github.com/airbnb/caravel',
     download_url=(
         'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
@@ -48,4 +57,9 @@ setup(
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
     ],
+=======
+    url='https://github.com/airbnb/dashed',
+    download_url=(
+        'https://github.com/airbnb/dashed/tarball/' + version),
+>>>>>>> [panoramix] -> [dashed]
 )

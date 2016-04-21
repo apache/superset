@@ -1,8 +1,11 @@
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 .. image:: _static/img/caravel.jpg
 
 .. warning:: This project used to be name Panoramix and has been renamed
     to Caravel in March 2016
 
+=======
+>>>>>>> [panoramix] -> [dashed]
 Overview
 =======================================
 

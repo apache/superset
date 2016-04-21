@@ -1,5 +1,9 @@
 # TODO
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 List of TODO items for Caravel
+=======
+List of TODO items for Dashed
+>>>>>>> [panoramix] -> [dashed]
 
 ## Important
 * **Getting proper JS testing:** unit tests on the Python side are pretty
@@ -7,7 +11,11 @@ List of TODO items for Caravel
     testing all the ajax-type calls
 * **Viz Plugins:** Allow people to define and share visualization plugins.
     ideally one would only need to drop in a set of files in a folder and
+<<<<<<< a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
     Caravel would discover and expose the plugins
+=======
+    Dashed would discover and expose the plugins
+>>>>>>> [panoramix] -> [dashed]
 
 ## Features
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
