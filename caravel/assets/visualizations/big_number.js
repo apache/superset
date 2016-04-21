@@ -16,6 +16,8 @@ function bigNumberVis(slice) {
         slice.error(error.responseText);
         return '';
       }
+      div.html(''); //reset
+
       var fd = payload.form_data;
       var json = payload.data;
       var color_range = [-1, 1];

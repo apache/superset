@@ -314,8 +314,6 @@ var px = (function () {
         }
         this.force = force;
         token.find("img.loading").show();
-        container.hide();
-        container.html('');
         container.css('height', slice.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
@@ -325,9 +323,7 @@ var px = (function () {
       },
       resize: function () {
         token.find("img.loading").show();
-        container.hide();
         container.css('height', slice.height());
-        container.html('');
         this.viz.render();
         this.viz.resize();
       },

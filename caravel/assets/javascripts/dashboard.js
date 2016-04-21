@@ -31,10 +31,11 @@ var Dashboard = function (dashboardData) {
             slice.render(true);
           });
           sliceObjects.push(slice);
-          slice.render();
         }
       });
       this.slices = sliceObjects;
+      this.refreshTimer = null;
+      this.startPeriodicRender(0);
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -56,6 +57,36 @@ var Dashboard = function (dashboardData) {
     readFilters: function () {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
+    },
+    stopPeriodicRender: function () {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
+      }
+    },
+    startPeriodicRender: function (interval) {
+      this.stopPeriodicRender();
+      var dash = this;
+      var maxRandomDelay = Math.min(interval * 0.1, 5000);
+      var refreshAll = function () {
+        dash.slices.forEach(function (slice) {
+          setTimeout(function () {
+                slice.render(true);
+              },
+              //Randomize to prevent all widgets refreshing at the same time
+              maxRandomDelay * Math.random());
+        });
+      };
+
+      var fetchAndRender = function () {
+        refreshAll();
+        if (interval > 0) {
+          dash.refreshTimer = setTimeout(function () {
+            fetchAndRender();
+          }, interval);
+        }
+      };
+      fetchAndRender();
     },
     refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slice || [];
@@ -190,6 +221,10 @@ var Dashboard = function (dashboardData) {
           title: "<span class='fa fa-info-circle'></span> Current Global Filters",
           body: "The following global filters are currently applied:<br/>" + dashboard.readFilters()
         });
+      });
+      $("#refresh_dash_interval").on("change", function () {
+        var interval = $(this).find('option:selected').val() * 1000;
+        dashboard.startPeriodicRender(interval);
       });
       $('#refresh_dash').click(function () {
         dashboard.slices.forEach(function (slice) {
