@@ -1,0 +1,249 @@
+body {
+    margin: 0px !important;
+}
+
+.emph {
+  font-weight: bold;
+}
+
+.alert.alert-danger > .debugger {
+    color: red;
+}
+
+.modal-dialog {
+    z-index: 1100;
+}
+.label {
+    font-size: 100%;
+}
+
+.no-wrap {
+    white-space: nowrap;
+}
+
+input.form-control {
+    background-color: white;
+}
+
+.chart-header a.danger {
+    color: red;
+}
+
+.disabledButton {
+    pointer-events: none;
+}
+
+.col-left-fixed {
+    width:350px;
+    position: absolute;
+    float: left;
+}
+.col-offset {
+    margin-left: 365px;
+}
+
+.favstar {
+    margin-right: 10px;
+    opacity: 0.5;
+    cursor: pointer;
+}
+
+.slice_description{
+    padding: 8px;
+    margin: 5px;
+    border: 1px solid #DDD;
+    background-color: #F8F8F8;
+    border-radius: 5px;
+    font-size: 12px;
+}
+
+.slice_info{
+    cursor: pointer;
+}
+
+.padded {
+    padding: 10px;
+}
+
+.intable-longtext{
+    max-height: 200px;
+    overflow: auto;
+}
+
+.container-fluid {
+    text-align: left;
+}
+input[type="checkbox"] {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  float: right;
+}
+form div {
+  padding-top: 1px;
+}
+.navbar-brand a {
+  color: white;
+  text-decoration: none;
+}
+.navbar-brand a:hover {
+  color: white;
+  text-decoration: none;
+}
+
+.header span {
+    margin-left: 5px;
+}
+
+.widget-is-cached {
+    display: none;
+}
+
+.header span.label {
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+#timer {
+    width: 80px;
+    text-align: right;
+}
+
+.notbtn {
+    cursor: default;
+    box-shadow: none;
+    border: 1px solid #ccc;
+}
+
+hr {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+span.title-block {
+    background-color: #EEE;
+    border-radius: 4px;
+    padding: 6px 12px;
+    margin: 0px 10px;
+    font-size: 20px;
+}
+
+.nvtooltip {
+    //position: relative !important;
+    z-index: 888;
+}
+.nvtooltip table td{
+    font-size: 11px !important;
+}
+.navbar {
+  -webkit-box-shadow: 0px 3px 3px #AAA;
+  -moz-box-shadow: 0px 3px 3px #AAA;
+  box-shadow: 0px 3px 3px #AAA;
+  z-index: 999;
+}
+.panel.panel-primary {
+  margin: 10px;
+}
+.datasource form div.form-control {
+  margin-bottom: 5px !important;
+}
+.datasource form input.form-control {
+  margin-bottom: 5px !important;
+}
+.datasource .tooltip-inner {
+  max-width: 350px;
+}
+img.loading {
+  width: 40px;
+}
+.dashboard a i {
+  cursor: pointer;
+}
+.dashboard i.drag {
+  cursor: move !important;
+}
+.dashboard .gridster .preview-holder {
+  z-index: 1;
+  position: absolute;
+  background-color: #AAA;
+  border-color: #AAA;
+  opacity: 0.3;
+}
+.gridster li.widget{
+  list-style-type: none;
+  border-radius: 0;
+  margin: 5px;
+  border: 1px solid #ccc;
+  box-shadow: 2px 1px 5px -2px #aaa;
+  background-color: #fff;
+}
+.dashboard .gridster .dragging,
+.dashboard .gridster .resizing {
+  opacity: 0.5;
+}
+.dashboard img.loading {
+  width: 20px;
+  margin: 5px;
+  position: absolute;
+}
+img.viz-thumb-option {
+    width: 100px;
+    border: 1px solid gray;
+    margin-right: 5px;
+    border-radius: 5px;
+}
+.select2-drop.bigdrop .select2-results {
+    max-height: 700px;
+}
+
+.dashboard .title {
+  text-align: center;
+}
+.dashboard .slice_title {
+  text-align: center;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 5px;
+}
+.dashboard div.slice_content {
+  width: 100%;
+  height: 100%;
+}
+
+.dashboard  div.nvtooltip {
+  z-index: 888;  /* this lets tool tips go on top of other slices  */
+}
+
+div.header {
+  font-weight: bold;
+}
+li.widget:hover {
+  z-index: 1000;
+}
+
+li.widget .chart-header {
+  padding: 5px;
+  background-color: #f1f1f1;
+}
+
+li.widget .chart-header a {
+  margin-left: 5px;
+}
+
+#is_cached {
+  display: none;
+}
+
+li.widget .chart-controls {
+  background-color: #f1f1f1;
+  position: absolute;
+  right: 0;
+  left: 0;
+  padding: 0px 5px;
+  opacity: 0.75;
+  display: none;
+}
+
+li.widget .slice_container {
+  overflow: auto;
+}

@@ -1,0 +1,22 @@
+.gridster .widget.table .slice_container {
+    overflow: auto !important;
+}
+
+.widget.table table {
+    margin: 0px !important;
+}
+
+.widget.table td.filtered {
+    background-color: #005a63;
+    color: white;
+}
+
+.widget.table tr>th {
+    padding: 1px 5px !important;
+    font-size: small !important;
+}
+
+.widget.table tr>td {
+    padding: 1px 5px !important;
+    font-size: small !important;
+}

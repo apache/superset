@@ -1,0 +1,30 @@
+.big_number g.axis text,
+.big_number_total g.axis text {
+  font-size: 10px;
+  font-weight: normal;
+  color: gray;
+  fill: gray;
+  text-anchor: middle;
+  alignment-baseline: middle;
+  font-weight: none;
+}
+
+.big_number text.big,
+.big_number_total text.big{
+  stroke: black;
+  text-anchor: middle;
+  fill: black;
+}
+
+.big_number g.tick line,
+.big_number_total g.tick line{
+  stroke-width: 1px;
+  stroke: grey;
+}
+
+.big_number .domain,
+.big_number_total .domain{
+  fill: none;
+  stroke: black;
+  stroke-width: 1;
+}

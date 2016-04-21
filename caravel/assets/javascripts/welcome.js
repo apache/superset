@@ -9,9 +9,12 @@ require('../node_modules/cal-heatmap/cal-heatmap.css');
 
 var CalHeatMap = require('cal-heatmap');
 
-function modelViewTable(selector, modelEndpoint) {
+function modelViewTable(selector, modelView, orderCol, order) {
   // Builds a dataTable from a flask appbuilder api endpoint
-  $.getJSON(modelEndpoint + '/api/read', function (data) {
+  var url = '/' + modelView.toLowerCase() + '/api/read';
+  url += '?_oc_' + modelView + '=' + orderCol;
+  url += '&_od_' + modelView +'=' + order;
+  $.getJSON(url, function (data) {
     var tableData = jQuery.map(data.result, function (el, i) {
         var row = $.map(data.list_columns, function (col, i) {
           return el[col];
@@ -62,6 +65,6 @@ $(document).ready(function () {
     itemName: "action",
     tooltip: true
   });
-  modelViewTable('#dash_table', '/dashboardmodelviewasync');
-  modelViewTable('#slice_table', '/sliceasync');
+  modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');
+  modelViewTable('#slice_table', 'SliceAsync', 'changed_on', 'desc');
 });

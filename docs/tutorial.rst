@@ -14,11 +14,11 @@ Now click on the ``+`` button to add a new entry
 .. image:: _static/img/tutorial/db_plus.png
    :scale: 30 %
 
-Fill in an arbitrary reference name for the database, and you SqlAlchemy
+Fill in an arbitrary reference name for the database, and you SQLAlchemy
 URI. To figure out how to construct your URI, check out the
-`SqlAlchemy documentation  <http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html>`_.
+`SQLAlchemy documentation  <http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html>`_.
 Then you can test your connection. If it works, you'll see a positive popup
-and list of the tables that SqlAlchemy has found for that URI.
+and list of the tables that SQLAlchemy has found for that URI.
 
 .. image:: _static/img/tutorial/db_added.png
    :scale: 30 %

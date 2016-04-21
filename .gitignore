@@ -1,9 +1,11 @@
 *.pyc
+changelog.sh
 babel
 .DS_Store
 .coverage
 _build
 _static
+_images
 caravel/bin/caravelc
 env_py3
 .eggs

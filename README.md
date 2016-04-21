@@ -60,8 +60,13 @@ Caravel's main goal is to make it easy to slice, dice and visualize data.
 It empowers users to perform **analytics at the speed of thought**.
 
 Caravel provides:
+<<<<<<< HEAD
 * A quick way to intuitively visualize datasets by allowing users to create and share interactive dashboards
 >>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+=======
+* A quick way to intuitively visualize datasets by allowing users to create
+    and share interactive dashboards
+>>>>>>> a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 * A rich set of visualizations to analyze your data, as well as a flexible
     way to extend the capabilities
 * An extensible, high granularity security model allowing intricate rules
@@ -69,12 +74,18 @@ Caravel provides:
     authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER
     through Flask AppBuiler)
 * A simple semantic layer, allowing to control how data sources are
+<<<<<<< HEAD
     displayed in the UI,
     by defining which fields should show up in which dropdown and which
     aggregation and function (metrics) are made available to the user
 <<<<<<< HEAD
 * Deep integration with Druid allows for Dashed to stay blazing fast while
 =======
+=======
+    displayed in the UI, by defining which fields should show up in
+    which dropdown and which aggregation and function (metrics) are
+    made available to the user
+>>>>>>> a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 * Deep integration with Druid allows for Caravel to stay blazing fast while
 >>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
     slicing and dicing large, realtime datasets
@@ -87,8 +98,12 @@ Database Support
 Dashed was originally designed on to of Druid.io, but quickly broadened
 =======
 Caravel was originally designed on top of Druid.io, but quickly broadened
+<<<<<<< HEAD
 >>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
 its scope to support other databases through the use of SqlAlchemy, a Python
+=======
+its scope to support other databases through the use of SQLAlchemy, a Python
+>>>>>>> a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
 
@@ -214,7 +229,11 @@ Resources
 * [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
 * [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
+<<<<<<< HEAD
 >>>>>>> c2baa53b060cda4352582d238f53369e3f7773d0
+=======
+* [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
+>>>>>>> a5f33fecd81ce1c86859856bdc1a3a4f73b7893c
 
 
 Tip of the Hat
