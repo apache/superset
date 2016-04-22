@@ -1113,7 +1113,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 }],
             }
         client.groupby(**qry)
-        query_str += json.dumps(qry, indent=2)
+        query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
         if df is None or df.size == 0:
             raise Exception("No data was returned.")
