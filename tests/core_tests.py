@@ -228,6 +228,7 @@ class DruidTests(CaravelTestCase):
         import pandas as pd
         df = pd.DataFrame(nres)
         instance.export_pandas.return_value = df
+        instance.query_dict = {}
         resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
         print('-'*300)
         print(resp.data.decode('utf-8'))
