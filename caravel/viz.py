@@ -120,13 +120,16 @@ class BaseViz(object):
             del d['action']
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
-        for key in d.keys():
+        od = OrderedDict()
+        for key in sorted(d.keys()):
             if d[key] is False:
                 del d[key]
+            else:
+                od[key] = d[key]
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
-        return href(d)
+        return href(od)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
