@@ -224,12 +224,14 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+
         if self.slice and self.slice.cache_timeout:
             return self.slice.cache_timeout
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
-        if hasattr(self.datasource, 'database') \
-                and self.datasource.database.cache_timeout:
+        if (
+                hasattr(self.datasource, 'database') and
+                self.datasource.database.cache_timeout):
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
@@ -247,6 +249,7 @@ class BaseViz(object):
             cache_timeout = self.cache_timeout
             payload = {
                 'cache_timeout': cache_timeout,
+                'cache_key': cache_key,
                 'csv_endpoint': self.csv_endpoint,
                 'data': self.get_data(),
                 'form_data': self.form_data,
@@ -257,7 +260,7 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=self.cache_timeout)
+            cache.set(cache_key, payload, timeout=cache_timeout)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
 
