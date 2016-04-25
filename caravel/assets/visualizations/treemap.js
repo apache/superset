@@ -10,7 +10,7 @@ function treemap(slice) {
 
   var div = d3.select(slice.selector);
 
-  var _draw = function (data, eltWidth, eltHeight) {
+  var _draw = function (data, eltWidth, eltHeight, formData) {
 
     var margin = { top: 0, right: 0, bottom: 0, left: 0 },
         navBarHeight = 36,
@@ -20,7 +20,7 @@ function treemap(slice) {
         height = eltHeight - navBarHeight - navBarBuffer -
                  margin.top - margin.bottom,
         transitioning,
-        formatNumber = d3.format(slice.data.form_data.number_format);
+        formatNumber = d3.format(formData.number_format);
 
     var x = d3.scale.linear()
         .domain([0, width])
@@ -33,7 +33,7 @@ function treemap(slice) {
     var treemap = d3.layout.treemap()
         .children(function (d, depth) { return depth ? null : d._children; })
         .sort(function (a, b) { return a.value - b.value; })
-        .ratio(slice.data.form_data.treemap_ratio)
+        .ratio(formData.treemap_ratio)
         .mode("squarify")
         .round(false);
 
@@ -238,7 +238,7 @@ function treemap(slice) {
       // facet muliple metrics (no sense in combining)
       var height = slice.height() / json.data.length;
       for (var i = 0, l = json.data.length; i < l; i ++) {
-        _draw(json.data[i], width, height);
+        _draw(json.data[i], width, height, json.form_data);
       }
 
       slice.done(json);
