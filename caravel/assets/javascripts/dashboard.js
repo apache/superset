@@ -18,6 +18,7 @@ var Dashboard = function (dashboardData) {
     filters: {},
     init: function () {
       this.initDashboardView();
+      this.firstLoad = true;
       px.initFavStars();
       var sliceObjects = [],
         dash = this;
@@ -67,15 +68,17 @@ var Dashboard = function (dashboardData) {
     startPeriodicRender: function (interval) {
       this.stopPeriodicRender();
       var dash = this;
-      var maxRandomDelay = Math.min(interval * 0.1, 5000);
+      var maxRandomDelay = Math.min(interval * 0.2, 5000);
       var refreshAll = function () {
         dash.slices.forEach(function (slice) {
+          var force = !dash.firstLoad;
           setTimeout(function () {
-                slice.render(true);
-              },
-              //Randomize to prevent all widgets refreshing at the same time
-              maxRandomDelay * Math.random());
+            slice.render(force);
+          },
+          //Randomize to prevent all widgets refreshing at the same time
+          maxRandomDelay * Math.random());
         });
+        dash.firstLoad = false;
       };
 
       var fetchAndRender = function () {

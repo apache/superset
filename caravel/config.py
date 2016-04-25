@@ -134,3 +134,7 @@ try:
     from caravel_config import *  # noqa
 except Exception:
     pass
+
+if not CACHE_DEFAULT_TIMEOUT:
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
+
