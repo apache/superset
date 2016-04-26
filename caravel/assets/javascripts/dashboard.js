@@ -13,6 +13,8 @@ require('./caravel-select2.js');
 require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
+require('../stylesheets/dashboard.css');
+
 var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
     filters: {},
