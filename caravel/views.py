@@ -43,7 +43,7 @@ class CaravelFilter(BaseFilter):
 
 
 class FilterSlice(CaravelFilter):
-    def apply(self, query, func):
+    def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
@@ -52,10 +52,10 @@ class FilterSlice(CaravelFilter):
 
 
 class FilterDashboard(CaravelFilter):
-    def apply(self, query, func):
+    def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
             return query
-        Slice = models.Slice
+        Slice = models.Slice  # noqa
         slice_ids_qry = (
             db.session
             .query(Slice.id)

@@ -25,7 +25,6 @@ from pydruid.client import PyDruid
 from flask.ext.appbuilder.models.decorators import renders
 from pydruid.utils.filters import Dimension, Filter
 from six import string_types
-import sqlalchemy as sa
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
     Table, create_engine, MetaData, desc, select, and_, func)
@@ -221,7 +220,8 @@ class Slice(Model, AuditMixinNullable):
         return '<a href="{url}">{obj.slice_name}</a>'.format(
             url=url, obj=self)
 
-def set_perm(mapper, connection, target):
+
+def set_perm(mapper, connection, target):  # noqa
     if target.table_id:
         src_class = SqlaTable
         id_ = target.table_id
@@ -230,8 +230,9 @@ def set_perm(mapper, connection, target):
         id_ = target.druid_datasource_id
     ds = db.session.query(src_class).filter_by(id=int(id_)).first()
     target.perm = ds.perm
-sa.event.listen(Slice, 'before_insert', set_perm)
-sa.event.listen(Slice, 'before_update', set_perm)
+
+sqla.event.listen(Slice, 'before_insert', set_perm)
+sqla.event.listen(Slice, 'before_update', set_perm)
 
 
 dashboard_slices = Table(
@@ -241,7 +242,8 @@ dashboard_slices = Table(
     Column('slice_id', Integer, ForeignKey('slices.id')),
 )
 
-dashboard_user = Table('dashboard_user', Model.metadata,
+dashboard_user = Table(
+    'dashboard_user', Model.metadata,
     Column('id', Integer, primary_key=True),
     Column('user_id', Integer, ForeignKey('ab_user.id')),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
@@ -1195,11 +1197,13 @@ class Log(Model):
                 user_id = g.user.id
             d = request.args.to_dict()
             d.update(kwargs)
+            slice_id = d.get('slice_id', 0)
+            slice_id = int(slice_id) if slice_id else 0
             log = cls(
                 action=f.__name__,
                 json=json.dumps(d),
                 dashboard_id=d.get('dashboard_id') or None,
-                slice_id=d.get('slice_id') or None,
+                slice_id=slice_id,
                 user_id=user_id)
             db.session.add(log)
             db.session.commit()
