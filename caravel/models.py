@@ -22,6 +22,7 @@ from flask import request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 from pydruid.client import PyDruid
+from flask.ext.appbuilder.models.decorators import renders
 from pydruid.utils.filters import Dimension, Filter
 from six import string_types
 from sqlalchemy import (
@@ -66,15 +67,15 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    @property
-    def created_by_(self):  # noqa
+    @renders('created_by')
+    def creator(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @property  # noqa
+    @renders('changed_by')
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
-    @property
+    @renders('changed_on')
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
         return '<span class="no-wrap">{}</nobr>'.format(s)
@@ -110,6 +111,13 @@ class CssTemplate(Model, AuditMixinNullable):
     css = Column(Text, default='')
 
 
+slice_user = Table('slice_user', Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('ab_user.id')),
+    Column('slice_id', Integer, ForeignKey('slices.id'))
+)
+
+
 class Slice(Model, AuditMixinNullable):
 
     """A slice is essentially a report or a view on data"""
@@ -125,11 +133,13 @@ class Slice(Model, AuditMixinNullable):
     params = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
+    perm = Column(String(2000))
 
     table = relationship(
         'SqlaTable', foreign_keys=[table_id], backref='slices')
     druid_datasource = relationship(
         'DruidDatasource', foreign_keys=[druid_datasource_id], backref='slices')
+    owners = relationship("User", secondary=slice_user)
 
     def __repr__(self):
         return self.slice_name
@@ -211,11 +221,32 @@ class Slice(Model, AuditMixinNullable):
             url=url, obj=self)
 
 
+def set_perm(mapper, connection, target):  # noqa
+    if target.table_id:
+        src_class = SqlaTable
+        id_ = target.table_id
+    elif target.druid_datasource_id:
+        src_class = DruidDatasource
+        id_ = target.druid_datasource_id
+    ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+    target.perm = ds.perm
+
+sqla.event.listen(Slice, 'before_insert', set_perm)
+sqla.event.listen(Slice, 'before_update', set_perm)
+
+
 dashboard_slices = Table(
     'dashboard_slices', Model.metadata,
     Column('id', Integer, primary_key=True),
     Column('dashboard_id', Integer, ForeignKey('dashboards.id')),
     Column('slice_id', Integer, ForeignKey('slices.id')),
+)
+
+dashboard_user = Table(
+    'dashboard_user', Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('user_id', Integer, ForeignKey('ab_user.id')),
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
 )
 
 
@@ -233,6 +264,7 @@ class Dashboard(Model, AuditMixinNullable):
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
+    owners = relationship("User", secondary=dashboard_user)
 
     def __repr__(self):
         return self.dashboard_title
@@ -1165,11 +1197,13 @@ class Log(Model):
                 user_id = g.user.id
             d = request.args.to_dict()
             d.update(kwargs)
+            slice_id = d.get('slice_id', 0)
+            slice_id = int(slice_id) if slice_id else 0
             log = cls(
                 action=f.__name__,
                 json=json.dumps(d),
                 dashboard_id=d.get('dashboard_id') or None,
-                slice_id=d.get('slice_id') or None,
+                slice_id=slice_id,
                 user_id=user_id)
             db.session.add(log)
             db.session.commit()

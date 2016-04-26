@@ -19,9 +19,9 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
+from flask_appbuilder.models.sqla.filters import BaseFilter
 from pydruid.client import doublesum
-from sqlalchemy import create_engine
-from sqlalchemy import select, text
+from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
@@ -30,6 +30,42 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+
+
+class CaravelFilter(BaseFilter):
+    def get_perms(self):
+        perms = []
+        for role in g.user.roles:
+            for perm_view in role.permissions:
+                if perm_view.permission.name == 'datasource_access':
+                    perms.append(perm_view.view_menu.name)
+        return perms
+
+
+class FilterSlice(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+            return query
+        qry = query.filter(self.model.perm.in_(self.get_perms()))
+        print(qry)
+        return qry
+
+
+class FilterDashboard(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+            return query
+        Slice = models.Slice  # noqa
+        slice_ids_qry = (
+            db.session
+            .query(Slice.id)
+            .filter(Slice.perm.in_(self.get_perms()))
+        )
+        return query.filter(
+            self.model.slices.any(
+                models.Slice.id.in_(slice_ids_qry)
+            )
+        )
 
 
 def validate_json(form, field):  # noqa
@@ -136,8 +172,7 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'created_by_', 'changed_on']
-    order_columns = utils.list_minus(list_columns, ['created_by_'])
+    list_columns = ['database_name', 'sql_link', 'creator', 'changed_on']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
@@ -183,7 +218,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
-        'changed_by_', 'changed_on']
+        'changed_by_', 'changed_on', 'perm']
     add_columns = [
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -246,21 +281,19 @@ if config['DRUID_IS_ACTIVE']:
         category_icon='fa-database',)
 
 
+
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     add_template = "caravel/add_slice.html"
     can_add = False
     label_columns = {
-        'created_by_': 'Creator',
         'datasource_link': 'Datasource',
     }
     list_columns = [
-        'slice_link', 'viz_type',
-        'datasource_link', 'created_by_', 'modified']
-    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
+        'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
         'slice_name', 'description', 'viz_type', 'druid_datasource',
-        'table', 'dashboards', 'params', 'cache_timeout']
+        'table', 'owners', 'dashboards', 'params', 'cache_timeout']
     base_order = ('changed_on', 'desc')
     description_columns = {
         'description': Markup(
@@ -269,6 +302,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             "<a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
     }
+    base_filters = [['id', FilterSlice, lambda: []]]
 
 appbuilder.add_view(
     SliceModelView,
@@ -281,10 +315,9 @@ appbuilder.add_view(
 class SliceAsync(SliceModelView):  # noqa
     list_columns = [
         'slice_link', 'viz_type',
-        'created_by_', 'modified', 'icons']
+        'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'created_by_': 'Creator',
         'viz_type': 'Type',
         'slice_link': 'Slice',
     }
@@ -294,13 +327,9 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
-    label_columns = {
-        'created_by_': 'Creator',
-    }
-    list_columns = ['dashboard_link', 'created_by_', 'modified']
-    order_columns = utils.list_minus(list_columns, ['created_by_', 'modified'])
+    list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'position_json', 'css',
+        'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
@@ -316,6 +345,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "visible"),
         'slug': "To get a readable URL for your dashboard",
     }
+    base_filters = [['slice', FilterDashboard, lambda: []]]
 
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
@@ -336,9 +366,8 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'created_by_', 'modified']
+    list_columns = ['dashboard_link', 'creator', 'modified']
     label_columns = {
-        'created_by_': 'Creator',
         'dashboard_link': 'Dashboard',
     }
 
@@ -362,11 +391,10 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
         'datasource_link', 'cluster', 'owner',
-        'created_by_', 'created_on',
+        'creator', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    related_views = [
-        DruidColumnInlineView, DruidMetricInlineView]
+    related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
