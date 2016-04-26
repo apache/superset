@@ -501,6 +501,19 @@ class TreemapViz(BaseViz):
     verbose_name = "Treemap"
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby',
+        ),
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'treemap_ratio',
+            'number_format',
+        )
+    },)
 
     def get_df(self, query_obj=None):
         df = super(TreemapViz, self).get_df(query_obj)

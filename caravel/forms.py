@@ -6,10 +6,11 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from copy import copy
+import math
 
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField, IntegerField, HiddenField)
+    BooleanField, IntegerField, HiddenField, DecimalField)
 from wtforms import validators, widgets
 
 from caravel import app
@@ -336,6 +337,26 @@ class FormFactory(object):
                     '9/91 percentiles',
                 ])
             ),
+            'treemap_ratio': DecimalField(
+                'Ratio',
+                default=0.5 * (1 + math.sqrt(5)),  # d3 default, golden ratio
+                description='Target aspect ratio for treemap tiles.',
+            ),
+            'number_format': FreeFormSelectField(
+                'Number format',
+                default='.3s',
+                choices=[
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                description="D3 format syntax for numbers "
+                            "https://github.com/mbostock/\n"
+                            "d3/wiki/Formatting"),
+
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',
