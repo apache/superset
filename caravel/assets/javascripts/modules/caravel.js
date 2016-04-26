@@ -301,6 +301,7 @@ var px = (function () {
       },
       bindResizeToWindowResize: function () {
         var resizeTimer;
+        var slice = this;
         $(window).on('resize', function (e) {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(function () {
@@ -314,7 +315,7 @@ var px = (function () {
         }
         this.force = force;
         token.find("img.loading").show();
-        container.css('height', slice.height());
+        container.css('height', this.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
@@ -323,7 +324,7 @@ var px = (function () {
       },
       resize: function () {
         token.find("img.loading").show();
-        container.css('height', slice.height());
+        container.css('height', this.height());
         this.viz.render();
         this.viz.resize();
       },
