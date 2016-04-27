@@ -94,7 +94,7 @@ var Dashboard = function (dashboardData) {
       fetchAndRender();
     },
     refreshExcept: function (slice_id) {
-      var immune = this.metadata.filter_immune_slice || [];
+      var immune = this.metadata.filter_immune_slices || [];
       this.slices.forEach(function (slice) {
         if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
