@@ -912,6 +912,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             key=lambda x: x[1])
 
     @property
+    def post_aggregators_combo(self):
+        return sorted(
+            [(m.name, m.verbose_name) for m in self.post_aggregators],
+            key=lambda x: x[1])
+
+    @property
     def name(self):
         return self.datasource_name
 

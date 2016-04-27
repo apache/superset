@@ -331,6 +331,7 @@ class TableViz(BaseViz):
         'fields': (
             'groupby',
             'metrics',
+            'post_aggregators',
         )
     }, {
         'label': "NOT GROUPED BY",
