@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-rm /tmp/panoramix_unittests.db
-export PANORAMIX_CONFIG=tests.panoramix_test_config
-panoramix/bin/panoramix db upgrade
-nosetests tests/core_tests.py --with-coverage --cover-package=panoramix -v
+rm /tmp/caravel_unittests.db
+rm -f .coverage
+export CARAVEL_CONFIG=tests.caravel_test_config
+set -e
+caravel/bin/caravel db upgrade
+python setup.py nosetests

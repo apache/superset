@@ -1,0 +1,23 @@
+doc-warnings: yes
+test-warnings: no
+strictness: medium
+max-line-length: 90
+uses:
+    - flask
+autodetect: yes
+pylint:
+  disable:
+    - cyclic-import
+    - invalid-name
+    - logging-format-interpolation
+  options:
+    docstring-min-length: 10
+pep8:
+  full: true
+ignore-paths:
+    - docs
+    - caravel/migrations/env.py
+    - caravel/ascii_art.py
+ignore-patterns:
+    - ^example/doc_.*\.py$
+    - (^|/)docs(/|$)

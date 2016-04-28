@@ -28,14 +28,10 @@ open to whoever wants to implement it.
 Look through the GitHub issues for features. Anything tagged with
 "feature" is open to whoever wants to implement it.
 
-We've created the operators, hooks, macros and executors we needed, but we 
-made sure that this part of Panoramix is extensible. New operators,
-hooks and operators are very welcomed!
-
 ### Documentation
 
-Panoramix could always use better documentation,
-whether as part of the official Panoramix docs,
+Caravel could always use better documentation,
+whether as part of the official Caravel docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -53,14 +49,16 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
-[API Documentation](http://pythonhosted.com/panoramix)
+[API Documentation](http://pythonhosted.com/caravel)
 
-## Setting up a development environment
+## Setting up a Python development environment
+
+Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-dependencies) before follows these steps.
 
     # fork the repo on github and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:mistercrunch/panoramix.git
+    # git clone git@github.com:airbnb/caravel.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -70,21 +68,75 @@ If you are proposing a feature:
     python setup.py develop
 
     # Create an admin user
-    fabmanager create-admin --app panoramix
+    fabmanager create-admin --app caravel
 
     # Initialize the database
-    panoramix db upgrade
+    caravel db upgrade
 
     # Create default roles and permissions
-    panoramix init
+    caravel init
 
     # Load some data to play with
-    panoramix load_examples
+    caravel load_examples
 
     # start a dev web server
-    panoramix runserver -d
+    caravel runserver -d
 
-For every development session you may have to 
+
+## Setting up the node / npm javascript environment
+
+`caravel/assets` contains all npm-managed, front end assets.
+Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
+While these may be phased out over time, these packages are currently not
+managed with npm.
+
+
+### Using npm to generate bundled files
+
+#### npm
+First, npm must be available in your environment. If it is not you can run the following commands
+(taken from [this source](https://gist.github.com/DanHerbert/9520689))
+```
+brew install node --without-npm
+echo prefix=~/.npm-packages >> ~/.npmrc
+curl -L https://www.npmjs.com/install.sh | sh
+```
+
+The final step is to add
+`~/.node/bin` to your `PATH` so commands you install globally are usable.
+Add something like this to your `.bashrc` file.
+```
+export PATH="$HOME/.node/bin:$PATH"
+```
+
+#### npm packages
+To install third party libraries defined in `package.json`, run the
+following within the `caravel/assets/` directory which will install them in a
+new `node_modules/` folder within `assets/`.
+
+```
+npm install
+```
+
+To parse and generate bundled files for caravel, run either of the
+following commands. The `dev` flag will keep the npm script running and
+re-run it upon any changes within the assets directory.
+
+```
+# Compiles the production / optimized js & css
+npm run prod
+
+# Start a web server that manages and updates your assets as you modify them
+npm run dev
+```
+
+For every development session you will have to start a flask dev server
+as well as an npm watcher
+
+```
+caravel runserver -d -p 8081
+npm run dev
+```
 
 ## Testing
 
@@ -94,7 +146,11 @@ Tests can then be run with:
 
 Lint the project with:
 
+    # for python changes
     flake8 changes tests
+
+    # for javascript
+    npm run lint
 
 ## API documentation
 
@@ -102,16 +158,25 @@ Generate the documentation with:
 
     cd docs && ./build.sh
 
+## CSS Themes
+As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
+
+It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
+by modifying the Less variables or files in ```assets/stylesheets/less/```.
+
+The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
+[Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
+swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
 ## Pull Request Guidelines
 
-Before you submit a pull request from your forked repo, check that it 
+Before you submit a pull request from your forked repo, check that it
 meets these guidelines:
 
 1.  The pull request should include tests, either as doctests,
     unit tests, or both.
 2.  If the pull request adds functionality, the docs should be updated
-    as part of the same PR. Doc string are often sufficient, make 
+    as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
 3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
     `from __future__ import ` will be required in every `.py` file soon.

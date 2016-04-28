@@ -1,0 +1,55 @@
+<html>
+  <head>
+    <title>
+      {% block title %}
+        {% if appbuilder and appbuilder.app_name %} {{ appbuilder.app_name }} {% endif %}
+      {% endblock %}
+    </title>
+    {% block head_meta %}{% endblock %}
+    {% block head_css %}
+      <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/font-awesome/css/font-awesome.min.css" />
+      <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/caravel.css" />
+      <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+    {% endblock %}
+    {% block head_js %}
+      <script src="/static/assets/javascripts/dist/css-theme.entry.js"></script>
+    {% endblock %}
+  </head>
+
+  <body>
+    {% block navbar %}
+      {% if not viz or viz.request.args.get("standalone") != "true" %}
+        <header class="top" role="header">
+          {% include 'appbuilder/navbar.html' %}
+        </header>
+      {% endif %}
+    {% endblock %}
+
+    {% block body %}
+      <div id="app">
+        Oops! React.js is not working properly.
+      </div>
+    {% endblock %}
+
+    <!-- Modal for misc messages / alerts  -->
+    <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title"></h4>
+          </div>
+          <div class="modal-body">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% block tail_js %}
+    {% endblock %}
+  </body>
+</html>

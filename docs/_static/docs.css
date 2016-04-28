@@ -6,6 +6,23 @@ div.navbar {
     margin-bottom: 0px;
 }
 
+p {
+    margin-top: 5px;
+    margin-bottom: 15px;
+}
+
+#tutorial img {
+    border: 1px solid gray;
+    box-shadow: 5px 5px 5px #888888;
+    margin-bottom: 10px;
+}
+
+#gallery img {
+    border: 1px solid gray;
+    box-shadow: 5px 5px 5px #888888;
+    margin: 10px;
+}
+
 .carousel img {
   max-height: 500px;
 }

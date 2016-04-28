@@ -1,4 +1,8 @@
-recursive-include panoramix/templates *
-recursive-include panoramix/static *
-recursive-include panoramix/data *
-recursive-include panoramix/migrations *
+recursive-include caravel/templates *
+recursive-include caravel/static *
+recursive-exclude caravel/static/assets/node_modules *
+recursive-include caravel/static/assets/node_modules/font-awesome *
+recursive-exclude caravel/static/docs *
+recursive-exclude tests *
+recursive-include caravel/data *
+recursive-include caravel/migrations *
