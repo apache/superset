@@ -24,6 +24,9 @@ from flask.ext.appbuilder.models.mixins import AuditMixin
 from pydruid.client import PyDruid
 from flask.ext.appbuilder.models.decorators import renders
 from pydruid.utils.filters import Dimension, Filter
+from pydruid.utils.postaggregator import Postaggregator
+from pydruid.utils.postaggregator import Const as ConstPostaggregator
+from pydruid.utils.postaggregator import Field as FieldPostaggregator
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -1018,6 +1021,26 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col_obj.datasource = datasource
             col_obj.generate_metrics()
 
+    @classmethod
+    def get_post_aggregator(cls, params_json):
+        try:
+            params = json.loads(params_json)
+        except Exception:
+            # TODO error messages
+            raise
+
+        obj = None
+        _type = params.get('type')
+        name = params.get('name')
+        if _type == 'arithmetic':
+            obj = Postaggregator(params.get('fn'), params.get('fields'), name)
+        elif _type == 'constant':
+            obj = ConstPostaggregator(params.get('value'), name)
+        elif _type == 'fieldAccess':
+            obj = FieldPostaggregator(params.get('fieldName'))
+
+        return obj
+
     def query(  # druid
             self, groupby, metrics,
             granularity,
@@ -1048,6 +1071,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             m.metric_name: m.json_obj
             for m in self.metrics if m.metric_name in metrics
         }
+        post_aggregators = {
+            m.name: self.get_post_aggregator(m.json)
+            for m in self.post_aggregators if m.name in extras.get('post_aggregators')
+            }
         granularity = granularity or "all"
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -1063,6 +1090,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             datasource=self.datasource_name,
             dimensions=groupby,
             aggregations=aggregations,
+            post_aggregations=post_aggregators,
             granularity=granularity,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
