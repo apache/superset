@@ -536,6 +536,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             key=lambda x: x[1])
 
     @property
+    # TODO: Sqlable shouldn't have this for post aggregators are only for Druid
+    def post_aggregators_combo(self):
+        return []
+
+    @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
@@ -1386,6 +1391,7 @@ class DruidPostAggregator(Model):
     datasource = relationship('DruidDatasource', backref='post_aggregators')
     json = Column(Text)
     description = Column(Text)
+
 
 class FavStar(Model):
     __tablename__ = 'favstar'

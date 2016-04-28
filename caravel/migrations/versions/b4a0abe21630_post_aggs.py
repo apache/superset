@@ -12,7 +12,6 @@ down_revision = '430039611635'
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects import mysql
 
 
 def upgrade():
