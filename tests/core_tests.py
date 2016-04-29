@@ -64,7 +64,7 @@ class CaravelTestCase(unittest.TestCase):
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
 
-    def setup_anonimous_superuser(self):
+    def setup_anonymous_superuser(self):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
@@ -169,8 +169,8 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
-    def test_anonimous_superuser_list_dashboards(self):
-        self.setup_anonimous_superuser()
+    def test_anonymous_superuser_list_dashboards(self):
+        self.setup_anonymous_superuser()
 
         resp = self.client.get('/slicemodelview/list/')
         assert "List Slice" in resp.data.decode('utf-8')
@@ -178,8 +178,8 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
-    def test_anonimous_superuser_access_dashboards(self):
-        self.setup_anonimous_superuser()
+    def test_anonymous_superuser_access_dashboards(self):
+        self.setup_anonymous_superuser()
         urls = {}
         for dash in db.session.query(models.Dashboard).all():
             urls[dash.dashboard_title] = dash.url

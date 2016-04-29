@@ -35,7 +35,7 @@ config = app.config
 log_this = models.Log.log_this
 
 
-def get_roles():
+def get_user_roles():
     if g.user.is_anonymous:
         return [appbuilder.sm.find_role('Public')]
     return g.user.roles
@@ -44,7 +44,7 @@ def get_roles():
 class CaravelFilter(BaseFilter):
     def get_perms(self):
         perms = []
-        for role in get_roles():
+        for role in get_user_roles():
             for perm_view in role.permissions:
                 if perm_view.permission.name == 'datasource_access':
                     perms.append(perm_view.view_menu.name)
@@ -53,7 +53,7 @@ class CaravelFilter(BaseFilter):
 
 class FilterSlice(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_roles()]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
         print(qry)
@@ -62,7 +62,7 @@ class FilterSlice(CaravelFilter):
 
 class FilterDashboard(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_roles()]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         Slice = models.Slice  # noqa
         slice_ids_qry = (
