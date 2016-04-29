@@ -130,10 +130,6 @@ class FormFactory(object):
                 'Metrics', choices=datasource.metrics_combo,
                 default=[default_metric],
                 description="One or many metrics to display"),
-            'post_aggregators': SelectMultipleSortableField(
-                'Post Aggregators', choices=datasource.post_aggregators_combo,
-                # default=[default_metric],
-                description=""),
             'metric': SelectField(
                 'Metric', choices=datasource.metrics_combo,
                 default=default_metric,

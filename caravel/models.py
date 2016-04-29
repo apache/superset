@@ -537,11 +537,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             key=lambda x: x[1])
 
     @property
-    # TODO: Sqlable shouldn't have this for post aggregators are only for Druid
-    def post_aggregators_combo(self):
-        return []
-
-    @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
@@ -916,9 +911,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def metrics_combo(self):
+        # Treat post aggregators as one kind of metrics
+        # TODO: Deal with name conflict between metrics and post_aggregators
         return sorted(
             [(m.metric_name, m.verbose_name) for m in self.metrics],
-            key=lambda x: x[1])
+            key=lambda x: x[1]) + self.post_aggregators_combo
 
     @property
     def post_aggregators_combo(self):
@@ -1088,9 +1085,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
         query_str = ""
 
+        # TODO: Deal with name conflict between metrics and post_aggregators
         post_aggregators = {
             m.name: self.get_post_aggregator(m.json)
-            for m in self.post_aggregators if m.name in extras.get('post_aggregators')
+            for m in self.post_aggregators if m.name in metrics
         }
 
         metrics_dependencies = list(
