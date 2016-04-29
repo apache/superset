@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
+import itertools
 import json
 import logging
 import textwrap
@@ -1027,6 +1028,20 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col_obj.generate_metrics()
 
     @classmethod
+    def get_metrics_dependencies(cls, post_aggregation):
+        post_agg_dict = post_aggregation.post_aggregator if isinstance(post_aggregation,
+                                                                       Postaggregator) else post_aggregation
+        if post_agg_dict.get('type') == 'fieldAccess':
+            return [post_agg_dict['fieldName']]
+
+        if post_agg_dict.get('type') == 'arithmetic':
+            fields = post_agg_dict.get('fields')
+            if fields:
+                return list(set(itertools.chain(*[cls.get_metrics_dependencies(field) for field in fields])))
+
+        return []
+
+    @classmethod
     def get_post_aggregator(cls, params_json):
         try:
             params = json.loads(params_json)
@@ -1072,14 +1087,21 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 
         query_str = ""
-        aggregations = {
-            m.metric_name: m.json_obj
-            for m in self.metrics if m.metric_name in metrics
-        }
+
         post_aggregators = {
             m.name: self.get_post_aggregator(m.json)
             for m in self.post_aggregators if m.name in extras.get('post_aggregators')
-            }
+        }
+
+        metrics_dependencies = list(
+            set(itertools.chain(*[self.get_metrics_dependencies(agg)
+                                  for agg in post_aggregators.values()])) - set(metrics)
+        )
+        aggregations = {
+            m.metric_name: m.json_obj
+            for m in self.metrics if m.metric_name in metrics + metrics_dependencies
+        }
+
         granularity = granularity or "all"
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -1202,6 +1224,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
         cols += [col for col in df.columns if col not in cols]
+        cols = [col for col in cols if col not in metrics_dependencies]
         df = df[cols]
         return QueryResult(
             df=df,
