@@ -1238,7 +1238,7 @@ class Log(Model):
         def wrapper(*args, **kwargs):
             user_id = None
             if g.user:
-                user_id = g.user.id
+                user_id = g.user.get_id()
             d = request.args.to_dict()
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)

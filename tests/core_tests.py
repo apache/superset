@@ -12,6 +12,7 @@ import unittest
 from mock import Mock, patch
 
 from flask import escape
+from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
 from caravel import app, db, models, utils, appbuilder
@@ -62,6 +63,12 @@ class CaravelTestCase(unittest.TestCase):
             data=dict(username='gamma', password='general'),
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
+
+    def setup_anonimous_superuser(self):
+        public_role = appbuilder.sm.find_role('Public')
+        perms = db.session.query(ab_models.PermissionView).all()
+        for perm in perms:
+            appbuilder.sm.add_permission_role(public_role, perm)
 
 
 class CoreTests(CaravelTestCase):
@@ -161,6 +168,23 @@ class CoreTests(CaravelTestCase):
 
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
+
+    def test_anonimous_superuser_list_dashboards(self):
+        self.setup_anonimous_superuser()
+
+        resp = self.client.get('/slicemodelview/list/')
+        assert "List Slice" in resp.data.decode('utf-8')
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        assert "List Dashboard" in resp.data.decode('utf-8')
+
+    def test_anonimous_superuser_access_dashboards(self):
+        self.setup_anonimous_superuser()
+        urls = {}
+        for dash in db.session.query(models.Dashboard).all():
+            urls[dash.dashboard_title] = dash.url
+        for title, url in urls.items():
+            assert escape(title) in self.client.get(url).data.decode('utf-8')
 
 
 SEGMENT_METADATA = [{
