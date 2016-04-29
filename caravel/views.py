@@ -170,6 +170,19 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
+class DruidPostAggregatorInlineView(CompactCRUDMixin, CaravelModelView):
+    datamodel = SQLAInterface(models.DruidPostAggregator)
+    list_columns = ['name', 'verbose_name']
+    edit_columns = [
+        'name', 'description', 'verbose_name', 'datasource', 'json']
+    add_columns = edit_columns
+    page_size = 500
+    validators_columns = {
+        'json': [validate_json],
+    }
+appbuilder.add_view_no_menu(DruidPostAggregatorInlineView)
+
+
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'creator', 'changed_on']
@@ -394,7 +407,9 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'creator', 'created_on',
         'changed_by_', 'changed_on',
         'offset']
-    related_views = [DruidColumnInlineView, DruidMetricInlineView]
+    related_views = [
+        DruidColumnInlineView, DruidMetricInlineView,
+        DruidPostAggregatorInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
