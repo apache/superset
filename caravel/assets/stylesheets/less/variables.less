@@ -26,7 +26,7 @@
 @gray-light:             #bbb;
 @gray-lighter:           lighten(@gray-base, 93.5%); // #eee
 
-@brand-primary:         darken(@babu, 5%);
+@brand-primary:         @kazan;
 @brand-success:         darken(@lima, 15%);
 @brand-info:            @beach;
 @brand-warning:         @hackberry;
@@ -160,8 +160,8 @@
 @btn-default-bg:                 #fff;
 @btn-default-border:             transparent;
 
-@btn-primary-color:              #fff;
-@btn-primary-bg:                 @brand-primary;
+@btn-primary-color:              #444;
+@btn-primary-bg:                 #eee;
 @btn-primary-border:             transparent;
 
 @btn-success-color:              #fff;
@@ -385,7 +385,7 @@
 @navbar-default-link-hover-color:          @gray-dark;
 @navbar-default-link-hover-bg:             transparent;
 @navbar-default-link-active-color:         @gray-dark;
-@navbar-default-link-active-bg:            darken(@navbar-default-bg, 6.5%);
+@navbar-default-link-active-bg:            darken(@navbar-default-bg, 30%);
 @navbar-default-link-disabled-color:       #ccc;
 @navbar-default-link-disabled-bg:          transparent;
 
@@ -403,12 +403,12 @@
 //=== Inverted navbar
 // Reset inverted navbar basics
 @navbar-inverse-color:                      @gray-light;
-@navbar-inverse-bg:                         @brand-primary;
+@navbar-inverse-bg:                         white;
 @navbar-inverse-border:                     transparent;
 
 // Inverted navbar links
-@navbar-inverse-link-color:                 lighten(@brand-primary, 30%);
-@navbar-inverse-link-hover-color:           #fff;
+@navbar-inverse-link-color:                 #888;
+@navbar-inverse-link-hover-color:           #111;
 @navbar-inverse-link-hover-bg:              transparent;
 @navbar-inverse-link-active-color:          @navbar-inverse-link-hover-color;
 @navbar-inverse-link-active-bg:             darken(@navbar-inverse-bg, 10%);
@@ -417,7 +417,7 @@
 
 // Inverted navbar brand label
 @navbar-inverse-brand-color:                @navbar-inverse-link-color;
-@navbar-inverse-brand-hover-color:          #fff;
+@navbar-inverse-brand-hover-color:          @navbar-inverse-link-hover-color;
 @navbar-inverse-brand-hover-bg:             transparent;
 
 // Inverted navbar toggle\
@@ -728,9 +728,9 @@
 @panel-default-border:        #ddd;
 @panel-default-heading-bg:    #f5f5f5;
 
-@panel-primary-text:          #fff;
-@panel-primary-border:        @brand-primary;
-@panel-primary-heading-bg:    @brand-primary;
+@panel-primary-text:          black;
+@panel-primary-border:        gray;
+@panel-primary-heading-bg:    #eee;
 
 @panel-success-text:          #fff;
 @panel-success-border:        @state-success-border;
