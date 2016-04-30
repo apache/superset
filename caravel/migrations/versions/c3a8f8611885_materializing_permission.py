@@ -30,4 +30,6 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_column('slices', 'perm')
+    # Use batch_alter_table because dropping columns is not supported in SQLite
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.drop_column('perm')
