@@ -130,6 +130,29 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 VIZ_TYPE_BLACKLIST = []
 
+"""
+1) http://docs.python-guide.org/en/latest/writing/logging/
+2) https://docs.python.org/2/library/logging.config.html
+"""
+
+# Console Log Settings
+
+LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+LOG_LEVEL = 'DEBUG'
+
+# ---------------------------------------------------
+# Enable Time Rotate Log Handler
+# ---------------------------------------------------
+# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+ENABLE_TIME_ROTATE = False
+TIME_ROTATE_LOG_LEVEL = 'DEBUG'
+FILENAME = '/tmp/caravel.log'
+ROLLOVER = 'midnight'
+INTERVAL = 1
+BACKUP_COUNT = 30
+
+
 try:
     from caravel_config import *  # noqa
 except Exception:
