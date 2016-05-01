@@ -69,7 +69,7 @@
                 <i class="fa fa-file-code-o"></i>
                 .json
               </span>
-              <span class="btn btn-default " id="csv" title="Export to .csv format" data-toggle="tooltip">
+              <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="Export to .csv format" data-toggle="tooltip">
                 <i class="fa fa-file-text-o"></i>.csv
               </span>
               <span class="btn btn-warning notbtn" id="timer">0 sec</span>
@@ -86,13 +86,13 @@
                 <i class="fa fa-bolt"></i>Query
               </button>
               {% if viz.form_data.slice_id %}
-                <button type="button" class="btn btn-default" id="btn_overwrite">
+                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_edit }}" id="btn_overwrite">
                   <i class="fa fa-save"></i>Overwrite
-                </button>
+                  </button>
               {% endif %}
-              <button type="button" class="btn btn-default" id="btn_save">
-                <i class="fa fa-plus-circle"></i>Save as
-              </button>
+                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_add }}" id="btn_save">
+                  <i class="fa fa-plus-circle"></i>Save as
+                  </button>
             </div>
           </div>
           <br/>

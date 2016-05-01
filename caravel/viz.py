@@ -14,10 +14,9 @@ import logging
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
-
-import numpy as np
 import pandas as pd
-from flask import flash, request, Markup
+import numpy as np
+from flask import request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
 from six import string_types
@@ -26,6 +25,7 @@ from werkzeug.urls import Href
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
+from caravel.utils import flasher
 
 config = app.config
 
@@ -69,7 +69,7 @@ class BaseViz(object):
         if not form.validate():
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
-                    flash("{}: {}".format(k, " ".join(v)), 'danger')
+                    flasher("{}: {}".format(k, " ".join(v)), 'danger')
         if previous_viz_type != self.viz_type:
             data = {
                 k: form.data[k]
@@ -120,13 +120,16 @@ class BaseViz(object):
             del d['action']
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
-        for key in d.keys():
+        od = OrderedDict()
+        for key in sorted(d.keys()):
             if d[key] is False:
                 del d[key]
+            else:
+                od[key] = d[key]
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
-        return href(d)
+        return href(od)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -197,7 +200,7 @@ class BaseViz(object):
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
-            flash("The date range doesn't seem right.", "danger")
+            flasher("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identical to not raise
 
         # extras are used to query elements specific to a datasource type
@@ -224,12 +227,14 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+
         if self.slice and self.slice.cache_timeout:
             return self.slice.cache_timeout
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
-        if hasattr(self.datasource, 'database') \
-                and self.datasource.database.cache_timeout:
+        if (
+                hasattr(self.datasource, 'database') and
+                self.datasource.database.cache_timeout):
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
@@ -247,6 +252,7 @@ class BaseViz(object):
             cache_timeout = self.cache_timeout
             payload = {
                 'cache_timeout': cache_timeout,
+                'cache_key': cache_key,
                 'csv_endpoint': self.csv_endpoint,
                 'data': self.get_data(),
                 'form_data': self.form_data,
@@ -257,7 +263,7 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=self.cache_timeout)
+            cache.set(cache_key, payload, timeout=cache_timeout)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
 
@@ -495,6 +501,19 @@ class TreemapViz(BaseViz):
     verbose_name = "Treemap"
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby',
+        ),
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'treemap_ratio',
+            'number_format',
+        )
+    },)
 
     def get_df(self, query_obj=None):
         df = super(TreemapViz, self).get_df(query_obj)
@@ -1540,4 +1559,5 @@ viz_types_list = [
     TreemapViz,
 ]
 
-viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
+                         if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])

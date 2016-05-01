@@ -121,6 +121,15 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
+
+# ---------------------------------------------------
+# List of viz_types not allowed in your environment
+# For example: Blacklist pivot table and treemap:
+#  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
+# ---------------------------------------------------
+
+VIZ_TYPE_BLACKLIST = []
+
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
@@ -148,3 +157,7 @@ try:
     from caravel_config import *  # noqa
 except Exception:
     pass
+
+if not CACHE_DEFAULT_TIMEOUT:
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
+

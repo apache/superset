@@ -20,116 +20,120 @@ function nvd3Vis(slice) {
         var colorKey = 'key';
 
         nv.addGraph(function () {
-          switch (viz_type) {
-            case 'line':
-              if (fd.show_brush) {
-                chart = nv.models.lineWithFocusChart();
-                chart.lines2.xScale(d3.time.scale.utc());
-                chart.x2Axis
-                  .showMaxMin(fd.x_axis_showminmax)
-                  .staggerLabels(false);
-              } else {
-                chart = nv.models.lineChart();
-              }
-              // To alter the tooltip header
-              // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
-              chart.xScale(d3.time.scale.utc());
-              chart.interpolate(fd.line_interpolation);
-              chart.xAxis
-                .showMaxMin(fd.x_axis_showminmax)
-                .staggerLabels(false);
-              break;
+          if (!chart) {
+            switch (viz_type) {
+              case 'line':
+                if (fd.show_brush) {
+                  chart = nv.models.lineWithFocusChart();
+                  chart.lines2.xScale(d3.time.scale.utc());
+                  chart.x2Axis
+                      .showMaxMin(fd.x_axis_showminmax)
+                      .staggerLabels(false);
+                } else {
+                  chart = nv.models.lineChart();
+                }
+                // To alter the tooltip header
+                // chart.interactiveLayer.tooltip.headerFormatter(function(){return '';});
+                chart.xScale(d3.time.scale.utc());
+                chart.interpolate(fd.line_interpolation);
+                chart.xAxis
+                    .showMaxMin(fd.x_axis_showminmax)
+                    .staggerLabels(false);
+                break;
 
-            case 'bar':
-              chart = nv.models.multiBarChart()
-                .showControls(true)
-                .groupSpacing(0.1);
+              case 'bar':
+                chart = nv.models.multiBarChart()
+                    .showControls(true)
+                    .groupSpacing(0.1);
 
-              chart.xAxis
-                .showMaxMin(false)
-                .staggerLabels(true);
+                chart.xAxis
+                    .showMaxMin(false)
+                    .staggerLabels(true);
 
-              chart.stacked(fd.bar_stacked);
-              break;
+                chart.stacked(fd.bar_stacked);
+                break;
 
-            case 'dist_bar':
-              chart = nv.models.multiBarChart()
-                .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
-                .reduceXTicks(false)
-                .rotateLabels(45)
-                .groupSpacing(0.1); //Distance between each group of bars.
+              case 'dist_bar':
+                chart = nv.models.multiBarChart()
+                    .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
+                    .reduceXTicks(false)
+                    .rotateLabels(45)
+                    .groupSpacing(0.1); //Distance between each group of bars.
 
-              chart.xAxis
-                .showMaxMin(false);
+                chart.xAxis
+                    .showMaxMin(false);
 
-              chart.stacked(fd.bar_stacked);
-              break;
+                chart.stacked(fd.bar_stacked);
+                break;
 
-            case 'pie':
-              chart = nv.models.pieChart();
-              colorKey = 'x';
-              chart.valueFormat(f);
-              if (fd.donut) {
-                chart.donut(true);
+              case 'pie':
+                chart = nv.models.pieChart();
+                colorKey = 'x';
+                chart.valueFormat(f);
+                if (fd.donut) {
+                  chart.donut(true);
+                  chart.labelsOutside(true);
+                }
                 chart.labelsOutside(true);
-              }
-              chart.labelsOutside(true);
-              chart.cornerRadius(true);
-              break;
+                chart.cornerRadius(true);
+                break;
 
-            case 'column':
-              chart = nv.models.multiBarChart()
-                .reduceXTicks(false)
-                .rotateLabels(45);
-              break;
+              case 'column':
+                chart = nv.models.multiBarChart()
+                    .reduceXTicks(false)
+                    .rotateLabels(45);
+                break;
 
-            case 'compare':
-              chart = nv.models.cumulativeLineChart();
-              chart.xScale(d3.time.scale.utc());
-              chart.xAxis
-                .showMaxMin(false)
-                .staggerLabels(true);
-              break;
+              case 'compare':
+                chart = nv.models.cumulativeLineChart();
+                chart.xScale(d3.time.scale.utc());
+                chart.xAxis
+                    .showMaxMin(false)
+                    .staggerLabels(true);
+                break;
 
-            case 'bubble':
-              var row = function (col1, col2) {
-                return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></tr>";
-              };
-              chart = nv.models.scatterChart();
-              chart.showDistX(true);
-              chart.showDistY(true);
-              chart.tooltip.contentGenerator(function (obj) {
-                var p = obj.point;
-                var s = "<table>";
-                s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
-                s += row(fd.x, f(p.x));
-                s += row(fd.y, f(p.y));
-                s += row(fd.size, f(p.size));
-                s += "</table>";
-                return s;
-              });
-              chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
-              break;
+              case 'bubble':
+                var row = function (col1, col2) {
+                  return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></tr>";
+                };
+                chart = nv.models.scatterChart();
+                chart.showDistX(true);
+                chart.showDistY(true);
+                chart.tooltip.contentGenerator(function (obj) {
+                  var p = obj.point;
+                  var s = "<table>";
+                  s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
+                  s += row(fd.x, f(p.x));
+                  s += row(fd.y, f(p.y));
+                  s += row(fd.size, f(p.size));
+                  s += "</table>";
+                  return s;
+                });
+                chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
+                break;
 
-            case 'area':
-              chart = nv.models.stackedAreaChart();
-              chart.style(fd.stacked_style);
-              chart.xScale(d3.time.scale.utc());
-              chart.xAxis
-                .showMaxMin(false)
-                .staggerLabels(true);
-              break;
+              case 'area':
+                chart = nv.models.stackedAreaChart();
+                chart.style(fd.stacked_style);
+                chart.xScale(d3.time.scale.utc());
+                chart.xAxis
+                    .showMaxMin(false)
+                    .staggerLabels(true);
+                break;
 
-            case 'box_plot':
-              colorKey = 'label';
-              chart = nv.models.boxPlotChart();
-              chart.x(function (d) { return d.label; });
-              chart.staggerLabels(true);
-              chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
-              break;
+              case 'box_plot':
+                colorKey = 'label';
+                chart = nv.models.boxPlotChart();
+                chart.x(function (d) {
+                  return d.label;
+                });
+                chart.staggerLabels(true);
+                chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
+                break;
 
-            default:
-              throw new Error("Unrecognized visualization for nvd3" + viz_type);
+              default:
+                throw new Error("Unrecognized visualization for nvd3" + viz_type);
+            }
           }
 
           if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
@@ -197,8 +201,12 @@ function nvd3Vis(slice) {
             return px.color.category21(d[colorKey]);
           });
 
-          d3.select(slice.selector).html('');
-          d3.select(slice.selector).append("svg")
+          var svg = d3.select(slice.selector).select("svg");
+          if (svg.empty()) {
+            svg = d3.select(slice.selector).append("svg");
+          }
+
+          svg
             .datum(payload.data)
             .transition().duration(500)
             .attr('height', height)

@@ -35,7 +35,7 @@ function tableVis(slice) {
         maxes[metrics[i]] = d3.max(col(metrics[i]));
       }
 
-      var table = d3.select(slice.selector).append('table')
+      var table = d3.select(slice.selector).html('').append('table')
         .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true)
         .attr('width', '100%');
 

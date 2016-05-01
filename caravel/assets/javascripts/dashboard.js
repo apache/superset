@@ -13,11 +13,14 @@ require('./caravel-select2.js');
 require('../node_modules/gridster/dist/jquery.gridster.min.css');
 require('../node_modules/gridster/dist/jquery.gridster.min.js');
 
+require('../stylesheets/dashboard.css');
+
 var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
     filters: {},
     init: function () {
       this.initDashboardView();
+      this.firstLoad = true;
       px.initFavStars();
       var sliceObjects = [],
         dash = this;
@@ -31,10 +34,11 @@ var Dashboard = function (dashboardData) {
             slice.render(true);
           });
           sliceObjects.push(slice);
-          slice.render();
         }
       });
       this.slices = sliceObjects;
+      this.refreshTimer = null;
+      this.startPeriodicRender(0);
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -57,8 +61,40 @@ var Dashboard = function (dashboardData) {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
     },
+    stopPeriodicRender: function () {
+      if (this.refreshTimer) {
+        clearTimeout(this.refreshTimer);
+        this.refreshTimer = null;
+      }
+    },
+    startPeriodicRender: function (interval) {
+      this.stopPeriodicRender();
+      var dash = this;
+      var maxRandomDelay = Math.min(interval * 0.2, 5000);
+      var refreshAll = function () {
+        dash.slices.forEach(function (slice) {
+          var force = !dash.firstLoad;
+          setTimeout(function () {
+            slice.render(force);
+          },
+          //Randomize to prevent all widgets refreshing at the same time
+          maxRandomDelay * Math.random());
+        });
+        dash.firstLoad = false;
+      };
+
+      var fetchAndRender = function () {
+        refreshAll();
+        if (interval > 0) {
+          dash.refreshTimer = setTimeout(function () {
+            fetchAndRender();
+          }, interval);
+        }
+      };
+      fetchAndRender();
+    },
     refreshExcept: function (slice_id) {
-      var immune = this.metadata.filter_immune_slice || [];
+      var immune = this.metadata.filter_immune_slices || [];
       this.slices.forEach(function (slice) {
         if (slice.data.slice_id !== slice_id && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
@@ -190,6 +226,10 @@ var Dashboard = function (dashboardData) {
           title: "<span class='fa fa-info-circle'></span> Current Global Filters",
           body: "The following global filters are currently applied:<br/>" + dashboard.readFilters()
         });
+      });
+      $("#refresh_dash_interval").on("change", function () {
+        var interval = $(this).find('option:selected').val() * 1000;
+        dashboard.startPeriodicRender(interval);
       });
       $('#refresh_dash').click(function () {
         dashboard.slices.forEach(function (slice) {
