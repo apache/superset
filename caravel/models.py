@@ -564,15 +564,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 "and is required by this type of chart")
 
         metrics_exprs = [
-            literal_column(m.expression).label(m.metric_name)
+            m.sqla_col
             for m in self.metrics if m.metric_name in metrics]
 
         if metrics:
-            main_metric_expr = literal_column([
-                m.expression for m in self.metrics
-                if m.metric_name == metrics[0]][0])
+            main_metric_expr = [
+                m.sqla_col for m in self.metrics
+                if m.metric_name == metrics[0]][0]
         else:
-            main_metric_expr = literal_column("COUNT(*)")
+            main_metric_expr = literal_column("COUNT(*)").label("ccount")
 
         select_exprs = []
         groupby_exprs = []
@@ -583,13 +583,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_groupby_exprs = []
             for s in groupby:
                 col = cols[s]
-                expr = col.expression
-                if expr:
-                    outer = literal_column(expr).label(s)
-                    inner = literal_column(expr).label('__' + s)
-                else:
-                    outer = column(s).label(s)
-                    inner = column(s).label('__' + s)
+                outer = col.sqla_col
+                inner = col.sqla_col.label('__' + col.column_name)
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -597,12 +592,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_select_exprs.append(inner)
         elif columns:
             for s in columns:
-                select_exprs.append(s)
+                select_exprs.append(cols[s].sqla_col)
             metrics_exprs = []
 
         if granularity:
-            dttm_expr = cols[granularity].expression or granularity
-            timestamp = literal_column(dttm_expr).label('timestamp')
+            dttm_expr = cols[granularity].sqla_col.label('timestamp')
+            timestamp = dttm_expr
 
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
@@ -646,11 +641,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 values = eq.split(",")
-                if col_obj.expression:
-                    cond = ColumnClause(
-                        col_obj.expression, is_literal=True).in_(values)
-                else:
-                    cond = column(col).in_(values)
+                cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
@@ -685,7 +676,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
-            qry.compile(engine, compile_kwargs={"literal_binds": True}))
+            qry.compile(
+                engine, compile_kwargs={"literal_binds": True},),
+            )
+        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -811,6 +805,11 @@ class SqlMetric(Model, AuditMixinNullable):
     expression = Column(Text)
     description = Column(Text)
 
+    @property
+    def sqla_col(self):
+        name = self.metric_name
+        return literal_column(self.expression).label(name)
+
 
 class TableColumn(Model, AuditMixinNullable):
 
@@ -822,6 +821,7 @@ class TableColumn(Model, AuditMixinNullable):
     table = relationship(
         'SqlaTable', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
+    verbose_name = Column(String(1024))
     is_dttm = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     type = Column(String(32), default='')
@@ -841,6 +841,15 @@ class TableColumn(Model, AuditMixinNullable):
     def isnum(self):
         types = ('LONG', 'DOUBLE', 'FLOAT', 'BIGINT', 'INT')
         return any([t in self.type.upper() for t in types])
+
+    @property
+    def sqla_col(self):
+        name = self.column_name
+        if not self.expression:
+            col = column(self.column_name).label(name)
+        else:
+            col = literal_column(self.expression).label(name)
+        return col
 
 
 class DruidCluster(Model, AuditMixinNullable):

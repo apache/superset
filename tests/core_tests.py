@@ -113,10 +113,11 @@ class CoreTests(CaravelTestCase):
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                slc.slice_url,
-                slc.viz.json_endpoint,
+                (slc.slice_name, slc.slice_url),
+                (slc.slice_name, slc.viz.json_endpoint),
             ]
-        for url in urls:
+        for name, url in urls:
+            print("Slice: " + name)
             self.client.get(url)
 
     def test_dashboard(self):
