@@ -159,12 +159,12 @@ Generate the documentation with:
     cd docs && ./build.sh
 
 ## CSS Themes
-As part of the npm build process, CSS for Caravel is compiled from ```Less```, a dynamic stylesheet language.
+As part of the npm build process, CSS for Caravel is compiled from `Less`, a dynamic stylesheet language.
 
 It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
-by modifying the Less variables or files in ```assets/stylesheets/less/```.
+by modifying the Less variables or files in `assets/stylesheets/less/`.
 
-The ```variables.less``` and ```bootswatch.less``` files that ship with Caravel are derived from
+The `variables.less` and `bootswatch.less` files that ship with Caravel are derived from
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
@@ -179,7 +179,43 @@ meets these guidelines:
     as part of the same PR. Doc string are often sufficient, make
     sure to follow the sphinx compatible standards.
 3.  The pull request should work for Python 2.6, 2.7, and ideally python 3.3.
-    `from __future__ import ` will be required in every `.py` file soon.
+    ``from __future__ import`` will be required in every `.py` file soon.
 4.  Code will be reviewed by re running the unittests, flake8 and syntax
     should be as rigorous as the core Python project.
 5.  Please rebase and resolve all conflicts before submitting.
+
+
+## Tranlations
+
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Caravel. The
+key is to instrument the strings that need translation using
+`from flask.ext.babelpkg import lazy_gettext as _`. Once this is imported in
+a module, all you have to do is to `_("Wrap your strings")` using the
+underscore `_` "function".
+
+To enable changing language in your environment, you can simply add the
+`LANGUAGES` parameter to your `caravel_config.py`. Having more than one
+options here will add a language selection dropdown on the right side of the
+navigation bar.
+
+    LANGUAGES = {
+        'en': {'flag': 'us', 'name': 'English'},
+        'fr': {'flag': 'fr', 'name': 'French'},
+        'zh': {'flag': 'cn', 'name': 'Chinese'},
+    }
+
+As per the [Flask AppBuilder documentation] about translation, to create a
+new language dictionary, run the following command:
+
+    pybabel init -i ./babel/messages.pot -d caravel/translations -l es
+
+Then it's a matter of running the statement bellow to gather all stings that
+need translation
+
+    fabmanager babel-extract --target caravel/translations/
+
+You can then translate the strings gathered in files located under
+`caravel/translation`, where there's one per language. For the translations
+to take effect, they need to be compiled using this command:
+
+    fabmanager babel-compile --target caravel/translations/

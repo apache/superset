@@ -13,13 +13,16 @@ from datetime import datetime
 
 import pandas as pd
 import sqlalchemy as sqla
+
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
+from flask.ext.babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
+
 from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
@@ -110,10 +113,10 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'sum', 'min', 'max', 'is_dttm']
     page_size = 500
     description_columns = {
-        'is_dttm': (
+        'is_dttm': (_(
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
-            "DATETIME-like"),
+            "DATETIME-like")),
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
@@ -215,8 +218,9 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DatabaseView,
     "Databases",
+    label=_("Databases"),
     icon="fa-database",
-    category="Sources",
+    category=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -259,8 +263,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    "Tables",
-    category="Sources",
+    _("Tables"),
+    category=_("Sources"),
     icon='fa-table',)
 
 
@@ -281,9 +285,9 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        "Druid Clusters",
+        _("Druid Clusters"),
         icon="fa-cubes",
-        category="Sources",
+        category=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -312,7 +316,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    "Slices",
+    _("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -340,12 +344,12 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'position_json': (
+        'position_json': _(
             "This json object describes the positioning of the widgets in "
             "the dashboard. It is dynamically generated when adjusting "
             "the widgets size and positions by using drag & drop in "
             "the dashboard view"),
-        'css': (
+        'css': _(
             "The css for individual dashboards can be altered here, or "
             "in the dashboard view where changes are immediately "
             "visible"),
@@ -366,7 +370,9 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
+    label=_("Dashboards"),
     icon="fa-dashboard",
+
     category="",
     category_icon='',)
 
@@ -389,7 +395,8 @@ class LogModelView(CaravelModelView):
 appbuilder.add_view(
     LogModelView,
     "Action Log",
-    category="Security",
+    label=_("Action Log"),
+    category=_("Security"),
     icon="fa-list-ol")
 
 
@@ -423,6 +430,7 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
+        label=_("Druid Datasources"),
         category="Sources",
         icon="fa-cube")
 
@@ -506,7 +514,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash("The datasource seems to have been deleted", "alert")
+            flash(_("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
@@ -514,7 +522,7 @@ class Caravel(BaseView):
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash("You don't seem to have access to this datasource", "danger")
+            flash(_("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -835,8 +843,8 @@ class Caravel(BaseView):
         if (
                 not self.appbuilder.sm.has_access(
                     'all_datasource_access', 'all_datasource_access')):
-            raise Exception(
-                "This view requires the `all_datasource_access` permission")
+            raise Exception(_(
+                "This view requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -946,6 +954,7 @@ appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
+    label=_("CSS Templates"),
     icon="fa-css3",
     category="Sources",
     category_icon='')

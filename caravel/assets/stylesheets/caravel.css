@@ -2,6 +2,10 @@ body {
     margin: 0px !important;
 }
 
+.caret {
+    border-top: 4px solid;
+}
+
 .emph {
   font-weight: bold;
 }
