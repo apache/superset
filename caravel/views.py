@@ -534,7 +534,6 @@ class Caravel(BaseView):
             return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
-            payload = obj.get_json()
             try:
                 payload = obj.get_json()
             except Exception as e:
