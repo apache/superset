@@ -159,13 +159,19 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
-        'metric_name', 'description', 'verbose_name', 'metric_type',
-        'datasource', 'json']
-    add_columns = [
-        'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+        'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
+        'datasource']
+    add_columns = edit_columns
     page_size = 500
     validators_columns = {
         'json': [validate_json],
+    }
+    description_columns = {
+        'metric_type': utils.markdown(
+            "use `postagg` as the metric type if you are defining a "
+            "[Druid Post Aggregation]"
+            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
+            True),
     }
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
@@ -390,10 +396,7 @@ appbuilder.add_view(
 class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
-        'datasource_link', 'cluster', 'owner',
-        'creator', 'created_on',
-        'changed_by_', 'changed_on',
-        'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'modified', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',

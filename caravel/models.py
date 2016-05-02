@@ -24,6 +24,7 @@ from flask.ext.appbuilder.models.mixins import AuditMixin
 from pydruid.client import PyDruid
 from flask.ext.appbuilder.models.decorators import renders
 from pydruid.utils.filters import Dimension, Filter
+from pydruid.utils.postaggregator import Postaggregator
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -42,6 +43,17 @@ from caravel.utils import flasher
 config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+
+
+class JavascriptPostAggregator(Postaggregator):
+    def __init__(self, name, field_names, function):
+        self.post_aggregator = {
+            'type': 'javascript',
+            'fieldNames': field_names,
+            'name': name,
+            'function': function,
+        }
+        self.name = name
 
 
 class AuditMixinNullable(AuditMixin):
@@ -319,6 +331,10 @@ class Queryable(object):
     def dttm_cols(self):
         return []
 
+    @property
+    def url(self):
+        return '/{}/edit/{}'.format(self.baselink, self.id)
+
 
 class Database(Model, AuditMixinNullable):
 
@@ -466,10 +482,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def description_markeddown(self):
         return utils.markdown(self.description)
-
-    @property
-    def url(self):
-        return '/tablemodelview/edit/{}'.format(self.id)
 
     @property
     def link(self):
@@ -896,7 +908,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     type = "druid"
 
-    baselink = "datasourcemodelview"
+    baselink = "druiddatasourcemodelview"
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
@@ -929,10 +941,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{obj.cluster_name}].[{obj.datasource_name}]"
             "(id:{obj.id})").format(obj=self)
-
-    @property
-    def url(self):
-        return '/datasourcemodelview/edit/{}'.format(self.id)
 
     @property
     def link(self):
@@ -1047,9 +1055,34 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 
         query_str = ""
+        metrics_dict = {m.metric_name: m for m in self.metrics}
+        all_metrics = []
+        post_aggs = {}
+        for metric_name in metrics:
+            metric = metrics_dict[metric_name]
+            if metric.metric_type != 'postagg':
+                all_metrics.append(metric_name)
+            else:
+                conf = metric.json_obj
+                fields = conf.get('fields', [])
+                all_metrics += [
+                    f.get('fieldName') for f in fields
+                    if f.get('type') == 'fieldAccess']
+                all_metrics += conf.get('fieldNames', [])
+                if conf.get('type') == 'javascript':
+                    post_aggs[metric_name] = JavascriptPostAggregator(
+                        name=conf.get('name'),
+                        field_names=conf.get('fieldNames'),
+                        function=conf.get('function'))
+                else:
+                    post_aggs[metric_name] = Postaggregator(
+                        conf.get('fn', "/"),
+                        conf.get('fields', []),
+                        conf.get('name', ''))
         aggregations = {
             m.metric_name: m.json_obj
-            for m in self.metrics if m.metric_name in metrics
+            for m in self.metrics
+            if m.metric_name in all_metrics
         }
         granularity = granularity or "all"
         if granularity != "all":
@@ -1067,6 +1100,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             dimensions=groupby,
             aggregations=aggregations,
             granularity=granularity,
+            post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
         filters = None
@@ -1171,7 +1205,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             cols += ['timestamp']
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
-        cols += [col for col in df.columns if col not in cols]
         df = df[cols]
         return QueryResult(
             df=df,
