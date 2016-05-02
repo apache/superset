@@ -20,7 +20,7 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
-from flask.ext.babelpkg import lazy_gettext as _
+from flask.ext.babelpkg import gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from pydruid.client import doublesum

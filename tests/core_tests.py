@@ -213,6 +213,23 @@ class CoreTests(CaravelTestCase):
         data = resp.data.decode('utf-8')
         assert '[dashboard] Births' in data
 
+        resp = self.client.get('/caravel/explore/table/3/')
+        data = resp.data.decode('utf-8')
+        assert '[explore] birth_names' in data
+
+        # Confirm that public doesn't have access to other datasets.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/2">wb_health_population</a>' not in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/world_health/">' not in data
+
+        resp = self.client.get('/caravel/explore/table/2/', follow_redirects=True)
+        data = resp.data.decode('utf-8')
+        assert "You don&#39;t seem to have access to this datasource" in data
+
 
 SEGMENT_METADATA = [{
   "id": "some_id",
