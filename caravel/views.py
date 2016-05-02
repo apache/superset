@@ -36,7 +36,7 @@ log_this = models.Log.log_this
 
 
 def get_user_roles():
-    if g.user.is_anonymous:
+    if g.user.is_anonymous():
         return [appbuilder.sm.find_role('Public')]
     return g.user.roles
 
