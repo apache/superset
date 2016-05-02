@@ -1,0 +1,118 @@
+# Spanish translations for PROJECT.
+# Copyright (C) 2016 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2016.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2016-05-02 00:21-0700\n"
+"PO-Revision-Date: 2016-05-02 08:49-0700\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: es\n"
+"Language-Team: es <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.4\n"
+
+#: caravel/models.py:564
+msgid ""
+"Datetime column not provided as part table configuration and is required "
+"by this type of chart"
+msgstr ""
+
+#: caravel/models.py:1153
+msgid "No data was returned."
+msgstr ""
+
+#: caravel/views.py:116
+msgid ""
+"Whether to make this column available as a [Time Granularity] option, "
+"column has to be DATETIME or DATETIME-like"
+msgstr ""
+
+#: caravel/views.py:215
+msgid "Databases"
+msgstr ""
+
+#: caravel/views.py:217 caravel/views.py:261 caravel/views.py:284
+msgid "Sources"
+msgstr ""
+
+#: caravel/views.py:260
+msgid "Tables"
+msgstr ""
+
+#: caravel/views.py:282
+msgid "Druid Clusters"
+msgstr ""
+
+#: caravel/views.py:313
+msgid "Slices"
+msgstr ""
+
+#: caravel/views.py:341
+msgid ""
+"This json object describes the positioning of the widgets in the "
+"dashboard. It is dynamically generated when adjusting the widgets size "
+"and positions by using drag & drop in the dashboard view"
+msgstr ""
+
+#: caravel/views.py:346
+msgid ""
+"The css for individual dashboards can be altered here, or in the "
+"dashboard view where changes are immediately visible"
+msgstr ""
+
+#: caravel/views.py:367
+msgid "Dashboards"
+msgstr ""
+
+#: caravel/views.py:392
+msgid "Action Log"
+msgstr ""
+
+#: caravel/views.py:393
+msgid "Security"
+msgstr ""
+
+#: caravel/views.py:430
+msgid "Druid Datasources"
+msgstr ""
+
+#: caravel/views.py:514
+msgid "The datasource seems to have been deleted"
+msgstr ""
+
+#: caravel/views.py:522
+msgid "You don't seem to have access to this datasource"
+msgstr ""
+
+#: caravel/views.py:843
+msgid "This view requires the `all_datasource_access` permission"
+msgstr ""
+
+#: caravel/views.py:954
+msgid "CSS Templates"
+msgstr ""
+
+#: caravel/templates/appbuilder/navbar_right.html:34
+msgid "Profile"
+msgstr ""
+
+#: caravel/templates/appbuilder/navbar_right.html:35
+msgid "Logout"
+msgstr ""
+
+#: caravel/templates/appbuilder/navbar_right.html:40
+msgid "Login"
+msgstr ""
+
+#: caravel/templates/caravel/welcome.html:8
+#: caravel/templates/caravel/welcome.html:13
+msgid "Welcome!"
+msgstr ""
+

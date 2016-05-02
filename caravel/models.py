@@ -18,11 +18,14 @@ import requests
 import sqlalchemy as sqla
 import sqlparse
 from dateutil.parser import parse
+
 from flask import request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-from pydruid.client import PyDruid
 from flask.ext.appbuilder.models.decorators import renders
+from flask.ext.babelpkg import lazy_gettext as _
+
+from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
 from six import string_types
@@ -33,7 +36,6 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
-from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
 from caravel import app, db, get_session, utils
@@ -571,9 +573,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry_start_dttm = datetime.now()
 
         if not granularity and is_timeseries:
-            raise Exception(
+            raise Exception(_(
                 "Datetime column not provided as part table configuration "
-                "and is required by this type of chart")
+                "and is required by this type of chart"))
 
         metrics_exprs = [
             m.sqla_col
@@ -1191,7 +1193,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
         if df is None or df.size == 0:
-            raise Exception("No data was returned.")
+            raise Exception(_("No data was returned."))
 
         if (
                 not is_timeseries and
