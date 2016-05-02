@@ -82,14 +82,6 @@ input[type="checkbox"] {
 form div {
   padding-top: 1px;
 }
-.navbar-brand a {
-  color: white;
-  text-decoration: none;
-}
-.navbar-brand a:hover {
-  color: white;
-  text-decoration: none;
-}
 
 .header span {
     margin-left: 5px;
@@ -135,10 +127,10 @@ span.title-block {
 .nvtooltip table td{
     font-size: 11px !important;
 }
-.navbar {
-  -webkit-box-shadow: 0px 3px 3px #AAA;
-  -moz-box-shadow: 0px 3px 3px #AAA;
-  box-shadow: 0px 3px 3px #AAA;
+div.navbar {
+  -webkit-box-shadow: 0px 2px 2px #CCC;
+  -moz-box-shadow: 0px 2px 2px #CCC;
+  box-shadow: 0px 2px 2px #ccc;
   z-index: 999;
 }
 .panel.panel-primary {
