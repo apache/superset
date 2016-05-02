@@ -102,8 +102,8 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
-        'column_name', 'description', 'groupby', 'filterable', 'table',
-        'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
+        'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
+        'table', 'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
