@@ -142,7 +142,7 @@ npm run dev
 
 Tests can then be run with:
 
-    ./run_unit_tests.sh
+    ./run_tests.sh
 
 Lint the project with:
 
