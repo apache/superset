@@ -396,6 +396,8 @@ class Database(Model, AuditMixinNullable):
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
+                Grain("second", "DATE_TRUNC('second', {col})"),
+                Grain("minute", "DATE_TRUNC('minute', {col})"),
                 Grain("hour", "DATE_TRUNC('hour', {col})"),
                 Grain("day", "DATE_TRUNC('day', {col})"),
                 Grain("week", "DATE_TRUNC('week', {col})"),
