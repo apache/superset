@@ -814,7 +814,8 @@ def load_birth_names():
 
 def load_unicode_test_data():
     """Loading unicode test dataset from a csv file in the repo"""
-    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'), encoding="utf-8")
+    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
+                     encoding="utf-8")
     # generate date/numeric data
     df['date'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
@@ -851,14 +852,12 @@ def load_unicode_test_data():
         "datasource_name": "unicode_test",
         "datasource_type": "table",
         "flt_op_1": "in",
-        "limit": "25",
         "granularity": "date",
         "groupby": [],
         "metric": 'sum__value',
         "row_limit": config.get("ROW_LIMIT"),
         "since": "100 years ago",
         "until": "now",
-        "viz_type": "table",
         "where": "",
         "viz_type": "word_cloud",
         "size_from": "10",
