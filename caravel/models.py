@@ -23,7 +23,7 @@ from flask import request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
 from flask.ext.appbuilder.models.decorators import renders
-from flask.ext.babelpkg import lazy_gettext as _
+from flask.ext.babelpkg import gettext as _
 
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
@@ -1240,7 +1240,7 @@ class Log(Model):
         def wrapper(*args, **kwargs):
             user_id = None
             if g.user:
-                user_id = g.user.id
+                user_id = g.user.get_id()
             d = request.args.to_dict()
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)

@@ -20,7 +20,7 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
-from flask.ext.babelpkg import lazy_gettext as _
+from flask.ext.babelpkg import gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from pydruid.client import doublesum
@@ -35,10 +35,16 @@ config = app.config
 log_this = models.Log.log_this
 
 
+def get_user_roles():
+    if g.user.is_anonymous():
+        return [appbuilder.sm.find_role('Public')]
+    return g.user.roles
+
+
 class CaravelFilter(BaseFilter):
     def get_perms(self):
         perms = []
-        for role in g.user.roles:
+        for role in get_user_roles():
             for perm_view in role.permissions:
                 if perm_view.permission.name == 'datasource_access':
                     perms.append(perm_view.view_menu.name)
@@ -47,7 +53,7 @@ class CaravelFilter(BaseFilter):
 
 class FilterSlice(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
         print(qry)
@@ -56,7 +62,7 @@ class FilterSlice(CaravelFilter):
 
 class FilterDashboard(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         Slice = models.Slice  # noqa
         slice_ids_qry = (
@@ -721,12 +727,12 @@ class Caravel(BaseView):
         FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
-            class_name=class_name, obj_id=obj_id, user_id=g.user.id).all()
+            class_name=class_name, obj_id=obj_id, user_id=g.user.get_id()).all()
         if action == 'select':
             if not favs:
                 session.add(
                     FavStar(
-                        class_name=class_name, obj_id=obj_id, user_id=g.user.id,
+                        class_name=class_name, obj_id=obj_id, user_id=g.user.get_id(),
                         dttm=datetime.now()))
             count = 1
         elif action == 'unselect':

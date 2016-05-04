@@ -12,6 +12,7 @@ import unittest
 from mock import Mock, patch
 
 from flask import escape
+from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
 from caravel import app, db, models, utils, appbuilder
@@ -63,17 +64,38 @@ class CaravelTestCase(unittest.TestCase):
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
 
+    def setup_public_access_for_dashboard(self, dashboard_name):
+        public_role = appbuilder.sm.find_role('Public')
+        perms = db.session.query(ab_models.PermissionView).all()
+        for perm in perms:
+            if perm.permission.name not in (
+                'can_list',
+                'can_dashboard',
+                'can_explore',
+                'datasource_access'):
+                continue
+            if not perm.view_menu:
+                continue
+            if perm.view_menu.name not in (
+                'SliceModelView',
+                'DashboardModelView',
+                'Caravel') and dashboard_name not in perm.view_menu.name:
+                continue
+            appbuilder.sm.add_permission_role(public_role, perm)
+
 
 class CoreTests(CaravelTestCase):
 
     def __init__(self, *args, **kwargs):
+        # Load examples first, so that we setup proper permission-view relations
+        # for all example data sources.
+        self.load_examples()
         super(CoreTests, self).__init__(*args, **kwargs)
         self.table_ids = {tbl.table_name: tbl.id  for tbl in (
             db.session
             .query(models.SqlaTable)
             .all()
         )}
-        self.load_examples()
 
     def setUp(self):
         pass
@@ -161,6 +183,52 @@ class CoreTests(CaravelTestCase):
 
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
+
+    def test_public_user_dashboard_access(self):
+        # Try access before adding appropriate permissions.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/3">birth_names</a>' not in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/births/">' not in data
+
+        resp = self.client.get('/caravel/dashboard/births/')
+        data = resp.data.decode('utf-8')
+        assert '[dashboard] Births' not in data
+
+        self.setup_public_access_for_dashboard('birth_names')
+
+        # Try access after adding appropriate permissions.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/3">birth_names</a>' in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/births/">' in data
+
+        resp = self.client.get('/caravel/dashboard/births/')
+        data = resp.data.decode('utf-8')
+        assert '[dashboard] Births' in data
+
+        resp = self.client.get('/caravel/explore/table/3/')
+        data = resp.data.decode('utf-8')
+        assert '[explore] birth_names' in data
+
+        # Confirm that public doesn't have access to other datasets.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/2">wb_health_population</a>' not in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/world_health/">' not in data
+
+        resp = self.client.get('/caravel/explore/table/2/', follow_redirects=True)
+        data = resp.data.decode('utf-8')
+        assert "You don&#39;t seem to have access to this datasource" in data
 
 
 SEGMENT_METADATA = [{
