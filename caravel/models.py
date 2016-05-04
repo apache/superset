@@ -1162,7 +1162,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if df is not None and not df.empty:
                 dims = qry['dimensions']
                 filters = []
-                for _, row in df.iterrows():
+                for unused, row in df.iterrows():
                     fields = []
                     for dim in dims:
                         f = Filter.build_filter(Dimension(dim) == row[dim])
