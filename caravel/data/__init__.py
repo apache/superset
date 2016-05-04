@@ -814,7 +814,7 @@ def load_birth_names():
 
 def load_unicode_test_data():
     """Loading unicode test dataset from a csv file in the repo"""
-    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'))
+    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'), encoding="utf-8")
     # generate date/numeric data
     df['date'] = datetime.datetime.now().date()
     df['value'] = [random.randint(1, 100) for _ in range(len(df))]
