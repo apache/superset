@@ -1,0 +1,32 @@
+{% extends "appbuilder/general/model/edit.html" %}
+
+{% block content %}
+    {{ super() }}
+    <div class="modal fade" id="json_gen_modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content css">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title" id="myModalLabel">JSON Generator</h4>
+                    <h6><strong>Enter the algebraic expression to convert. E.g. longSum(price), doubleMin(price)</strong></h6>
+                </div>
+                <div class="modal-body">
+                    <textarea id="expression" rows="5" cols="60"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">
+                        Close
+                    </button>
+                    <button type="button" class="btn btn-default" id="convertButton">
+                        Convert to Json
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block tail_js %}
+    {{ super() }}
+    <script src="/static/assets/javascripts/dist/datasource.entry.js"></script>
+{% endblock %}
