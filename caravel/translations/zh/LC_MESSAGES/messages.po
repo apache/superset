@@ -22,11 +22,11 @@ msgstr ""
 msgid ""
 "Datetime column not provided as part table configuration and is required "
 "by this type of chart"
-msgstr ""
+msgstr "所选表格需要日期时间但在表格配置文件中没有被提供"
 
 #: caravel/models.py:1153
 msgid "No data was returned."
-msgstr ""
+msgstr "所选数据为空"
 
 #: caravel/views.py:116
 msgid ""
@@ -44,7 +44,7 @@ msgstr "源"
 
 #: caravel/views.py:260
 msgid "Tables"
-msgstr "表"
+msgstr "表格"
 
 #: caravel/views.py:282
 msgid "Druid Clusters"
@@ -73,11 +73,11 @@ msgstr "仪表盘"
 
 #: caravel/views.py:392
 msgid "Action Log"
-msgstr "动作日志"
+msgstr "行动记录"
 
 #: caravel/views.py:393
 msgid "Security"
-msgstr "安全"
+msgstr "权限"
 
 #: caravel/views.py:430
 msgid "Druid Datasources"
@@ -101,11 +101,11 @@ msgstr "CSS模板"
 
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
-msgstr "专业文件"
+msgstr "个人资料"
 
 #: caravel/templates/appbuilder/navbar_right.html:35
 msgid "Logout"
-msgstr "注销"
+msgstr "登出"
 
 #: caravel/templates/appbuilder/navbar_right.html:40
 msgid "Login"
