@@ -104,7 +104,7 @@ class CoreTests(CaravelTestCase):
         pass
 
     def load_examples(self):
-        cli.load_examples(test=True)
+        cli.load_examples(load_test_data=True)
 
     def test_save_slice(self):
         self.login_admin()
