@@ -1062,16 +1062,26 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         metrics_dict = {m.metric_name: m for m in self.metrics}
         all_metrics = []
         post_aggs = {}
+
+        def recursive_get_fields(_conf):
+            _fields = _conf.get('fields', [])
+            field_names = []
+            for _f in _fields:
+                _type = _f.get('type')
+                if _type == 'fieldAccess':
+                    field_names.append(_f.get('fieldName'))
+                elif _type == 'arithmetic':
+                    field_names += recursive_get_fields(_f)
+
+            return list(set(field_names))
+
         for metric_name in metrics:
             metric = metrics_dict[metric_name]
             if metric.metric_type != 'postagg':
                 all_metrics.append(metric_name)
             else:
                 conf = metric.json_obj
-                fields = conf.get('fields', [])
-                all_metrics += [
-                    f.get('fieldName') for f in fields
-                    if f.get('type') == 'fieldAccess']
+                all_metrics += recursive_get_fields(conf)
                 all_metrics += conf.get('fieldNames', [])
                 if conf.get('type') == 'javascript':
                     post_aggs[metric_name] = JavascriptPostAggregator(
