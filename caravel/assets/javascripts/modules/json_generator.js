@@ -71,6 +71,9 @@ var convertArithmetic = function (node) {
 
 var parse = function (expression) {
     expression = expression.trim().replace('\n', '');
+    if (!expression) {
+        throw new Error("Please enter the expression");
+    }
     var parse_tree = jsep(expression);
     var converterMap = {
         CallExpression: convertFuncCall,

@@ -15,11 +15,16 @@
                 </div>
                 <div class="modal-body">
                     <textarea id="expression" rows="5" cols="60"></textarea>
+                    <p><strong>Preview:</strong></p>
+                    <div class="" id="preview">(Please click the preview button)</div>
                     <div class="alert alert-danger hidden" id="errorMsg"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">
                         Close
+                    </button>
+                    <button type="button" class="btn btn-default" id="previewButton">
+                        Preview
                     </button>
                     <button type="button" class="btn btn-default" id="convertButton">
                         Convert to Json
