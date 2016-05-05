@@ -36,23 +36,23 @@ msgstr ""
 
 #: caravel/views.py:215
 msgid "Databases"
-msgstr ""
+msgstr "数据库"
 
 #: caravel/views.py:217 caravel/views.py:261 caravel/views.py:284
 msgid "Sources"
-msgstr ""
+msgstr "源"
 
 #: caravel/views.py:260
 msgid "Tables"
-msgstr ""
+msgstr "表"
 
 #: caravel/views.py:282
 msgid "Druid Clusters"
-msgstr ""
+msgstr "Druid簇"
 
 #: caravel/views.py:313
 msgid "Slices"
-msgstr ""
+msgstr "切片"
 
 #: caravel/views.py:341
 msgid ""
@@ -69,50 +69,49 @@ msgstr ""
 
 #: caravel/views.py:367
 msgid "Dashboards"
-msgstr ""
+msgstr "仪表盘"
 
 #: caravel/views.py:392
 msgid "Action Log"
-msgstr ""
+msgstr "动作日志"
 
 #: caravel/views.py:393
 msgid "Security"
-msgstr ""
+msgstr "安全"
 
 #: caravel/views.py:430
 msgid "Druid Datasources"
-msgstr ""
+msgstr "Druid数据源"
 
 #: caravel/views.py:514
 msgid "The datasource seems to have been deleted"
-msgstr ""
+msgstr "此数据源好像已被删除"
 
 #: caravel/views.py:522
 msgid "You don't seem to have access to this datasource"
-msgstr ""
+msgstr "看来您不能读取此数据源"
 
 #: caravel/views.py:843
 msgid "This view requires the `all_datasource_access` permission"
-msgstr ""
+msgstr "此视图需要`all_datasource_access`权限"
 
 #: caravel/views.py:954
 msgid "CSS Templates"
-msgstr ""
+msgstr "CSS模板"
 
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
-msgstr ""
+msgstr "专业文件"
 
 #: caravel/templates/appbuilder/navbar_right.html:35
 msgid "Logout"
-msgstr ""
+msgstr "注销"
 
 #: caravel/templates/appbuilder/navbar_right.html:40
 msgid "Login"
-msgstr ""
+msgstr "登录"
 
 #: caravel/templates/caravel/welcome.html:8
 #: caravel/templates/caravel/welcome.html:13
 msgid "Welcome!"
-msgstr ""
-
+msgstr "欢迎"
