@@ -68,9 +68,9 @@ def version():
     print(s)
 
 @manager.option(
-    '-s', '--sample', action='store_true',
-    help="Only load 1000 rows (faster, used for testing)")
-def load_examples(sample):
+    '-t', '--load-test-data', action='store_true',
+    help="Load additional test data")
+def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
 
@@ -84,6 +84,10 @@ def load_examples(sample):
 
     print("Loading [Birth names]")
     data.load_birth_names()
+
+    if load_test_data:
+        print("Loading [Unicode test data]")
+        data.load_unicode_test_data()
 
 @manager.command
 def refresh_druid():

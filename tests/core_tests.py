@@ -104,7 +104,7 @@ class CoreTests(CaravelTestCase):
         pass
 
     def load_examples(self):
-        cli.load_examples(sample=True)
+        cli.load_examples(load_test_data=True)
 
     def test_save_slice(self):
         self.login_admin()
@@ -137,6 +137,7 @@ class CoreTests(CaravelTestCase):
             urls += [
                 (slc.slice_name, slc.slice_url),
                 (slc.slice_name, slc.viz.json_endpoint),
+                (slc.slice_name, slc.viz.csv_endpoint),
             ]
         for name, url in urls:
             print("Slice: " + name)
