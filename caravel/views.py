@@ -181,7 +181,6 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Druid Post Aggregation]"
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
-        # 'json': Markup("<a href='javascript:showJsonGenModal()'>Json Generator</a>")
         'json': utils.markdown(
             "You can also use the [generator](javascript:showJsonGenModal()) to generate json",
             True),

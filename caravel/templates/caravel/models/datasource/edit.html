@@ -8,10 +8,14 @@
                 <div class="modal-header">
                     <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
                     <h4 class="modal-title" id="myModalLabel">JSON Generator</h4>
-                    <h6><strong>Enter the algebraic expression to convert. E.g. longSum(price), doubleMin(price)</strong></h6>
+                    <p>Enter the algebraic expression to convert. For example: <br>
+                        <strong>Normal metrics</strong>: longSum(price), doubleMin(price)<br>
+                        <strong>Post Aggregation</strong>: (price/count)*100<br>
+                    </p>
                 </div>
                 <div class="modal-body">
                     <textarea id="expression" rows="5" cols="60"></textarea>
+                    <div class="alert alert-danger hidden" id="errorMsg"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">
