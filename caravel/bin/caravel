@@ -68,9 +68,9 @@ def version():
     print(s)
 
 @manager.option(
-    '-s', '--test', action='store_true',
+    '-t', '--load-test-data', action='store_true',
     help="Load additional test data")
-def load_examples(test):
+def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
 
@@ -85,7 +85,7 @@ def load_examples(test):
     print("Loading [Birth names]")
     data.load_birth_names()
 
-    if test:
+    if load_test_data:
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()
 
