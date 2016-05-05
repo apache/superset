@@ -551,14 +551,16 @@ class Caravel(BaseView):
             return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
-            try:
+            if config.get("DEBUG"):
+                # Allows for nice debugger stack traces in debug mode
                 payload = obj.get_json()
-            except Exception as e:
-                logging.exception(e)
-                if config.get("DEBUG"):
-                    raise e
-                payload = str(e)
-                status = 500
+            else:
+                try:
+                    payload = obj.get_json()
+                except Exception as e:
+                    logging.exception(e)
+                    payload = str(e)
+                    status = 500
             resp = Response(
                 payload,
                 status=status,
