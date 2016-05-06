@@ -13,13 +13,16 @@ from datetime import datetime
 
 import pandas as pd
 import sqlalchemy as sqla
+
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
 from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
+from flask.ext.babelpkg import gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
+
 from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
@@ -32,10 +35,16 @@ config = app.config
 log_this = models.Log.log_this
 
 
+def get_user_roles():
+    if g.user.is_anonymous():
+        return [appbuilder.sm.find_role('Public')]
+    return g.user.roles
+
+
 class CaravelFilter(BaseFilter):
     def get_perms(self):
         perms = []
-        for role in g.user.roles:
+        for role in get_user_roles():
             for perm_view in role.permissions:
                 if perm_view.permission.name == 'datasource_access':
                     perms.append(perm_view.view_menu.name)
@@ -44,7 +53,7 @@ class CaravelFilter(BaseFilter):
 
 class FilterSlice(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
         print(qry)
@@ -53,7 +62,7 @@ class FilterSlice(CaravelFilter):
 
 class FilterDashboard(CaravelFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in g.user.roles]):
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         Slice = models.Slice  # noqa
         slice_ids_qry = (
@@ -102,18 +111,18 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     edit_columns = [
-        'column_name', 'description', 'groupby', 'filterable', 'table',
-        'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
+        'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
+        'table', 'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max', 'is_dttm']
     page_size = 500
     description_columns = {
-        'is_dttm': (
+        'is_dttm': (_(
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
-            "DATETIME-like"),
+            "DATETIME-like")),
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
@@ -159,13 +168,19 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
-        'metric_name', 'description', 'verbose_name', 'metric_type',
-        'datasource', 'json']
-    add_columns = [
-        'metric_name', 'verbose_name', 'metric_type', 'datasource', 'json']
+        'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
+        'datasource']
+    add_columns = edit_columns
     page_size = 500
     validators_columns = {
         'json': [validate_json],
+    }
+    description_columns = {
+        'metric_type': utils.markdown(
+            "use `postagg` as the metric type if you are defining a "
+            "[Druid Post Aggregation]"
+            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
+            True),
     }
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
@@ -209,8 +224,9 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DatabaseView,
     "Databases",
+    label=_("Databases"),
     icon="fa-database",
-    category="Sources",
+    category=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -253,8 +269,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    "Tables",
-    category="Sources",
+    _("Tables"),
+    category=_("Sources"),
     icon='fa-table',)
 
 
@@ -275,9 +291,9 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        "Druid Clusters",
+        _("Druid Clusters"),
         icon="fa-cubes",
-        category="Sources",
+        category=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -306,7 +322,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    "Slices",
+    _("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -334,12 +350,12 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'position_json': (
+        'position_json': _(
             "This json object describes the positioning of the widgets in "
             "the dashboard. It is dynamically generated when adjusting "
             "the widgets size and positions by using drag & drop in "
             "the dashboard view"),
-        'css': (
+        'css': _(
             "The css for individual dashboards can be altered here, or "
             "in the dashboard view where changes are immediately "
             "visible"),
@@ -360,7 +376,9 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
+    label=_("Dashboards"),
     icon="fa-dashboard",
+
     category="",
     category_icon='',)
 
@@ -383,17 +401,15 @@ class LogModelView(CaravelModelView):
 appbuilder.add_view(
     LogModelView,
     "Action Log",
-    category="Security",
+    label=_("Action Log"),
+    category=_("Security"),
     icon="fa-list-ol")
 
 
 class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
-        'datasource_link', 'cluster', 'owner',
-        'creator', 'created_on',
-        'changed_by_', 'changed_on',
-        'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'modified', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
@@ -420,6 +436,7 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
+        label=_("Druid Datasources"),
         category="Sources",
         icon="fa-cube")
 
@@ -503,7 +520,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash("The datasource seems to have been deleted", "alert")
+            flash(_("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
@@ -511,7 +528,7 @@ class Caravel(BaseView):
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash("You don't seem to have access to this datasource", "danger")
+            flash(_("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -534,14 +551,16 @@ class Caravel(BaseView):
             return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
-            try:
+            if config.get("DEBUG"):
+                # Allows for nice debugger stack traces in debug mode
                 payload = obj.get_json()
-            except Exception as e:
-                logging.exception(e)
-                if config.get("DEBUG"):
-                    raise e
-                payload = str(e)
-                status = 500
+            else:
+                try:
+                    payload = obj.get_json()
+                except Exception as e:
+                    logging.exception(e)
+                    payload = str(e)
+                    status = 500
             resp = Response(
                 payload,
                 status=status,
@@ -710,12 +729,12 @@ class Caravel(BaseView):
         FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
-            class_name=class_name, obj_id=obj_id, user_id=g.user.id).all()
+            class_name=class_name, obj_id=obj_id, user_id=g.user.get_id()).all()
         if action == 'select':
             if not favs:
                 session.add(
                     FavStar(
-                        class_name=class_name, obj_id=obj_id, user_id=g.user.id,
+                        class_name=class_name, obj_id=obj_id, user_id=g.user.get_id(),
                         dttm=datetime.now()))
             count = 1
         elif action == 'unselect':
@@ -832,8 +851,8 @@ class Caravel(BaseView):
         if (
                 not self.appbuilder.sm.has_access(
                     'all_datasource_access', 'all_datasource_access')):
-            raise Exception(
-                "This view requires the `all_datasource_access` permission")
+            raise Exception(_(
+                "This view requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -943,6 +962,7 @@ appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
+    label=_("CSS Templates"),
     icon="fa-css3",
     category="Sources",
     category_icon='')

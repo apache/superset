@@ -57,7 +57,6 @@ function sunburstVis(slice) {
         slice.error(error.responseText);
         return '';
       }
-
       createBreadcrumbs(rawData);
       createVisualization(rawData);
 
@@ -299,7 +298,8 @@ function sunburstVis(slice) {
         name: "root",
         children: []
       };
-      for (var i = 0; i < rows.length; i++) {
+
+      for (var i = 0; i < rows.length; i++) { // each record [groupby1val, groupby2val, (<string> or 0)n, m1, m2]
         var row = rows[i];
         var m1 = Number(row[row.length - 2]);
         var m2 = Number(row[row.length - 1]);
@@ -308,19 +308,22 @@ function sunburstVis(slice) {
           continue;
         }
         var currentNode = root;
-        for (var j = 0; j < levels.length; j++) {
+        for (var level = 0; level < levels.length; level++) {
           var children = currentNode.children || [];
-          var nodeName = levels[j];
+          var nodeName = levels[level];
           // If the next node has the name "0", it will
-          var isLeafNode = (j >= levels.length - 1) || levels[j+1] === 0;
-          var childNode;
+          var isLeafNode = (level >= levels.length - 1) || levels[level+1] === 0;
+          var childNode, currChild;
 
           if (!isLeafNode) {
             // Not yet at the end of the sequence; move down the tree.
             var foundChild = false;
             for (var k = 0; k < children.length; k++) {
-              if (children[k].name === nodeName) {
-                childNode = children[k];
+              currChild = children[k];
+              if (currChild.name === nodeName &&
+                  currChild.level === level) { // must match name AND level
+
+                childNode = currChild;
                 foundChild = true;
                 break;
               }
@@ -329,11 +332,13 @@ function sunburstVis(slice) {
             if (!foundChild) {
               childNode = {
                 name: nodeName,
-                children: []
+                children: [],
+                level: level
               };
               children.push(childNode);
             }
             currentNode = childNode;
+
           } else if (nodeName !== 0) {
             // Reached the end of the sequence; create a leaf node.
             childNode = {
@@ -361,6 +366,7 @@ function sunburstVis(slice) {
         }
         return [node.m1, node.m2];
       }
+
       recurse(root);
       return root;
     }

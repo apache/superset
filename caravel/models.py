@@ -18,12 +18,16 @@ import requests
 import sqlalchemy as sqla
 import sqlparse
 from dateutil.parser import parse
+
 from flask import request, g
 from flask.ext.appbuilder import Model
 from flask.ext.appbuilder.models.mixins import AuditMixin
-from pydruid.client import PyDruid
 from flask.ext.appbuilder.models.decorators import renders
+from flask.ext.babelpkg import gettext as _
+
+from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
+from pydruid.utils.postaggregator import Postaggregator
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -32,7 +36,6 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
-from sqlalchemy.sql.elements import ColumnClause
 from sqlalchemy_utils import EncryptedType
 
 from caravel import app, db, get_session, utils
@@ -42,6 +45,17 @@ from caravel.utils import flasher
 config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+
+
+class JavascriptPostAggregator(Postaggregator):
+    def __init__(self, name, field_names, function):
+        self.post_aggregator = {
+            'type': 'javascript',
+            'fieldNames': field_names,
+            'name': name,
+            'function': function,
+        }
+        self.name = name
 
 
 class AuditMixinNullable(AuditMixin):
@@ -319,6 +333,10 @@ class Queryable(object):
     def dttm_cols(self):
         return []
 
+    @property
+    def url(self):
+        return '/{}/edit/{}'.format(self.baselink, self.id)
+
 
 class Database(Model, AuditMixinNullable):
 
@@ -378,6 +396,8 @@ class Database(Model, AuditMixinNullable):
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
+                Grain("second", "DATE_TRUNC('second', {col})"),
+                Grain("minute", "DATE_TRUNC('minute', {col})"),
                 Grain("hour", "DATE_TRUNC('hour', {col})"),
                 Grain("day", "DATE_TRUNC('day', {col})"),
                 Grain("week", "DATE_TRUNC('week', {col})"),
@@ -468,10 +488,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return utils.markdown(self.description)
 
     @property
-    def url(self):
-        return '/tablemodelview/edit/{}'.format(self.id)
-
-    @property
     def link(self):
         return '<a href="{self.url}">{self.table_name}</a>'.format(**locals())
 
@@ -559,20 +575,20 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry_start_dttm = datetime.now()
 
         if not granularity and is_timeseries:
-            raise Exception(
+            raise Exception(_(
                 "Datetime column not provided as part table configuration "
-                "and is required by this type of chart")
+                "and is required by this type of chart"))
 
         metrics_exprs = [
-            literal_column(m.expression).label(m.metric_name)
+            m.sqla_col
             for m in self.metrics if m.metric_name in metrics]
 
         if metrics:
-            main_metric_expr = literal_column([
-                m.expression for m in self.metrics
-                if m.metric_name == metrics[0]][0])
+            main_metric_expr = [
+                m.sqla_col for m in self.metrics
+                if m.metric_name == metrics[0]][0]
         else:
-            main_metric_expr = literal_column("COUNT(*)")
+            main_metric_expr = literal_column("COUNT(*)").label("ccount")
 
         select_exprs = []
         groupby_exprs = []
@@ -583,13 +599,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_groupby_exprs = []
             for s in groupby:
                 col = cols[s]
-                expr = col.expression
-                if expr:
-                    outer = literal_column(expr).label(s)
-                    inner = literal_column(expr).label('__' + s)
-                else:
-                    outer = column(s).label(s)
-                    inner = column(s).label('__' + s)
+                outer = col.sqla_col
+                inner = col.sqla_col.label('__' + col.column_name)
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -597,12 +608,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 inner_select_exprs.append(inner)
         elif columns:
             for s in columns:
-                select_exprs.append(s)
+                select_exprs.append(cols[s].sqla_col)
             metrics_exprs = []
 
         if granularity:
-            dttm_expr = cols[granularity].expression or granularity
-            timestamp = literal_column(dttm_expr).label('timestamp')
+            dttm_expr = cols[granularity].sqla_col.label('timestamp')
+            timestamp = dttm_expr
 
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
@@ -646,11 +657,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 values = eq.split(",")
-                if col_obj.expression:
-                    cond = ColumnClause(
-                        col_obj.expression, is_literal=True).in_(values)
-                else:
-                    cond = column(col).in_(values)
+                cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
@@ -685,7 +692,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
-            qry.compile(engine, compile_kwargs={"literal_binds": True}))
+            qry.compile(
+                engine, compile_kwargs={"literal_binds": True},),
+            )
+        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -811,6 +821,11 @@ class SqlMetric(Model, AuditMixinNullable):
     expression = Column(Text)
     description = Column(Text)
 
+    @property
+    def sqla_col(self):
+        name = self.metric_name
+        return literal_column(self.expression).label(name)
+
 
 class TableColumn(Model, AuditMixinNullable):
 
@@ -822,6 +837,7 @@ class TableColumn(Model, AuditMixinNullable):
     table = relationship(
         'SqlaTable', backref='columns', foreign_keys=[table_id])
     column_name = Column(String(256))
+    verbose_name = Column(String(1024))
     is_dttm = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
     type = Column(String(32), default='')
@@ -841,6 +857,15 @@ class TableColumn(Model, AuditMixinNullable):
     def isnum(self):
         types = ('LONG', 'DOUBLE', 'FLOAT', 'BIGINT', 'INT')
         return any([t in self.type.upper() for t in types])
+
+    @property
+    def sqla_col(self):
+        name = self.column_name
+        if not self.expression:
+            col = column(self.column_name).label(name)
+        else:
+            col = literal_column(self.expression).label(name)
+        return col
 
 
 class DruidCluster(Model, AuditMixinNullable):
@@ -887,7 +912,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     type = "druid"
 
-    baselink = "datasourcemodelview"
+    baselink = "druiddatasourcemodelview"
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
@@ -920,10 +945,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{obj.cluster_name}].[{obj.datasource_name}]"
             "(id:{obj.id})").format(obj=self)
-
-    @property
-    def url(self):
-        return '/datasourcemodelview/edit/{}'.format(self.id)
 
     @property
     def link(self):
@@ -1038,9 +1059,44 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 
         query_str = ""
+        metrics_dict = {m.metric_name: m for m in self.metrics}
+        all_metrics = []
+        post_aggs = {}
+
+        def recursive_get_fields(_conf):
+            _fields = _conf.get('fields', [])
+            field_names = []
+            for _f in _fields:
+                _type = _f.get('type')
+                if _type == 'fieldAccess':
+                    field_names.append(_f.get('fieldName'))
+                elif _type == 'arithmetic':
+                    field_names += recursive_get_fields(_f)
+
+            return list(set(field_names))
+
+        for metric_name in metrics:
+            metric = metrics_dict[metric_name]
+            if metric.metric_type != 'postagg':
+                all_metrics.append(metric_name)
+            else:
+                conf = metric.json_obj
+                all_metrics += recursive_get_fields(conf)
+                all_metrics += conf.get('fieldNames', [])
+                if conf.get('type') == 'javascript':
+                    post_aggs[metric_name] = JavascriptPostAggregator(
+                        name=conf.get('name'),
+                        field_names=conf.get('fieldNames'),
+                        function=conf.get('function'))
+                else:
+                    post_aggs[metric_name] = Postaggregator(
+                        conf.get('fn', "/"),
+                        conf.get('fields', []),
+                        conf.get('name', ''))
         aggregations = {
             m.metric_name: m.json_obj
-            for m in self.metrics if m.metric_name in metrics
+            for m in self.metrics
+            if m.metric_name in all_metrics
         }
         granularity = granularity or "all"
         if granularity != "all":
@@ -1058,6 +1114,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             dimensions=groupby,
             aggregations=aggregations,
             granularity=granularity,
+            post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
         filters = None
@@ -1115,7 +1172,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if df is not None and not df.empty:
                 dims = qry['dimensions']
                 filters = []
-                for _, row in df.iterrows():
+                for unused, row in df.iterrows():
                     fields = []
                     for dim in dims:
                         f = Filter.build_filter(Dimension(dim) == row[dim])
@@ -1148,7 +1205,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         query_str += json.dumps(client.query_dict, indent=2)
         df = client.export_pandas()
         if df is None or df.size == 0:
-            raise Exception("No data was returned.")
+            raise Exception(_("No data was returned."))
 
         if (
                 not is_timeseries and
@@ -1162,7 +1219,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             cols += ['timestamp']
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
-        cols += [col for col in df.columns if col not in cols]
         df = df[cols]
         return QueryResult(
             df=df,
@@ -1194,7 +1250,7 @@ class Log(Model):
         def wrapper(*args, **kwargs):
             user_id = None
             if g.user:
-                user_id = g.user.id
+                user_id = g.user.get_id()
             d = request.args.to_dict()
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)

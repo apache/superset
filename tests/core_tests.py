@@ -12,6 +12,7 @@ import unittest
 from mock import Mock, patch
 
 from flask import escape
+from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
 from caravel import app, db, models, utils, appbuilder
@@ -63,17 +64,38 @@ class CaravelTestCase(unittest.TestCase):
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
 
+    def setup_public_access_for_dashboard(self, dashboard_name):
+        public_role = appbuilder.sm.find_role('Public')
+        perms = db.session.query(ab_models.PermissionView).all()
+        for perm in perms:
+            if perm.permission.name not in (
+                'can_list',
+                'can_dashboard',
+                'can_explore',
+                'datasource_access'):
+                continue
+            if not perm.view_menu:
+                continue
+            if perm.view_menu.name not in (
+                'SliceModelView',
+                'DashboardModelView',
+                'Caravel') and dashboard_name not in perm.view_menu.name:
+                continue
+            appbuilder.sm.add_permission_role(public_role, perm)
+
 
 class CoreTests(CaravelTestCase):
 
     def __init__(self, *args, **kwargs):
+        # Load examples first, so that we setup proper permission-view relations
+        # for all example data sources.
+        self.load_examples()
         super(CoreTests, self).__init__(*args, **kwargs)
         self.table_ids = {tbl.table_name: tbl.id  for tbl in (
             db.session
             .query(models.SqlaTable)
             .all()
         )}
-        self.load_examples()
 
     def setUp(self):
         pass
@@ -82,7 +104,7 @@ class CoreTests(CaravelTestCase):
         pass
 
     def load_examples(self):
-        cli.load_examples(sample=True)
+        cli.load_examples(load_test_data=True)
 
     def test_save_slice(self):
         self.login_admin()
@@ -113,10 +135,12 @@ class CoreTests(CaravelTestCase):
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                slc.slice_url,
-                slc.viz.json_endpoint,
+                (slc.slice_name, slc.slice_url),
+                (slc.slice_name, slc.viz.json_endpoint),
+                (slc.slice_name, slc.viz.csv_endpoint),
             ]
-        for url in urls:
+        for name, url in urls:
+            print("Slice: " + name)
             self.client.get(url)
 
     def test_dashboard(self):
@@ -160,6 +184,52 @@ class CoreTests(CaravelTestCase):
 
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
+
+    def test_public_user_dashboard_access(self):
+        # Try access before adding appropriate permissions.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/3">birth_names</a>' not in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/births/">' not in data
+
+        resp = self.client.get('/caravel/dashboard/births/')
+        data = resp.data.decode('utf-8')
+        assert '[dashboard] Births' not in data
+
+        self.setup_public_access_for_dashboard('birth_names')
+
+        # Try access after adding appropriate permissions.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/3">birth_names</a>' in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/births/">' in data
+
+        resp = self.client.get('/caravel/dashboard/births/')
+        data = resp.data.decode('utf-8')
+        assert '[dashboard] Births' in data
+
+        resp = self.client.get('/caravel/explore/table/3/')
+        data = resp.data.decode('utf-8')
+        assert '[explore] birth_names' in data
+
+        # Confirm that public doesn't have access to other datasets.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/tablemodelview/edit/2">wb_health_population</a>' not in data
+
+        resp = self.client.get('/dashboardmodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert '<a href="/caravel/dashboard/world_health/">' not in data
+
+        resp = self.client.get('/caravel/explore/table/2/', follow_redirects=True)
+        data = resp.data.decode('utf-8')
+        assert "You don&#39;t seem to have access to this datasource" in data
 
 
 SEGMENT_METADATA = [{
@@ -259,7 +329,7 @@ class DruidTests(CaravelTestCase):
         df = pd.DataFrame(nres)
         instance.export_pandas.return_value = df
         instance.query_dict = {}
-        resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
+        resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&groupby=name&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
         print('-'*300)
         print(resp.data.decode('utf-8'))
         assert "Canada" in resp.data.decode('utf-8')

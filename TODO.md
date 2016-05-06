@@ -13,8 +13,6 @@ List of TODO items for Caravel
 * **Dashboard URL filters:** `{dash_url}#fltin__fieldname__value1,value2`
 * **Default slice:** choose a default slice for the dataset instead of
     default endpoint
-* **refresh freq**: specifying the refresh frequency of a dashboard and
-    specific slices within it, some randomization would be nice
 * **Widget sets / chart grids:** a way to have all charts support making
     a series of charts and putting them in a grid. The same way that you
     can groupby for series, you could chart by. The form field set would be
@@ -27,8 +25,6 @@ List of TODO items for Caravel
     some visualizations as annotations. An example of a layer might be
     "holidays" or "site outages", ...
 * **Slack integration** - TBD
-* **Sexy Viz Selector:** the visualization selector should be a nice large
-    modal with nice thumbnails for each one of the viz
 * **Comments:** allow for people to comment on slices and dashes
 
 

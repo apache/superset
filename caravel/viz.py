@@ -286,7 +286,7 @@ class BaseViz(object):
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index)
+        return df.to_csv(index=include_index, encoding="utf-8")
 
     def get_data(self):
         return []
@@ -910,6 +910,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
+        cols = []
+        for col in df.columns:
+            if col == '':
+                cols.append('N/A')
+            elif col == None:
+                cols.append('NULL')
+            else:
+                cols.append(col)
+        df.columns = cols
         series = df.to_dict('series')
 
         chart_data = []
@@ -932,7 +941,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             d = {
                 "key": series_title,
                 "classed": classed,
-                "values": [{'x': ds, 'y': ys[ds]} for ds in df.timestamp],
+                "values": [
+                    {'x': ds, 'y': ys[ds] if ds in ys else None}
+                    for ds in df.timestamp
+                ],
             }
             chart_data.append(d)
         return chart_data
