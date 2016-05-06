@@ -903,7 +903,8 @@ class DruidCluster(Model, AuditMixinNullable):
 
     def refresh_datasources(self):
         for datasource in self.get_datasources():
-            DruidDatasource.sync_to_db(datasource, self)
+            if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
+                DruidDatasource.sync_to_db(datasource, self)
 
 
 class DruidDatasource(Model, AuditMixinNullable, Queryable):
