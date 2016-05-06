@@ -26,6 +26,7 @@ TIMESTAMP_CHOICES = [
     ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
 ]
 
+
 class BetterBooleanField(BooleanField):
 
     """Fixes the html checkbox to distinguish absent from unchecked
