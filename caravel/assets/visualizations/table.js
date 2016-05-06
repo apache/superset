@@ -1,6 +1,7 @@
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var d3 = require('d3');
+var px = window.px || require('../javascripts/modules/caravel.js');
 
 require('./table.css');
 require('datatables.net-bs');
@@ -11,6 +12,7 @@ function tableVis(slice) {
   var form_data = data.form_data;
   var f = d3.format('.3s');
   var fC = d3.format('0,000');
+  var timestampFormatter;
 
   function refresh() {
     $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
@@ -35,6 +37,12 @@ function tableVis(slice) {
         maxes[metrics[i]] = d3.max(col(metrics[i]));
       }
 
+      if (json.form_data.table_timestamp_format === 'smart_date') {
+        timestampFormatter = px.formatDate;
+      } else if (json.form_data.table_timestamp_format !== undefined) {
+        timestampFormatter = px.timeFormatFactory(json.form_data.table_timestamp_format);
+      }
+
       var table = d3.select(slice.selector).html('').append('table')
         .classed('dataframe dataframe table table-striped table-bordered table-condensed table-hover dataTable no-footer', true)
         .attr('width', '100%');
@@ -54,9 +62,13 @@ function tableVis(slice) {
         .selectAll('td')
         .data(function (row, i) {
           return data.columns.map(function (c) {
+            var val = row[c];
+            if (c === 'timestamp') {
+              val = timestampFormatter(val);
+            }
             return {
               col: c,
-              val: row[c],
+              val: val,
               isMetric: metrics.indexOf(c) >= 0
             };
           });

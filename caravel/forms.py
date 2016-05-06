@@ -430,6 +430,18 @@ class FormFactory(object):
             'compare_suffix': TextField(
                 'Comparison suffix',
                 description="Suffix to apply after the percentage display"),
+            'table_timestamp_format': FreeFormSelectField(
+                'Table Timestamp Format',
+                default='smart_date',
+                choices=[
+                    ('smart_date', 'Adaptative formating'),
+                    ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
+                    ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
+                    ("%Y-%m-%d %H:%M:%S",
+                     '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
+                    ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
+                ],
+                description="Timestamp Format"),
             'x_axis_format': FreeFormSelectField(
                 'X axis format',
                 default='smart_date',
