@@ -132,6 +132,12 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 VIZ_TYPE_BLACKLIST = []
 
+# ---------------------------------------------------
+# List of data sources not to be refreshed in druid cluster
+# ---------------------------------------------------
+
+DRUID_DATA_SOURCE_BLACKLIST = []
+
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
