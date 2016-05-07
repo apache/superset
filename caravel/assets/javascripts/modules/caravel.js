@@ -25,7 +25,8 @@ var sourceMap = {
   sunburst: 'sunburst.js',
   table: 'table.js',
   word_cloud: 'word_cloud.js',
-  world_map: 'world_map.js'
+  world_map: 'world_map.js',
+  treemap: 'treemap.js'
 };
 
 var color = function () {
@@ -300,6 +301,7 @@ var px = (function () {
       },
       bindResizeToWindowResize: function () {
         var resizeTimer;
+        var slice = this;
         $(window).on('resize', function (e) {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(function () {
@@ -313,8 +315,7 @@ var px = (function () {
         }
         this.force = force;
         token.find("img.loading").show();
-        container.hide();
-        container.html('');
+        container.css('height', this.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
@@ -323,8 +324,7 @@ var px = (function () {
       },
       resize: function () {
         token.find("img.loading").show();
-        container.hide();
-        container.html('');
+        container.css('height', this.height());
         this.viz.render();
         this.viz.resize();
       },

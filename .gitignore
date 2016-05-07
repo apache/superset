@@ -1,5 +1,5 @@
 *.pyc
-babel
+changelog.sh
 .DS_Store
 .coverage
 _build

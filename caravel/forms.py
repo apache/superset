@@ -6,10 +6,11 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from copy import copy
+import math
 
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField, IntegerField, HiddenField)
+    BooleanField, IntegerField, HiddenField, DecimalField)
 from wtforms import validators, widgets
 
 from caravel import app
@@ -89,7 +90,6 @@ class OmgWtForm(Form):
         return getattr(self, fieldname)
 
     def field_css_classes(self, fieldname):
-        print(fieldname, self.css_classes[fieldname])
         if fieldname in self.css_classes:
             return " ".join(self.css_classes[fieldname])
         return ""
@@ -112,11 +112,13 @@ class FormFactory(object):
         from caravel.viz import viz_types
         viz = self.viz
         datasource = viz.datasource
+        if not datasource.metrics_combo:
+            raise Exception("Please define at least one metric for your table")
         default_metric = datasource.metrics_combo[0][0]
 
         gb_cols = datasource.groupby_column_names
         default_groupby = gb_cols[0] if gb_cols else None
-        group_by_choices = [(s, s) for s in datasource.groupby_column_names]
+        group_by_choices = self.choicify(gb_cols)
         # Pool of all the fields that can be used in Caravel
         self.field_dict = {
             'viz_type': SelectField(
@@ -212,6 +214,15 @@ class FormFactory(object):
                 'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
+            'druid_time_origin': SelectField(
+                'Origin',
+                choices=(
+                    ('', 'default'),
+                    ('now', 'now'),
+                ),
+                description=(
+                    "Defines the origin where time buckets start, "
+                    "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")),
             'granularity': FreeFormSelectField(
                 'Time Granularity', default="one day",
                 choices=self.choicify([
@@ -326,6 +337,26 @@ class FormFactory(object):
                     '9/91 percentiles',
                 ])
             ),
+            'treemap_ratio': DecimalField(
+                'Ratio',
+                default=0.5 * (1 + math.sqrt(5)),  # d3 default, golden ratio
+                description='Target aspect ratio for treemap tiles.',
+            ),
+            'number_format': FreeFormSelectField(
+                'Number format',
+                default='.3s',
+                choices=[
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                description="D3 format syntax for numbers "
+                            "https://github.com/mbostock/\n"
+                            "d3/wiki/Formatting"),
+
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',
@@ -376,7 +407,7 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'url': TextField(
-                'URL', default='www.airbnb.com',),
+                'URL', default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
@@ -615,9 +646,10 @@ class FormFactory(object):
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
         else:
-            time_fields = 'granularity'
-            add_to_form(('granularity',))
-            field_css_classes['granularity'] = ['form-control', 'select2']
+            time_fields = ('granularity', 'druid_time_origin')
+            add_to_form(('granularity', 'druid_time_origin'))
+            field_css_classes['granularity'] = ['form-control', 'select2_freeform']
+            field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
         add_to_form(('since', 'until'))
 
         QueryForm.fieldsets = ({

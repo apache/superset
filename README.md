@@ -6,6 +6,7 @@ Caravel
 [![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
 [![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
 [![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
+[![PyPI](https://img.shields.io/pypi/pyversions/caravel.svg?maxAge=2592000)](https://pypi.python.org/pypi/caravel)
 [![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
@@ -89,7 +90,8 @@ Resources
 -------------
 * [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
-* [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
+* [Docker image 1](https://hub.docker.com/r/kochalex/caravel/)
+  [Docker image 2](https://hub.docker.com/r/amancevice/caravel/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 

@@ -15,7 +15,8 @@ module.exports = function (slice) {
       if (form_data.groupby.length === 1) {
         var table = container.find('table').DataTable({
           paging: false,
-          searching: false
+          searching: false,
+          bInfo: false
         });
         table.column('-1').order('desc').draw();
       }

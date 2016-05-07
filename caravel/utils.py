@@ -11,10 +11,21 @@ from datetime import datetime
 
 import parsedatetime
 from dateutil.parser import parse
-from flask import Markup
+from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
+
+
+def flasher(msg, severity=None):
+    """Flask's flash if available, logging call if not"""
+    try:
+        flash(msg, severity)
+    except RuntimeError:
+        if severity == 'danger':
+            logging.error(msg)
+        else:
+            logging.info(msg)
 
 
 class memoized(object):  # noqa

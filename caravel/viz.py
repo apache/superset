@@ -14,10 +14,9 @@ import logging
 import uuid
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
-
 import pandas as pd
 import numpy as np
-from flask import flash, request, Markup
+from flask import request, Markup
 from markdown import markdown
 from pandas.io.json import dumps
 from six import string_types
@@ -26,6 +25,7 @@ from werkzeug.urls import Href
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
+from caravel.utils import flasher
 
 config = app.config
 
@@ -46,14 +46,14 @@ class BaseViz(object):
     },)
     form_overrides = {}
 
-    def __init__(self, datasource, form_data, slice=None):
+    def __init__(self, datasource, form_data, slice_=None):
         self.orig_form_data = form_data
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
         self.request = request
         self.viz_type = form_data.get("viz_type")
-        self.slice = slice
+        self.slice = slice_
 
         # TODO refactor all form related logic out of here and into forms.py
         ff = FormFactory(self)
@@ -69,7 +69,7 @@ class BaseViz(object):
         if not form.validate():
             for k, v in form.errors.items():
                 if not data.get('json') and not data.get('async'):
-                    flash("{}: {}".format(k, " ".join(v)), 'danger')
+                    flasher("{}: {}".format(k, " ".join(v)), 'danger')
         if previous_viz_type != self.viz_type:
             data = {
                 k: form.data[k]
@@ -120,13 +120,16 @@ class BaseViz(object):
             del d['action']
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
-        for key in d.keys():
+        od = OrderedDict()
+        for key in sorted(d.keys()):
             if d[key] is False:
                 del d[key]
+            else:
+                od[key] = d[key]
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
-        return href(d)
+        return href(od)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -196,7 +199,7 @@ class BaseViz(object):
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
-            flash("The date range doesn't seem right.", "danger")
+            flasher("The date range doesn't seem right.", "danger")
             from_dttm = to_dttm  # Making them identical to not raise
 
         # extras are used to query elements specific to a datasource type
@@ -205,6 +208,7 @@ class BaseViz(object):
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
+            'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
         d = {
             'granularity': granularity,
@@ -222,12 +226,14 @@ class BaseViz(object):
 
     @property
     def cache_timeout(self):
+
         if self.slice and self.slice.cache_timeout:
             return self.slice.cache_timeout
         if self.datasource.cache_timeout:
             return self.datasource.cache_timeout
-        if hasattr(self.datasource, 'database') \
-                and self.datasource.database.cache_timeout:
+        if (
+                hasattr(self.datasource, 'database') and
+                self.datasource.database.cache_timeout):
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
@@ -244,25 +250,42 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
             payload = {
+                'cache_timeout': cache_timeout,
+                'cache_key': cache_key,
+                'csv_endpoint': self.csv_endpoint,
                 'data': self.get_data(),
-                'query': self.query,
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
-                'csv_endpoint': self.csv_endpoint,
+                'query': self.query,
                 'standalone_endpoint': self.standalone_endpoint,
-                'cache_timeout': cache_timeout,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=self.cache_timeout)
+            cache.set(cache_key, payload, timeout=cache_timeout)
         payload['is_cached'] = is_cached
-        return dumps(payload)
+        return self.json_dumps(payload)
+
+    def json_dumps(self, obj):
+        """Used by get_json, can be overridden to use specific switches"""
+        return dumps(obj)
+
+    @property
+    def data(self):
+        content = {
+            'csv_endpoint': self.csv_endpoint,
+            'form_data': self.form_data,
+            'json_endpoint': self.json_endpoint,
+            'standalone_endpoint': self.standalone_endpoint,
+            'token': self.token,
+            'viz_name': self.viz_type,
+        }
+        return content
 
     def get_csv(self):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
-        return df.to_csv(index=include_index)
+        return df.to_csv(index=include_index, encoding="utf-8")
 
     def get_data(self):
         return []
@@ -283,18 +306,6 @@ class BaseViz(object):
     @property
     def standalone_endpoint(self):
         return self.get_url(standalone="true")
-
-    @property
-    def data(self):
-        content = {
-            'viz_name': self.viz_type,
-            'json_endpoint': self.json_endpoint,
-            'csv_endpoint': self.csv_endpoint,
-            'standalone_endpoint': self.standalone_endpoint,
-            'token': self.token,
-            'form_data': self.form_data,
-        }
-        return content
 
     @property
     def json_data(self):
@@ -354,6 +365,9 @@ class TableViz(BaseViz):
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
@@ -476,6 +490,50 @@ class WordCloudViz(BaseViz):
         # Labeling the columns for uniform json schema
         df.columns = ['text', 'size']
         return df.to_dict(orient="records")
+
+
+class TreemapViz(BaseViz):
+
+    """Tree map visualisation for hierarchical data."""
+
+    viz_type = "treemap"
+    verbose_name = "Treemap"
+    credits = '<a href="https://d3js.org">d3.js</a>'
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby',
+        ),
+    }, {
+        'label': 'Chart Options',
+        'fields': (
+            'treemap_ratio',
+            'number_format',
+        )
+    },)
+
+    def get_df(self, query_obj=None):
+        df = super(TreemapViz, self).get_df(query_obj)
+        df = df.set_index(self.form_data.get("groupby"))
+        return df
+
+    def _nest(self, metric, df):
+        nlevels = df.index.nlevels
+        if nlevels == 1:
+            result = [{"name": n, "value": v}
+                      for n, v in zip(df.index, df[metric])]
+        else:
+            result = [{"name": l, "children": self._nest(metric, df.loc[l])}
+                      for l in df.index.levels[0]]
+        return result
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = [{"name": metric, "children": self._nest(metric, df)}
+                      for metric in df.columns]
+        return chart_data
 
 
 class NVD3Viz(BaseViz):
@@ -850,6 +908,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
+        cols = []
+        for col in df.columns:
+            if col == '':
+                cols.append('N/A')
+            elif col == None:
+                cols.append('NULL')
+            else:
+                cols.append(col)
+        df.columns = cols
         series = df.to_dict('series')
 
         chart_data = []
@@ -872,7 +939,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             d = {
                 "key": series_title,
                 "classed": classed,
-                "values": [{'x': ds, 'y': ys[ds]} for ds in df.timestamp],
+                "values": [
+                    {'x': ds, 'y': ys[ds] if ds in ys else None}
+                    for ds in df.timestamp
+                ],
             }
             chart_data.append(d)
         return chart_data
@@ -1169,12 +1239,14 @@ class SankeyViz(BaseViz):
         def find_cycle(g):
             """Whether there's a cycle in a directed graph"""
             path = set()
+
             def visit(vertex):
                 path.add(vertex)
                 for neighbour in g.get(vertex, ()):
                     if neighbour in path or visit(neighbour):
                         return (vertex, neighbour)
                 path.remove(vertex)
+
             for v in g:
                 cycle = visit(v)
                 if cycle:
@@ -1495,6 +1567,8 @@ viz_types_list = [
     ParallelCoordinatesViz,
     HeatmapViz,
     BoxPlotViz,
+    TreemapViz,
 ]
 
-viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list])
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
+                         if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])

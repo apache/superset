@@ -8,9 +8,11 @@ import gzip
 import json
 import os
 import textwrap
+import datetime
+import random
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Float
+from sqlalchemy import String, DateTime, Date, Float
 
 from caravel import app, db, models, utils
 
@@ -105,6 +107,69 @@ def load_energy():
                 "slice_name": "Energy Sankey",
                 "viz_type": "sankey",
                 "where": ""
+            }
+            """))
+    )
+
+    merge_slice(
+        Slice(
+            slice_name="Energy Force Layout",
+            viz_type='directed_force',
+            datasource_type='table',
+            table=tbl,
+            params=textwrap.dedent("""\
+            {
+                "charge": "-500",
+                "collapsed_fieldsets": "",
+                "datasource_id": "1",
+                "datasource_name": "energy_usage",
+                "datasource_type": "table",
+                "flt_col_0": "source",
+                "flt_eq_0": "",
+                "flt_op_0": "in",
+                "groupby": [
+                    "source",
+                    "target"
+                ],
+                "having": "",
+                "link_length": "200",
+                "metric": "sum__value",
+                "row_limit": "5000",
+                "slice_id": "229",
+                "slice_name": "Force",
+                "viz_type": "directed_force",
+                "where": ""
+            }
+            """))
+    )
+    merge_slice(
+        Slice(
+            slice_name="Heatmap",
+            viz_type='heatmap',
+            datasource_type='table',
+            table=tbl,
+            params=textwrap.dedent("""\
+            {
+                "all_columns_x": "source",
+                "all_columns_y": "target",
+                "canvas_image_rendering": "pixelated",
+                "collapsed_fieldsets": "",
+                "datasource_id": "1",
+                "datasource_name": "energy_usage",
+                "datasource_type": "table",
+                "flt_col_0": "source",
+                "flt_eq_0": "",
+                "flt_op_0": "in",
+                "having": "",
+                "linear_color_scheme": "blue_white_yellow",
+                "metric": "sum__value",
+                "normalize_across": "heatmap",
+                "slice_id": "229",
+                "slice_name": "Heatmap",
+                "viz_type": "heatmap",
+                "where": "",
+                "xscale_interval": "1",
+                "yscale_interval": "1"
             }
             """))
     )
@@ -275,75 +340,118 @@ def load_world_bank_health_n_pop():
                 whisker_options="Tukey",
                 viz_type='box_plot',
                 groupby=["region"],)),
+        Slice(
+            slice_name="Treemap",
+            viz_type='treemap',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="1960-01-01",
+                until="now",
+                viz_type='treemap',
+                metrics=["sum__SP_POP_TOTL"],
+                groupby=["region", "country_code"],)),
+        Slice(
+            slice_name="Parallel Coordinates",
+            viz_type='para',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                since="2011-01-01",
+                until="2011-01-01",
+                viz_type='para',
+                limit=100,
+                metrics=[
+                    "sum__SP_POP_TOTL",
+                    'sum__SP_RUR_TOTL_ZS',
+                    'sum__SH_DYN_AIDS'],
+                secondary_metric='sum__SP_POP_TOTL',
+                series=["country_name"],)),
     ]
     for slc in slices:
         merge_slice(slc)
 
     print("Creating a World's Health Bank dashboard")
-    dash_name = "World's Health Bank Dashboard"
+    dash_name = "World's Bank Data"
     dash = db.session.query(Dash).filter_by(dashboard_title=dash_name).first()
 
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-        [
-            {
-                "size_y": 2,
-                "size_x": 3,
-                "col": 1,
-                "slice_id": "1",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 1,
-                "slice_id": "2",
-                "row": 3
-            },
-            {
-                "size_y": 8,
-                "size_x": 3,
-                "col": 10,
-                "slice_id": "3",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 6,
-                "col": 1,
-                "slice_id": "4",
-                "row": 6
-            },
-            {
-                "size_y": 5,
-                "size_x": 6,
-                "col": 4,
-                "slice_id": "5",
-                "row": 1
-            },
-            {
-                "size_y": 4,
-                "size_x": 6,
-                "col": 7,
-                "slice_id": "6",
-                "row": 9
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 7,
-                "slice_id": "7",
-                "row": 6
-            },
-            {
-                "size_y": 4,
-                "size_x": 6,
-                "col": 1,
-                "slice_id": "8",
-                "row": 9
-            }
-        ]
+    [
+        {
+            "size_y": 2,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "22",
+            "row": 1
+        },
+        {
+            "size_y": 3,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "23",
+            "row": 3
+        },
+        {
+            "size_y": 8,
+            "size_x": 3,
+            "col": 1,
+            "slice_id": "24",
+            "row": 1
+        },
+        {
+            "size_y": 3,
+            "size_x": 6,
+            "col": 4,
+            "slice_id": "25",
+            "row": 6
+        },
+        {
+            "size_y": 5,
+            "size_x": 6,
+            "col": 4,
+            "slice_id": "26",
+            "row": 1
+        },
+        {
+            "size_y": 4,
+            "size_x": 6,
+            "col": 7,
+            "slice_id": "27",
+            "row": 9
+        },
+        {
+            "size_y": 3,
+            "size_x": 3,
+            "col": 10,
+            "slice_id": "28",
+            "row": 6
+        },
+        {
+            "size_y": 4,
+            "size_x": 6,
+            "col": 1,
+            "slice_id": "29",
+            "row": 9
+        },
+        {
+            "size_y": 4,
+            "size_x": 5,
+            "col": 8,
+            "slice_id": "30",
+            "row": 13
+        },
+        {
+            "size_y": 4,
+            "size_x": 7,
+            "col": 1,
+            "slice_id": "31",
+            "row": 13
+        }
+    ]
     """)
     l = json.loads(js)
     for i, pos in enumerate(l):
@@ -353,7 +461,7 @@ def load_world_bank_health_n_pop():
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "world_health"
 
-    dash.slices = slices
+    dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
 
@@ -544,16 +652,6 @@ def load_birth_names():
                 viz_type="big_number", granularity="ds",
                 compare_lag="5", compare_suffix="over 5Y")),
         Slice(
-            slice_name="Number of Girls",
-            viz_type='big_number_total',
-            datasource_type='table',
-            table=tbl,
-            params=get_slice_json(
-                defaults,
-                viz_type="big_number_total", granularity="ds",
-                flt_col_1='gender', flt_eq_1='girl',
-                subheader='total female participants')),
-        Slice(
             slice_name="Genders",
             viz_type='pie',
             datasource_type='table',
@@ -617,6 +715,16 @@ def load_birth_names():
                 defaults,
                 viz_type="pivot_table", metrics=['sum__num'],
                 groupby=['name'], columns=['state'])),
+        Slice(
+            slice_name="Number of Girls",
+            viz_type='big_number_total',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(
+                defaults,
+                viz_type="big_number_total", granularity="ds",
+                flt_col_1='gender', flt_eq_1='girl',
+                subheader='total female participants')),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -699,6 +807,91 @@ def load_birth_names():
     dash.dashboard_title = "Births"
     dash.position_json = json.dumps(l, indent=4)
     dash.slug = "births"
-    dash.slices = slices
+    dash.slices = slices[:-1]
+    db.session.merge(dash)
+    db.session.commit()
+
+
+def load_unicode_test_data():
+    """Loading unicode test dataset from a csv file in the repo"""
+    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
+                     encoding="utf-8")
+    # generate date/numeric data
+    df['date'] = datetime.datetime.now().date()
+    df['value'] = [random.randint(1, 100) for _ in range(len(df))]
+    df.to_sql(
+        'unicode_test',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'phrase': String(500),
+            'short_phrase': String(10),
+            'with_missing': String(100),
+            'date': Date(),
+            'value': Float(),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table reference")
+    obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
+    if not obj:
+        obj = TBL(table_name='unicode_test')
+    obj.main_dttm_col = 'date'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "3",
+        "datasource_name": "unicode_test",
+        "datasource_type": "table",
+        "flt_op_1": "in",
+        "granularity": "date",
+        "groupby": [],
+        "metric": 'sum__value',
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "100 years ago",
+        "until": "now",
+        "where": "",
+        "viz_type": "word_cloud",
+        "size_from": "10",
+        "series": "short_phrase",
+        "size_to": "70",
+        "rotation": "square",
+        "limit": "100",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Unicode Cloud",
+        viz_type='word_cloud',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+    print("Creating a dashboard")
+    dash = db.session.query(Dash).filter_by(dashboard_title="Unicode Test").first()
+
+    if not dash:
+        dash = Dash()
+    pos = {
+        "size_y": 4,
+        "size_x": 4,
+        "col": 1,
+        "row": 1,
+        "slice_id": slc.id,
+    }
+    dash.dashboard_title = "Unicode Test"
+    dash.position_json = json.dumps([pos], indent=4)
+    dash.slug = "unicode-test"
+    dash.slices = [slc]
     db.session.merge(dash)
     db.session.commit()

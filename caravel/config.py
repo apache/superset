@@ -99,10 +99,12 @@ AUTH_TYPE = AUTH_DB
 # Setup default language
 BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
-BABEL_DEFAULT_FOLDER = 'translations'
+BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
+    # 'fr': {'flag': 'fr', 'name': 'French'},
+    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -121,7 +123,49 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
+
+# ---------------------------------------------------
+# List of viz_types not allowed in your environment
+# For example: Blacklist pivot table and treemap:
+#  VIZ_TYPE_BLACKLIST = ['pivot_table', 'treemap']
+# ---------------------------------------------------
+
+VIZ_TYPE_BLACKLIST = []
+
+# ---------------------------------------------------
+# List of data sources not to be refreshed in druid cluster
+# ---------------------------------------------------
+
+DRUID_DATA_SOURCE_BLACKLIST = []
+
+"""
+1) http://docs.python-guide.org/en/latest/writing/logging/
+2) https://docs.python.org/2/library/logging.config.html
+"""
+
+# Console Log Settings
+
+LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+LOG_LEVEL = 'DEBUG'
+
+# ---------------------------------------------------
+# Enable Time Rotate Log Handler
+# ---------------------------------------------------
+# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+ENABLE_TIME_ROTATE = False
+TIME_ROTATE_LOG_LEVEL = 'DEBUG'
+FILENAME = '/tmp/caravel.log'
+ROLLOVER = 'midnight'
+INTERVAL = 1
+BACKUP_COUNT = 30
+
+
 try:
     from caravel_config import *  # noqa
 except Exception:
     pass
+
+if not CACHE_DEFAULT_TIMEOUT:
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
+
