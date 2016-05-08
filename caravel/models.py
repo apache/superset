@@ -410,6 +410,24 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
+    def dttm_converter(self, dttm):
+        """Returns a string that the database flavor understands as a date"""
+        default = "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+        iso = dttm.isoformat()
+        d = {
+            'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
+            'mysql': default,
+            'oracle':
+                """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
+                    dttm.isoformat()),
+            'presto': default,
+            'sqlite': default,
+        }
+        for k, v in d.items():
+            if self.sqlalchemy_uri.startswith(k):
+                return v
+        return default
+
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
 
@@ -630,14 +648,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
             tf = '%Y-%m-%d %H:%M:%S.%f'
             time_filter = [
-                timestamp >= from_dttm.strftime(tf),
-                timestamp <= to_dttm.strftime(tf),
+                timestamp >= text(self.database.dttm_converter(from_dttm)),
+                timestamp <= text(self.database.dttm_converter(to_dttm)),
             ]
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
-                inner_time_filter[0] = timestamp >= inner_from_dttm.strftime(tf)
+                inner_time_filter[0] = timestamp >= text(
+                    self.database.dttm_converter(inner_from_dttm))
             if inner_to_dttm:
-                inner_time_filter[1] = timestamp <= inner_to_dttm.strftime(tf)
+                inner_time_filter[1] = timestamp <= text(
+                    self.database.dttm_converter(inner_to_dttm))
         else:
             inner_time_filter = []
 
