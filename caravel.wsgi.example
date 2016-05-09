@@ -1,0 +1,25 @@
+#!/usr/bin/python
+
+# This is a demo file. Make sure you have a similar one on your server deployment folder
+import os
+import sys
+import site
+import logging
+
+# Add virtualenv site packages
+site.addsitedir(os.path.join(os.path.dirname(__file__), 'env/lib/python2.7/site-packages'))
+
+# Change these path names accordingly and uncomment these lines
+
+#sys.path.insert(0,"/var/www/test/")
+#sys.path.insert(1,"/var/www/test/env/lib/python2.7/site-packages/")
+#sys.path.insert(2,"/var/www/test/env/lib/python2.7/site-packages/caravel/")
+ 
+# Fired up virtualenv before include application
+activate_env = os.path.expanduser(os.path.join(os.path.dirname(__file__), 'env/bin/activate_this.py'))
+execfile(activate_env, dict(__file__=activate_env))
+
+logging.basicConfig(stream=sys.stderr)
+
+from caravel import app as application
+application.secret_key = 'thisismysecretkey3loqcaravel'
