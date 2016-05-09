@@ -29,9 +29,9 @@ Setup virtualenv and activate it
 virtualenv env && source env/bin/activate
 ```
 
-Compile css and js assets
+Install front-end dependencies and compile css and js assets
 ```
-cd caravel/assets && npm run prod
+cd caravel/assets && npm install && npm run prod
 ```
 
 Bulid a source distribution of the project
