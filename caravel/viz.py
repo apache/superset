@@ -323,6 +323,7 @@ class TableViz(BaseViz):
     fieldsets = ({
         'label': "Chart Options",
         'fields': (
+            'table_timestamp_format',
             'row_limit',
             ('include_search', None),
         )
