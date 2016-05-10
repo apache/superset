@@ -17,12 +17,12 @@ function parallelCoordVis(slice) {
 
         var cols = fd.metrics;
         if (fd.include_series) {
-          var cols = [fd.series].concat(fd.metrics);
+          cols = [fd.series].concat(fd.metrics);
         }
 
         var ttypes = {};
         ttypes[fd.series] = 'string';
-        fd.metrics.forEach(function(v) {
+        fd.metrics.forEach(function (v) {
           ttypes[v] = 'number';
         });
 
