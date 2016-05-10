@@ -48,6 +48,7 @@ var color = function () {
     var seen = {};
     return function (s) {
       if (!s) { return; }
+      s = String(s);
       // next line is for caravel series that should have the same color
       s = s.replace('---', '');
       if (seen[s] === undefined) {
