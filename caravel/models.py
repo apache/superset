@@ -679,7 +679,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
-            subq = subq.order_by(desc(main_metric_expr))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
