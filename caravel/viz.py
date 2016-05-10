@@ -322,22 +322,24 @@ class TableViz(BaseViz):
     verbose_name = "Table View"
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
-        'label': "Chart Options",
-        'fields': (
-            'table_timestamp_format',
-            'row_limit',
-            ('include_search', None),
-        )
-    }, {
         'label': "GROUP BY",
+        'description': 'Use this section if you want a query that aggregates',
         'fields': (
             'groupby',
             'metrics',
         )
     }, {
         'label': "NOT GROUPED BY",
+        'description': 'Use this section if you want to query atomic rows',
         'fields': (
             'all_columns',
+        )
+    }, {
+        'label': "Options",
+        'fields': (
+            'table_timestamp_format',
+            'row_limit',
+            ('include_search', None),
         )
     })
     is_timeseries = False

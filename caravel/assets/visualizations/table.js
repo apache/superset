@@ -42,7 +42,6 @@ function tableVis(slice) {
         timestampFormatter = px.timeFormatFactory(json.form_data.table_timestamp_format);
       }
 
-      var table = d3.select(slice.selector).html('').append('table')
       var div = d3.select(slice.selector);
       div.html('');
       var table = div.append('table')
