@@ -12,8 +12,20 @@ function parallelCoordVis(slice) {
   function refresh() {
     $('#code').attr('rows', '15');
     $.getJSON(slice.jsonEndpoint(), function (payload) {
-        var data = payload.data;
         var fd = payload.form_data;
+        var data = payload.data;
+
+        var cols = fd.metrics;
+        if (fd.include_series) {
+          cols = [fd.series].concat(fd.metrics);
+        }
+
+        var ttypes = {};
+        ttypes[fd.series] = 'string';
+        fd.metrics.forEach(function (v) {
+          ttypes[v] = 'number';
+        });
+
         var ext = d3.extent(data, function (d) {
           return d[fd.secondary_metric];
         });
@@ -27,6 +39,7 @@ function parallelCoordVis(slice) {
           return cScale(d[fd.secondary_metric]);
         };
         var container = d3.select(slice.selector);
+        container.selectAll('*').remove();
         var eff_height = fd.show_datatable ? (slice.height() / 2) : slice.height();
 
         container.append('div')
@@ -40,7 +53,9 @@ function parallelCoordVis(slice) {
           .alpha(0.5)
           .composite("darken")
           .height(eff_height)
-          .data(payload.data)
+          .data(data)
+          .dimensions(cols)
+          .types(ttypes)
           .render()
           .createAxes()
           .shadows()

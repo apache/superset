@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import copy
 import hashlib
 import json
 import logging
@@ -1461,14 +1462,14 @@ class ParallelCoordinatesViz(BaseViz):
             'metrics',
             'secondary_metric',
             'limit',
-            ('show_datatable', None),
+            ('show_datatable', 'include_series'),
         )
     },)
 
     def query_obj(self):
         d = super(ParallelCoordinatesViz, self).query_obj()
         fd = self.form_data
-        d['metrics'] = fd.get('metrics')
+        d['metrics'] = copy.copy(fd.get('metrics'))
         second = fd.get('secondary_metric')
         if second not in d['metrics']:
             d['metrics'] += [second]
@@ -1477,7 +1478,6 @@ class ParallelCoordinatesViz(BaseViz):
 
     def get_data(self):
         df = self.get_df()
-        df = df[[self.form_data.get('series')] + self.form_data.get('metrics')]
         return df.to_dict(orient="records")
 
 

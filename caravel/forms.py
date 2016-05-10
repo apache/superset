@@ -187,6 +187,10 @@ class FormFactory(object):
                 'Stacked Bars',
                 default=False,
                 description=""),
+            'include_series': BetterBooleanField(
+                'Include Series',
+                default=False,
+                description="Include series name as an axis"),
             'secondary_metric': SelectField(
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,
