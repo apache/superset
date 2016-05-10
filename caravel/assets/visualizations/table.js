@@ -8,7 +8,6 @@ require('datatables.net-bs');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
 function tableVis(slice) {
-  var data = slice.data;
   var f = d3.format('.3s');
   var fC = d3.format('0,000');
   var timestampFormatter;
@@ -28,7 +27,7 @@ function tableVis(slice) {
       function col(c) {
         var arr = [];
         for (var i = 0; i < data.records.length; i++) {
-          arr.push(json.data.records[i][c]);
+          arr.push(data.records[i][c]);
         }
         return arr;
       }
