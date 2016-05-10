@@ -1069,7 +1069,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             field_names = []
             for _f in _fields:
                 _type = _f.get('type')
-                if _type == 'fieldAccess':
+                if _type in ['fieldAccess', 'hyperUniqueCardinality']:
                     field_names.append(_f.get('fieldName'))
                 elif _type == 'arithmetic':
                     field_names += recursive_get_fields(_f)
