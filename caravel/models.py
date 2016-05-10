@@ -583,13 +583,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             m.sqla_col
             for m in self.metrics if m.metric_name in metrics]
 
-        if metrics:
-            main_metric_expr = [
-                m.sqla_col.label('__' + m.metric_name) for m in self.metrics
-                if m.metric_name == metrics[0]][0]
-        else:
-            main_metric_expr = literal_column("COUNT(*)").label("ccount")
-
         select_exprs = []
         groupby_exprs = []
 
