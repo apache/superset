@@ -31,7 +31,7 @@ from pydruid.utils.postaggregator import Postaggregator
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
-    Table, create_engine, MetaData, desc, select, and_, func)
+    Table, create_engine, MetaData, select, and_, func)
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
