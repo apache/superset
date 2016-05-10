@@ -1030,6 +1030,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Adding new datasource [{}]".format(name), "success")
         else:
             flasher("Refreshing datasource [{}]".format(name), "info")
+        session.flush()
         datasource.cluster = cluster
 
         cols = datasource.latest_metadata()
@@ -1051,8 +1052,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 col_obj.filterable = True
             if col_obj:
                 col_obj.type = cols[col]['type']
+            session.flush()
             col_obj.datasource = datasource
             col_obj.generate_metrics()
+            session.flush()
 
     def query(  # druid
             self, groupby, metrics,
@@ -1415,7 +1418,7 @@ class DruidColumn(Model, AuditMixinNullable):
             metric.datasource_name = self.datasource_name
             if not m:
                 session.add(metric)
-                session.commit()
+                session.flush()
 
 
 class FavStar(Model):
