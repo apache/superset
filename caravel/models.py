@@ -585,7 +585,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if metrics:
             main_metric_expr = [
-                m.sqla_col for m in self.metrics
+                m.sqla_col.label('__' + m.metric_name) for m in self.metrics
                 if m.metric_name == metrics[0]][0]
         else:
             main_metric_expr = literal_column("COUNT(*)").label("ccount")
@@ -670,8 +670,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-        if groupby:
-            qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
