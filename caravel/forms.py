@@ -420,7 +420,12 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'url': TextField(
-                'URL', default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
+                'URL',
+                description=(
+                    "The URL, this field is templated, so you can integrate "
+                    "{{ width }} and/or {{ height }} in your URL string."
+                ),
+                default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
