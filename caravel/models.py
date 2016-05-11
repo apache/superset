@@ -90,6 +90,10 @@ class AuditMixinNullable(AuditMixin):
         return '{}'.format(self.changed_by or '')
 
     @renders('changed_on')
+    def changed_on_(self):
+        return '<span class="no-wrap">{}</span>'.format(self.changed_on)
+
+    @renders('changed_on')
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
         return '<span class="no-wrap">{}</nobr>'.format(s)
