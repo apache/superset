@@ -60,6 +60,7 @@
     "jquery-ui": "^1.10.5",
     "less": "^2.6.1",
     "less-loader": "^2.2.2",
+    "mustache": "^2.2.1",
     "nvd3": "1.8.2",
     "react": "^0.14.7",
     "react-bootstrap": "^0.28.3",
