@@ -218,8 +218,8 @@ var px = (function () {
       },
       render_template: function (s) {
         var context = {
-          width: this.width(),
-          height: this.height(),
+          width: this.width,
+          height: this.height,
         };
         return Mustache.render(s, context);
       },
