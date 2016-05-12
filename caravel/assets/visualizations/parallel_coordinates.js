@@ -6,6 +6,7 @@ d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
 
 // CSS
 require('../vendor/parallel_coordinates/d3.parcoords.css');
+require('../stylesheets/parallel_coordinates.css');
 
 function parallelCoordVis(slice) {
 
@@ -66,10 +67,10 @@ function parallelCoordVis(slice) {
           // create data table, row hover highlighting
           var grid = d3.divgrid();
           container.append("div")
-            .datum(data.slice(0, 10))
-            .attr('id', "grid")
+            .style('height', eff_height + 'px')
+            .datum(data)
             .call(grid)
-            .classed("parcoords", true)
+            .classed("parcoords grid", true)
             .selectAll(".row")
             .on({
               mouseover: function (d) {
@@ -79,8 +80,8 @@ function parallelCoordVis(slice) {
             });
           // update data table on brush event
           parcoords.on("brush", function (d) {
-            d3.select("#grid")
-              .datum(d.slice(0, 10))
+            d3.select(".grid")
+              .datum(d)
               .call(grid)
               .selectAll(".row")
               .on({
