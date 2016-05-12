@@ -1,6 +1,7 @@
 var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
+var Mustache = require('mustache');
 
 // vis sources
 var sourceMap = {
@@ -214,6 +215,13 @@ var px = (function () {
       },
       getWidgetHeader: function () {
         return this.container.parents("li.widget").find(".chart-header");
+      },
+      render_template: function (s) {
+        var context = {
+          width: this.width,
+          height: this.height
+        };
+        return Mustache.render(s, context);
       },
       jsonEndpoint: function () {
         var parser = document.createElement('a');
