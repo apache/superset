@@ -493,7 +493,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         'Database', backref='tables', foreign_keys=[database_id])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
-    schema = Column(String(256))
+    schema = Column(String(255))
 
     baselink = "tablemodelview"
 
@@ -860,7 +860,7 @@ class TableColumn(Model, AuditMixinNullable):
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable', backref='columns', foreign_keys=[table_id])
-    column_name = Column(String(256))
+    column_name = Column(String(255))
     verbose_name = Column(String(1024))
     is_dttm = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
@@ -899,13 +899,13 @@ class DruidCluster(Model, AuditMixinNullable):
     __tablename__ = 'clusters'
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
-    coordinator_host = Column(String(256))
+    coordinator_host = Column(String(255))
     coordinator_port = Column(Integer)
     coordinator_endpoint = Column(
-        String(256), default='druid/coordinator/v1/metadata')
-    broker_host = Column(String(256))
+        String(255), default='druid/coordinator/v1/metadata')
+    broker_host = Column(String(255))
     broker_port = Column(Integer)
-    broker_endpoint = Column(String(256), default='druid/v2')
+    broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
 
     def __repr__(self):
@@ -941,7 +941,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
-    datasource_name = Column(String(256), unique=True)
+    datasource_name = Column(String(255), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
     description = Column(Text)
@@ -1334,7 +1334,7 @@ class DruidColumn(Model, AuditMixinNullable):
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='columns',
                               enable_typechecks=False)
-    column_name = Column(String(256))
+    column_name = Column(String(255))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
     groupby = Column(Boolean, default=False)
