@@ -31,7 +31,7 @@ from pydruid.utils.postaggregator import Postaggregator
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
-    Table, create_engine, MetaData, desc, select, and_, func)
+    Table, create_engine, MetaData, select, and_, func)
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
@@ -601,13 +601,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             m.sqla_col
             for m in self.metrics if m.metric_name in metrics]
 
-        if metrics:
-            main_metric_expr = [
-                m.sqla_col for m in self.metrics
-                if m.metric_name == metrics[0]][0]
-        else:
-            main_metric_expr = literal_column("COUNT(*)").label("ccount")
-
         select_exprs = []
         groupby_exprs = []
 
@@ -690,8 +683,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
-        if groupby:
-            qry = qry.order_by(desc(main_metric_expr))
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
@@ -699,7 +690,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
-            subq = subq.order_by(desc(main_metric_expr))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
