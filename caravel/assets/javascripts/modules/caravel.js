@@ -28,7 +28,8 @@ var sourceMap = {
   word_cloud: 'word_cloud.js',
   world_map: 'world_map.js',
   treemap: 'treemap.js',
-  cal_heatmap: 'cal_heatmap.js'
+  cal_heatmap: 'cal_heatmap.js',
+  horizon: 'horizon.js'
 };
 
 var color = function () {

@@ -162,6 +162,11 @@ class FormFactory(object):
                     "Color will be rendered based on a ratio "
                     "of the cell against the sum of across this "
                     "criteria")),
+            'horizon_color_scale': SelectField(
+                'Color Scale', choices=self.choicify([
+                    'series', 'overall', 'change']),
+                default='series',
+                description="Defines how the color are attributed."),
             'canvas_image_rendering': SelectField(
                 'Rendering', choices=(
                     ('pixelated', 'pixelated (Sharp)'),
@@ -476,6 +481,11 @@ class FormFactory(object):
                 default='smart_date',
                 choices=TIMESTAMP_CHOICES,
                 description="Timestamp Format"),
+            'series_height': FreeFormSelectField(
+                'Series Height',
+                default=25,
+                choices=self.choicify([10, 25, 40, 50, 75, 100, 150, 200]),
+                description="Pixel height of each series"),
             'x_axis_format': FreeFormSelectField(
                 'X axis format',
                 default='smart_date',

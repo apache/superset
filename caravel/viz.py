@@ -1610,6 +1610,25 @@ class HeatmapViz(BaseViz):
         return df.to_dict(orient="records")
 
 
+class HorizonViz(NVD3TimeSeriesViz):
+
+    """Horizon chart
+
+    https://www.npmjs.com/package/d3-horizon-chart
+    """
+
+    viz_type = "horizon"
+    verbose_name = "Horizon Charts"
+    credits = (
+        '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
+        'd3-horizon-chart</a>')
+    fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
+        'label': 'Chart Options',
+        'fields': (
+            ('series_height', 'horizon_color_scale'),
+        ), }]
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1635,6 +1654,7 @@ viz_types_list = [
     BoxPlotViz,
     TreemapViz,
     CalHeatmapViz,
+    HorizonViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
