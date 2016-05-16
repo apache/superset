@@ -548,6 +548,8 @@ class CalHeatmapViz(BaseViz):
 
     viz_type = "cal_heatmap"
     verbose_name = "Calender Heatmap"
+    credits = (
+        '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
     is_timeseries = True
     fieldsets = ({
         'label': None,
@@ -577,22 +579,22 @@ class CalHeatmapViz(BaseViz):
         diff_secs = (end - start).total_seconds()
 
         if domain == "year":
-            _range = diff_delta.years + 1
+            range_ = diff_delta.years + 1
         elif domain == "month":
-            _range = diff_delta.years * 12 + diff_delta.months + 1
+            range_ = diff_delta.years * 12 + diff_delta.months + 1
         elif domain == "week":
-            _range = diff_delta.years * 53 + diff_delta.weeks + 1
+            range_ = diff_delta.years * 53 + diff_delta.weeks + 1
         elif domain == "day":
-            _range = diff_secs // (24*60*60) + 1
+            range_ = diff_secs // (24*60*60) + 1
         else:
-            _range = diff_secs // (60*60) + 1
+            range_ = diff_secs // (60*60) + 1
 
         return {
             "timestamps": timestamps,
             "start": start,
             "domain": domain,
             "subdomain": form_data.get("subdomain_granularity"),
-            "range": _range,
+            "range": range_,
         }
 
     def query_obj(self):
