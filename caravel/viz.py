@@ -541,6 +541,7 @@ class TreemapViz(BaseViz):
                       for metric in df.columns]
         return chart_data
 
+
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
@@ -566,7 +567,8 @@ class CalHeatmapViz(BaseViz):
         form_data = self.form_data
 
         df.columns = ["timestamp", "metric"]
-        timestamps = {str(obj["timestamp"].value / 10**9): obj.get("metric") for obj in df.to_dict("records")}
+        timestamps = {str(obj["timestamp"].value / 10**9):
+                obj.get("metric") for obj in df.to_dict("records")}
 
         start = utils.parse_human_datetime(form_data.get("since"))
         end = utils.parse_human_datetime(form_data.get("until"))
