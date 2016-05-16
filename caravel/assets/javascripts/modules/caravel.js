@@ -27,7 +27,8 @@ var sourceMap = {
   table: 'table.js',
   word_cloud: 'word_cloud.js',
   world_map: 'world_map.js',
-  treemap: 'treemap.js'
+  treemap: 'treemap.js',
+  cal_heatmap: 'cal_heatmap.js'
 };
 
 var color = function () {
