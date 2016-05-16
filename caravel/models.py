@@ -341,6 +341,14 @@ class Queryable(object):
     def url(self):
         return '/{}/edit/{}'.format(self.baselink, self.id)
 
+    @property
+    def explore_url(self):
+        if self.default_endpoint:
+            return self.default_endpoint
+        else:
+            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+
+
 
 class Database(Model, AuditMixinNullable):
 
@@ -550,13 +558,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def name(self):
         return self.table_name
-
-    @property
-    def explore_url(self):
-        if self.default_endpoint:
-            return self.default_endpoint
-        else:
-            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
     def table_link(self):
