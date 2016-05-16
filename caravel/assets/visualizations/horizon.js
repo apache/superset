@@ -23,7 +23,6 @@ var horizonChart = function () {
   function my(data) {
 
     var horizon = d3.select(this);
-
     var step = width / data.length;
 
     horizon.append('span')
@@ -115,11 +114,21 @@ var horizonChart = function () {
   }
 
   my.axis = function (_) {
-    return arguments.length ? (axis = _, my) : axis;
+    if (!arguments.length) { return axis; }
+    axis = _;
+    return my;
+  };
+
+  my.title = function (_) {
+    if (!arguments.length) { return title; }
+    title = _;
+    return my;
   };
 
   my.canvas = function (_) {
-    return arguments.length ? (canvas = _, my) : canvas;
+    if (!arguments.length) { return canvas; }
+    canvas = _;
+    return my;
   };
 
   // Array of colors representing the number of bands
@@ -136,32 +145,40 @@ var horizonChart = function () {
   };
 
   my.height = function (_) {
-    return arguments.length ? (height = _, my) : height;
+    if (!arguments.length) { return height; }
+    height = _;
+    return my;
   };
 
   my.width = function (_) {
-    return arguments.length ? (width = _, my) : width;
+    if (!arguments.length) { return width; }
+    width = _;
+    return my;
   };
 
   my.spacing = function (_) {
-    return arguments.length ? (spacing = _, my) : spacing;
-  };
-
-  my.title = function (_) {
-    return arguments.length ? (title = _, my) : title;
+    if (!arguments.length) { return spacing; }
+    spacing = _;
+    return my;
   };
 
   // mirror or offset
   my.mode = function (_) {
-    return arguments.length ? (mode = _, my) : mode;
+    if (!arguments.length) { return mode; }
+    mode = _;
+    return my;
   };
 
   my.extent = function (_) {
-    return arguments.length ? (extent = _, my) : extent;
+    if (!arguments.length) { return extent; }
+    extent = _;
+    return my;
   };
 
   my.offsetX = function (_) {
-    return arguments.length ? (offsetX = _, my) : offsetX;
+    if (!arguments.length) { return offsetX; }
+    offsetX = _;
+    return my;
   };
 
   return my;
