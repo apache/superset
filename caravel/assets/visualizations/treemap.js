@@ -81,7 +81,6 @@ function treemap(slice) {
       return results;
     };
 
-
     // Compute the treemap layout recursively such that each group of siblings
     // uses the same size (1x1) rather than the dimensions of the parent cell.
     // This optimizes the layout for the current zoom state. Note that a wrapper
