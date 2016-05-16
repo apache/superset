@@ -568,7 +568,7 @@ class CalHeatmapViz(BaseViz):
 
         df.columns = ["timestamp", "metric"]
         timestamps = {str(obj["timestamp"].value / 10**9):
-                obj.get("metric") for obj in df.to_dict("records")}
+                      obj.get("metric") for obj in df.to_dict("records")}
 
         start = utils.parse_human_datetime(form_data.get("since"))
         end = utils.parse_human_datetime(form_data.get("until"))
