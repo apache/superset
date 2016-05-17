@@ -895,3 +895,57 @@ def load_unicode_test_data():
     dash.slices = [slc]
     db.session.merge(dash)
     db.session.commit()
+
+
+def load_random_time_series_data():
+    """Loading random time series data from a zip file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'random_time_series.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='s')
+    pdf.to_sql(
+        'random_time_series',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'ds': DateTime,
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table reference")
+    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
+    if not obj:
+        obj = TBL(table_name='random_time_series')
+    obj.main_dttm_col = 'ds'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "6",
+        "datasource_name": "random_time_series",
+        "datasource_type": "table",
+        "granularity": "day",
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "1 year ago",
+        "until": "now",
+        "where": "",
+        "viz_type": "cal_heatmap",
+        "domain_granularity": "month",
+        "subdomain_granularity": "day",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Calendar Heatmap",
+        viz_type='cal_heatmap',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)

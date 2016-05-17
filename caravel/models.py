@@ -341,6 +341,14 @@ class Queryable(object):
     def url(self):
         return '/{}/edit/{}'.format(self.baselink, self.id)
 
+    @property
+    def explore_url(self):
+        if self.default_endpoint:
+            return self.default_endpoint
+        else:
+            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+
+
 
 class Database(Model, AuditMixinNullable):
 
@@ -397,6 +405,12 @@ class Database(Model, AuditMixinNullable):
                       "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
                 Grain("month", "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
+            ),
+            'sqlite': (
+                Grain('Time Column', '{col}'),
+                Grain('day', 'DATE({col})'),
+                Grain("week", "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
@@ -550,13 +564,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def name(self):
         return self.table_name
-
-    @property
-    def explore_url(self):
-        if self.default_endpoint:
-            return self.default_endpoint
-        else:
-            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
     def table_link(self):

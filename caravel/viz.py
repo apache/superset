@@ -23,6 +23,7 @@ from pandas.io.json import dumps
 from six import string_types
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
+from dateutil import relativedelta as rdelta
 
 from caravel import app, utils, cache
 from caravel.forms import FormFactory
@@ -539,6 +540,67 @@ class TreemapViz(BaseViz):
         chart_data = [{"name": metric, "children": self._nest(metric, df)}
                       for metric in df.columns]
         return chart_data
+
+
+class CalHeatmapViz(BaseViz):
+
+    """Calendar heatmap."""
+
+    viz_type = "cal_heatmap"
+    verbose_name = "Calender Heatmap"
+    credits = (
+        '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
+    is_timeseries = True
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metric',
+            'domain_granularity',
+            'subdomain_granularity',
+        ),
+    },)
+
+    def get_df(self, query_obj=None):
+        df = super(CalHeatmapViz, self).get_df(query_obj)
+        return df
+
+    def get_data(self):
+        df = self.get_df()
+        form_data = self.form_data
+
+        df.columns = ["timestamp", "metric"]
+        timestamps = {str(obj["timestamp"].value / 10**9):
+                      obj.get("metric") for obj in df.to_dict("records")}
+
+        start = utils.parse_human_datetime(form_data.get("since"))
+        end = utils.parse_human_datetime(form_data.get("until"))
+        domain = form_data.get("domain_granularity")
+        diff_delta = rdelta.relativedelta(end, start)
+        diff_secs = (end - start).total_seconds()
+
+        if domain == "year":
+            range_ = diff_delta.years + 1
+        elif domain == "month":
+            range_ = diff_delta.years * 12 + diff_delta.months + 1
+        elif domain == "week":
+            range_ = diff_delta.years * 53 + diff_delta.weeks + 1
+        elif domain == "day":
+            range_ = diff_secs // (24*60*60) + 1
+        else:
+            range_ = diff_secs // (60*60) + 1
+
+        return {
+            "timestamps": timestamps,
+            "start": start,
+            "domain": domain,
+            "subdomain": form_data.get("subdomain_granularity"),
+            "range": range_,
+        }
+
+    def query_obj(self):
+        qry = super(CalHeatmapViz, self).query_obj()
+        qry["metrics"] = [self.form_data["metric"]]
+        return qry
 
 
 class NVD3Viz(BaseViz):
@@ -1572,6 +1634,7 @@ viz_types_list = [
     HeatmapViz,
     BoxPlotViz,
     TreemapViz,
+    CalHeatmapViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

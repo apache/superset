@@ -253,6 +253,29 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")),
+            'domain_granularity': SelectField(
+                'Domain', default="month",
+                choices=self.choicify([
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                    'year',
+                ]),
+                description=(
+                    "The time unit used for the grouping of blocks")),
+            'subdomain_granularity': SelectField(
+                'Subdomain', default="day",
+                choices=self.choicify([
+                    'min',
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                ]),
+                description=(
+                    "The time unit for each block. Should be a smaller unit than "
+                    "domain_granularity. Should be larger or equal to Time Grain")),
             'link_length': FreeFormSelectField(
                 'Link Length', default="200",
                 choices=self.choicify([
