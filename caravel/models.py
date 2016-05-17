@@ -406,6 +406,12 @@ class Database(Model, AuditMixinNullable):
                 Grain("month", "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
+            'sqlite': (
+                Grain('Time Column', '{col}'),
+                Grain('day', 'DATE({col})'),
+                Grain("week", "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", "DATE({col}, -strftime('%d', {col}) || ' days')"),
+            ),
             'postgresql': (
                 Grain("Time Column", "{col}"),
                 Grain("second", "DATE_TRUNC('second', {col})"),
