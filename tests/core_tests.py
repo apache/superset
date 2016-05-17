@@ -24,6 +24,7 @@ app.config['TESTING'] = True
 app.config['CSRF_ENABLED'] = False
 app.config['SECRET_KEY'] = 'thisismyscretkey'
 app.config['WTF_CSRF_ENABLED'] = False
+app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
@@ -68,20 +69,9 @@ class CaravelTestCase(unittest.TestCase):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
-            if perm.permission.name not in (
-                'can_list',
-                'can_dashboard',
-                'can_explore',
-                'datasource_access'):
-                continue
-            if not perm.view_menu:
-                continue
-            if perm.view_menu.name not in (
-                'SliceModelView',
-                'DashboardModelView',
-                'Caravel') and dashboard_name not in perm.view_menu.name:
-                continue
-            appbuilder.sm.add_permission_role(public_role, perm)
+            if (perm.permission.name == 'datasource_access' and
+                perm.view_menu and dashboard_name in perm.view_menu.name):
+                appbuilder.sm.add_permission_role(public_role, perm)
 
 
 class CoreTests(CaravelTestCase):
@@ -195,9 +185,9 @@ class CoreTests(CaravelTestCase):
         data = resp.data.decode('utf-8')
         assert '<a href="/caravel/dashboard/births/">' not in data
 
-        resp = self.client.get('/caravel/dashboard/births/')
+        resp = self.client.get('/caravel/explore/table/3/', follow_redirects=True)
         data = resp.data.decode('utf-8')
-        assert '[dashboard] Births' not in data
+        assert "You don&#39;t seem to have access to this datasource" in data
 
         self.setup_public_access_for_dashboard('birth_names')
 
