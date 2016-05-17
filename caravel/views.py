@@ -20,12 +20,13 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
+from flask.ext.appbuilder.security.sqla.models import Role
 from flask.ext.babelpkg import gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.sql.expression import TextAsFrom, or_
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -77,6 +78,23 @@ class FilterDashboard(CaravelFilter):
         return query.filter(
             self.model.slices.any(
                 models.Slice.id.in_(slice_ids_qry)
+            )
+        )
+
+
+class FilterDashboardRoleAccess(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if is_user_admin_or_alpha():
+            return query
+
+        role_ids = [role.id for role in get_user_roles()]
+        return query.filter(
+            or_(
+                self.model.role_access.any(
+                    Role.id.in_(role_ids)
+                ),
+                # Allow all if there is no role_access specified
+                ~self.model.role_access.any(),
             )
         )
 
@@ -366,7 +384,10 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "visible"),
         'slug': "To get a readable URL for your dashboard",
     }
-    base_filters = [['slice', FilterDashboard, lambda: []]]
+    base_filters = [
+        ['slice', FilterDashboard, lambda: []],
+        ['role_access', FilterDashboardRoleAccess, lambda: []],
+    ]
 
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
