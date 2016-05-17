@@ -238,6 +238,7 @@ class FormFactory(object):
                     ('', 'default'),
                     ('now', 'now'),
                 ),
+                default='',
                 description=(
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")),
