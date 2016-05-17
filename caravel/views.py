@@ -41,6 +41,10 @@ def get_user_roles():
     return g.user.roles
 
 
+def is_user_admin_or_alpha():
+    return any([r.name in ('Admin', 'Alpha') for r in get_user_roles()])
+
+
 class CaravelFilter(BaseFilter):
     def get_perms(self):
         perms = []
@@ -346,7 +350,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
+        'dashboard_title', 'slug', 'slices', 'owners', 'role_access', 'position_json', 'css',
         'json_metadata']
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
@@ -748,6 +752,18 @@ class Caravel(BaseView):
             json.dumps({'count': count}),
             mimetype="application/json")
 
+    @classmethod
+    def has_dashboard_access(cls, dash):
+        # Allow all if not specified
+        if len(dash.role_access) == 0 or is_user_admin_or_alpha():
+            return True
+
+        allowed_role_ids = [role.id for role in dash.role_access]
+        if any([role.id in allowed_role_ids for role in get_user_roles()]):
+                return True
+
+        return False
+
     @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
@@ -761,6 +777,10 @@ class Caravel(BaseView):
 
         templates = session.query(models.CssTemplate).all()
         dash = qry.first()
+
+        if not self.has_dashboard_access(dash):
+            flash("Access to this dashboard denied", "danger")
+            return redirect("/dashboardmodelview/list/")
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
