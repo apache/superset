@@ -12,6 +12,7 @@ from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.appbuilder.baseviews import expose
 from flask.ext.cache import Cache
+from flask.ext.cors import CORS
 from flask.ext.migrate import Migrate
 
 from caravel import version
@@ -45,6 +46,9 @@ if app.config.get('ENABLE_TIME_ROTATE'):
                                        interval=app.config.get('INTERVAL'),
                                        backupCount=app.config.get('BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
+
+if app.config.get('ENABLE_CORS'):
+    CORS(app, **app.config.get('CORS_OPTIONS'))
 
 
 class MyIndexView(IndexView):
