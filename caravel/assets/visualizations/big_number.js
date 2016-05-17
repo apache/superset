@@ -72,7 +72,9 @@ function bigNumberVis(slice) {
       var g = svg.append('g');
       var y = height / 2;
       //Printing big number
-      g.append('text')
+      g.append("g").attr("class", "digits")
+      .attr('opacity', 1)
+      .append('text')
       .attr('x', width / 2)
       .attr('y', y)
       .attr('class', 'big')
@@ -159,17 +161,17 @@ function bigNumberVis(slice) {
 
         div.on('mouseover', function (d) {
           var div = d3.select(this);
-          div.select('path').transition().duration(500).attr('opacity', 1)
+          div.selectAll('path').transition().duration(500).attr('opacity', 1)
           .style('stroke-width', '2px');
-          div.select('g.digits').transition().duration(500).attr('opacity', 0.1);
-          div.select('g.axis').transition().duration(500).attr('opacity', 1);
+          div.selectAll('g.digits').transition().duration(500).attr('opacity', 0.1);
+          div.selectAll('g.axis').transition().duration(500).attr('opacity', 1);
         })
         .on('mouseout', function (d) {
           var div = d3.select(this);
           div.select('path').transition().duration(500).attr('opacity', 0.5)
           .style('stroke-width', '5px');
-          div.select('g.digits').transition().duration(500).attr('opacity', 1);
-          div.select('g.axis').transition().duration(500).attr('opacity', 0);
+          div.selectAll('g.digits').transition().duration(500).attr('opacity', 1);
+          div.selectAll('g.axis').transition().duration(500).attr('opacity', 0);
         });
       }
       slice.done(payload);

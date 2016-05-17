@@ -7,13 +7,13 @@ require('./directed_force.css');
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
 function directedForceVis(slice) {
   var div = d3.select(slice.selector);
-  var link_length = slice.data.form_data.link_length || 200;
-  var charge = slice.data.form_data.charge || -500;
 
   var render = function () {
     var width = slice.width();
     var height = slice.height() - 25;
     d3.json(slice.jsonEndpoint(), function (error, json) {
+      var link_length = json.form_data.link_length || 200;
+      var charge = json.form_data.charge || -500;
 
       if (error !== null) {
         slice.error(error.responseText);

@@ -93,16 +93,27 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'AOL', 'url': 'http://openid.aol.com/<username>' },
 #    { 'name': 'Flickr', 'url': 'http://www.flickr.com/<username>' },
 #    { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
+
+# ---------------------------------------------------
+# Roles config
+# ---------------------------------------------------
+# Grant public role the same set of permissions as for the GAMMA role.
+# This is useful if one wants to enable anonymous users to view
+# dashboards. Explicit grant on specific datasets is still required.
+PUBLIC_ROLE_LIKE_GAMMA = False
+
 # ---------------------------------------------------
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
 BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
-BABEL_DEFAULT_FOLDER = 'translations'
+BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
+    # 'fr': {'flag': 'fr', 'name': 'French'},
+    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -129,6 +140,35 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 # ---------------------------------------------------
 
 VIZ_TYPE_BLACKLIST = []
+
+# ---------------------------------------------------
+# List of data sources not to be refreshed in druid cluster
+# ---------------------------------------------------
+
+DRUID_DATA_SOURCE_BLACKLIST = []
+
+"""
+1) http://docs.python-guide.org/en/latest/writing/logging/
+2) https://docs.python.org/2/library/logging.config.html
+"""
+
+# Console Log Settings
+
+LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+LOG_LEVEL = 'DEBUG'
+
+# ---------------------------------------------------
+# Enable Time Rotate Log Handler
+# ---------------------------------------------------
+# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+ENABLE_TIME_ROTATE = False
+TIME_ROTATE_LOG_LEVEL = 'DEBUG'
+FILENAME = '/tmp/caravel.log'
+ROLLOVER = 'midnight'
+INTERVAL = 1
+BACKUP_COUNT = 30
+
 
 try:
     from caravel_config import *  # noqa

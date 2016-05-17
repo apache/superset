@@ -154,6 +154,7 @@ def init(caravel):
     sm = caravel.appbuilder.sm
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
+    config = caravel.app.config
 
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
 
@@ -167,24 +168,28 @@ def init(caravel):
             sm.add_permission_role(alpha, perm)
         sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")
+    public_role = sm.find_role("Public")
+    public_role_like_gamma = \
+        public_role and config.get('PUBLIC_ROLE_LIKE_GAMMA', False)
     for perm in perms:
-        if(
-                perm.view_menu and perm.view_menu.name not in (
-                    'ResetPasswordView',
-                    'RoleModelView',
-                    'UserDBModelView',
-                    'Security') and
-                perm.permission.name not in (
-                    'all_datasource_access',
-                    'can_add',
-                    'can_download',
-                    'can_delete',
-                    'can_edit',
-                    'can_save',
-                    'datasource_access',
-                    'muldelete',
-                )):
+        if (perm.view_menu and perm.view_menu.name not in (
+                'ResetPasswordView',
+                'RoleModelView',
+                'UserDBModelView',
+                'Security') and
+            perm.permission.name not in (
+                'all_datasource_access',
+                'can_add',
+                'can_download',
+                'can_delete',
+                'can_edit',
+                'can_save',
+                'datasource_access',
+                'muldelete',
+            )):
             sm.add_permission_role(gamma, perm)
+            if public_role_like_gamma:
+                sm.add_permission_role(public_role, perm)
     session = db.session()
     table_perms = [
         table.perm for table in session.query(models.SqlaTable).all()]

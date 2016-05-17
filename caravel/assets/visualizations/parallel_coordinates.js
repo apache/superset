@@ -6,14 +6,27 @@ d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
 
 // CSS
 require('../vendor/parallel_coordinates/d3.parcoords.css');
+require('../stylesheets/parallel_coordinates.css');
 
 function parallelCoordVis(slice) {
 
   function refresh() {
     $('#code').attr('rows', '15');
     $.getJSON(slice.jsonEndpoint(), function (payload) {
-        var data = payload.data;
         var fd = payload.form_data;
+        var data = payload.data;
+
+        var cols = fd.metrics;
+        if (fd.include_series) {
+          cols = [fd.series].concat(fd.metrics);
+        }
+
+        var ttypes = {};
+        ttypes[fd.series] = 'string';
+        fd.metrics.forEach(function (v) {
+          ttypes[v] = 'number';
+        });
+
         var ext = d3.extent(data, function (d) {
           return d[fd.secondary_metric];
         });
@@ -27,6 +40,7 @@ function parallelCoordVis(slice) {
           return cScale(d[fd.secondary_metric]);
         };
         var container = d3.select(slice.selector);
+        container.selectAll('*').remove();
         var eff_height = fd.show_datatable ? (slice.height() / 2) : slice.height();
 
         container.append('div')
@@ -40,7 +54,9 @@ function parallelCoordVis(slice) {
           .alpha(0.5)
           .composite("darken")
           .height(eff_height)
-          .data(payload.data)
+          .data(data)
+          .dimensions(cols)
+          .types(ttypes)
           .render()
           .createAxes()
           .shadows()
@@ -51,10 +67,10 @@ function parallelCoordVis(slice) {
           // create data table, row hover highlighting
           var grid = d3.divgrid();
           container.append("div")
-            .datum(data.slice(0, 10))
-            .attr('id', "grid")
+            .style('height', eff_height + 'px')
+            .datum(data)
             .call(grid)
-            .classed("parcoords", true)
+            .classed("parcoords grid", true)
             .selectAll(".row")
             .on({
               mouseover: function (d) {
@@ -64,8 +80,8 @@ function parallelCoordVis(slice) {
             });
           // update data table on brush event
           parcoords.on("brush", function (d) {
-            d3.select("#grid")
-              .datum(d.slice(0, 10))
+            d3.select(".grid")
+              .datum(d)
               .call(grid)
               .selectAll(".row")
               .on({

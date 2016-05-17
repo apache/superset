@@ -7,10 +7,10 @@ require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-boots
 
 module.exports = function (slice) {
   var container = slice.container;
-  var form_data = slice.data.form_data;
 
   function refresh() {
     $.getJSON(slice.jsonEndpoint(), function (json) {
+      var form_data = json.form_data;
       container.html(json.data);
       if (form_data.groupby.length === 1) {
         var table = container.find('table').DataTable({

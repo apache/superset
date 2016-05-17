@@ -6,15 +6,25 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from copy import copy
+import math
 
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
-    BooleanField, IntegerField, HiddenField)
+    BooleanField, IntegerField, HiddenField, DecimalField)
 from wtforms import validators, widgets
 
 from caravel import app
 
 config = app.config
+
+TIMESTAMP_CHOICES = [
+    ('smart_date', 'Adaptative formating'),
+    ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
+    ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
+    ("%Y-%m-%d %H:%M:%S",
+     '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
+    ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
+]
 
 
 class BetterBooleanField(BooleanField):
@@ -152,6 +162,11 @@ class FormFactory(object):
                     "Color will be rendered based on a ratio "
                     "of the cell against the sum of across this "
                     "criteria")),
+            'horizon_color_scale': SelectField(
+                'Color Scale', choices=self.choicify([
+                    'series', 'overall', 'change']),
+                default='series',
+                description="Defines how the color are attributed."),
             'canvas_image_rendering': SelectField(
                 'Rendering', choices=(
                     ('pixelated', 'pixelated (Sharp)'),
@@ -177,6 +192,10 @@ class FormFactory(object):
                 'Stacked Bars',
                 default=False,
                 description=""),
+            'include_series': BetterBooleanField(
+                'Include Series',
+                default=False,
+                description="Include series name as an axis"),
             'secondary_metric': SelectField(
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,
@@ -213,12 +232,13 @@ class FormFactory(object):
                 'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
-            'druid_time_origin': SelectField(
+            'druid_time_origin': FreeFormSelectField(
                 'Origin',
                 choices=(
                     ('', 'default'),
                     ('now', 'now'),
                 ),
+                default='',
                 description=(
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")),
@@ -239,6 +259,29 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")),
+            'domain_granularity': SelectField(
+                'Domain', default="month",
+                choices=self.choicify([
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                    'year',
+                ]),
+                description=(
+                    "The time unit used for the grouping of blocks")),
+            'subdomain_granularity': SelectField(
+                'Subdomain', default="day",
+                choices=self.choicify([
+                    'min',
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                ]),
+                description=(
+                    "The time unit for each block. Should be a smaller unit than "
+                    "domain_granularity. Should be larger or equal to Time Grain")),
             'link_length': FreeFormSelectField(
                 'Link Length', default="200",
                 choices=self.choicify([
@@ -336,6 +379,26 @@ class FormFactory(object):
                     '9/91 percentiles',
                 ])
             ),
+            'treemap_ratio': DecimalField(
+                'Ratio',
+                default=0.5 * (1 + math.sqrt(5)),  # d3 default, golden ratio
+                description='Target aspect ratio for treemap tiles.',
+            ),
+            'number_format': FreeFormSelectField(
+                'Number format',
+                default='.3s',
+                choices=[
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                description="D3 format syntax for numbers "
+                            "https://github.com/mbostock/\n"
+                            "d3/wiki/Formatting"),
+
             'row_limit':
                 FreeFormSelectField(
                     'Row limit',
@@ -386,7 +449,12 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'url': TextField(
-                'URL', default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
+                'URL',
+                description=(
+                    "The URL, this field is templated, so you can integrate "
+                    "{{ width }} and/or {{ height }} in your URL string."
+                ),
+                default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
@@ -409,17 +477,20 @@ class FormFactory(object):
             'compare_suffix': TextField(
                 'Comparison suffix',
                 description="Suffix to apply after the percentage display"),
+            'table_timestamp_format': FreeFormSelectField(
+                'Table Timestamp Format',
+                default='smart_date',
+                choices=TIMESTAMP_CHOICES,
+                description="Timestamp Format"),
+            'series_height': FreeFormSelectField(
+                'Series Height',
+                default=25,
+                choices=self.choicify([10, 25, 40, 50, 75, 100, 150, 200]),
+                description="Pixel height of each series"),
             'x_axis_format': FreeFormSelectField(
                 'X axis format',
                 default='smart_date',
-                choices=[
-                    ('smart_date', 'Adaptative formating'),
-                    ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
-                    ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
-                    ("%Y-%m-%d %H:%M:%S",
-                        '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
-                    ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
-                ],
+                choices=TIMESTAMP_CHOICES,
                 description="D3 format syntax for y axis "
                             "https://github.com/mbostock/\n"
                             "d3/wiki/Formatting"),

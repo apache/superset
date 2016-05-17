@@ -1,6 +1,7 @@
 var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
+var Mustache = require('mustache');
 
 // vis sources
 var sourceMap = {
@@ -26,7 +27,9 @@ var sourceMap = {
   table: 'table.js',
   word_cloud: 'word_cloud.js',
   world_map: 'world_map.js',
-  treemap: 'treemap.js'
+  treemap: 'treemap.js',
+  cal_heatmap: 'cal_heatmap.js',
+  horizon: 'horizon.js'
 };
 
 var color = function () {
@@ -48,6 +51,7 @@ var color = function () {
     var seen = {};
     return function (s) {
       if (!s) { return; }
+      s = String(s);
       // next line is for caravel series that should have the same color
       s = s.replace('---', '');
       if (seen[s] === undefined) {
@@ -214,6 +218,13 @@ var px = (function () {
       getWidgetHeader: function () {
         return this.container.parents("li.widget").find(".chart-header");
       },
+      render_template: function (s) {
+        var context = {
+          width: this.width,
+          height: this.height
+        };
+        return Mustache.render(s, context);
+      },
       jsonEndpoint: function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
@@ -301,6 +312,7 @@ var px = (function () {
       },
       bindResizeToWindowResize: function () {
         var resizeTimer;
+        var slice = this;
         $(window).on('resize', function (e) {
           clearTimeout(resizeTimer);
           resizeTimer = setTimeout(function () {
@@ -314,7 +326,7 @@ var px = (function () {
         }
         this.force = force;
         token.find("img.loading").show();
-        container.css('height', slice.height());
+        container.css('height', this.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('btn-danger btn-success');
@@ -323,7 +335,7 @@ var px = (function () {
       },
       resize: function () {
         token.find("img.loading").show();
-        container.css('height', slice.height());
+        container.css('height', this.height());
         this.viz.render();
         this.viz.resize();
       },

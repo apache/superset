@@ -6,6 +6,7 @@ require('bootstrap');
 require('datatables.net-bs');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 require('../node_modules/cal-heatmap/cal-heatmap.css');
+var d3 = require('d3');
 
 var CalHeatMap = require('cal-heatmap');
 
@@ -55,15 +56,26 @@ function modelViewTable(selector, modelView, orderCol, order) {
 }
 
 $(document).ready(function () {
-  var cal = new CalHeatMap();
-  cal.init({
-    start: new Date().setFullYear(new Date().getFullYear() - 1),
-    range: 13,
-    data: '/caravel/activity_per_day',
-    domain: "month",
-    subDomain: "day",
-    itemName: "action",
-    tooltip: true
+  d3.json('/caravel/activity_per_day', function (json) {
+    var ext = d3.extent(d3.values(json));
+    var cal = new CalHeatMap();
+    var range = 10;
+    var legendBounds = [];
+    var step = (ext[1] - ext[0]) / (range - 1);
+    for (var i = 0; i< range; i++) {
+      legendBounds.push(i * step + ext[0]);
+    }
+    cal.init({
+      start: new Date().setFullYear(new Date().getFullYear() - 1),
+      range: 13,
+      data: json,
+      legend: legendBounds,
+      legendColors: ['#D6E685', '#1E6823'],  // Based on github's colors
+      domain: "month",
+      subDomain: "day",
+      itemName: "action",
+      tooltip: true
+    });
   });
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');
   modelViewTable('#slice_table', 'SliceAsync', 'changed_on', 'desc');

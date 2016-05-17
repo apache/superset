@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import logging
 import os
+from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
 from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
@@ -20,10 +21,6 @@ VERSION = version.VERSION_STRING
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 
-# Logging configuration
-logging.basicConfig(format='%(asctime)s:%(levelname)s:%(name)s:%(message)s')
-logging.getLogger().setLevel(logging.DEBUG)
-
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 if not app.debug:
@@ -36,6 +33,18 @@ db = SQLA(app)
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
+
+# Logging configuration
+logging.basicConfig(format=app.config.get('LOG_FORMAT'))
+logging.getLogger().setLevel(app.config.get('LOG_LEVEL'))
+
+if app.config.get('ENABLE_TIME_ROTATE'):
+    logging.getLogger().setLevel(app.config.get('TIME_ROTATE_LOG_LEVEL'))
+    handler = TimedRotatingFileHandler(app.config.get('FILENAME'),
+                                       when=app.config.get('ROLLOVER'),
+                                       interval=app.config.get('INTERVAL'),
+                                       backupCount=app.config.get('BACKUP_COUNT'))
+    logging.getLogger().addHandler(handler)
 
 
 class MyIndexView(IndexView):
