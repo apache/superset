@@ -227,7 +227,7 @@ class FormFactory(object):
                 'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
-            'druid_time_origin': SelectField(
+            'druid_time_origin': FreeFormSelectField(
                 'Origin',
                 choices=(
                     ('', 'default'),
