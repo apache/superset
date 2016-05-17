@@ -383,6 +383,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "in the dashboard view where changes are immediately "
             "visible"),
         'slug': "To get a readable URL for your dashboard",
+        'role_access': "Specify which roles have the access to this dashboard."
+                       " Accessible to everyone if left empty",
     }
     base_filters = [
         ['slice', FilterDashboard, lambda: []],
