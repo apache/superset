@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
+import numpy
 from datetime import datetime
 
 import parsedatetime
@@ -221,6 +222,12 @@ def json_iso_dttm_ser(obj):
     """
     if isinstance(obj, datetime):
         obj = obj.isoformat()
+    elif isinstance(obj, numpy.int64):
+        obj = int(obj)
+    else:
+        raise TypeError(
+             "Unserializable object {} of type {}".format(obj, type(obj))
+        )
     return obj
 
 
