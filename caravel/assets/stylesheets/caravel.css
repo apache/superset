@@ -170,12 +170,12 @@ li.widget:hover {
   z-index: 1000;
 }
 
-li.widget .chart-header {
+div.widget .chart-header {
   padding: 5px;
   background-color: #f1f1f1;
 }
 
-li.widget .chart-header a {
+div.widget .chart-header a {
   margin-left: 5px;
 }
 
@@ -183,7 +183,7 @@ li.widget .chart-header a {
   display: none;
 }
 
-li.widget .chart-controls {
+div.widget .chart-controls {
   background-color: #f1f1f1;
   position: absolute;
   right: 0;
@@ -193,6 +193,6 @@ li.widget .chart-controls {
   display: none;
 }
 
-li.widget .slice_container {
+div.widget .slice_container {
   overflow: auto;
 }

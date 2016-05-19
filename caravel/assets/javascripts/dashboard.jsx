@@ -140,7 +140,7 @@ var Dashboard = function (dashboardData) {
           var slice = this.props.slice,
               pos = this.props.pos;
 
-          return (<li
+          return (<div
             id={"slice_" + slice.slice_id}
             slice_id={slice.slice_id}
             className={"widget " + slice.viz_name}
@@ -157,26 +157,26 @@ var Dashboard = function (dashboardData) {
                 <div className="col-md-12 chart-controls">
                   <div className="pull-left">
                     <a title="Move chart" data-toggle="tooltip">
-                      <i className="fa fa-arrows drag"></i>
+                      <i className="fa fa-arrows drag"/>
                     </a>
                     <a className="refresh" title="Force refresh data" data-toggle="tooltip">
-                      <i className="fa fa-repeat"></i>
+                      <i className="fa fa-repeat"/>
                     </a>
                   </div>
                   <div className="pull-right">
                     {slice.description ?
                       <a title="Toggle chart description">
-                        <i className="fa fa-info-circle slice_info" slice_id={slice.slice_id} title={slice.description} data-toggle="tooltip"></i>
+                        <i className="fa fa-info-circle slice_info" slice_id={slice.slice_id} title={slice.description} data-toggle="tooltip"/>
                       </a>
                     : ""}
                     <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
-                      <i className="fa fa-pencil"></i>
+                      <i className="fa fa-pencil"/>
                     </a>
                     <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
-                      <i className="fa fa-share"></i>
+                      <i className="fa fa-share"/>
                     </a>
                     <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
-                      <i className="fa fa-close"></i>
+                      <i className="fa fa-close"/>
                     </a>
                   </div>
                 </div>
@@ -184,32 +184,36 @@ var Dashboard = function (dashboardData) {
               </div>
             </div>
             <div
-              className="slice_description bs-callout bs-callout-default">
-                        {slice.description_markeddown}
+              className="slice_description bs-callout bs-callout-default"
+              style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}>
+                {slice.description_markeddown}
             </div>
             <div className="row chart-container">
               <input type="hidden" slice_id={slice.slice_id} value="false"/>
               <div id={slice.token} className="token col-md-12">
+                <img src={loadingImgUrl} className="loading" alt="loading"/>
                 <div className="slice_container" id={slice.token + "_con"}></div>
               </div>
             </div>
-          </li>)
+          </div>)
         }
       });
-// <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" className="loading" alt="loading">
-// style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}"
+
       var GridLayout = React.createClass({
         render: function () {
           var layout = [],
               sliceElements = [],
               slices = this.props.slices,
-              posDict = this.props.posDict;
+              posDict = this.props.posDict,
+              onResizeStop = function (layout, oldItem, newItem, placeholder, e, element) {
+                dashboard.getSlice(newItem.i).resize();
+              };
 
           slices.forEach(function (slice) {
             var pos = posDict[slice.slice_id];
             if (!pos) return;
 
-            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice} pos={pos}/></div>);
+            sliceElements.push(<div key={slice.slice_id} className="widget-wrapper"><SliceCell slice={slice} pos={pos} /></div>);
             layout.push({
               i: slice.slice_id + "",
               x: pos.col,
@@ -219,15 +223,14 @@ var Dashboard = function (dashboardData) {
             });
           });
 
-          console.log(layout)
-
           return (
-            <ReactGridLayout className="layout" layout={layout}
-              cols={12} rowHeight={100} width={1200}>
+            <ReactGridLayout className="layout" layout={layout} onResizeStop={onResizeStop}
+              cols={12} width={1200}>
               {sliceElements}
             </ReactGridLayout>
           )
-        }
+        },
+
       });
 
       render(<GridLayout slices={this.slices} posDict={posDict}/>, document.getElementById("grid-container"));

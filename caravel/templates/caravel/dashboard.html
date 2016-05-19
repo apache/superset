@@ -7,7 +7,11 @@
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}
 
-<script>var posDict = {{pos_dict | safe}}</script>
+<script>
+  var posDict = {{ pos_dict | safe }},
+    expandedSlices = {{ dashboard.metadata_dejson | safe }}.expanded_slices,
+    loadingImgUrl = "{{ url_for('static', filename='assets/images/loading.gif') }}";
+</script>
 
 <div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}" data-css="{{ dashboard.css }}">
 
@@ -100,7 +104,7 @@
     </div>
 </div>
 
-<div id="grid-container">
+<div id="grid-container" class="slice-grid">
 </div>
 
 </div>
