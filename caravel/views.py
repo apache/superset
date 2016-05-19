@@ -891,7 +891,7 @@ class Caravel(BaseView):
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            pos_dict=pos_dict,
+            pos_dict=json.dumps(pos_dict),
             dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
             dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
 

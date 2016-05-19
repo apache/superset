@@ -4,18 +4,25 @@ var px = require('./modules/caravel.js');
 var d3 = require('d3');
 var showModal = require('./modules/utils.js').showModal;
 require('bootstrap');
+import React from 'react';
+import { render } from 'react-dom';
 
 var ace = require('brace');
 require('brace/mode/css');
 require('brace/theme/crimson_editor');
 
 require('./caravel-select2.js');
-require('../node_modules/gridster/dist/jquery.gridster.min.css');
-require('../node_modules/gridster/dist/jquery.gridster.min.js');
+require('../node_modules/react-grid-layout/css/styles.css');
+require('../node_modules/react-resizable/css/styles.css');
 
 require('../stylesheets/dashboard.css');
 
+import {Responsive, WidthProvider} from "react-grid-layout";
+const ReactGridLayout = require("react-grid-layout");
+
 var Dashboard = function (dashboardData) {
+  const ResponsiveReactGridLayout = WidthProvider(Responsive);
+
   var dashboard = $.extend(dashboardData, {
     filters: {},
     init: function () {
@@ -26,7 +33,7 @@ var Dashboard = function (dashboardData) {
         dash = this;
       dashboard.slices.forEach(function (data) {
         if (data.error) {
-          var html = '<div class="alert alert-danger">' + data.error + '</div>';
+          var html = '';
           $("#slice_" + data.slice_id).find('.token').html(html);
         } else {
           var slice = px.Slice(data, dash);
@@ -128,30 +135,127 @@ var Dashboard = function (dashboardData) {
       }
     },
     initDashboardView: function () {
-      dashboard = this;
-      var gridster = $(".gridster ul").gridster({
-        autogrow_cols: true,
-        widget_margins: [10, 10],
-        widget_base_dimensions: [95, 95],
-        draggable: {
-          handle: '.drag'
-        },
-        resize: {
-          enabled: true,
-          stop: function (e, ui, element) {
-            dashboard.getSlice($(element).attr('slice_id')).resize();
-          }
-        },
-        serialize_params: function (_w, wgd) {
-          return {
-            slice_id: $(_w).attr('slice_id'),
-            col: wgd.col,
-            row: wgd.row,
-            size_x: wgd.size_x,
-            size_y: wgd.size_y
-          };
+      var SliceCell = React.createClass({
+        render: function () {
+          var slice = this.props.slice,
+              pos = this.props.pos;
+
+          return (<li
+            id={"slice_" + slice.slice_id}
+            slice_id={slice.slice_id}
+            className={"widget " + slice.viz_name}
+            data-row={pos.row || 1}
+            data-col={pos.col || loop.index}
+            data-sizex={pos.size_x || 4}
+            data-sizey={pos.size_y || 4}>
+
+            <div className="chart-header">
+              <div className="row">
+                <div className="col-md-12 text-center header">
+                  {slice.slice_name}
+                </div>
+                <div className="col-md-12 chart-controls">
+                  <div className="pull-left">
+                    <a title="Move chart" data-toggle="tooltip">
+                      <i className="fa fa-arrows drag"></i>
+                    </a>
+                    <a className="refresh" title="Force refresh data" data-toggle="tooltip">
+                      <i className="fa fa-repeat"></i>
+                    </a>
+                  </div>
+                  <div className="pull-right">
+                    {slice.description ?
+                      <a title="Toggle chart description">
+                        <i className="fa fa-info-circle slice_info" slice_id={slice.slice_id} title={slice.description} data-toggle="tooltip"></i>
+                      </a>
+                    : ""}
+                    <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
+                      <i className="fa fa-pencil"></i>
+                    </a>
+                    <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
+                      <i className="fa fa-share"></i>
+                    </a>
+                    <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
+                      <i className="fa fa-close"></i>
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+            <div
+              className="slice_description bs-callout bs-callout-default">
+                        {slice.description_markeddown}
+            </div>
+            <div className="row chart-container">
+              <input type="hidden" slice_id={slice.slice_id} value="false"/>
+              <div id={slice.token} className="token col-md-12">
+                <div className="slice_container" id={slice.token + "_con"}></div>
+              </div>
+            </div>
+          </li>)
         }
-      }).data('gridster');
+      });
+// <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" className="loading" alt="loading">
+// style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}"
+      var GridLayout = React.createClass({
+        render: function () {
+          var layout = [],
+              sliceElements = [],
+              slices = this.props.slices,
+              posDict = this.props.posDict;
+
+          slices.forEach(function (slice) {
+            var pos = posDict[slice.slice_id];
+            if (!pos) return;
+
+            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice} pos={pos}/></div>);
+            layout.push({
+              i: slice.slice_id + "",
+              x: pos.col,
+              y: pos.row,
+              w: pos.size_x,
+              h: pos.size_y
+            });
+          });
+
+          console.log(layout)
+
+          return (
+            <ReactGridLayout className="layout" layout={layout}
+              cols={12} rowHeight={100} width={1200}>
+              {sliceElements}
+            </ReactGridLayout>
+          )
+        }
+      });
+
+      render(<GridLayout slices={this.slices} posDict={posDict}/>, document.getElementById("grid-container"));
+
+      dashboard = this;
+      // var gridster = $(".gridster ul").gridster({
+      //   autogrow_cols: true,
+      //   widget_margins: [10, 10],
+      //   widget_base_dimensions: [95, 95],
+      //   draggable: {
+      //     handle: '.drag'
+      //   },
+      //   resize: {
+      //     enabled: true,
+      //     stop: function (e, ui, element) {
+      //       dashboard.getSlice($(element).attr('slice_id')).resize();
+      //     }
+      //   },
+      //   serialize_params: function (_w, wgd) {
+      //     return {
+      //       slice_id: $(_w).attr('slice_id'),
+      //       col: wgd.col,
+      //       row: wgd.row,
+      //       size_x: wgd.size_x,
+      //       size_y: wgd.size_y
+      //     };
+      //   }
+      // }).data('gridster');
 
       // Displaying widget controls on hover
       $('.chart-header').hover(
@@ -241,7 +345,7 @@ var Dashboard = function (dashboardData) {
         gridster.remove_widget(li);
       });
 
-      $("li.widget").click(function (e) {
+      $("div.widget").click(function (e) {
         var $this = $(this);
         var $target = $(e.target);
 
