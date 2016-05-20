@@ -642,20 +642,6 @@ class FormFactory(object):
             collapsed_fieldsets = HiddenField()
             viz_type = self.field_dict.get('viz_type')
 
-        filter_cols = viz.datasource.filterable_column_names or ['']
-        for i in range(10):
-            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-                'Filter 1',
-                default=filter_cols[0],
-                choices=self.choicify(filter_cols)))
-            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-                'Filter 1',
-                default='in',
-                choices=self.choicify(['in', 'not in'])))
-            setattr(
-                QueryForm, 'flt_eq_' + str(i),
-                TextField("Super", default=''))
-
         for field in viz.flat_form_fields():
             setattr(QueryForm, field, self.field_dict[field])
 
@@ -663,6 +649,8 @@ class FormFactory(object):
             for attr in attrs:
                 setattr(QueryForm, attr, self.field_dict[attr])
 
+
+        filter_choices = self.choicify(['in', 'not in'])
         # datasource type specific form elements
         if viz.datasource.__class__.__name__ == 'SqlaTable':
             QueryForm.fieldsets += ({
@@ -700,7 +688,22 @@ class FormFactory(object):
             add_to_form(('granularity', 'druid_time_origin'))
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
             field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
+            filter_choices = self.choicify(['in', 'not in', 'regex'])
         add_to_form(('since', 'until'))
+
+        filter_cols = viz.datasource.filterable_column_names or ['']
+        for i in range(10):
+            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
+                'Filter 1',
+                default=filter_cols[0],
+                choices=self.choicify(filter_cols)))
+            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
+                'Filter 1',
+                default='in',
+                choices=filter_choices))
+            setattr(
+                QueryForm, 'flt_eq_' + str(i),
+                TextField("Super", default=''))
 
         QueryForm.fieldsets = ({
             'label': 'Time',
