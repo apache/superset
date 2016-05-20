@@ -47,6 +47,8 @@ def runserver(debug, port, timeout, workers):
             "-w {workers} "
             "--timeout {timeout} "
             "-b 0.0.0.0:{port} "
+            "--limit-request-line 0 "
+            "--limit-request-field_size 0 "
             "caravel:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
