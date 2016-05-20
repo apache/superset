@@ -1,0 +1,126 @@
+# Italian translations for Caravel.
+# Copyright (C) 2016 ORGANIZATION
+# This file is distributed under the same license as the Caravel project.
+# Maxime Beauchemin <maximebeauchemin @ gmail.com>, 2016.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2016-05-02 00:21-0700\n"
+"PO-Revision-Date: 2016-05-19 16:43+0200\n"
+"Last-Translator: Riccardo Magliocchetti <riccardo.magliocchetti@gmail.com>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.4\n"
+
+#: caravel/models.py:564
+msgid ""
+"Datetime column not provided as part table configuration and is required "
+"by this type of chart"
+msgstr ""
+"La colonna di tipo datetime non è stata fornita nella configurazione della tabella "
+"ma richiesta da questo tipo di grafico"
+
+#: caravel/models.py:1153
+msgid "No data was returned."
+msgstr "Nessun dato disponibile."
+
+#: caravel/views.py:116
+msgid ""
+"Whether to make this column available as a [Time Granularity] option, "
+"column has to be DATETIME or DATETIME-like"
+msgstr "Rendi questa colonna disponibile come una opzione [Time Granularity],"
+" la colonna deve essere DATATIME o DATETIME-like"
+
+#: caravel/views.py:215
+msgid "Databases"
+msgstr "Database"
+
+#: caravel/views.py:217 caravel/views.py:261 caravel/views.py:284
+msgid "Sources"
+msgstr "Sorgenti"
+
+#: caravel/views.py:260
+msgid "Tables"
+msgstr "Tabelle"
+
+#: caravel/views.py:282
+msgid "Druid Clusters"
+msgstr "Cluster Druid"
+
+#: caravel/views.py:313
+msgid "Slices"
+msgstr "Slice"
+
+#: caravel/views.py:341
+msgid ""
+"This json object describes the positioning of the widgets in the "
+"dashboard. It is dynamically generated when adjusting the widgets size "
+"and positions by using drag & drop in the dashboard view"
+msgstr ""
+"Questo oggetto json descrive il posizionamento dei widget nella dashboard."
+"E` generata dinamicamente quando vengono cambiate la dimensioni dei widget o la"
+"posizione tramite il drag&drop nella vista dashboard."
+
+#: caravel/views.py:346
+msgid ""
+"The css for individual dashboards can be altered here, or in the "
+"dashboard view where changes are immediately visible"
+msgstr ""
+"Il css per ogni dashboard può essere modificato qui o nella vista
+"dashboard dove i cambiamenti sono visibili immediatamente"
+
+#: caravel/views.py:367
+msgid "Dashboards"
+msgstr "Dashboard"
+
+#: caravel/views.py:392
+msgid "Action Log"
+msgstr "Log delle azioni"
+
+#: caravel/views.py:393
+msgid "Security"
+msgstr "Sicurezza"
+
+#: caravel/views.py:430
+msgid "Druid Datasources"
+msgstr "Datasource Druid"
+
+#: caravel/views.py:514
+msgid "The datasource seems to have been deleted"
+msgstr "Sembra che il datasource sia stato eliminato"
+
+#: caravel/views.py:522
+msgid "You don't seem to have access to this datasource"
+msgstr "Non hai i permessi per accedere a questo datasource"
+
+#: caravel/views.py:843
+msgid "This view requires the `all_datasource_access` permission"
+msgstr "Questa vista richiede il permesso `all_datasource_access`"
+
+#: caravel/views.py:954
+msgid "CSS Templates"
+msgstr "Template CSS"
+
+#: caravel/templates/appbuilder/navbar_right.html:34
+msgid "Profile"
+msgstr "Profilo"
+
+#: caravel/templates/appbuilder/navbar_right.html:35
+msgid "Logout"
+msgstr "Logout"
+
+#: caravel/templates/appbuilder/navbar_right.html:40
+msgid "Login"
+msgstr "Login"
+
+#: caravel/templates/caravel/welcome.html:8
+#: caravel/templates/caravel/welcome.html:13
+msgid "Welcome!"
+msgstr "Benvenuto!"
+
