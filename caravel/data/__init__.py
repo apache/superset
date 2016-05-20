@@ -375,7 +375,8 @@ def load_world_bank_health_n_pop():
 
     print("Creating a World's Health Bank dashboard")
     dash_name = "World's Bank Data"
-    dash = db.session.query(Dash).filter_by(dashboard_title=dash_name).first()
+    slug = "world_health"
+    dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dash()
@@ -459,7 +460,7 @@ def load_world_bank_health_n_pop():
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(l, indent=4)
-    dash.slug = "world_health"
+    dash.slug = slug
 
     dash.slices = slices[:-1]
     db.session.merge(dash)
