@@ -138,7 +138,10 @@ var Dashboard = function (dashboardData) {
       var SliceCell = React.createClass({
         render: function () {
           var slice = this.props.slice,
-              pos = this.props.pos;
+              pos = this.props.pos,
+              createMarkup = function () {
+                return {__html: slice.description_markeddown};
+              };
 
           return (<div
             id={"slice_" + slice.slice_id}
@@ -185,8 +188,8 @@ var Dashboard = function (dashboardData) {
             </div>
             <div
               className="slice_description bs-callout bs-callout-default"
-              style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}>
-                {slice.description_markeddown}
+              style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
+              dangerouslySetInnerHTML={createMarkup()}>
             </div>
             <div className="row chart-container">
               <input type="hidden" slice_id={slice.slice_id} value="false"/>
