@@ -18,7 +18,6 @@ require('../node_modules/react-resizable/css/styles.css');
 require('../stylesheets/dashboard.css');
 
 import {Responsive, WidthProvider} from "react-grid-layout";
-const ReactGridLayout = require("react-grid-layout");
 
 var Dashboard = function (dashboardData) {
   const ResponsiveReactGridLayout = WidthProvider(Responsive);
@@ -210,58 +209,38 @@ var Dashboard = function (dashboardData) {
               posDict = this.props.posDict,
               onResizeStop = function (layout, oldItem, newItem, placeholder, e, element) {
                 dashboard.getSlice(newItem.i).resize();
-              };
+              },
+              maxCol = -1;
 
           slices.forEach(function (slice) {
             var pos = posDict[slice.slice_id];
             if (!pos) return;
 
-            sliceElements.push(<div key={slice.slice_id} className="widget-wrapper"><SliceCell slice={slice} pos={pos} /></div>);
+            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice} pos={pos}/></div>);
             layout.push({
               i: slice.slice_id + "",
-              x: pos.col,
+              x: pos.col - 1,
               y: pos.row,
               w: pos.size_x,
               h: pos.size_y
             });
+
+            maxCol = Math.max(maxCol, pos.col + pos.size_x - 1);
           });
 
           return (
-            <ReactGridLayout className="layout" layout={layout} onResizeStop={onResizeStop}
-              cols={12} width={1200}>
+            <ResponsiveReactGridLayout className="layout" layouts={{lg:layout}} onResizeStop={onResizeStop}
+              cols={{lg:maxCol, md:maxCol, sm:Math.max(1, maxCol-2), xs:Math.max(1, maxCol-4), xxs:Math.max(1, maxCol-6)}}
+              rowHeight={112.5}>
               {sliceElements}
-            </ReactGridLayout>
+            </ResponsiveReactGridLayout>
           )
-        },
-
+        }
       });
 
       render(<GridLayout slices={this.slices} posDict={posDict}/>, document.getElementById("grid-container"));
 
       dashboard = this;
-      // var gridster = $(".gridster ul").gridster({
-      //   autogrow_cols: true,
-      //   widget_margins: [10, 10],
-      //   widget_base_dimensions: [95, 95],
-      //   draggable: {
-      //     handle: '.drag'
-      //   },
-      //   resize: {
-      //     enabled: true,
-      //     stop: function (e, ui, element) {
-      //       dashboard.getSlice($(element).attr('slice_id')).resize();
-      //     }
-      //   },
-      //   serialize_params: function (_w, wgd) {
-      //     return {
-      //       slice_id: $(_w).attr('slice_id'),
-      //       col: wgd.col,
-      //       row: wgd.row,
-      //       size_x: wgd.size_x,
-      //       size_y: wgd.size_y
-      //     };
-      //   }
-      // }).data('gridster');
 
       // Displaying widget controls on hover
       $('.chart-header').hover(
