@@ -629,7 +629,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             for s in groupby:
                 col = cols[s]
                 outer = col.sqla_col
-                inner = col.sqla_col.label('__' + col.column_name)
+                inner = col.sqla_col.label(col.column_name + '__')
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -715,7 +715,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             on_clause = []
             for i, gb in enumerate(groupby):
                 on_clause.append(
-                    groupby_exprs[i] == column("__" + gb))
+                    groupby_exprs[i] == column(gb + '__'))
 
             tbl = tbl.join(subq.alias(), and_(*on_clause))
 
