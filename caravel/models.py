@@ -267,6 +267,13 @@ dashboard_user = Table(
     Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
 )
 
+dashboard_role_access = Table(
+    'dashboard_role_access', Model.metadata,
+    Column('id', Integer, primary_key=True),
+    Column('role_id', Integer, ForeignKey('ab_role.id')),
+    Column('dashboard_id', Integer, ForeignKey('dashboards.id'))
+)
+
 
 class Dashboard(Model, AuditMixinNullable):
 
@@ -283,6 +290,7 @@ class Dashboard(Model, AuditMixinNullable):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
+    role_access = relationship("Role", secondary=dashboard_role_access)
 
     def __repr__(self):
         return self.dashboard_title
