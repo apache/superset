@@ -649,7 +649,6 @@ class FormFactory(object):
             for attr in attrs:
                 setattr(QueryForm, attr, self.field_dict[attr])
 
-
         filter_choices = self.choicify(['in', 'not in'])
         # datasource type specific form elements
         if viz.datasource.__class__.__name__ == 'SqlaTable':
@@ -663,8 +662,6 @@ class FormFactory(object):
             add_to_form(('where', 'having'))
             grains = viz.datasource.database.grains()
 
-            if not viz.datasource.any_dttm_col:
-                return QueryForm
             if grains:
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
@@ -705,12 +702,13 @@ class FormFactory(object):
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
 
-        QueryForm.fieldsets = ({
-            'label': 'Time',
-            'fields': (
-                time_fields,
-                ('since', 'until'),
-            ),
-            'description': "Time related form attributes",
-        },) + tuple(QueryForm.fieldsets)
+        if viz.datasource.any_dttm_col:
+            QueryForm.fieldsets = ({
+                'label': 'Time',
+                'fields': (
+                    time_fields,
+                    ('since', 'until'),
+                ),
+                'description': "Time related form attributes",
+            },) + tuple(QueryForm.fieldsets)
         return QueryForm
