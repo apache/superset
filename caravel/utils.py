@@ -18,6 +18,14 @@ from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 
 
+class CaravelException(Exception):
+    pass
+
+
+class CaravelSecurityException(CaravelException):
+    pass
+
+
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:
