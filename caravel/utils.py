@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime, date
+from datetime import date, datetime
 import decimal
 import functools
 import json
@@ -203,8 +203,11 @@ def init(caravel):
         if perm.permission.name in ('datasource_access', 'database_access'):
             continue
         if perm.view_menu and perm.view_menu.name not in (
-                'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
-                'Security'):
+                'ResetPasswordView',
+                'RoleModelView',
+                'Security',
+                'UserDBModelView',
+                'SQL Lab'):
             sm.add_permission_role(alpha, perm)
         sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")
@@ -217,6 +220,7 @@ def init(caravel):
                     'ResetPasswordView',
                     'RoleModelView',
                     'UserDBModelView',
+                    'SQL Lab',
                     'Security') and
                 perm.permission.name not in (
                     'all_datasource_access',
@@ -304,6 +308,8 @@ def json_iso_dttm_ser(obj):
         return val
     if isinstance(obj, datetime):
         obj = obj.isoformat()
+    if isinstance(obj, date):
+        obj = obj.isoformat()
     else:
         raise TypeError(
             "Unserializable object {} of type {}".format(obj, type(obj))
@@ -329,6 +335,7 @@ def json_int_dttm_ser(obj):
 
 def error_msg_from_exception(e):
     """Translate exception into error message
+
     Database have different ways to handle exception. This function attempts
     to make sense of the exception object and construct a human readable
     sentence.

@@ -16,6 +16,7 @@ const config = {
     sql: APP_DIR + '/javascripts/sql.js',
     standalone: APP_DIR + '/javascripts/standalone.js',
     common: APP_DIR + '/javascripts/common.js',
+    sqllab: APP_DIR + '/javascripts/SqlLab/index.jsx',
   },
   output: {
     path: BUILD_DIR,
