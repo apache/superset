@@ -50,6 +50,7 @@ function dashboardContainer(dashboardData) {
       const sliceObjects = [];
       const dash = this;
       dashboard.slices.forEach((data) => {
+        console.log(data);
         if (data.error) {
           const html = '<div class="alert alert-danger">' + data.error + '</div>';
           $('#slice_' + data.slice_id).find('.token').html(html);

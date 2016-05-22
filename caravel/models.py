@@ -16,6 +16,7 @@ import humanize
 import pandas as pd
 import requests
 import sqlalchemy as sqla
+from sqlalchemy.engine.url import make_url
 import sqlparse
 from dateutil.parser import parse
 
@@ -310,6 +311,11 @@ class Dashboard(Model, AuditMixinNullable):
         else:
             return {}
 
+    @property
+    def sqla_metadata(self):
+        metadata = MetaData(bind=self.get_sqla_engine())
+        return metadata.reflect()
+
     def dashboard_link(self):
         return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
 
@@ -382,13 +388,48 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
-    def get_sqla_engine(self):
+    def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
         params = extra.get('engine_params', {})
-        return create_engine(self.sqlalchemy_uri_decrypted, **params)
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        backend = url.get_backend_name()
+        if backend == 'presto' and schema:
+            if '/' in url.database:
+                url.database = url.database.split('/')[0] + '/' + schema
+            else:
+                url.database += '/' + schema
+        elif schema:
+            url.database = schema
+        return create_engine(url, **params)
+
+    def get_df(self, sql, schema):
+        eng = self.get_sqla_engine(schema=schema)
+        cur = eng.execute(sql, schema=schema)
+        cols = [col[0] for col in cur.cursor.description]
+        df = pd.DataFrame(cur.fetchall(), columns=cols)
+        return df
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
+
+    @property
+    def inspector(self):
+        engine = self.get_sqla_engine()
+        return sqla.inspect(engine)
+
+    def all_table_names(self, schema=None):
+        return sorted(self.inspector.get_table_names(schema))
+
+    def all_view_names(self, schema=None):
+        views = []
+        try:
+            views = self.inspector.get_view_names(schema)
+        except Exception as e:
+            pass
+        return views
+
+    def all_schema_names(self):
+        return sorted(self.inspector.get_schema_names())
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -508,10 +549,8 @@ class Database(Model, AuditMixinNullable):
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
-    def get_columns(self, table_name):
-        engine = self.get_sqla_engine()
-        insp = reflection.Inspector.from_engine(engine)
-        return insp.get_columns(table_name)
+    def get_columns(self, table_name, schema=None):
+        return self.inspector.get_columns(table_name, schema)
 
     @property
     def sqlalchemy_uri_decrypted(self):

@@ -452,6 +452,16 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
+class DatabaseAsync(DatabaseView):
+    list_columns = ['id', 'database_name']
+
+appbuilder.add_view_no_menu(DatabaseAsync)
+
+class DatabaseTablesAsync(DatabaseView):
+    list_columns = ['id', 'all_table_names', 'all_schema_names']
+
+appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
 class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
@@ -911,7 +921,7 @@ class Caravel(BaseCaravelView):
                 form_data=request.args,
                 slice_=slc)
         except Exception as e:
-            flash(str(e), "danger")
+            flash(utils.error_msg_from_exception(e), "danger")
             return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
@@ -923,7 +933,7 @@ class Caravel(BaseCaravelView):
                     payload = obj.get_json()
                 except Exception as e:
                     logging.exception(e)
-                    payload = str(e)
+                    payload = utils.error_msg_from_exception(e)
                     status = 500
             resp = Response(
                 payload,
@@ -953,7 +963,7 @@ class Caravel(BaseCaravelView):
                 if config.get("DEBUG"):
                     raise(e)
                 return Response(
-                    str(e),
+                    utils.error_msg_from_exception(e),
                     status=500,
                     mimetype="application/json")
             return resp
@@ -1082,6 +1092,25 @@ class Caravel(BaseCaravelView):
         )
         payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/tables/<db_id>/<schema>")
+    def tables(self, db_id, schema):
+        """endpoint to power the calendar heatmap on the welcome page"""
+        schema = None if schema == 'null' else schema
+        database = (
+            db.session
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
+        payload = {
+            'tables': database.all_table_names(schema),
+            'views': database.all_view_names(schema),
+        }
+        return Response(
+            json.dumps(payload), mimetype="application/json")
 
     @api
     @has_access_api
@@ -1218,6 +1247,13 @@ class Caravel(BaseCaravelView):
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
+        if (
+                not self.can_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            flash(
+                "SQL Lab requires the `all_datasource_access` "
+                "permission", "danger")
+            return redirect("/tablemodelview/list/")
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
 
@@ -1240,23 +1276,35 @@ class Caravel(BaseCaravelView):
             db=mydb)
 
     @has_access
-    @expose("/table/<database_id>/<table_name>/")
+    @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
-    def table(self, database_id, table_name):
-        mydb = db.session.query(
-            models.Database).filter_by(id=database_id).first()
-        cols = mydb.get_columns(table_name)
-        df = pd.DataFrame([(c['name'], c['type']) for c in cols])
-        df.columns = ['col', 'type']
-        tbl_cls = (
-            "dataframe table table-striped table-bordered "
-            "table-condensed sql_results").split(' ')
-        return self.render_template(
-            "caravel/ajah.html",
-            content=df.to_html(
-                index=False,
-                na_rep='',
-                classes=tbl_cls))
+    def table(self, database_id, table_name, schema):
+        schema = None if schema == 'null' else schema
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        cols = []
+        t = mydb.get_columns(table_name, schema)
+        try:
+            t = mydb.get_columns(table_name, schema)
+        except Exception as e:
+            return Response(
+                json.dumps({'error': utils.error_msg_from_exception(e)}),
+                mimetype="application/json")
+        for col in t:
+            dtype = ""
+            try:
+                dtype = '{}'.format(col['type'])
+            except:
+                pass
+            cols.append({
+                'name': col['name'],
+                'type': dtype.split('(')[0] if '(' in dtype else dtype,
+                'longType': dtype,
+            })
+        tbl = {
+            'name': table_name,
+            'columns': cols,
+        }
+        return Response(json.dumps(tbl), mimetype="application/json")
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -1330,7 +1378,7 @@ class Caravel(BaseCaravelView):
                 content = (
                     '<div class="alert alert-danger">'
                     "{}</div>"
-                ).format(e.message)
+                ).format(utils.error_msg_from_exception(e))
         session.commit()
         return content
 
@@ -1347,6 +1395,7 @@ class Caravel(BaseCaravelView):
         limit = 1000
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
+        schema = request.form.get('schema')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not (self.can_access(
@@ -1372,10 +1421,9 @@ class Caravel(BaseCaravelView):
                 sql = '{}'.format(qry.compile(
                     eng, compile_kwargs={"literal_binds": True}))
             try:
-                df = pd.read_sql_query(sql=sql, con=eng)
+                df = mydb.get_df(sql, schema)
                 df = df.fillna(0)  # TODO make sure NULL
             except Exception as e:
-                logging.exception(e)
                 error_msg = utils.error_msg_from_exception(e)
 
         session.commit()
@@ -1390,6 +1438,8 @@ class Caravel(BaseCaravelView):
             data = {
                 'columns': [c for c in df.columns],
                 'data': df.to_dict(orient='records'),
+                'ydata_tpe.to_dict': {
+                    k: '{}'.format(v) for k, v in df.dtypes.to_dict().items()},
             }
             return json.dumps(
                 data, default=utils.json_int_dttm_ser, allow_nan=False)
@@ -1433,6 +1483,11 @@ class Caravel(BaseCaravelView):
         """Personalized welcome page"""
         return self.render_template('caravel/welcome.html', utils=utils)
 
+    @has_access
+    @expose("/sqllab")
+    def sqlanvil(self):
+        """SQL Editor"""
+        return self.render_template('caravel/sqllab.html')
 
 appbuilder.add_view_no_menu(Caravel)
 
@@ -1461,6 +1516,11 @@ appbuilder.add_view(
     category="Sources",
     category_label=__("Sources"),
     category_icon='')
+
+appbuilder.add_link(
+    "SQL Lab",
+    href='/caravel/sqllab',
+    icon="fa-flask")
 
 
 # ---------------------------------------------------------------------
