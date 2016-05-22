@@ -16,6 +16,7 @@ import humanize
 import pandas as pd
 import requests
 import sqlalchemy as sqla
+from sqlalchemy.engine.url import make_url
 import sqlparse
 from dateutil.parser import parse
 
@@ -31,8 +32,9 @@ from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
-    Table, create_engine, MetaData, desc, asc, select, and_, func)
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
+    create_engine, MetaData, desc, asc, select, and_, func
+)
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
@@ -310,6 +312,11 @@ class Dashboard(Model, AuditMixinNullable):
         else:
             return {}
 
+    @property
+    def sqla_metadata(self):
+        metadata = MetaData(bind=self.get_sqla_engine())
+        return metadata.reflect()
+
     def dashboard_link(self):
         return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
 
@@ -372,6 +379,7 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
+    select_as_create_table_as = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -382,13 +390,48 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
-    def get_sqla_engine(self):
+    def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
         params = extra.get('engine_params', {})
-        return create_engine(self.sqlalchemy_uri_decrypted, **params)
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        backend = url.get_backend_name()
+        if backend == 'presto' and schema:
+            if '/' in url.database:
+                url.database = url.database.split('/')[0] + '/' + schema
+            else:
+                url.database += '/' + schema
+        elif schema:
+            url.database = schema
+        return create_engine(url, **params)
+
+    def get_df(self, sql, schema):
+        eng = self.get_sqla_engine(schema=schema)
+        cur = eng.execute(sql, schema=schema)
+        cols = [col[0] for col in cur.cursor.description]
+        df = pd.DataFrame(cur.fetchall(), columns=cols)
+        return df
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
+
+    @property
+    def inspector(self):
+        engine = self.get_sqla_engine()
+        return sqla.inspect(engine)
+
+    def all_table_names(self, schema=None):
+        return sorted(self.inspector.get_table_names(schema))
+
+    def all_view_names(self, schema=None):
+        views = []
+        try:
+            views = self.inspector.get_view_names(schema)
+        except Exception as e:
+            pass
+        return views
+
+    def all_schema_names(self):
+        return sorted(self.inspector.get_schema_names())
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -508,10 +551,8 @@ class Database(Model, AuditMixinNullable):
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
-    def get_columns(self, table_name):
-        engine = self.get_sqla_engine()
-        insp = reflection.Inspector.from_engine(engine)
-        return insp.get_columns(table_name)
+    def get_columns(self, table_name, schema=None):
+        return self.inspector.get_columns(table_name, schema)
 
     @property
     def sqlalchemy_uri_decrypted(self):
@@ -554,6 +595,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    sql = Column(Text)
     table_columns = relationship("TableColumn", back_populates="table")
 
     baselink = "tablemodelview"
@@ -736,6 +778,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         tbl = table(self.table_name)
         if self.schema:
             tbl.schema = self.schema
+
+        # Supporting arbitrary SQL statements in place of tables
+        if self.sql:
+            tbl = text('(' + self.sql + ') as expr_qry ')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
@@ -1690,3 +1736,85 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
+
+
+class QueryStatus:
+    def from_presto_states(self, presto_status):
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+
+    SCHEDULED = 'SCHEDULED'
+    CANCELLED = 'CANCELLED'
+    IN_PROGRESS = 'IN_PROGRESS'
+    FINISHED = 'FINISHED'
+    TIMED_OUT = 'TIMED_OUT'
+    FAILED = 'FAILED'
+
+
+class Query(Model):
+
+    """ORM model for SQL query"""
+
+    __tablename__ = 'query'
+    id = Column(Integer, primary_key=True)
+
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+
+    # Store the tmp table into the DB only if the user asks for it.
+    tmp_table_name = Column(String(256))
+    user_id = Column(
+        Integer, ForeignKey('ab_user.id'), nullable=True)
+
+    # models.QueryStatus
+    status = Column(String(16))
+
+    name = Column(String(256))
+    tab_name = Column(String(256))
+    schema = Column(String(256))
+    sql = Column(Text)
+    # Query to retrieve the results,
+    # used only in case of select_as_cta_used is true.
+    select_sql = Column(Text)
+    executed_sql = Column(Text)
+    # Could be configured in the caravel config.
+    limit = Column(Integer)
+    limit_used = Column(Boolean)
+    select_as_cta = Column(Boolean)
+    select_as_cta_used = Column(Boolean)
+
+    # 1..100
+    progress = Column(Integer)
+    # # of rows in the result set or rows modified.
+    rows = Column(Integer)
+    error_message = Column(Text)
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    __table_args__ = (
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'database_id': self.database_id,
+            'tab_name': self.tab_name,
+            'user_id': self.user_id,
+            'status': self.status,
+            'schema': self.schema,
+            'sql': self.sql,
+            'limit': self.limit,
+            'progress': self.progress,
+            'error_message': self.error_message,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'changed_on': self.end_time
+        }
