@@ -297,6 +297,10 @@ class CoreTests(CaravelTestCase):
         assert 'Births' in data
 
         # Confirm that public doesn't have access to other datasets.
+        resp = self.client.get('/slicemodelview/list/')
+        data = resp.data.decode('utf-8')
+        assert 'wb_health_population</a>' not in data
+
         resp = self.client.get('/dashboardmodelview/list/')
         data = resp.data.decode('utf-8')
         assert "/caravel/dashboard/world_health/" not in data
