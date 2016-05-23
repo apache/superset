@@ -651,7 +651,9 @@ class FormFactory(object):
 
         filter_choices = self.choicify(['in', 'not in'])
         # datasource type specific form elements
-        if viz.datasource.__class__.__name__ == 'SqlaTable':
+        datasource_classname = viz.datasource.__class__.__name__
+        time_fields = None
+        if datasource_classname == 'SqlaTable':
             QueryForm.fieldsets += ({
                 'label': 'SQL',
                 'fields': ['where', 'having'],
@@ -680,7 +682,7 @@ class FormFactory(object):
             else:
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
-        else:
+        elif datasource_classname == 'DruidDatasource':
             time_fields = ('granularity', 'druid_time_origin')
             add_to_form(('granularity', 'druid_time_origin'))
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
@@ -702,7 +704,7 @@ class FormFactory(object):
                 QueryForm, 'flt_eq_' + str(i),
                 TextField("Super", default=''))
 
-        if viz.datasource.any_dttm_col:
+        if time_fields:
             QueryForm.fieldsets = ({
                 'label': 'Time',
                 'fields': (
