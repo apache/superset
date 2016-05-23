@@ -1482,6 +1482,50 @@ class ParallelCoordinatesViz(BaseViz):
         df = self.get_df()
         return df.to_dict(orient="records")
 
+class SlopeGraphViz(BaseViz):
+    """Slopegraph
+    """
+    viz_type = "slopegraph"
+    verbose_name = "Slope Graph"
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'series',
+            'metric',
+            'secondary_metric',
+            'limit',
+            'label_top'
+        )
+    },)
+
+    form_overrides = {
+        'metric': {
+            'label': 'First metric',
+            'description': 'A metric to plot on the first axis'
+        },
+        'secondary_metric': {
+            'label': 'Second metric',
+            'description': 'Another metric to plot on the second axis'
+        },
+        'limit': {
+            'description': 'The maximum number of lines to plot'
+        }
+    }
+
+    def query_obj(self):
+        query = super(SlopeGraphViz, self).query_obj()
+        form_data = self.form_data
+        query['groupby'] = [form_data.get('series')]
+        query['metrics'] = [
+            form_data.get('metric'),
+            form_data.get('secondary_metric')
+        ]
+        return query
+
+    def get_data(self):
+        dataframe = self.get_df()
+        return dataframe.to_dict(orient="records")
 
 class HeatmapViz(BaseViz):
 
@@ -1499,6 +1543,7 @@ class HeatmapViz(BaseViz):
             'all_columns_x',
             'all_columns_y',
             'metric',
+            'granularity'
         )
     }, {
         'label': 'Heatmap Options',
@@ -1569,6 +1614,7 @@ viz_types_list = [
     FilterBoxViz,
     IFrameViz,
     ParallelCoordinatesViz,
+    SlopeGraphViz,
     HeatmapViz,
     BoxPlotViz,
     TreemapViz,

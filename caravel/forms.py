@@ -522,6 +522,10 @@ class FormFactory(object):
             'show_legend': BetterBooleanField(
                 "Legend", default=True,
                 description="Whether to display the legend (toggles)"),
+            'label_top': IntegerField(
+                "label_top",
+                description="Label the top n groups by default. Negate the number "
+                            "to label the bottom n groups."),
             'x_axis_showminmax': BetterBooleanField(
                 "X bounds", default=True,
                 description=(

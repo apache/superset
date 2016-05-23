@@ -1,0 +1,56 @@
+.slopegraph--react svg {
+  font: 12px sans-serif;
+}
+
+.slopegraph__background path,
+.slopegraph__foreground path {
+  shape-rendering: geometricPrecision;
+  fill: none;
+  stroke-width: 2px;
+}
+.slopegraph__background path {
+  stroke: #ddd;
+  opacity: 0.4;
+}
+
+.slopegraph__foreground path {
+  stroke-width: 2px;
+}
+
+.slopegraph__foreground text {
+  font-size: 15px;
+}
+
+.slopegraph__foreground__g__circle0,
+.slopegraph__foreground__g__circle1 {
+  stroke: #fff;
+}
+
+.slopegraph__axes__g line,
+.slopegraph__axes__g path {
+  fill: none;
+  stroke: #333;
+  shape-rendering: geometricPrecision;
+  opacity: 0.5;
+}
+
+.slopegraph__axes__g .tick {
+  display: none;
+}
+
+.slopegraph__foreground__g__category,
+.slopegraph__foreground__g__label {
+  font-size: 15px;
+}
+.slopegraph__foreground__g__category0 {
+  font-weight: bold;
+}
+
+/* toggle stroke on to see invisible mouse detector polygons */
+.slopegraph__voronoi path {
+    fill: none;
+    cursor: pointer;
+    pointer-events: all;
+    stroke: #fff;
+    stroke-opacity: 0;
+}
