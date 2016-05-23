@@ -24,7 +24,6 @@ from flask.ext.babelpkg import gettext as __
 from flask.ext.babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
-from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
@@ -1018,22 +1017,6 @@ class Caravel(BaseView):
                 'info')
         session.commit()
         return redirect("/druiddatasourcemodelview/list/")
-
-    @expose("/autocomplete/<datasource>/<column>/")
-    def autocomplete(self, datasource, column):
-        """used for filter autocomplete"""
-        client = utils.get_pydruid_client()
-        top = client.topn(
-            datasource=datasource,
-            granularity='all',
-            intervals='2013-10-04/2020-10-10',
-            aggregations={"count": doublesum("count")},
-            dimension=column,
-            metric='count',
-            threshold=1000,
-        )
-        values = sorted([d[column] for d in top[0]['result']])
-        return json.dumps(values)
 
     @app.errorhandler(500)
     def show_traceback(self):

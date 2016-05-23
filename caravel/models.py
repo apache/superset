@@ -1171,6 +1171,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     cond = Dimension(col) == eq
                 if op == 'not in':
                     cond = ~cond
+            elif op == 'regex':
+                cond = Filter(type="regex", pattern=eq, dimension=col)
             if filters:
                 filters = Filter(type="and", fields=[
                     Filter.build_filter(cond),
@@ -1201,7 +1203,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             }
             client.groupby(**pre_qry)
             query_str += "// Two phase query\n// Phase 1\n"
-            query_str += json.dumps(client.query_dict, indent=2) + "\n"
+            query_str += json.dumps(
+                client.query_builder.last_query.query_dict, indent=2) + "\n"
             query_str += "//\nPhase 2 (built based on phase one's results)\n"
             df = client.export_pandas()
             if df is not None and not df.empty:
@@ -1237,7 +1240,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 }],
             }
         client.groupby(**qry)
-        query_str += json.dumps(client.query_dict, indent=2)
+        query_str += json.dumps(
+            client.query_builder.last_query.query_dict, indent=2)
         df = client.export_pandas()
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
