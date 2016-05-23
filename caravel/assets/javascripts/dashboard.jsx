@@ -137,7 +137,6 @@ var Dashboard = function (dashboardData) {
       var SliceCell = React.createClass({
         render: function () {
           var slice = this.props.slice,
-              pos = this.props.pos,
               createMarkup = function () {
                 return {__html: slice.description_markeddown};
               };
@@ -145,11 +144,7 @@ var Dashboard = function (dashboardData) {
           return (<div
             id={"slice_" + slice.slice_id}
             slice_id={slice.slice_id}
-            className={"widget " + slice.viz_name}
-            data-row={pos.row || 1}
-            data-col={pos.col || loop.index}
-            data-sizex={pos.size_x || 4}
-            data-sizey={pos.size_y || 4}>
+            className={"widget " + slice.viz_name}>
 
             <div className="chart-header">
               <div className="row">
@@ -168,7 +163,7 @@ var Dashboard = function (dashboardData) {
                   <div className="pull-right">
                     {slice.description ?
                       <a title="Toggle chart description">
-                        <i className="fa fa-info-circle slice_info" slice_id={slice.slice_id} title={slice.description} data-toggle="tooltip"/>
+                        <i className="fa fa-info-circle slice_info" title={slice.description} data-toggle="tooltip"/>
                       </a>
                     : ""}
                     <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
@@ -191,7 +186,7 @@ var Dashboard = function (dashboardData) {
               dangerouslySetInnerHTML={createMarkup()}>
             </div>
             <div className="row chart-container">
-              <input type="hidden" slice_id={slice.slice_id} value="false"/>
+              <input type="hidden" value="false"/>
               <div id={slice.token} className="token col-md-12">
                 <img src={loadingImgUrl} className="loading" alt="loading"/>
                 <div className="slice_container" id={slice.token + "_con"}></div>
@@ -212,18 +207,27 @@ var Dashboard = function (dashboardData) {
               },
               maxCol = -1;
 
-          slices.forEach(function (slice) {
+          slices.forEach(function (slice, index) {
             var pos = posDict[slice.slice_id];
-            if (!pos) return;
+            if (!pos) {
+              pos = {
+                col: (index * 4 + 1) % 12,
+                row: 1,
+                size_x: 4,
+                size_y: 4
+              }
+            }
 
-            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice} pos={pos}/></div>);
-            layout.push({
-              i: slice.slice_id + "",
-              x: pos.col - 1,
-              y: pos.row,
-              w: pos.size_x,
-              h: pos.size_y
-            });
+            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice}/></div>);
+            if (pos) {
+              layout.push({
+                i: slice.slice_id + "",
+                x: pos.col - 1,
+                y: pos.row,
+                w: pos.size_x,
+                h: pos.size_y
+              });
+            }
 
             maxCol = Math.max(maxCol, pos.col + pos.size_x - 1);
           });
@@ -231,7 +235,10 @@ var Dashboard = function (dashboardData) {
           return (
             <ResponsiveReactGridLayout className="layout" layouts={{lg:layout}} onResizeStop={onResizeStop}
               cols={{lg:maxCol, md:maxCol, sm:Math.max(1, maxCol-2), xs:Math.max(1, maxCol-4), xxs:Math.max(1, maxCol-6)}}
-              rowHeight={112.5}>
+              rowHeight={100}
+              autoSize={true}
+              margin={[20, 20]}
+              useCSSTransforms={true}>
               {sliceElements}
             </ResponsiveReactGridLayout>
           )

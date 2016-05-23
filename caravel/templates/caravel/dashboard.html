@@ -9,7 +9,7 @@
 
 <script>
   var posDict = {{ pos_dict | safe }},
-    expandedSlices = {{ dashboard.metadata_dejson | safe }}.expanded_slices,
+    expandedSlices = {{ dashboard.json_data | safe }}.metadata.expanded_slices,
     loadingImgUrl = "{{ url_for('static', filename='assets/images/loading.gif') }}";
 </script>
 

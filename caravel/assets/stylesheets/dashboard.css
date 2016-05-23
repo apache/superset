@@ -14,7 +14,6 @@
 
 .slice-grid div.widget{
   height: inherit;
-  margin: 5px;
   border-radius: 0;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
