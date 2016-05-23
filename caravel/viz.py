@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from flask import request, Markup
+from flask.ext.babelpkg import lazy_gettext as _
 from markdown import markdown
 from pandas.io.json import dumps
 from six import string_types
@@ -320,7 +321,7 @@ class TableViz(BaseViz):
     """A basic html table that is sortable and searchable"""
 
     viz_type = "table"
-    verbose_name = "Table View"
+    verbose_name = _("Table View")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
         'label': "GROUP BY",
@@ -381,7 +382,7 @@ class PivotTableViz(BaseViz):
     """A pivot table view, define your rows, columns and metrics"""
 
     viz_type = "pivot_table"
-    verbose_name = "Pivot Table"
+    verbose_name = _("Pivot Table")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -443,7 +444,7 @@ class MarkupViz(BaseViz):
     """Use html or markdown to create a free form widget"""
 
     viz_type = "markup"
-    verbose_name = "Markup Widget"
+    verbose_name = _("Markup")
     fieldsets = ({
         'label': None,
         'fields': ('markup_type', 'code')
@@ -471,7 +472,7 @@ class WordCloudViz(BaseViz):
     """
 
     viz_type = "word_cloud"
-    verbose_name = "Word Cloud"
+    verbose_name = _("Word Cloud")
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -503,7 +504,7 @@ class TreemapViz(BaseViz):
     """Tree map visualisation for hierarchical data."""
 
     viz_type = "treemap"
-    verbose_name = "Treemap"
+    verbose_name = _("Treemap")
     credits = '<a href="https://d3js.org">d3.js</a>'
     is_timeseries = False
     fieldsets = ({
@@ -547,7 +548,7 @@ class CalHeatmapViz(BaseViz):
     """Calendar heatmap."""
 
     viz_type = "cal_heatmap"
-    verbose_name = "Calender Heatmap"
+    verbose_name = _("Calender Heatmap")
     credits = (
         '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
     is_timeseries = True
@@ -618,7 +619,7 @@ class BoxPlotViz(NVD3Viz):
     """Box plot viz from ND3"""
 
     viz_type = "box_plot"
-    verbose_name = "Box Plot"
+    verbose_name = _("Box Plot")
     sort_series = False
     is_timeseries = True
     fieldsets = ({
@@ -725,7 +726,7 @@ class BubbleViz(NVD3Viz):
     """Based on the NVD3 bubble chart"""
 
     viz_type = "bubble"
-    verbose_name = "Bubble Chart"
+    verbose_name = _("Bubble Chart")
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -793,7 +794,7 @@ class BigNumberViz(BaseViz):
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = "big_number"
-    verbose_name = "Big Number with Trendline"
+    verbose_name = _("Big Number with Trendline")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = True
     fieldsets = ({
@@ -843,7 +844,7 @@ class BigNumberTotalViz(BaseViz):
     """Put emphasis on a single metric with this big number viz"""
 
     viz_type = "big_number_total"
-    verbose_name = "Big Number"
+    verbose_name = _("Big Number")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -889,7 +890,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     """A rich line chart component with tons of options"""
 
     viz_type = "line"
-    verbose_name = "Time Series - Line Chart"
+    verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
     fieldsets = ({
@@ -1041,7 +1042,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
 
     viz_type = "bar"
     sort_series = True
-    verbose_name = "Time Series - Bar Chart"
+    verbose_name = _("Time Series - Bar Chart")
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': 'Chart Options',
         'fields': (
@@ -1059,7 +1060,7 @@ class NVD3CompareTimeSeriesViz(NVD3TimeSeriesViz):
     """A line chart component where you can compare the % change over time"""
 
     viz_type = 'compare'
-    verbose_name = "Time Series - Percent Change"
+    verbose_name = _("Time Series - Percent Change")
 
 
 class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
@@ -1067,7 +1068,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     """A rich stack area chart"""
 
     viz_type = "area"
-    verbose_name = "Time Series - Stacked"
+    verbose_name = _("Time Series - Stacked")
     sort_series = True
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': 'Chart Options',
@@ -1086,7 +1087,7 @@ class DistributionPieViz(NVD3Viz):
     """Annoy visualization snobs with this controversial pie chart"""
 
     viz_type = "pie"
-    verbose_name = "Distribution - NVD3 - Pie Chart"
+    verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1122,7 +1123,7 @@ class DistributionBarViz(DistributionPieViz):
     """A good old bar chart"""
 
     viz_type = "dist_bar"
-    verbose_name = "Distribution - Bar Chart"
+    verbose_name = _("Distribution - Bar Chart")
     is_timeseries = False
     fieldsets = ({
         'label': 'Chart Options',
@@ -1202,7 +1203,7 @@ class SunburstViz(BaseViz):
     """A multi level sunburst chart"""
 
     viz_type = "sunburst"
-    verbose_name = "Sunburst"
+    verbose_name = _("Sunburst")
     is_timeseries = False
     credits = (
         'Kerry Rodden '
@@ -1268,7 +1269,7 @@ class SankeyViz(BaseViz):
     """A Sankey diagram that requires a parent-child dataset"""
 
     viz_type = "sankey"
-    verbose_name = "Sankey"
+    verbose_name = _("Sankey")
     is_timeseries = False
     credits = '<a href="https://www.npmjs.com/package/d3-sankey">d3-sankey on npm</a>'
     fieldsets = ({
@@ -1332,7 +1333,7 @@ class DirectedForceViz(BaseViz):
     """An animated directed force layout graph visualization"""
 
     viz_type = "directed_force"
-    verbose_name = "Directed Force Layout"
+    verbose_name = _("Directed Force Layout")
     credits = 'd3noob @<a href="http://bl.ocks.org/d3noob/5141278">bl.ocks.org</a>'
     is_timeseries = False
     fieldsets = ({
@@ -1374,7 +1375,7 @@ class WorldMapViz(BaseViz):
     """A country centric world map"""
 
     viz_type = "world_map"
-    verbose_name = "World Map"
+    verbose_name = _("World Map")
     is_timeseries = False
     credits = 'datamaps on <a href="https://www.npmjs.com/package/datamaps">npm</a>'
     fieldsets = ({
@@ -1448,7 +1449,7 @@ class FilterBoxViz(BaseViz):
     """A multi filter, multi-choice filter box to make dashboards interactive"""
 
     viz_type = "filter_box"
-    verbose_name = "Filters"
+    verbose_name = _("Filters")
     is_timeseries = False
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
@@ -1496,7 +1497,7 @@ class IFrameViz(BaseViz):
     """You can squeeze just about anything in this iFrame component"""
 
     viz_type = "iframe"
-    verbose_name = "iFrame"
+    verbose_name = _("iFrame")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     is_timeseries = False
     fieldsets = ({
@@ -1514,7 +1515,7 @@ class ParallelCoordinatesViz(BaseViz):
     """
 
     viz_type = "para"
-    verbose_name = "Parallel Coordinates"
+    verbose_name = _("Parallel Coordinates")
     credits = (
         '<a href="https://syntagmatic.github.io/parallel-coordinates/">'
         'Syntagmatic\'s library</a>')
@@ -1550,7 +1551,7 @@ class HeatmapViz(BaseViz):
     """A nice heatmap visualization that support high density through canvas"""
 
     viz_type = "heatmap"
-    verbose_name = "Heatmap"
+    verbose_name = _("Heatmap")
     is_timeseries = False
     credits = (
         'inspired from mbostock @<a href="http://bl.ocks.org/mbostock/3074470">'
@@ -1618,7 +1619,7 @@ class HorizonViz(NVD3TimeSeriesViz):
     """
 
     viz_type = "horizon"
-    verbose_name = "Horizon Charts"
+    verbose_name = _("Horizon Charts")
     credits = (
         '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
         'd3-horizon-chart</a>')

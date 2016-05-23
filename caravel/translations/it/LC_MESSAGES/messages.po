@@ -7,9 +7,10 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-05-02 00:21-0700\n"
+"POT-Creation-Date: 2016-05-20 20:30-0700\n"
 "PO-Revision-Date: 2016-05-19 16:43+0200\n"
-"Last-Translator: Riccardo Magliocchetti <riccardo.magliocchetti@gmail.com>\n"
+"Last-Translator: Riccardo Magliocchetti "
+"<riccardo.magliocchetti@gmail.com>\n"
 "Language: it\n"
 "Language-Team: it <LL@li.org>\n"
 "Plural-Forms: nplurals=2; plural=(n != 1)\n"
@@ -18,94 +19,431 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.3.4\n"
 
-#: caravel/models.py:564
+#: caravel/models.py:607
 msgid ""
 "Datetime column not provided as part table configuration and is required "
 "by this type of chart"
 msgstr ""
-"La colonna di tipo datetime non è stata fornita nella configurazione della tabella "
-"ma richiesta da questo tipo di grafico"
+"La colonna di tipo datetime non è stata fornita nella configurazione "
+"della tabella ma richiesta da questo tipo di grafico"
 
-#: caravel/models.py:1153
+#: caravel/models.py:1243
 msgid "No data was returned."
 msgstr "Nessun dato disponibile."
 
-#: caravel/views.py:116
+#: caravel/views.py:124
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
-msgstr "Rendi questa colonna disponibile come una opzione [Time Granularity],"
-" la colonna deve essere DATATIME o DATETIME-like"
+msgstr ""
+"Rendi questa colonna disponibile come una opzione [Time Granularity], la "
+"colonna deve essere DATATIME o DATETIME-like"
 
-#: caravel/views.py:215
+#: caravel/views.py:133 caravel/views.py:161
+msgid "Column"
+msgstr ""
+
+#: caravel/views.py:134 caravel/views.py:194 caravel/views.py:223
+msgid "Verbose Name"
+msgstr ""
+
+#: caravel/views.py:135 caravel/views.py:193 caravel/views.py:222
+#: caravel/views.py:400 caravel/views.py:535
+msgid "Description"
+msgstr ""
+
+#: caravel/views.py:136 caravel/views.py:164
+msgid "Groupable"
+msgstr ""
+
+#: caravel/views.py:137 caravel/views.py:165
+msgid "Filterable"
+msgstr ""
+
+#: caravel/views.py:138 caravel/views.py:197 caravel/views.py:308
+#: caravel/views.py:406
+msgid "Table"
+msgstr ""
+
+#: caravel/views.py:139 caravel/views.py:166
+msgid "Count Distinct"
+msgstr ""
+
+#: caravel/views.py:140 caravel/views.py:167
+msgid "Sum"
+msgstr ""
+
+#: caravel/views.py:141 caravel/views.py:168
+msgid "Min"
+msgstr ""
+
+#: caravel/views.py:142 caravel/views.py:169
+msgid "Max"
+msgstr ""
+
+#: caravel/views.py:143
+msgid "Expression"
+msgstr ""
+
+#: caravel/views.py:144
+msgid "Is temporal"
+msgstr ""
+
+#: caravel/views.py:162 caravel/views.py:195 caravel/views.py:224
+#: caravel/views.py:424
+msgid "Type"
+msgstr ""
+
+#: caravel/views.py:163 caravel/views.py:399
+msgid "Datasource"
+msgstr ""
+
+#: caravel/views.py:192 caravel/views.py:221
+msgid "Metric"
+msgstr ""
+
+#: caravel/views.py:196
+msgid "SQL Expression"
+msgstr ""
+
+#: caravel/views.py:225 caravel/views.py:503
+msgid "JSON"
+msgstr ""
+
+#: caravel/views.py:226
+msgid "Druid Datasource"
+msgstr ""
+
+#: caravel/views.py:257 caravel/views.py:310
+msgid "Database"
+msgstr ""
+
+#: caravel/views.py:258
+msgid "SQL link"
+msgstr ""
+
+#: caravel/views.py:259 caravel/views.py:397 caravel/views.py:459
+msgid "Creator"
+msgstr ""
+
+#: caravel/views.py:260 caravel/views.py:311
+msgid "Last Changed"
+msgstr ""
+
+#: caravel/views.py:261
+msgid "SQLAlchemy URI"
+msgstr ""
+
+#: caravel/views.py:262 caravel/views.py:317 caravel/views.py:396
+#: caravel/views.py:541
+msgid "Cache Timeout"
+msgstr ""
+
+#: caravel/views.py:263
+msgid "Extra"
+msgstr ""
+
+#: caravel/views.py:279
 msgid "Databases"
 msgstr "Database"
 
-#: caravel/views.py:217 caravel/views.py:261 caravel/views.py:284
+#: caravel/views.py:281 caravel/views.py:337 caravel/views.py:369
 msgid "Sources"
 msgstr "Sorgenti"
 
-#: caravel/views.py:260
-msgid "Tables"
-msgstr "Tabelle"
+#: caravel/views.py:309
+msgid "Changed By"
+msgstr ""
 
-#: caravel/views.py:282
-msgid "Druid Clusters"
-msgstr "Cluster Druid"
+#: caravel/views.py:312
+msgid "SQL Editor"
+msgstr ""
 
-#: caravel/views.py:313
-msgid "Slices"
-msgstr "Slice"
+#: caravel/views.py:313 caravel/views.py:537
+msgid "Is Featured"
+msgstr ""
 
-#: caravel/views.py:341
+#: caravel/views.py:314
+msgid "Schema"
+msgstr ""
+
+#: caravel/views.py:315 caravel/views.py:539
+msgid "Default Endpoint"
+msgstr ""
+
+#: caravel/views.py:316
+msgid "Offset"
+msgstr ""
+
+#: caravel/views.py:354 caravel/views.py:534
+msgid "Cluster"
+msgstr ""
+
+#: caravel/views.py:355
+msgid "Coordinator Host"
+msgstr ""
+
+#: caravel/views.py:356
+msgid "Coordinator Port"
+msgstr ""
+
+#: caravel/views.py:357
+msgid "Coordinator Endpoint"
+msgstr ""
+
+#: caravel/views.py:358
+msgid "Broker Host"
+msgstr ""
+
+#: caravel/views.py:359
+msgid "Borker Port"
+msgstr ""
+
+#: caravel/views.py:360
+msgid "Broker Endpoint"
+msgstr ""
+
+#: caravel/views.py:398 caravel/views.py:479
+msgid "Dashboards"
+msgstr "Dashboard"
+
+#: caravel/views.py:401
+msgid "Last Modified"
+msgstr ""
+
+#: caravel/views.py:402 caravel/views.py:458
+msgid "Owners"
+msgstr ""
+
+#: caravel/views.py:403
+msgid "Parameters"
+msgstr ""
+
+#: caravel/views.py:404 caravel/views.py:425
+msgid "Slice"
+msgstr ""
+
+#: caravel/views.py:405
+msgid "Name"
+msgstr ""
+
+#: caravel/views.py:407 caravel/views.py:426
+msgid "Visualization Type"
+msgstr ""
+
+#: caravel/views.py:441
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
-"Questo oggetto json descrive il posizionamento dei widget nella dashboard."
-"E` generata dinamicamente quando vengono cambiate la dimensioni dei widget o la"
-"posizione tramite il drag&drop nella vista dashboard."
+"Questo oggetto json descrive il posizionamento dei widget nella "
+"dashboard.E` generata dinamicamente quando vengono cambiate la dimensioni"
+" dei widget o laposizione tramite il drag&drop nella vista dashboard."
 
-#: caravel/views.py:346
+#: caravel/views.py:446
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
 msgstr ""
-"Il css per ogni dashboard può essere modificato qui o nella vista
-"dashboard dove i cambiamenti sono visibili immediatamente"
+"Il css per ogni dashboard può essere modificato qui o nella vistdashboard"
+" dove i cambiamenti sono visibili immediatamente"
 
-#: caravel/views.py:367
-msgid "Dashboards"
-msgstr "Dashboard"
+#: caravel/views.py:450
+msgid "To get a readable URL for your dashboard"
+msgstr ""
 
-#: caravel/views.py:392
+#: caravel/views.py:454
+msgid "Dashboard"
+msgstr ""
+
+#: caravel/views.py:455
+msgid "Title"
+msgstr ""
+
+#: caravel/views.py:456
+msgid "Slug"
+msgstr ""
+
+#: caravel/views.py:457
+msgid "Slices"
+msgstr "Slice"
+
+#: caravel/views.py:460
+msgid "Modified"
+msgstr ""
+
+#: caravel/views.py:461
+msgid "Position JSON"
+msgstr ""
+
+#: caravel/views.py:462
+msgid "CSS"
+msgstr ""
+
+#: caravel/views.py:463
+msgid "JSON Metadata"
+msgstr ""
+
+#: caravel/views.py:500
+msgid "User"
+msgstr ""
+
+#: caravel/views.py:501
+msgid "Action"
+msgstr ""
+
+#: caravel/views.py:502
+msgid "dttm"
+msgstr ""
+
+#: caravel/views.py:509
 msgid "Action Log"
 msgstr "Log delle azioni"
 
-#: caravel/views.py:393
+#: caravel/views.py:510
 msgid "Security"
 msgstr "Sicurezza"
 
-#: caravel/views.py:430
+#: caravel/views.py:527
+msgid "Timezone offset (in hours) for this datasource"
+msgstr ""
+
+#: caravel/views.py:533
+msgid "Data Source"
+msgstr ""
+
+#: caravel/views.py:536
+msgid "Owner"
+msgstr ""
+
+#: caravel/views.py:538
+msgid "Is Hidden"
+msgstr ""
+
+#: caravel/views.py:540
+msgid "Time Offset"
+msgstr ""
+
+#: caravel/views.py:555
 msgid "Druid Datasources"
 msgstr "Datasource Druid"
 
-#: caravel/views.py:514
+#: caravel/views.py:639
 msgid "The datasource seems to have been deleted"
 msgstr "Sembra che il datasource sia stato eliminato"
 
-#: caravel/views.py:522
+#: caravel/views.py:647
 msgid "You don't seem to have access to this datasource"
 msgstr "Non hai i permessi per accedere a questo datasource"
 
-#: caravel/views.py:843
+#: caravel/views.py:970
 msgid "This view requires the `all_datasource_access` permission"
 msgstr "Questa vista richiede il permesso `all_datasource_access`"
 
-#: caravel/views.py:954
+#: caravel/views.py:1081
 msgid "CSS Templates"
 msgstr "Template CSS"
+
+#: caravel/viz.py:324
+msgid "Table View"
+msgstr ""
+
+#: caravel/viz.py:385
+msgid "Pivot Table"
+msgstr ""
+
+#: caravel/viz.py:447
+msgid "Markup"
+msgstr ""
+
+#: caravel/viz.py:475
+msgid "Word Cloud"
+msgstr ""
+
+#: caravel/viz.py:507
+msgid "Treemap"
+msgstr ""
+
+#: caravel/viz.py:551
+msgid "Calender Heatmap"
+msgstr ""
+
+#: caravel/viz.py:622
+msgid "Box Plot"
+msgstr ""
+
+#: caravel/viz.py:729
+msgid "Bubble Chart"
+msgstr ""
+
+#: caravel/viz.py:797
+msgid "Big Number with Trendline"
+msgstr ""
+
+#: caravel/viz.py:847
+msgid "Big Number"
+msgstr ""
+
+#: caravel/viz.py:893
+msgid "Time Series - Line Chart"
+msgstr ""
+
+#: caravel/viz.py:1045
+msgid "Time Series - Bar Chart"
+msgstr ""
+
+#: caravel/viz.py:1063
+msgid "Time Series - Percent Change"
+msgstr ""
+
+#: caravel/viz.py:1071
+msgid "Time Series - Stacked"
+msgstr ""
+
+#: caravel/viz.py:1090
+msgid "Distribution - NVD3 - Pie Chart"
+msgstr ""
+
+#: caravel/viz.py:1126
+msgid "Distribution - Bar Chart"
+msgstr ""
+
+#: caravel/viz.py:1206
+msgid "Sunburst"
+msgstr ""
+
+#: caravel/viz.py:1272
+msgid "Sankey"
+msgstr ""
+
+#: caravel/viz.py:1336
+msgid "Directed Force Layout"
+msgstr ""
+
+#: caravel/viz.py:1378
+msgid "World Map"
+msgstr ""
+
+#: caravel/viz.py:1452
+msgid "Filters"
+msgstr ""
+
+#: caravel/viz.py:1500
+msgid "iFrame"
+msgstr ""
+
+#: caravel/viz.py:1518
+msgid "Parallel Coordinates"
+msgstr ""
+
+#: caravel/viz.py:1554
+msgid "Heatmap"
+msgstr ""
+
+#: caravel/viz.py:1622
+msgid "Horizon Charts"
+msgstr ""
 
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
@@ -123,4 +461,10 @@ msgstr "Login"
 #: caravel/templates/caravel/welcome.html:13
 msgid "Welcome!"
 msgstr "Benvenuto!"
+
+#~ msgid "Tables"
+#~ msgstr "Tabelle"
+
+#~ msgid "Druid Clusters"
+#~ msgstr "Cluster Druid"
 
