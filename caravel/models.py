@@ -429,7 +429,7 @@ class Database(Model, AuditMixinNullable):
                 return grains
 
     def dttm_converter(self, dttm, tf = None):
-        if tf is None:
+        if tf is None or tf == '':
             tf = '%Y-%m-%d %H:%M:%S.%f'
         """Returns a string that the database flavor understands as a date"""
         default = "'{}'".format(dttm.strftime(tf))
@@ -660,7 +660,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            # tf = '%Y-%m-%d %H:%M:%S.%f'
             tf = self.timestamp_format
             time_filter = [
                 timestamp >= text(self.database.dttm_converter(from_dttm, tf)),
