@@ -15,8 +15,14 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('tables', sa.Column('timestamp_format', sa.String(length=256), nullable=True))
+	try:
+		op.add_column('tables', sa.Column('timestamp_format', sa.String(length=256), nullable=True))
+	except Exception:
+		pass
 
 
 def downgrade():
-    op.drop_column('tables', 'timestamp_format')
+	try:
+		op.drop_column('tables', 'timestamp_format')
+	except Exception:
+		pass
