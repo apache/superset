@@ -249,6 +249,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'schema': (
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
+        'timestamp_format': (
+            "Use default(%Y-%m-%d %H:%M:%S.%f) if empty"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
