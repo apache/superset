@@ -32,7 +32,8 @@ msgstr "所选数据为空"
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
-msgstr ""
+msgstr "是否要让这列接受[Time Granularity]的选项，"
+"这列必须是DATETIME或DATETIME-like"
 
 #: caravel/views.py:133 caravel/views.py:161
 msgid "Column"
@@ -231,13 +232,14 @@ msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
-msgstr ""
+msgstr "这个json描述了部件在面板中的位置。 当通过拖拽来"
+"改变窗口大小和位子的时候，它会被自动生成。"
 
 #: caravel/views.py:446
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
-msgstr ""
+msgstr "单独面板的css可以在此变更，或者在面板视窗（立即生效）"
 
 #: caravel/views.py:450
 msgid "To get a readable URL for your dashboard"
