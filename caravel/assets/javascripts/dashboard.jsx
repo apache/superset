@@ -18,9 +18,177 @@ require('../node_modules/react-resizable/css/styles.css');
 require('../stylesheets/dashboard.css');
 
 import {Responsive, WidthProvider} from "react-grid-layout";
+const ResponsiveReactGridLayout = WidthProvider(Responsive);
+
+class SliceCell extends React.Component {
+  render() {
+    var slice = this.props.slice,
+        createMarkup = function () {
+          return {__html: slice.description_markeddown};
+        };
+
+    return (
+      <div
+        id={"slice_" + slice.slice_id}
+        slice_id={slice.slice_id}
+        className={"widget " + slice.viz_name}>
+
+        <div className="chart-header">
+          <div className="row">
+            <div className="col-md-12 text-center header">
+              {slice.slice_name}
+            </div>
+            <div className="col-md-12 chart-controls">
+              <div className="pull-left">
+                <a title="Move chart" data-toggle="tooltip">
+                  <i className="fa fa-arrows drag"/>
+                </a>
+                <a className="refresh" title="Force refresh data" data-toggle="tooltip">
+                  <i className="fa fa-repeat"/>
+                </a>
+              </div>
+              <div className="pull-right">
+                {slice.description ?
+                  <a title="Toggle chart description">
+                    <i className="fa fa-info-circle slice_info" title={slice.description} data-toggle="tooltip"/>
+                  </a>
+                : ""}
+                <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
+                  <i className="fa fa-pencil"/>
+                </a>
+                <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
+                  <i className="fa fa-share"/>
+                </a>
+                <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
+                  <i className="fa fa-close" onClick={this.props.removeSlice.bind(null, slice.slice_id)}/>
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        <div
+          className="slice_description bs-callout bs-callout-default"
+          style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
+          dangerouslySetInnerHTML={createMarkup()}>
+        </div>
+        <div className="row chart-container">
+          <input type="hidden" value="false"/>
+          <div id={slice.token} className="token col-md-12">
+            <img src={loadingImgUrl} className="loading" alt="loading"/>
+            <div className="slice_container" id={slice.token + "_con"}></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+}
+
+class GridLayout extends React.Component {
+  removeSlice(sliceId) {
+    this.setState({
+      layout: this.state.layout.filter(function (reactPos) {
+        return reactPos.i != sliceId;
+      }),
+      slices: this.state.slices.filter(function (slice) {
+        return slice.slice_id != sliceId;
+      }),
+      sliceElements: this.state.sliceElements.filter(function (sliceElement) {
+        return sliceElement.key != sliceId + "";
+      })
+    });
+  }
+
+  onResizeStop(layout, oldItem, newItem, placeholder, e, element) {
+    var newLayout = this.state.layout.filter(function (reactPos) {
+      return reactPos.i != newItem.i;
+    });
+    newLayout.push(newItem);
+    this.props.dashboard.getSlice(newItem.i).resize();
+
+    this.setState({
+      layout: newLayout
+    });
+  }
+
+  onLayoutChange(currentLayout, allLayout) {
+    if (!this.props.dashboard.initialized) return;
+
+    this.state.slices.forEach(function (slice) {
+      this.props.dashboard.getSlice(slice.slice_id).resize();
+    }, this);
+  }
+
+  serialize() {
+    return this.state.layout.map(function (reactPos) {
+      return {
+        slice_id: reactPos.i,
+        col: reactPos.x + 1,
+        row: reactPos.y,
+        size_x: reactPos.w,
+        size_y: reactPos.h
+      };
+    });
+  }
+
+  componentWillMount() {
+    var layout = [],
+      sliceElements = [];
+
+    this.props.slices.forEach(function (slice, index) {
+      var pos = this.props.posDict[slice.slice_id];
+      if (!pos) {
+        pos = {
+          col: (index * 4 + 1) % 12,
+          row: 1 + (index / 12) * 4,
+          size_x: 4,
+          size_y: 4
+        }
+      }
+
+      sliceElements.push(
+        <div key={slice.slice_id} className="slice-container">
+          <SliceCell slice={slice} removeSlice={this.removeSlice}/>
+        </div>
+      );
+
+      layout.push({
+        i: slice.slice_id + "",
+        x: pos.col - 1,
+        y: pos.row,
+        w: pos.size_x,
+        minW: 2,
+        h: pos.size_y
+      });
+    }, this);
+
+    this.setState({
+      layout: layout,
+      sliceElements: sliceElements,
+      slices: this.props.slices
+    });
+  }
+
+  render() {
+    return (
+      <ResponsiveReactGridLayout
+        className="layout"
+        layouts={{lg: this.state.layout}}
+        onResizeStop={this.onResizeStop.bind(this)}
+        onLayoutChange={this.onLayoutChange.bind(this)}
+        cols={{lg: 12, md: 12, sm: 10, xs: 8, xxs: 6}}
+        rowHeight={100}
+        autoSize={true}
+        margin={[20, 20]}
+        useCSSTransforms={true}
+        draggableHandle=".drag">
+        {this.state.sliceElements}
+      </ResponsiveReactGridLayout>
+    )
+  }
+}
 
 var Dashboard = function (dashboardData) {
-  const ResponsiveReactGridLayout = WidthProvider(Responsive);
   var reactGridLayout;
 
   var dashboard = $.extend(dashboardData, {
@@ -46,6 +214,7 @@ var Dashboard = function (dashboardData) {
       this.slices = sliceObjects;
       this.refreshTimer = null;
       this.startPeriodicRender(0);
+      this.initialized = true;
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -135,169 +304,10 @@ var Dashboard = function (dashboardData) {
       }
     },
     initDashboardView: function () {
-      var SliceCell = React.createClass({
-        render: function () {
-          var slice = this.props.slice,
-              createMarkup = function () {
-                return {__html: slice.description_markeddown};
-              };
-
-          return (
-            <div
-              id={"slice_" + slice.slice_id}
-              slice_id={slice.slice_id}
-              className={"widget " + slice.viz_name}>
-
-              <div className="chart-header">
-                <div className="row">
-                  <div className="col-md-12 text-center header">
-                    {slice.slice_name}
-                  </div>
-                  <div className="col-md-12 chart-controls">
-                    <div className="pull-left">
-                      <a title="Move chart" data-toggle="tooltip">
-                        <i className="fa fa-arrows drag"/>
-                      </a>
-                      <a className="refresh" title="Force refresh data" data-toggle="tooltip">
-                        <i className="fa fa-repeat"/>
-                      </a>
-                    </div>
-                    <div className="pull-right">
-                      {slice.description ?
-                        <a title="Toggle chart description">
-                          <i className="fa fa-info-circle slice_info" title={slice.description} data-toggle="tooltip"/>
-                        </a>
-                      : ""}
-                      <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
-                        <i className="fa fa-pencil"/>
-                      </a>
-                      <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
-                        <i className="fa fa-share"/>
-                      </a>
-                      <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
-                        <i className="fa fa-close" onClick={this.props.removeSlice.bind(null, slice.slice_id)}/>
-                      </a>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
-              <div
-                className="slice_description bs-callout bs-callout-default"
-                style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
-                dangerouslySetInnerHTML={createMarkup()}>
-              </div>
-              <div className="row chart-container">
-                <input type="hidden" value="false"/>
-                <div id={slice.token} className="token col-md-12">
-                  <img src={loadingImgUrl} className="loading" alt="loading"/>
-                  <div className="slice_container" id={slice.token + "_con"}></div>
-                </div>
-              </div>
-            </div>
-          )
-        }
-      });
-
-      var GridLayout = React.createClass({
-        removeSlice: function (sliceId) {
-          this.setState({
-            layout: this.state.layout.filter(function (reactPos) {
-              return reactPos.i != sliceId;
-            }),
-            slices: this.state.slices.filter(function (slice) {
-              return slice.slice_id != sliceId;
-            }),
-            sliceElements: this.state.sliceElements.filter(function (sliceElement) {
-              return sliceElement.key != sliceId + "";
-            }),
-            maxCol: this.state.layout.reduce(function (maxCol, reactPos) {
-              return Math.max(maxCol, reactPos.x + reactPos.w);
-            }, -1)
-          });
-        },
-        onResizeStop: function (layout, oldItem, newItem, placeholder, e, element) {
-          var newLayout = this.state.layout.filter(function (reactPos) {
-            return reactPos.i != newItem.i;
-          });
-          newLayout.push(newItem);
-          dashboard.getSlice(newItem.i).resize();
-
-          this.setState({
-            layout: newLayout
-          });
-        },
-        serialize: function () {
-          return this.state.layout.map(function (reactPos) {
-            return {
-              slice_id: reactPos.i,
-              col: reactPos.x + 1,
-              row: reactPos.y,
-              size_x: reactPos.w,
-              size_y: reactPos.h
-            };
-          });
-        },
-        componentWillMount: function () {
-          var layout = [],
-            sliceElements = [],
-            maxCol = -1;
-
-          this.props.slices.forEach(function (slice, index) {
-            var pos = this.props.posDict[slice.slice_id];
-            if (!pos) {
-              pos = {
-                col: (index * 4 + 1) % 12,
-                row: 1 + (index / 12) * 4,
-                size_x: 4,
-                size_y: 4
-              }
-            }
-
-            sliceElements.push(
-              <div key={slice.slice_id} className="slice-container">
-                <SliceCell slice={slice} removeSlice={this.removeSlice}/>
-              </div>
-            );
-
-            layout.push({
-              i: slice.slice_id + "",
-              x: pos.col - 1,
-              y: pos.row,
-              w: pos.size_x,
-              h: pos.size_y
-            });
-
-            maxCol = Math.max(maxCol, pos.col + pos.size_x - 1);
-          }, this);
-
-          this.setState({
-            layout: layout,
-            sliceElements: sliceElements,
-            maxCol: maxCol,
-            slices: this.props.slices
-          });
-        },
-        render: function () {
-          var maxCol = this.state.maxCol;
-          return (
-            <ResponsiveReactGridLayout className="layout" layouts={{lg: this.state.layout}} onResizeStop={this.onResizeStop}
-              cols={{lg: maxCol, md: maxCol, sm: Math.max(1, maxCol-2), xs: Math.max(1, maxCol-4), xxs: Math.max(1, maxCol-6)}}
-              rowHeight={100}
-              autoSize={true}
-              margin={[20, 20]}
-              useCSSTransforms={true}
-              draggableHandle=".drag">
-              {this.state.sliceElements}
-            </ResponsiveReactGridLayout>
-          )
-        }
-      });
-
       reactGridLayout = render(
-        <GridLayout 
-          slices={this.slices} 
-          posDict={posDict}/>, document.getElementById("grid-container"));
+        <GridLayout slices={this.slices} posDict={posDict} dashboard={dashboard}/>,
+        document.getElementById("grid-container")
+      );
 
       dashboard = this;
 
