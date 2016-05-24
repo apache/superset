@@ -7,9 +7,9 @@
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}
 
-<script>
+<script type=text/javascript>
   var posDict = {{ pos_dict | safe }},
-    expandedSlices = {{ dashboard.json_data | safe }}.metadata.expanded_slices,
+    expandedSlices = {{ dashboard.metadata_dejson | tojson | safe }}.expanded_slices,
     loadingImgUrl = "{{ url_for('static', filename='assets/images/loading.gif') }}";
 </script>
 

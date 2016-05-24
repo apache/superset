@@ -21,6 +21,7 @@ import {Responsive, WidthProvider} from "react-grid-layout";
 
 var Dashboard = function (dashboardData) {
   const ResponsiveReactGridLayout = WidthProvider(Responsive);
+  var reactGridLayout;
 
   var dashboard = $.extend(dashboardData, {
     filters: {},
@@ -141,111 +142,162 @@ var Dashboard = function (dashboardData) {
                 return {__html: slice.description_markeddown};
               };
 
-          return (<div
-            id={"slice_" + slice.slice_id}
-            slice_id={slice.slice_id}
-            className={"widget " + slice.viz_name}>
-
-            <div className="chart-header">
-              <div className="row">
-                <div className="col-md-12 text-center header">
-                  {slice.slice_name}
-                </div>
-                <div className="col-md-12 chart-controls">
-                  <div className="pull-left">
-                    <a title="Move chart" data-toggle="tooltip">
-                      <i className="fa fa-arrows drag"/>
-                    </a>
-                    <a className="refresh" title="Force refresh data" data-toggle="tooltip">
-                      <i className="fa fa-repeat"/>
-                    </a>
-                  </div>
-                  <div className="pull-right">
-                    {slice.description ?
-                      <a title="Toggle chart description">
-                        <i className="fa fa-info-circle slice_info" title={slice.description} data-toggle="tooltip"/>
-                      </a>
-                    : ""}
-                    <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
-                      <i className="fa fa-pencil"/>
-                    </a>
-                    <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
-                      <i className="fa fa-share"/>
-                    </a>
-                    <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
-                      <i className="fa fa-close"/>
-                    </a>
-                  </div>
-                </div>
-
-              </div>
-            </div>
+          return (
             <div
-              className="slice_description bs-callout bs-callout-default"
-              style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
-              dangerouslySetInnerHTML={createMarkup()}>
-            </div>
-            <div className="row chart-container">
-              <input type="hidden" value="false"/>
-              <div id={slice.token} className="token col-md-12">
-                <img src={loadingImgUrl} className="loading" alt="loading"/>
-                <div className="slice_container" id={slice.token + "_con"}></div>
+              id={"slice_" + slice.slice_id}
+              slice_id={slice.slice_id}
+              className={"widget " + slice.viz_name}>
+
+              <div className="chart-header">
+                <div className="row">
+                  <div className="col-md-12 text-center header">
+                    {slice.slice_name}
+                  </div>
+                  <div className="col-md-12 chart-controls">
+                    <div className="pull-left">
+                      <a title="Move chart" data-toggle="tooltip">
+                        <i className="fa fa-arrows drag"/>
+                      </a>
+                      <a className="refresh" title="Force refresh data" data-toggle="tooltip">
+                        <i className="fa fa-repeat"/>
+                      </a>
+                    </div>
+                    <div className="pull-right">
+                      {slice.description ?
+                        <a title="Toggle chart description">
+                          <i className="fa fa-info-circle slice_info" title={slice.description} data-toggle="tooltip"/>
+                        </a>
+                      : ""}
+                      <a href={slice.edit_url} title="Edit chart" data-toggle="tooltip">
+                        <i className="fa fa-pencil"/>
+                      </a>
+                      <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
+                        <i className="fa fa-share"/>
+                      </a>
+                      <a className="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
+                        <i className="fa fa-close" onClick={this.props.removeSlice.bind(null, slice.slice_id)}/>
+                      </a>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+              <div
+                className="slice_description bs-callout bs-callout-default"
+                style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
+                dangerouslySetInnerHTML={createMarkup()}>
+              </div>
+              <div className="row chart-container">
+                <input type="hidden" value="false"/>
+                <div id={slice.token} className="token col-md-12">
+                  <img src={loadingImgUrl} className="loading" alt="loading"/>
+                  <div className="slice_container" id={slice.token + "_con"}></div>
+                </div>
               </div>
             </div>
-          </div>)
+          )
         }
       });
 
       var GridLayout = React.createClass({
-        render: function () {
-          var layout = [],
-              sliceElements = [],
-              slices = this.props.slices,
-              posDict = this.props.posDict,
-              onResizeStop = function (layout, oldItem, newItem, placeholder, e, element) {
-                dashboard.getSlice(newItem.i).resize();
-              },
-              maxCol = -1;
+        removeSlice: function (sliceId) {
+          this.setState({
+            layout: this.state.layout.filter(function (reactPos) {
+              return reactPos.i != sliceId;
+            }),
+            slices: this.state.slices.filter(function (slice) {
+              return slice.slice_id != sliceId;
+            }),
+            sliceElements: this.state.sliceElements.filter(function (sliceElement) {
+              return sliceElement.key != sliceId + "";
+            }),
+            maxCol: this.state.layout.reduce(function (maxCol, reactPos) {
+              return Math.max(maxCol, reactPos.x + reactPos.w);
+            }, -1)
+          });
+        },
+        onResizeStop: function (layout, oldItem, newItem, placeholder, e, element) {
+          var newLayout = this.state.layout.filter(function (reactPos) {
+            return reactPos.i != newItem.i;
+          });
+          newLayout.push(newItem);
+          dashboard.getSlice(newItem.i).resize();
 
-          slices.forEach(function (slice, index) {
-            var pos = posDict[slice.slice_id];
+          this.setState({
+            layout: newLayout
+          });
+        },
+        serialize: function () {
+          return this.state.layout.map(function (reactPos) {
+            return {
+              slice_id: reactPos.i,
+              col: reactPos.x + 1,
+              row: reactPos.y,
+              size_x: reactPos.w,
+              size_y: reactPos.h
+            };
+          });
+        },
+        componentWillMount: function () {
+          var layout = [],
+            sliceElements = [],
+            maxCol = -1;
+
+          this.props.slices.forEach(function (slice, index) {
+            var pos = this.props.posDict[slice.slice_id];
             if (!pos) {
               pos = {
                 col: (index * 4 + 1) % 12,
-                row: 1,
+                row: 1 + (index / 12) * 4,
                 size_x: 4,
                 size_y: 4
               }
             }
 
-            sliceElements.push(<div key={slice.slice_id}><SliceCell slice={slice}/></div>);
-            if (pos) {
-              layout.push({
-                i: slice.slice_id + "",
-                x: pos.col - 1,
-                y: pos.row,
-                w: pos.size_x,
-                h: pos.size_y
-              });
-            }
+            sliceElements.push(
+              <div key={slice.slice_id} className="slice-container">
+                <SliceCell slice={slice} removeSlice={this.removeSlice}/>
+              </div>
+            );
+
+            layout.push({
+              i: slice.slice_id + "",
+              x: pos.col - 1,
+              y: pos.row,
+              w: pos.size_x,
+              h: pos.size_y
+            });
 
             maxCol = Math.max(maxCol, pos.col + pos.size_x - 1);
-          });
+          }, this);
 
+          this.setState({
+            layout: layout,
+            sliceElements: sliceElements,
+            maxCol: maxCol,
+            slices: this.props.slices
+          });
+        },
+        render: function () {
+          var maxCol = this.state.maxCol;
           return (
-            <ResponsiveReactGridLayout className="layout" layouts={{lg:layout}} onResizeStop={onResizeStop}
-              cols={{lg:maxCol, md:maxCol, sm:Math.max(1, maxCol-2), xs:Math.max(1, maxCol-4), xxs:Math.max(1, maxCol-6)}}
+            <ResponsiveReactGridLayout className="layout" layouts={{lg: this.state.layout}} onResizeStop={this.onResizeStop}
+              cols={{lg: maxCol, md: maxCol, sm: Math.max(1, maxCol-2), xs: Math.max(1, maxCol-4), xxs: Math.max(1, maxCol-6)}}
               rowHeight={100}
               autoSize={true}
               margin={[20, 20]}
-              useCSSTransforms={true}>
-              {sliceElements}
+              useCSSTransforms={true}
+              draggableHandle=".drag">
+              {this.state.sliceElements}
             </ResponsiveReactGridLayout>
           )
         }
       });
 
-      render(<GridLayout slices={this.slices} posDict={posDict}/>, document.getElementById("grid-container"));
+      reactGridLayout = render(
+        <GridLayout 
+          slices={this.slices} 
+          posDict={posDict}/>, document.getElementById("grid-container"));
 
       dashboard = this;
 
@@ -258,7 +310,7 @@ var Dashboard = function (dashboardData) {
           $(this).find('.chart-controls').fadeOut(300);
         }
       );
-      $("div.gridster").css('visibility', 'visible');
+      $("div.grid-container").css('visibility', 'visible');
       $("#savedash").click(function () {
         var expanded_slices = {};
         $.each($(".slice_info"), function (i, d) {
@@ -269,7 +321,7 @@ var Dashboard = function (dashboardData) {
           }
         });
         var data = {
-          positions: gridster.serialize(),
+          positions: reactGridLayout.serialize(),
           css: editor.getValue(),
           expanded_slices: expanded_slices
         };
@@ -332,10 +384,6 @@ var Dashboard = function (dashboardData) {
           slice.render(true);
         });
       });
-      $("a.remove-chart").click(function () {
-        var li = $(this).parents("li");
-        gridster.remove_widget(li);
-      });
 
       $("div.widget").click(function (e) {
         var $this = $(this);
@@ -349,6 +397,14 @@ var Dashboard = function (dashboardData) {
           $this.find(".chart-controls").toggle();
         }
       });
+      $('.slice-container').hover(
+        function () {
+          $(this).find('.react-resizable-handle').show(100);
+        },
+        function () {
+          $(this).find('.react-resizable-handle').hide(100);
+        }
+      );
 
       editor.on("change", function () {
         var css = editor.getValue();
