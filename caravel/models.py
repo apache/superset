@@ -964,6 +964,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
+    timestamp_format = Column(String(256))
 
     @property
     def metrics_combo(self):

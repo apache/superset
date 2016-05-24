@@ -16,6 +16,7 @@ import sqlalchemy as sa
 
 def upgrade():
 	try:
+		op.add_column('datasources', sa.Column('timestamp_format', sa.String(length=256), nullable=True))
 		op.add_column('tables', sa.Column('timestamp_format', sa.String(length=256), nullable=True))
 	except Exception:
 		pass
@@ -24,5 +25,6 @@ def upgrade():
 def downgrade():
 	try:
 		op.drop_column('tables', 'timestamp_format')
+		op.drop_column('datasources', 'timestamp_format')
 	except Exception:
 		pass
