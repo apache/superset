@@ -1165,7 +1165,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 if len(splitted) > 1:
                     for s in eq.split(','):
                         s = s.strip()
-                        fields.append(Filter.build_filter(Dimension(col) == s))
+                        fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
                 else:
                     cond = Dimension(col) == eq
@@ -1175,8 +1175,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 cond = Filter(type="regex", pattern=eq, dimension=col)
             if filters:
                 filters = Filter(type="and", fields=[
-                    Filter.build_filter(cond),
-                    Filter.build_filter(filters)
+                    cond,
+                    filters
                 ])
             else:
                 filters = cond
@@ -1213,11 +1213,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 for unused, row in df.iterrows():
                     fields = []
                     for dim in dims:
-                        f = Filter.build_filter(Dimension(dim) == row[dim])
+                        f = Dimension(dim) == row[dim]
                         fields.append(f)
                     if len(fields) > 1:
                         filt = Filter(type="and", fields=fields)
-                        filters.append(Filter.build_filter(filt))
+                        filters.append(filt)
                     elif fields:
                         filters.append(fields[0])
 
@@ -1227,8 +1227,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         qry['filter'] = ff
                     else:
                         qry['filter'] = Filter(type="and", fields=[
-                            Filter.build_filter(ff),
-                            Filter.build_filter(orig_filters)])
+                            ff,
+                            orig_filters])
                 qry['limit_spec'] = None
         if row_limit:
             qry['limit_spec'] = {
