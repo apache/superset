@@ -290,7 +290,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_name', 'database', 'schema', 'timestamp_format',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema', 'timestamp_format', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema',
+        'timestamp_format', 'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
