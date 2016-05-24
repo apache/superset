@@ -20,7 +20,6 @@ setup(
         'cryptography>=1.1.1, <2.0.0',
         'flask-appbuilder>=1.6.0, <2.0.0',
         'Flask-BabelPkg==0.9.6',
-        'Flask-Cors>=2.0.0',
         'flask-cache>=0.13.1, <0.14.0',
         'flask-migrate>=1.5.1, <2.0.0',
         'flask-script>=2.0.5, <3.0.0',
@@ -40,6 +39,9 @@ setup(
         'sqlparse>=0.1.16, <0.2.0',
         'werkzeug>=0.11.2, <0.12.0',
     ],
+    extras_require={
+        'cors': ['Flask-Cors>=2.0.0'],
+    },
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
