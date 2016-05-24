@@ -428,8 +428,10 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
-    def dttm_converter(self, dttm, tf='%Y-%m-%d %H:%M:%S.%f'):
+    def dttm_converter(self, dttm, tf=None):
         """Returns a string that the database flavor understands as a date"""
+        if tf is None or tf == '':
+            tf = '%Y-%m-%d %H:%M:%S.%f'
         default = "'{}'".format(dttm.strftime(tf))
         iso = dttm.isoformat()
         d = {
