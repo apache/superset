@@ -152,9 +152,7 @@ class GridLayout extends React.Component {
 
       sliceElements.push(
         <div key={slice.slice_id} className="slice-container">
-        <div style={{ position: "relative", height: "inherit", width: "inherit" }}>
           <SliceCell slice={slice} removeSlice={this.removeSlice.bind(this)}/>
-        </div>
         </div>
       );
 
@@ -187,7 +185,7 @@ class GridLayout extends React.Component {
         rowHeight={100}
         autoSize={true}
         margin={[20, 20]}
-        useCSSTransforms={true}
+        useCSSTransforms={false}
         draggableHandle=".drag">
         {this.state.sliceElements}
       </ResponsiveReactGridLayout>
