@@ -113,16 +113,6 @@ class GridLayout extends React.Component {
     });
   }
 
-  onBreakpointChange() {
-    if (!this.props.dashboard.initialized) {
-      return;
-    }
-
-    this.state.slices.forEach(function (slice) {
-      this.props.dashboard.getSlice(slice.slice_id).resize();
-    }, this);
-  }
-
   serialize() {
     return this.state.layout.map(function (reactPos) {
       return {
@@ -180,7 +170,6 @@ class GridLayout extends React.Component {
         layouts={{ lg: this.state.layout }}
         onResizeStop={this.onResizeStop.bind(this)}
         onDragStop={this.onDragStop.bind(this)}
-        onBreakpointChange={this.onBreakpointChange.bind(this)}
         cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
         rowHeight={100}
         autoSize={true}
