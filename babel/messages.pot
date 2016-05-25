@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-05-20 20:30-0700\n"
+"POT-Creation-Date: 2016-05-25 12:39+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -23,314 +23,306 @@ msgid ""
 "by this type of chart"
 msgstr ""
 
-#: caravel/models.py:1243
+#: caravel/models.py:1247
 msgid "No data was returned."
 msgstr ""
 
-#: caravel/views.py:124
+#: caravel/views.py:123
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
 msgstr ""
 
-#: caravel/views.py:133 caravel/views.py:161
+#: caravel/views.py:132 caravel/views.py:160
 msgid "Column"
 msgstr ""
 
-#: caravel/views.py:134 caravel/views.py:194 caravel/views.py:223
+#: caravel/views.py:133 caravel/views.py:193 caravel/views.py:222
 msgid "Verbose Name"
 msgstr ""
 
-#: caravel/views.py:135 caravel/views.py:193 caravel/views.py:222
-#: caravel/views.py:400 caravel/views.py:535
+#: caravel/views.py:134 caravel/views.py:192 caravel/views.py:221
+#: caravel/views.py:399 caravel/views.py:534
 msgid "Description"
 msgstr ""
 
-#: caravel/views.py:136 caravel/views.py:164
+#: caravel/views.py:135 caravel/views.py:163
 msgid "Groupable"
 msgstr ""
 
-#: caravel/views.py:137 caravel/views.py:165
+#: caravel/views.py:136 caravel/views.py:164
 msgid "Filterable"
 msgstr ""
 
-#: caravel/views.py:138 caravel/views.py:197 caravel/views.py:308
-#: caravel/views.py:406
+#: caravel/views.py:137 caravel/views.py:196 caravel/views.py:307
+#: caravel/views.py:405
 msgid "Table"
 msgstr ""
 
-#: caravel/views.py:139 caravel/views.py:166
+#: caravel/views.py:138 caravel/views.py:165
 msgid "Count Distinct"
 msgstr ""
 
-#: caravel/views.py:140 caravel/views.py:167
+#: caravel/views.py:139 caravel/views.py:166
 msgid "Sum"
 msgstr ""
 
-#: caravel/views.py:141 caravel/views.py:168
+#: caravel/views.py:140 caravel/views.py:167
 msgid "Min"
 msgstr ""
 
-#: caravel/views.py:142 caravel/views.py:169
+#: caravel/views.py:141 caravel/views.py:168
 msgid "Max"
 msgstr ""
 
-#: caravel/views.py:143
+#: caravel/views.py:142
 msgid "Expression"
 msgstr ""
 
-#: caravel/views.py:144
+#: caravel/views.py:143
 msgid "Is temporal"
 msgstr ""
 
-#: caravel/views.py:162 caravel/views.py:195 caravel/views.py:224
-#: caravel/views.py:424
+#: caravel/views.py:161 caravel/views.py:194 caravel/views.py:223
+#: caravel/views.py:423
 msgid "Type"
 msgstr ""
 
-#: caravel/views.py:163 caravel/views.py:399
+#: caravel/views.py:162 caravel/views.py:398
 msgid "Datasource"
 msgstr ""
 
-#: caravel/views.py:192 caravel/views.py:221
+#: caravel/views.py:191 caravel/views.py:220
 msgid "Metric"
 msgstr ""
 
-#: caravel/views.py:196
+#: caravel/views.py:195
 msgid "SQL Expression"
 msgstr ""
 
-#: caravel/views.py:225 caravel/views.py:503
+#: caravel/views.py:224 caravel/views.py:502
 msgid "JSON"
 msgstr ""
 
-#: caravel/views.py:226
+#: caravel/views.py:225
 msgid "Druid Datasource"
 msgstr ""
 
-#: caravel/views.py:257 caravel/views.py:310
+#: caravel/views.py:256 caravel/views.py:309
 msgid "Database"
 msgstr ""
 
-#: caravel/views.py:258
+#: caravel/views.py:257
 msgid "SQL link"
 msgstr ""
 
-#: caravel/views.py:259 caravel/views.py:397 caravel/views.py:459
+#: caravel/views.py:258 caravel/views.py:396 caravel/views.py:458
 msgid "Creator"
 msgstr ""
 
-#: caravel/views.py:260 caravel/views.py:311
+#: caravel/views.py:259 caravel/views.py:310
 msgid "Last Changed"
 msgstr ""
 
-#: caravel/views.py:261
+#: caravel/views.py:260
 msgid "SQLAlchemy URI"
 msgstr ""
 
-#: caravel/views.py:262 caravel/views.py:317 caravel/views.py:396
-#: caravel/views.py:541
+#: caravel/views.py:261 caravel/views.py:316 caravel/views.py:395
+#: caravel/views.py:540
 msgid "Cache Timeout"
 msgstr ""
 
-#: caravel/views.py:263
+#: caravel/views.py:262
 msgid "Extra"
 msgstr ""
 
-#: caravel/views.py:279
+#: caravel/views.py:278
 msgid "Databases"
 msgstr ""
 
-#: caravel/views.py:281 caravel/views.py:337 caravel/views.py:369
+#: caravel/views.py:280 caravel/views.py:336 caravel/views.py:368
 msgid "Sources"
 msgstr ""
 
-#: caravel/views.py:309
+#: caravel/views.py:308
 msgid "Changed By"
 msgstr ""
 
-#: caravel/views.py:312
+#: caravel/views.py:311
 msgid "SQL Editor"
 msgstr ""
 
-#: caravel/views.py:313 caravel/views.py:537
+#: caravel/views.py:312 caravel/views.py:536
 msgid "Is Featured"
 msgstr ""
 
-#: caravel/views.py:314
+#: caravel/views.py:313
 msgid "Schema"
 msgstr ""
 
-#: caravel/views.py:315 caravel/views.py:539
+#: caravel/views.py:314 caravel/views.py:538
 msgid "Default Endpoint"
 msgstr ""
 
-#: caravel/views.py:316
+#: caravel/views.py:315
 msgid "Offset"
 msgstr ""
 
-#: caravel/views.py:354 caravel/views.py:534
+#: caravel/views.py:353 caravel/views.py:533
 msgid "Cluster"
 msgstr ""
 
-#: caravel/views.py:355
+#: caravel/views.py:354
 msgid "Coordinator Host"
 msgstr ""
 
-#: caravel/views.py:356
+#: caravel/views.py:355
 msgid "Coordinator Port"
 msgstr ""
 
-#: caravel/views.py:357
+#: caravel/views.py:356
 msgid "Coordinator Endpoint"
 msgstr ""
 
-#: caravel/views.py:358
+#: caravel/views.py:357
 msgid "Broker Host"
 msgstr ""
 
-#: caravel/views.py:359
-msgid "Borker Port"
+#: caravel/views.py:358
+msgid "Broker Port"
 msgstr ""
 
-#: caravel/views.py:360
+#: caravel/views.py:359
 msgid "Broker Endpoint"
 msgstr ""
 
-#: caravel/views.py:398 caravel/views.py:479
+#: caravel/views.py:397 caravel/views.py:478
 msgid "Dashboards"
 msgstr ""
 
-#: caravel/views.py:401
+#: caravel/views.py:400
 msgid "Last Modified"
 msgstr ""
 
-#: caravel/views.py:402 caravel/views.py:458
+#: caravel/views.py:401 caravel/views.py:457
 msgid "Owners"
 msgstr ""
 
-#: caravel/views.py:403
+#: caravel/views.py:402
 msgid "Parameters"
 msgstr ""
 
-#: caravel/views.py:404 caravel/views.py:425
+#: caravel/views.py:403 caravel/views.py:424
 msgid "Slice"
 msgstr ""
 
-#: caravel/views.py:405
+#: caravel/views.py:404
 msgid "Name"
 msgstr ""
 
-#: caravel/views.py:407 caravel/views.py:426
+#: caravel/views.py:406 caravel/views.py:425
 msgid "Visualization Type"
 msgstr ""
 
-#: caravel/views.py:441
+#: caravel/views.py:440
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
-#: caravel/views.py:446
+#: caravel/views.py:445
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
 msgstr ""
 
-#: caravel/views.py:450
+#: caravel/views.py:449
 msgid "To get a readable URL for your dashboard"
 msgstr ""
 
-#: caravel/views.py:454
+#: caravel/views.py:453
 msgid "Dashboard"
 msgstr ""
 
-#: caravel/views.py:455
+#: caravel/views.py:454
 msgid "Title"
 msgstr ""
 
-#: caravel/views.py:456
+#: caravel/views.py:455
 msgid "Slug"
 msgstr ""
 
-#: caravel/views.py:457
+#: caravel/views.py:456
 msgid "Slices"
 msgstr ""
 
-#: caravel/views.py:460
+#: caravel/views.py:459
 msgid "Modified"
 msgstr ""
 
-#: caravel/views.py:461
+#: caravel/views.py:460
 msgid "Position JSON"
 msgstr ""
 
-#: caravel/views.py:462
+#: caravel/views.py:461
 msgid "CSS"
 msgstr ""
 
-#: caravel/views.py:463
+#: caravel/views.py:462
 msgid "JSON Metadata"
 msgstr ""
 
-#: caravel/views.py:500
+#: caravel/views.py:499
 msgid "User"
 msgstr ""
 
-#: caravel/views.py:501
+#: caravel/views.py:500
 msgid "Action"
 msgstr ""
 
-#: caravel/views.py:502
+#: caravel/views.py:501
 msgid "dttm"
 msgstr ""
 
-#: caravel/views.py:509
+#: caravel/views.py:508
 msgid "Action Log"
 msgstr ""
 
-#: caravel/views.py:510
+#: caravel/views.py:509
 msgid "Security"
 msgstr ""
 
-#: caravel/views.py:527
+#: caravel/views.py:526
 msgid "Timezone offset (in hours) for this datasource"
 msgstr ""
 
-#: caravel/views.py:533
+#: caravel/views.py:532
 msgid "Data Source"
 msgstr ""
 
-#: caravel/views.py:536
+#: caravel/views.py:535
 msgid "Owner"
 msgstr ""
 
-#: caravel/views.py:538
+#: caravel/views.py:537
 msgid "Is Hidden"
 msgstr ""
 
-#: caravel/views.py:540
+#: caravel/views.py:539
 msgid "Time Offset"
 msgstr ""
 
-#: caravel/views.py:555
+#: caravel/views.py:554
 msgid "Druid Datasources"
 msgstr ""
 
-#: caravel/views.py:639
-msgid "The datasource seems to have been deleted"
-msgstr ""
-
-#: caravel/views.py:647
-msgid "You don't seem to have access to this datasource"
-msgstr ""
-
-#: caravel/views.py:970
+#: caravel/views.py:969
 msgid "This view requires the `all_datasource_access` permission"
 msgstr ""
 
-#: caravel/views.py:1081
+#: caravel/views.py:1064
 msgid "CSS Templates"
 msgstr ""
 
