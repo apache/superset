@@ -189,6 +189,7 @@ div.widget .chart-controls {
   position: absolute;
   right: 0;
   left: 0;
+  top: 5px;
   padding: 5px 5px;
   opacity: 0.75;
   display: none;

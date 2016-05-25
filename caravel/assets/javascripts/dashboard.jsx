@@ -17,20 +17,20 @@ require('../node_modules/react-resizable/css/styles.css');
 
 require('../stylesheets/dashboard.css');
 
-import {Responsive, WidthProvider} from "react-grid-layout";
+import { Responsive, WidthProvider } from "react-grid-layout";
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 class SliceCell extends React.Component {
   render() {
     var slice = this.props.slice,
         createMarkup = function () {
-          return {__html: slice.description_markeddown};
+          return { __html: slice.description_markeddown };
         };
 
     return (
       <div
         id={"slice_" + slice.slice_id}
-        slice_id={slice.slice_id}
+        data-slice-id={slice.slice_id}
         className={"widget " + slice.viz_name}>
 
         <div className="chart-header">
@@ -69,7 +69,7 @@ class SliceCell extends React.Component {
         </div>
         <div
           className="slice_description bs-callout bs-callout-default"
-          style={expandedSlices && expandedSlices[slice.slice_id + ""] ? {} : {display: "none"}}
+          style={expandedSlices && expandedSlices[String(slice.slice_id)] ? {} : { display: "none" }}
           dangerouslySetInnerHTML={createMarkup()}>
         </div>
         <div className="row chart-container">
@@ -80,39 +80,43 @@ class SliceCell extends React.Component {
           </div>
         </div>
       </div>
-    )
+    );
   }
 }
 
 class GridLayout extends React.Component {
   removeSlice(sliceId) {
+    $('[data-toggle="tooltip"]').tooltip("hide");
     this.setState({
       layout: this.state.layout.filter(function (reactPos) {
-        return reactPos.i != sliceId;
+        return reactPos.i !== sliceId;
       }),
       slices: this.state.slices.filter(function (slice) {
-        return slice.slice_id != sliceId;
+        return slice.slice_id !== sliceId;
       }),
       sliceElements: this.state.sliceElements.filter(function (sliceElement) {
-        return sliceElement.key != sliceId + "";
+        return sliceElement.key !== String(sliceId);
       })
     });
   }
 
-  onResizeStop(layout, oldItem, newItem, placeholder, e, element) {
-    var newLayout = this.state.layout.filter(function (reactPos) {
-      return reactPos.i != newItem.i;
-    });
-    newLayout.push(newItem);
+  onResizeStop(layout, oldItem, newItem) {
     this.props.dashboard.getSlice(newItem.i).resize();
-
     this.setState({
-      layout: newLayout
+      layout: layout
     });
   }
 
-  onLayoutChange(currentLayout, allLayout) {
-    if (!this.props.dashboard.initialized) return;
+  onDragStop(layout) {
+    this.setState({
+      layout: layout
+    });
+  }
+
+  onBreakpointChange() {
+    if (!this.props.dashboard.initialized) {
+      return;
+    }
 
     this.state.slices.forEach(function (slice) {
       this.props.dashboard.getSlice(slice.slice_id).resize();
@@ -140,20 +144,22 @@ class GridLayout extends React.Component {
       if (!pos) {
         pos = {
           col: (index * 4 + 1) % 12,
-          row: 1 + (index / 12) * 4,
+          row: Math.floor((index) / 3) * 4,
           size_x: 4,
           size_y: 4
-        }
+        };
       }
 
       sliceElements.push(
         <div key={slice.slice_id} className="slice-container">
-          <SliceCell slice={slice} removeSlice={this.removeSlice}/>
+        <div style={{ position: "relative", height: "inherit", width: "inherit" }}>
+          <SliceCell slice={slice} removeSlice={this.removeSlice.bind(this)}/>
+        </div>
         </div>
       );
 
       layout.push({
-        i: slice.slice_id + "",
+        i: String(slice.slice_id),
         x: pos.col - 1,
         y: pos.row,
         w: pos.size_x,
@@ -173,10 +179,11 @@ class GridLayout extends React.Component {
     return (
       <ResponsiveReactGridLayout
         className="layout"
-        layouts={{lg: this.state.layout}}
+        layouts={{ lg: this.state.layout }}
         onResizeStop={this.onResizeStop.bind(this)}
-        onLayoutChange={this.onLayoutChange.bind(this)}
-        cols={{lg: 12, md: 12, sm: 10, xs: 8, xxs: 6}}
+        onDragStop={this.onDragStop.bind(this)}
+        onBreakpointChange={this.onBreakpointChange.bind(this)}
+        cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
         rowHeight={100}
         autoSize={true}
         margin={[20, 20]}
@@ -184,7 +191,7 @@ class GridLayout extends React.Component {
         draggableHandle=".drag">
         {this.state.sliceElements}
       </ResponsiveReactGridLayout>
-    )
+    );
   }
 }
 
@@ -327,7 +334,7 @@ var Dashboard = function (dashboardData) {
           var widget = $(this).parents('.widget');
           var slice_description = widget.find('.slice_description');
           if (slice_description.is(":visible")) {
-            expanded_slices[$(d).attr('slice_id')] = true;
+            expanded_slices[$(widget).attr('data-slice-id')] = true;
           }
         });
         var data = {
