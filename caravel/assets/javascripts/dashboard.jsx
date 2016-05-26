@@ -28,11 +28,7 @@ class SliceCell extends React.Component {
         };
 
     return (
-      <div
-        id={"slice_" + slice.slice_id}
-        data-slice-id={slice.slice_id}
-        className={"widget " + slice.viz_name}>
-
+      <div>
         <div className="chart-header">
           <div className="row">
             <div className="col-md-12 text-center header">
@@ -89,7 +85,7 @@ class GridLayout extends React.Component {
     $('[data-toggle="tooltip"]').tooltip("hide");
     this.setState({
       layout: this.state.layout.filter(function (reactPos) {
-        return reactPos.i !== sliceId;
+        return reactPos.i !== String(sliceId);
       }),
       slices: this.state.slices.filter(function (slice) {
         return slice.slice_id !== sliceId;
@@ -101,10 +97,13 @@ class GridLayout extends React.Component {
   }
 
   onResizeStop(layout, oldItem, newItem) {
-    this.props.dashboard.getSlice(newItem.i).resize();
-    this.setState({
-      layout: layout
-    });
+    if (oldItem.w != newItem.w || oldItem.h != newItem.h) {
+      this.setState({
+        layout: layout
+      }, function () {
+        this.props.dashboard.getSlice(newItem.i).resize();
+      });
+    }
   }
 
   onDragStop(layout) {
@@ -141,7 +140,11 @@ class GridLayout extends React.Component {
       }
 
       sliceElements.push(
-        <div key={slice.slice_id} className="slice-container">
+        <div
+          id={"slice_" + slice.slice_id}
+          key={slice.slice_id}
+          data-slice-id={slice.slice_id}
+          className={"widget " + slice.viz_name}>
           <SliceCell slice={slice} removeSlice={this.removeSlice.bind(this)}/>
         </div>
       );
@@ -195,7 +198,7 @@ var Dashboard = function (dashboardData) {
         dash = this;
       dashboard.slices.forEach(function (data) {
         if (data.error) {
-          var html = '';
+          var html = '<div class="alert alert-danger">' + data.error + '</div>';
           $("#slice_" + data.slice_id).find('.token').html(html);
         } else {
           var slice = px.Slice(data, dash);
@@ -208,7 +211,6 @@ var Dashboard = function (dashboardData) {
       this.slices = sliceObjects;
       this.refreshTimer = null;
       this.startPeriodicRender(0);
-      this.initialized = true;
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -401,14 +403,6 @@ var Dashboard = function (dashboardData) {
           $this.find(".chart-controls").toggle();
         }
       });
-      $('.slice-container').hover(
-        function () {
-          $(this).find('.react-resizable-handle').show(100);
-        },
-        function () {
-          $(this).find('.react-resizable-handle').hide(100);
-        }
-      );
 
       editor.on("change", function () {
         var css = editor.getValue();

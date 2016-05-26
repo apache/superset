@@ -12,12 +12,7 @@
   opacity: 0.3;
 }
 
-.react-resizable-handle {
-  display: none;
-  margin: 4px;
-}
 .slice-grid div.widget{
-  height: inherit;
   border-radius: 0;
   border: 1px solid #ccc;
   box-shadow: 2px 1px 5px -2px #aaa;
