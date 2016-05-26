@@ -37,49 +37,49 @@ msgstr "是否要让这列接受[Time Granularity]的选项，"
 
 #: caravel/views.py:133 caravel/views.py:161
 msgid "Column"
-msgstr ""
+msgstr "字段"
 
 #: caravel/views.py:134 caravel/views.py:194 caravel/views.py:223
 msgid "Verbose Name"
-msgstr ""
+msgstr "长名"
 
 #: caravel/views.py:135 caravel/views.py:193 caravel/views.py:222
 #: caravel/views.py:400 caravel/views.py:535
 msgid "Description"
-msgstr ""
+msgstr "描述"
 
 #: caravel/views.py:136 caravel/views.py:164
 msgid "Groupable"
-msgstr ""
+msgstr "可分组"
 
 #: caravel/views.py:137 caravel/views.py:165
 msgid "Filterable"
-msgstr ""
+msgstr "可过滤的"
 
 #: caravel/views.py:138 caravel/views.py:197 caravel/views.py:308
 #: caravel/views.py:406
 msgid "Table"
-msgstr ""
+msgstr "表"
 
 #: caravel/views.py:139 caravel/views.py:166
 msgid "Count Distinct"
-msgstr ""
+msgstr "去重计数"
 
 #: caravel/views.py:140 caravel/views.py:167
 msgid "Sum"
-msgstr ""
+msgstr "求和"
 
 #: caravel/views.py:141 caravel/views.py:168
 msgid "Min"
-msgstr ""
+msgstr "最小值"
 
 #: caravel/views.py:142 caravel/views.py:169
 msgid "Max"
-msgstr ""
+msgstr "最大值"
 
 #: caravel/views.py:143
 msgid "Expression"
-msgstr ""
+msgstr "表达式"
 
 #: caravel/views.py:144
 msgid "Is temporal"
@@ -88,56 +88,56 @@ msgstr ""
 #: caravel/views.py:162 caravel/views.py:195 caravel/views.py:224
 #: caravel/views.py:424
 msgid "Type"
-msgstr ""
+msgstr "类型"
 
 #: caravel/views.py:163 caravel/views.py:399
 msgid "Datasource"
-msgstr ""
+msgstr "数据源"
 
 #: caravel/views.py:192 caravel/views.py:221
 msgid "Metric"
-msgstr ""
+msgstr "指标"
 
 #: caravel/views.py:196
 msgid "SQL Expression"
-msgstr ""
+msgstr "SQL表达式"
 
 #: caravel/views.py:225 caravel/views.py:503
 msgid "JSON"
-msgstr ""
+msgstr "JSON"
 
 #: caravel/views.py:226
 msgid "Druid Datasource"
-msgstr ""
+msgstr "Druid数据源"
 
 #: caravel/views.py:257 caravel/views.py:310
 msgid "Database"
-msgstr ""
+msgstr "数据库"
 
 #: caravel/views.py:258
 msgid "SQL link"
-msgstr ""
+msgstr "SQL链接"
 
 #: caravel/views.py:259 caravel/views.py:397 caravel/views.py:459
 msgid "Creator"
-msgstr ""
+msgstr "创建者"
 
 #: caravel/views.py:260 caravel/views.py:311
 msgid "Last Changed"
-msgstr ""
+msgstr "最新修改"
 
 #: caravel/views.py:261
 msgid "SQLAlchemy URI"
-msgstr ""
+msgstr "SQLAlchemy URI"
 
 #: caravel/views.py:262 caravel/views.py:317 caravel/views.py:396
 #: caravel/views.py:541
 msgid "Cache Timeout"
-msgstr ""
+msgstr "缓存超时时间"
 
 #: caravel/views.py:263
 msgid "Extra"
-msgstr ""
+msgstr "额外"
 
 #: caravel/views.py:279
 msgid "Databases"
@@ -149,11 +149,11 @@ msgstr "源"
 
 #: caravel/views.py:309
 msgid "Changed By"
-msgstr ""
+msgstr "修改者"
 
 #: caravel/views.py:312
 msgid "SQL Editor"
-msgstr ""
+msgstr "SQL编辑器"
 
 #: caravel/views.py:313 caravel/views.py:537
 msgid "Is Featured"
@@ -161,43 +161,43 @@ msgstr ""
 
 #: caravel/views.py:314
 msgid "Schema"
-msgstr ""
+msgstr "模式"
 
 #: caravel/views.py:315 caravel/views.py:539
 msgid "Default Endpoint"
-msgstr ""
+msgstr "默认端点描述"
 
 #: caravel/views.py:316
 msgid "Offset"
-msgstr ""
+msgstr "偏移"
 
 #: caravel/views.py:354 caravel/views.py:534
 msgid "Cluster"
-msgstr ""
+msgstr "集群"
 
 #: caravel/views.py:355
 msgid "Coordinator Host"
-msgstr ""
+msgstr "协调器(Coordinator)主机"
 
 #: caravel/views.py:356
 msgid "Coordinator Port"
-msgstr ""
+msgstr "协调器(Coordinator)端口"
 
 #: caravel/views.py:357
 msgid "Coordinator Endpoint"
-msgstr ""
+msgstr "协调器(Coordinator)端点"
 
 #: caravel/views.py:358
 msgid "Broker Host"
-msgstr ""
+msgstr "分发(Broker)主机"
 
 #: caravel/views.py:359
 msgid "Borker Port"
-msgstr ""
+msgstr "分发(Broker)端口"
 
 #: caravel/views.py:360
 msgid "Broker Endpoint"
-msgstr ""
+msgstr "分发(Broker)端点"
 
 #: caravel/views.py:398 caravel/views.py:479
 msgid "Dashboards"
@@ -205,23 +205,23 @@ msgstr "仪表盘"
 
 #: caravel/views.py:401
 msgid "Last Modified"
-msgstr ""
+msgstr "最后修改"
 
 #: caravel/views.py:402 caravel/views.py:458
 msgid "Owners"
-msgstr ""
+msgstr "所有者"
 
 #: caravel/views.py:403
 msgid "Parameters"
-msgstr ""
+msgstr "参数"
 
 #: caravel/views.py:404 caravel/views.py:425
 msgid "Slice"
-msgstr ""
+msgstr "片段"
 
 #: caravel/views.py:405
 msgid "Name"
-msgstr ""
+msgstr "名字"
 
 #: caravel/views.py:407 caravel/views.py:426
 msgid "Visualization Type"
@@ -243,19 +243,19 @@ msgstr "单独面板的css可以在此变更，或者在面板视窗（立即生
 
 #: caravel/views.py:450
 msgid "To get a readable URL for your dashboard"
-msgstr ""
+msgstr "为仪表板配置一个URL""
 
 #: caravel/views.py:454
 msgid "Dashboard"
-msgstr ""
+msgstr "仪表板"
 
 #: caravel/views.py:455
 msgid "Title"
-msgstr ""
+msgstr "标题"
 
 #: caravel/views.py:456
 msgid "Slug"
-msgstr ""
+msgstr "短名(Slug)"
 
 #: caravel/views.py:457
 msgid "Slices"
@@ -263,35 +263,35 @@ msgstr "切片"
 
 #: caravel/views.py:460
 msgid "Modified"
-msgstr ""
+msgstr "已修改"
 
 #: caravel/views.py:461
 msgid "Position JSON"
-msgstr ""
+msgstr "位置JSON"
 
 #: caravel/views.py:462
 msgid "CSS"
-msgstr ""
+msgstr "CSS"
 
 #: caravel/views.py:463
 msgid "JSON Metadata"
-msgstr ""
+msgstr "JSON元数据"
 
 #: caravel/views.py:500
 msgid "User"
-msgstr ""
+msgstr "用户"
 
 #: caravel/views.py:501
 msgid "Action"
-msgstr ""
+msgstr "操作"
 
 #: caravel/views.py:502
 msgid "dttm"
-msgstr ""
+msgstr "dttm"
 
 #: caravel/views.py:509
 msgid "Action Log"
-msgstr "行动记录"
+msgstr "操作记录"
 
 #: caravel/views.py:510
 msgid "Security"
@@ -299,23 +299,23 @@ msgstr "权限"
 
 #: caravel/views.py:527
 msgid "Timezone offset (in hours) for this datasource"
-msgstr ""
+msgstr "该数据源的时区便宜（按小时计算）"
 
 #: caravel/views.py:533
 msgid "Data Source"
-msgstr ""
+msgstr "数据来源"
 
 #: caravel/views.py:536
 msgid "Owner"
-msgstr ""
+msgstr "所有者"
 
 #: caravel/views.py:538
 msgid "Is Hidden"
-msgstr ""
+msgstr "是否隐藏"
 
 #: caravel/views.py:540
 msgid "Time Offset"
-msgstr ""
+msgstr "时间偏移"
 
 #: caravel/views.py:555
 msgid "Druid Datasources"
@@ -339,103 +339,103 @@ msgstr "CSS模板"
 
 #: caravel/viz.py:324
 msgid "Table View"
-msgstr ""
+msgstr "表视图"
 
 #: caravel/viz.py:385
 msgid "Pivot Table"
-msgstr ""
+msgstr "透视表"
 
 #: caravel/viz.py:447
 msgid "Markup"
-msgstr ""
+msgstr "标记"
 
 #: caravel/viz.py:475
 msgid "Word Cloud"
-msgstr ""
+msgstr "词云"
 
 #: caravel/viz.py:507
 msgid "Treemap"
-msgstr ""
+msgstr "树状地图"
 
 #: caravel/viz.py:551
 msgid "Calender Heatmap"
-msgstr ""
+msgstr "日历热图"
 
 #: caravel/viz.py:622
 msgid "Box Plot"
-msgstr ""
+msgstr "箱线图"
 
 #: caravel/viz.py:729
 msgid "Bubble Chart"
-msgstr ""
+msgstr "气泡图"
 
 #: caravel/viz.py:797
 msgid "Big Number with Trendline"
-msgstr ""
+msgstr "带趋势线的大数"
 
 #: caravel/viz.py:847
 msgid "Big Number"
-msgstr ""
+msgstr "大数"
 
 #: caravel/viz.py:893
 msgid "Time Series - Line Chart"
-msgstr ""
+msgstr "时间序列折线图"
 
 #: caravel/viz.py:1045
 msgid "Time Series - Bar Chart"
-msgstr ""
+msgstr "时间序列条形图"
 
 #: caravel/viz.py:1063
 msgid "Time Series - Percent Change"
-msgstr ""
+msgstr "时间序列百分比折线图"
 
 #: caravel/viz.py:1071
 msgid "Time Series - Stacked"
-msgstr ""
+msgstr "时间序列堆叠图"
 
 #: caravel/viz.py:1090
 msgid "Distribution - NVD3 - Pie Chart"
-msgstr ""
+msgstr "饼图"
 
 #: caravel/viz.py:1126
 msgid "Distribution - Bar Chart"
-msgstr ""
+msgstr "条形图"
 
 #: caravel/viz.py:1206
 msgid "Sunburst"
-msgstr ""
+msgstr "环形图(Sunburst)"
 
 #: caravel/viz.py:1272
 msgid "Sankey"
-msgstr ""
+msgstr "桑基能量分流图(Sankey)"
 
 #: caravel/viz.py:1336
 msgid "Directed Force Layout"
-msgstr ""
+msgstr "力导向布局"
 
 #: caravel/viz.py:1378
 msgid "World Map"
-msgstr ""
+msgstr "词地图"
 
 #: caravel/viz.py:1452
 msgid "Filters"
-msgstr ""
+msgstr "过滤器"
 
 #: caravel/viz.py:1500
 msgid "iFrame"
-msgstr ""
+msgstr "iFrame"
 
 #: caravel/viz.py:1518
 msgid "Parallel Coordinates"
-msgstr ""
+msgstr "平行坐标"
 
 #: caravel/viz.py:1554
 msgid "Heatmap"
-msgstr ""
+msgstr "热图"
 
 #: caravel/viz.py:1622
 msgid "Horizon Charts"
-msgstr ""
+msgstr "地平线图"
 
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
