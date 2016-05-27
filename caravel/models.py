@@ -184,6 +184,7 @@ class Slice(Model, AuditMixinNullable):
     @utils.memoized
     def viz(self):
         d = json.loads(self.params)
+        d['slice_id'] = self.id
         viz_class = viz_types[self.viz_type]
         return viz_class(self.datasource, form_data=d)
 

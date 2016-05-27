@@ -301,7 +301,10 @@ class BaseViz(object):
     @property
     def cache_key(self):
         url = self.get_url(json="true", force="false")
-        return hashlib.md5(url.encode('utf-8')).hexdigest()
+        if self.form_data['slice_id']:
+            return self.form_data['slice_id']
+        else:
+            return hashlib.md5(url.encode('utf-8')).hexdigest()
 
     @property
     def csv_endpoint(self):
