@@ -1001,12 +1001,13 @@ class Caravel(BaseView):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         for cluster in session.query(models.DruidCluster).all():
+            cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
-                        cluster, str(e)),
+                        cluster_name, str(e)),
                     "danger")
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
