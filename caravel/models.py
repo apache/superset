@@ -1018,7 +1018,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         # realtime segments, which trigged a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         intervals = (max_time - timedelta(days=7)).isoformat() + '/'
-        intervals += (max_time - timedelta(days=1)).isoformat()
+        intervals += (max_time - timedelta(days=0)).isoformat()
         segment_metadata = client.segment_metadata(
             datasource=self.datasource_name,
             intervals=intervals)
