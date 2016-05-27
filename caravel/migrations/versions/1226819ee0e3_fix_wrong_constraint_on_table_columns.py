@@ -15,10 +15,10 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.drop_constraint('columns_ibfk_1', 'columns')
+    op.drop_constraint('columns_ibfk_1', 'columns', type_="foreignkey")
     op.create_foreign_key('columns_ibfk_1', 'columns', 'datasources', ['datasource_name'], ['datasource_name'])
 
 
 def downgrade():
-    op.drop_constraint('columns_ibfk_1', 'columns')
+    op.drop_constraint('columns_ibfk_1', 'columns', type_="foreignkey")
     op.create_foreign_key('columns_ibfk_1', 'columns', 'datasources', ['columns'], ['datasource_name'])
