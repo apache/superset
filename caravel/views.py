@@ -317,13 +317,14 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def post_add(self, table):
+        table_name = table.table_name
         try:
             table.fetch_metadata()
         except Exception as e:
             logging.exception(e)
             flash(
                 "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table.table_name),
+                "couldn't fetch metadata".format(table_name),
                 "danger")
         utils.merge_perm(sm, 'datasource_access', table.perm)
 
