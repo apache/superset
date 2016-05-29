@@ -31,7 +31,7 @@ setup(
         'markdown>=2.6.2, <3.0.0',
         'pandas==0.18.0',
         'parsedatetime==2.0.0',
-        'pydruid>=0.2.3, <0.4',
+        'pydruid==0.3.0, <0.4.0',
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
         'sqlalchemy>=1.0.12, <2.0.0',
