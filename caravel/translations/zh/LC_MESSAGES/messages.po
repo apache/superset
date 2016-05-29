@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-05-20 20:30-0700\n"
-"PO-Revision-Date: 2016-05-01 23:07-0700\n"
+"POT-Creation-Date: 2016-05-27 16:11+0800\n"
+"PO-Revision-Date: 2016-05-27 16:11+0800\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
 "Language-Team: zh <LL@li.org>\n"
@@ -18,445 +18,421 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.3.4\n"
 
-#: caravel/models.py:607
-msgid ""
-"Datetime column not provided as part table configuration and is required "
-"by this type of chart"
-msgstr "所选表格需要日期时间但在表格配置文件中没有被提供"
-
-#: caravel/models.py:1243
-msgid "No data was returned."
-msgstr "所选数据为空"
-
-#: caravel/views.py:124
+#: caravel/views.py:123
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
-msgstr "是否要让这列接受[Time Granularity]的选项，"
-"这列必须是DATETIME或DATETIME-like"
+msgstr "是否将该列当做时间序列字段，该字段必须是DATETIME或类似DATETIME类型"
 
-#: caravel/views.py:133 caravel/views.py:161
+#: caravel/views.py:132 caravel/views.py:160
 msgid "Column"
-msgstr ""
+msgstr "字段"
 
-#: caravel/views.py:134 caravel/views.py:194 caravel/views.py:223
+#: caravel/views.py:133 caravel/views.py:193 caravel/views.py:222
 msgid "Verbose Name"
-msgstr ""
+msgstr "详细名称"
 
-#: caravel/views.py:135 caravel/views.py:193 caravel/views.py:222
-#: caravel/views.py:400 caravel/views.py:535
+#: caravel/views.py:134 caravel/views.py:192 caravel/views.py:221
+#: caravel/views.py:399 caravel/views.py:534
 msgid "Description"
-msgstr ""
+msgstr "描述"
+
+#: caravel/views.py:135 caravel/views.py:163
+msgid "Groupable"
+msgstr "可分组的"
 
 #: caravel/views.py:136 caravel/views.py:164
-msgid "Groupable"
-msgstr ""
-
-#: caravel/views.py:137 caravel/views.py:165
 msgid "Filterable"
-msgstr ""
+msgstr "可过滤的"
 
-#: caravel/views.py:138 caravel/views.py:197 caravel/views.py:308
-#: caravel/views.py:406
+#: caravel/views.py:137 caravel/views.py:196 caravel/views.py:307
+#: caravel/views.py:405
 msgid "Table"
-msgstr ""
+msgstr "表"
+
+#: caravel/views.py:138 caravel/views.py:165
+msgid "Count Distinct"
+msgstr "排重计数"
 
 #: caravel/views.py:139 caravel/views.py:166
-msgid "Count Distinct"
-msgstr ""
+msgid "Sum"
+msgstr "和"
 
 #: caravel/views.py:140 caravel/views.py:167
-msgid "Sum"
-msgstr ""
+msgid "Min"
+msgstr "最小值"
 
 #: caravel/views.py:141 caravel/views.py:168
-msgid "Min"
-msgstr ""
-
-#: caravel/views.py:142 caravel/views.py:169
 msgid "Max"
-msgstr ""
+msgstr "最大值"
+
+#: caravel/views.py:142
+msgid "Expression"
+msgstr "表达式"
 
 #: caravel/views.py:143
-msgid "Expression"
-msgstr ""
-
-#: caravel/views.py:144
 msgid "Is temporal"
-msgstr ""
+msgstr "是否时间序列"
 
-#: caravel/views.py:162 caravel/views.py:195 caravel/views.py:224
-#: caravel/views.py:424
+#: caravel/views.py:161 caravel/views.py:194 caravel/views.py:223
+#: caravel/views.py:423
 msgid "Type"
-msgstr ""
+msgstr "类型"
 
-#: caravel/views.py:163 caravel/views.py:399
+#: caravel/views.py:162 caravel/views.py:398
 msgid "Datasource"
-msgstr ""
+msgstr "数据源"
 
-#: caravel/views.py:192 caravel/views.py:221
+#: caravel/views.py:191 caravel/views.py:220
 msgid "Metric"
-msgstr ""
+msgstr "指标"
 
-#: caravel/views.py:196
+#: caravel/views.py:195
 msgid "SQL Expression"
-msgstr ""
+msgstr "SQL表达式"
 
-#: caravel/views.py:225 caravel/views.py:503
+#: caravel/views.py:224 caravel/views.py:502
 msgid "JSON"
-msgstr ""
+msgstr "JSON"
 
-#: caravel/views.py:226
+#: caravel/views.py:225
 msgid "Druid Datasource"
-msgstr ""
+msgstr "Druid数据源"
 
-#: caravel/views.py:257 caravel/views.py:310
+#: caravel/views.py:256 caravel/views.py:309
 msgid "Database"
-msgstr ""
+msgstr "数据库"
 
-#: caravel/views.py:258
+#: caravel/views.py:257
 msgid "SQL link"
-msgstr ""
+msgstr "SQL链接"
 
-#: caravel/views.py:259 caravel/views.py:397 caravel/views.py:459
+#: caravel/views.py:258 caravel/views.py:396 caravel/views.py:458
 msgid "Creator"
-msgstr ""
+msgstr "创建者"
 
-#: caravel/views.py:260 caravel/views.py:311
+#: caravel/views.py:259 caravel/views.py:310
 msgid "Last Changed"
-msgstr ""
+msgstr "最后更改"
 
-#: caravel/views.py:261
+#: caravel/views.py:260
 msgid "SQLAlchemy URI"
-msgstr ""
+msgstr "SQLAlchemy URI"
 
-#: caravel/views.py:262 caravel/views.py:317 caravel/views.py:396
-#: caravel/views.py:541
+#: caravel/views.py:261 caravel/views.py:316 caravel/views.py:395
+#: caravel/views.py:540
 msgid "Cache Timeout"
-msgstr ""
+msgstr "缓存超时时间"
 
-#: caravel/views.py:263
+#: caravel/views.py:262
 msgid "Extra"
-msgstr ""
+msgstr "额外配置"
 
-#: caravel/views.py:279
+#: caravel/views.py:278
 msgid "Databases"
 msgstr "数据库"
 
-#: caravel/views.py:281 caravel/views.py:337 caravel/views.py:369
+#: caravel/views.py:280 caravel/views.py:336 caravel/views.py:368
 msgid "Sources"
-msgstr "源"
+msgstr "来源"
 
-#: caravel/views.py:309
+#: caravel/views.py:308
 msgid "Changed By"
-msgstr ""
+msgstr "修改者"
 
-#: caravel/views.py:312
+#: caravel/views.py:311
 msgid "SQL Editor"
-msgstr ""
+msgstr "SQL编辑器"
 
-#: caravel/views.py:313 caravel/views.py:537
+#: caravel/views.py:312 caravel/views.py:536
 msgid "Is Featured"
-msgstr ""
+msgstr "有特性"
 
-#: caravel/views.py:314
+#: caravel/views.py:313
 msgid "Schema"
-msgstr ""
+msgstr "模式"
 
-#: caravel/views.py:315 caravel/views.py:539
+#: caravel/views.py:314 caravel/views.py:538
 msgid "Default Endpoint"
-msgstr ""
+msgstr "默认Endpoint"
 
-#: caravel/views.py:316
+#: caravel/views.py:315
 msgid "Offset"
-msgstr ""
+msgstr "偏移值"
 
-#: caravel/views.py:354 caravel/views.py:534
+#: caravel/views.py:353 caravel/views.py:533
 msgid "Cluster"
-msgstr ""
+msgstr "集群"
+
+#: caravel/views.py:354
+msgid "Coordinator Host"
+msgstr "Coordinator主机"
 
 #: caravel/views.py:355
-msgid "Coordinator Host"
-msgstr ""
+msgid "Coordinator Port"
+msgstr "Coordinator端口"
 
 #: caravel/views.py:356
-msgid "Coordinator Port"
-msgstr ""
+msgid "Coordinator Endpoint"
+msgstr "Coordinator Endpoint"
 
 #: caravel/views.py:357
-msgid "Coordinator Endpoint"
-msgstr ""
+msgid "Broker Host"
+msgstr "Broker主机"
 
 #: caravel/views.py:358
-msgid "Broker Host"
-msgstr ""
+msgid "Borker Port"
+msgstr "Broker端口"
 
 #: caravel/views.py:359
-msgid "Borker Port"
-msgstr ""
-
-#: caravel/views.py:360
 msgid "Broker Endpoint"
-msgstr ""
+msgstr "Broker Endpoint"
 
-#: caravel/views.py:398 caravel/views.py:479
+#: caravel/views.py:397 caravel/views.py:478
 msgid "Dashboards"
-msgstr "仪表盘"
+msgstr "仪表板"
 
-#: caravel/views.py:401
+#: caravel/views.py:400
 msgid "Last Modified"
-msgstr ""
+msgstr "最后修改"
 
-#: caravel/views.py:402 caravel/views.py:458
+#: caravel/views.py:401 caravel/views.py:457
 msgid "Owners"
-msgstr ""
+msgstr "所有者"
 
-#: caravel/views.py:403
+#: caravel/views.py:402
 msgid "Parameters"
-msgstr ""
+msgstr "参数"
 
-#: caravel/views.py:404 caravel/views.py:425
+#: caravel/views.py:403 caravel/views.py:424
 msgid "Slice"
-msgstr ""
+msgstr "片段"
 
-#: caravel/views.py:405
+#: caravel/views.py:404
 msgid "Name"
-msgstr ""
+msgstr "名称"
 
-#: caravel/views.py:407 caravel/views.py:426
+#: caravel/views.py:406 caravel/views.py:425
 msgid "Visualization Type"
-msgstr ""
+msgstr "可视化类型"
 
-#: caravel/views.py:441
+#: caravel/views.py:440
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
-msgstr "这个json描述了部件在面板中的位置。 当通过拖拽来"
-"改变窗口大小和位子的时候，它会被自动生成。"
+msgstr "json用来描述该部件在仪表板中的位置。在仪表板界面拖拽部件用来改变位置和大小时，该json会自动重新生成"
 
-#: caravel/views.py:446
+#: caravel/views.py:445
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
-msgstr "单独面板的css可以在此变更，或者在面板视窗（立即生效）"
+msgstr "用来配置仪表板的CSS"
 
-#: caravel/views.py:450
+#: caravel/views.py:449
 msgid "To get a readable URL for your dashboard"
-msgstr ""
+msgstr "针对仪表板的URL"
+
+#: caravel/views.py:453
+msgid "Dashboard"
+msgstr "仪表盘"
 
 #: caravel/views.py:454
-msgid "Dashboard"
-msgstr ""
+msgid "Title"
+msgstr "标题"
 
 #: caravel/views.py:455
-msgid "Title"
-msgstr ""
+msgid "Slug"
+msgstr "短名"
 
 #: caravel/views.py:456
-msgid "Slug"
-msgstr ""
-
-#: caravel/views.py:457
 msgid "Slices"
-msgstr "切片"
+msgstr "片段集"
+
+#: caravel/views.py:459
+msgid "Modified"
+msgstr "修改"
 
 #: caravel/views.py:460
-msgid "Modified"
-msgstr ""
+msgid "Position JSON"
+msgstr "位置JSON"
 
 #: caravel/views.py:461
-msgid "Position JSON"
-msgstr ""
+msgid "CSS"
+msgstr "CSS"
 
 #: caravel/views.py:462
-msgid "CSS"
-msgstr ""
-
-#: caravel/views.py:463
 msgid "JSON Metadata"
-msgstr ""
+msgstr "JSON元数据"
+
+#: caravel/views.py:499
+msgid "User"
+msgstr "账户"
 
 #: caravel/views.py:500
-msgid "User"
-msgstr ""
+msgid "Action"
+msgstr "操作"
 
 #: caravel/views.py:501
-msgid "Action"
-msgstr ""
-
-#: caravel/views.py:502
 msgid "dttm"
-msgstr ""
+msgstr "日期序列"
+
+#: caravel/views.py:508
+msgid "Action Log"
+msgstr "操作日志"
 
 #: caravel/views.py:509
-msgid "Action Log"
-msgstr "行动记录"
-
-#: caravel/views.py:510
 msgid "Security"
-msgstr "权限"
+msgstr "安全"
 
-#: caravel/views.py:527
+#: caravel/views.py:526
 msgid "Timezone offset (in hours) for this datasource"
-msgstr ""
+msgstr "该数据源的时区偏移（小时为单位）"
 
-#: caravel/views.py:533
+#: caravel/views.py:532
 msgid "Data Source"
-msgstr ""
+msgstr "数据源"
 
-#: caravel/views.py:536
+#: caravel/views.py:535
 msgid "Owner"
-msgstr ""
+msgstr "所有者"
 
-#: caravel/views.py:538
+#: caravel/views.py:537
 msgid "Is Hidden"
-msgstr ""
+msgstr "是否隐藏"
 
-#: caravel/views.py:540
+#: caravel/views.py:539
 msgid "Time Offset"
-msgstr ""
+msgstr "时间偏移"
 
-#: caravel/views.py:555
+#: caravel/views.py:554
 msgid "Druid Datasources"
 msgstr "Druid数据源"
 
-#: caravel/views.py:639
-msgid "The datasource seems to have been deleted"
-msgstr "此数据源好像已被删除"
-
-#: caravel/views.py:647
-msgid "You don't seem to have access to this datasource"
-msgstr "看来您不能读取此数据源"
-
-#: caravel/views.py:970
+#: caravel/views.py:969
 msgid "This view requires the `all_datasource_access` permission"
-msgstr "此视图需要`all_datasource_access`权限"
+msgstr "该视图需要`all_datasource_access`权限"
 
-#: caravel/views.py:1081
+#: caravel/views.py:1064
 msgid "CSS Templates"
 msgstr "CSS模板"
 
 #: caravel/viz.py:324
 msgid "Table View"
-msgstr ""
+msgstr "表视图"
 
 #: caravel/viz.py:385
 msgid "Pivot Table"
-msgstr ""
+msgstr "透视表"
 
 #: caravel/viz.py:447
 msgid "Markup"
-msgstr ""
+msgstr "标记"
 
 #: caravel/viz.py:475
 msgid "Word Cloud"
-msgstr ""
+msgstr "词云"
 
 #: caravel/viz.py:507
 msgid "Treemap"
-msgstr ""
+msgstr "树状图"
 
 #: caravel/viz.py:551
 msgid "Calender Heatmap"
-msgstr ""
+msgstr "日历热图"
 
 #: caravel/viz.py:622
 msgid "Box Plot"
-msgstr ""
+msgstr "箱线图"
 
 #: caravel/viz.py:729
 msgid "Bubble Chart"
-msgstr ""
+msgstr "气泡图"
 
 #: caravel/viz.py:797
 msgid "Big Number with Trendline"
-msgstr ""
+msgstr "趋势线+醒目数字"
 
 #: caravel/viz.py:847
 msgid "Big Number"
-msgstr ""
+msgstr "醒目数字"
 
 #: caravel/viz.py:893
 msgid "Time Series - Line Chart"
-msgstr ""
+msgstr "时间序列的折线图"
 
 #: caravel/viz.py:1045
 msgid "Time Series - Bar Chart"
-msgstr ""
+msgstr "时间序列的条状图"
 
 #: caravel/viz.py:1063
 msgid "Time Series - Percent Change"
-msgstr ""
+msgstr "时间序列的百分比折线图"
 
 #: caravel/viz.py:1071
 msgid "Time Series - Stacked"
-msgstr ""
+msgstr "时间序列的堆叠图"
 
 #: caravel/viz.py:1090
 msgid "Distribution - NVD3 - Pie Chart"
-msgstr ""
+msgstr "饼图"
 
 #: caravel/viz.py:1126
 msgid "Distribution - Bar Chart"
-msgstr ""
+msgstr "条状图"
 
 #: caravel/viz.py:1206
 msgid "Sunburst"
-msgstr ""
+msgstr "旭日图(Sunburst)"
 
 #: caravel/viz.py:1272
 msgid "Sankey"
-msgstr ""
+msgstr "桑基热流平衡图"
 
 #: caravel/viz.py:1336
 msgid "Directed Force Layout"
-msgstr ""
+msgstr "力导向布局图"
 
 #: caravel/viz.py:1378
 msgid "World Map"
-msgstr ""
+msgstr "世界地图"
 
 #: caravel/viz.py:1452
 msgid "Filters"
-msgstr ""
+msgstr "过滤器"
 
 #: caravel/viz.py:1500
 msgid "iFrame"
-msgstr ""
+msgstr "iFrame"
 
 #: caravel/viz.py:1518
 msgid "Parallel Coordinates"
-msgstr ""
+msgstr "平行坐标图"
 
 #: caravel/viz.py:1554
 msgid "Heatmap"
-msgstr ""
+msgstr "热力图"
 
 #: caravel/viz.py:1622
 msgid "Horizon Charts"
-msgstr ""
+msgstr "地平线图"
 
-#: caravel/templates/appbuilder/navbar_right.html:34
-msgid "Profile"
-msgstr "个人资料"
+#: caravel/models.py:608
+msgid ""
+"Datetime column not provided as part table configuration and is required "
+"by this type of chart"
+msgstr "该图标需要时间类型的字段，但是表中没有找到"
 
-#: caravel/templates/appbuilder/navbar_right.html:35
-msgid "Logout"
-msgstr "登出"
+#: caravel/models.py:1248
+msgid "No data was returned."
+msgstr "无数据"
 
-#: caravel/templates/appbuilder/navbar_right.html:40
-msgid "Login"
-msgstr "登录"
+#: orphan
+msgid "Delete"
+msgstr "删除"
 
-#: caravel/templates/caravel/welcome.html:8
-#: caravel/templates/caravel/welcome.html:13
+msgid "List"
+msgstr "列出"
+
 msgid "Welcome!"
-msgstr "欢迎"
-
-#~ msgid "Tables"
-#~ msgstr "表格"
-
-#~ msgid "Druid Clusters"
-#~ msgstr "Druid簇"
-
+msgstr "欢迎!"
