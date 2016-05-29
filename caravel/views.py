@@ -333,7 +333,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     TableModelView,
     __("Tables"),
-    category=_("Sources"),
+    category="Sources",
+    category_label=_("Sources"),
     icon='fa-table',)
 
 
@@ -365,7 +366,8 @@ if config['DRUID_IS_ACTIVE']:
         DruidClusterModelView,
         __("Druid Clusters"),
         icon="fa-cubes",
-        category=_("Sources"),
+        category="Sources",
+        category_label=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -410,7 +412,8 @@ appbuilder.add_view(
     SliceModelView,
     __("Slices"),
     icon="fa-bar-chart",
-    category="",
+    category="Slices",
+    category_label=_("Slices"),
     category_icon='',)
 
 
