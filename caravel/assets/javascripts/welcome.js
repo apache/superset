@@ -74,7 +74,8 @@ $(document).ready(function () {
       domain: "month",
       subDomain: "day",
       itemName: "action",
-      tooltip: true
+      tooltip: true,
+	  domainLabelFormat: '%Y-%m'
     });
   });
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');

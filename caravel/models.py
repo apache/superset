@@ -438,8 +438,7 @@ class Database(Model, AuditMixinNullable):
             'oracle':
                 """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
                     dttm.isoformat()),
-            'presto': "CAST('{}' AS TIMESTAMP)".format(
-                dttm.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]),
+            'presto': default,
             'sqlite': default,
         }
         for k, v in d.items():
