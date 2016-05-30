@@ -238,11 +238,11 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'sqlalchemy_uri': (
+        'sqlalchemy_uri': _(
             "Refer to the SqlAlchemy docs for more information on how "
             "to structure your URI here: "
             "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
-        'extra': utils.markdown(
+        'extra': utils.markdown(_(
             "JSON string containing extra configuration elements. "
             "The ``engine_params`` object gets unpacked into the "
             "[sqlalchemy.create_engine]"
@@ -250,7 +250,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "sqlalchemy.create_engine) call, while the ``metadata_params`` "
             "gets unpacked into the [sqlalchemy.MetaData]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
-            "#sqlalchemy.schema.MetaData) call. ", True),
+            "#sqlalchemy.schema.MetaData) call. "), True),
     }
     label_columns = {
         'database_name': _("Database"),
@@ -277,7 +277,8 @@ appbuilder.add_view(
     "Databases",
     label=_("Databases"),
     icon="fa-database",
-    category=_("Sources"),
+    category="Sources",
+    category_label=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -295,13 +296,13 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource",
-        'schema': (
+        'offset': _("Timezone offset (in hours) for this datasource"),
+        'schema': _(
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
-        'description': Markup(
+        'description': Markup(_(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
-            "markdown</a>"),
+            "markdown</a>")),
     }
     label_columns = {
         'table_link': _("Table"),
@@ -332,9 +333,12 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    __("Tables"),
-    category=_("Sources"),
+    "Tables",
+    label=_("Tables"),
+    category="Sources",
+    category_label=_("Sources"),
     icon='fa-table',)
+
 
 
 appbuilder.add_separator("Sources")
@@ -355,7 +359,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'coordinator_port': _("Coordinator Port"),
         'coordinator_endpoint': _("Coordinator Endpoint"),
         'broker_host': _("Broker Host"),
-        'broker_port': _("Borker Port"),
+        'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
 
@@ -363,9 +367,11 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        __("Druid Clusters"),
+        "Druid Clusters",
+        label=_("Druid Clusters"),
         icon="fa-cubes",
-        category=_("Sources"),
+        category="Sources",
+        category_label=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -423,6 +429,8 @@ class SliceAsync(SliceModelView):  # noqa
         'viz_type': _('Type'),
         'slice_link': _('Slice'),
         'viz_type': _('Visualization Type'),
+        'creator': _('Creator'),
+        'modified': _('Modified')
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
@@ -484,7 +492,9 @@ appbuilder.add_view(
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified']
     label_columns = {
-        'dashboard_link': 'Dashboard',
+        'dashboard_link': _('Dashboard'),
+        'creator': _('Creator'),
+        'modified': _('Modified')
     }
 
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
@@ -1045,6 +1055,7 @@ appbuilder.add_view_no_menu(Caravel)
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
+        label=_("Refresh Druid Metadata"),
         href='/caravel/refresh_datasources/',
         category='Sources',
         category_icon='fa-database',
