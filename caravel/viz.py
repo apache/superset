@@ -79,6 +79,11 @@ class BaseViz(object):
                 for k in form_data.keys()
                 if k in form.data}
         defaults.update(data)
+        data_overrides = {
+            k: self.form_overrides[k]['default']
+            for k in self.form_overrides.keys()
+            if k in form.data and 'default' in self.form_overrides[k]}
+        defaults.update(data_overrides)
         self.form_data = defaults
         self.query = ""
 
@@ -343,6 +348,11 @@ class TableViz(BaseViz):
             'row_limit',
             ('include_search', None),
         )
+    })
+    form_overrides = ({
+        'metrics': {
+            'default': [],
+        },
     })
     is_timeseries = False
 
