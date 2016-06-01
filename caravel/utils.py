@@ -19,6 +19,7 @@ from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
+from pydruid.utils.having import Having
 
 
 class CaravelException(Exception):
@@ -75,6 +76,18 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+class DimSelector(Having):
+    def __init__(self, **args):
+        # Just a hack to prevent any exceptions
+        Having.__init__(self, type='equalTo', aggregation=None, value=None)
+
+        self.having = {'having': {
+            'type': 'dimSelector',
+            'dimension': args['dimension'],
+            'value': args['value'],
+        }}
 
 
 def list_minus(l, minus):
