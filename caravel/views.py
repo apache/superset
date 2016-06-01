@@ -317,13 +317,14 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def post_add(self, table):
+        table_name = table.table_name
         try:
             table.fetch_metadata()
         except Exception as e:
             logging.exception(e)
             flash(
                 "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table.table_name),
+                "couldn't fetch metadata".format(table_name),
                 "danger")
         utils.merge_perm(sm, 'datasource_access', table.perm)
 
@@ -355,7 +356,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'coordinator_port': _("Coordinator Port"),
         'coordinator_endpoint': _("Coordinator Endpoint"),
         'broker_host': _("Broker Host"),
-        'broker_port': _("Borker Port"),
+        'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
 
@@ -1001,12 +1002,13 @@ class Caravel(BaseView):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         for cluster in session.query(models.DruidCluster).all():
+            cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
-                        cluster, str(e)),
+                        cluster_name, str(e)),
                     "danger")
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
