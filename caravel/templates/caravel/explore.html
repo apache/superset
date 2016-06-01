@@ -16,10 +16,10 @@
     <div>
       {% set field = form.get_field(fieldname)%}
       <div>
-        {{ viz.get_form_override(fieldname, 'label') or field.label }}
+        {{ field.label }}
         {% if field.description %}
         <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
-          title="{{ viz.get_form_override(fieldname, 'description') or field.description }}"></i>
+          title="{{ field.description }}"></i>
         {% endif %}
         {{ field(class_=form.field_css_classes(field.name)) }}
       </div>
