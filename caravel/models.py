@@ -197,6 +197,7 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def data(self):
+        """Data used to render slice in templates"""
         d = {}
         self.token = ''
         try:

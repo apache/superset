@@ -22,10 +22,10 @@ const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 class SliceCell extends React.Component {
   render() {
-    var slice = this.props.slice,
-        createMarkup = function () {
-          return { __html: slice.description_markeddown };
-        };
+    const slice = this.props.slice,
+          createMarkup = function () {
+            return { __html: slice.description_markeddown };
+          };
 
     return (
       <div>
