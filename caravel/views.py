@@ -355,7 +355,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'coordinator_port': _("Coordinator Port"),
         'coordinator_endpoint': _("Coordinator Endpoint"),
         'broker_host': _("Broker Host"),
-        'broker_port': _("Borker Port"),
+        'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
 
