@@ -718,13 +718,13 @@ class FormFactory(object):
         }
 
         # Override default arguments with form overrides
-        for field_name, override_map in viz.form_overrides.iteritems():
+        for field_name, override_map in viz.form_overrides.items():
             if field_name in field_data:
                 field_data[field_name][1].update(override_map)
 
         self.field_dict = {
             field_name: v[0](**v[1])
-            for field_name, v in field_data.iteritems()
+            for field_name, v in field_data.items()
         }
 
     @staticmethod

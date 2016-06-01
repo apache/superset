@@ -79,11 +79,6 @@ class BaseViz(object):
                 for k in form_data.keys()
                 if k in form.data}
         defaults.update(data)
-        data_overrides = {
-            k: self.form_overrides[k]['default']
-            for k in self.form_overrides.keys()
-            if k in form.data and 'default' in self.form_overrides[k]}
-        defaults.update(data_overrides)
         self.form_data = defaults
         self.query = ""
 
@@ -94,16 +89,6 @@ class BaseViz(object):
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
-
-    def get_form_override(self, fieldname, attr):
-        if (
-                fieldname in self.form_overrides and
-                attr in self.form_overrides[fieldname]):
-            s = self.form_overrides[fieldname][attr]
-            if attr == 'label':
-                s = '<label for="{fieldname}">{s}</label>'.format(**locals())
-                s = Markup(s)
-            return s
 
     @classmethod
     def flat_form_fields(cls):
