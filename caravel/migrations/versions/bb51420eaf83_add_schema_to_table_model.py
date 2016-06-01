@@ -15,7 +15,7 @@ import sqlalchemy as sa
 
 
 def upgrade():
-    op.add_column('tables', sa.Column('schema', sa.String(length=256), nullable=True))
+    op.add_column('tables', sa.Column('schema', sa.String(length=255), nullable=True))
 
 
 def downgrade():

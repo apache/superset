@@ -17,6 +17,15 @@ from caravel import app
 
 config = app.config
 
+TIMESTAMP_CHOICES = [
+    ('smart_date', 'Adaptative formating'),
+    ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
+    ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
+    ("%Y-%m-%d %H:%M:%S",
+     '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
+    ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
+]
+
 
 class BetterBooleanField(BooleanField):
 
@@ -153,6 +162,11 @@ class FormFactory(object):
                     "Color will be rendered based on a ratio "
                     "of the cell against the sum of across this "
                     "criteria")),
+            'horizon_color_scale': SelectField(
+                'Color Scale', choices=self.choicify([
+                    'series', 'overall', 'change']),
+                default='series',
+                description="Defines how the color are attributed."),
             'canvas_image_rendering': SelectField(
                 'Rendering', choices=(
                     ('pixelated', 'pixelated (Sharp)'),
@@ -178,6 +192,10 @@ class FormFactory(object):
                 'Stacked Bars',
                 default=False,
                 description=""),
+            'include_series': BetterBooleanField(
+                'Include Series',
+                default=False,
+                description="Include series name as an axis"),
             'secondary_metric': SelectField(
                 'Color Metric', choices=datasource.metrics_combo,
                 default=default_metric,
@@ -214,12 +232,13 @@ class FormFactory(object):
                 'Y',
                 choices=self.choicify(datasource.column_names),
                 description="Columns to display"),
-            'druid_time_origin': SelectField(
+            'druid_time_origin': FreeFormSelectField(
                 'Origin',
                 choices=(
                     ('', 'default'),
                     ('now', 'now'),
                 ),
+                default='',
                 description=(
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")),
@@ -240,6 +259,29 @@ class FormFactory(object):
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")),
+            'domain_granularity': SelectField(
+                'Domain', default="month",
+                choices=self.choicify([
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                    'year',
+                ]),
+                description=(
+                    "The time unit used for the grouping of blocks")),
+            'subdomain_granularity': SelectField(
+                'Subdomain', default="day",
+                choices=self.choicify([
+                    'min',
+                    'hour',
+                    'day',
+                    'week',
+                    'month',
+                ]),
+                description=(
+                    "The time unit for each block. Should be a smaller unit than "
+                    "domain_granularity. Should be larger or equal to Time Grain")),
             'link_length': FreeFormSelectField(
                 'Link Length', default="200",
                 choices=self.choicify([
@@ -407,7 +449,12 @@ class FormFactory(object):
                     default=default_metric,
                     choices=datasource.metrics_combo),
             'url': TextField(
-                'URL', default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
+                'URL',
+                description=(
+                    "The URL, this field is templated, so you can integrate "
+                    "{{ width }} and/or {{ height }} in your URL string."
+                ),
+                default='https://www.youtube.com/embed/JkI5rg_VcQ4',),
             'where': TextField(
                 'Custom WHERE clause', default='',
                 description=(
@@ -430,17 +477,20 @@ class FormFactory(object):
             'compare_suffix': TextField(
                 'Comparison suffix',
                 description="Suffix to apply after the percentage display"),
+            'table_timestamp_format': FreeFormSelectField(
+                'Table Timestamp Format',
+                default='smart_date',
+                choices=TIMESTAMP_CHOICES,
+                description="Timestamp Format"),
+            'series_height': FreeFormSelectField(
+                'Series Height',
+                default=25,
+                choices=self.choicify([10, 25, 40, 50, 75, 100, 150, 200]),
+                description="Pixel height of each series"),
             'x_axis_format': FreeFormSelectField(
                 'X axis format',
                 default='smart_date',
-                choices=[
-                    ('smart_date', 'Adaptative formating'),
-                    ("%m/%d/%Y", '"%m/%d/%Y" | 01/14/2019'),
-                    ("%Y-%m-%d", '"%Y-%m-%d" | 2019-01-14'),
-                    ("%Y-%m-%d %H:%M:%S",
-                        '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
-                    ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
-                ],
+                choices=TIMESTAMP_CHOICES,
                 description="D3 format syntax for y axis "
                             "https://github.com/mbostock/\n"
                             "d3/wiki/Formatting"),
@@ -592,20 +642,6 @@ class FormFactory(object):
             collapsed_fieldsets = HiddenField()
             viz_type = self.field_dict.get('viz_type')
 
-        filter_cols = viz.datasource.filterable_column_names or ['']
-        for i in range(10):
-            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-                'Filter 1',
-                default=filter_cols[0],
-                choices=self.choicify(filter_cols)))
-            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-                'Filter 1',
-                default='in',
-                choices=self.choicify(['in', 'not in'])))
-            setattr(
-                QueryForm, 'flt_eq_' + str(i),
-                TextField("Super", default=''))
-
         for field in viz.flat_form_fields():
             setattr(QueryForm, field, self.field_dict[field])
 
@@ -613,8 +649,11 @@ class FormFactory(object):
             for attr in attrs:
                 setattr(QueryForm, attr, self.field_dict[attr])
 
+        filter_choices = self.choicify(['in', 'not in'])
         # datasource type specific form elements
-        if viz.datasource.__class__.__name__ == 'SqlaTable':
+        datasource_classname = viz.datasource.__class__.__name__
+        time_fields = None
+        if datasource_classname == 'SqlaTable':
             QueryForm.fieldsets += ({
                 'label': 'SQL',
                 'fields': ['where', 'having'],
@@ -625,8 +664,6 @@ class FormFactory(object):
             add_to_form(('where', 'having'))
             grains = viz.datasource.database.grains()
 
-            if not viz.datasource.any_dttm_col:
-                return QueryForm
             if grains:
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
@@ -645,19 +682,35 @@ class FormFactory(object):
             else:
                 time_fields = 'granularity_sqla'
                 add_to_form((time_fields, ))
-        else:
+        elif datasource_classname == 'DruidDatasource':
             time_fields = ('granularity', 'druid_time_origin')
             add_to_form(('granularity', 'druid_time_origin'))
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
             field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
+            filter_choices = self.choicify(['in', 'not in', 'regex'])
         add_to_form(('since', 'until'))
 
-        QueryForm.fieldsets = ({
-            'label': 'Time',
-            'fields': (
-                time_fields,
-                ('since', 'until'),
-            ),
-            'description': "Time related form attributes",
-        },) + tuple(QueryForm.fieldsets)
+        filter_cols = viz.datasource.filterable_column_names or ['']
+        for i in range(10):
+            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
+                'Filter 1',
+                default=filter_cols[0],
+                choices=self.choicify(filter_cols)))
+            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
+                'Filter 1',
+                default='in',
+                choices=filter_choices))
+            setattr(
+                QueryForm, 'flt_eq_' + str(i),
+                TextField("Super", default=''))
+
+        if time_fields:
+            QueryForm.fieldsets = ({
+                'label': 'Time',
+                'fields': (
+                    time_fields,
+                    ('since', 'until'),
+                ),
+                'description': "Time related form attributes",
+            },) + tuple(QueryForm.fieldsets)
         return QueryForm

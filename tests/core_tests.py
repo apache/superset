@@ -24,6 +24,7 @@ app.config['TESTING'] = True
 app.config['CSRF_ENABLED'] = False
 app.config['SECRET_KEY'] = 'thisismyscretkey'
 app.config['WTF_CSRF_ENABLED'] = False
+app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
@@ -68,20 +69,9 @@ class CaravelTestCase(unittest.TestCase):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
-            if perm.permission.name not in (
-                'can_list',
-                'can_dashboard',
-                'can_explore',
-                'datasource_access'):
-                continue
-            if not perm.view_menu:
-                continue
-            if perm.view_menu.name not in (
-                'SliceModelView',
-                'DashboardModelView',
-                'Caravel') and dashboard_name not in perm.view_menu.name:
-                continue
-            appbuilder.sm.add_permission_role(public_role, perm)
+            if (perm.permission.name == 'datasource_access' and
+                perm.view_menu and dashboard_name in perm.view_menu.name):
+                appbuilder.sm.add_permission_role(public_role, perm)
 
 
 class CoreTests(CaravelTestCase):
@@ -195,9 +185,9 @@ class CoreTests(CaravelTestCase):
         data = resp.data.decode('utf-8')
         assert '<a href="/caravel/dashboard/births/">' not in data
 
-        resp = self.client.get('/caravel/dashboard/births/')
+        resp = self.client.get('/caravel/explore/table/3/', follow_redirects=True)
         data = resp.data.decode('utf-8')
-        assert '[dashboard] Births' not in data
+        assert "You don&#39;t seem to have access to this datasource" in data
 
         self.setup_public_access_for_dashboard('birth_names')
 
@@ -329,6 +319,7 @@ class DruidTests(CaravelTestCase):
         df = pd.DataFrame(nres)
         instance.export_pandas.return_value = df
         instance.query_dict = {}
+        instance.query_builder.last_query.query_dict = {}
         resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&groupby=name&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
         print('-'*300)
         print(resp.data.decode('utf-8'))

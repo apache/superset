@@ -33,7 +33,6 @@ List of TODO items for Caravel
 * CREATE VIEW button from SQL editor
 * Test button for when editing SQL expression
 * Slider form element
-* datasource in explore mode could be a dropdown
 * [druid] Allow for post aggregations (ratios!)
 * in/notin filters autocomplete (druid)
 

@@ -20,10 +20,10 @@ from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask.ext.appbuilder.actions import action
 from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
 from flask.ext.appbuilder.security.decorators import has_access
-from flask.ext.babelpkg import gettext as _
+from flask.ext.babelpkg import gettext as __
+from flask.ext.babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
-from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
@@ -112,7 +112,8 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     can_delete = False
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression', 'is_dttm']
+        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
+        'is_dttm', ]
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -126,6 +127,20 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
+    }
+    label_columns = {
+        'column_name': _("Column"),
+        'verbose_name': _("Verbose Name"),
+        'description': _("Description"),
+        'groupby': _("Groupable"),
+        'filterable': _("Filterable"),
+        'table': _("Table"),
+        'count_distinct': _("Count Distinct"),
+        'sum': _("Sum"),
+        'min': _("Min"),
+        'max': _("Max"),
+        'expression': _("Expression"),
+        'is_dttm': _("Is temporal"),
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -141,6 +156,17 @@ class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'sum', 'min', 'max']
     can_delete = False
     page_size = 500
+    label_columns = {
+        'column_name': _("Column"),
+        'type': _("Type"),
+        'datasource': _("Datasource"),
+        'groupby': _("Groupable"),
+        'filterable': _("Filterable"),
+        'count_distinct': _("Count Distinct"),
+        'sum': _("Sum"),
+        'min': _("Min"),
+        'max': _("Max"),
+    }
 
     def post_update(self, col):
         col.generate_metrics()
@@ -161,6 +187,14 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     }
     add_columns = edit_columns
     page_size = 500
+    label_columns = {
+        'metric_name': _("Metric"),
+        'description': _("Description"),
+        'verbose_name': _("Verbose Name"),
+        'metric_type': _("Type"),
+        'expression': _("SQL Expression"),
+        'table': _("Table"),
+    }
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
@@ -182,12 +216,20 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
     }
+    label_columns = {
+        'metric_name': _("Metric"),
+        'description': _("Description"),
+        'verbose_name': _("Verbose Name"),
+        'metric_type': _("Type"),
+        'json': _("JSON"),
+        'datasource': _("Druid Datasource"),
+    }
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'creator', 'changed_on']
+    list_columns = ['database_name', 'sql_link', 'creator', 'changed_on_']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
@@ -209,6 +251,15 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "gets unpacked into the [sqlalchemy.MetaData]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
+    }
+    label_columns = {
+        'database_name': _("Database"),
+        'sql_link': _("SQL link"),
+        'creator': _("Creator"),
+        'changed_on_': _("Last Changed"),
+        'sqlalchemy_uri': _("SQLAlchemy URI"),
+        'cache_timeout': _("Cache Timeout"),
+        'extra': _("Extra"),
     }
 
     def pre_add(self, db):
@@ -234,7 +285,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
-        'changed_by_', 'changed_on', 'perm']
+        'changed_by_', 'changed_on_']
     add_columns = [
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -252,15 +303,28 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
     }
+    label_columns = {
+        'table_link': _("Table"),
+        'changed_by_': _("Changed By"),
+        'database': _("Database"),
+        'changed_on_': _("Last Changed"),
+        'sql_link': _("SQL Editor"),
+        'is_featured': _("Is Featured"),
+        'schema': _("Schema"),
+        'default_endpoint': _("Default Endpoint"),
+        'offset': _("Offset"),
+        'cache_timeout': _("Cache Timeout"),
+    }
 
     def post_add(self, table):
+        table_name = table.table_name
         try:
             table.fetch_metadata()
         except Exception as e:
             logging.exception(e)
             flash(
                 "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table.table_name),
+                "couldn't fetch metadata".format(table_name),
                 "danger")
         utils.merge_perm(sm, 'datasource_access', table.perm)
 
@@ -269,7 +333,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    _("Tables"),
+    __("Tables"),
     category=_("Sources"),
     icon='fa-table',)
 
@@ -286,12 +350,21 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
+    label_columns = {
+        'cluster_name': _("Cluster"),
+        'coordinator_host': _("Coordinator Host"),
+        'coordinator_port': _("Coordinator Port"),
+        'coordinator_endpoint': _("Coordinator Endpoint"),
+        'broker_host': _("Broker Host"),
+        'broker_port': _("Broker Port"),
+        'broker_endpoint': _("Broker Endpoint"),
+    }
 
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        _("Druid Clusters"),
+        __("Druid Clusters"),
         icon="fa-cubes",
         category=_("Sources"),
         category_icon='fa-database',)
@@ -319,10 +392,24 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             "markdown</a>"),
     }
     base_filters = [['id', FilterSlice, lambda: []]]
+    label_columns = {
+        'cache_timeout': _("Cache Timeout"),
+        'creator': _("Creator"),
+        'dashboards': _("Dashboards"),
+        'datasource_link': _("Datasource"),
+        'description': _("Description"),
+        'modified': _("Last Modified"),
+        'owners': _("Owners"),
+        'params': _("Parameters"),
+        'slice_link': _("Slice"),
+        'slice_name': _("Name"),
+        'table': _("Table"),
+        'viz_type': _("Visualization Type"),
+    }
 
 appbuilder.add_view(
     SliceModelView,
-    _("Slices"),
+    __("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -334,8 +421,9 @@ class SliceAsync(SliceModelView):  # noqa
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'viz_type': 'Type',
-        'slice_link': 'Slice',
+        'viz_type': _('Type'),
+        'slice_link': _('Slice'),
+        'viz_type': _('Visualization Type'),
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
@@ -359,9 +447,21 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "The css for individual dashboards can be altered here, or "
             "in the dashboard view where changes are immediately "
             "visible"),
-        'slug': "To get a readable URL for your dashboard",
+        'slug': _("To get a readable URL for your dashboard"),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
+    label_columns = {
+        'dashboard_link': _("Dashboard"),
+        'dashboard_title': _("Title"),
+        'slug': _("Slug"),
+        'slices': _("Slices"),
+        'owners': _("Owners"),
+        'creator': _("Creator"),
+        'modified': _("Modified"),
+        'position_json': _("Position JSON"),
+        'css': _("CSS"),
+        'json_metadata': _("JSON Metadata"),
+    }
 
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
@@ -378,7 +478,6 @@ appbuilder.add_view(
     "Dashboards",
     label=_("Dashboards"),
     icon="fa-dashboard",
-
     category="",
     category_icon='',)
 
@@ -397,6 +496,12 @@ class LogModelView(CaravelModelView):
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
     base_order = ('dttm', 'desc')
+    label_columns = {
+        'user': _("User"),
+        'action': _("Action"),
+        'dttm': _("dttm"),
+        'json': _("JSON"),
+    }
 
 appbuilder.add_view(
     LogModelView,
@@ -419,10 +524,21 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource",
+        'offset': _("Timezone offset (in hours) for this datasource"),
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+    }
+    label_columns = {
+        'datasource_name': _("Data Source"),
+        'cluster': _("Cluster"),
+        'description': _("Description"),
+        'owner': _("Owner"),
+        'is_featured': _("Is Featured"),
+        'is_hidden': _("Is Hidden"),
+        'default_endpoint': _("Default Endpoint"),
+        'offset': _("Time Offset"),
+        'cache_timeout': _("Cache Timeout"),
     }
 
     def post_add(self, datasource):
@@ -520,7 +636,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash(_("The datasource seems to have been deleted"), "alert")
+            flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
@@ -528,7 +644,7 @@ class Caravel(BaseView):
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash(_("You don't seem to have access to this datasource"), "danger")
+            flash(__("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -886,12 +1002,13 @@ class Caravel(BaseView):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         for cluster in session.query(models.DruidCluster).all():
+            cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
-                        cluster, str(e)),
+                        cluster_name, str(e)),
                     "danger")
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
@@ -902,22 +1019,6 @@ class Caravel(BaseView):
                 'info')
         session.commit()
         return redirect("/druiddatasourcemodelview/list/")
-
-    @expose("/autocomplete/<datasource>/<column>/")
-    def autocomplete(self, datasource, column):
-        """used for filter autocomplete"""
-        client = utils.get_pydruid_client()
-        top = client.topn(
-            datasource=datasource,
-            granularity='all',
-            intervals='2013-10-04/2020-10-10',
-            aggregations={"count": doublesum("count")},
-            dimension=column,
-            metric='count',
-            threshold=1000,
-        )
-        values = sorted([d[column] for d in top[0]['result']])
-        return json.dumps(values)
 
     @app.errorhandler(500)
     def show_traceback(self):

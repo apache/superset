@@ -47,6 +47,8 @@ def runserver(debug, port, timeout, workers):
             "-w {workers} "
             "--timeout {timeout} "
             "-b 0.0.0.0:{port} "
+            "--limit-request-line 0 "
+            "--limit-request-field_size 0 "
             "caravel:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
@@ -84,6 +86,9 @@ def load_examples(load_test_data):
 
     print("Loading [Birth names]")
     data.load_birth_names()
+
+    print("Loading [Random time series data]")
+    data.load_random_time_series_data()
 
     if load_test_data:
         print("Loading [Unicode test data]")

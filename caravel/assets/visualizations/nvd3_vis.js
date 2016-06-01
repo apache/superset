@@ -149,7 +149,7 @@ function nvd3Vis(slice) {
             chart.useInteractiveGuideline(true);
           }
           if (fd.y_axis_zero) {
-            chart.forceY([0, 1]);
+            chart.forceY([0]);
           } else if (fd.y_log_scale) {
             chart.yScale(d3.scale.log());
           }
