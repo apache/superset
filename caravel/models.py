@@ -424,6 +424,7 @@ class Database(Model, AuditMixinNullable):
             ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
+        db_time_grains['vertica'] = db_time_grains['postgresql']
         for db_type, grains in db_time_grains.items():
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
