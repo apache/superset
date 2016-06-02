@@ -39,6 +39,9 @@ setup(
         'sqlparse>=0.1.16, <0.2.0',
         'werkzeug>=0.11.2, <0.12.0',
     ],
+    extras_require={
+        'cors': ['Flask-Cors>=2.0.0'],
+    },
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
