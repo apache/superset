@@ -24,7 +24,7 @@ function heatmapVis(slice) {
       slice.container.html('');
       var matrix = {};
       if (error) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
       var fd = payload.form_data;

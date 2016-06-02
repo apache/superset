@@ -32,11 +32,7 @@ function nvd3Vis(slice) {
       };
       slice.container.html('');
       if (error) {
-        if (error.responseText) {
-          slice.error(error.responseText);
-        } else {
-          slice.error(error);
-        }
+        slice.error(error.responseText, error);
         return '';
       }
       var viz_type = fd.viz_type;
