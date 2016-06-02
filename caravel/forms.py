@@ -52,7 +52,7 @@ class SelectMultipleSortableField(SelectMultipleField):
             d[value] = (value, label, selected)
         if self.data:
             for value in self.data:
-                if value:
+                if value and value in d:
                     yield d.pop(value)
         while d:
             yield d.popitem(last=False)[1]
