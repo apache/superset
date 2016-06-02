@@ -65,13 +65,13 @@ class SliceCell extends React.Component {
         </div>
         <div
           className="slice_description bs-callout bs-callout-default"
-          style={expandedSlices && expandedSlices[String(slice.slice_id)] ? {} : { display: "none" }}
+          style={this.props.expandedSlices && this.props.expandedSlices[String(slice.slice_id)] ? {} : { display: "none" }}
           dangerouslySetInnerHTML={createMarkup()}>
         </div>
         <div className="row chart-container">
           <input type="hidden" value="false"/>
           <div id={slice.token} className="token col-md-12">
-            <img src={loadingImgUrl} className="loading" alt="loading"/>
+            <img src={"/static/assets/images/loading.gif"} className="loading" alt="loading"/>
             <div className="slice_container" id={slice.token + "_con"}></div>
           </div>
         </div>
@@ -145,7 +145,10 @@ class GridLayout extends React.Component {
           key={slice.slice_id}
           data-slice-id={slice.slice_id}
           className={"widget " + slice.viz_name}>
-          <SliceCell slice={slice} removeSlice={this.removeSlice.bind(this)}/>
+          <SliceCell
+            slice={slice}
+            removeSlice={this.removeSlice.bind(this)}
+            expandedSlices={this.props.dashboard.metadata.expanded_slices}/>
         </div>
       );
 
@@ -300,6 +303,11 @@ var Dashboard = function (dashboardData) {
       }
     },
     initDashboardView: function () {
+      var posDict = {}
+      this.position_json.forEach(function (position) {
+        posDict[position.slice_id] = position;
+      });
+
       reactGridLayout = render(
         <GridLayout slices={this.slices} posDict={posDict} dashboard={dashboard}/>,
         document.getElementById("grid-container")
