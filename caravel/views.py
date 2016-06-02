@@ -844,7 +844,7 @@ class Caravel(BaseCaravelView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
