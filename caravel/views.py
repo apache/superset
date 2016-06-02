@@ -883,15 +883,9 @@ class Caravel(BaseView):
             pass
         dashboard(dashboard_id=dash.id)
 
-        pos_dict = {}
-        if dash.position_json:
-            pos_dict = {
-                int(o['slice_id']): o
-                for o in json.loads(dash.position_json)}
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            pos_dict=pos_dict,
             dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
             dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
 
