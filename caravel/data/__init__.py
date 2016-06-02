@@ -476,14 +476,14 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Flat")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
         box-shadow: none;
         border-radius: 0px;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 1px solid #000;
         background-color: #EAEAEA;
     }
@@ -516,7 +516,7 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Courier Black")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
@@ -530,7 +530,7 @@ def load_css_templates():
     .navbar {
         box-shadow: none;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 2px solid #000;
         background-color: #EAEAEA;
     }
