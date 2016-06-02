@@ -46,6 +46,10 @@ if app.config.get('ENABLE_TIME_ROTATE'):
                                        backupCount=app.config.get('BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
 
+if app.config.get('ENABLE_CORS'):
+    from flask.ext.cors import CORS
+    CORS(app, **app.config.get('CORS_OPTIONS'))
+
 
 class MyIndexView(IndexView):
     @expose('/')
