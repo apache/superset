@@ -90,16 +90,6 @@ class BaseViz(object):
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
 
-    def get_form_override(self, fieldname, attr):
-        if (
-                fieldname in self.form_overrides and
-                attr in self.form_overrides[fieldname]):
-            s = self.form_overrides[fieldname][attr]
-            if attr == 'label':
-                s = '<label for="{fieldname}">{s}</label>'.format(**locals())
-                s = Markup(s)
-            return s
-
     @classmethod
     def flat_form_fields(cls):
         l = set()
@@ -343,6 +333,11 @@ class TableViz(BaseViz):
             'row_limit',
             ('include_search', None),
         )
+    })
+    form_overrides = ({
+        'metrics': {
+            'default': [],
+        },
     })
     is_timeseries = False
 
