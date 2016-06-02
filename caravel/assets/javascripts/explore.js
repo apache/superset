@@ -237,7 +237,8 @@ function initExploreView() {
   function set_filters() {
     for (var i = 1; i < 10; i++) {
       var eq = px.getParam("flt_eq_" + i);
-      if (eq !== '') {
+      var col = px.getParam("flt_col_" + i);
+      if (eq !== '' && col !== '') {
         add_filter(i);
       }
     }
