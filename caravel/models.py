@@ -430,8 +430,7 @@ class Database(Model, AuditMixinNullable):
 
     def dttm_converter(self, dttm, tf=None):
         """Returns a string that the database flavor understands as a date"""
-        if tf is None or tf == '':
-            tf = '%Y-%m-%d %H:%M:%S.%f'
+        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
         default = "'{}'".format(dttm.strftime(tf))
         iso = dttm.isoformat()
         d = {
@@ -964,7 +963,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
-    timestamp_format = Column(String(256))
 
     @property
     def metrics_combo(self):

@@ -143,7 +143,11 @@ class BaseViz(object):
         self.results = None
 
         # The datasource here can be different backend but the interface is common
-        timestamp_format = self.datasource.timestamp_format
+        # timestamp_format is not necessary for Druid side, so when the datasource
+        # is not table, timestamp_format is set as None
+        timestamp_format = None
+        if self.datasource.type == 'table':
+            timestamp_format = self.datasource.timestamp_format
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
