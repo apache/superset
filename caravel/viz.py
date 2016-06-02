@@ -1629,6 +1629,80 @@ class HorizonViz(NVD3TimeSeriesViz):
             ('series_height', 'horizon_color_scale'),
         ), }]
 
+class MapboxViz(BaseViz):
+
+    """Rich maps made with Mapbox"""
+
+    viz_type = "mapbox"
+    verbose_name = _("Mapbox")
+    is_timeseries = False
+    credits = (
+        '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'entity',
+            'country_fieldtype',
+            'metric',
+        )
+    }, {
+        'label': 'Bubbles',
+        'fields': (
+            ('show_bubbles', None),
+            'secondary_metric',
+            'max_bubble_size',
+        )
+    })
+    form_overrides = {
+        'entity': {
+            'label': 'Country Field',
+            'description': "3 letter code of the country",
+        },
+        'metric': {
+            'label': 'Metric for color',
+            'description': ("Metric that defines the color of the country"),
+        },
+        'secondary_metric': {
+            'label': 'Bubble size',
+            'description': ("Metric that defines the size of the bubble"),
+        },
+    }
+
+    def query_obj(self):
+        qry = super(MapboxViz, self).query_obj()
+        qry['metrics'] = [
+            self.form_data['metric'], self.form_data['secondary_metric']]
+        qry['groupby'] = [self.form_data['entity']]
+        return qry
+
+    def get_data(self):
+        from caravel.data import countries
+        df = self.get_df()
+        cols = [self.form_data.get('entity')]
+        metric = self.form_data.get('metric')
+        secondary_metric = self.form_data.get('secondary_metric')
+        if metric == secondary_metric:
+            ndf = df[cols]
+            ndf['m1'] = df[metric]
+            ndf['m2'] = df[metric]
+        else:
+            cols += [metric, secondary_metric]
+            ndf = df[cols]
+        df = ndf
+        df.columns = ['country', 'm1', 'm2']
+        d = df.to_dict(orient='records')
+        for row in d:
+            country = countries.get(
+                self.form_data.get('country_fieldtype'), row['country'])
+            if country:
+                row['country'] = country['cca3']
+                row['latitude'] = country['lat']
+                row['longitude'] = country['lng']
+                row['name'] = country['name']
+            else:
+                row['country'] = "XXX"
+        return d
+
 
 viz_types_list = [
     TableViz,
@@ -1656,6 +1730,7 @@ viz_types_list = [
     TreemapViz,
     CalHeatmapViz,
     HorizonViz,
+    MapboxViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

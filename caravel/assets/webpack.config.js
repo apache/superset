@@ -16,6 +16,11 @@ var config = {
     path: BUILD_DIR,
     filename: '[name].entry.js'
   },
+  resolve: {
+    alias: {
+      'webworkify': 'webworkify-webpack'
+    }
+  },
   module: {
     loaders: [
       {
@@ -42,8 +47,22 @@ var config = {
         test: /\.less$/,
         include: APP_DIR,
         loader: "style!css!less"
+      },
+    /* for mapbox */
+      {
+        test: /\.json$/,
+        loader: 'json-loader'
+      }, {
+        test: /\.js$/,
+        include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
+        loader: 'transform/cacheable?brfs'
       }
-    ]
+    ],
+    postLoaders: [{
+      include: /node_modules\/mapbox-gl/,
+      loader: 'transform',
+      query: 'brfs'
+    }]
   },
   plugins: []
 };

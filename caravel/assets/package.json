@@ -58,8 +58,10 @@
     "imports-loader": "^0.6.5",
     "jquery": "^2.2.1",
     "jquery-ui": "^1.10.5",
+    "json-loader": "^0.5.4",
     "less": "^2.6.1",
     "less-loader": "^2.2.2",
+    "mapbox-gl": "^0.19.0",
     "mustache": "^2.2.1",
     "nvd3": "1.8.2",
     "react": "^0.14.7",
@@ -71,7 +73,9 @@
     "select2-bootstrap-css": "^1.4.6",
     "style-loader": "^0.13.0",
     "topojson": "^1.6.22",
-    "webpack": "^1.12.12"
+    "transform-loader": "^0.2.3",
+    "webpack": "^1.12.12",
+    "webworkify-webpack": "1.0.6"
   },
   "devDependencies": {
     "eslint": "^2.2.0",

@@ -29,7 +29,8 @@ var sourceMap = {
   world_map: 'world_map.js',
   treemap: 'treemap.js',
   cal_heatmap: 'cal_heatmap.js',
-  horizon: 'horizon.js'
+  horizon: 'horizon.js',
+  mapbox: 'mapbox.js'
 };
 
 var color = function () {
