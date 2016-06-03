@@ -214,6 +214,7 @@ var Dashboard = function (dashboardData) {
       this.slices = sliceObjects;
       this.refreshTimer = null;
       this.startPeriodicRender(0);
+      this.bindResizeToWindowResize();
     },
     setFilter: function (slice_id, col, vals) {
       this.addFilter(slice_id, col, vals, false);
@@ -235,6 +236,18 @@ var Dashboard = function (dashboardData) {
     readFilters: function () {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
+    },
+    bindResizeToWindowResize: function () {
+      var resizeTimer;
+      var dash = this;
+      $(window).on('resize', function (e) {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+          dash.slices.forEach(function (slice) {
+            slice.resize();
+          });
+        }, 500);
+      });
     },
     stopPeriodicRender: function () {
       if (this.refreshTimer) {
