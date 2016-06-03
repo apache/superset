@@ -35,6 +35,35 @@ config = app.config
 log_this = models.Log.log_this
 
 
+def check_ownership(obj, raise_if_false=True):
+    """Meant to be used in `pre_update` hooks on models to enforce ownership
+
+    Admin have all access, and other users need to be referenced on either
+    the created_by field that comes with the ``AuditMixin``, or in a field
+    named ``owners`` which is expected to be a one-to-many with the User
+    model. It is meant to be used in the ModelView's pre_update hook in
+    which raising will abort the update.
+    """
+    roles = (r.name for r in get_user_roles())
+    if 'Admin' in roles:
+        return True
+    session = db.create_scoped_session()
+    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+    owner_names = (user.username for user in orig_obj.owners)
+    if (
+            hasattr(orig_obj, 'created_by') and
+            orig_obj.created_by and
+            orig_obj.created_by.username == g.user.username):
+        return True
+    if hasattr(orig_obj, 'owners') and g.user.username in owner_names:
+        return True
+    if raise_if_false:
+        raise utils.CaravelSecurityException(
+            "You don't have the rights to alter [{}]".format(obj))
+    else:
+        return False
+
+
 def get_user_roles():
     if g.user.is_anonymous():
         return [appbuilder.sm.find_role('Public')]
@@ -56,7 +85,6 @@ class FilterSlice(CaravelFilter):
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
-        print(qry)
         return qry
 
 
@@ -65,16 +93,23 @@ class FilterDashboard(CaravelFilter):
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         Slice = models.Slice  # noqa
+        Dash = models.Dashboard  # noqa
         slice_ids_qry = (
             db.session
             .query(Slice.id)
             .filter(Slice.perm.in_(self.get_perms()))
         )
-        return query.filter(
-            self.model.slices.any(
-                models.Slice.id.in_(slice_ids_qry)
+        print([r for r in slice_ids_qry.all()])
+        query = query.filter(
+            Dash.id.in_(
+                db.session.query(Dash.id)
+                .distinct()
+                .join(Dash.slices)
+                .filter(Slice.id.in_(slice_ids_qry))
             )
         )
+        print(query)
+        return query
 
 
 def validate_json(form, field):  # noqa
@@ -407,6 +442,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         'viz_type': _("Visualization Type"),
     }
 
+    def pre_update(self, obj):
+        check_ownership(obj)
+
 appbuilder.add_view(
     SliceModelView,
     __("Slices"),
@@ -470,6 +508,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             obj.slug = re.sub(r'\W+', '', obj.slug)
 
     def pre_update(self, obj):
+        check_ownership()
         self.pre_add(obj)
 
 
@@ -762,11 +801,15 @@ class Caravel(BaseView):
         flash(msg, "info")
 
     def overwrite_slice(self, slc):
-        session = db.session()
-        msg = "Slice [{}] has been overwritten".format(slc.slice_name)
-        session.merge(slc)
-        session.commit()
-        flash(msg, "info")
+        can_update = check_ownership(slc, raise_if_false=False)
+        if not can_update:
+            flash("You cannot overwrite [{}]".format(slc))
+        else:
+            session = db.session()
+            session.merge(slc)
+            session.commit()
+            msg = "Slice [{}] has been overwritten".format(slc.slice_name)
+            flash(msg, "info")
 
     @has_access
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
@@ -810,6 +853,7 @@ class Caravel(BaseView):
         session = db.session()
         Dash = models.Dashboard  # noqa
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
+        check_ownership(dash, raise_if_false=True)
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         dash.position_json = json.dumps(data['positions'], indent=4)
         md = dash.metadata_dejson
@@ -961,7 +1005,7 @@ class Caravel(BaseView):
         if (
                 not self.appbuilder.sm.has_access(
                     'all_datasource_access', 'all_datasource_access')):
-            raise Exception(_(
+            raise utils.CaravelSecurityException(_(
                 "This view requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
