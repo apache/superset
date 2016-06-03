@@ -685,7 +685,6 @@ class Caravel(BaseView):
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
-
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
             return self.save_or_overwrite_slice(
@@ -760,12 +759,11 @@ class Caravel(BaseView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns')
+        # Unwrap length 1 lists
         for k in d:
             v = d.get(k)
-            if k in as_list and not isinstance(v, list):
-                d[k] = [v] if v else []
-            if k not in as_list and isinstance(v, list):
+            assert isinstance(v, list)
+            if len(v) == 1:
                 d[k] = v[0]
 
         table_id = druid_datasource_id = None
