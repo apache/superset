@@ -12,27 +12,16 @@ down_revision = '956a063c52b3'
 
 from alembic import op
 import sqlalchemy as sa
+from caravel.utils import generic_find_constraint_name
 
 naming_convention = {
     "fk":
     "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 }
 
-def find_constraint_name(upgrade = True):
-    __table = 'columns'
-    __cols = {'column_name'} if upgrade else {'datasource_name'}
-    __referenced = 'datasources'
-    __ref_cols = {'datasource_name'} if upgrade else {'column_name'}
-
-    engine = op.get_bind().engine
-    m = sa.MetaData({})
-    t=sa.Table(__table,m, autoload=True, autoload_with=engine)
-
-    for fk in t.foreign_key_constraints:
-        if fk.referred_table.name == __referenced and \
-            set(fk.column_keys) == __cols:
-            return fk.name
-    return None
+def find_constraint_name(upgrade=True):
+    cols = {'column_name'} if upgrade else {'datasource_name'}
+    return generic_find_constraint_name(table='columns', columns=cols, referenced='datasources')
 
 def upgrade():
     constraint = find_constraint_name() or 'fk_columns_column_name_datasources'
@@ -47,4 +36,3 @@ def downgrade():
         naming_convention=naming_convention) as batch_op:
         batch_op.drop_constraint(constraint, type_="foreignkey")
         batch_op.create_foreign_key('fk_columns_column_name_datasources', 'datasources', ['column_name'], ['datasource_name'])
-    

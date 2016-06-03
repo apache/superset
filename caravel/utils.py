@@ -11,7 +11,9 @@ import numpy
 from datetime import datetime
 
 import parsedatetime
+import sqlalchemy as sa
 from dateutil.parser import parse
+from alembic import op
 from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
@@ -255,3 +257,18 @@ def readfile(filepath):
     with open(filepath) as f:
         content = f.read()
     return content
+
+
+def generic_find_constraint_name(table, columns, referenced):
+    """
+    Utility to find a constraint name in alembic migrations
+    """
+    engine = op.get_bind().engine
+    m = sa.MetaData({})
+    t = sa.Table(table, m, autoload=True, autoload_with=engine)
+
+    for fk in t.foreign_key_constraints:
+        if fk.referred_table.name == referenced and \
+            set(fk.column_keys) == columns:
+            return fk.name
+    return None
