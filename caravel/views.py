@@ -685,6 +685,7 @@ class Caravel(BaseView):
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
+
         action = request.args.get('action')
         if action in ('save', 'overwrite'):
             return self.save_or_overwrite_slice(
