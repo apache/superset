@@ -30,7 +30,7 @@ CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
 
 # Your App secret key
-SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
+SECRET_KEY = 'FWGVwZRAfFNyjt0hNViNRJ6heBkHqWIwboI0fYgtsGorkiRQhaB3fXuoBKcz4ebA'  # noqa
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
@@ -60,7 +60,7 @@ APP_NAME = "Caravel"
 # tz.tzlocal() : Using local timezone
 # other tz can be overridden by providing a local_config
 DRUID_IS_ACTIVE = True
-DRUID_TZ = tz.tzutc()
+DRUID_TZ = tz.tzlocal()
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -106,14 +106,14 @@ PUBLIC_ROLE_LIKE_GAMMA = False
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
-BABEL_DEFAULT_LOCALE = 'en'
+BABEL_DEFAULT_LOCALE = 'zh'
 # Your application default translation path
 BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
     # 'fr': {'flag': 'fr', 'name': 'French'},
-    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration

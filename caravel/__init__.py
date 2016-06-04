@@ -13,7 +13,7 @@ from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
 from flask.ext.appbuilder.baseviews import expose
 from flask.ext.cache import Cache
 from flask.ext.migrate import Migrate
-
+from flask.json import JSONEncoder
 from caravel import version
 
 VERSION = version.VERSION_STRING
@@ -24,9 +24,9 @@ CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 if not app.debug:
-  # In production mode, add log handler to sys.stderr.
-  app.logger.addHandler(logging.StreamHandler())
-  app.logger.setLevel(logging.INFO)
+    # In production mode, add log handler to sys.stderr.
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.INFO)
 
 db = SQLA(app)
 
@@ -51,10 +51,27 @@ if app.config.get('ENABLE_CORS'):
     CORS(app, **app.config.get('CORS_OPTIONS'))
 
 
+class CustomJSONEncoder(JSONEncoder):
+    """This class adds support for lazy translation texts to Flask's
+        JSON encoder. This is necessary when flashing translated texts."""
+
+    def default(self, obj):
+        from speaklater import is_lazy_string
+        if is_lazy_string(obj):
+            try:
+                return unicode(obj)  # python 2
+            except NameError:
+                return str(obj)  # python 3
+        return super(CustomJSONEncoder, self).default(obj)
+
+
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
         return redirect('/caravel/welcome')
+
+
+#app.json_encoder = CustomJSONEncoder
 
 appbuilder = AppBuilder(
     app, db.session,
