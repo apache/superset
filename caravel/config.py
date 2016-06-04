@@ -37,6 +37,11 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
+# Allowing SQLALCHEMY_DATABASE_URI to be defined as an env var for
+# continuous integration
+if 'CARAVEL__SQLALCHEMY_DATABASE_URI' in os.environ:
+    SQLALCHEMY_DATABASE_URI = os.environ.get('CARAVEL__SQLALCHEMY_DATABASE_URI')
+
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
 
