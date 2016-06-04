@@ -30,7 +30,7 @@ var sourceMap = {
   treemap: 'treemap.js',
   cal_heatmap: 'cal_heatmap.js',
   horizon: 'horizon.js',
-  mapbox: 'mapbox.js'
+  mapbox: 'mapbox.jsx'
 };
 
 var color = function () {

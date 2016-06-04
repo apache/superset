@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/airbnb/caravel#readme",
   "dependencies": {
+    "autobind-decorator": "^1.3.3",
     "babel-loader": "^6.2.1",
     "babel-polyfill": "^6.3.14",
     "babel-preset-es2015": "^6.3.13",
@@ -68,6 +69,7 @@
     "react-bootstrap": "^0.28.3",
     "react-dom": "^0.14.7",
     "react-grid-layout": "^0.12.3",
+    "react-map-gl": "^1.0.0-beta-10",
     "react-resizable": "^1.3.3",
     "select2": "3.5",
     "select2-bootstrap-css": "^1.4.6",
