@@ -933,6 +933,10 @@ class DruidCluster(Model, AuditMixinNullable):
         return json.loads(requests.get(endpoint).text)
 
     def refresh_datasources(self):
+        endpoint = (
+            "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
+        ).format(obj=self)
+        self.druid_version = json.loads(requests.get(endpoint).text)['version']
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
@@ -1017,8 +1021,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which trigged a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
+        start = (0 if self.cluster.druid_version>='0.8.2' else 1)
         intervals = (max_time - timedelta(days=7)).isoformat() + '/'
-        intervals += (max_time - timedelta(days=0)).isoformat()
+        intervals += (max_time - timedelta(days=start)).isoformat()
         segment_metadata = client.segment_metadata(
             datasource=self.datasource_name,
             intervals=intervals)
