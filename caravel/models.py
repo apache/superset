@@ -941,7 +941,7 @@ class DruidCluster(Model, AuditMixinNullable):
         return json.loads(requests.get(endpoint).text)
 
     def get_druid_version(self):
-         endpoint = (
+        endpoint = (
             "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
