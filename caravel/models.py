@@ -940,11 +940,14 @@ class DruidCluster(Model, AuditMixinNullable):
 
         return json.loads(requests.get(endpoint).text)
 
-    def refresh_datasources(self):
-        endpoint = (
+    def get_druid_version(self):
+         endpoint = (
             "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
         ).format(obj=self)
-        self.druid_version = json.loads(requests.get(endpoint).text)['version']
+        return json.loads(requests.get(endpoint).text)['version']
+
+    def refresh_datasources(self):
+        self.druid_version  = self.get_druid_version()
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
@@ -1017,6 +1020,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if m.metric_name == metric_name
         ][0]
 
+    def version_higher(self,v1,v2):
+        v1nums = [int(n) for n in v1.split('.')]
+        v2nums = [int(n) for n in v2.split('.')]
+        return (True if v1nums[0]>=v2nums[0] and v1nums[1]>=v2nums[1] and v1nums[2]>=v2nums[2] else False)
+
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
         client = self.cluster.get_pydruid_client()
@@ -1029,7 +1037,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which trigged a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
-        start = (0 if self.cluster.druid_version>='0.8.2' else 1)
+        start = (0 if self.version_higher(self.cluster.druid_version,'0.8.2') else 1)
         intervals = (max_time - timedelta(days=7)).isoformat() + '/'
         intervals += (max_time - timedelta(days=start)).isoformat()
         segment_metadata = client.segment_metadata(
