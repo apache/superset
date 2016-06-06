@@ -17,8 +17,8 @@ from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from flask import request, Markup
-from flask.ext.babelpkg import lazy_gettext as _
+from flask import request
+from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
 from pandas.io.json import dumps
 from six import string_types
