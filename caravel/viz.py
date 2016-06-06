@@ -864,8 +864,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if form_data.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")
 
+        sqlalchemy_uri = self.datasource.database.sqlalchemy_uri
+        if sqlalchemy_uri.startswith('kylin'):
+            df_index = '_timestamp'
+        else:
+            df_index = 'timestamp'
+
         df = df.pivot_table(
-            index="timestamp",
+            index=df_index,
             columns=form_data.get('groupby'),
             values=form_data.get('metrics'))
 

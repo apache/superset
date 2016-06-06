@@ -430,6 +430,12 @@ class Database(Model, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
+    def get_timestamp_label_for_db(self):
+        if self.sqlalchemy_uri.startswith('kylin'):
+            return "_timestamp"
+        else:
+            return "timestamp"
+
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
 
@@ -601,15 +607,18 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
+
+            timestamp_label = self.database.get_timestamp_label_for_db()
+
             dttm_expr = cols[granularity].expression or granularity
-            timestamp = literal_column(dttm_expr).label('timestamp')
+            timestamp = literal_column(dttm_expr).label(timestamp_label)
 
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr)).label('timestamp')
+                    udf.function.format(col=dttm_expr)).label(timestamp_label)
             else:
                 timestamp_grain = timestamp
 
@@ -617,7 +626,21 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            tf = '%Y-%m-%d %H:%M:%S.%f'
+            # UGLY: I guess correct way is to delegate on SQLAlchemy dialect
+            # UPDATE: Datetime depends on each dialect and I haven't found an easy way to manage
+            #         Maybe we can allow user to define its custome format at Database definition
+            def get_dtformat(type):
+                if type == 'SMALLDATETIME' or type == 'DATETIME':
+                    return '%Y-%m-%d %H:%M:%S'
+                if type == 'DATE':
+                    return '%Y-%m-%d'
+                if type == 'TIME':
+                    return '%H:%M:%S'
+                return '%Y-%m-%d %H:%M:%S.%f'
+
+            tf = get_dtformat(cols[granularity].type or 'DATE')
+
+            # tf = '%Y-%m-%d %H:%M:%S.%f'
             time_filter = [
                 timestamp >= from_dttm.strftime(tf),
                 timestamp <= to_dttm.strftime(tf),
