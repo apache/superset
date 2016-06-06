@@ -1023,7 +1023,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def version_higher(self,v1,v2):
         v1nums = [int(n) for n in v1.split('.')]
         v2nums = [int(n) for n in v2.split('.')]
-        return (True if v1nums[0]>=v2nums[0] and v1nums[1]>=v2nums[1] and v1nums[2]>=v2nums[2] else False)
+        return v1nums[0]>v2nums[0] or \
+            (v1nums[0] == v2nums[0] and v1nums[1]>v2nums[1]) or \
+            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2]>v2nums[2])
 
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
