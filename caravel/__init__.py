@@ -9,10 +9,10 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
-from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
-from flask.ext.appbuilder.baseviews import expose
-from flask.ext.cache import Cache
-from flask.ext.migrate import Migrate
+from flask_appbuilder import SQLA, AppBuilder, IndexView
+from flask_appbuilder.baseviews import expose
+from flask_cache import Cache
+from flask_migrate import Migrate
 
 from caravel import version
 
@@ -47,7 +47,7 @@ if app.config.get('ENABLE_TIME_ROTATE'):
     logging.getLogger().addHandler(handler)
 
 if app.config.get('ENABLE_CORS'):
-    from flask.ext.cors import CORS
+    from flask_cors import CORS
     CORS(app, **app.config.get('CORS_OPTIONS'))
 
 
