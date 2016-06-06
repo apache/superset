@@ -1,4 +1,5 @@
-import imp, os
+import imp
+import os
 from setuptools import setup, find_packages
 
 version = imp.load_source(
