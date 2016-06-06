@@ -16,12 +16,12 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
-from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
-from flask.ext.appbuilder.actions import action
-from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
-from flask.ext.appbuilder.security.decorators import has_access
-from flask.ext.babelpkg import gettext as __
-from flask.ext.babelpkg import lazy_gettext as _
+from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+from flask_appbuilder.actions import action
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
+from flask_babelpkg import gettext as __
+from flask_babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine, select, text
