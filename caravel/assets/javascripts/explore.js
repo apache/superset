@@ -193,7 +193,45 @@ function initExploreView() {
       }
     });
   });
-
+  
+  $('#standalone').click(function() {
+    var data = '&lt;iframe src="' + window.location.origin + slice.data.standalone_endpoint;
+    data = data + '" width="700" height="335" seamless frameBorder="0" scrolling="no"&gt;&lt;/iframe&gt;';
+    var dataToCopy = '<iframe src="' + window.location.origin + slice.data.standalone_endpoint;
+    dataToCopy = dataToCopy + '" width="700" height="335" seamless frameBorder="0" scrolling="no"></iframe>';
+    var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_standalone"></i></a>';
+    var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_embed"></i></a>';
+    var spaces = '&nbsp;&nbsp;&nbsp;';
+    var popover = "<input value='" + data + "' disabled></input>" + spaces + copy + spaces + close;
+    
+    var $standalone = $(this);
+    $standalone.popover({
+      content: popover,
+      title: 'embed html',
+      placement:'left',
+      html:true,
+      trigger:'manual'
+    })
+    .popover('show');
+    
+    $('#copy_embed').tooltip().click(function () {
+      var success = copyURLToClipboard(dataToCopy);
+      if (success) {
+        $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
+        window.setTimeout(destroyPopover, 1200);
+      }
+    });
+    
+    
+    
+    $('#close_standalone').click(destroyPopover);
+    function destroyPopover() {
+      $standalone.popover('destroy');
+    }
+  });
+  
+  
+  
   $("#viz_type").change(function () {
     $("#query").submit();
   });
