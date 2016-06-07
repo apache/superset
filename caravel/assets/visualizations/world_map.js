@@ -14,6 +14,7 @@ function worldMapChart(slice) {
     container.css('height', slice.height());
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
+      div.selectAll("*").remove();
       var fd = json.form_data;
 
       if (error !== null) {

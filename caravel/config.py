@@ -133,6 +133,10 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = 30
 CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
 
+# CORS Options
+ENABLE_CORS = False
+CORS_OPTIONS = {}
+
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -173,7 +177,7 @@ BACKUP_COUNT = 30
 
 try:
     from caravel_config import *  # noqa
-except Exception:
+except ImportError:
     pass
 
 if not CACHE_DEFAULT_TIMEOUT:

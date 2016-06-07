@@ -31,7 +31,7 @@ setup(
         'markdown>=2.6.2, <3.0.0',
         'pandas==0.18.0',
         'parsedatetime==2.0.0',
-        'pydruid>=0.2.3, <0.4',
+        'pydruid==0.3.0, <0.4.0',
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
         'sqlalchemy>=1.0.12, <2.0.0',
@@ -39,6 +39,9 @@ setup(
         'sqlparse>=0.1.16, <0.2.0',
         'werkzeug>=0.11.2, <0.12.0',
     ],
+    extras_require={
+        'cors': ['Flask-Cors>=2.0.0'],
+    },
     tests_require=['coverage'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',

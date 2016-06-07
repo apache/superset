@@ -28,7 +28,7 @@ the required dependencies are installed: ::
 
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
-    
+
     sudo yum upgrade python-setuptools
     sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
 
@@ -227,6 +227,20 @@ Druid
 Note that you can run the ``caravel refresh_druid`` command to refresh the
 metadata from your Druid cluster(s)
 
+
+CORS
+-----
+
+The extra CORS Dependency must be installed:
+
+    caravel[cors]
+
+
+The following keys in `caravel_config.py` can be specified to configure CORS:
+
+
+* ``ENABLE_CORS``: Must be set to True in order to enable CORS
+* ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
 Upgrading
 ---------
