@@ -766,6 +766,16 @@ class FormFactory(object):
                     "Description text that shows up below your Big "
                     "Number")
             }),
+            'longitude': (SelectField, {
+                "label": "Longitude",
+                "choices": self.choicify(datasource.column_names),
+                "description": "Column containing longitude data"
+            }),
+            'latitude': (SelectField, {
+                "label": "Latitude",
+                "choices": self.choicify(datasource.column_names),
+                "description": "Column containing latitude data"
+            }),
         }
 
         # Override default arguments with form overrides

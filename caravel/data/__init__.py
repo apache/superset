@@ -943,3 +943,67 @@ def load_random_time_series_data():
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
+
+
+def load_long_lat_data():
+    """Loading lat/long data from a csv file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
+        pdf = pd.read_csv(f, encoding="utf-8")
+    pdf['date'] = datetime.datetime.now().date()
+    pdf.to_sql(
+        'long_lat',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'longitude': Float(),
+            'latitude': Float(),
+            'number': Float(),
+            'street': String(100),
+            'unit': String(10),
+            'city': String(50),
+            'district': String(50),
+            'region': String(50),
+            'postcode': Float(),
+            'id': String(100),
+            'date': Date(),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table reference")
+    obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    if not obj:
+        obj = TBL(table_name='long_lat')
+    obj.main_dttm_col = 'date'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "long_lat",
+        "datasource_type": "table",
+        "granularity": "day",
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "2014-01-01",
+        "until": "2016-12-12",
+        "where": "",
+        "viz_type": "mapbox",
+        "longitude": "LON",
+        "latitude": "LAT",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Mapbox Long/Lat",
+        viz_type='mapbox',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)

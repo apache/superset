@@ -94,6 +94,9 @@ def load_examples(load_test_data):
     print("Loading [Random time series data]")
     data.load_random_time_series_data()
 
+    print("Loading [Random long/lat data]")
+    data.load_long_lat_data()
+
     if load_test_data:
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()

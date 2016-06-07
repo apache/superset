@@ -74,8 +74,10 @@
     "select2": "3.5",
     "select2-bootstrap-css": "^1.4.6",
     "style-loader": "^0.13.0",
+    "supercluster": "^2.1.0",
     "topojson": "^1.6.22",
     "transform-loader": "^0.2.3",
+    "viewport-mercator-project": "^2.1.0",
     "webpack": "^1.12.12",
     "webworkify-webpack": "1.0.6"
   },
