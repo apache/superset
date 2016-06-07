@@ -859,6 +859,7 @@ class SqlMetric(Model, AuditMixinNullable):
         'SqlaTable', backref='metrics', foreign_keys=[table_id])
     expression = Column(Text)
     description = Column(Text)
+    is_restricted = Column(Boolean, default=False, nullable=True)
 
     @property
     def sqla_col(self):
@@ -1330,6 +1331,7 @@ class DruidMetric(Model, AuditMixinNullable):
                               enable_typechecks=False)
     json = Column(Text)
     description = Column(Text)
+    is_restricted = Column(Boolean, default=False, nullable=True)
 
     @property
     def json_obj(self):
