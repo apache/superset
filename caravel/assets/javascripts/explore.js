@@ -204,7 +204,7 @@ function initExploreView() {
     var heightInput = '<input type="number" id="standalone_height" placeholder="height">';
     var popover = "<input id='standalone_text' value='' disabled></input>";
     popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput;
-    
+
     var $standalone = $(this);
     $standalone.popover({
       content: popover,
@@ -223,7 +223,7 @@ function initExploreView() {
     });
 
     $('#close_standalone').click(destroyPopover);
-    
+
     function destroyPopover() {
       $standalone.popover('destroy');
     }
