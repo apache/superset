@@ -790,7 +790,6 @@ class Caravel(BaseView):
             self.save_slice(slc)
         elif action == 'overwrite' and slice_edit_perm:
             self.overwrite_slice(slc)
-        print(slc.json_data)
 
         return redirect(slc.slice_url)
 
@@ -1107,60 +1106,6 @@ appbuilder.add_view(
     category="Sources",
     category_icon='')
     
-    
-@app.route('/export')
-def export():
-    datasource_type = request.args.get('datasource_type')
-    datasource_id = request.args.get('datasource_id')
-    datasource_class = models.SqlaTable \
-        if datasource_type == "table" else models.DruidDatasource
-    datasources = (
-        db.session
-        .query(datasource_class)
-        .all()
-    )
-    datasources = sorted(datasources, key=lambda ds: ds.full_name)
-    datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
-    datasource = datasource[0] if datasource else None
-    slice_id = request.args.get("slice_id")
-    slc = None
-    if slice_id:
-        slc = (
-            db.session.query(models.Slice)
-            .filter_by(id=slice_id)
-            .first()
-        )
-    if not datasource:
-        flash(__("The datasource seems to have been deleted"), "alert")
-        return redirect(error_redirect)
-    viz_type = request.args.get("viz_type")
-    if not viz_type:
-        viz_type = "table"
-    try:
-        obj = viz.viz_types[viz_type](
-            datasource,
-            form_data=request.args,
-            slice_=slc)
-    except Exception as e:
-        flash(str(e), "danger")
-        return redirect(error_redirect)
-    template = "caravel/standalone.html"
-
-    resp = render_template(
-        template, viz=obj, slice=slc, appbuilder=appbuilder)
-    try:
-        pass
-    except Exception as e:
-        if config.get("DEBUG"):
-            raise(e)
-        return Response(
-            str(e),
-            status=500,
-            mimetype="application/json")
-    return resp
-    
-
-
 # ---------------------------------------------------------------------
 # Redirecting URL from previous names
 class RegexConverter(BaseConverter):

@@ -130,8 +130,8 @@ IMG_UPLOAD_URL = '/static/uploads/'
 # IMG_SIZE = (300, 200, True)
 
 
-CACHE_DEFAULT_TIMEOUT = 30
-CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
+CACHE_DEFAULT_TIMEOUT = None
+CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 # CORS Options
 ENABLE_CORS = False
