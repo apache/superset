@@ -508,7 +508,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             obj.slug = re.sub(r'\W+', '', obj.slug)
 
     def pre_update(self, obj):
-        check_ownership()
+        check_ownership(obj)
         self.pre_add(obj)
 
 
