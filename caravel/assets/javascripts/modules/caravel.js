@@ -276,36 +276,6 @@ var px = (function () {
         $('#json').click(function () {
           window.location = data.json_endpoint;
         });
-        // $('#standalone').click(function () {
-        //   window.location = data.standalone_endpoint;
-        // });
-        // $('#standalone').click(function() {
-        //   var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_standalone"></i></a>';
-        //   var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_embed"></i></a>';
-        //   var spaces = '&nbsp;&nbsp;&nbsp;';
-        //   var popover = data.standalone_endpoint + spaces + copy + spaces + close;
-        //   var $standalone = $('#standalone')
-        //   .popover({
-        //     content: popover,
-        //     placement:'left',
-        //     html:true,
-        //     trigger:'manual'
-        //   })
-        //   .popover('show');
-          
-        //   $('#copy_embed').tooltip().click(function () {
-        //     var success = copyURLToClipboard(data);
-        //     if (success) {
-        //       $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
-        //       window.setTimeout(destroyPopover, 1200);
-        //     }
-        //   });
-            
-        //   $('#close_standalone').click(destroyPopover);
-        //   function destroyPopover() {
-        //     $standalone.popover('destroy')
-        //   }
-        // });
         $('#csv').click(function () {
           window.location = data.csv_endpoint;
         });

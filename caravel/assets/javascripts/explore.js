@@ -195,14 +195,17 @@ function initExploreView() {
   });
   
   $('#standalone').click(function() {
-    var data = '&lt;iframe src="' + window.location.origin + slice.data.standalone_endpoint;
-    data = data + '" width="700" height="335" seamless frameBorder="0" scrolling="no"&gt;&lt;/iframe&gt;';
-    var dataToCopy = '<iframe src="' + window.location.origin + slice.data.standalone_endpoint;
-    dataToCopy = dataToCopy + '" width="700" height="335" seamless frameBorder="0" scrolling="no"></iframe>';
+    var src_link = window.location.origin + slice.data.standalone_endpoint;
+    var dataToCopy = '';
     var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_standalone"></i></a>';
     var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_embed"></i></a>';
     var spaces = '&nbsp;&nbsp;&nbsp;';
-    var popover = "<input value='" + data + "' disabled></input>" + spaces + copy + spaces + close;
+    var widthInput = '<input type="number" id="standalone_width" placeholder="width">';
+    var heightInput = '<input type="number" id="standalone_height" placeholder="height">';
+    var isPublicCheckbox = '<input type="checkbox" id="standalone_is_public" placeholder="height">' + 'Public';
+    var popover = "<input id='standalone_text' value='' disabled></input>";
+    var newLine = "<br>";
+    popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput + newLine + isPublicCheckbox;
     
     var $standalone = $(this);
     $standalone.popover({
@@ -213,7 +216,6 @@ function initExploreView() {
       trigger:'manual'
     })
     .popover('show');
-    
     $('#copy_embed').tooltip().click(function () {
       var success = copyURLToClipboard(dataToCopy);
       if (success) {
@@ -225,8 +227,41 @@ function initExploreView() {
     
     
     $('#close_standalone').click(destroyPopover);
+    
     function destroyPopover() {
       $standalone.popover('destroy');
+    }
+    
+    var $standalone_width = $('#standalone_width');
+    var $standalone_height = $('#standalone_height');
+    var $standalone_is_public = $('#standalone_is_public');
+    var $standalone_text = $('#standalone_text');
+    
+    
+    $standalone_height.change(function() {
+      generateEmbedHTML();
+    });
+    $standalone_width.change(function() {
+      generateEmbedHTML();
+    });
+    $standalone_is_public.change(function() {
+      generateEmbedHTML();
+    })
+    generateEmbedHTML();
+    function generateEmbedHTML() {
+      var width = $standalone_width.val();
+      var height = $standalone_height.val();
+      var temp_src_link = src_link
+      if ($standalone_is_public.is(':checked')) {
+        temp_src_link = src_link.split("?")[1];
+        temp_src_link = window.location.origin + '/export' + '?' + temp_src_link
+      }
+    //   var re = '&lt;iframe src="' + temp_src_link + '" width="' + width + '" height="' + height +'"';
+    //   re = re + ' seamless frameBorder="0" scrolling="no"&gt;&lt;/iframe&gt;';
+    //   $standalone_text.val(re);
+      dataToCopy = '<iframe src="' + temp_src_link + '" width="' + width + '" height="' + height +'"';
+      dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
+      $standalone_text.val(dataToCopy);
     }
   });
   
