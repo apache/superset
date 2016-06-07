@@ -256,9 +256,6 @@ function initExploreView() {
         temp_src_link = src_link.split("?")[1];
         temp_src_link = window.location.origin + '/export' + '?' + temp_src_link
       }
-    //   var re = '&lt;iframe src="' + temp_src_link + '" width="' + width + '" height="' + height +'"';
-    //   re = re + ' seamless frameBorder="0" scrolling="no"&gt;&lt;/iframe&gt;';
-    //   $standalone_text.val(re);
       dataToCopy = '<iframe src="' + temp_src_link + '" width="' + width + '" height="' + height +'"';
       dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
       $standalone_text.val(dataToCopy);
