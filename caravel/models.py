@@ -38,9 +38,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy_utils import EncryptedType
 
-from caravel import app, db, get_session, utils
+import caravel
+from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
-from caravel.utils import flasher
+from caravel.utils import flasher, MetricPermException
 
 config = app.config
 
@@ -866,6 +867,13 @@ class SqlMetric(Model, AuditMixinNullable):
         name = self.metric_name
         return literal_column(self.expression).label(name)
 
+    @property
+    def perm(self):
+        return (
+            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+        ).format(obj=self,
+                 parent_name=self.table.full_name)
+
 
 class TableColumn(Model, AuditMixinNullable):
 
@@ -1137,11 +1145,25 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         conf.get('fn', "/"),
                         conf.get('fields', []),
                         conf.get('name', ''))
+
         aggregations = {
             m.metric_name: m.json_obj
             for m in self.metrics
             if m.metric_name in all_metrics
-        }
+            }
+
+        rejected_metrics = [
+            m.metric_name for m in self.metrics
+            if m.is_restricted and
+            m.metric_name in aggregations.keys() and
+            not sm.has_access('metric_access', m.perm)
+            ]
+
+        if rejected_metrics:
+            raise MetricPermException(
+                "Access to the metrics denied: " + ', '.join(rejected_metrics)
+            )
+
         granularity = granularity or "all"
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -1341,6 +1363,12 @@ class DruidMetric(Model, AuditMixinNullable):
             obj = {}
         return obj
 
+    @property
+    def perm(self):
+        return (
+            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+        ).format(obj=self,
+                 parent_name=self.datasource.full_name)
 
 class DruidColumn(Model, AuditMixinNullable):
 
@@ -1431,6 +1459,7 @@ class DruidColumn(Model, AuditMixinNullable):
                     'fieldNames': [self.column_name]})
             ))
         session = get_session()
+        new_metrics = []
         for metric in metrics:
             m = (
                 session.query(M)
@@ -1441,8 +1470,11 @@ class DruidColumn(Model, AuditMixinNullable):
             )
             metric.datasource_name = self.datasource_name
             if not m:
+                new_metrics.append(metric)
                 session.add(metric)
                 session.flush()
+
+        utils.init_metrics_perm(caravel, new_metrics)
 
 
 class FavStar(Model):
