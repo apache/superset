@@ -202,10 +202,8 @@ function initExploreView() {
     var spaces = '&nbsp;&nbsp;&nbsp;';
     var widthInput = '<input type="number" id="standalone_width" placeholder="width">';
     var heightInput = '<input type="number" id="standalone_height" placeholder="height">';
-    var isPublicCheckbox = '<input type="checkbox" id="standalone_is_public" placeholder="height">' + 'Public';
     var popover = "<input id='standalone_text' value='' disabled></input>";
-    var newLine = "<br>";
-    popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput + newLine + isPublicCheckbox;
+    popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput;
     
     var $standalone = $(this);
     $standalone.popover({
@@ -234,7 +232,6 @@ function initExploreView() {
     
     var $standalone_width = $('#standalone_width');
     var $standalone_height = $('#standalone_height');
-    var $standalone_is_public = $('#standalone_is_public');
     var $standalone_text = $('#standalone_text');
     
     
@@ -244,19 +241,11 @@ function initExploreView() {
     $standalone_width.change(function() {
       generateEmbedHTML();
     });
-    $standalone_is_public.change(function() {
-      generateEmbedHTML();
-    })
     generateEmbedHTML();
     function generateEmbedHTML() {
       var width = $standalone_width.val();
       var height = $standalone_height.val();
-      var temp_src_link = src_link
-      if ($standalone_is_public.is(':checked')) {
-        temp_src_link = src_link.split("?")[1];
-        temp_src_link = window.location.origin + '/export' + '?' + temp_src_link
-      }
-      dataToCopy = '<iframe src="' + temp_src_link + '" width="' + width + '" height="' + height +'"';
+      dataToCopy = '<iframe src="' + src_link + '" width="' + width + '" height="' + height +'"';
       dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
       $standalone_text.val(dataToCopy);
     }
