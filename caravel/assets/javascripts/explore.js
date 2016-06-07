@@ -193,8 +193,8 @@ function initExploreView() {
       }
     });
   });
-  
-  $('#standalone').click(function() {
+
+  $('#standalone').click(function () {
     var src_link = window.location.origin + slice.data.standalone_endpoint;
     var dataToCopy = '';
     var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_standalone"></i></a>';
@@ -209,9 +209,9 @@ function initExploreView() {
     $standalone.popover({
       content: popover,
       title: 'embed html',
-      placement:'left',
-      html:true,
-      trigger:'manual'
+      placement: 'left',
+      html: true,
+      trigger: 'manual'
     })
     .popover('show');
     $('#copy_embed').tooltip().click(function () {
@@ -221,24 +221,21 @@ function initExploreView() {
         window.setTimeout(destroyPopover, 1200);
       }
     });
-    
-    
-    
+
     $('#close_standalone').click(destroyPopover);
     
     function destroyPopover() {
       $standalone.popover('destroy');
     }
-    
+
     var $standalone_width = $('#standalone_width');
     var $standalone_height = $('#standalone_height');
     var $standalone_text = $('#standalone_text');
-    
-    
-    $standalone_height.change(function() {
+
+    $standalone_height.change(function () {
       generateEmbedHTML();
     });
-    $standalone_width.change(function() {
+    $standalone_width.change(function () {
       generateEmbedHTML();
     });
     generateEmbedHTML();
@@ -250,9 +247,7 @@ function initExploreView() {
       $standalone_text.val(dataToCopy);
     }
   });
-  
-  
-  
+
   $("#viz_type").change(function () {
     $("#query").submit();
   });
