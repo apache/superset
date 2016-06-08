@@ -776,6 +776,18 @@ class FormFactory(object):
                 "choices": self.choicify(datasource.column_names),
                 "description": "Column containing latitude data"
             }),
+            'mapbox_style': (SelectField, {
+                "label": "Map Style",
+                "choices": [
+                    ("mapbox://styles/mapbox/streets-v9", "Streets"),
+                    ("mapbox://styles/mapbox/dark-v9", "Dark"),
+                    ("mapbox://styles/mapbox/light-v9", "Light"),
+                    ("mapbox://styles/mapbox/satellite-streets-v9", "Satellite Streets"),
+                    ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
+                    ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
+                ],
+                "description": "Base layer map style"
+            }),
         }
 
         # Override default arguments with form overrides

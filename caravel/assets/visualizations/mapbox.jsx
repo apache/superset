@@ -27,6 +27,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
     ctx.clearRect(0, 0, props.width, props.height);
     ctx.globalCompositeOperation = this.props.compositeOperation;
     var mercator = ViewportMercator(this.props);
+    const fontHeight = d3.round(this.props.dotRadius * 0.5, 1);
     if ((this.props.renderWhileDragging || !this.props.isDragging) && this.props.locations) {
       this.props.locations.forEach(function _forEach(location) {
         var pixel = mercator.project(this.props.lngLatAccessor(location));
@@ -36,15 +37,34 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             pixelRounded[1] + radius >= 0 &&
             pixelRounded[1] - radius < props.height) {
           ctx.beginPath();
-          ctx.arc(pixelRounded[0], pixelRounded[1], radius, 0, Math.PI * 2);
-          var gradient = ctx.createRadialGradient(
-            pixelRounded[0], pixelRounded[1], radius,
-            pixelRounded[0], pixelRounded[1], 0
-          );
-          gradient.addColorStop(1, 'rgba(255,0,0,1)');
-          gradient.addColorStop(0, 'rgba(255,0,0,0)');
-          ctx.fillStyle = gradient;
-          ctx.fill();
+
+          if (location.get("properties").get("cluster")) {
+            ctx.arc(pixelRounded[0], pixelRounded[1], radius, 0, Math.PI * 2);
+            var gradient = ctx.createRadialGradient(
+              pixelRounded[0], pixelRounded[1], radius,
+              pixelRounded[0], pixelRounded[1], 0
+            );
+            gradient.addColorStop(1, "rgba(255, 0, 0, 1)");
+            gradient.addColorStop(0, "rgba(255, 0, 0, 0)");
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.fillStyle = "black";
+            ctx.font = fontHeight + "px sans-serif";
+
+            ctx.textAlign = "center";
+            ctx.fillText(
+              location.get("properties").get("point_count_abbreviated"),
+              pixelRounded[0],
+              pixelRounded[1] + d3.round((radius - fontHeight) / 2, 1)
+            );
+            ctx.globalCompositeOperation = 'destination-over';
+          } else {
+            ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(radius / 5, 1), 0, Math.PI * 2);
+            ctx.fillStyle = "red";
+            ctx.fill();
+          }
         }
       }, this);
     }
@@ -83,16 +103,13 @@ class MapboxViz extends React.Component {
       }),
       topLeft = mercator.unproject([0, 0]),
       bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]),
-      bbox = [topLeft[0], bottomRight[0], bottomRight[1], topLeft[1]],
-      clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom)),
-      locations = clusters.map(function (cluster) {
-        return cluster.geometry.coordinates;
-      });
+      bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]],
+      clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom));
 
     return (
       <MapGL
         {...this.state.viewport}
-        mapStyle={"mapbox://styles/mapbox/streets-v8"}
+        mapStyle={this.props.mapStyle}
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
         mapboxApiAccessToken={""}
@@ -102,12 +119,15 @@ class MapboxViz extends React.Component {
           isDragging={false}
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
-          locations={Immutable.fromJS(locations)}
-          dotRadius={15}
+          locations={Immutable.fromJS(clusters)}
+          dotRadius={35}
           globalOpacity={1}
           compositeOperation="screen"
-          dotFill="#1FBAD6"
-          renderWhileDragging={true}/>
+          renderWhileDragging={true}
+          lngLatAccessor={function (location) {
+            const coordinates = location.get("geometry").get("coordinates");
+            return [coordinates.get(0), coordinates.get(1)];
+          }}/>
       </MapGL>
     );
   }
@@ -116,7 +136,7 @@ class MapboxViz extends React.Component {
 function mapbox(slice) {
   var div = d3.select(slice.selector),
       clusterer = supercluster({
-        radius: 40,
+        radius: 60,
         maxZoom: 16
       });
 
@@ -127,14 +147,15 @@ function mapbox(slice) {
         return "";
       }
 
-      clusterer.load(json.data.features);
+      clusterer.load(json.data.geoJSON.features);
 
       div.selectAll("*").remove();
       ReactDOM.render(
         <MapboxViz
           sliceHeight={slice.height()}
           sliceWidth={slice.width()}
-          clusterer={clusterer}/>,
+          clusterer={clusterer}
+          mapStyle={json.data.mapStyle}/>,
         div.node()
       );
 
