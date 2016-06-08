@@ -6,6 +6,7 @@
 {% endblock %}
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}
+
 <div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}" data-css="{{ dashboard.css }}">
 
 <!-- Modal -->
@@ -97,71 +98,9 @@
     </div>
 </div>
 
-<div class="gridster content_fluid" style="visibility: hidden;">
-    <ul>
-        {% for slice in dashboard.slices %}
-          {% set pos = pos_dict.get(slice.id, {}) %}
-
-
-          <li
-            id="slice_{{ slice.id }}"
-            slice_id="{{ slice.id }}"
-            class="widget {{ slice.viz_type }}"
-            data-row="{{ pos.row or 1 }}"
-            data-col="{{ pos.col or loop.index }}"
-            data-sizex="{{ pos.size_x or 4 }}"
-            data-sizey="{{ pos.size_y or 4 }}">
-
-            <div class="chart-header">
-              <div class="row">
-                <div class="col-md-12 text-center header">
-                  {{ slice.slice_name }}
-                </div>
-                <div class="col-md-12 chart-controls">
-                  <div class="pull-left">
-                    <a title="Move chart" data-toggle="tooltip">
-                      <i class="fa fa-arrows drag"></i>
-                    </a>
-                    <a class="refresh" title="Force refresh data" data-toggle="tooltip">
-                      <i class="fa fa-repeat"></i>
-                    </a>
-                  </div>
-                  <div class="pull-right">
-                    {% if slice.description %}
-                      <a title="Toggle chart description">
-                        <i class="fa fa-info-circle slice_info" slice_id="{{ slice.id }}" title="{{ slice.description }}" data-toggle="tooltip"></i>
-                      </a>
-                    {% endif %}
-                    <a href="{{ slice.edit_url }}" title="Edit chart" data-toggle="tooltip">
-                      <i class="fa fa-pencil"></i>
-                    </a>
-                    <a href="{{ slice.slice_url }}" title="Explore chart" data-toggle="tooltip">
-                      <i class="fa fa-share"></i>
-                    </a>
-                    <a class="remove-chart" title="Remove chart from dashboard" data-toggle="tooltip">
-                      <i class="fa fa-close"></i>
-                    </a>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-            <div
-              class="slice_description bs-callout bs-callout-default"
-              style="{{ 'display: none;' if "{}".format(slice.id) not in dashboard.metadata_dejson.expanded_slices }}">
-                        {{ slice.description_markeddown | safe }}
-            </div>
-            <div class="row chart-container">
-              <input type="hidden" slice_id="{{ slice.id }}" value="false">
-              <div id="{{ slice.token }}" class="token col-md-12">
-                <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
-                <div class="slice_container" id="{{ slice.token }}_con"></div>
-              </div>
-            </div>
-          </li>
-
-        {% endfor %}
-    </ul>
+<!-- gridster class used for backwards compatibility -->
+<div id="grid-container" class="slice-grid gridster">
 </div>
+
 </div>
 {% endblock %}

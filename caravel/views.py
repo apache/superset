@@ -16,14 +16,14 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
-from flask.ext.appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
-from flask.ext.appbuilder.actions import action
-from flask.ext.appbuilder.models.sqla.interface import SQLAInterface
-from flask.ext.appbuilder.security.decorators import has_access
-from flask.ext.babelpkg import gettext as _
+from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+from flask_appbuilder.actions import action
+from flask_appbuilder.models.sqla.interface import SQLAInterface
+from flask_appbuilder.security.decorators import has_access
+from flask_babelpkg import gettext as __
+from flask_babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
-from pydruid.client import doublesum
 from sqlalchemy import create_engine, select, text
 from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
@@ -33,6 +33,35 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+
+
+def check_ownership(obj, raise_if_false=True):
+    """Meant to be used in `pre_update` hooks on models to enforce ownership
+
+    Admin have all access, and other users need to be referenced on either
+    the created_by field that comes with the ``AuditMixin``, or in a field
+    named ``owners`` which is expected to be a one-to-many with the User
+    model. It is meant to be used in the ModelView's pre_update hook in
+    which raising will abort the update.
+    """
+    roles = (r.name for r in get_user_roles())
+    if 'Admin' in roles:
+        return True
+    session = db.create_scoped_session()
+    orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
+    owner_names = (user.username for user in orig_obj.owners)
+    if (
+            hasattr(orig_obj, 'created_by') and
+            orig_obj.created_by and
+            orig_obj.created_by.username == g.user.username):
+        return True
+    if hasattr(orig_obj, 'owners') and g.user.username in owner_names:
+        return True
+    if raise_if_false:
+        raise utils.CaravelSecurityException(
+            "You don't have the rights to alter [{}]".format(obj))
+    else:
+        return False
 
 
 def get_user_roles():
@@ -56,7 +85,6 @@ class FilterSlice(CaravelFilter):
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter(self.model.perm.in_(self.get_perms()))
-        print(qry)
         return qry
 
 
@@ -65,16 +93,23 @@ class FilterDashboard(CaravelFilter):
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         Slice = models.Slice  # noqa
+        Dash = models.Dashboard  # noqa
         slice_ids_qry = (
             db.session
             .query(Slice.id)
             .filter(Slice.perm.in_(self.get_perms()))
         )
-        return query.filter(
-            self.model.slices.any(
-                models.Slice.id.in_(slice_ids_qry)
+        print([r for r in slice_ids_qry.all()])
+        query = query.filter(
+            Dash.id.in_(
+                db.session.query(Dash.id)
+                .distinct()
+                .join(Dash.slices)
+                .filter(Slice.id.in_(slice_ids_qry))
             )
         )
+        print(query)
+        return query
 
 
 def validate_json(form, field):  # noqa
@@ -128,6 +163,20 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
     }
+    label_columns = {
+        'column_name': _("Column"),
+        'verbose_name': _("Verbose Name"),
+        'description': _("Description"),
+        'groupby': _("Groupable"),
+        'filterable': _("Filterable"),
+        'table': _("Table"),
+        'count_distinct': _("Count Distinct"),
+        'sum': _("Sum"),
+        'min': _("Min"),
+        'max': _("Max"),
+        'expression': _("Expression"),
+        'is_dttm': _("Is temporal"),
+    }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
@@ -142,6 +191,17 @@ class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'sum', 'min', 'max']
     can_delete = False
     page_size = 500
+    label_columns = {
+        'column_name': _("Column"),
+        'type': _("Type"),
+        'datasource': _("Datasource"),
+        'groupby': _("Groupable"),
+        'filterable': _("Filterable"),
+        'count_distinct': _("Count Distinct"),
+        'sum': _("Sum"),
+        'min': _("Min"),
+        'max': _("Max"),
+    }
 
     def post_update(self, col):
         col.generate_metrics()
@@ -162,6 +222,14 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     }
     add_columns = edit_columns
     page_size = 500
+    label_columns = {
+        'metric_name': _("Metric"),
+        'description': _("Description"),
+        'verbose_name': _("Verbose Name"),
+        'metric_type': _("Type"),
+        'expression': _("SQL Expression"),
+        'table': _("Table"),
+    }
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
@@ -182,6 +250,14 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Druid Post Aggregation]"
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
+    }
+    label_columns = {
+        'metric_name': _("Metric"),
+        'description': _("Description"),
+        'verbose_name': _("Verbose Name"),
+        'metric_type': _("Type"),
+        'json': _("JSON"),
+        'datasource': _("Druid Datasource"),
     }
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
@@ -211,6 +287,15 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
     }
+    label_columns = {
+        'database_name': _("Database"),
+        'sql_link': _("SQL link"),
+        'creator': _("Creator"),
+        'changed_on_': _("Last Changed"),
+        'sqlalchemy_uri': _("SQLAlchemy URI"),
+        'cache_timeout': _("Cache Timeout"),
+        'extra': _("Extra"),
+    }
 
     def pre_add(self, db):
         conn = sqla.engine.url.make_url(db.sqlalchemy_uri)
@@ -227,7 +312,8 @@ appbuilder.add_view(
     "Databases",
     label=_("Databases"),
     icon="fa-database",
-    category=_("Sources"),
+    category="Sources",
+    category_label=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -253,15 +339,28 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
     }
+    label_columns = {
+        'table_link': _("Table"),
+        'changed_by_': _("Changed By"),
+        'database': _("Database"),
+        'changed_on_': _("Last Changed"),
+        'sql_link': _("SQL Editor"),
+        'is_featured': _("Is Featured"),
+        'schema': _("Schema"),
+        'default_endpoint': _("Default Endpoint"),
+        'offset': _("Offset"),
+        'cache_timeout': _("Cache Timeout"),
+    }
 
     def post_add(self, table):
+        table_name = table.table_name
         try:
             table.fetch_metadata()
         except Exception as e:
             logging.exception(e)
             flash(
                 "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table.table_name),
+                "couldn't fetch metadata".format(table_name),
                 "danger")
         utils.merge_perm(sm, 'datasource_access', table.perm)
 
@@ -270,8 +369,10 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    _("Tables"),
-    category=_("Sources"),
+    "Tables",
+    label=_("Tables"),
+    category="Sources",
+    category_label=_("Sources"),
     icon='fa-table',)
 
 
@@ -287,14 +388,25 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
+    label_columns = {
+        'cluster_name': _("Cluster"),
+        'coordinator_host': _("Coordinator Host"),
+        'coordinator_port': _("Coordinator Port"),
+        'coordinator_endpoint': _("Coordinator Endpoint"),
+        'broker_host': _("Broker Host"),
+        'broker_port': _("Broker Port"),
+        'broker_endpoint': _("Broker Endpoint"),
+    }
 
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        _("Druid Clusters"),
+        name="Druid Clusters",
+        label=_("Druid Clusters"),
         icon="fa-cubes",
-        category=_("Sources"),
+        category="Sources",
+        category_label=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -320,10 +432,28 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             "markdown</a>"),
     }
     base_filters = [['id', FilterSlice, lambda: []]]
+    label_columns = {
+        'cache_timeout': _("Cache Timeout"),
+        'creator': _("Creator"),
+        'dashboards': _("Dashboards"),
+        'datasource_link': _("Datasource"),
+        'description': _("Description"),
+        'modified': _("Last Modified"),
+        'owners': _("Owners"),
+        'params': _("Parameters"),
+        'slice_link': _("Slice"),
+        'slice_name': _("Name"),
+        'table': _("Table"),
+        'viz_type': _("Visualization Type"),
+    }
+
+    def pre_update(self, obj):
+        check_ownership(obj)
 
 appbuilder.add_view(
     SliceModelView,
-    _("Slices"),
+    "Slices",
+    label=_("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -335,8 +465,9 @@ class SliceAsync(SliceModelView):  # noqa
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'viz_type': 'Type',
-        'slice_link': 'Slice',
+        'viz_type': _('Type'),
+        'slice_link': _('Slice'),
+        'viz_type': _('Visualization Type'),
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
@@ -360,9 +491,21 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "The css for individual dashboards can be altered here, or "
             "in the dashboard view where changes are immediately "
             "visible"),
-        'slug': "To get a readable URL for your dashboard",
+        'slug': _("To get a readable URL for your dashboard"),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
+    label_columns = {
+        'dashboard_link': _("Dashboard"),
+        'dashboard_title': _("Title"),
+        'slug': _("Slug"),
+        'slices': _("Slices"),
+        'owners': _("Owners"),
+        'creator': _("Creator"),
+        'modified': _("Modified"),
+        'position_json': _("Position JSON"),
+        'css': _("CSS"),
+        'json_metadata': _("JSON Metadata"),
+    }
 
     def pre_add(self, obj):
         obj.slug = obj.slug.strip() or None
@@ -371,6 +514,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             obj.slug = re.sub(r'\W+', '', obj.slug)
 
     def pre_update(self, obj):
+        check_ownership(obj)
         self.pre_add(obj)
 
 
@@ -379,7 +523,6 @@ appbuilder.add_view(
     "Dashboards",
     label=_("Dashboards"),
     icon="fa-dashboard",
-
     category="",
     category_icon='',)
 
@@ -398,12 +541,19 @@ class LogModelView(CaravelModelView):
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
     base_order = ('dttm', 'desc')
+    label_columns = {
+        'user': _("User"),
+        'action': _("Action"),
+        'dttm': _("dttm"),
+        'json': _("JSON"),
+    }
 
 appbuilder.add_view(
     LogModelView,
     "Action Log",
     label=_("Action Log"),
-    category=_("Security"),
+    category="Security",
+    category_label=_("Security"),
     icon="fa-list-ol")
 
 
@@ -420,10 +570,21 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource",
+        'offset': _("Timezone offset (in hours) for this datasource"),
         'description': Markup(
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
+    }
+    label_columns = {
+        'datasource_name': _("Data Source"),
+        'cluster': _("Cluster"),
+        'description': _("Description"),
+        'owner': _("Owner"),
+        'is_featured': _("Is Featured"),
+        'is_hidden': _("Is Hidden"),
+        'default_endpoint': _("Default Endpoint"),
+        'offset': _("Time Offset"),
+        'cache_timeout': _("Cache Timeout"),
     }
 
     def post_add(self, datasource):
@@ -439,6 +600,7 @@ if config['DRUID_IS_ACTIVE']:
         "Druid Datasources",
         label=_("Druid Datasources"),
         category="Sources",
+        category_label=_("Sources"),
         icon="fa-cube")
 
 
@@ -521,7 +683,7 @@ class Caravel(BaseView):
                 .first()
             )
         if not datasource:
-            flash(_("The datasource seems to have been deleted"), "alert")
+            flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
         all_datasource_access = self.appbuilder.sm.has_access(
@@ -529,7 +691,7 @@ class Caravel(BaseView):
         datasource_access = self.appbuilder.sm.has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash(_("You don't seem to have access to this datasource"), "danger")
+            flash(__("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -606,7 +768,7 @@ class Caravel(BaseView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
-        as_list = ('metrics', 'groupby', 'columns')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -647,11 +809,15 @@ class Caravel(BaseView):
         flash(msg, "info")
 
     def overwrite_slice(self, slc):
-        session = db.session()
-        msg = "Slice [{}] has been overwritten".format(slc.slice_name)
-        session.merge(slc)
-        session.commit()
-        flash(msg, "info")
+        can_update = check_ownership(slc, raise_if_false=False)
+        if not can_update:
+            flash("You cannot overwrite [{}]".format(slc))
+        else:
+            session = db.session()
+            session.merge(slc)
+            session.commit()
+            msg = "Slice [{}] has been overwritten".format(slc.slice_name)
+            flash(msg, "info")
 
     @has_access
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
@@ -695,6 +861,7 @@ class Caravel(BaseView):
         session = db.session()
         Dash = models.Dashboard  # noqa
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
+        check_ownership(dash, raise_if_false=True)
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         dash.position_json = json.dumps(data['positions'], indent=4)
         md = dash.metadata_dejson
@@ -768,15 +935,9 @@ class Caravel(BaseView):
             pass
         dashboard(dashboard_id=dash.id)
 
-        pos_dict = {}
-        if dash.position_json:
-            pos_dict = {
-                int(o['slice_id']): o
-                for o in json.loads(dash.position_json)}
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            pos_dict=pos_dict,
             dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
             dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
 
@@ -852,7 +1013,7 @@ class Caravel(BaseView):
         if (
                 not self.appbuilder.sm.has_access(
                     'all_datasource_access', 'all_datasource_access')):
-            raise Exception(_(
+            raise utils.CaravelSecurityException(_(
                 "This view requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
@@ -887,12 +1048,13 @@ class Caravel(BaseView):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
         for cluster in session.query(models.DruidCluster).all():
+            cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
-                        cluster, str(e)),
+                        cluster_name, str(e)),
                     "danger")
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
@@ -903,22 +1065,6 @@ class Caravel(BaseView):
                 'info')
         session.commit()
         return redirect("/druiddatasourcemodelview/list/")
-
-    @expose("/autocomplete/<datasource>/<column>/")
-    def autocomplete(self, datasource, column):
-        """used for filter autocomplete"""
-        client = utils.get_pydruid_client()
-        top = client.topn(
-            datasource=datasource,
-            granularity='all',
-            intervals='2013-10-04/2020-10-10',
-            aggregations={"count": doublesum("count")},
-            dimension=column,
-            metric='count',
-            threshold=1000,
-        )
-        values = sorted([d[column] for d in top[0]['result']])
-        return json.dumps(values)
 
     @app.errorhandler(500)
     def show_traceback(self):
@@ -949,6 +1095,7 @@ if config['DRUID_IS_ACTIVE']:
         "Refresh Druid Metadata",
         href='/caravel/refresh_datasources/',
         category='Sources',
+        category_label=_("Sources"),
         category_icon='fa-database',
         icon="fa-cog")
 
@@ -966,6 +1113,7 @@ appbuilder.add_view(
     label=_("CSS Templates"),
     icon="fa-css3",
     category="Sources",
+    category_label=_("Sources"),
     category_icon='')
 
 

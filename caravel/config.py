@@ -112,8 +112,8 @@ BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
-    # 'fr': {'flag': 'fr', 'name': 'French'},
-    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
+    'fr': {'flag': 'fr', 'name': 'French'},
+    'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -131,6 +131,10 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+
+# CORS Options
+ENABLE_CORS = False
+CORS_OPTIONS = {}
 
 
 # ---------------------------------------------------
@@ -172,7 +176,7 @@ BACKUP_COUNT = 30
 
 try:
     from caravel_config import *  # noqa
-except Exception:
+except ImportError:
     pass
 
 if not CACHE_DEFAULT_TIMEOUT:

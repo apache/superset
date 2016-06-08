@@ -20,10 +20,10 @@ import sqlparse
 from dateutil.parser import parse
 
 from flask import request, g
-from flask.ext.appbuilder import Model
-from flask.ext.appbuilder.models.mixins import AuditMixin
-from flask.ext.appbuilder.models.decorators import renders
-from flask.ext.babelpkg import gettext as _
+from flask_appbuilder import Model
+from flask_appbuilder.models.mixins import AuditMixin
+from flask_appbuilder.models.decorators import renders
+from flask_babelpkg import gettext as _
 
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
@@ -197,6 +197,7 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def data(self):
+        """Data used to render slice in templates"""
         d = {}
         self.token = ''
         try:
@@ -205,6 +206,11 @@ class Slice(Model, AuditMixinNullable):
         except Exception as e:
             d['error'] = str(e)
         d['slice_id'] = self.id
+        d['slice_name'] = self.slice_name
+        d['description'] = self.description
+        d['slice_url'] = self.slice_url
+        d['edit_url'] = self.edit_url
+        d['description_markeddown'] = self.description_markeddown
         return d
 
     @property
@@ -309,6 +315,7 @@ class Dashboard(Model, AuditMixinNullable):
             'dashboard_title': self.dashboard_title,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
+            'position_json': json.loads(self.position_json) if self.position_json else [],
         }
         return json.dumps(d)
 
@@ -424,6 +431,7 @@ class Database(Model, AuditMixinNullable):
             ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
+        db_time_grains['vertica'] = db_time_grains['postgresql']
         for db_type, grains in db_time_grains.items():
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
@@ -629,7 +637,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             for s in groupby:
                 col = cols[s]
                 outer = col.sqla_col
-                inner = col.sqla_col.label('__' + col.column_name)
+                inner = col.sqla_col.label(col.column_name + '__')
 
                 groupby_exprs.append(outer)
                 select_exprs.append(outer)
@@ -715,7 +723,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             on_clause = []
             for i, gb in enumerate(groupby):
                 on_clause.append(
-                    groupby_exprs[i] == column("__" + gb))
+                    groupby_exprs[i] == column(gb + '__'))
 
             tbl = tbl.join(subq.alias(), and_(*on_clause))
 
@@ -1165,16 +1173,18 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 if len(splitted) > 1:
                     for s in eq.split(','):
                         s = s.strip()
-                        fields.append(Filter.build_filter(Dimension(col) == s))
+                        fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
                 else:
                     cond = Dimension(col) == eq
                 if op == 'not in':
                     cond = ~cond
+            elif op == 'regex':
+                cond = Filter(type="regex", pattern=eq, dimension=col)
             if filters:
                 filters = Filter(type="and", fields=[
-                    Filter.build_filter(cond),
-                    Filter.build_filter(filters)
+                    cond,
+                    filters
                 ])
             else:
                 filters = cond
@@ -1201,7 +1211,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             }
             client.groupby(**pre_qry)
             query_str += "// Two phase query\n// Phase 1\n"
-            query_str += json.dumps(client.query_dict, indent=2) + "\n"
+            query_str += json.dumps(
+                client.query_builder.last_query.query_dict, indent=2) + "\n"
             query_str += "//\nPhase 2 (built based on phase one's results)\n"
             df = client.export_pandas()
             if df is not None and not df.empty:
@@ -1210,11 +1221,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 for unused, row in df.iterrows():
                     fields = []
                     for dim in dims:
-                        f = Filter.build_filter(Dimension(dim) == row[dim])
+                        f = Dimension(dim) == row[dim]
                         fields.append(f)
                     if len(fields) > 1:
                         filt = Filter(type="and", fields=fields)
-                        filters.append(Filter.build_filter(filt))
+                        filters.append(filt)
                     elif fields:
                         filters.append(fields[0])
 
@@ -1224,8 +1235,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         qry['filter'] = ff
                     else:
                         qry['filter'] = Filter(type="and", fields=[
-                            Filter.build_filter(ff),
-                            Filter.build_filter(orig_filters)])
+                            ff,
+                            orig_filters])
                 qry['limit_spec'] = None
         if row_limit:
             qry['limit_spec'] = {
@@ -1237,7 +1248,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 }],
             }
         client.groupby(**qry)
-        query_str += json.dumps(client.query_dict, indent=2)
+        query_str += json.dumps(
+            client.query_builder.last_query.query_dict, indent=2)
         df = client.export_pandas()
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
@@ -1272,7 +1284,6 @@ class Log(Model):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     dashboard_id = Column(Integer)
     slice_id = Column(Integer)
-    user_id = Column(Integer, ForeignKey('ab_user.id'))
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=func.now())

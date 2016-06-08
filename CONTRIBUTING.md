@@ -185,7 +185,7 @@ meets these guidelines:
 5.  Please rebase and resolve all conflicts before submitting.
 
 
-## Tranlations
+## Translations
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Caravel. The
 key is to instrument the strings that need translation using
