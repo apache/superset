@@ -8,6 +8,7 @@ from collections import OrderedDict
 from copy import copy
 import math
 
+from flask_babelpkg import lazy_gettext as _
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField, DecimalField)
@@ -131,31 +132,31 @@ class FormFactory(object):
         # Pool of all the fields that can be used in Caravel
         field_data = {
             'viz_type': (SelectField, {
-                "label": "Viz",
+                "label": _("Viz"),
                 "default": 'table',
                 "choices": [(k, v.verbose_name) for k, v in viz_types.items()],
-                "description": "The type of visualization to display"
+                "description": _("The type of visualization to display")
             }),
             'metrics': (SelectMultipleSortableField, {
-                "label": "Metrics",
+                "label": _("Metrics"),
                 "choices": datasource.metrics_combo,
                 "default": [default_metric],
-                "description": "One or many metrics to display"
+                "description": _("One or many metrics to display")
             }),
             'metric': (SelectField, {
-                "label": "Metric",
+                "label": _("Metric"),
                 "choices": datasource.metrics_combo,
                 "default": default_metric,
-                "description": "Choose the metric"
+                "description": _("Choose the metric")
             }),
             'stacked_style': (SelectField, {
-                "label": "Chart Style",
+                "label": _("Chart Style"),
                 "choices": self.choicify(['stack', 'stream', 'expand']),
                 "default": 'stack',
                 "description": ""
             }),
             'linear_color_scheme': (SelectField, {
-                "label": "Color Scheme",
+                "label": _("Color Scheme"),
                 "choices": self.choicify([
                     'fire', 'blue_white_yellow', 'white_black',
                     'black_white']),
@@ -163,115 +164,115 @@ class FormFactory(object):
                 "description": ""
             }),
             'normalize_across': (SelectField, {
-                "label": "Normalize Across",
+                "label": _("Normalize Across"),
                 "choices": self.choicify([
                     'heatmap', 'x', 'y']),
                 "default": 'heatmap',
-                "description": (
+                "description": _(
                     "Color will be rendered based on a ratio "
                     "of the cell against the sum of across this "
                     "criteria")
             }),
             'horizon_color_scale': (SelectField, {
-                "label": "Color Scale",
+                "label": _("Color Scale"),
                 "choices": self.choicify(['series', 'overall', 'change']),
                 "default": 'series',
-                "description": "Defines how the color are attributed."
+                "description": _("Defines how the color are attributed.")
             }),
             'canvas_image_rendering': (SelectField, {
-                "label": "Rendering",
+                "label": _("Rendering"),
                 "choices": (
-                    ('pixelated', 'pixelated (Sharp)'),
-                    ('auto', 'auto (Smooth)'),
+                    ('pixelated', _('pixelated (Sharp)')),
+                    ('auto', _('auto (Smooth)')),
                 ),
                 "default": 'pixelated',
-                "description": (
+                "description": _(
                     "image-rendering CSS attribute of the canvas object that "
                     "defines how the browser scales up the image")
             }),
             'xscale_interval': (SelectField, {
-                "label": "XScale Interval",
+                "label": _("XScale Interval"),
                 "choices": self.choicify(range(1, 50)),
                 "default": '1',
-                "description": (
+                "description": _(
                     "Number of step to take between ticks when "
                     "printing the x scale")
             }),
             'yscale_interval': (SelectField, {
-                "label": "YScale Interval",
+                "label": _("YScale Interval"),
                 "choices": self.choicify(range(1, 50)),
                 "default": '1',
-                "description": (
+                "description": _(
                     "Number of step to take between ticks when "
                     "printing the y scale")
             }),
             'bar_stacked': (BetterBooleanField, {
-                "label": "Stacked Bars",
+                "label": _("Stacked Bars"),
                 "default": False,
                 "description": ""
             }),
             'include_series': (BetterBooleanField, {
-                "label": "Include Series",
+                "label": _("Include Series"),
                 "default": False,
-                "description": "Include series name as an axis"
+                "description": _("Include series name as an axis")
             }),
             'secondary_metric': (SelectField, {
-                "label": "Color Metric",
+                "label": _("Color Metric"),
                 "choices": datasource.metrics_combo,
                 "default": default_metric,
-                "description": "A metric to use for color"
+                "description": _("A metric to use for color")
             }),
             'country_fieldtype': (SelectField, {
-                "label": "Country Field Type",
+                "label": _("Country Field Type"),
                 "default": 'cca2',
                 "choices": (
-                    ('name', 'Full name'),
-                    ('cioc', 'code International Olympic Committee (cioc)'),
-                    ('cca2', 'code ISO 3166-1 alpha-2 (cca2)'),
-                    ('cca3', 'code ISO 3166-1 alpha-3 (cca3)'),
+                    ('name', _('Full name')),
+                    ('cioc', _('code International Olympic Committee (cioc)')),
+                    ('cca2', _('code ISO 3166-1 alpha-2 (cca2)')),
+                    ('cca3', _('code ISO 3166-1 alpha-3 (cca3)')),
                 ),
-                "description": (
+                "description": _(
                     "The country code standard that Caravel should expect "
                     "to find in the [country] column")
             }),
             'groupby': (SelectMultipleSortableField, {
-                "label": "Group by",
+                "label": _("Group by"),
                 "choices": self.choicify(datasource.groupby_column_names),
-                "description": "One or many fields to group by"
+                "description": _("One or many fields to group by")
             }),
             'columns': (SelectMultipleSortableField, {
-                "label": "Columns",
+                "label": _("Columns"),
                 "choices": self.choicify(datasource.groupby_column_names),
-                "description": "One or many fields to pivot as columns"
+                "description": _("One or many fields to pivot as columns")
             }),
             'all_columns': (SelectMultipleSortableField, {
-                "label": "Columns",
+                "label": _("Columns"),
                 "choices": self.choicify(datasource.column_names),
-                "description": "Columns to display"
+                "description": _("Columns to display")
             }),
             'all_columns_x': (SelectField, {
-                "label": "X",
+                "label": _("X"),
                 "choices": self.choicify(datasource.column_names),
-                "description": "Columns to display"
+                "description": _("Columns to display")
             }),
             'all_columns_y': (SelectField, {
-                "label": "Y",
+                "label": _("Y"),
                 "choices": self.choicify(datasource.column_names),
-                "description": "Columns to display"
+                "description": _("Columns to display")
             }),
             'druid_time_origin': (FreeFormSelectField, {
-                "label": "Origin",
+                "label": _( "Origin"),
                 "choices": (
-                    ('', 'default'),
-                    ('now', 'now'),
+                    ('', _('default')),
+                    ('now', _('now')),
                 ),
                 "default": '',
-                "description": (
+                "description": _(
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")
             }),
             'granularity': (FreeFormSelectField, {
-                "label": "Time Granularity",
+                "label": _("Time Granularity"),
                 "default": "one day",
                 "choices": self.choicify([
                     'all',
@@ -284,13 +285,13 @@ class FormFactory(object):
                     '1 day',
                     '7 days',
                 ]),
-                "description": (
+                "description": _(
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
                     "'1 day' or '56 weeks'")
             }),
             'domain_granularity': (SelectField, {
-                "label": "Domain",
+                "label": _("Domain"),
                 "default": "month",
                 "choices": self.choicify([
                     'hour',
@@ -299,11 +300,11 @@ class FormFactory(object):
                     'month',
                     'year',
                 ]),
-                "description": (
+                "description": _(
                     "The time unit used for the grouping of blocks")
             }),
             'subdomain_granularity': (SelectField, {
-                "label": "Subdomain",
+                "label": _("Subdomain"),
                 "default": "day",
                 "choices": self.choicify([
                     'min',
@@ -312,12 +313,12 @@ class FormFactory(object):
                     'week',
                     'month',
                 ]),
-                "description": (
+                "description": _(
                     "The time unit for each block. Should be a smaller unit than "
                     "domain_granularity. Should be larger or equal to Time Grain")
             }),
             'link_length': (FreeFormSelectField, {
-                "label": "Link Length",
+                "label": _("Link Length"),
                 "default": "200",
                 "choices": self.choicify([
                     '10',
@@ -329,10 +330,10 @@ class FormFactory(object):
                     '200',
                     '250',
                 ]),
-                "description": "Link length in the force layout"
+                "description": _("Link length in the force layout")
             }),
             'charge': (FreeFormSelectField, {
-                "label": "Charge",
+                "label": _("Charge"),
                 "default": "-500",
                 "choices": self.choicify([
                     '-50',
@@ -346,13 +347,13 @@ class FormFactory(object):
                     '-2500',
                     '-5000',
                 ]),
-                "description": "Charge in the force layout"
+                "description": _("Charge in the force layout")
             }),
             'granularity_sqla': (SelectField, {
-                "label": "Time Column",
+                "label": _("Time Column"),
                 "default": datasource.main_dttm_col or datasource.any_dttm_col,
                 "choices": self.choicify(datasource.dttm_cols),
-                "description": (
+                "description": _(
                     "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor. Also note that the "
@@ -360,25 +361,25 @@ class FormFactory(object):
                     "expression")
             }),
             'resample_rule': (FreeFormSelectField, {
-                "label": "Resample Rule",
+                "label": _("Resample Rule"),
                 "default": '',
                 "choices": self.choicify(('1T', '1H', '1D', '7D', '1M', '1AS')),
-                "description": ("Pandas resample rule")
+                "description": _("Pandas resample rule")
             }),
             'resample_how': (FreeFormSelectField, {
-                "label": "Resample How",
+                "label": _("Resample How"),
                 "default": '',
                 "choices": self.choicify(('', 'mean', 'sum', 'median')),
-                "description": ("Pandas resample how")
+                "description": _("Pandas resample how")
             }),
             'resample_fillmethod': (FreeFormSelectField, {
-                "label": "Resample Fill Method",
+                "label": _("Resample Fill Method"),
                 "default": '',
                 "choices": self.choicify(('', 'ffill', 'bfill')),
-                "description": ("Pandas resample fill method")
+                "description": _("Pandas resample fill method")
             }),
             'since': (FreeFormSelectField, {
-                "label": "Since",
+                "label": _("Since"),
                 "default": "7 days ago",
                 "choices": self.choicify([
                     '1 hour ago',
@@ -389,12 +390,12 @@ class FormFactory(object):
                     '90 days ago',
                     '1 year ago'
                 ]),
-                "description": (
+                "description": _(
                     "Timestamp from filter. This supports free form typing and "
                     "natural language as in '1 day ago', '28 days' or '3 years'")
             }),
             'until': (FreeFormSelectField, {
-                "label": "Until",
+                "label": _("Until"),
                 "default": "now",
                 "choices": self.choicify([
                     'now',
@@ -405,7 +406,7 @@ class FormFactory(object):
                     '1 year ago'])
             }),
             'max_bubble_size': (FreeFormSelectField, {
-                "label": "Max Bubble Size",
+                "label": _("Max Bubble Size"),
                 "default": "25",
                 "choices": self.choicify([
                     '5',
@@ -418,9 +419,9 @@ class FormFactory(object):
                 ])
             }),
             'whisker_options': (FreeFormSelectField, {
-                "label": "Whisker/outlier options",
+                "label": _("Whisker/outlier options"),
                 "default": "Tukey",
-                "description": (
+                "description": _(
                     "Determines how whiskers and outliers are calculated."),
                 "choices": self.choicify([
                     'Tukey',
@@ -430,12 +431,12 @@ class FormFactory(object):
                 ])
             }),
             'treemap_ratio': (DecimalField, {
-                "label": "Ratio",
+                "label": _("Ratio"),
                 "default": 0.5 * (1 + math.sqrt(5)),  # d3 default, golden ratio
-                "description": 'Target aspect ratio for treemap tiles.',
+                "description": _('Target aspect ratio for treemap tiles.'),
             }),
             'number_format': (FreeFormSelectField, {
-                "label": "Number format",
+                "label": _("Number format"),
                 "default": '.3s',
                 "choices": [
                     ('.3s', '".3s" | 12.3k'),
@@ -445,128 +446,128 @@ class FormFactory(object):
                     ('+,', '"+," | +12,345.4321'),
                     ('$,.2f', '"$,.2f" | $12,345.43'),
                 ],
-                "description": "D3 format syntax for numbers "
+                "description": _("D3 format syntax for numbers "
                             "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting"
+                            "d3/wiki/Formatting")
             }),
             'row_limit': (FreeFormSelectField, {
-                "label": 'Row limit',
+                "label": _('Row limit'),
                 "default": config.get("ROW_LIMIT"),
                 "choices": self.choicify(
                     [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000])
             }),
             'limit': (FreeFormSelectField, {
-                "label": 'Series limit',
+                "label": _('Series limit'),
                 "choices": self.choicify(self.series_limits),
                 "default": 50,
-                "description": (
+                "description": _(
                     "Limits the number of time series that get displayed")
             }),
             'rolling_type': (SelectField, {
-                "label": "Rolling",
+                "label": _("Rolling"),
                 "default": 'None',
                 "choices": [(s, s) for s in ['None', 'mean', 'sum', 'std', 'cumsum']],
-                "description": (
+                "description": _(
                     "Defines a rolling window function to apply, works along "
                     "with the [Periods] text box")
             }),
             'rolling_periods': (IntegerField, {
-                "label": "Periods",
+                "label": _("Periods"),
                 "validators": [validators.optional()],
-                "description": (
+                "description": _(
                     "Defines the size of the rolling window function, "
                     "relative to the time granularity selected")
             }),
             'series': (SelectField, {
-                "label": "Series",
+                "label": _("Series"),
                 "choices": group_by_choices,
                 "default": default_groupby,
-                "description": (
+                "description": _(
                     "Defines the grouping of entities. "
                     "Each serie is shown as a specific color on the chart and "
                     "has a legend toggle")
             }),
             'entity': (SelectField, {
-                "label": "Entity",
+                "label": _("Entity"),
                 "choices": group_by_choices,
                 "default": default_groupby,
-                "description": "This define the element to be plotted on the chart"
+                "description": _("This define the element to be plotted on the chart")
             }),
             'x': (SelectField, {
-                "label": "X Axis",
+                "label": _("X Axis"),
                 "choices": datasource.metrics_combo,
                 "default": default_metric,
-                "description": "Metric assigned to the [X] axis"
+                "description": _("Metric assigned to the [X] axis")
             }),
             'y': (SelectField, {
-                "label": "Y Axis",
+                "label": _("Y Axis"),
                 "choices": datasource.metrics_combo,
                 "default": default_metric,
-                "description": "Metric assigned to the [Y] axis"
+                "description": _("Metric assigned to the [Y] axis")
             }),
             'size': (SelectField, {
-                "label": 'Bubble Size',
+                "label": _('Bubble Size'),
                 "default": default_metric,
                 "choices": datasource.metrics_combo
             }),
             'url': (TextField, {
-                "label": "URL",
-                "description": (
+                "label": _("URL"),
+                "description": _(
                     "The URL, this field is templated, so you can integrate "
                     "{{ width }} and/or {{ height }} in your URL string."
                 ),
                 "default": 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
             }),
             'where': (TextField, {
-                "label": "Custom WHERE clause",
+                "label": _("Custom WHERE clause"),
                 "default": '',
-                "description": (
+                "description": _(
                     "The text in this box gets included in your query's WHERE "
                     "clause, as an AND to other criteria. You can include "
                     "complex expression, parenthesis and anything else "
                     "supported by the backend it is directed towards.")
             }),
             'having': (TextField, {
-                "label": "Custom HAVING clause",
+                "label": _("Custom HAVING clause"),
                 "default": '',
-                "description": (
+                "description": _(
                     "The text in this box gets included in your query's HAVING"
                     " clause, as an AND to other criteria. You can include "
                     "complex expression, parenthesis and anything else "
                     "supported by the backend it is directed towards.")
             }),
             'compare_lag': (TextField, {
-                "label": "Comparison Period Lag",
-                "description": (
+                "label": _("Comparison Period Lag"),
+                "description": _(
                     "Based on granularity, number of time periods to "
                     "compare against")
             }),
             'compare_suffix': (TextField, {
-                "label": "Comparison suffix",
-                "description": "Suffix to apply after the percentage display"
+                "label": _("Comparison suffix"),
+                "description": _("Suffix to apply after the percentage display")
             }),
             'table_timestamp_format': (FreeFormSelectField, {
-                "label": "Table Timestamp Format",
+                "label": _("Table Timestamp Format"),
                 "default": 'smart_date',
                 "choices": TIMESTAMP_CHOICES,
-                "description": "Timestamp Format"
+                "description": _("Timestamp Format")
             }),
             'series_height': (FreeFormSelectField, {
-                "label": "Series Height",
+                "label": _("Series Height"),
                 "default": 25,
                 "choices": self.choicify([10, 25, 40, 50, 75, 100, 150, 200]),
-                "description": "Pixel height of each series"
+                "description": _("Pixel height of each series")
             }),
             'x_axis_format': (FreeFormSelectField, {
-                "label": "X axis format",
+                "label": _("X axis format"),
                 "default": 'smart_date',
                 "choices": TIMESTAMP_CHOICES,
-                "description": "D3 format syntax for y axis "
+                "description": _("D3 format syntax for y axis "
                             "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting"
+                            "d3/wiki/Formatting")
             }),
             'y_axis_format': (FreeFormSelectField, {
-                "label": "Y axis format",
+                "label": _("Y axis format"),
                 "default": '.3s',
                 "choices": [
                     ('.3s', '".3s" | 12.3k'),
@@ -576,142 +577,142 @@ class FormFactory(object):
                     ('+,', '"+," | +12,345.4321'),
                     ('$,.2f', '"$,.2f" | $12,345.43'),
                 ],
-                "description": "D3 format syntax for y axis "
+                "description": _("D3 format syntax for y axis "
                             "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting"
+                            "d3/wiki/Formatting")
             }),
             'markup_type': (SelectField, {
-                "label": "Markup Type",
+                "label": _("Markup Type"),
                 "choices": self.choicify(['markdown', 'html']),
                 "default": "markdown",
-                "description": "Pick your favorite markup language"
+                "description": _("Pick your favorite markup language")
             }),
             'rotation': (SelectField, {
-                "label": "Rotation",
+                "label": _("Rotation"),
                 "choices": [(s, s) for s in ['random', 'flat', 'square']],
                 "default": "random",
-                "description": "Rotation to apply to words in the cloud"
+                "description": _("Rotation to apply to words in the cloud")
             }),
             'line_interpolation': (SelectField, {
-                "label": "Line Style",
+                "label": _("Line Style"),
                 "choices": self.choicify([
                     'linear', 'basis', 'cardinal', 'monotone',
                     'step-before', 'step-after']),
                 "default": 'linear',
-                "description": "Line interpolation as defined by d3.js"
+                "description": _("Line interpolation as defined by d3.js")
             }),
             'code': (TextAreaField, {
-                "label": "Code",
-                "description": "Put your code here",
+                "label": _("Code"),
+                "description": _("Put your code here"),
                 "default": ''
             }),
             'pandas_aggfunc': (SelectField, {
-                "label": "Aggregation function",
+                "label": _("Aggregation function"),
                 "choices": self.choicify([
                     'sum', 'mean', 'min', 'max', 'median', 'stdev', 'var']),
                 "default": 'sum',
-                "description": (
+                "description": _(
                     "Aggregate function to apply when pivoting and "
                     "computing the total rows and columns")
             }),
             'size_from': (TextField, {
-                "label": "Font Size From",
+                "label": _("Font Size From"),
                 "default": "20",
-                "description": "Font size for the smallest value in the list"
+                "description": _("Font size for the smallest value in the list")
             }),
             'size_to': (TextField, {
-                "label": "Font Size To",
+                "label": _("Font Size To"),
                 "default": "150",
-                "description": "Font size for the biggest value in the list"
+                "description": _("Font size for the biggest value in the list")
             }),
             'show_brush': (BetterBooleanField, {
-                "label": "Range Filter",
+                "label": _("Range Filter"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Whether to display the time range interactive selector")
             }),
             'show_datatable': (BetterBooleanField, {
-                "label": "Data Table",
+                "label": _("Data Table"),
                 "default": False,
-                "description": "Whether to display the interactive data table"
+                "description": _("Whether to display the interactive data table")
             }),
             'include_search': (BetterBooleanField, {
-                "label": "Search Box",
+                "label": _("Search Box"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Whether to include a client side search box")
             }),
             'show_bubbles': (BetterBooleanField, {
-                "label": "Show Bubbles",
+                "label": _("Show Bubbles"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Whether to display bubbles on top of countries")
             }),
             'show_legend': (BetterBooleanField, {
-                "label": "Legend",
+                "label": _("Legend"),
                 "default": True,
-                "description": "Whether to display the legend (toggles)"
+                "description": _("Whether to display the legend (toggles)")
             }),
             'x_axis_showminmax': (BetterBooleanField, {
-                "label": "X bounds",
+                "label": _("X bounds"),
                 "default": True,
-                "description": (
+                "description": _(
                     "Whether to display the min and max values of the X axis")
             }),
             'rich_tooltip': (BetterBooleanField, {
-                "label": "Rich Tooltip",
+                "label": _("Rich Tooltip"),
                 "default": True,
-                "description": (
+                "description": _(
                     "The rich tooltip shows a list of all series for that"
                     " point in time")
             }),
             'y_axis_zero': (BetterBooleanField, {
-                "label": "Y Axis Zero",
+                "label": _("Y Axis Zero"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Force the Y axis to start at 0 instead of the minimum "
                     "value")
             }),
             'y_log_scale': (BetterBooleanField, {
-                "label": "Y Log",
+                "label": _("Y Log"),
                 "default": False,
-                "description": "Use a log scale for the Y axis"
+                "description": _("Use a log scale for the Y axis")
             }),
             'x_log_scale': (BetterBooleanField, {
-                "label": "X Log",
+                "label": _("X Log"),
                 "default": False,
-                "description": "Use a log scale for the X axis"
+                "description": _("Use a log scale for the X axis")
             }),
             'donut': (BetterBooleanField, {
-                "label": "Donut",
+                "label": _("Donut"),
                 "default": False,
-                "description": "Do you want a donut or a pie?"
+                "description": _("Do you want a donut or a pie?")
             }),
             'contribution': (BetterBooleanField, {
-                "label": "Contribution",
+                "label": _("Contribution"),
                 "default": False,
-                "description": "Compute the contribution to the total"
+                "description": _("Compute the contribution to the total")
             }),
             'num_period_compare': (IntegerField, {
-                "label": "Period Ratio",
+                "label": _("Period Ratio"),
                 "default": None,
                 "validators": [validators.optional()],
-                "description": (
+                "description": _(
                     "[integer] Number of period to compare against, "
                     "this is relative to the granularity selected")
             }),
             'time_compare': (TextField, {
-                "label": "Time Shift",
+                "label": _("Time Shift"),
                 "default": "",
-                "description": (
+                "description": _(
                     "Overlay a timeseries from a "
                     "relative time period. Expects relative time delta "
                     "in natural language (example:  24 hours, 7 days, "
                     "56 weeks, 365 days")
             }),
             'subheader': (TextField, {
-                "label": "Subheader",
-                "description": (
+                "label": _("Subheader"),
+                "description": _(
                     "Description text that shows up below your Big "
                     "Number")
             }),
@@ -774,9 +775,9 @@ class FormFactory(object):
         time_fields = None
         if datasource_classname == 'SqlaTable':
             QueryForm.fieldsets += ({
-                'label': 'SQL',
+                'label': _('SQL'),
                 'fields': ['where', 'having'],
-                'description': (
+                'description': _(
                     "This section exposes ways to include snippets of "
                     "SQL in your query"),
             },)
@@ -786,10 +787,10 @@ class FormFactory(object):
             if grains:
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
-                    'Time Grain',
+                    _('Time Grain'),
                     choices=self.choicify((grain.name for grain in grains)),
                     default="Time Column",
-                    description=(
+                    description=_(
                         "The time granularity for the visualization. This "
                         "applies a date transformation to alter "
                         "your time column and defines a new time granularity."
@@ -812,24 +813,24 @@ class FormFactory(object):
         filter_cols = viz.datasource.filterable_column_names or ['']
         for i in range(10):
             setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-                'Filter 1',
+                _('Filter 1'),
                 default=filter_cols[0],
                 choices=self.choicify(filter_cols)))
             setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-                'Filter 1',
+                _('Filter 1'),
                 default='in',
                 choices=filter_choices))
             setattr(
                 QueryForm, 'flt_eq_' + str(i),
-                TextField("Super", default=''))
+                TextField(_("Super"), default=''))
 
         if time_fields:
             QueryForm.fieldsets = ({
-                'label': 'Time',
+                'label': _('Time'),
                 'fields': (
                     time_fields,
                     ('since', 'until'),
                 ),
-                'description': "Time related form attributes",
+                'description': _("Time related form attributes"),
             },) + tuple(QueryForm.fieldsets)
         return QueryForm
