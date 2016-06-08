@@ -1642,20 +1642,43 @@ class MapboxViz(BaseViz):
         'label': None,
         'fields': (
             ('longitude', 'latitude'),
+            'all_columns',
             'mapbox_style',
         )
     },)
 
+    form_overrides = {
+        'all_columns': {
+            'label': 'Column for numbers on clusters',
+            'description': ("Column that defines the way the number on each cluster "
+                "is counted. Leave empty to just display the number of points"),
+        },
+    }
+
     def query_obj(self):
         d = super(MapboxViz, self).query_obj()
         fd = self.form_data
+        all_columns = fd.get('all_columns')
         d['columns'] = [fd.get('longitude'), fd.get('latitude')]
+        if len(all_columns) >= 1:
+            if (all_columns[0] != fd.get('longitude') and
+                all_columns[0] != fd.get('latitude')):
+                d['columns'].append(fd.get('all_columns')[0])
         d['groupby'] = []
         return d
 
     def get_data(self):
         df = self.get_df()
         fd = self.form_data
+        all_columns = fd.get('all_columns')
+        metric_col = [None] * len(df.index)
+        if (len(all_columns)) >= 1:
+            if all_columns[0] == fd.get('longitude'):
+                metric_col = df[fd.get('longitude')]
+            elif all_columns[0] == fd.get('latitude'):
+                metric_col = df[fd.get('latitude')]
+            else:
+                metric_col = df[fd.get('all_columns')[0]]
 
         # using geoJSON formatting
         geo_json = {
@@ -1663,13 +1686,16 @@ class MapboxViz(BaseViz):
           "features": [
             {
               "type": "Feature",
-              "properties": {},
+              "properties": {
+                "metric": metric
+              },
               "geometry": {
                 "type": "Point",
                 "coordinates": [lon, lat]
               }
             }
-            for lon, lat in zip(df[fd.get('longitude')], df[fd.get('latitude')])
+            for lon, lat, metric
+            in zip(df[fd.get('longitude')], df[fd.get('latitude')], metric_col)
           ]
         }
 

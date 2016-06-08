@@ -950,6 +950,7 @@ def load_long_lat_data():
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
     pdf['date'] = datetime.datetime.now().date()
+    pdf['value'] = [random.randint(-100, -1) for _ in range(len(pdf))]
     pdf.to_sql(
         'long_lat',
         db.engine,
@@ -967,6 +968,7 @@ def load_long_lat_data():
             'postcode': Float(),
             'id': String(100),
             'date': Date(),
+            'value': Float(),
         },
         index=False)
     print("Done loading table!")

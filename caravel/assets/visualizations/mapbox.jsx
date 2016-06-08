@@ -47,7 +47,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
           ctx.beginPath();
 
           if (location.get("properties").get("cluster")) {
-            var scaledRadius = d3.round(
+            var scaledRadius = maxCount === minCount ? radius : d3.round(
                   (location.get("properties").get("point_count") - minCount) /
                   (maxCount - minCount) * radius + radius / 2, 1
                 ),
@@ -69,7 +69,9 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
 
             ctx.textAlign = "center";
             ctx.fillText(
-              location.get("properties").get("point_count_abbreviated"),
+              location.get("properties").get("metric")
+                ? location.get("properties").get("metric")
+                : location.get("properties").get("point_count_abbreviated"),
               pixelRounded[0],
               pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2, 1)
             );
@@ -136,6 +138,7 @@ class MapboxViz extends React.Component {
           locations={Immutable.fromJS(clusters)}
           dotRadius={this.props.clusterRadius * 0.6}
           globalOpacity={1}
+          metricKey={this.props.metricKey}
           compositeOperation="screen"
           renderWhileDragging={true}
           lngLatAccessor={function (location) {
@@ -148,11 +151,13 @@ class MapboxViz extends React.Component {
 }
 
 function mapbox(slice) {
-  const clusterRadius = 60;
+  const clusterRadius = 60,
+        metricKey = "metric";
   var div = d3.select(slice.selector),
       clusterer = supercluster({
         radius: clusterRadius,
-        maxZoom: 16
+        maxZoom: 16,
+        metricKey: metricKey
       });
 
   var render = function () {
@@ -171,7 +176,8 @@ function mapbox(slice) {
           sliceWidth={slice.width()}
           clusterer={clusterer}
           mapStyle={json.data.mapStyle}
-          clusterRadius={clusterRadius}/>,
+          clusterRadius={clusterRadius}
+          metricKey={metricKey}/>,
         div.node()
       );
 
