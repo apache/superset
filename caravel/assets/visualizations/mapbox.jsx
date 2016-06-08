@@ -27,7 +27,15 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
     ctx.clearRect(0, 0, props.width, props.height);
     ctx.globalCompositeOperation = this.props.compositeOperation;
     var mercator = ViewportMercator(this.props);
-    const fontHeight = d3.round(this.props.dotRadius * 0.5, 1);
+    var minCount = Number.POSITIVE_INFINITY,
+        maxCount = -1;
+    props.locations.forEach(function (location) {
+      if (location.get("properties").get("cluster")) {
+        minCount = Math.min(location.get("properties").get("point_count"), minCount);
+        maxCount = Math.max(location.get("properties").get("point_count"), maxCount);
+      }
+    }, this);
+
     if ((this.props.renderWhileDragging || !this.props.isDragging) && this.props.locations) {
       this.props.locations.forEach(function _forEach(location) {
         var pixel = mercator.project(this.props.lngLatAccessor(location));
@@ -39,11 +47,17 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
           ctx.beginPath();
 
           if (location.get("properties").get("cluster")) {
-            ctx.arc(pixelRounded[0], pixelRounded[1], radius, 0, Math.PI * 2);
-            var gradient = ctx.createRadialGradient(
-              pixelRounded[0], pixelRounded[1], radius,
-              pixelRounded[0], pixelRounded[1], 0
-            );
+            var scaledRadius = d3.round(
+                  (location.get("properties").get("point_count") - minCount) /
+                  (maxCount - minCount) * radius + radius / 2, 1
+                ),
+                fontHeight = d3.round(scaledRadius * 0.5, 1),
+                gradient = ctx.createRadialGradient(
+                  pixelRounded[0], pixelRounded[1], scaledRadius,
+                  pixelRounded[0], pixelRounded[1], 0
+                );
+
+            ctx.arc(pixelRounded[0], pixelRounded[1], scaledRadius, 0, Math.PI * 2);
             gradient.addColorStop(1, "rgba(255, 0, 0, 1)");
             gradient.addColorStop(0, "rgba(255, 0, 0, 0)");
             ctx.fillStyle = gradient;
@@ -57,7 +71,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fillText(
               location.get("properties").get("point_count_abbreviated"),
               pixelRounded[0],
-              pixelRounded[1] + d3.round((radius - fontHeight) / 2, 1)
+              pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2, 1)
             );
             ctx.globalCompositeOperation = 'destination-over';
           } else {
@@ -120,7 +134,7 @@ class MapboxViz extends React.Component {
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
           locations={Immutable.fromJS(clusters)}
-          dotRadius={35}
+          dotRadius={this.props.clusterRadius * 0.6}
           globalOpacity={1}
           compositeOperation="screen"
           renderWhileDragging={true}
@@ -134,9 +148,10 @@ class MapboxViz extends React.Component {
 }
 
 function mapbox(slice) {
+  const clusterRadius = 60;
   var div = d3.select(slice.selector),
       clusterer = supercluster({
-        radius: 60,
+        radius: clusterRadius,
         maxZoom: 16
       });
 
@@ -155,7 +170,8 @@ function mapbox(slice) {
           sliceHeight={slice.height()}
           sliceWidth={slice.width()}
           clusterer={clusterer}
-          mapStyle={json.data.mapStyle}/>,
+          mapStyle={json.data.mapStyle}
+          clusterRadius={clusterRadius}/>,
         div.node()
       );
 
