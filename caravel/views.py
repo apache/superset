@@ -312,7 +312,8 @@ appbuilder.add_view(
     "Databases",
     label=_("Databases"),
     icon="fa-database",
-    category=_("Sources"),
+    category="Sources",
+    category_label=_("Sources"),
     category_icon='fa-database',)
 
 
@@ -368,8 +369,10 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     TableModelView,
-    __("Tables"),
-    category=_("Sources"),
+    "Tables",
+    label=_("Tables"),
+    category="Sources",
+    category_label=_("Sources"),
     icon='fa-table',)
 
 
@@ -399,9 +402,11 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
-        __("Druid Clusters"),
+        name="Druid Clusters",
+        label=_("Druid Clusters"),
         icon="fa-cubes",
-        category=_("Sources"),
+        category="Sources",
+        category_label=_("Sources"),
         category_icon='fa-database',)
 
 
@@ -447,7 +452,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 
 appbuilder.add_view(
     SliceModelView,
-    __("Slices"),
+    "Slices",
+    label=_("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -546,7 +552,8 @@ appbuilder.add_view(
     LogModelView,
     "Action Log",
     label=_("Action Log"),
-    category=_("Security"),
+    category="Security",
+    category_label=_("Security"),
     icon="fa-list-ol")
 
 
@@ -593,6 +600,7 @@ if config['DRUID_IS_ACTIVE']:
         "Druid Datasources",
         label=_("Druid Datasources"),
         category="Sources",
+        category_label=_("Sources"),
         icon="fa-cube")
 
 
@@ -1087,6 +1095,7 @@ if config['DRUID_IS_ACTIVE']:
         "Refresh Druid Metadata",
         href='/caravel/refresh_datasources/',
         category='Sources',
+        category_label=_("Sources"),
         category_icon='fa-database',
         icon="fa-cog")
 
@@ -1104,6 +1113,7 @@ appbuilder.add_view(
     label=_("CSS Templates"),
     icon="fa-css3",
     category="Sources",
+    category_label=_("Sources"),
     category_icon='')
 
 
