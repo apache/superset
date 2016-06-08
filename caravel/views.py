@@ -223,7 +223,9 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `count(DISTINCT userid)`", True),
         'is_restricted': _("Whether the access to this metric is restricted "
-                           "to certain roles"),
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     add_columns = edit_columns
     page_size = 500
@@ -261,7 +263,9 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
         'is_restricted': _("Whether the access to this metric is restricted "
-                           "to certain roles"),
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     label_columns = {
         'metric_name': _("Metric"),
