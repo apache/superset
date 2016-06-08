@@ -315,7 +315,7 @@ class Dashboard(Model, AuditMixinNullable):
             'dashboard_title': self.dashboard_title,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
-            'position_json': json.loads(self.position_json),
+            'position_json': json.loads(self.position_json) if self.position_json else [],
         }
         return json.dumps(d)
 
