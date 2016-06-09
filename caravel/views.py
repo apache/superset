@@ -250,6 +250,10 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Druid Post Aggregation]"
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
+        'json': utils.markdown(
+            "You can also use the "
+            "[generator](javascript:showJsonGenModal()) to generate json",
+            True),
     }
     label_columns = {
         'metric_name': _("Metric"),
@@ -566,6 +570,7 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'datasource_name', 'cluster', 'description', 'owner',
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
         'cache_timeout']
+    edit_template = "caravel/models/datasource/edit.html"
     add_columns = edit_columns
     page_size = 500
     base_order = ('datasource_name', 'asc')

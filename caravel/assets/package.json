@@ -58,6 +58,7 @@
     "imports-loader": "^0.6.5",
     "jquery": "^2.2.1",
     "jquery-ui": "^1.10.5",
+    "jsep": "^0.3.0",
     "less": "^2.6.1",
     "less-loader": "^2.2.2",
     "mustache": "^2.2.1",
