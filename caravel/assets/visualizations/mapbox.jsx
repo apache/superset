@@ -58,27 +58,42 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
                 );
 
             ctx.arc(pixelRounded[0], pixelRounded[1], scaledRadius, 0, Math.PI * 2);
-            gradient.addColorStop(1, "rgba(255, 0, 0, 1)");
-            gradient.addColorStop(0, "rgba(255, 0, 0, 0)");
+            gradient.addColorStop(1, "rgba(0, 122, 135, 0.8)");
+            gradient.addColorStop(0, "rgba(0, 122, 135, 0)");
             ctx.fillStyle = gradient;
             ctx.fill();
+
+            var clusterLabel = location.get("properties").get("metric")
+              ? location.get("properties").get("metric")
+              : location.get("properties").get("point_count_abbreviated");
+
+            if (clusterLabel instanceof Immutable.List) {
+              clusterLabel = clusterLabel.toArray();
+              if (props.aggregatorName == "mean") {
+                clusterLabel = d3.mean(clusterLabel);
+              } else if (props.aggregatorName == "median") {
+                clusterLabel = d3.median(clusterLabel);
+              } else if (props.aggregatorName == "stdev") {
+                clusterLabel = d3.deviation(clusterLabel);
+              } else {
+                clusterLabel = d3.variance(clusterLabel);
+              }
+              clusterLabel = d3.round(clusterLabel, 2);
+            }
 
             ctx.globalCompositeOperation = 'source-over';
             ctx.fillStyle = "black";
             ctx.font = fontHeight + "px sans-serif";
-
             ctx.textAlign = "center";
             ctx.fillText(
-              location.get("properties").get("metric")
-                ? location.get("properties").get("metric")
-                : location.get("properties").get("point_count_abbreviated"),
+              clusterLabel,
               pixelRounded[0],
               pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2, 1)
             );
             ctx.globalCompositeOperation = 'destination-over';
           } else {
             ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(radius / 5, 1), 0, Math.PI * 2);
-            ctx.fillStyle = "red";
+            ctx.fillStyle = "rgb(0, 122, 135)";
             ctx.fill();
           }
         }
@@ -138,9 +153,9 @@ class MapboxViz extends React.Component {
           locations={Immutable.fromJS(clusters)}
           dotRadius={this.props.clusterRadius * 0.6}
           globalOpacity={1}
-          metricKey={this.props.metricKey}
-          compositeOperation="screen"
+          compositeOperation={"screen"}
           renderWhileDragging={true}
+          aggregatorName={this.props.aggregatorName}
           lngLatAccessor={function (location) {
             const coordinates = location.get("geometry").get("coordinates");
             return [coordinates.get(0), coordinates.get(1)];
@@ -151,21 +166,54 @@ class MapboxViz extends React.Component {
 }
 
 function mapbox(slice) {
-  const clusterRadius = 60,
-        metricKey = "metric";
-  var div = d3.select(slice.selector),
-      clusterer = supercluster({
-        radius: clusterRadius,
-        maxZoom: 16,
-        metricKey: metricKey
-      });
+  const clusterRadius = 60;
+  var div = d3.select(slice.selector);
+  var clusterer;
 
   var render = function () {
+
     d3.json(slice.jsonEndpoint(), function (error, json) {
+
       if (error !== null) {
         slice.error(error.responseText);
         return "";
       }
+
+      var reducer,
+          aggName = json.data.aggregatorName;
+
+      if (aggName === "sum" || !json.data.customMetric) {
+        reducer = function (a, b) {
+          return a + b;
+        };
+      } else if (aggName === "min") {
+        reducer = Math.min;
+      } else if (aggName === "max") {
+        reducer = Math.max;
+      } else {
+        reducer = function (a, b) {
+          if (a instanceof Array) {
+            if (b instanceof Array) {
+              return a.concat(b)
+            }
+            a.push(b);
+            return a;
+          } else {
+            if (b instanceof Array) {
+              b.push(a);
+              return b
+            }
+            return [a, b];
+          }
+        }
+      }
+
+      clusterer = supercluster({
+        radius: clusterRadius,
+        maxZoom: 16,
+        metricKey: "metric",
+        metricReducer: reducer
+      });
 
       clusterer.load(json.data.geoJSON.features);
 
@@ -177,7 +225,7 @@ function mapbox(slice) {
           clusterer={clusterer}
           mapStyle={json.data.mapStyle}
           clusterRadius={clusterRadius}
-          metricKey={metricKey}/>,
+          aggregatorName={aggName}/>,
         div.node()
       );
 

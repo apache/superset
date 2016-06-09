@@ -950,7 +950,7 @@ def load_long_lat_data():
     with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
         pdf = pd.read_csv(f, encoding="utf-8")
     pdf['date'] = datetime.datetime.now().date()
-    pdf['value'] = [random.randint(-100, -1) for _ in range(len(pdf))]
+    pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
     pdf.to_sql(
         'long_lat',
         db.engine,
@@ -968,7 +968,7 @@ def load_long_lat_data():
             'postcode': Float(),
             'id': String(100),
             'date': Date(),
-            'value': Float(),
+            'occupancy': Float(),
         },
         index=False)
     print("Done loading table!")
@@ -998,6 +998,8 @@ def load_long_lat_data():
         "viz_type": "mapbox",
         "longitude": "LON",
         "latitude": "LAT",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "all_columns": ["occupancy"]
     }
 
     print("Creating a slice")

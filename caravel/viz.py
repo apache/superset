@@ -1643,16 +1643,28 @@ class MapboxViz(BaseViz):
         'fields': (
             ('longitude', 'latitude'),
             'all_columns',
+            'pandas_aggfunc',
+        )
+    }, {
+        'label': 'Visual tweaks',
+        'fields': (
             'mapbox_style',
         )
-    },)
+    })
 
     form_overrides = {
         'all_columns': {
-            'label': 'Column for numbers on clusters',
-            'description': ("Column that defines the way the number on each cluster "
-                "is counted. Leave empty to just display the number of points"),
+            'label': 'Metric column',
+            'description': (
+                "Numerical column to use for cluster labels. Leave "
+                "empty to get a count of points in each cluster."),
         },
+        'pandas_aggfunc': {
+            'label': 'Metric aggregator',
+            'description': (
+                "Aggregate function applied to the list of points "
+                "in each cluster to produce the cluster label"),
+        }
     }
 
     def query_obj(self):
@@ -1672,7 +1684,7 @@ class MapboxViz(BaseViz):
         fd = self.form_data
         all_columns = fd.get('all_columns')
         metric_col = [None] * len(df.index)
-        if (len(all_columns)) >= 1:
+        if len(all_columns) >= 1:
             if all_columns[0] == fd.get('longitude'):
                 metric_col = df[fd.get('longitude')]
             elif all_columns[0] == fd.get('latitude'):
@@ -1701,7 +1713,9 @@ class MapboxViz(BaseViz):
 
         return {
             "geoJSON": geo_json,
-            "mapStyle": fd.get("mapbox_style")
+            "mapStyle": fd.get("mapbox_style"),
+            "aggregatorName": fd.get("pandas_aggfunc"),
+            "customMetric": len(all_columns) >= 1
         }
 
 
