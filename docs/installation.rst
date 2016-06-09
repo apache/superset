@@ -88,10 +88,10 @@ To configure your application, you need to create a file (module)
 of the parameters you can copy / paste in that configuration module: ::
 
     #---------------------------------------------------------
-    # Caravel specifix config
+    # Caravel specific config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
-    WEBSERVER_THREADS = 8
+    CARAVEL_WORKERS = 16
 
     CARAVEL_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
