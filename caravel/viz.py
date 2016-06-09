@@ -509,7 +509,7 @@ class TreemapViz(BaseViz):
             'groupby',
         ),
     }, {
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             'treemap_ratio',
             'number_format',
@@ -624,7 +624,7 @@ class BoxPlotViz(NVD3Viz):
             'groupby', 'limit',
         ),
     }, {
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             'whisker_options',
         )
@@ -895,7 +895,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             'groupby', 'limit',
         ),
     }, {
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
@@ -904,7 +904,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ('line_interpolation', 'x_axis_showminmax'),
         ),
     }, {
-        'label': 'Advanced Analytics',
+        'label': _('Advanced Analytics'),
         'description': (
             "This section contains options "
             "that allow for advanced analytical post processing "
@@ -1039,7 +1039,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     sort_series = True
     verbose_name = _("Time Series - Bar Chart")
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
@@ -1066,7 +1066,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
     verbose_name = _("Time Series - Stacked")
     sort_series = True
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
@@ -1121,7 +1121,7 @@ class DistributionBarViz(DistributionPieViz):
     verbose_name = _("Distribution - Bar Chart")
     is_timeseries = False
     fieldsets = ({
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             'groupby',
             'columns',
@@ -1133,10 +1133,10 @@ class DistributionBarViz(DistributionPieViz):
     },)
     form_overrides = {
         'groupby': {
-            'label': 'Series',
+            'label': _('Series'),
         },
         'columns': {
-            'label': 'Breakdowns',
+            'label': _('Breakdowns'),
             'description': "Defines how each series is broken down",
         },
     }
@@ -1213,21 +1213,21 @@ class SunburstViz(BaseViz):
     },)
     form_overrides = {
         'metric': {
-            'label': 'Primary Metric',
-            'description': (
+            'label': _('Primary Metric'),
+            'description': _(
                 "The primary metric is used to "
                 "define the arc segment sizes"),
         },
         'secondary_metric': {
             'label': 'Secondary Metric',
-            'description': (
+            'description': _(
                 "This secondary metric is used to "
                 "define the color as a ratio against the primary metric. "
                 "If the two metrics match, color is mapped level groups"),
         },
         'groupby': {
-            'label': 'Hierarchy',
-            'description': "This defines the level of the hierarchy",
+            'label': _('Hierarchy'),
+            'description': _("This defines the level of the hierarchy"),
         },
     }
 
@@ -1277,8 +1277,8 @@ class SankeyViz(BaseViz):
     },)
     form_overrides = {
         'groupby': {
-            'label': 'Source / Target',
-            'description': "Choose a source and a target",
+            'label': _('Source / Target'),
+            'description': _("Choose a source and a target"),
         },
     }
 
@@ -1339,7 +1339,7 @@ class DirectedForceViz(BaseViz):
             'row_limit',
         )
     }, {
-        'label': 'Force Layout',
+        'label': _('Force Layout'),
         'fields': (
             'link_length',
             'charge',
@@ -1347,8 +1347,8 @@ class DirectedForceViz(BaseViz):
     },)
     form_overrides = {
         'groupby': {
-            'label': 'Source / Target',
-            'description': "Choose a source and a target",
+            'label': _('Source / Target'),
+            'description':_( "Choose a source and a target"),
         },
     }
 
@@ -1381,7 +1381,7 @@ class WorldMapViz(BaseViz):
             'metric',
         )
     }, {
-        'label': 'Bubbles',
+        'label': _('Bubbles'),
         'fields': (
             ('show_bubbles', None),
             'secondary_metric',
@@ -1390,16 +1390,16 @@ class WorldMapViz(BaseViz):
     })
     form_overrides = {
         'entity': {
-            'label': 'Country Field',
-            'description': "3 letter code of the country",
+            'label': _('Country Field'),
+            'description': _("3 letter code of the country"),
         },
         'metric': {
-            'label': 'Metric for color',
-            'description': ("Metric that defines the color of the country"),
+            'label': _('Metric for color'),
+            'description': _("Metric that defines the color of the country"),
         },
         'secondary_metric': {
-            'label': 'Bubble size',
-            'description': ("Metric that defines the size of the bubble"),
+            'label': _('Bubble size'),
+            'description': _("Metric that defines the size of the bubble"),
         },
     }
 
@@ -1456,8 +1456,8 @@ class FilterBoxViz(BaseViz):
     },)
     form_overrides = {
         'groupby': {
-            'label': 'Filter fields',
-            'description': "The fields you want to filter on",
+            'label': _('Filter fields'),
+            'description': _("The fields you want to filter on"),
         },
     }
 
