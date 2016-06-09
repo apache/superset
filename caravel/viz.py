@@ -314,20 +314,20 @@ class TableViz(BaseViz):
     verbose_name = _("Table View")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
-        'label': "GROUP BY",
-        'description': 'Use this section if you want a query that aggregates',
+        'label': _("GROUP BY"),
+        'description': _('Use this section if you want a query that aggregates'),
         'fields': (
             'groupby',
             'metrics',
         )
     }, {
-        'label': "NOT GROUPED BY",
-        'description': 'Use this section if you want to query atomic rows',
+        'label': _("NOT GROUPED BY"),
+        'description': _('Use this section if you want to query atomic rows'),
         'fields': (
             'all_columns',
         )
     }, {
-        'label': "Options",
+        'label': _("Options"),
         'fields': (
             'table_timestamp_format',
             'row_limit',
@@ -731,7 +731,7 @@ class BubbleViz(NVD3Viz):
             'size', 'limit',
         )
     }, {
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
@@ -803,7 +803,7 @@ class BigNumberViz(BaseViz):
     },)
     form_overrides = {
         'y_axis_format': {
-            'label': 'Number format',
+            'label': _('Number format'),
         }
     }
 
@@ -852,7 +852,7 @@ class BigNumberTotalViz(BaseViz):
     },)
     form_overrides = {
         'y_axis_format': {
-            'label': 'Number format',
+            'label': _('Number format'),
         }
     }
 
@@ -905,7 +905,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         ),
     }, {
         'label': _('Advanced Analytics'),
-        'description': (
+        'description': _(
             "This section contains options "
             "that allow for advanced analytical post processing "
             "of query results"),
@@ -1137,7 +1137,7 @@ class DistributionBarViz(DistributionPieViz):
         },
         'columns': {
             'label': _('Breakdowns'),
-            'description': "Defines how each series is broken down",
+            'description': _("Defines how each series is broken down"),
         },
     }
 
@@ -1219,7 +1219,7 @@ class SunburstViz(BaseViz):
                 "define the arc segment sizes"),
         },
         'secondary_metric': {
-            'label': 'Secondary Metric',
+            'label': _('Secondary Metric'),
             'description': _(
                 "This secondary metric is used to "
                 "define the color as a ratio against the primary metric. "
@@ -1348,7 +1348,7 @@ class DirectedForceViz(BaseViz):
     form_overrides = {
         'groupby': {
             'label': _('Source / Target'),
-            'description':_( "Choose a source and a target"),
+            'description': _("Choose a source and a target"),
         },
     }
 
@@ -1559,7 +1559,7 @@ class HeatmapViz(BaseViz):
             'metric',
         )
     }, {
-        'label': 'Heatmap Options',
+        'label': _('Heatmap Options'),
         'fields': (
             'linear_color_scheme',
             ('xscale_interval', 'yscale_interval'),
@@ -1619,7 +1619,7 @@ class HorizonViz(NVD3TimeSeriesViz):
         '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
         'd3-horizon-chart</a>')
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('series_height', 'horizon_color_scale'),
         ), }]
