@@ -74,6 +74,7 @@
     "select2": "3.5",
     "select2-bootstrap-css": "^1.4.6",
     "style-loader": "^0.13.0",
+    "//": "Pending PR at https://github.com/mapbox/supercluster/pull/12",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "topojson": "^1.6.22",
     "transform-loader": "^0.2.3",

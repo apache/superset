@@ -27,17 +27,35 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
     ctx.clearRect(0, 0, props.width, props.height);
     ctx.globalCompositeOperation = this.props.compositeOperation;
     var mercator = ViewportMercator(this.props);
-    var minCount = Number.POSITIVE_INFINITY,
-        maxCount = -1;
-    props.locations.forEach(function (location) {
+    var maxCount = -1;
+    var clusterLabelMap = [];
+    props.locations.forEach(function (location, i) {
       if (location.get("properties").get("cluster")) {
-        minCount = Math.min(location.get("properties").get("point_count"), minCount);
-        maxCount = Math.max(location.get("properties").get("point_count"), maxCount);
+        var clusterLabel = location.get("properties").get("metric")
+          ? location.get("properties").get("metric")
+          : location.get("properties").get("point_count");
+
+        if (clusterLabel instanceof Immutable.List) {
+          clusterLabel = clusterLabel.toArray();
+          if (props.aggregatorName == "mean") {
+            clusterLabel = d3.mean(clusterLabel);
+          } else if (props.aggregatorName == "median") {
+            clusterLabel = d3.median(clusterLabel);
+          } else if (props.aggregatorName == "stdev") {
+            clusterLabel = d3.deviation(clusterLabel);
+          } else {
+            clusterLabel = d3.variance(clusterLabel);
+          }
+          clusterLabel = d3.round(clusterLabel, 2);
+        }
+
+        maxCount = Math.max(clusterLabel, maxCount);
+        clusterLabelMap[i] = clusterLabel;
       }
     }, this);
 
     if ((this.props.renderWhileDragging || !this.props.isDragging) && this.props.locations) {
-      this.props.locations.forEach(function _forEach(location) {
+      this.props.locations.forEach(function _forEach(location, i) {
         var pixel = mercator.project(this.props.lngLatAccessor(location));
         var pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
         if (pixelRounded[0] + radius >= 0 &&
@@ -47,10 +65,10 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
           ctx.beginPath();
 
           if (location.get("properties").get("cluster")) {
-            var scaledRadius = maxCount === minCount ? radius : d3.round(
-                  (location.get("properties").get("point_count") - minCount) /
-                  (maxCount - minCount) * radius + radius / 2, 1
-                ),
+            var clusterLabel = clusterLabelMap[i],
+                scaledRadius = d3.round(
+                  Math.pow(clusterLabel / maxCount, 0.5) * radius, 1
+                ),  
                 fontHeight = d3.round(scaledRadius * 0.5, 1),
                 gradient = ctx.createRadialGradient(
                   pixelRounded[0], pixelRounded[1], scaledRadius,
@@ -63,32 +81,16 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            var clusterLabel = location.get("properties").get("metric")
-              ? location.get("properties").get("metric")
-              : location.get("properties").get("point_count_abbreviated");
-
-            if (clusterLabel instanceof Immutable.List) {
-              clusterLabel = clusterLabel.toArray();
-              if (props.aggregatorName == "mean") {
-                clusterLabel = d3.mean(clusterLabel);
-              } else if (props.aggregatorName == "median") {
-                clusterLabel = d3.median(clusterLabel);
-              } else if (props.aggregatorName == "stdev") {
-                clusterLabel = d3.deviation(clusterLabel);
-              } else {
-                clusterLabel = d3.variance(clusterLabel);
-              }
-              clusterLabel = d3.round(clusterLabel, 2);
-            }
-
             ctx.globalCompositeOperation = 'source-over';
             ctx.fillStyle = "black";
             ctx.font = fontHeight + "px sans-serif";
             ctx.textAlign = "center";
+            clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
+                           clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' : clusterLabel;
             ctx.fillText(
               clusterLabel,
               pixelRounded[0],
-              pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2, 1)
+              pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2.5, 1)
             );
             ctx.globalCompositeOperation = 'destination-over';
           } else {
@@ -143,7 +145,7 @@ class MapboxViz extends React.Component {
         mapStyle={this.props.mapStyle}
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
-        mapboxApiAccessToken={""}
+        mapboxApiAccessToken={"pk.eyJ1IjoiZ2tlZWUiLCJhIjoiY2lvbmN5dXhtMDA4NXRybTJjZWU2ZHVxOSJ9.CJG_6Oz52y5yI5cr3Ct_aQ"}
         onChangeViewport={this.onChangeViewport}>
         <ScatterPlotGlowOverlay
           {...this.state.viewport}
@@ -151,7 +153,7 @@ class MapboxViz extends React.Component {
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
           locations={Immutable.fromJS(clusters)}
-          dotRadius={this.props.clusterRadius * 0.6}
+          dotRadius={this.props.clusterRadius}
           globalOpacity={1}
           compositeOperation={"screen"}
           renderWhileDragging={true}
