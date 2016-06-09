@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-06-08 12:20+0200\n"
+"POT-Creation-Date: 2016-06-09 10:27+0200\n"
 "PO-Revision-Date: 2016-05-01 23:07-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -307,7 +307,7 @@ msgstr ""
 msgid "Target aspect ratio for treemap tiles."
 msgstr ""
 
-#: caravel/forms.py:439
+#: caravel/forms.py:439 caravel/viz.py:806 caravel/viz.py:855
 msgid "Number format"
 msgstr ""
 
@@ -667,6 +667,14 @@ msgid ""
 "in the Caravel source code"
 msgstr ""
 
+#: caravel/forms.py:816 caravel/forms.py:820
+msgid "Filter 1"
+msgstr ""
+
+#: caravel/forms.py:825
+msgid "Super"
+msgstr ""
+
 #: caravel/forms.py:829
 msgid "Time"
 msgstr ""
@@ -693,11 +701,11 @@ msgstr ""
 
 #: caravel/views.py:167 caravel/views.py:195
 msgid "Column"
-msgstr "Colonne"
+msgstr ""
 
 #: caravel/views.py:168 caravel/views.py:228 caravel/views.py:257
 msgid "Verbose Name"
-msgstr "Nom Complet"
+msgstr ""
 
 #: caravel/views.py:169 caravel/views.py:227 caravel/views.py:256
 #: caravel/views.py:440 caravel/views.py:581
@@ -710,7 +718,7 @@ msgstr ""
 
 #: caravel/views.py:171 caravel/views.py:199
 msgid "Filterable"
-msgstr "Filtrable"
+msgstr ""
 
 #: caravel/views.py:172 caravel/views.py:231 caravel/views.py:343
 #: caravel/views.py:446
@@ -723,7 +731,7 @@ msgstr ""
 
 #: caravel/views.py:174 caravel/views.py:201
 msgid "Sum"
-msgstr "Somme"
+msgstr ""
 
 #: caravel/views.py:175 caravel/views.py:202
 msgid "Min"
@@ -739,7 +747,7 @@ msgstr ""
 
 #: caravel/views.py:178
 msgid "Is temporal"
-msgstr "Est temporel"
+msgstr ""
 
 #: caravel/views.py:196 caravel/views.py:229 caravel/views.py:258
 #: caravel/views.py:468
@@ -748,7 +756,7 @@ msgstr ""
 
 #: caravel/views.py:197 caravel/views.py:439
 msgid "Datasource"
-msgstr "Source de données"
+msgstr ""
 
 #: caravel/views.py:230
 msgid "SQL Expression"
@@ -760,23 +768,23 @@ msgstr ""
 
 #: caravel/views.py:260
 msgid "Druid Datasource"
-msgstr "Source de données Druid"
+msgstr ""
 
 #: caravel/views.py:291 caravel/views.py:345
 msgid "Database"
-msgstr "Base de données"
+msgstr ""
 
 #: caravel/views.py:292
 msgid "SQL link"
-msgstr "Lien SQL"
+msgstr ""
 
 #: caravel/views.py:293 caravel/views.py:437 caravel/views.py:503
 msgid "Creator"
-msgstr "Createur"
+msgstr ""
 
 #: caravel/views.py:294 caravel/views.py:346
 msgid "Last Changed"
-msgstr "Modifié"
+msgstr ""
 
 #: caravel/views.py:295
 msgid "SQLAlchemy URI"
@@ -793,7 +801,7 @@ msgstr ""
 
 #: caravel/views.py:313
 msgid "Databases"
-msgstr "Base de Données"
+msgstr ""
 
 #: caravel/views.py:316 caravel/views.py:375 caravel/views.py:409
 #: caravel/views.py:603 caravel/views.py:1098 caravel/views.py:1116
@@ -880,21 +888,21 @@ msgstr ""
 
 #: caravel/views.py:444 caravel/views.py:469
 msgid "Slice"
-msgstr "Graphique"
+msgstr ""
 
 #: caravel/views.py:445
 msgid "Name"
-msgstr "Nom"
+msgstr ""
 
 #: caravel/views.py:447 caravel/views.py:470
 msgid "Visualization Type"
-msgstr "Type de visualization"
+msgstr ""
 
 #: caravel/foo/templates/caravel/welcome.html:46
 #: caravel/templates/caravel/welcome.html:46 caravel/views.py:456
 #: caravel/views.py:501
 msgid "Slices"
-msgstr "Graphiques"
+msgstr ""
 
 #: caravel/views.py:485
 msgid ""
@@ -915,11 +923,11 @@ msgstr ""
 
 #: caravel/views.py:498
 msgid "Dashboard"
-msgstr "Tableau de Bord"
+msgstr ""
 
 #: caravel/views.py:499
 msgid "Title"
-msgstr "Titre"
+msgstr ""
 
 #: caravel/views.py:500
 msgid "Slug"
@@ -927,7 +935,7 @@ msgstr ""
 
 #: caravel/views.py:504
 msgid "Modified"
-msgstr "Modifié"
+msgstr ""
 
 #: caravel/views.py:505
 msgid "Position JSON"
@@ -943,7 +951,7 @@ msgstr ""
 
 #: caravel/views.py:545
 msgid "User"
-msgstr "Utilisateur"
+msgstr ""
 
 #: caravel/views.py:546
 msgid "Action"
@@ -959,7 +967,7 @@ msgstr ""
 
 #: caravel/views.py:556
 msgid "Security"
-msgstr "Securité"
+msgstr ""
 
 #: caravel/views.py:573
 msgid "Timezone offset (in hours) for this datasource"
@@ -967,15 +975,15 @@ msgstr ""
 
 #: caravel/views.py:579
 msgid "Data Source"
-msgstr "Source de Données"
+msgstr ""
 
 #: caravel/views.py:582
 msgid "Owner"
-msgstr "Propriétair"
+msgstr ""
 
 #: caravel/views.py:584
 msgid "Is Hidden"
-msgstr "Caché"
+msgstr ""
 
 #: caravel/views.py:586
 msgid "Time Offset"
@@ -983,7 +991,7 @@ msgstr ""
 
 #: caravel/views.py:601
 msgid "Druid Datasources"
-msgstr "Source de données Druid"
+msgstr ""
 
 #: caravel/views.py:1016
 msgid "This view requires the `all_datasource_access` permission"
@@ -997,6 +1005,26 @@ msgstr ""
 msgid "Table View"
 msgstr ""
 
+#: caravel/viz.py:317
+msgid "GROUP BY"
+msgstr ""
+
+#: caravel/viz.py:318
+msgid "Use this section if you want a query that aggregates"
+msgstr ""
+
+#: caravel/viz.py:324
+msgid "NOT GROUPED BY"
+msgstr ""
+
+#: caravel/viz.py:325
+msgid "Use this section if you want to query atomic rows"
+msgstr ""
+
+#: caravel/viz.py:330
+msgid "Options"
+msgstr ""
+
 #: caravel/viz.py:380
 msgid "Pivot Table"
 msgstr ""
@@ -1007,14 +1035,15 @@ msgstr ""
 
 #: caravel/viz.py:470
 msgid "Word Cloud"
-msgstr "Nuage de Mots"
+msgstr ""
 
 #: caravel/viz.py:502
 msgid "Treemap"
 msgstr ""
 
-#: caravel/viz.py:512 caravel/viz.py:627 caravel/viz.py:898 caravel/viz.py:1042
-#: caravel/viz.py:1069 caravel/viz.py:1124
+#: caravel/viz.py:512 caravel/viz.py:627 caravel/viz.py:734 caravel/viz.py:898
+#: caravel/viz.py:1042 caravel/viz.py:1069 caravel/viz.py:1124
+#: caravel/viz.py:1622
 msgid "Chart Options"
 msgstr ""
 
@@ -1028,7 +1057,7 @@ msgstr ""
 
 #: caravel/viz.py:724
 msgid "Bubble Chart"
-msgstr "Graphique en Bulles"
+msgstr ""
 
 #: caravel/viz.py:792
 msgid "Big Number with Trendline"
@@ -1036,7 +1065,7 @@ msgstr ""
 
 #: caravel/viz.py:842
 msgid "Big Number"
-msgstr "Gros Chiffre"
+msgstr ""
 
 #: caravel/viz.py:888
 msgid "Time Series - Line Chart"
@@ -1044,6 +1073,12 @@ msgstr ""
 
 #: caravel/viz.py:907
 msgid "Advanced Analytics"
+msgstr ""
+
+#: caravel/viz.py:908
+msgid ""
+"This section contains options that allow for advanced analytical post "
+"processing of query results"
 msgstr ""
 
 #: caravel/viz.py:1040
@@ -1070,6 +1105,10 @@ msgstr ""
 msgid "Breakdowns"
 msgstr ""
 
+#: caravel/viz.py:1140
+msgid "Defines how each series is broken down"
+msgstr ""
+
 #: caravel/viz.py:1201
 msgid "Sunburst"
 msgstr ""
@@ -1080,6 +1119,10 @@ msgstr ""
 
 #: caravel/viz.py:1217
 msgid "The primary metric is used to define the arc segment sizes"
+msgstr ""
+
+#: caravel/viz.py:1222
+msgid "Secondary Metric"
 msgstr ""
 
 #: caravel/viz.py:1223
@@ -1118,7 +1161,7 @@ msgstr ""
 
 #: caravel/viz.py:1373
 msgid "World Map"
-msgstr "Carte du monde"
+msgstr ""
 
 #: caravel/viz.py:1384
 msgid "Bubbles"
@@ -1151,7 +1194,7 @@ msgstr ""
 #: caravel/foo/templates/caravel/explore.html:137
 #: caravel/templates/caravel/explore.html:137 caravel/viz.py:1447
 msgid "Filters"
-msgstr "Filtres"
+msgstr ""
 
 #: caravel/viz.py:1459
 msgid "Filter fields"
@@ -1171,6 +1214,10 @@ msgstr ""
 
 #: caravel/viz.py:1549
 msgid "Heatmap"
+msgstr ""
+
+#: caravel/viz.py:1562
+msgid "Heatmap Options"
 msgstr ""
 
 #: caravel/viz.py:1617
@@ -1286,25 +1333,10 @@ msgstr ""
 #: caravel/templates/caravel/welcome.html:8
 #: caravel/templates/caravel/welcome.html:13
 msgid "Welcome!"
-msgstr "Bienvenue!"
+msgstr ""
 
 #: caravel/foo/templates/caravel/models/database/macros.html:4
 #: caravel/templates/caravel/models/database/macros.html:4
 msgid "Test Connection"
 msgstr ""
-
-#~ msgid "Tables"
-#~ msgstr ""
-
-#~ msgid "Druid Clusters"
-#~ msgstr ""
-
-#~ msgid "Borker Port"
-#~ msgstr ""
-
-#~ msgid "The datasource seems to have been deleted"
-#~ msgstr "Cette source semble seche"
-
-#~ msgid "You don't seem to have access to this datasource"
-#~ msgstr "Vous n'avez pas acces a cette source de donnees"
 

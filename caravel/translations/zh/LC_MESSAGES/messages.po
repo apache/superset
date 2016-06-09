@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-06-08 12:20+0200\n"
+"POT-Creation-Date: 2016-06-09 10:27+0200\n"
 "PO-Revision-Date: 2016-05-01 23:07-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: zh\n"
@@ -307,7 +307,7 @@ msgstr ""
 msgid "Target aspect ratio for treemap tiles."
 msgstr ""
 
-#: caravel/forms.py:439
+#: caravel/forms.py:439 caravel/viz.py:806 caravel/viz.py:855
 msgid "Number format"
 msgstr ""
 
@@ -667,6 +667,14 @@ msgid ""
 "in the Caravel source code"
 msgstr ""
 
+#: caravel/forms.py:816 caravel/forms.py:820
+msgid "Filter 1"
+msgstr ""
+
+#: caravel/forms.py:825
+msgid "Super"
+msgstr ""
+
 #: caravel/forms.py:829
 msgid "Time"
 msgstr ""
@@ -679,17 +687,17 @@ msgstr ""
 msgid ""
 "Datetime column not provided as part table configuration and is required "
 "by this type of chart"
-msgstr "所选表格需要日期时间但在表格配置文件中没有被提供"
+msgstr ""
 
 #: caravel/models.py:1255
 msgid "No data was returned."
-msgstr "所选数据为空"
+msgstr ""
 
 #: caravel/views.py:158
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
-msgstr "是否要让这列接受[Time Granularity]的选项，这列必须是DATETIME或DATETIME-like"
+msgstr ""
 
 #: caravel/views.py:167 caravel/views.py:195
 msgid "Column"
@@ -793,12 +801,12 @@ msgstr ""
 
 #: caravel/views.py:313
 msgid "Databases"
-msgstr "数据库"
+msgstr ""
 
 #: caravel/views.py:316 caravel/views.py:375 caravel/views.py:409
 #: caravel/views.py:603 caravel/views.py:1098 caravel/views.py:1116
 msgid "Sources"
-msgstr "源"
+msgstr ""
 
 #: caravel/views.py:344
 msgid "Changed By"
@@ -864,7 +872,7 @@ msgstr ""
 #: caravel/templates/caravel/welcome.html:25 caravel/views.py:438
 #: caravel/views.py:524
 msgid "Dashboards"
-msgstr "仪表盘"
+msgstr ""
 
 #: caravel/views.py:441
 msgid "Last Modified"
@@ -894,20 +902,20 @@ msgstr ""
 #: caravel/templates/caravel/welcome.html:46 caravel/views.py:456
 #: caravel/views.py:501
 msgid "Slices"
-msgstr "切片"
+msgstr ""
 
 #: caravel/views.py:485
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
-msgstr "这个json描述了部件在面板中的位置。 当通过拖拽来改变窗口大小和位子的时候，它会被自动生成。"
+msgstr ""
 
 #: caravel/views.py:490
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
-msgstr "单独面板的css可以在此变更，或者在面板视窗（立即生效）"
+msgstr ""
 
 #: caravel/views.py:494
 msgid "To get a readable URL for your dashboard"
@@ -955,11 +963,11 @@ msgstr ""
 
 #: caravel/views.py:554
 msgid "Action Log"
-msgstr "行动记录"
+msgstr ""
 
 #: caravel/views.py:556
 msgid "Security"
-msgstr "权限"
+msgstr ""
 
 #: caravel/views.py:573
 msgid "Timezone offset (in hours) for this datasource"
@@ -983,18 +991,38 @@ msgstr ""
 
 #: caravel/views.py:601
 msgid "Druid Datasources"
-msgstr "Druid数据源"
+msgstr ""
 
 #: caravel/views.py:1016
 msgid "This view requires the `all_datasource_access` permission"
-msgstr "此视图需要`all_datasource_access`权限"
+msgstr ""
 
 #: caravel/views.py:1113
 msgid "CSS Templates"
-msgstr "CSS模板"
+msgstr ""
 
 #: caravel/viz.py:314
 msgid "Table View"
+msgstr ""
+
+#: caravel/viz.py:317
+msgid "GROUP BY"
+msgstr ""
+
+#: caravel/viz.py:318
+msgid "Use this section if you want a query that aggregates"
+msgstr ""
+
+#: caravel/viz.py:324
+msgid "NOT GROUPED BY"
+msgstr ""
+
+#: caravel/viz.py:325
+msgid "Use this section if you want to query atomic rows"
+msgstr ""
+
+#: caravel/viz.py:330
+msgid "Options"
 msgstr ""
 
 #: caravel/viz.py:380
@@ -1013,8 +1041,9 @@ msgstr ""
 msgid "Treemap"
 msgstr ""
 
-#: caravel/viz.py:512 caravel/viz.py:627 caravel/viz.py:898 caravel/viz.py:1042
-#: caravel/viz.py:1069 caravel/viz.py:1124
+#: caravel/viz.py:512 caravel/viz.py:627 caravel/viz.py:734 caravel/viz.py:898
+#: caravel/viz.py:1042 caravel/viz.py:1069 caravel/viz.py:1124
+#: caravel/viz.py:1622
 msgid "Chart Options"
 msgstr ""
 
@@ -1046,6 +1075,12 @@ msgstr ""
 msgid "Advanced Analytics"
 msgstr ""
 
+#: caravel/viz.py:908
+msgid ""
+"This section contains options that allow for advanced analytical post "
+"processing of query results"
+msgstr ""
+
 #: caravel/viz.py:1040
 msgid "Time Series - Bar Chart"
 msgstr ""
@@ -1070,6 +1105,10 @@ msgstr ""
 msgid "Breakdowns"
 msgstr ""
 
+#: caravel/viz.py:1140
+msgid "Defines how each series is broken down"
+msgstr ""
+
 #: caravel/viz.py:1201
 msgid "Sunburst"
 msgstr ""
@@ -1080,6 +1119,10 @@ msgstr ""
 
 #: caravel/viz.py:1217
 msgid "The primary metric is used to define the arc segment sizes"
+msgstr ""
+
+#: caravel/viz.py:1222
+msgid "Secondary Metric"
 msgstr ""
 
 #: caravel/viz.py:1223
@@ -1173,6 +1216,10 @@ msgstr ""
 msgid "Heatmap"
 msgstr ""
 
+#: caravel/viz.py:1562
+msgid "Heatmap Options"
+msgstr ""
+
 #: caravel/viz.py:1617
 msgid "Horizon Charts"
 msgstr ""
@@ -1185,17 +1232,17 @@ msgstr ""
 #: caravel/foo/templates/appbuilder/navbar_right.html:34
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
-msgstr "个人资料"
+msgstr ""
 
 #: caravel/foo/templates/appbuilder/navbar_right.html:35
 #: caravel/templates/appbuilder/navbar_right.html:35
 msgid "Logout"
-msgstr "登出"
+msgstr ""
 
 #: caravel/foo/templates/appbuilder/navbar_right.html:40
 #: caravel/templates/appbuilder/navbar_right.html:40
 msgid "Login"
-msgstr "登录"
+msgstr ""
 
 #: caravel/foo/templates/caravel/explore.html:58
 #: caravel/templates/caravel/explore.html:58
@@ -1286,25 +1333,9 @@ msgstr ""
 #: caravel/templates/caravel/welcome.html:8
 #: caravel/templates/caravel/welcome.html:13
 msgid "Welcome!"
-msgstr "欢迎"
+msgstr ""
 
 #: caravel/foo/templates/caravel/models/database/macros.html:4
 #: caravel/templates/caravel/models/database/macros.html:4
 msgid "Test Connection"
 msgstr ""
-
-#~ msgid "Tables"
-#~ msgstr "表格"
-
-#~ msgid "Druid Clusters"
-#~ msgstr "Druid簇"
-
-#~ msgid "Borker Port"
-#~ msgstr ""
-
-#~ msgid "The datasource seems to have been deleted"
-#~ msgstr "此数据源好像已被删除"
-
-#~ msgid "You don't seem to have access to this datasource"
-#~ msgstr "看来您不能读取此数据源"
-
