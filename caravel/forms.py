@@ -151,22 +151,32 @@ class FormFactory(object):
             }),
             'stacked_style': (SelectField, {
                 "label": _("Chart Style"),
-                "choices": self.choicify(['stack', 'stream', 'expand']),
+                "choices": (
+                    ('stack', _('stack')),
+                    ('stream', _('stream')),
+                    ('expand', _('expand')),
+                ),
                 "default": 'stack',
                 "description": ""
             }),
             'linear_color_scheme': (SelectField, {
                 "label": _("Color Scheme"),
-                "choices": self.choicify([
-                    'fire', 'blue_white_yellow', 'white_black',
-                    'black_white']),
+                "choices": (
+                    ('fire', _('fire')),
+                    ('blue_white_yellow', _('blue_white_yellow')),
+                    ('white_black', _('white_black')),
+                    ('black_white', _('black_white')),
+                ),
                 "default": 'blue_white_yellow',
                 "description": ""
             }),
             'normalize_across': (SelectField, {
                 "label": _("Normalize Across"),
-                "choices": self.choicify([
-                    'heatmap', 'x', 'y']),
+                "choices": (
+                    ('heatmap', _('heatmap')),
+                    ('x', _('x')),
+                    ('y', _('y')),
+                ),
                 "default": 'heatmap',
                 "description": _(
                     "Color will be rendered based on a ratio "
@@ -175,7 +185,11 @@ class FormFactory(object):
             }),
             'horizon_color_scale': (SelectField, {
                 "label": _("Color Scale"),
-                "choices": self.choicify(['series', 'overall', 'change']),
+                "choices": (
+                    ('series', _('series')),
+                    ('overall', _('overall')),
+                    ('change', _('change')),
+                ),
                 "default": 'series',
                 "description": _("Defines how the color are attributed.")
             }),
@@ -274,17 +288,17 @@ class FormFactory(object):
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
                 "default": "one day",
-                "choices": self.choicify([
-                    'all',
-                    '5 seconds',
-                    '30 seconds',
-                    '1 minute',
-                    '5 minutes',
-                    '1 hour',
-                    '6 hour',
-                    '1 day',
-                    '7 days',
-                ]),
+                "choices": (
+                    ('all', _('all')),
+                    ('5 seconds', _('5 seconds')),
+                    ('30 seconds', _('30 seconds')),
+                    ('1 minute', _('1 minute')),
+                    ('5 minutes', _('5 minutes')),
+                    ('1 hour', _('1 hour')),
+                    ('6 hour', _('6 hour')),
+                    ('1 day', _('1 day')),
+                    ('7 days', _('7 days')),
+                ),
                 "description": _(
                     "The time granularity for the visualization. Note that you "
                     "can type and use simple natural language as in '10 seconds', "
@@ -293,26 +307,26 @@ class FormFactory(object):
             'domain_granularity': (SelectField, {
                 "label": _("Domain"),
                 "default": "month",
-                "choices": self.choicify([
-                    'hour',
-                    'day',
-                    'week',
-                    'month',
-                    'year',
-                ]),
+                "choices": (
+                    ('hour', _('hour')),
+                    ('day', _('day')),
+                    ('week', _('week')),
+                    ('month', _('month')),
+                    ('year', _('year')),
+                ),
                 "description": _(
                     "The time unit used for the grouping of blocks")
             }),
             'subdomain_granularity': (SelectField, {
                 "label": _("Subdomain"),
                 "default": "day",
-                "choices": self.choicify([
-                    'min',
-                    'hour',
-                    'day',
-                    'week',
-                    'month',
-                ]),
+                "choices": (
+                    ('min', _('min')),
+                    ('hour', _('hour')),
+                    ('day', _('day')),
+                    ('week', _('week')),
+                    ('month', _('month')),
+                ),
                 "description": _(
                     "The time unit for each block. Should be a smaller unit than "
                     "domain_granularity. Should be larger or equal to Time Grain")
@@ -363,33 +377,49 @@ class FormFactory(object):
             'resample_rule': (FreeFormSelectField, {
                 "label": _("Resample Rule"),
                 "default": '',
-                "choices": self.choicify(('1T', '1H', '1D', '7D', '1M', '1AS')),
+                "choices": (
+                    ('1T', _('1T')),
+                    ('1H', _('1H')),
+                    ('1D', _('1D')),
+                    ('7D', _('7D')),
+                    ('1M', _('1M')),
+                    ('1AS', _('1AS')),
+                ),
                 "description": _("Pandas resample rule")
             }),
             'resample_how': (FreeFormSelectField, {
                 "label": _("Resample How"),
                 "default": '',
-                "choices": self.choicify(('', 'mean', 'sum', 'median')),
+                "choices": (
+                     ('', ''),
+                     ('mean', _('mean')),
+                     ('sum', _('sum')),
+                     ('median', _('median')),
+                 ),
                 "description": _("Pandas resample how")
             }),
             'resample_fillmethod': (FreeFormSelectField, {
                 "label": _("Resample Fill Method"),
                 "default": '',
-                "choices": self.choicify(('', 'ffill', 'bfill')),
+                "choices": (
+                    ('', ''),
+                    ('ffill', _('ffill')),
+                    ('bfill', _('bfill')),
+                ),
                 "description": _("Pandas resample fill method")
             }),
             'since': (FreeFormSelectField, {
                 "label": _("Since"),
                 "default": "7 days ago",
-                "choices": self.choicify([
-                    '1 hour ago',
-                    '12 hours ago',
-                    '1 day ago',
-                    '7 days ago',
-                    '28 days ago',
-                    '90 days ago',
-                    '1 year ago'
-                ]),
+                "choices": (
+                    ('1 hour ago', _('1 hour ago')),
+                    ('12 hours ago', _('12 hours ago')),
+                    ('1 day ago', _('1 day ago')),
+                    ('7 days ago', _('7 days ago')),
+                    ('28 days ago', _('28 days ago')),
+                    ('90 days ago', _('90 days ago')),
+                    ('1 year ago', _('1 year ago')),
+                ),
                 "description": _(
                     "Timestamp from filter. This supports free form typing and "
                     "natural language as in '1 day ago', '28 days' or '3 years'")
@@ -397,13 +427,14 @@ class FormFactory(object):
             'until': (FreeFormSelectField, {
                 "label": _("Until"),
                 "default": "now",
-                "choices": self.choicify([
-                    'now',
-                    '1 day ago',
-                    '7 days ago',
-                    '28 days ago',
-                    '90 days ago',
-                    '1 year ago'])
+                "choices": (
+                    ('now', _('now')),
+                    ('1 day ago', _('1 day ago')),
+                    ('7 days ago', _('7 days ago')),
+                    ('28 days ago', _('28 days ago')),
+                    ('90 days ago', _('90 days ago')),
+                    ('1 year ago', _('1 year ago')),
+                )
             }),
             'max_bubble_size': (FreeFormSelectField, {
                 "label": _("Max Bubble Size"),
@@ -423,12 +454,12 @@ class FormFactory(object):
                 "default": "Tukey",
                 "description": _(
                     "Determines how whiskers and outliers are calculated."),
-                "choices": self.choicify([
-                    'Tukey',
-                    'Min/max (no outliers)',
-                    '2/98 percentiles',
-                    '9/91 percentiles',
-                ])
+                "choices": (
+                    ('Tukey', _('Tukey')),
+                    ('Min/max (no outliers)', _('Min/max (no outliers)')),
+                    ('2/98 percentiles', _('2/98 percentiles')),
+                    ('9/91 percentiles', _('9/91 percentiles')),
+                )
             }),
             'treemap_ratio': (DecimalField, {
                 "label": _("Ratio"),
@@ -583,21 +614,33 @@ class FormFactory(object):
             }),
             'markup_type': (SelectField, {
                 "label": _("Markup Type"),
-                "choices": self.choicify(['markdown', 'html']),
+                "choices": (
+                    ('markdown', _('markdown')),
+                    ('html', _('html'))
+                ),
                 "default": "markdown",
                 "description": _("Pick your favorite markup language")
             }),
             'rotation': (SelectField, {
                 "label": _("Rotation"),
-                "choices": [(s, s) for s in ['random', 'flat', 'square']],
+                "choices": (
+                    ('random', _('random')),
+                    ('flat', _('flat')),
+                    ('square', _('square')),
+                ),
                 "default": "random",
                 "description": _("Rotation to apply to words in the cloud")
             }),
             'line_interpolation': (SelectField, {
                 "label": _("Line Style"),
-                "choices": self.choicify([
-                    'linear', 'basis', 'cardinal', 'monotone',
-                    'step-before', 'step-after']),
+                "choices": (
+                    ('linear', _('linear')),
+                    ('basis', _('basis')),
+                    ('cardinal', _('cardinal')),
+                    ('monotone', _('monotone')),
+                    ('step-before', _('step-before')),
+                    ('step-after', _('step-after')),
+                ),
                 "default": 'linear',
                 "description": _("Line interpolation as defined by d3.js")
             }),
@@ -608,8 +651,15 @@ class FormFactory(object):
             }),
             'pandas_aggfunc': (SelectField, {
                 "label": _("Aggregation function"),
-                "choices": self.choicify([
-                    'sum', 'mean', 'min', 'max', 'median', 'stdev', 'var']),
+                "choices": (
+                    ('sum', _('sum')),
+                    ('mean', _('mean')),
+                    ('min', _('min')),
+                    ('max', _('max')),
+                    ('median', _('median')),
+                    ('stdev', _('stdev')),
+                    ('var', _('var')),
+                ),
                 "default": 'sum',
                 "description": _(
                     "Aggregate function to apply when pivoting and "
