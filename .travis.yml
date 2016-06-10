@@ -1,23 +1,30 @@
 language: python
-python:
-  - "2.7"
-  - "3.4"
-  - "3.5"
+addons:
+  apt:
+    sources:
+      - deadsnakes
+    packages:
+      - python3.5
 cache:
   directories:
     - $HOME/.wheelhouse/
+env:
+  global:
+    - TRAVIS_CACHE=$HOME/.travis_cache/
+  matrix:
+    #- TOX_ENV=py27-mysql
+    - TOX_ENV=py27-sqlite
+    #- TOX_ENV=py27-postgres
+    - TOX_ENV=py34-sqlite
+    - TOX_ENV=py34-mysql
+    - TOX_ENV=javascript
 before_install:
   - npm install -g npm@'>=2.7.1'
+before_script:
+  - mysql -e 'drop database if exists caravel; create database caravel DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
+  - psql -c 'create database caravel;' -U postgres
+  - export PATH=${PATH}:/tmp/hive/bin
 install:
-  - pip wheel -w $HOME/.wheelhouse -f $HOME/.wheelhouse .
-  - pip install --find-links=$HOME/.wheelhouse --no-index .
-  - pip install -r dev-reqs.txt
-  - cd caravel/assets
-  - npm --version
-  - npm install
-  - npm run lint
-  - npm run prod
-  - cd $TRAVIS_BUILD_DIR
-script: bash run_tests.sh
-after_success:
-  - coveralls
+  - pip install --upgrade pip
+  - pip install tox tox-travis
+script: tox -e $TOX_ENV

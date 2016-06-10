@@ -13,11 +13,15 @@ function nvd3Vis(slice) {
   var colorKey = 'key';
 
   var render = function () {
-    $.getJSON(slice.jsonEndpoint(), function (payload) {
+    d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
+      if (error) {
+        slice.error(error.responseText);
+        return '';
+      }
       var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
-      slice.container.html('');
 
       nv.addGraph(function () {
         switch (viz_type) {
@@ -25,8 +29,7 @@ function nvd3Vis(slice) {
             if (fd.show_brush) {
               chart = nv.models.lineWithFocusChart();
               chart.lines2.xScale(d3.time.scale.utc());
-              chart
-              .x2Axis
+              chart.x2Axis
               .showMaxMin(fd.x_axis_showminmax)
               .staggerLabels(false);
             } else {
@@ -133,103 +136,100 @@ function nvd3Vis(slice) {
 
           default:
             throw new Error("Unrecognized visualization for nvd3" + viz_type);
-      }
-
-      if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
-        chart.showLegend(fd.show_legend);
-      }
-
-      var height = slice.height();
-      height -= 15;  // accounting for the staggered xAxis
-
-      chart.height(height);
-      slice.container.css('height', height + 'px');
-
-      if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
-        chart.useInteractiveGuideline(true);
-      }
-      if (fd.y_axis_zero) {
-        chart.forceY([0]);
-      } else if (fd.y_log_scale) {
-        chart.yScale(d3.scale.log());
-      }
-      if (fd.x_log_scale) {
-        chart.xScale(d3.scale.log());
-      }
-      var xAxisFormatter = null;
-      if (viz_type === 'bubble') {
-        xAxisFormatter = d3.format('.3s');
-      } else if (fd.x_axis_format === 'smart_date') {
-        xAxisFormatter = px.formatDate;
-        chart.xAxis.tickFormat(xAxisFormatter);
-      } else if (fd.x_axis_format !== undefined) {
-        xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
-        chart.xAxis.tickFormat(xAxisFormatter);
-      }
-
-      if (chart.hasOwnProperty("x2Axis")) {
-        chart.x2Axis.tickFormat(xAxisFormatter);
-        height += 30;
-      }
-
-      if (viz_type === 'bubble') {
-        chart.xAxis.tickFormat(d3.format('.3s'));
-      } else if (fd.x_axis_format === 'smart_date') {
-        chart.xAxis.tickFormat(px.formatDate);
-      } else if (fd.x_axis_format !== undefined) {
-        chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
-      }
-      if (chart.yAxis !== undefined) {
-        chart.yAxis.tickFormat(d3.format('.3s'));
-      }
-
-      if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
-        chart.yAxis.tickFormat(d3.format('.3p'));
-        if (chart.y2Axis !== undefined) {
-          chart.y2Axis.tickFormat(d3.format('.3p'));
         }
-      } else if (fd.y_axis_format) {
-        chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
-        if (chart.y2Axis !== undefined) {
-          chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+        if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
+          chart.showLegend(fd.show_legend);
         }
-      }
-      chart.color(function (d, i) {
-        return px.color.category21(d[colorKey]);
+
+        var height = slice.height();
+        height -= 15;  // accounting for the staggered xAxis
+
+        chart.height(height);
+        slice.container.css('height', height + 'px');
+
+        if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
+          chart.useInteractiveGuideline(true);
+        }
+        if (fd.y_axis_zero) {
+          chart.forceY([0]);
+        } else if (fd.y_log_scale) {
+          chart.yScale(d3.scale.log());
+        }
+        if (fd.x_log_scale) {
+          chart.xScale(d3.scale.log());
+        }
+        var xAxisFormatter = null;
+        if (viz_type === 'bubble') {
+          xAxisFormatter = d3.format('.3s');
+        } else if (fd.x_axis_format === 'smart_date') {
+          xAxisFormatter = px.formatDate;
+          chart.xAxis.tickFormat(xAxisFormatter);
+        } else if (fd.x_axis_format !== undefined) {
+          xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
+          chart.xAxis.tickFormat(xAxisFormatter);
+        }
+
+        if (chart.hasOwnProperty("x2Axis")) {
+          chart.x2Axis.tickFormat(xAxisFormatter);
+          height += 30;
+        }
+
+        if (viz_type === 'bubble') {
+          chart.xAxis.tickFormat(d3.format('.3s'));
+        } else if (fd.x_axis_format === 'smart_date') {
+          chart.xAxis.tickFormat(px.formatDate);
+        } else if (fd.x_axis_format !== undefined) {
+          chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
+        }
+        if (chart.yAxis !== undefined) {
+          chart.yAxis.tickFormat(d3.format('.3s'));
+        }
+
+        if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
+          chart.yAxis.tickFormat(d3.format('.3p'));
+          if (chart.y2Axis !== undefined) {
+            chart.y2Axis.tickFormat(d3.format('.3p'));
+          }
+        } else if (fd.y_axis_format) {
+          chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
+
+          if (chart.y2Axis !== undefined) {
+            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+          }
+        }
+        chart.color(function (d, i) {
+          return px.color.category21(d[colorKey]);
+        });
+
+        var svg = d3.select(slice.selector).select("svg");
+        if (svg.empty()) {
+          svg = d3.select(slice.selector).append("svg");
+        }
+
+        svg
+        .datum(payload.data)
+        .transition().duration(500)
+        .attr('height', height)
+        .call(chart);
+
+        return chart;
       });
 
-      var svg = d3.select(slice.selector).select("svg");
-      if (svg.empty()) {
-        svg = d3.select(slice.selector).append("svg");
-      }
-
-      svg
-      .datum(payload.data)
-      .transition().duration(500)
-      .attr('height', height)
-      .call(chart);
-
-      return chart;
+      slice.done(payload);
     });
+  };
 
-    slice.done(payload);
-  })
-  .fail(function (xhr) {
-    slice.error(xhr.responseText);
-  });
-};
+  var update = function () {
+    if (chart && chart.update) {
+      chart.update();
+    }
+  };
 
-var update = function () {
-  if (chart && chart.update) {
-    chart.update();
-  }
-};
-
-return {
-  render: render,
-  resize: update
-};
+  return {
+    render: render,
+    resize: update
+  };
 }
 
 module.exports = nvd3Vis;

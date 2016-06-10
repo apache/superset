@@ -734,7 +734,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
             )
-        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -1040,7 +1039,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @classmethod
     def sync_to_db(cls, name, cluster):
         """Fetches metadata for that datasource and merges the Caravel db"""
-        print("Syncing Druid datasource [{}]".format(name))
+        logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:

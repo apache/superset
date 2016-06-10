@@ -99,7 +99,6 @@ class FilterDashboard(CaravelFilter):
             .query(Slice.id)
             .filter(Slice.perm.in_(self.get_perms()))
         )
-        print([r for r in slice_ids_qry.all()])
         query = query.filter(
             Dash.id.in_(
                 db.session.query(Dash.id)
@@ -108,7 +107,6 @@ class FilterDashboard(CaravelFilter):
                 .filter(Slice.id.in_(slice_ids_qry))
             )
         )
-        print(query)
         return query
 
 
@@ -727,7 +725,6 @@ class Caravel(BaseView):
             resp = Response(
                 payload,
                 status=status,
-                headers=generate_download_headers("json"),
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":

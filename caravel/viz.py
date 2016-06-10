@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 
 import copy
 import hashlib
-import json
 import logging
 import uuid
 from collections import OrderedDict, defaultdict
@@ -20,7 +19,7 @@ import numpy as np
 from flask import request
 from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
-from pandas.io.json import dumps
+import json
 from six import string_types
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.urls import Href
@@ -143,6 +142,7 @@ class BaseViz(object):
                 df.timestamp = pd.to_datetime(df.timestamp, utc=False)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
+        df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(0)
         return df
 
@@ -262,7 +262,7 @@ class BaseViz(object):
 
     def json_dumps(self, obj):
         """Used by get_json, can be overridden to use specific switches"""
-        return dumps(obj)
+        return json.dumps(obj, default=utils.json_int_dttm_ser)
 
     @property
     def data(self):
@@ -303,7 +303,7 @@ class BaseViz(object):
 
     @property
     def json_data(self):
-        return dumps(self.data)
+        return json.dumps(self.data)
 
 
 class TableViz(BaseViz):
@@ -824,7 +824,7 @@ class BigNumberViz(BaseViz):
     def get_data(self):
         form_data = self.form_data
         df = self.get_df()
-        df.sort(columns=df.columns[0], inplace=True)
+        df.sort_values(by=df.columns[0], inplace=True)
         compare_lag = form_data.get("compare_lag", "")
         compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
         return {
@@ -873,7 +873,7 @@ class BigNumberTotalViz(BaseViz):
     def get_data(self):
         form_data = self.form_data
         df = self.get_df()
-        df = df.sort(columns=df.columns[0])
+        df.sort_values(by=df.columns[0], inplace=True)
         return {
             'data': df.values.tolist(),
             'subheader': form_data.get('subheader', ''),
@@ -975,7 +975,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         for col in df.columns:
             if col == '':
                 cols.append('N/A')
-            elif col == None:
+            elif col is None:
                 cols.append('NULL')
             else:
                 cols.append(col)
@@ -1103,7 +1103,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
-        df.sort(self.metrics[0], ascending=False, inplace=True)
+        df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
         return df
 
     def get_data(self):
