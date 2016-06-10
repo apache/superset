@@ -103,7 +103,7 @@ class BaseViz(object):
 
     def get_url(self, **kwargs):
         """Returns the URL for the viz"""
-        d = self.form_data.copy()
+        d = self.orig_form_data.copy()
         if 'json' in d:
             del d['json']
         if 'action' in d:
