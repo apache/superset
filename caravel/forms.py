@@ -807,7 +807,7 @@ class FormFactory(object):
                     "on the largest cluster")
             }),
             'point_radius_unit': (SelectField, {
-                "label": _("Point Radius"),
+                "label": _("Point Radius Unit"),
                 "default": "Pixels",
                 "choices": self.choicify([
                     "Pixels",

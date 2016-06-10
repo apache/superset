@@ -16,17 +16,32 @@ import ViewportMercator from 'viewport-mercator-project';
 const earthCircumferenceKm = 40075.16;
 
 class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
+  _isNumeric(num) {
+    return !isNaN(parseFloat(num)) && isFinite(num);
+  }
+
   _drawText(ctx, pixel, fontHeight, label, radius) {
+    var maxWidth = radius * 2 * 0.9;
+
     ctx.globalCompositeOperation = 'source-over';
     ctx.fillStyle = "black";
     ctx.font = fontHeight + "px sans-serif";
     ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    var textWidth = ctx.measureText(label).width;
+    if (textWidth > maxWidth) {
+      var scale = fontHeight / textWidth;
+      fontHeight = scale * maxWidth;
+      ctx.font = scale * maxWidth + "px sans-serif";
+    }
+
     ctx.fillText(
       label,
       pixel[0],
-      pixel[1] + d3.round((radius - fontHeight) / 4, 1)
+      pixel[1]
     );
-    ctx.globalCompositeOperation = 'destination-over';
+    ctx.globalCompositeOperation = this.props.compositeOperation;
   }
 
   // Modified from https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
@@ -64,7 +79,9 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
           }
         }
 
-        clusterLabel = d3.round(clusterLabel, 2);
+        clusterLabel = this._isNumeric(clusterLabel)
+          ? d3.round(clusterLabel, 2)
+          : location.get("properties").get("point_count");
         maxCount = Math.max(clusterLabel, maxCount);
         clusterLabelMap[i] = clusterLabel;
       }
@@ -84,8 +101,8 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             var clusterLabel = clusterLabelMap[i],
                 scaledRadius = d3.round(
                   Math.pow(clusterLabel / maxCount, 0.5) * radius, 1
-                ),
-                fontHeight = d3.round(scaledRadius * 0.5, 1),
+                );
+                var fontHeight = d3.round(scaledRadius * 0.5, 1),
                 gradient = ctx.createRadialGradient(
                   pixelRounded[0], pixelRounded[1], scaledRadius,
                   pixelRounded[0], pixelRounded[1], 0
@@ -97,27 +114,39 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
-                           clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' : clusterLabel;
-            this._drawText(ctx, pixelRounded, fontHeight, clusterLabel, scaledRadius);
+            if (this._isNumeric(clusterLabel)) {
+              clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
+                             clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' : clusterLabel;
+              this._drawText(ctx, pixelRounded, fontHeight, clusterLabel, scaledRadius);
+            }
           } else {
             var radiusProperty = location.get("properties").get("radius"),
                 pointRadius = radiusProperty === null ? radius / 6 : radiusProperty,
-                pointLabel;
+                pointLabel,
+                pointMetric = location.get("properties").get("metric");
 
-            if (props.pointRadiusUnit === "Kilometers") {
-              pointLabel = d3.round(pointRadius) + "km"
-              pointRadius = props.kmToPixels(pointRadius, props.latitude, props.zoom);
-            } else if (props.pointRadiusUnit === "Miles") {
-              pointLabel = d3.round(pointRadius) + "mi";
-              pointRadius = props.kmToPixels(pointRadius * milesToKm, props.latitude, props.zoom);
+            if (radiusProperty !== null) {
+              if (props.pointRadiusUnit === "Kilometers") {
+                pointLabel = d3.round(pointRadius, 2) + "km";
+                pointRadius = props.kmToPixels(pointRadius, props.latitude, props.zoom);
+              } else if (props.pointRadiusUnit === "Miles") {
+                pointLabel = d3.round(pointRadius, 2) + "mi";
+                pointRadius = props.kmToPixels(pointRadius * milesToKm, props.latitude, props.zoom);
+              }
+            }
+
+            if (pointMetric && !this._isNumeric(pointMetric)) {
+              pointLabel = pointMetric;
             }
 
             ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(pointRadius, 1), 0, Math.PI * 2);
             ctx.fillStyle = "rgb(0, 122, 135)";
             ctx.fill();
 
-            if (props.pointRadiusUnit === "Kilometers" || props.pointRadiusUnit === "Miles") {
+            if (radiusProperty !== null &&
+               (props.pointRadiusUnit === "Kilometers" ||
+                props.pointRadiusUnit === "Miles" ||
+                pointMetric && !this._isNumeric(pointMetric))) {
               var fontHeight = d3.round(pointRadius * 0.5, 1);
               this._drawText(ctx, pixelRounded, fontHeight, pointLabel, pointRadius);
             }

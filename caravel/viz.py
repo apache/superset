@@ -1671,15 +1671,16 @@ class MapboxViz(BaseViz):
         'all_columns': {
             'label': 'Cluster label',
             'description': (
-                "Numerical column to use for cluster labels. Leave "
-                "empty to get a count of points in each cluster."),
+                "Numerical columns will be aggregated with the aggregator. "
+                "Non-numerical columns will be used to label points."
+                "Leave empty to get a count of points in each cluster."),
         },
         'pandas_aggfunc': {
             'label': 'Cluster label aggregator',
             'description': (
                 "Aggregate function applied to the list of points "
-                "in each cluster to produce the cluster label"),
-        }
+                "in each cluster to produce the cluster label."),
+        },
     }
 
     def query_obj(self):
