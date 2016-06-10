@@ -71,6 +71,11 @@ class CaravelTestCase(unittest.TestCase):
     def logout(self):
         resp = self.client.get('/logout/', follow_redirects=True)
 
+    def test_welcome(self):
+        self.login()
+        resp = self.client.get('/caravel/welcome')
+        assert 'Welcome' in resp.data.decode('utf-8')
+
     def setup_public_access_for_dashboard(self, table_name):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
