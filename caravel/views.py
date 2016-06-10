@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import json
 import logging
 import re
+import sys
 import time
 import traceback
 from datetime import datetime
@@ -29,6 +30,7 @@ from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
+import caravel
 from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
@@ -209,14 +211,19 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type',
+                    'is_restricted']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table']
+        'expression', 'table', 'is_restricted']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `count(DISTINCT userid)`", True),
+        'is_restricted': _("Whether the access to this metric is restricted "
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     add_columns = edit_columns
     page_size = 500
@@ -228,15 +235,20 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': _("SQL Expression"),
         'table': _("Table"),
     }
+
+    def post_add(self, new_item):
+        utils.init_metrics_perm(caravel, [new_item])
+
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type',
+                    'is_restricted']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource']
+        'datasource', 'is_restricted']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -248,6 +260,10 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Druid Post Aggregation]"
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
+        'is_restricted': _("Whether the access to this metric is restricted "
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     label_columns = {
         'metric_name': _("Metric"),
@@ -257,6 +273,11 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'json': _("JSON"),
         'datasource': _("Druid Datasource"),
     }
+
+    def post_add(self, new_item):
+        utils.init_metrics_perm(caravel, [new_item])
+
+
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
@@ -819,11 +840,9 @@ class Caravel(BaseView):
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
-        model = None
-        if model_view == 'TableColumnInlineView':
-            model = models.TableColumn
-        elif model_view == 'DruidColumnInlineView':
-            model = models.DruidColumn
+        views = sys.modules[__name__]
+        model_view_cls = getattr(views, model_view)
+        model = model_view_cls.datamodel.obj
 
         obj = db.session.query(model).filter_by(id=id_).first()
         if obj:

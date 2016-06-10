@@ -29,6 +29,10 @@ class CaravelSecurityException(CaravelException):
     pass
 
 
+class MetricPermException(Exception):
+    pass
+
+
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:
@@ -210,6 +214,23 @@ def init(caravel):
         table.perm for table in session.query(models.DruidDatasource).all()]
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
+
+    init_metrics_perm(caravel)
+
+
+def init_metrics_perm(caravel, metrics=None):
+    db = caravel.db
+    models = caravel.models
+    sm = caravel.appbuilder.sm
+
+    if metrics is None:
+        metrics = []
+        for model in [models.SqlMetric, models.DruidMetric]:
+            metrics += list(db.session.query(model).all())
+
+    metric_perms = [metric.perm for metric in metrics]
+    for metric_perm in metric_perms:
+        merge_perm(sm, 'metric_access', metric_perm)
 
 
 def datetime_f(dttm):
