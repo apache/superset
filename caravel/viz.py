@@ -86,6 +86,7 @@ class BaseViz(object):
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
 
+
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
