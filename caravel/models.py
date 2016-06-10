@@ -1419,9 +1419,20 @@ class DruidColumn(Model, AuditMixinNullable):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.count_distinct:
-            if self.type == 'STRING':
+            name = 'count_distinct__' + self.column_name
+            if self.type == 'hyperUnique' or self.type == 'thetaSketch':
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
+                    metric_type=self.type,
+                    json=json.dumps({
+                        'type': self.type,
+                        'name': name,
+                        'fieldName': self.column_name
+                    })
+                ))
+            else:
                 mt = 'count_distinct'
-                name = 'count_distinct__' + self.column_name
                 metrics.append(DruidMetric(
                     metric_name=name,
                     verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
@@ -1430,17 +1441,6 @@ class DruidColumn(Model, AuditMixinNullable):
                         'type': 'cardinality',
                         'name': name,
                         'fieldNames': [self.column_name]})
-                ))
-            else:
-                metrics.append(DruidMetric(
-                    metric_name='count_distinct_by_' + self.type,
-                    verbose_name=self.type + '_ESTIMATE(DISTINCT {})'.format(self.column_name),
-                    metric_type=self.type + '_estimate_distinct',
-                    json=json.dumps({
-                        'type': self.type,
-                        'name': self.type + '_' + self.column_name,
-                        'fieldName': self.column_name
-                    })
                 ))
         session = get_session()
         for metric in metrics:
