@@ -8,6 +8,7 @@ from datetime import datetime
 import doctest
 import json
 import imp
+import logging
 import os
 import unittest
 from mock import Mock, patch
@@ -149,7 +150,7 @@ class CoreTests(CaravelTestCase):
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
             ]
         for name, method, url in urls:
-            print("[name]/[{method}]: {url}".format(**locals()))
+            logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
 
     def test_dashboard(self):
