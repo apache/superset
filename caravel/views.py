@@ -728,11 +728,10 @@ class Caravel(BaseView):
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":
-            status = 200
             payload = obj.get_csv()
             return Response(
                 payload,
-                status=status,
+                status=200,
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:

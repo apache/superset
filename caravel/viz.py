@@ -80,11 +80,9 @@ class BaseViz(object):
         defaults.update(data)
         self.form_data = defaults
         self.query = ""
-
         self.form_data['previous_viz_type'] = self.viz_type
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
@@ -105,7 +103,7 @@ class BaseViz(object):
 
     def get_url(self, **kwargs):
         """Returns the URL for the viz"""
-        d = self.orig_form_data.copy()
+        d = self.form_data.copy()
         if 'json' in d:
             del d['json']
         if 'action' in d:
