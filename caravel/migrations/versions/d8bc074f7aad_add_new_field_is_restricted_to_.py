@@ -17,13 +17,8 @@ from caravel import models
 
 
 def upgrade():
-    with op.batch_alter_table('metrics', schema=None) as batch_op:
-        batch_op.add_column(
-            sa.Column('is_restricted', sa.Boolean(), nullable=True))
-
-    with op.batch_alter_table('sql_metrics', schema=None) as batch_op:
-        batch_op.add_column(
-            sa.Column('is_restricted', sa.Boolean(), nullable=True))
+    op.add_column('metrics', sa.Column('is_restricted', sa.Boolean(), nullable=True))
+    op.add_column('sql_metrics', sa.Column('is_restricted', sa.Boolean(), nullable=True))
 
     bind = op.get_bind()
     session = db.Session(bind=bind)

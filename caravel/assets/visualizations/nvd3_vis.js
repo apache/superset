@@ -16,7 +16,11 @@ function nvd3Vis(slice) {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       slice.container.html('');
       if (error) {
-        slice.error(error.responseText);
+        if (error.responseText) {
+          slice.error(error.responseText);
+        } else {
+          slice.error(error);
+        }
         return '';
       }
       var fd = payload.form_data;
