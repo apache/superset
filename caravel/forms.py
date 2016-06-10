@@ -766,16 +766,6 @@ class FormFactory(object):
                     "Description text that shows up below your Big "
                     "Number")
             }),
-            'longitude': (SelectField, {
-                "label": "Longitude",
-                "choices": self.choicify(datasource.column_names),
-                "description": "Column containing longitude data"
-            }),
-            'latitude': (SelectField, {
-                "label": "Latitude",
-                "choices": self.choicify(datasource.column_names),
-                "description": "Column containing latitude data"
-            }),
             'mapbox_style': (SelectField, {
                 "label": "Map Style",
                 "choices": [
@@ -787,6 +777,44 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
                 "description": "Base layer map style"
+            }),
+            'clustering_radius': (FreeFormSelectField, {
+                "label": _("Clustering Radius"),
+                "default": "60",
+                "choices": self.choicify([
+                    '0',
+                    '20',
+                    '40',
+                    '60',
+                    '80',
+                    '100',
+                    '200',
+                    '500',
+                    '1000',
+                ]),
+                "description": _(
+                    "The radius the algorithm uses to define a cluster. "
+                    "Choose 0 to turn off clustering, but beware that a large "
+                    "number of points (>10000) will cause lag.")
+            }),
+            'point_radius': (SelectField, {
+                "label": _("Point Radius"),
+                "default": "60",
+                "choices": self.choicify(["Auto"] + datasource.column_names),
+                "description": _(
+                    "The radius of individual points (ones that are not in a cluster). "
+                    "Either a numerical column or 'Auto', which scales the point based "
+                    "on the largest cluster")
+            }),
+            'point_radius_unit': (SelectField, {
+                "label": _("Point Radius"),
+                "default": "Pixels",
+                "choices": self.choicify([
+                    "Pixels",
+                    "Miles",
+                    "Kilometers",
+                ]),
+                "description": "The unit of measure for the specified point radius"
             }),
         }
 

@@ -1641,26 +1641,41 @@ class MapboxViz(BaseViz):
     fieldsets = ({
         'label': None,
         'fields': (
-            ('longitude', 'latitude'),
+            ('all_columns_x', 'all_columns_y'),
+            'clustering_radius',
+            'point_radius',
+            'point_radius_unit',
+        )
+    }, {
+        'label': 'Clustering',
+        'fields': (
             'all_columns',
             'pandas_aggfunc',
         )
     }, {
-        'label': 'Visual tweaks',
+        'label': 'Visual Tweaks',
         'fields': (
             'mapbox_style',
         )
-    })
+    },)
 
     form_overrides = {
+        'all_columns_x': {
+            'label': 'Longitude',
+            'description': "Column containing longitude data",
+        },
+        'all_columns_y': {
+            'label': 'Latitude',
+            'description': "Column containing latitude data",
+        },
         'all_columns': {
-            'label': 'Metric column',
+            'label': 'Cluster label',
             'description': (
                 "Numerical column to use for cluster labels. Leave "
                 "empty to get a count of points in each cluster."),
         },
         'pandas_aggfunc': {
-            'label': 'Metric aggregator',
+            'label': 'Cluster label aggregator',
             'description': (
                 "Aggregate function applied to the list of points "
                 "in each cluster to produce the cluster label"),
@@ -1671,11 +1686,12 @@ class MapboxViz(BaseViz):
         d = super(MapboxViz, self).query_obj()
         fd = self.form_data
         all_columns = fd.get('all_columns')
-        d['columns'] = [fd.get('longitude'), fd.get('latitude')]
+        d['columns'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
         if len(all_columns) >= 1:
-            if (all_columns[0] != fd.get('longitude') and
-                all_columns[0] != fd.get('latitude')):
-                d['columns'].append(fd.get('all_columns')[0])
+            d['columns'].append(fd.get('all_columns')[0])
+        if fd.get('point_radius') != 'Auto':
+            d['columns'].append(fd.get('point_radius'))
+        d['columns'] = list(set(d['columns']))
         d['groupby'] = []
         return d
 
@@ -1685,12 +1701,15 @@ class MapboxViz(BaseViz):
         all_columns = fd.get('all_columns')
         metric_col = [None] * len(df.index)
         if len(all_columns) >= 1:
-            if all_columns[0] == fd.get('longitude'):
-                metric_col = df[fd.get('longitude')]
-            elif all_columns[0] == fd.get('latitude'):
-                metric_col = df[fd.get('latitude')]
+            if all_columns[0] == fd.get('all_columns_x'):
+                metric_col = df[fd.get('all_columns_x')]
+            elif all_columns[0] == fd.get('all_columns_y'):
+                metric_col = df[fd.get('all_columns_y')]
             else:
                 metric_col = df[fd.get('all_columns')[0]]
+        point_radius_col = ([None] * len(df.index)
+                             if fd.get("point_radius") == "Auto"
+                             else df[fd.get("point_radius")])
 
         # using geoJSON formatting
         geo_json = {
@@ -1699,15 +1718,19 @@ class MapboxViz(BaseViz):
             {
               "type": "Feature",
               "properties": {
-                "metric": metric
+                "metric": metric,
+                "radius": point_radius,
               },
               "geometry": {
                 "type": "Point",
-                "coordinates": [lon, lat]
+                "coordinates": [lon, lat],
               }
             }
-            for lon, lat, metric
-            in zip(df[fd.get('longitude')], df[fd.get('latitude')], metric_col)
+            for lon, lat, metric, point_radius
+            in zip(
+                df[fd.get('all_columns_x')],
+                df[fd.get('all_columns_y')],
+                metric_col, point_radius_col)
           ]
         }
 
@@ -1715,7 +1738,9 @@ class MapboxViz(BaseViz):
             "geoJSON": geo_json,
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
-            "customMetric": len(all_columns) >= 1
+            "customMetric": len(all_columns) >= 1,
+            "clusteringRadius": fd.get("clustering_radius"),
+            "pointRadiusUnit": fd.get("point_radius_unit"),
         }
 
 

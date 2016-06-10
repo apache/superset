@@ -13,9 +13,25 @@ import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
 
+const earthCircumferenceKm = 40075.16;
+
 class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
+  _drawText(ctx, pixel, fontHeight, label, radius) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = "black";
+    ctx.font = fontHeight + "px sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(
+      label,
+      pixel[0],
+      pixel[1] + d3.round((radius - fontHeight) / 4, 1)
+    );
+    ctx.globalCompositeOperation = 'destination-over';
+  }
+
   // Modified from https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
   _redraw() {
+    const milesToKm = 1.60934;
     var pixelRatio = window.devicePixelRatio || 1;
     var canvas = this.refs.overlay;
     var ctx = canvas.getContext('2d');
@@ -46,9 +62,9 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
           } else {
             clusterLabel = d3.variance(clusterLabel);
           }
-          clusterLabel = d3.round(clusterLabel, 2);
         }
 
+        clusterLabel = d3.round(clusterLabel, 2);
         maxCount = Math.max(clusterLabel, maxCount);
         clusterLabelMap[i] = clusterLabel;
       }
@@ -68,7 +84,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             var clusterLabel = clusterLabelMap[i],
                 scaledRadius = d3.round(
                   Math.pow(clusterLabel / maxCount, 0.5) * radius, 1
-                ),  
+                ),
                 fontHeight = d3.round(scaledRadius * 0.5, 1),
                 gradient = ctx.createRadialGradient(
                   pixelRounded[0], pixelRounded[1], scaledRadius,
@@ -81,22 +97,30 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fillStyle = gradient;
             ctx.fill();
 
-            ctx.globalCompositeOperation = 'source-over';
-            ctx.fillStyle = "black";
-            ctx.font = fontHeight + "px sans-serif";
-            ctx.textAlign = "center";
             clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
                            clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' : clusterLabel;
-            ctx.fillText(
-              clusterLabel,
-              pixelRounded[0],
-              pixelRounded[1] + d3.round((scaledRadius - fontHeight) / 2.5, 1)
-            );
-            ctx.globalCompositeOperation = 'destination-over';
+            this._drawText(ctx, pixelRounded, fontHeight, clusterLabel, scaledRadius);
           } else {
-            ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(radius / 5, 1), 0, Math.PI * 2);
+            var radiusProperty = location.get("properties").get("radius"),
+                pointRadius = radiusProperty === null ? radius / 6 : radiusProperty,
+                pointLabel;
+
+            if (props.pointRadiusUnit === "Kilometers") {
+              pointLabel = d3.round(pointRadius) + "km"
+              pointRadius = props.kmToPixels(pointRadius, props.latitude, props.zoom);
+            } else if (props.pointRadiusUnit === "Miles") {
+              pointLabel = d3.round(pointRadius) + "mi";
+              pointRadius = props.kmToPixels(pointRadius * milesToKm, props.latitude, props.zoom);
+            }
+
+            ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(pointRadius, 1), 0, Math.PI * 2);
             ctx.fillStyle = "rgb(0, 122, 135)";
             ctx.fill();
+
+            if (props.pointRadiusUnit === "Kilometers" || props.pointRadiusUnit === "Miles") {
+              var fontHeight = d3.round(pointRadius * 0.5, 1);
+              this._drawText(ctx, pixelRounded, fontHeight, pointLabel, pointRadius);
+            }
           }
         }
       }, this);
@@ -145,7 +169,7 @@ class MapboxViz extends React.Component {
         mapStyle={this.props.mapStyle}
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
-        mapboxApiAccessToken={"pk.eyJ1IjoiZ2tlZWUiLCJhIjoiY2lvbmN5dXhtMDA4NXRybTJjZWU2ZHVxOSJ9.CJG_6Oz52y5yI5cr3Ct_aQ"}
+        mapboxApiAccessToken={""}
         onChangeViewport={this.onChangeViewport}>
         <ScatterPlotGlowOverlay
           {...this.state.viewport}
@@ -153,7 +177,9 @@ class MapboxViz extends React.Component {
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
           locations={Immutable.fromJS(clusters)}
-          dotRadius={this.props.clusterRadius}
+          dotRadius={this.props.pointRadius}
+          pointRadiusUnit={this.props.pointRadiusUnit}
+          kmToPixels={this.props.kmToPixels}
           globalOpacity={1}
           compositeOperation={"screen"}
           renderWhileDragging={true}
@@ -167,8 +193,15 @@ class MapboxViz extends React.Component {
   }
 }
 
+function kmToPixels(kilometers, latitude, zoomLevel) {
+  // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
+  var latitudeRad = latitude * (Math.PI / 180);
+  var kmPerPixel = earthCircumferenceKm * Math.cos(latitudeRad) / Math.pow(2, zoomLevel + 8);
+  return d3.round(kilometers / kmPerPixel, 2);
+};
+
 function mapbox(slice) {
-  const clusterRadius = 60;
+  const defaultPointRadius = 60;
   var div = d3.select(slice.selector);
   var clusterer;
 
@@ -211,7 +244,7 @@ function mapbox(slice) {
       }
 
       clusterer = supercluster({
-        radius: clusterRadius,
+        radius: json.data.clusteringRadius,
         maxZoom: 16,
         metricKey: "metric",
         metricReducer: reducer
@@ -226,8 +259,10 @@ function mapbox(slice) {
           sliceWidth={slice.width()}
           clusterer={clusterer}
           mapStyle={json.data.mapStyle}
-          clusterRadius={clusterRadius}
-          aggregatorName={aggName}/>,
+          pointRadius={defaultPointRadius}
+          pointRadiusUnit={json.data.pointRadiusUnit}
+          aggregatorName={aggName}
+          kmToPixels={kmToPixels}/>,
         div.node()
       );
 

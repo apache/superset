@@ -951,6 +951,7 @@ def load_long_lat_data():
         pdf = pd.read_csv(f, encoding="utf-8")
     pdf['date'] = datetime.datetime.now().date()
     pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
+    pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
     pdf.to_sql(
         'long_lat',
         db.engine,
@@ -969,6 +970,7 @@ def load_long_lat_data():
             'id': String(100),
             'date': Date(),
             'occupancy': Float(),
+            'radius_miles': Float(),
         },
         index=False)
     print("Done loading table!")
@@ -996,8 +998,8 @@ def load_long_lat_data():
         "until": "2016-12-12",
         "where": "",
         "viz_type": "mapbox",
-        "longitude": "LON",
-        "latitude": "LAT",
+        "all_columns_x": "LON",
+        "all_columns_y": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
         "all_columns": ["occupancy"]
     }
