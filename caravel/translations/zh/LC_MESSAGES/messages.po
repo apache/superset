@@ -415,27 +415,27 @@ msgstr ""
 
 #: caravel/viz.py:1378
 msgid "World Map"
-msgstr ""
+msgstr "世界地图"
 
 #: caravel/viz.py:1452
 msgid "Filters"
-msgstr ""
+msgstr "过滤器"
 
 #: caravel/viz.py:1500
 msgid "iFrame"
-msgstr ""
+msgstr "框架"
 
 #: caravel/viz.py:1518
 msgid "Parallel Coordinates"
-msgstr ""
+msgstr "并行坐标系"
 
 #: caravel/viz.py:1554
 msgid "Heatmap"
-msgstr ""
+msgstr "堆图"
 
 #: caravel/viz.py:1622
 msgid "Horizon Charts"
-msgstr ""
+msgstr "水平图表"
 
 #: caravel/templates/appbuilder/navbar_right.html:34
 msgid "Profile"
