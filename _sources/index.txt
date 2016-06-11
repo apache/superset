@@ -32,6 +32,7 @@ Contents
 
     installation
     tutorial
+    security
     videos
     gallery
     druid

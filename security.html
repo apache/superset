@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Security &mdash; caravel  documentation</title>
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/docs.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="caravel  documentation" href="index.html" />
+    <link rel="next" title="Videos" href="videos.html" />
+    <link rel="prev" title="Tutorial" href="tutorial.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+  
+  <div id="navbar" class="navbar navbar-default ">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          Caravel Documentation</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Topics <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">Security</a><ul>
+<li><a class="reference internal" href="#provided-roles">Provided Roles</a><ul>
+<li><a class="reference internal" href="#admin">Admin</a></li>
+<li><a class="reference internal" href="#alpha">Alpha</a></li>
+<li><a class="reference internal" href="#gamma">Gamma</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
+<li><a class="reference internal" href="#customizing">Customizing</a></li>
+<li><a class="reference internal" href="#restricting-the-access-to-the-metrics">Restricting the access to the metrics</a></li>
+</ul>
+</li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+  
+  <div class="container mainbody">
+  
+  <div class="section" id="security">
+<h1>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h1>
+<p>Security in Caravel is handled by Flask AppBuilder (FAB). FAB is a
+&#8220;Simple and rapid application development framework, built on top of Flask.&#8221;.
+FAB provides authentication, user management, permissions and roles.</p>
+<div class="section" id="provided-roles">
+<h2>Provided Roles<a class="headerlink" href="#provided-roles" title="Permalink to this headline">¶</a></h2>
+<p>Caravel ships with 3 roles that are handled by Caravel itself. You can
+assume that these 3 roles will stay up-to-date as Caravel evolves.</p>
+<div class="section" id="admin">
+<h3>Admin<a class="headerlink" href="#admin" title="Permalink to this headline">¶</a></h3>
+<p>Admins have all rights, including granting or revoking rights from other
+users and altering other people&#8217;s slices and dashboards.</p>
+</div>
+<div class="section" id="alpha">
+<h3>Alpha<a class="headerlink" href="#alpha" title="Permalink to this headline">¶</a></h3>
+<p>Alpha have access to all data sources, but they cannot grant or revoke access
+from other users. They are also limited to altering the objects that they
+own. Alpha users can add and alter data sources.</p>
+</div>
+<div class="section" id="gamma">
+<h3>Gamma<a class="headerlink" href="#gamma" title="Permalink to this headline">¶</a></h3>
+<p>Gamma have limited access. They can only consume data coming from data sources
+they have been giving access to through another complementary role.
+They only have access to view the slices and
+dashboards made from data sources that they have access to. Currently Gamma
+users are not able to alter or add data sources. We assume that they are
+mostly content consumers, though they can create slices and dashboards.</p>
+<p>Also note that when Gamma users look at the dashboards and slices list view,
+they will only see the objects that they have access to.</p>
+</div>
+</div>
+<div class="section" id="managing-gamma-per-data-source-access">
+<h2>Managing Gamma per data source access<a class="headerlink" href="#managing-gamma-per-data-source-access" title="Permalink to this headline">¶</a></h2>
+<p>Here&#8217;s how to provide users access to only specific datasets. First make
+sure the users with limited access have [only] the Gamma role assigned to
+them. Second, create a new role (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Security</span> <span class="pre">-&gt;</span> <span class="pre">List</span> <span class="pre">Roles</span></code>) and
+click the <code class="docutils literal"><span class="pre">+</span></code> sign.</p>
+<a class="reference internal image-reference" href="_images/create_role.png"><img alt="_images/create_role.png" src="_images/create_role.png" style="width: 591.5px; height: 309.5px;" /></a>
+<p>This new window allows you to give this new role a name, attribute it to users
+and select the tables in the <code class="docutils literal"><span class="pre">Permissions</span></code> dropdown. To select the data
+sources you want to associate with this role, simply click in the dropdown
+and use the typeahead to search for your table names.</p>
+<p>You can then confirm with your Gamma users that they see the objects
+(dashboards and slices) associated with the tables related to their roles.</p>
+</div>
+<div class="section" id="customizing">
+<h2>Customizing<a class="headerlink" href="#customizing" title="Permalink to this headline">¶</a></h2>
+<p>The permissions exposed by FAB are very granular and allow for a great level
+of customization. FAB creates many permissions automagically for each model
+that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
+each view. On top of that, Caravel can expose more granular permissions like
+<code class="docutils literal"><span class="pre">all_datasource_access</span></code>.</p>
+<p>We do not recommend altering the 3 base roles as there
+are a set of assumptions that Caravel build upon. It is possible though for
+you to create your own roles, and union them to existing ones.</p>
+<p>The best way to go is probably to give user <code class="docutils literal"><span class="pre">Gamma</span></code> plus another role
+that would add specific permissions needed by this type of users.</p>
+</div>
+<div class="section" id="restricting-the-access-to-the-metrics">
+<h2>Restricting the access to the metrics<a class="headerlink" href="#restricting-the-access-to-the-metrics" title="Permalink to this headline">¶</a></h2>
+<p>Sometimes some metrics are relatively sensitive (e.g. revenue).
+We may want to restrict those metrics to only a few roles.
+For example, assumed there is a metric <code class="docutils literal"><span class="pre">[cluster1].[datasource1].[revenue]</span></code>
+and only Admin users are allowed to see it. Here’s how to restrict the access.</p>
+<ol class="arabic simple">
+<li>Edit the datasource (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Source</span> <span class="pre">-&gt;</span> <span class="pre">Druid</span> <span class="pre">datasources</span> <span class="pre">-&gt;</span> <span class="pre">edit</span> <span class="pre">the</span>
+<span class="pre">record</span> <span class="pre">&quot;datasource1&quot;</span></code>) and go to the tab <code class="docutils literal"><span class="pre">List</span> <span class="pre">Druid</span> <span class="pre">Metric</span></code>. Check
+the checkbox <code class="docutils literal"><span class="pre">Is</span> <span class="pre">Restricted</span></code> in the row of the metric <code class="docutils literal"><span class="pre">revenue</span></code>.</li>
+<li>Edit the role (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Security</span> <span class="pre">-&gt;</span> <span class="pre">List</span> <span class="pre">Roles</span> <span class="pre">-&gt;</span> <span class="pre">edit</span> <span class="pre">the</span> <span class="pre">record</span>
+<span class="pre">“Admin”</span></code>), in the permissions field, type-and-search the permission
+<code class="docutils literal"><span class="pre">metric</span> <span class="pre">access</span> <span class="pre">on</span> <span class="pre">[cluster1].[datasource1].[revenue]</span> <span class="pre">(id:</span> <span class="pre">1)</span></code>, then
+click the Save button on the bottom of the page.</li>
+</ol>
+<p>Any users without the permission will see the error message
+<em>Access to the metrics denied: revenue (Status: 500)</em> in the slices.
+It also happens when the user wants to access a post-aggregation metric that
+is dependent on revenue.</p>
+</div>
+</div>
+
+
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>

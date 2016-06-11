@@ -70,6 +70,7 @@
       aria-labelledby="dLabelGlobalToc"><ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Installation &amp; Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
 <li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
 <li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
@@ -98,6 +99,7 @@
 <li><a class="reference internal" href="#schemas-postgres-redshift">Schemas (Postgres &amp; Redshift)</a></li>
 <li><a class="reference internal" href="#ssl-access-to-databases">SSL Access to databases</a></li>
 <li><a class="reference internal" href="#druid">Druid</a></li>
+<li><a class="reference internal" href="#cors">CORS</a></li>
 <li><a class="reference internal" href="#upgrading">Upgrading</a></li>
 </ul>
 </li>
@@ -210,10 +212,10 @@ your datasources for Caravel to be aware of, and they should show up in
 <code class="docutils literal"><span class="pre">caravel_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
-<span class="c1"># Caravel specifix config</span>
+<span class="c1"># Caravel specific config</span>
 <span class="c1">#---------------------------------------------------------</span>
 <span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
-<span class="n">WEBSERVER_THREADS</span> <span class="o">=</span> <span class="mi">8</span>
+<span class="n">CARAVEL_WORKERS</span> <span class="o">=</span> <span class="mi">16</span>
 
 <span class="n">CARAVEL_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
 <span class="c1">#---------------------------------------------------------</span>
@@ -356,6 +358,17 @@ parameter</p>
 </ul>
 <p>Note that you can run the <code class="docutils literal"><span class="pre">caravel</span> <span class="pre">refresh_druid</span></code> command to refresh the
 metadata from your Druid cluster(s)</p>
+</div>
+<div class="section" id="cors">
+<h2>CORS<a class="headerlink" href="#cors" title="Permalink to this headline">¶</a></h2>
+<p>The extra CORS Dependency must be installed:</p>
+<blockquote>
+<div>caravel[cors]</div></blockquote>
+<p>The following keys in <cite>caravel_config.py</cite> can be specified to configure CORS:</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">ENABLE_CORS</span></code>: Must be set to True in order to enable CORS</li>
+<li><code class="docutils literal"><span class="pre">CORS_OPTIONS</span></code>: options passed to Flask-CORS (<cite>documentation &lt;http://flask-cors.corydolphin.com/en/latest/api.html#extension&gt;</cite>)</li>
+</ul>
 </div>
 <div class="section" id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
