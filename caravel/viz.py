@@ -115,8 +115,14 @@ class BaseViz(object):
             if d[key] is False:
                 del d[key]
             else:
-                for v in d.getlist(key):
-                    od.add(key, v)
+                if isinstance(d, MultiDict):
+                    v = d.getlist(key)
+                else:
+                    v = d.get(key)
+                if not isinstance(v, list):
+                    v = [v]
+                for item in sorted(v):
+                    od.add(key, item)
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
