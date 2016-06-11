@@ -276,9 +276,6 @@ var px = (function () {
         $('#json').click(function () {
           window.location = data.json_endpoint;
         });
-        $('#standalone').click(function () {
-          window.location = data.standalone_endpoint;
-        });
         $('#csv').click(function () {
           window.location = data.csv_endpoint;
         });

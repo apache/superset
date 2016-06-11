@@ -194,6 +194,60 @@ function initExploreView() {
     });
   });
 
+  $('#standalone').click(function () {
+    var src_link = window.location.origin + slice.data.standalone_endpoint;
+    var dataToCopy = '';
+    var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_standalone"></i></a>';
+    var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_embed"></i></a>';
+    var spaces = '&nbsp;&nbsp;&nbsp;';
+    var widthInput = '<input type="number" id="standalone_width" placeholder="width">';
+    var heightInput = '<input type="number" id="standalone_height" placeholder="height">';
+    var popover = "<input id='standalone_text' value='' disabled></input>";
+    popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput;
+
+    var $standalone = $(this);
+    $standalone.popover({
+      content: popover,
+      title: 'embed html',
+      placement: 'left',
+      html: true,
+      trigger: 'manual'
+    })
+    .popover('show');
+    $('#copy_embed').tooltip().click(function () {
+      var success = copyURLToClipboard(dataToCopy);
+      if (success) {
+        $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
+        window.setTimeout(destroyPopover, 1200);
+      }
+    });
+
+    $('#close_standalone').click(destroyPopover);
+
+    function destroyPopover() {
+      $standalone.popover('destroy');
+    }
+
+    var $standalone_width = $('#standalone_width');
+    var $standalone_height = $('#standalone_height');
+    var $standalone_text = $('#standalone_text');
+
+    $standalone_height.change(function () {
+      generateEmbedHTML();
+    });
+    $standalone_width.change(function () {
+      generateEmbedHTML();
+    });
+    generateEmbedHTML();
+    function generateEmbedHTML() {
+      var width = $standalone_width.val();
+      var height = $standalone_height.val();
+      dataToCopy = '<iframe src="' + src_link + '" width="' + width + '" height="' + height +'"';
+      dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
+      $standalone_text.val(dataToCopy);
+    }
+  });
+
   $("#viz_type").change(function () {
     $("#query").submit();
   });
