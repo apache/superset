@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CssXFireSettings">
+    <general autoClear="false" autoExpand="false" />
+    <strategy useRoutes="false" mediaReduce="false" fileReduce="false" currentDocumentsReduce="false" resolveVariables="true" resolveMixins="true" />
+    <routes />
+  </component>
+</project>
