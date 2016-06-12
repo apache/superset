@@ -1059,6 +1059,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Refreshing datasource [{}]".format(name), "info")
         session.flush()
         datasource.cluster = cluster
+        session.flush()
 
         cols = datasource.latest_metadata()
         if not cols:

@@ -581,7 +581,7 @@ def load_birth_names():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [birth_names] reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name='birth_names')
@@ -829,7 +829,7 @@ def load_unicode_test_data():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [unicode_test] reference")
     obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
     if not obj:
         obj = TBL(table_name='unicode_test')
@@ -908,7 +908,7 @@ def load_random_time_series_data():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [random_time_series] reference")
     obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
     if not obj:
         obj = TBL(table_name='random_time_series')
