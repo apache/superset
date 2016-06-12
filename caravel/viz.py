@@ -19,7 +19,7 @@ import numpy as np
 from flask import request
 from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
-import json
+import simplejson as json
 from six import string_types
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
@@ -267,7 +267,7 @@ class BaseViz(object):
 
     def json_dumps(self, obj):
         """Used by get_json, can be overridden to use specific switches"""
-        return json.dumps(obj, default=utils.json_int_dttm_ser)
+        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
 
     @property
     def data(self):
