@@ -14,9 +14,10 @@ env:
   matrix:
     #- TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
-    #- TOX_ENV=py27-postgres
+    - TOX_ENV=py27-postgres
     - TOX_ENV=py34-sqlite
     - TOX_ENV=py34-mysql
+    - TOX_ENV=py34-postgres
     - TOX_ENV=javascript
 before_install:
   - npm install -g npm@'>=2.7.1'
