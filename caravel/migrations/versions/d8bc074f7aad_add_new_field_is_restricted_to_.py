@@ -23,12 +23,11 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    session.query(models.DruidMetric).update({
-        'is_restricted': False
-    })
-    session.query(models.SqlMetric).update({
-        'is_restricted': False
-    })
+    for obj in session.query(models.DruidMetric).all():
+        obj.is_restricted = False
+
+    for obj in session.query(models.SqlMetric).all():
+        obj.is_restricted = False
 
     session.commit()
     session.close()
