@@ -261,7 +261,12 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=cache_timeout)
+            try:
+                cache.set(cache_key, payload, timeout=cache_timeout)
+            except Exception as e:
+                # cache.set call can fail if the backend is down or if
+                # the key is too large or whatever other reasons
+                logging.warning("Could not cache key {}".format(cache_key))
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
 
