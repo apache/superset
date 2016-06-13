@@ -216,7 +216,7 @@ var px = (function () {
         return qrystr;
       },
       getWidgetHeader: function () {
-        return this.container.parents("li.widget").find(".chart-header");
+        return this.container.parents("div.widget").find(".chart-header");
       },
       render_template: function (s) {
         var context = {
@@ -275,9 +275,6 @@ var px = (function () {
         $('span.query').removeClass('disabled');
         $('#json').click(function () {
           window.location = data.json_endpoint;
-        });
-        $('#standalone').click(function () {
-          window.location = data.standalone_endpoint;
         });
         $('#csv').click(function () {
           window.location = data.csv_endpoint;

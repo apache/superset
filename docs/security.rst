@@ -68,3 +68,25 @@ you to create your own roles, and union them to existing ones.
 
 The best way to go is probably to give user ``Gamma`` plus another role
 that would add specific permissions needed by this type of users. 
+
+
+Restricting the access to the metrics
+-------------------------------------
+Sometimes some metrics are relatively sensitive (e.g. revenue).
+We may want to restrict those metrics to only a few roles.
+For example, assumed there is a metric ``[cluster1].[datasource1].[revenue]``
+and only Admin users are allowed to see it. Here’s how to restrict the access.
+
+1. Edit the datasource (``Menu -> Source -> Druid datasources -> edit the 
+   record "datasource1"``) and go to the tab ``List Druid Metric``. Check 
+   the checkbox ``Is Restricted`` in the row of the metric ``revenue``.
+
+2. Edit the role (``Menu -> Security -> List Roles -> edit the record 
+   “Admin”``), in the permissions field, type-and-search the permission
+   ``metric access on [cluster1].[datasource1].[revenue] (id: 1)``, then 
+   click the Save button on the bottom of the page.
+
+Any users without the permission will see the error message
+*Access to the metrics denied: revenue (Status: 500)* in the slices.
+It also happens when the user wants to access a post-aggregation metric that
+is dependent on revenue.

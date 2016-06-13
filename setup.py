@@ -1,4 +1,5 @@
-import imp, os
+import imp
+import os
 from setuptools import setup, find_packages
 
 version = imp.load_source(
@@ -18,7 +19,7 @@ setup(
         'alembic>=0.8.5, <0.9.0',
         'babel==2.3.4',
         'cryptography>=1.1.1, <2.0.0',
-        'flask-appbuilder>=1.6.2, <2.0.0',
+        'flask-appbuilder>=1.7.1, <2.0.0',
         'Flask-BabelPkg==0.9.6',
         'flask-cache>=0.13.1, <0.14.0',
         'flask-migrate>=1.5.1, <2.0.0',
@@ -34,6 +35,7 @@ setup(
         'pydruid==0.3.0, <0.4.0',
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
+        'simplejson==3.8.2',
         'sqlalchemy>=1.0.12, <2.0.0',
         'sqlalchemy-utils>=0.31.3, <0.32.0',
         'sqlparse>=0.1.16, <0.2.0',
