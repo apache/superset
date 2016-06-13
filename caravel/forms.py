@@ -776,7 +776,7 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
-                "description": "Base layer map style"
+                "description": _("Base layer map style")
             }),
             'clustering_radius': (FreeFormSelectField, {
                 "label": _("Clustering Radius"),
@@ -793,13 +793,13 @@ class FormFactory(object):
                     '1000',
                 ]),
                 "description": _(
-                    "The radius the algorithm uses to define a cluster. "
+                    "The radius (in pixels) the algorithm uses to define a cluster. "
                     "Choose 0 to turn off clustering, but beware that a large "
                     "number of points (>10000) will cause lag.")
             }),
             'point_radius': (SelectField, {
                 "label": _("Point Radius"),
-                "default": "60",
+                "default": "Auto",
                 "choices": self.choicify(["Auto"] + datasource.column_names),
                 "description": _(
                     "The radius of individual points (ones that are not in a cluster). "
@@ -814,7 +814,7 @@ class FormFactory(object):
                     "Miles",
                     "Kilometers",
                 ]),
-                "description": "The unit of measure for the specified point radius"
+                "description": _("The unit of measure for the specified point radius")
             }),
         }
 

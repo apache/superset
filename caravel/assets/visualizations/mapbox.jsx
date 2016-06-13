@@ -68,11 +68,11 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
 
         if (clusterLabel instanceof Immutable.List) {
           clusterLabel = clusterLabel.toArray();
-          if (props.aggregatorName == "mean") {
+          if (props.aggregatorName === "mean") {
             clusterLabel = d3.mean(clusterLabel);
-          } else if (props.aggregatorName == "median") {
+          } else if (props.aggregatorName === "median") {
             clusterLabel = d3.median(clusterLabel);
-          } else if (props.aggregatorName == "stdev") {
+          } else if (props.aggregatorName === "stdev") {
             clusterLabel = d3.deviation(clusterLabel);
           } else {
             clusterLabel = d3.variance(clusterLabel);
@@ -101,8 +101,8 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             var clusterLabel = clusterLabelMap[i],
                 scaledRadius = d3.round(
                   Math.pow(clusterLabel / maxCount, 0.5) * radius, 1
-                );
-                var fontHeight = d3.round(scaledRadius * 0.5, 1),
+                ),
+                fontHeight = d3.round(scaledRadius * 0.5, 1),
                 gradient = ctx.createRadialGradient(
                   pixelRounded[0], pixelRounded[1], scaledRadius,
                   pixelRounded[0], pixelRounded[1], 0
@@ -125,7 +125,9 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
                 pointLabel,
                 pointMetric = location.get("properties").get("metric");
 
-            if (radiusProperty !== null) {
+            if (pointMetric !== null) {
+              pointLabel = pointMetric;
+            } else if (radiusProperty !== null) {
               if (props.pointRadiusUnit === "Kilometers") {
                 pointLabel = d3.round(pointRadius, 2) + "km";
                 pointRadius = props.kmToPixels(pointRadius, props.latitude, props.zoom);
@@ -135,18 +137,11 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
               }
             }
 
-            if (pointMetric && !this._isNumeric(pointMetric)) {
-              pointLabel = pointMetric;
-            }
-
             ctx.arc(pixelRounded[0], pixelRounded[1], d3.round(pointRadius, 1), 0, Math.PI * 2);
             ctx.fillStyle = "rgb(0, 122, 135)";
             ctx.fill();
 
-            if (radiusProperty !== null &&
-               (props.pointRadiusUnit === "Kilometers" ||
-                props.pointRadiusUnit === "Miles" ||
-                pointMetric && !this._isNumeric(pointMetric))) {
+            if (pointLabel !== undefined) {
               var fontHeight = d3.round(pointRadius * 0.5, 1);
               this._drawText(ctx, pixelRounded, fontHeight, pointLabel, pointRadius);
             }

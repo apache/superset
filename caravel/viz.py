@@ -1645,10 +1645,6 @@ class MapboxViz(BaseViz):
             'clustering_radius',
             'point_radius',
             'point_radius_unit',
-        )
-    }, {
-        'label': 'Clustering',
-        'fields': (
             'all_columns',
             'pandas_aggfunc',
         )
@@ -1669,7 +1665,7 @@ class MapboxViz(BaseViz):
             'description': "Column containing latitude data",
         },
         'all_columns': {
-            'label': 'Cluster label',
+            'label': 'Label',
             'description': (
                 "Numerical columns will be aggregated with the aggregator. "
                 "Non-numerical columns will be used to label points."
