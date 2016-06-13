@@ -1371,11 +1371,6 @@ class Caravel(BaseCaravelView):
         """Personalized welcome page"""
         return self.render_template('caravel/welcome.html', utils=utils)
 
-    @has_access
-    @expose("/carapal")
-    def carapal(self):
-        """SQL Editor"""
-        return self.render_template('caravel/carapal.html')
 
 appbuilder.add_view_no_menu(Caravel)
 
