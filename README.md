@@ -46,6 +46,7 @@ Caravel provides:
     made available to the user
 * Deep integration with Druid allows for Caravel to stay blazing fast while
     slicing and dicing large, realtime datasets
+* Fast loading dashboards with configurable caching
 
 
 Database Support
