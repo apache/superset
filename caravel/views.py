@@ -4,17 +4,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from datetime import datetime
 import json
 import logging
 import re
 import sys
 import time
 import traceback
-from datetime import datetime
 
 import pandas as pd
 import sqlalchemy as sqla
 
+import celery
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
@@ -35,6 +36,47 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+
+celery_app = celery.Celery(celery_config=config.get('CELERY_CONFIG'))
+
+@celery_app.task
+def get_sql_results(database_id, sql, async=False):
+    """Gets sql results from a Caravel database connection"""
+    # TODO @b.kyryliuk handle async
+    # handle models.Queries (userid, sql, timestamps, status) index on userid, state, start_ddtm
+    session = db.session()
+    mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+    if (
+            not self.appbuilder.sm.has_access(
+                'all_datasource_access', 'all_datasource_access')):
+        raise utils.CaravelSecurityException(_(
+            "This view requires the `all_datasource_access` permission"))
+    content = ""
+    if mydb:
+        eng = mydb.get_sqla_engine()
+        if config.SQL_MAX_ROW:
+            sql = sql.strip().strip(';')
+            qry = (
+                select('*')
+                .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                .limit(config.SQL_MAX_ROW)
+            )
+            sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+        try:
+            df = pd.read_sql_query(sql=sql, con=eng)
+            content = df.to_html(
+                index=False,
+                na_rep='',
+                classes=(
+                    "dataframe table table-striped table-bordered "
+                    "table-condensed sql_results").split(' '))
+        except Exception as e:
+            content = (
+                '<div class="alert alert-danger">'
+                "{}</div>"
+            ).format(e.message)
+    session.commit()
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -285,7 +327,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'sql_link', 'creator', 'changed_on_']
     add_columns = [
-        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
+        'allow_temp_table']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     add_template = "caravel/models/database/add.html"
@@ -305,6 +348,10 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "gets unpacked into the [sqlalchemy.MetaData]"
             "(http://docs.sqlalchemy.org/en/rel_1_0/core/metadata.html"
             "#sqlalchemy.schema.MetaData) call. ", True),
+        'allow_temp_table': (
+                "Whether Caravel can run async queries by and attempt to "
+                "store results in temporary tables"
+            ),
     }
     label_columns = {
         'database_name': _("Database"),
@@ -1018,44 +1065,18 @@ class Caravel(BaseView):
     @log_this
     def runsql(self):
         """Runs arbitrary sql and returns and html table"""
-        session = db.session()
-        limit = 1000
         data = json.loads(request.form.get('data'))
         sql = data.get('sql')
         database_id = data.get('database_id')
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
-        if (
-                not self.appbuilder.sm.has_access(
-                    'all_datasource_access', 'all_datasource_access')):
-            raise utils.CaravelSecurityException(_(
-                "This view requires the `all_datasource_access` permission"))
-        content = ""
-        if mydb:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = pd.read_sql_query(sql=sql, con=eng)
-                content = df.to_html(
-                    index=False,
-                    na_rep='',
-                    classes=(
-                        "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results").split(' '))
-            except Exception as e:
-                content = (
-                    '<div class="alert alert-danger">'
-                    "{}</div>"
-                ).format(e.message)
-        session.commit()
+        # TODO @b.kyryliuk handle async
+        content = get_sql_results(database_id, sql)
+        # get_sql_results.async(database_id, sql)
         return content
+
+    @expose("/async_sql_status/")
+    def async_sql_status(self, userid):
+        #TODO @b.kyryliuk
+        return
 
     @has_access
     @expose("/refresh_datasources/")

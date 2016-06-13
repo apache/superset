@@ -118,5 +118,11 @@ def refresh_druid():
     session.commit()
 
 
+@manager.command
+def worker():
+    """Starts a Caravel worker for async query load"""
+    raise NotImplementedError("# TODO! @b.kyryliuk")
+
+
 if __name__ == "__main__":
     manager.run()

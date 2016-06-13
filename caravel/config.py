@@ -173,6 +173,23 @@ ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
+# Default celery config is to use SQLA as a broker, in a production setting
+# you'll want to use a proper broker as specified here:
+# http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+"""
+# Example:
+class CeleryConfig(object):
+    BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+    ## Broker settings.
+    BROKER_URL = 'amqp://guest:guest@localhost:5672//'
+    CELERY_IMPORTS = ('myapp.tasks', )
+    CELERY_RESULT_BACKEND = 'db+sqlite:///results.db'
+    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+"""
+CELERY_CONFIG = None
+
+# Maximum number of rows returned in the SQL editor
+SQL_MAX_ROW = 1000
 
 try:
     from caravel_config import *  # noqa
@@ -181,3 +198,4 @@ except ImportError:
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
+

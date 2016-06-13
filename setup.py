@@ -18,6 +18,7 @@ setup(
     install_requires=[
         'alembic>=0.8.5, <0.9.0',
         'babel==2.3.4',
+        'celery==3.1.23',
         'cryptography>=1.1.1, <2.0.0',
         'flask-appbuilder>=1.7.1, <2.0.0',
         'Flask-BabelPkg==0.9.6',
