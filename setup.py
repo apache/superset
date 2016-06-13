@@ -1,4 +1,5 @@
-import imp, os
+import imp
+import os
 from setuptools import setup, find_packages
 
 version = imp.load_source(
@@ -34,6 +35,7 @@ setup(
         'pydruid==0.3.0, <0.4.0',
         'python-dateutil>=2.4.2, <3.0.0',
         'requests>=2.7.0, <3.0.0',
+        'simplejson==3.8.2',
         'sqlalchemy>=1.0.12, <2.0.0',
         'sqlalchemy-utils>=0.31.3, <0.32.0',
         'sqlparse>=0.1.16, <0.2.0',
@@ -42,7 +44,7 @@ setup(
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],
     },
-    tests_require=['coverage'],
+    tests_require=['coverage', 'mock', 'nose'],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/airbnb/caravel',
