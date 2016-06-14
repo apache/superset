@@ -6,7 +6,7 @@ d3.divgrid = require('../vendor/parallel_coordinates/divgrid.js');
 
 // CSS
 require('../vendor/parallel_coordinates/d3.parcoords.css');
-require('../stylesheets/parallel_coordinates.css');
+require('./parallel_coordinates.css');
 
 function parallelCoordVis(slice) {
 

@@ -2,6 +2,6 @@
     overflow: auto;
 }
 
-.para div.row:hover {
+.para .grid div.row:hover {
     background-color: #CCC;
 }
