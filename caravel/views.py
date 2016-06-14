@@ -180,7 +180,6 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
@@ -427,7 +426,6 @@ if config['DRUID_IS_ACTIVE']:
         category="Sources",
         category_label=_("Sources"),
         category_icon='fa-database',)
-
 
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
