@@ -267,6 +267,7 @@ class BaseViz(object):
                 # cache.set call can fail if the backend is down or if
                 # the key is too large or whatever other reasons
                 logging.warning("Could not cache key {}".format(cache_key))
+                cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
 
