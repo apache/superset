@@ -1078,6 +1078,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if datatype == "STRING":
                 col_obj.groupby = True
                 col_obj.filterable = True
+            if datatype == "hyperUnique" or datatype == "thetaSketch":
+                col_obj.count_distinct = True
             if col_obj:
                 col_obj.type = cols[col]['type']
             session.flush()
@@ -1447,17 +1449,29 @@ class DruidColumn(Model, AuditMixinNullable):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.count_distinct:
-            mt = 'count_distinct'
             name = 'count_distinct__' + self.column_name
-            metrics.append(DruidMetric(
-                metric_name=name,
-                verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                metric_type='count_distinct',
-                json=json.dumps({
-                    'type': 'cardinality',
-                    'name': name,
-                    'fieldNames': [self.column_name]})
-            ))
+            if self.type == 'hyperUnique' or self.type == 'thetaSketch':
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
+                    metric_type=self.type,
+                    json=json.dumps({
+                        'type': self.type,
+                        'name': name,
+                        'fieldName': self.column_name
+                    })
+                ))
+            else:
+                mt = 'count_distinct'
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
+                    metric_type='count_distinct',
+                    json=json.dumps({
+                        'type': 'cardinality',
+                        'name': name,
+                        'fieldNames': [self.column_name]})
+                ))
         session = get_session()
         new_metrics = []
         for metric in metrics:
