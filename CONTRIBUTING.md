@@ -103,7 +103,7 @@ curl -L https://www.npmjs.com/install.sh | sh
 ```
 
 The final step is to add `~/.npm-packages/bin` to your `PATH` so commands you install globally are usable.
-Add something like this to your `.bashrc` file, then `source ~/.bashrc` to refresh the change.
+Add something like this to your `.bashrc` file, then `source ~/.bashrc` to reflect the change.
 ```
 export PATH="$HOME/.npm-packages/bin:$PATH"
 ```
