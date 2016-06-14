@@ -12,8 +12,11 @@ import copy
 import hashlib
 import logging
 import uuid
+import zlib
+
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
+
 import pandas as pd
 import numpy as np
 from flask import request
@@ -240,12 +243,20 @@ class BaseViz(object):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
+
         if self.form_data.get('force') != 'true':
             payload = cache.get(cache_key)
+
         if payload:
             is_cached = True
+            try:
+                payload = json.loads(zlib.decompress(payload))
+            except Exception as e:
+                logging.error("Error reading cache")
+                payload = None
             logging.info("Serving from cache")
-        else:
+
+        if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
             payload = {
@@ -262,7 +273,10 @@ class BaseViz(object):
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             try:
-                cache.set(cache_key, payload, timeout=cache_timeout)
+                cache.set(
+                    cache_key,
+                    zlib.compress(self.json_dumps(payload)),
+                    timeout=cache_timeout)
             except Exception as e:
                 # cache.set call can fail if the backend is down or if
                 # the key is too large or whatever other reasons
