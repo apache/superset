@@ -225,7 +225,7 @@ function horizonViz(slice) {
         .call(this, d.values, i);
       });
 
-      slice.done();
+      slice.done(payload);
     });
   }
   return {
