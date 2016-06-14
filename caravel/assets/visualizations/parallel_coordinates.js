@@ -92,7 +92,7 @@ function parallelCoordVis(slice) {
               });
           });
         }
-        slice.done();
+        slice.done(payload);
       })
       .fail(function (xhr) {
         slice.error(xhr.responseText);
