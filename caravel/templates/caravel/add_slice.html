@@ -1,4 +1,6 @@
 <script>
-  var msg = "Click on a table link to create a Slice";
-  window.location = "/r/msg/?url={{ '/tablemodelview/list/' }}&msg=" + msg;
+  var msg = "Click on a datasource link to create a Slice, " +
+          "or click on a table link <a href='/tablemodelview/list/'>here</a> " +
+          "to create a Slice for a table";
+  window.location = "/r/msg/?url={{ '/druiddatasourcemodelview/list/' }}&msg=" + msg;
 </script>

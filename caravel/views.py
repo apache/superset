@@ -477,6 +477,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     def pre_update(self, obj):
         check_ownership(obj)
 
+    def pre_delete(self, obj):
+        check_ownership(obj)
+
 appbuilder.add_view(
     SliceModelView,
     "Slices",
@@ -674,7 +677,7 @@ class R(BaseView):
     @expose("/msg/")
     def msg(self):
         """Redirects to specified url while flash a message"""
-        flash(request.args.get("msg"), "info")
+        flash(Markup(request.args.get("msg")), "info")
         return redirect(request.args.get("url"))
 
 appbuilder.add_view_no_menu(R)
@@ -842,7 +845,7 @@ class Caravel(BaseView):
     def overwrite_slice(self, slc):
         can_update = check_ownership(slc, raise_if_false=False)
         if not can_update:
-            flash("You cannot overwrite [{}]".format(slc))
+            flash("You cannot overwrite [{}]".format(slc), "danger")
         else:
             session = db.session()
             session.merge(slc)
