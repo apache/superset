@@ -674,7 +674,7 @@ class R(BaseView):
     @expose("/msg/")
     def msg(self):
         """Redirects to specified url while flash a message"""
-        flash(request.args.get("msg"), "info")
+        flash(Markup(request.args.get("msg")), "info")
         return redirect(request.args.get("url"))
 
 appbuilder.add_view_no_menu(R)
