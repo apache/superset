@@ -449,6 +449,14 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             "dashboard view. Supports "
             "<a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
+        'params': _(
+            "These parameters are generated dynamically when clicking "
+            "the save or overwrite button in the explore view. This JSON "
+            "object is exposed here for reference and for power users who may "
+            "want to alter specific parameters."),
+        'cache_timeout': _(
+            "Duration (in seconds) of the caching timeout for this slice."
+        ),
     }
     base_filters = [['id', FilterSlice, lambda: []]]
     label_columns = {
@@ -511,6 +519,12 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "in the dashboard view where changes are immediately "
             "visible"),
         'slug': _("To get a readable URL for your dashboard"),
+        'json_metadata': _(
+            "This JSON object is generated dynamically when clicking "
+            "the save or overwrite button in the dashboard view. It "
+            "is exposed here for reference and for power users who may "
+            "want to alter specific parameters."),
+        'owners': _("Owners is a list of users who can alter the dashboard."),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
     label_columns = {
