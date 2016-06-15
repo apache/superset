@@ -64,7 +64,9 @@ function query(force, pushState) {
   }
   $('.query-and-save button').attr('disabled', 'disabled');
   $('.btn-group.results span,a').attr('disabled', 'disabled');
-  $('div.alert').remove();
+  if (force) {  // Don't hide the alert message when the page is just loaded
+    $('div.alert').remove();
+  }
   $('#is_cached').hide();
   prepForm();
   slice.render(force);
