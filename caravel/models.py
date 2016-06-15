@@ -408,6 +408,8 @@ class Database(Model, AuditMixinNullable):
             ),
             'mysql': (
                 Grain('Time Column', '{col}'),
+                Grain("hour", "DATE_ADD(DATE({col}), "
+                      "INTERVAL HOUR({col}) HOUR)"),
                 Grain('day', 'DATE({col})'),
                 Grain("week", "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
