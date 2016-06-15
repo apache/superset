@@ -89,6 +89,7 @@ $(document).ready(function () {
           $('#results').html(data);
 
           $('table.sql_results').DataTable({
+            retrieve: true,
             paging: false,
             searching: true,
             aaSorting: []
