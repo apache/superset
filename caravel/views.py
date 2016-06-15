@@ -477,6 +477,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     def pre_update(self, obj):
         check_ownership(obj)
 
+    def pre_delete(self, obj):
+        check_ownership(obj)
+
 appbuilder.add_view(
     SliceModelView,
     "Slices",
