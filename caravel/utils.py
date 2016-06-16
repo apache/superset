@@ -228,7 +228,7 @@ def init_metrics_perm(caravel, metrics=None):
         for model in [models.SqlMetric, models.DruidMetric]:
             metrics += list(db.session.query(model).all())
 
-    metric_perms = [metric.perm for metric in metrics]
+    metric_perms = filter(None, [metric.perm for metric in metrics])
     for metric_perm in metric_perms:
         merge_perm(sm, 'metric_access', metric_perm)
 

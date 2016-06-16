@@ -873,7 +873,7 @@ class SqlMetric(Model, AuditMixinNullable):
         return (
             "{parent_name}.[{obj.metric_name}](id:{obj.id})"
         ).format(obj=self,
-                 parent_name=self.table.full_name)
+                 parent_name=self.table.full_name) if self.table else None
 
 
 class TableColumn(Model, AuditMixinNullable):
@@ -1372,7 +1372,9 @@ class DruidMetric(Model, AuditMixinNullable):
         return (
             "{parent_name}.[{obj.metric_name}](id:{obj.id})"
         ).format(obj=self,
-                 parent_name=self.datasource.full_name)
+                 parent_name=self.datasource.full_name
+                 ) if self.datasource else None
+
 
 class DruidColumn(Model, AuditMixinNullable):
 
