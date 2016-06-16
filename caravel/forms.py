@@ -285,6 +285,14 @@ class FormFactory(object):
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")
             }),
+            'bottom_margin': (FreeFormSelectField, {
+                "label": _("Bottom Margin"),
+                "choices": self.choicify([50, 75, 100, 125, 150, 200]),
+                "default": 50,
+                "description": _(
+                    "Bottom marging, in pixels, allowing for more room for "
+                    "axis labels"),
+            }),
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
                 "default": "one day",
@@ -548,6 +556,14 @@ class FormFactory(object):
                     "{{ width }} and/or {{ height }} in your URL string."
                 ),
                 "default": 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
+            }),
+            'x_axis_label': (TextField, {
+                "label": _("X Axis Label"),
+                "default": '',
+            }),
+            'y_axis_label': (TextField, {
+                "label": _("X Axis Label"),
+                "default": '',
             }),
             'where': (TextField, {
                 "label": _("Custom WHERE clause"),

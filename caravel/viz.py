@@ -761,6 +761,7 @@ class BubbleViz(NVD3Viz):
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
             'max_bubble_size',
+            ('x_axis_label', 'y_axis_label'),
         )
     },)
 
@@ -925,8 +926,9 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('x_axis_format', 'y_axis_format'),
             ('line_interpolation', 'x_axis_showminmax'),
+            ('x_axis_format', 'y_axis_format'),
+            ('x_axis_label', 'y_axis_label'),
         ),
     }, {
         'label': _('Advanced Analytics'),
@@ -1071,7 +1073,8 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
             ('y_log_scale', 'contribution'),
             ('x_axis_format', 'y_axis_format'),
             ('line_interpolation', 'bar_stacked'),
-            ('x_axis_showminmax', None),
+            ('x_axis_showminmax', 'bottom_margin'),
+            ('x_axis_label', 'y_axis_label'),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
@@ -1153,7 +1156,8 @@ class DistributionBarViz(DistributionPieViz):
             'metrics',
             'row_limit',
             ('show_legend', 'bar_stacked'),
-            ('y_axis_format', None),
+            ('y_axis_format', 'bottom_margin'),
+            ('x_axis_label', 'y_axis_label'),
         )
     },)
     form_overrides = {
