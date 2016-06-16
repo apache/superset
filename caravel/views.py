@@ -20,7 +20,7 @@ from flask import (
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babelpkg import gettext as __
 from flask_babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
@@ -853,7 +853,7 @@ class Caravel(BaseView):
             msg = "Slice [{}] has been overwritten".format(slc.slice_name)
             flash(msg, "info")
 
-    @has_access
+    @has_access_api
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
@@ -867,7 +867,7 @@ class Caravel(BaseView):
             db.session.commit()
         return Response("OK", mimetype="application/json")
 
-    @has_access
+    @has_access_api
     @expose("/activity_per_day")
     def activity_per_day(self):
         """endpoint to power the calendar heatmap on the welcome page"""
@@ -907,7 +907,7 @@ class Caravel(BaseView):
         session.close()
         return "SUCCESS"
 
-    @has_access
+    @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         """Tests a sqla connection"""
