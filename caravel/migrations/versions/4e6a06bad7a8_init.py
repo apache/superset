@@ -88,7 +88,7 @@ def upgrade():
     sa.Column('changed_on', sa.DateTime(), nullable=False),
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('datasource_name', sa.String(length=250), nullable=True),
-    sa.Column('column_name', sa.String(length=255), sa.ForeignKey("datasources.datasource_name"), nullable=True),
+    sa.Column('column_name', sa.String(length=255), nullable=True),
     sa.Column('is_active', sa.Boolean(), nullable=True),
     sa.Column('type', sa.String(length=32), nullable=True),
     sa.Column('groupby', sa.Boolean(), nullable=True),

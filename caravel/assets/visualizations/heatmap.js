@@ -21,6 +21,7 @@ function heatmapVis(slice) {
     };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
       var matrix = {};
       if (error) {
         slice.error(error.responseText);
@@ -221,7 +222,7 @@ function heatmapVis(slice) {
         imageObj.src = canvas.node().toDataURL();
       }
 
-      slice.done();
+      slice.done(payload);
 
     });
   }

@@ -18,10 +18,10 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 # ---------------------------------------------------------
-# Caravel specifix config
+# Caravel specific config
 # ---------------------------------------------------------
 ROW_LIMIT = 50000
-WEBSERVER_THREADS = 8
+CARAVEL_WORKERS = 16
 
 CARAVEL_WEBSERVER_PORT = 8088
 CARAVEL_WEBSERVER_TIMEOUT = 60
@@ -53,7 +53,7 @@ SHOW_STACKTRACE = True
 APP_NAME = "Caravel"
 
 # Uncomment to setup Setup an App icon
-# APP_ICON = "/static/img/something.png"
+APP_ICON = "/static/assets/images/caravel_logo.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -176,9 +176,8 @@ BACKUP_COUNT = 30
 
 try:
     from caravel_config import *  # noqa
-except Exception:
+except ImportError:
     pass
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
-

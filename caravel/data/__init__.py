@@ -383,74 +383,67 @@ def load_world_bank_health_n_pop():
     js = textwrap.dedent("""\
     [
         {
+            "size_y": 4,
+            "size_x": 2,
+            "col": 9,
+            "slice_id": "605",
+            "row": 6
+        },
+        {
+            "size_y": 4,
+            "size_x": 2,
+            "col": 11,
+            "slice_id": "606",
+            "row": 6
+        },
+        {
             "size_y": 2,
-            "size_x": 3,
-            "col": 10,
-            "slice_id": "22",
-            "row": 1
+            "size_x": 2,
+            "col": 1,
+            "slice_id": "607",
+            "row": 0
+        },
+        {
+            "size_y": 2,
+            "size_x": 2,
+            "col": 3,
+            "slice_id": "608",
+            "row": 0
         },
         {
             "size_y": 3,
-            "size_x": 3,
-            "col": 10,
-            "slice_id": "23",
+            "size_x": 8,
+            "col": 5,
+            "slice_id": "609",
             "row": 3
         },
         {
-            "size_y": 8,
-            "size_x": 3,
+            "size_y": 4,
+            "size_x": 8,
             "col": 1,
-            "slice_id": "24",
-            "row": 1
-        },
-        {
-            "size_y": 3,
-            "size_x": 6,
-            "col": 4,
-            "slice_id": "25",
+            "slice_id": "610",
             "row": 6
         },
         {
-            "size_y": 5,
-            "size_x": 6,
-            "col": 4,
-            "slice_id": "26",
-            "row": 1
-        },
-        {
-            "size_y": 4,
-            "size_x": 6,
-            "col": 7,
-            "slice_id": "27",
-            "row": 9
+            "size_y": 3,
+            "size_x": 4,
+            "col": 9,
+            "slice_id": "611",
+            "row": 0
         },
         {
             "size_y": 3,
-            "size_x": 3,
-            "col": 10,
-            "slice_id": "28",
-            "row": 6
+            "size_x": 4,
+            "col": 5,
+            "slice_id": "612",
+            "row": 0
         },
         {
             "size_y": 4,
-            "size_x": 6,
+            "size_x": 4,
             "col": 1,
-            "slice_id": "29",
-            "row": 9
-        },
-        {
-            "size_y": 4,
-            "size_x": 5,
-            "col": 8,
-            "slice_id": "30",
-            "row": 13
-        },
-        {
-            "size_y": 4,
-            "size_x": 7,
-            "col": 1,
-            "slice_id": "31",
-            "row": 13
+            "slice_id": "613",
+            "row": 2
         }
     ]
     """)
@@ -476,14 +469,14 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Flat")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
         box-shadow: none;
         border-radius: 0px;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 1px solid #000;
         background-color: #EAEAEA;
     }
@@ -516,7 +509,7 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Courier Black")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
@@ -530,7 +523,7 @@ def load_css_templates():
     .navbar {
         box-shadow: none;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 2px solid #000;
         background-color: #EAEAEA;
     }
@@ -588,7 +581,7 @@ def load_birth_names():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [birth_names] reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name='birth_names')
@@ -836,7 +829,7 @@ def load_unicode_test_data():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [unicode_test] reference")
     obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
     if not obj:
         obj = TBL(table_name='unicode_test')
@@ -915,7 +908,7 @@ def load_random_time_series_data():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [random_time_series] reference")
     obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
     if not obj:
         obj = TBL(table_name='random_time_series')
