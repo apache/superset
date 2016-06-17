@@ -36,6 +36,7 @@ function nvd3Vis(slice) {
       var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
+      var reduceXTicks = fd.reduce_x_ticks || false;
 
       nv.addGraph(function () {
         switch (viz_type) {
@@ -63,7 +64,9 @@ function nvd3Vis(slice) {
             .showControls(true)
             .groupSpacing(0.1);
 
-            width = barchartWidth();
+            if (!reduceXTicks) {
+              width = barchartWidth();
+            }
             chart.width(width);
             chart.xAxis
             .showMaxMin(false)
@@ -75,7 +78,7 @@ function nvd3Vis(slice) {
           case 'dist_bar':
             chart = nv.models.multiBarChart()
             .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
-            .reduceXTicks(false)
+            .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
 
@@ -83,7 +86,9 @@ function nvd3Vis(slice) {
             .showMaxMin(false);
 
             chart.stacked(fd.bar_stacked);
-            width = barchartWidth();
+            if (!reduceXTicks) {
+              width = barchartWidth();
+            }
             chart.width(width);
             break;
 

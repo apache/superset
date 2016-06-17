@@ -1075,6 +1075,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
             ('line_interpolation', 'bar_stacked'),
             ('x_axis_showminmax', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
+            ('reduce_x_ticks', None),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
@@ -1158,6 +1159,7 @@ class DistributionBarViz(DistributionPieViz):
             ('show_legend', 'bar_stacked'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
+            ('reduce_x_ticks', None),
         )
     },)
     form_overrides = {
