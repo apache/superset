@@ -604,11 +604,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         """Returns a string that the database flavor understands as a date"""
         tf = tf or '%Y-%m-%d %H:%M:%S.%f'
         # default = "'{}'".format(dttm.strftime(tf))
-        if col_type[:7] == "VARCHAR":
-            return "'{}'".format(dttm.strftime(tf))
-        elif col_type == "BIGINT":
-            return '{}'.long(dttm.strftime('%s'))
-        elif db_expr:
+        # if col_type[:7] == "VARCHAR":
+        #     return "'{}'".format(dttm.strftime(tf))
+        # elif col_type == "BIGINT":
+        #     return '{}'.long(dttm.strftime('%s'))
+        # elif db_expr:
+        #     return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+        # else:
+        #     return "'{}'".format(dttm.strftime(tf))
+        if db_expr:
             return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
         else:
             return "'{}'".format(dttm.strftime(tf))
@@ -780,6 +784,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
             )
+        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine

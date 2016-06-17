@@ -155,13 +155,18 @@ class BaseViz(object):
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
-        print(type(self.datasource.table_columns[1]))
+        print(df.timestamp.values)
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(
-                    df.timestamp, utc=False, format=timestamp_format)
+                if timestamp_format == "unix":
+                    df.timestamp = datetime.fromtimestamp(int(df.timestamp)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False)
+                else:
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
