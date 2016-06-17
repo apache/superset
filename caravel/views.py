@@ -724,7 +724,6 @@ class Caravel(BaseView):
                 .filter_by(id=slice_id)
                 .first()
             )
-            print("CHRIS", slc.slice_url)
         if not datasource:
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
