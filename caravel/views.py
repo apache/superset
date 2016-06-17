@@ -724,6 +724,7 @@ class Caravel(BaseView):
                 .filter_by(id=slice_id)
                 .first()
             )
+            print("CHRIS", slc.slice_url)
         if not datasource:
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
@@ -952,6 +953,19 @@ class Caravel(BaseView):
         return Response(
             json.dumps({'count': count}),
             mimetype="application/json")
+
+    @has_access
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        """Redirects a request for a slice id to its corresponding URL"""
+        session = db.session()
+        qry = session.query(models.Slice).filter_by(id=int(slice_id))
+        slc = qry.first()
+        if slc:
+            return redirect(slc.slice_url)
+        else:
+            flash("The specified slice could not be found", "danger")
+            return redirect('/slicemodelview/list/')
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
