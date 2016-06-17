@@ -439,9 +439,12 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
-    def dttm_converter(self, dttm):
+    def dttm_converter(self, dttm, tf=None):
         """Returns a string that the database flavor understands as a date"""
-        default = "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
+        if tf.lower() == 'unix':
+            tf = '%s'
+        default = "'{}'".format(dttm.strftime(tf))
         iso = dttm.isoformat()
         d = {
             'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
@@ -519,6 +522,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    table_columns = relationship("TableColumn", back_populates="table")
 
     baselink = "tablemodelview"
 
@@ -596,6 +600,33 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
+    def dttm_converter(self, dttm, tf=None, col_type=None, db_expr=None):
+        """Returns a string that the database flavor understands as a date"""
+        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
+        # default = "'{}'".format(dttm.strftime(tf))
+        if col_type[:7] == "VARCHAR":
+            return "'{}'".format(dttm.strftime(tf))
+        elif col_type == "BIGINT":
+            return '{}'.long(dttm.strftime('%s'))
+        elif db_expr:
+            return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+        else:
+            return "'{}'".format(dttm.strftime(tf))
+        # iso = dttm.isoformat()
+        # d = {
+        #     'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
+        #     'mysql': default,
+        #     'oracle':
+        #         """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
+        #             dttm.isoformat()),
+        #     'presto': default,
+        #     'sqlite': default,
+        # }
+        # for k, v in d.items():
+        #     if self.sqlalchemy_uri.startswith(k):
+        #         return v
+        # return default
+
     def query(  # sqla
             self, groupby, metrics,
             granularity,
@@ -657,9 +688,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             timestamp = dttm_expr
 
             
-
-
-
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
@@ -678,20 +706,23 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             column_info = db.session().query(TableColumn).filter_by(table_id=self.id, column_name=granularity).first()
             tf = column_info.python_date_format
             db_expr = column_info.database_expression
-            colunm_type = column_info.type
-            if colunm_type[:7] == 'VARCHAR':
-                
+            column_type = column_info.type
+
+            outer_from = text(self.dttm_converter(from_dttm, tf=tf, col_type=column_type))
+            outer_to = text(self.dttm_converter(to_dttm, tf=tf, col_type=column_type))
+
+
             time_filter = [
-                timestamp >= text(self.database.dttm_converter(from_dttm)),
-                timestamp <= text(self.database.dttm_converter(to_dttm)),
+                timestamp >= outer_from,
+                timestamp <= outer_to,
             ]
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
                 inner_time_filter[0] = timestamp >= text(
-                    self.database.dttm_converter(inner_from_dttm))
+                    self.dttm_converter(inner_from_dttm, tf=tf, col_type=column_type))
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= text(
-                    self.database.dttm_converter(inner_to_dttm))
+                    self.dttm_converter(inner_to_dttm, tf=tf, col_type=column_type))
         else:
             inner_time_filter = []
 
