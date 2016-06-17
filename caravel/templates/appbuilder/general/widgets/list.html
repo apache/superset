@@ -64,7 +64,7 @@
                           {{'checked' if item[value] }}
                           name="{{ '{}__{}'.format(pk, value) }}"
                           id="{{ '{}__{}'.format(pk, value) }}"
-                          onchange="toggleCheckbox('/caravel/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/', '#{{ '{}__{}'.format(pk, value) }}');">
+                          data-checkbox-api-prefix="/caravel/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/">
                     {% else %}
                       {{ item[value]|safe }}
                     {% endif %}
@@ -77,7 +77,5 @@
     {% block end_content scoped %}
         </table>
         </div>
-
-        <script src="/static/assets/javascripts/dist/global_functions.entry.js"></script>
     {% endblock %}
 

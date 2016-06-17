@@ -11,7 +11,7 @@ var config = {
     welcome: APP_DIR + '/javascripts/welcome.js',
     sql: APP_DIR + '/javascripts/sql.js',
     standalone: APP_DIR + '/javascripts/standalone.js',
-    global_functions: APP_DIR + '/javascripts/global_functions.js'
+    common: APP_DIR + '/javascripts/common.js'
   },
   output: {
     path: BUILD_DIR,
