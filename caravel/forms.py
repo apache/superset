@@ -225,6 +225,16 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'reduce_x_ticks': (BetterBooleanField, {
+                "label": _("Reduce X ticks"),
+                "default": False,
+                "description": (
+                    "Reduces the number of X axis ticks to be rendered. "
+                    "If true, the x axis wont overflow and labels may be "
+                    "missing. If false, a minimum width will be applied "
+                    "to columns and the width may overflow into an "
+                    "horizontal scroll."),
+            }),
             'include_series': (BetterBooleanField, {
                 "label": _("Include Series"),
                 "default": False,
@@ -562,7 +572,7 @@ class FormFactory(object):
                 "default": '',
             }),
             'y_axis_label': (TextField, {
-                "label": _("X Axis Label"),
+                "label": _("Y Axis Label"),
                 "default": '',
             }),
             'where': (TextField, {
