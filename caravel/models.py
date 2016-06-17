@@ -599,35 +599,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def dttm_converter(self, dttm, tf=None, col_type=None, db_expr=None):
-        """Returns a string that the database flavor understands as a date"""
+        """If datebase_expression is empty, the internal dttm
+           will be parsed as the string with the pattern that
+           user input (python_date_format)
+           If database_expression is not empty, the internal dttm
+           will be parsed as the sql sentence for datebase to convert"""
         tf = tf or '%Y-%m-%d %H:%M:%S.%f'
-        # default = "'{}'".format(dttm.strftime(tf))
-        # if col_type[:7] == "VARCHAR":
-        #     return "'{}'".format(dttm.strftime(tf))
-        # elif col_type == "BIGINT":
-        #     return '{}'.long(dttm.strftime('%s'))
-        # elif db_expr:
-        #     return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
-        # else:
-        #     return "'{}'".format(dttm.strftime(tf))
         if db_expr:
             return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
         else:
             return "'{}'".format(dttm.strftime(tf))
-        # iso = dttm.isoformat()
-        # d = {
-        #     'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
-        #     'mysql': default,
-        #     'oracle':
-        #         """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-        #             dttm.isoformat()),
-        #     'presto': default,
-        #     'sqlite': default,
-        # }
-        # for k, v in d.items():
-        #     if self.sqlalchemy_uri.startswith(k):
-        #         return v
-        # return default
 
     def query(  # sqla
             self, groupby, metrics,

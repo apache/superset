@@ -155,12 +155,15 @@ class BaseViz(object):
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
-        print(df.timestamp.values)
+        # Transform the timestamp we received from database to pandas supported
+        # datetime format. If no python_date_format is specified, the pattern will
+        # be considered as the default ISO date format
+        # If the datetime format is unix, the parse will use the corresponding
+        # parsing logic.
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-
                 if timestamp_format == "unix":
                     df.timestamp = datetime.fromtimestamp(int(df.timestamp)).strftime('%Y-%m-%d %H:%M:%S.%f')
                     df.timestamp = pd.to_datetime(

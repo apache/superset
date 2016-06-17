@@ -163,10 +163,12 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
         'python_date_format': (_(
-            "The format of timestamp field, if this"
-            "column is DATETIME-like")),
+            "The pattern of timestamp format, use python string pattern "
+            "expression. If the timestamp is in epoch time, put in 'unix' "
+            "and put in the corresponding datebase expression for conversion")),
         'database_expression': (_(
-            "Specify datetime casting format")),
+            "The database expression for caravel to parse internal datetime "
+            "constants to database timestamp type according to the DBAPI")),
     }
     label_columns = {
         'column_name': _("Column"),
