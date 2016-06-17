@@ -683,6 +683,15 @@ class R(BaseView):
 appbuilder.add_view_no_menu(R)
 
 
+def caravel_has_access(permission_name, view_name):
+    """Protecting from has_access failing from missing perms/view"""
+    try:
+        return appbuilder.sm.has_access(permission_name, view_name)
+    except:
+        pass
+    return False
+
+
 class Caravel(BaseView):
 
     """The base views for Caravel!"""
@@ -705,12 +714,9 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = self.appbuilder.sm.has_access(
-            'can_add', 'SliceModelView')
-        slice_edit_perm = self.appbuilder.sm.has_access(
-            'can_edit', 'SliceModelView')
-        slice_download_perm = self.appbuilder.sm.has_access(
-            'can_download', 'SliceModelView')
+        slice_add_perm = caravel_has_access('can_add', 'SliceModelView')
+        slice_edit_perm = caravel_has_access('can_edit', 'SliceModelView')
+        slice_download_perm = caravel_has_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -722,9 +728,9 @@ class Caravel(BaseView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = self.appbuilder.sm.has_access(
+        all_datasource_access = caravel_has_access(
             'all_datasource_access', 'all_datasource_access')
-        datasource_access = self.appbuilder.sm.has_access(
+        datasource_access = caravel_has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
