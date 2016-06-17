@@ -1,5 +1,4 @@
 // JS
-var $  = window.$ || require('jquery');
 var d3 = window.d3 || require('d3');
 var px = window.px || require('../javascripts/modules/caravel.js');
 var nv = require('nvd3');
@@ -8,12 +7,23 @@ var nv = require('nvd3');
 require('../node_modules/nvd3/build/nv.d3.min.css');
 require('./nvd3_vis.css');
 
+const minBarWidth = 15;
+
 function nvd3Vis(slice) {
   var chart;
   var colorKey = 'key';
 
   var render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      var width = slice.width();
+      var barchartWidth = function () {
+        var bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        if (bars * minBarWidth > width) {
+          return bars * minBarWidth;
+        } else {
+          return width;
+        }
+      };
       slice.container.html('');
       if (error) {
         if (error.responseText) {
@@ -53,9 +63,11 @@ function nvd3Vis(slice) {
             .showControls(true)
             .groupSpacing(0.1);
 
+            width = barchartWidth();
+            chart.width(width);
             chart.xAxis
             .showMaxMin(false)
-            .staggerLabels(true);
+            .staggerLabels(true)
 
             chart.stacked(fd.bar_stacked);
             break;
@@ -71,6 +83,8 @@ function nvd3Vis(slice) {
             .showMaxMin(false);
 
             chart.stacked(fd.bar_stacked);
+            width = barchartWidth();
+            chart.width(width);
             break;
 
           case 'pie':
@@ -206,6 +220,22 @@ function nvd3Vis(slice) {
           return px.color.category21(d[colorKey]);
         });
 
+        if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+          var distance = 0;
+          if (fd.bottom_margin) {
+            distance = fd.bottom_margin - 50;
+          }
+          chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
+        }
+
+        if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
+          chart.yAxis.axisLabel(fd.y_axis_label);
+          chart.margin({ left: 90 });
+        }
+
+        if (fd.bottom_margin) {
+          chart.margin({ bottom: fd.bottom_margin });
+        }
         var svg = d3.select(slice.selector).select("svg");
         if (svg.empty()) {
           svg = d3.select(slice.selector).append("svg");
@@ -215,6 +245,7 @@ function nvd3Vis(slice) {
         .datum(payload.data)
         .transition().duration(500)
         .attr('height', height)
+        .attr('width', width)
         .call(chart);
 
         return chart;

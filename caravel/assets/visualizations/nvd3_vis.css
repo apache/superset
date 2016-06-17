@@ -6,3 +6,24 @@ g.caravel path {
   font-weight: bold;
   font-size: 15px !important;
 }
+
+text.nv-axislabel {
+  // font-weight: bold;
+  font-size: 14px;
+}
+
+.dist_bar .slice_container {
+  overflow-x: auto;
+}
+
+.dist_bar svg.nvd3-svg {
+  width: auto;
+}
+
+.bar .slice_container {
+  overflow-x: auto;
+}
+
+.bar svg.nvd3-svg {
+  width: auto;
+}
