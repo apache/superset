@@ -851,10 +851,11 @@ class FormFactory(object):
             grains = viz.datasource.database.grains()
 
             if grains:
+                grains_choices = [(grain.name, grain.label) for grain in grains]
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
                     _('Time Grain'),
-                    choices=self.choicify((grain.name for grain in grains)),
+                    choices=grains_choices,
                     default="Time Column",
                     description=_(
                         "The time granularity for the visualization. This "

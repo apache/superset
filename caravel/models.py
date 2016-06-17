@@ -23,7 +23,7 @@ from flask import request, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from flask_babelpkg import gettext as _
+from flask_babelpkg import lazy_gettext as _
 
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
@@ -395,42 +395,42 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        Grain = namedtuple('Grain', 'name function')
+        Grain = namedtuple('Grain', 'name label function')
         db_time_grains = {
             'presto': (
-                Grain('Time Column', '{col}'),
-                Grain('week', "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', "date_trunc('month', CAST({col} AS DATE))"),
-                Grain("week_ending_saturday", "date_add('day', 5, "
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
+                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
+                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
                       "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
-                Grain("week_start_sunday", "date_add('day', -1, "
+                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
                       "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
             ),
             'mysql': (
-                Grain('Time Column', '{col}'),
-                Grain("hour", "DATE_ADD(DATE({col}), "
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
                       "INTERVAL HOUR({col}) HOUR)"),
-                Grain('day', 'DATE({col})'),
-                Grain("week", "DATE(DATE_SUB({col}, "
+                Grain('day', _('day'), 'DATE({col})'),
+                Grain("week", _('week'), "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
-                Grain("month", "DATE(DATE_SUB({col}, "
+                Grain("month", _('month'), "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
             'sqlite': (
-                Grain('Time Column', '{col}'),
-                Grain('day', 'DATE({col})'),
-                Grain("week", "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain('day', _('day'), 'DATE({col})'),
+                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
-                Grain("Time Column", "{col}"),
-                Grain("second", "DATE_TRUNC('second', {col})"),
-                Grain("minute", "DATE_TRUNC('minute', {col})"),
-                Grain("hour", "DATE_TRUNC('hour', {col})"),
-                Grain("day", "DATE_TRUNC('day', {col})"),
-                Grain("week", "DATE_TRUNC('week', {col})"),
-                Grain("month", "DATE_TRUNC('month', {col})"),
-                Grain("year", "DATE_TRUNC('year', {col})"),
+                Grain("Time Column", _('Time Column'), "{col}"),
+                Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
+                Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
+                Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
+                Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
+                Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
+                Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
+                Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
             ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
