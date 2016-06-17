@@ -228,7 +228,7 @@ class FormFactory(object):
             'reduce_x_ticks': (BetterBooleanField, {
                 "label": _("Reduce X ticks"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Reduces the number of X axis ticks to be rendered. "
                     "If true, the x axis wont overflow and labels may be "
                     "missing. If false, a minimum width will be applied "

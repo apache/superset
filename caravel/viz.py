@@ -1159,7 +1159,7 @@ class DistributionBarViz(DistributionPieViz):
             ('show_legend', 'bar_stacked'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
-            ('reduce_x_ticks', None),
+            ('reduce_x_ticks', 'contribution'),
         )
     },)
     form_overrides = {
@@ -1198,6 +1198,10 @@ class DistributionBarViz(DistributionPieViz):
             index=self.groupby,
             columns=columns,
             values=self.metrics)
+        if fd.get("contribution"):
+            pt = pt.fillna(0)
+            pt = pt.T
+            pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         return pt
 

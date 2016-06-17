@@ -16,8 +16,14 @@ function nvd3Vis(slice) {
   var render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       var width = slice.width();
+      var fd = payload.form_data;
       var barchartWidth = function () {
-        var bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        var bars;
+        if (fd.bar_stacked) {
+          bars = d3.max(payload.data, function (d) { return d.values.length; });
+        } else {
+          bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        }
         if (bars * minBarWidth > width) {
           return bars * minBarWidth;
         } else {
@@ -33,7 +39,6 @@ function nvd3Vis(slice) {
         }
         return '';
       }
-      var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
       var reduceXTicks = fd.reduce_x_ticks || false;
@@ -61,7 +66,7 @@ function nvd3Vis(slice) {
 
           case 'bar':
             chart = nv.models.multiBarChart()
-            .showControls(true)
+            .showControls(false)
             .groupSpacing(0.1);
 
             if (!reduceXTicks) {
@@ -77,7 +82,7 @@ function nvd3Vis(slice) {
 
           case 'dist_bar':
             chart = nv.models.multiBarChart()
-            .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .showControls(false) //Allow user to switch between 'Grouped' and 'Stacked' mode.
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
