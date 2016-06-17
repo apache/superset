@@ -14,7 +14,7 @@ from alembic import op
 from caravel import db, models
 from caravel.utils import generic_find_constraint_name
 import logging
-
+import traceback
 naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 }
@@ -37,6 +37,7 @@ def upgrade():
                 'datasources',
                 ['datasource_name'], ['datasource_name'])
     except:
+        # print(traceback.print_exc())
         logging.warning(
             "Could not find or drop constraint on `columns`")
 

@@ -633,6 +633,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs = []
         groupby_exprs = []
 
+
         if groupby:
             select_exprs = []
             inner_select_exprs = []
@@ -655,6 +656,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             dttm_expr = cols[granularity].sqla_col.label('timestamp')
             timestamp = dttm_expr
 
+            
+
+
+
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
@@ -669,6 +674,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 groupby_exprs += [timestamp_grain]
 
             tf = '%Y-%m-%d %H:%M:%S.%f'
+
+            column_info = db.session().query(TableColumn).filter_by(table_id=self.id, column_name=granularity).first()
+            tf = column_info.python_date_format
+            db_expr = column_info.database_expression
+            colunm_type = column_info.type
+            if colunm_type[:7] == 'VARCHAR':
+                
             time_filter = [
                 timestamp >= text(self.database.dttm_converter(from_dttm)),
                 timestamp <= text(self.database.dttm_converter(to_dttm)),
@@ -898,6 +910,8 @@ class TableColumn(Model, AuditMixinNullable):
     filterable = Column(Boolean, default=False)
     expression = Column(Text, default='')
     description = Column(Text, default='')
+    python_date_format = Column(String(255))
+    database_expression = Column(String(255))
 
     def __repr__(self):
         return self.column_name

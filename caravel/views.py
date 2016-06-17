@@ -148,7 +148,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', ]
+        'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -162,6 +162,11 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
+        'python_date_format': (_(
+            "The format of timestamp field, if this"
+            "column is DATETIME-like")),
+        'database_expression': (_(
+            "Specify datetime casting format")),
     }
     label_columns = {
         'column_name': _("Column"),
@@ -176,6 +181,8 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'max': _("Max"),
         'expression': _("Expression"),
         'is_dttm': _("Is temporal"),
+        'python_date_format': _("Datetime Format"),
+        'database_expression': _("Database Expression")
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
