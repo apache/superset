@@ -28,7 +28,7 @@ from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
-from caravel import app, utils, cache
+from caravel import app, utils, cache, db
 from caravel.forms import FormFactory
 from caravel.utils import flasher
 
@@ -140,20 +140,34 @@ class BaseViz(object):
         self.results = None
 
         # The datasource here can be different backend but the interface is common
-        # timestamp_format is not necessary for Druid side, so when the datasource
-        # is not table, timestamp_format is set as None
         timestamp_format = None
         if self.datasource.type == 'table':
-            timestamp_format = self.datasource.timestamp_format
+            dttm_cols = self.datasource.dttm_cols
+            col_name = query_obj['granularity']
+            if col_name not in dttm_cols:
+                col_name = self.datasource.main_dttm_col
+            columns = self.datasource.table_columns
+            for col in columns:
+                if col_name == col:
+                    timestamp_format = col.python_date_format
+                    break
+
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
+        print(df.timestamp.values)
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(
-                    df.timestamp, utc=False, format=timestamp_format)
+
+                if timestamp_format == "unix":
+                    df.timestamp = datetime.fromtimestamp(int(df.timestamp)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False)
+                else:
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
