@@ -4,7 +4,7 @@ import logging
 from logging.config import fileConfig
 
 from alembic import context
-from flask.ext.appbuilder import Base
+from flask_appbuilder import Base
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides

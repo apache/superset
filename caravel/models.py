@@ -23,7 +23,7 @@ from flask import request, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from flask_babelpkg import gettext as _
+from flask_babelpkg import lazy_gettext as _
 
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
@@ -38,9 +38,10 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy_utils import EncryptedType
 
-from caravel import app, db, get_session, utils
+import caravel
+from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
-from caravel.utils import flasher
+from caravel.utils import flasher, MetricPermException
 
 config = app.config
 
@@ -394,40 +395,42 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        Grain = namedtuple('Grain', 'name function')
+        Grain = namedtuple('Grain', 'name label function')
         db_time_grains = {
             'presto': (
-                Grain('Time Column', '{col}'),
-                Grain('week', "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', "date_trunc('month', CAST({col} AS DATE))"),
-                Grain("week_ending_saturday", "date_add('day', 5, "
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
+                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
+                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
                       "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
-                Grain("week_start_sunday", "date_add('day', -1, "
+                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
                       "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
             ),
             'mysql': (
-                Grain('Time Column', '{col}'),
-                Grain('day', 'DATE({col})'),
-                Grain("week", "DATE(DATE_SUB({col}, "
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
+                      "INTERVAL HOUR({col}) HOUR)"),
+                Grain('day', _('day'), 'DATE({col})'),
+                Grain("week", _('week'), "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
-                Grain("month", "DATE(DATE_SUB({col}, "
+                Grain("month", _('month'), "DATE(DATE_SUB({col}, "
                       "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
             ),
             'sqlite': (
-                Grain('Time Column', '{col}'),
-                Grain('day', 'DATE({col})'),
-                Grain("week", "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain('Time Column', _('Time Column'), '{col}'),
+                Grain('day', _('day'), 'DATE({col})'),
+                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
-                Grain("Time Column", "{col}"),
-                Grain("second", "DATE_TRUNC('second', {col})"),
-                Grain("minute", "DATE_TRUNC('minute', {col})"),
-                Grain("hour", "DATE_TRUNC('hour', {col})"),
-                Grain("day", "DATE_TRUNC('day', {col})"),
-                Grain("week", "DATE_TRUNC('week', {col})"),
-                Grain("month", "DATE_TRUNC('month', {col})"),
-                Grain("year", "DATE_TRUNC('year', {col})"),
+                Grain("Time Column", _('Time Column'), "{col}"),
+                Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
+                Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
+                Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
+                Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
+                Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
+                Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
+                Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
             ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
@@ -734,7 +737,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
             )
-        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -859,11 +861,19 @@ class SqlMetric(Model, AuditMixinNullable):
         'SqlaTable', backref='metrics', foreign_keys=[table_id])
     expression = Column(Text)
     description = Column(Text)
+    is_restricted = Column(Boolean, default=False, nullable=True)
 
     @property
     def sqla_col(self):
         name = self.metric_name
         return literal_column(self.expression).label(name)
+
+    @property
+    def perm(self):
+        return (
+            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+        ).format(obj=self,
+                 parent_name=self.table.full_name) if self.table else None
 
 
 class TableColumn(Model, AuditMixinNullable):
@@ -1055,7 +1065,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @classmethod
     def sync_to_db(cls, name, cluster):
         """Fetches metadata for that datasource and merges the Caravel db"""
-        print("Syncing Druid datasource [{}]".format(name))
+        logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
@@ -1066,6 +1076,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Refreshing datasource [{}]".format(name), "info")
         session.flush()
         datasource.cluster = cluster
+        session.flush()
 
         cols = datasource.latest_metadata()
         if not cols:
@@ -1084,6 +1095,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if datatype == "STRING":
                 col_obj.groupby = True
                 col_obj.filterable = True
+            if datatype == "hyperUnique" or datatype == "thetaSketch":
+                col_obj.count_distinct = True
             if col_obj:
                 col_obj.type = cols[col]['type']
             session.flush()
@@ -1151,11 +1164,25 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         conf.get('fn', "/"),
                         conf.get('fields', []),
                         conf.get('name', ''))
+
         aggregations = {
             m.metric_name: m.json_obj
             for m in self.metrics
             if m.metric_name in all_metrics
-        }
+            }
+
+        rejected_metrics = [
+            m.metric_name for m in self.metrics
+            if m.is_restricted and
+            m.metric_name in aggregations.keys() and
+            not sm.has_access('metric_access', m.perm)
+            ]
+
+        if rejected_metrics:
+            raise MetricPermException(
+                "Access to the metrics denied: " + ', '.join(rejected_metrics)
+            )
+
         granularity = granularity or "all"
         if granularity != "all":
             granularity = utils.parse_human_timedelta(
@@ -1345,6 +1372,7 @@ class DruidMetric(Model, AuditMixinNullable):
                               enable_typechecks=False)
     json = Column(Text)
     description = Column(Text)
+    is_restricted = Column(Boolean, default=False, nullable=True)
 
     @property
     def json_obj(self):
@@ -1353,6 +1381,14 @@ class DruidMetric(Model, AuditMixinNullable):
         except Exception:
             obj = {}
         return obj
+
+    @property
+    def perm(self):
+        return (
+            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+        ).format(obj=self,
+                 parent_name=self.datasource.full_name
+                 ) if self.datasource else None
 
 
 class DruidColumn(Model, AuditMixinNullable):
@@ -1432,18 +1468,31 @@ class DruidColumn(Model, AuditMixinNullable):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.count_distinct:
-            mt = 'count_distinct'
             name = 'count_distinct__' + self.column_name
-            metrics.append(DruidMetric(
-                metric_name=name,
-                verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
-                metric_type='count_distinct',
-                json=json.dumps({
-                    'type': 'cardinality',
-                    'name': name,
-                    'fieldNames': [self.column_name]})
-            ))
+            if self.type == 'hyperUnique' or self.type == 'thetaSketch':
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
+                    metric_type=self.type,
+                    json=json.dumps({
+                        'type': self.type,
+                        'name': name,
+                        'fieldName': self.column_name
+                    })
+                ))
+            else:
+                mt = 'count_distinct'
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    verbose_name='COUNT(DISTINCT {})'.format(self.column_name),
+                    metric_type='count_distinct',
+                    json=json.dumps({
+                        'type': 'cardinality',
+                        'name': name,
+                        'fieldNames': [self.column_name]})
+                ))
         session = get_session()
+        new_metrics = []
         for metric in metrics:
             m = (
                 session.query(M)
@@ -1454,8 +1503,11 @@ class DruidColumn(Model, AuditMixinNullable):
             )
             metric.datasource_name = self.datasource_name
             if not m:
+                new_metrics.append(metric)
                 session.add(metric)
                 session.flush()
+
+        utils.init_metrics_perm(caravel, new_metrics)
 
 
 class FavStar(Model):

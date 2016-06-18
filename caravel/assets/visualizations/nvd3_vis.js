@@ -1,5 +1,4 @@
 // JS
-var $  = window.$ || require('jquery');
 var d3 = window.d3 || require('d3');
 var px = window.px || require('../javascripts/modules/caravel.js');
 var nv = require('nvd3');
@@ -8,16 +7,36 @@ var nv = require('nvd3');
 require('../node_modules/nvd3/build/nv.d3.min.css');
 require('./nvd3_vis.css');
 
+const minBarWidth = 15;
+
 function nvd3Vis(slice) {
   var chart;
   var colorKey = 'key';
 
   var render = function () {
-    $.getJSON(slice.jsonEndpoint(), function (payload) {
+    d3.json(slice.jsonEndpoint(), function (error, payload) {
+      var width = slice.width();
+      var barchartWidth = function () {
+        var bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        if (bars * minBarWidth > width) {
+          return bars * minBarWidth;
+        } else {
+          return width;
+        }
+      };
+      slice.container.html('');
+      if (error) {
+        if (error.responseText) {
+          slice.error(error.responseText);
+        } else {
+          slice.error(error);
+        }
+        return '';
+      }
       var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
-      slice.container.html('');
+      var reduceXTicks = fd.reduce_x_ticks || false;
 
       nv.addGraph(function () {
         switch (viz_type) {
@@ -25,8 +44,7 @@ function nvd3Vis(slice) {
             if (fd.show_brush) {
               chart = nv.models.lineWithFocusChart();
               chart.lines2.xScale(d3.time.scale.utc());
-              chart
-              .x2Axis
+              chart.x2Axis
               .showMaxMin(fd.x_axis_showminmax)
               .staggerLabels(false);
             } else {
@@ -46,9 +64,13 @@ function nvd3Vis(slice) {
             .showControls(true)
             .groupSpacing(0.1);
 
+            if (!reduceXTicks) {
+              width = barchartWidth();
+            }
+            chart.width(width);
             chart.xAxis
             .showMaxMin(false)
-            .staggerLabels(true);
+            .staggerLabels(true)
 
             chart.stacked(fd.bar_stacked);
             break;
@@ -56,7 +78,7 @@ function nvd3Vis(slice) {
           case 'dist_bar':
             chart = nv.models.multiBarChart()
             .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
-            .reduceXTicks(false)
+            .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
 
@@ -64,6 +86,10 @@ function nvd3Vis(slice) {
             .showMaxMin(false);
 
             chart.stacked(fd.bar_stacked);
+            if (!reduceXTicks) {
+              width = barchartWidth();
+            }
+            chart.width(width);
             break;
 
           case 'pie':
@@ -133,103 +159,117 @@ function nvd3Vis(slice) {
 
           default:
             throw new Error("Unrecognized visualization for nvd3" + viz_type);
-      }
-
-      if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
-        chart.showLegend(fd.show_legend);
-      }
-
-      var height = slice.height();
-      height -= 15;  // accounting for the staggered xAxis
-
-      chart.height(height);
-      slice.container.css('height', height + 'px');
-
-      if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
-        chart.useInteractiveGuideline(true);
-      }
-      if (fd.y_axis_zero) {
-        chart.forceY([0]);
-      } else if (fd.y_log_scale) {
-        chart.yScale(d3.scale.log());
-      }
-      if (fd.x_log_scale) {
-        chart.xScale(d3.scale.log());
-      }
-      var xAxisFormatter = null;
-      if (viz_type === 'bubble') {
-        xAxisFormatter = d3.format('.3s');
-      } else if (fd.x_axis_format === 'smart_date') {
-        xAxisFormatter = px.formatDate;
-        chart.xAxis.tickFormat(xAxisFormatter);
-      } else if (fd.x_axis_format !== undefined) {
-        xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
-        chart.xAxis.tickFormat(xAxisFormatter);
-      }
-
-      if (chart.hasOwnProperty("x2Axis")) {
-        chart.x2Axis.tickFormat(xAxisFormatter);
-        height += 30;
-      }
-
-      if (viz_type === 'bubble') {
-        chart.xAxis.tickFormat(d3.format('.3s'));
-      } else if (fd.x_axis_format === 'smart_date') {
-        chart.xAxis.tickFormat(px.formatDate);
-      } else if (fd.x_axis_format !== undefined) {
-        chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
-      }
-      if (chart.yAxis !== undefined) {
-        chart.yAxis.tickFormat(d3.format('.3s'));
-      }
-
-      if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
-        chart.yAxis.tickFormat(d3.format('.3p'));
-        if (chart.y2Axis !== undefined) {
-          chart.y2Axis.tickFormat(d3.format('.3p'));
         }
-      } else if (fd.y_axis_format) {
-        chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
-        if (chart.y2Axis !== undefined) {
-          chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+        if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
+          chart.showLegend(fd.show_legend);
         }
-      }
-      chart.color(function (d, i) {
-        return px.color.category21(d[colorKey]);
+
+        var height = slice.height();
+        height -= 15;  // accounting for the staggered xAxis
+
+        chart.height(height);
+        slice.container.css('height', height + 'px');
+
+        if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
+          chart.useInteractiveGuideline(true);
+        }
+        if (fd.y_axis_zero) {
+          chart.forceY([0]);
+        } else if (fd.y_log_scale) {
+          chart.yScale(d3.scale.log());
+        }
+        if (fd.x_log_scale) {
+          chart.xScale(d3.scale.log());
+        }
+        var xAxisFormatter = null;
+        if (viz_type === 'bubble') {
+          xAxisFormatter = d3.format('.3s');
+        } else if (fd.x_axis_format === 'smart_date') {
+          xAxisFormatter = px.formatDate;
+          chart.xAxis.tickFormat(xAxisFormatter);
+        } else if (fd.x_axis_format !== undefined) {
+          xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
+          chart.xAxis.tickFormat(xAxisFormatter);
+        }
+
+        if (chart.hasOwnProperty("x2Axis")) {
+          chart.x2Axis.tickFormat(xAxisFormatter);
+          height += 30;
+        }
+
+        if (viz_type === 'bubble') {
+          chart.xAxis.tickFormat(d3.format('.3s'));
+        } else if (fd.x_axis_format === 'smart_date') {
+          chart.xAxis.tickFormat(px.formatDate);
+        } else if (fd.x_axis_format !== undefined) {
+          chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
+        }
+        if (chart.yAxis !== undefined) {
+          chart.yAxis.tickFormat(d3.format('.3s'));
+        }
+
+        if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
+          chart.yAxis.tickFormat(d3.format('.3p'));
+          if (chart.y2Axis !== undefined) {
+            chart.y2Axis.tickFormat(d3.format('.3p'));
+          }
+        } else if (fd.y_axis_format) {
+          chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
+
+          if (chart.y2Axis !== undefined) {
+            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+          }
+        }
+        chart.color(function (d, i) {
+          return px.color.category21(d[colorKey]);
+        });
+
+        if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
+          var distance = 0;
+          if (fd.bottom_margin) {
+            distance = fd.bottom_margin - 50;
+          }
+          chart.xAxis.axisLabel(fd.x_axis_label).axisLabelDistance(distance);
+        }
+
+        if (fd.y_axis_label && fd.y_axis_label !== '' && chart.yAxis) {
+          chart.yAxis.axisLabel(fd.y_axis_label);
+          chart.margin({ left: 90 });
+        }
+
+        if (fd.bottom_margin) {
+          chart.margin({ bottom: fd.bottom_margin });
+        }
+        var svg = d3.select(slice.selector).select("svg");
+        if (svg.empty()) {
+          svg = d3.select(slice.selector).append("svg");
+        }
+
+        svg
+        .datum(payload.data)
+        .transition().duration(500)
+        .attr('height', height)
+        .attr('width', width)
+        .call(chart);
+
+        return chart;
       });
 
-      var svg = d3.select(slice.selector).select("svg");
-      if (svg.empty()) {
-        svg = d3.select(slice.selector).append("svg");
-      }
-
-      svg
-      .datum(payload.data)
-      .transition().duration(500)
-      .attr('height', height)
-      .call(chart);
-
-      return chart;
+      slice.done(payload);
     });
+  };
 
-    slice.done(payload);
-  })
-  .fail(function (xhr) {
-    slice.error(xhr.responseText);
-  });
-};
+  var update = function () {
+    if (chart && chart.update) {
+      chart.update();
+    }
+  };
 
-var update = function () {
-  if (chart && chart.update) {
-    chart.update();
-  }
-};
-
-return {
-  render: render,
-  resize: update
-};
+  return {
+    render: render,
+    resize: update
+  };
 }
 
 module.exports = nvd3Vis;

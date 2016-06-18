@@ -69,7 +69,12 @@ class CaravelTestCase(unittest.TestCase):
         assert 'Welcome' in resp.data.decode('utf-8')
 
     def logout(self):
-        resp = self.client.get('/logout/', follow_redirects=True)
+        self.client.get('/logout/', follow_redirects=True)
+
+    def test_welcome(self):
+        self.login()
+        resp = self.client.get('/caravel/welcome')
+        assert 'Welcome' in resp.data.decode('utf-8')
 
     def setup_public_access_for_dashboard(self, table_name):
         public_role = appbuilder.sm.find_role('Public')
@@ -93,9 +98,13 @@ class CoreTests(CaravelTestCase):
     def __init__(self, *args, **kwargs):
         # Load examples first, so that we setup proper permission-view relations
         # for all example data sources.
-        self.load_examples()
         super(CoreTests, self).__init__(*args, **kwargs)
-        self.table_ids = {tbl.table_name: tbl.id  for tbl in (
+
+    @classmethod
+    def setUpClass(cls):
+        cli.load_examples(load_test_data=True)
+        utils.init(caravel)
+        cls.table_ids = {tbl.table_name: tbl.id  for tbl in (
             db.session
             .query(models.SqlaTable)
             .all()
@@ -107,16 +116,14 @@ class CoreTests(CaravelTestCase):
     def tearDown(self):
         pass
 
-    def load_examples(self):
-        cli.load_examples(load_test_data=True)
-
     def test_save_slice(self):
         self.login(username='admin')
 
-        slice_id = (
+        slc = (
             db.session.query(models.Slice.id)
             .filter_by(slice_name="Energy Sankey")
-            .scalar())
+            .first())
+        slice_id = slc.id
 
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
@@ -139,12 +146,12 @@ class CoreTests(CaravelTestCase):
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                (slc.slice_name, slc.slice_url),
-                (slc.slice_name, slc.viz.json_endpoint),
-                (slc.slice_name, slc.viz.csv_endpoint),
+                (slc.slice_name, 'slice_url',  slc.slice_url),
+                (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
+                (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
             ]
-        for name, url in urls:
-            print("Slice: " + name)
+        for name, method, url in urls:
+            print("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
 
     def test_dashboard(self):
@@ -220,7 +227,7 @@ class CoreTests(CaravelTestCase):
         # Try access after adding appropriate permissions.
         resp = self.client.get('/slicemodelview/list/')
         data = resp.data.decode('utf-8')
-        assert 'birth_names</a>' in data
+        assert 'birth_names' in data
 
         resp = self.client.get('/dashboardmodelview/list/')
         data = resp.data.decode('utf-8')

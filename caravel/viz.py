@@ -10,19 +10,21 @@ from __future__ import unicode_literals
 
 import copy
 import hashlib
-import json
 import logging
 import uuid
+import zlib
+
 from collections import OrderedDict, defaultdict
 from datetime import datetime, timedelta
+
 import pandas as pd
 import numpy as np
 from flask import request
 from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
-from pandas.io.json import dumps
+import simplejson as json
 from six import string_types
-from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
@@ -81,11 +83,9 @@ class BaseViz(object):
         defaults.update(data)
         self.form_data = defaults
         self.query = ""
-
         self.form_data['previous_viz_type'] = self.viz_type
         self.token = self.form_data.get(
             'token', 'token_' + uuid.uuid4().hex[:8])
-
         self.metrics = self.form_data.get('metrics') or []
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
@@ -113,12 +113,19 @@ class BaseViz(object):
             del d['action']
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
-        od = OrderedDict()
+        od = MultiDict()
         for key in sorted(d.keys()):
             if d[key] is False:
                 del d[key]
             else:
-                od[key] = d[key]
+                if isinstance(d, MultiDict):
+                    v = d.getlist(key)
+                else:
+                    v = d.get(key)
+                if not isinstance(v, list):
+                    v = [v]
+                for item in sorted(v):
+                    od.add(key, item)
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
@@ -143,6 +150,7 @@ class BaseViz(object):
                 df.timestamp = pd.to_datetime(df.timestamp, utc=False)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
+        df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(0)
         return df
 
@@ -235,12 +243,20 @@ class BaseViz(object):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
+
         if self.form_data.get('force') != 'true':
             payload = cache.get(cache_key)
+
         if payload:
             is_cached = True
+            try:
+                payload = json.loads(zlib.decompress(payload))
+            except Exception as e:
+                logging.error("Error reading cache")
+                payload = None
             logging.info("Serving from cache")
-        else:
+
+        if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
             payload = {
@@ -256,13 +272,22 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            cache.set(cache_key, payload, timeout=cache_timeout)
+            try:
+                cache.set(
+                    cache_key,
+                    zlib.compress(self.json_dumps(payload)),
+                    timeout=cache_timeout)
+            except Exception as e:
+                # cache.set call can fail if the backend is down or if
+                # the key is too large or whatever other reasons
+                logging.warning("Could not cache key {}".format(cache_key))
+                cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
 
     def json_dumps(self, obj):
         """Used by get_json, can be overridden to use specific switches"""
-        return dumps(obj)
+        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
 
     @property
     def data(self):
@@ -303,7 +328,7 @@ class BaseViz(object):
 
     @property
     def json_data(self):
-        return dumps(self.data)
+        return json.dumps(self.data)
 
 
 class TableViz(BaseViz):
@@ -314,20 +339,20 @@ class TableViz(BaseViz):
     verbose_name = _("Table View")
     credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
     fieldsets = ({
-        'label': "GROUP BY",
-        'description': 'Use this section if you want a query that aggregates',
+        'label': _("GROUP BY"),
+        'description': _('Use this section if you want a query that aggregates'),
         'fields': (
             'groupby',
             'metrics',
         )
     }, {
-        'label': "NOT GROUPED BY",
-        'description': 'Use this section if you want to query atomic rows',
+        'label': _("NOT GROUPED BY"),
+        'description': _('Use this section if you want to query atomic rows'),
         'fields': (
             'all_columns',
         )
     }, {
-        'label': "Options",
+        'label': _("Options"),
         'fields': (
             'table_timestamp_format',
             'row_limit',
@@ -731,11 +756,12 @@ class BubbleViz(NVD3Viz):
             'size', 'limit',
         )
     }, {
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
             'max_bubble_size',
+            ('x_axis_label', 'y_axis_label'),
         )
     },)
 
@@ -803,7 +829,7 @@ class BigNumberViz(BaseViz):
     },)
     form_overrides = {
         'y_axis_format': {
-            'label': 'Number format',
+            'label': _('Number format'),
         }
     }
 
@@ -824,7 +850,7 @@ class BigNumberViz(BaseViz):
     def get_data(self):
         form_data = self.form_data
         df = self.get_df()
-        df.sort(columns=df.columns[0], inplace=True)
+        df.sort_values(by=df.columns[0], inplace=True)
         compare_lag = form_data.get("compare_lag", "")
         compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
         return {
@@ -852,7 +878,7 @@ class BigNumberTotalViz(BaseViz):
     },)
     form_overrides = {
         'y_axis_format': {
-            'label': 'Number format',
+            'label': _('Number format'),
         }
     }
 
@@ -873,7 +899,7 @@ class BigNumberTotalViz(BaseViz):
     def get_data(self):
         form_data = self.form_data
         df = self.get_df()
-        df = df.sort(columns=df.columns[0])
+        df.sort_values(by=df.columns[0], inplace=True)
         return {
             'data': df.values.tolist(),
             'subheader': form_data.get('subheader', ''),
@@ -900,12 +926,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('x_axis_format', 'y_axis_format'),
             ('line_interpolation', 'x_axis_showminmax'),
+            ('x_axis_format', 'y_axis_format'),
+            ('x_axis_label', 'y_axis_label'),
         ),
     }, {
         'label': _('Advanced Analytics'),
-        'description': (
+        'description': _(
             "This section contains options "
             "that allow for advanced analytical post processing "
             "of query results"),
@@ -975,7 +1002,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         for col in df.columns:
             if col == '':
                 cols.append('N/A')
-            elif col == None:
+            elif col is None:
                 cols.append('NULL')
             else:
                 cols.append(col)
@@ -1046,7 +1073,9 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
             ('y_log_scale', 'contribution'),
             ('x_axis_format', 'y_axis_format'),
             ('line_interpolation', 'bar_stacked'),
-            ('x_axis_showminmax', None),
+            ('x_axis_showminmax', 'bottom_margin'),
+            ('x_axis_label', 'y_axis_label'),
+            ('reduce_x_ticks', None),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
@@ -1103,7 +1132,7 @@ class DistributionPieViz(NVD3Viz):
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
-        df.sort(self.metrics[0], ascending=False, inplace=True)
+        df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
         return df
 
     def get_data(self):
@@ -1128,7 +1157,9 @@ class DistributionBarViz(DistributionPieViz):
             'metrics',
             'row_limit',
             ('show_legend', 'bar_stacked'),
-            ('y_axis_format', None),
+            ('y_axis_format', 'bottom_margin'),
+            ('x_axis_label', 'y_axis_label'),
+            ('reduce_x_ticks', None),
         )
     },)
     form_overrides = {
@@ -1137,7 +1168,7 @@ class DistributionBarViz(DistributionPieViz):
         },
         'columns': {
             'label': _('Breakdowns'),
-            'description': "Defines how each series is broken down",
+            'description': _("Defines how each series is broken down"),
         },
     }
 
@@ -1219,7 +1250,7 @@ class SunburstViz(BaseViz):
                 "define the arc segment sizes"),
         },
         'secondary_metric': {
-            'label': 'Secondary Metric',
+            'label': _('Secondary Metric'),
             'description': _(
                 "This secondary metric is used to "
                 "define the color as a ratio against the primary metric. "
@@ -1348,7 +1379,7 @@ class DirectedForceViz(BaseViz):
     form_overrides = {
         'groupby': {
             'label': _('Source / Target'),
-            'description':_( "Choose a source and a target"),
+            'description': _("Choose a source and a target"),
         },
     }
 
@@ -1559,7 +1590,7 @@ class HeatmapViz(BaseViz):
             'metric',
         )
     }, {
-        'label': 'Heatmap Options',
+        'label': _('Heatmap Options'),
         'fields': (
             'linear_color_scheme',
             ('xscale_interval', 'yscale_interval'),
@@ -1619,7 +1650,7 @@ class HorizonViz(NVD3TimeSeriesViz):
         '<a href="https://www.npmjs.com/package/d3-horizon-chart">'
         'd3-horizon-chart</a>')
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
-        'label': 'Chart Options',
+        'label': _('Chart Options'),
         'fields': (
             ('series_height', 'horizon_color_scale'),
         ), }]

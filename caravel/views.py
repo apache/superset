@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import json
 import logging
 import re
+import sys
 import time
 import traceback
 from datetime import datetime
@@ -29,6 +30,7 @@ from sqlalchemy.sql.expression import TextAsFrom
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
+import caravel
 from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
@@ -99,7 +101,6 @@ class FilterDashboard(CaravelFilter):
             .query(Slice.id)
             .filter(Slice.perm.in_(self.get_perms()))
         )
-        print([r for r in slice_ids_qry.all()])
         query = query.filter(
             Dash.id.in_(
                 db.session.query(Dash.id)
@@ -108,7 +109,6 @@ class FilterDashboard(CaravelFilter):
                 .filter(Slice.id.in_(slice_ids_qry))
             )
         )
-        print(query)
         return query
 
 
@@ -211,14 +211,19 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type',
+                    'is_restricted']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table']
+        'expression', 'table', 'is_restricted']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `count(DISTINCT userid)`", True),
+        'is_restricted': _("Whether the access to this metric is restricted "
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     add_columns = edit_columns
     page_size = 500
@@ -230,15 +235,20 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': _("SQL Expression"),
         'table': _("Table"),
     }
+
+    def post_add(self, new_item):
+        utils.init_metrics_perm(caravel, [new_item])
+
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type',
+                    'is_restricted']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource']
+        'datasource', 'is_restricted']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -250,6 +260,10 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Druid Post Aggregation]"
             "(http://druid.io/docs/latest/querying/post-aggregations.html)",
             True),
+        'is_restricted': _("Whether the access to this metric is restricted "
+                           "to certain roles. Only roles with the permission "
+                           "'metric access on XXX (the name of this metric)' "
+                           "are allowed to access this metric"),
     }
     label_columns = {
         'metric_name': _("Metric"),
@@ -259,6 +273,11 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'json': _("JSON"),
         'datasource': _("Druid Datasource"),
     }
+
+    def post_add(self, new_item):
+        utils.init_metrics_perm(caravel, [new_item])
+
+
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
@@ -430,6 +449,14 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             "dashboard view. Supports "
             "<a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
+        'params': _(
+            "These parameters are generated dynamically when clicking "
+            "the save or overwrite button in the explore view. This JSON "
+            "object is exposed here for reference and for power users who may "
+            "want to alter specific parameters."),
+        'cache_timeout': _(
+            "Duration (in seconds) of the caching timeout for this slice."
+        ),
     }
     base_filters = [['id', FilterSlice, lambda: []]]
     label_columns = {
@@ -448,6 +475,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_update(self, obj):
+        check_ownership(obj)
+
+    def pre_delete(self, obj):
         check_ownership(obj)
 
 appbuilder.add_view(
@@ -492,6 +522,12 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             "in the dashboard view where changes are immediately "
             "visible"),
         'slug': _("To get a readable URL for your dashboard"),
+        'json_metadata': _(
+            "This JSON object is generated dynamically when clicking "
+            "the save or overwrite button in the dashboard view. It "
+            "is exposed here for reference and for power users who may "
+            "want to alter specific parameters."),
+        'owners': _("Owners is a list of users who can alter the dashboard."),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
     label_columns = {
@@ -641,10 +677,19 @@ class R(BaseView):
     @expose("/msg/")
     def msg(self):
         """Redirects to specified url while flash a message"""
-        flash(request.args.get("msg"), "info")
+        flash(Markup(request.args.get("msg")), "info")
         return redirect(request.args.get("url"))
 
 appbuilder.add_view_no_menu(R)
+
+
+def caravel_has_access(permission_name, view_name):
+    """Protecting from has_access failing from missing perms/view"""
+    try:
+        return appbuilder.sm.has_access(permission_name, view_name)
+    except:
+        pass
+    return False
 
 
 class Caravel(BaseView):
@@ -669,12 +714,9 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = self.appbuilder.sm.has_access(
-            'can_add', 'SliceModelView')
-        slice_edit_perm = self.appbuilder.sm.has_access(
-            'can_edit', 'SliceModelView')
-        slice_download_perm = self.appbuilder.sm.has_access(
-            'can_download', 'SliceModelView')
+        slice_add_perm = caravel_has_access('can_add', 'SliceModelView')
+        slice_edit_perm = caravel_has_access('can_edit', 'SliceModelView')
+        slice_download_perm = caravel_has_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -686,9 +728,9 @@ class Caravel(BaseView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = self.appbuilder.sm.has_access(
+        all_datasource_access = caravel_has_access(
             'all_datasource_access', 'all_datasource_access')
-        datasource_access = self.appbuilder.sm.has_access(
+        datasource_access = caravel_has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
@@ -727,15 +769,13 @@ class Caravel(BaseView):
             resp = Response(
                 payload,
                 status=status,
-                headers=generate_download_headers("json"),
                 mimetype="application/json")
             return resp
         elif request.args.get("csv") == "true":
-            status = 200
             payload = obj.get_csv()
             return Response(
                 payload,
-                status=status,
+                status=200,
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
@@ -811,7 +851,7 @@ class Caravel(BaseView):
     def overwrite_slice(self, slc):
         can_update = check_ownership(slc, raise_if_false=False)
         if not can_update:
-            flash("You cannot overwrite [{}]".format(slc))
+            flash("You cannot overwrite [{}]".format(slc), "danger")
         else:
             session = db.session()
             session.merge(slc)
@@ -823,11 +863,9 @@ class Caravel(BaseView):
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
-        model = None
-        if model_view == 'TableColumnInlineView':
-            model = models.TableColumn
-        elif model_view == 'DruidColumnInlineView':
-            model = models.DruidColumn
+        views = sys.modules[__name__]
+        model_view_cls = getattr(views, model_view)
+        model = model_view_cls.datamodel.obj
 
         obj = db.session.query(model).filter_by(id=id_).first()
         if obj:

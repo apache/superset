@@ -222,7 +222,7 @@ function heatmapVis(slice) {
         imageObj.src = canvas.node().toDataURL();
       }
 
-      slice.done();
+      slice.done(payload);
 
     });
   }

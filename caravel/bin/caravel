@@ -58,16 +58,20 @@ def init():
     """Inits the Caravel application"""
     utils.init(caravel)
 
-@manager.command
-def version():
+@manager.option(
+    '-v', '--verbose', action='store_true',
+    help="Show extra information")
+def version(verbose):
     """Prints the current version number"""
     s = (
         "\n{boat}\n\n"
         "-----------------------\n"
         "Caravel {version}\n"
-        "-----------------------\n").format(
+        "-----------------------").format(
         boat=ascii_art.boat, version=caravel.VERSION)
     print(s)
+    if verbose:
+        print("[DB] : " + "{}".format(db.engine))
 
 @manager.option(
     '-t', '--load-test-data', action='store_true',
