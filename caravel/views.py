@@ -162,17 +162,17 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
-        'python_date_format': (_(
+        'python_date_format': Markup(
             "The pattern of timestamp format, use "
             "<a href='https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior'>"
             "python datetime string pattern</a> "
             "expression. If the timestamp is in epoch time, put in 'unix' "
-            "and put in the corresponding datebase expression for conversion")),
-        'database_expression': (_(
+            "and put in the corresponding datebase expression for conversion"),
+        'database_expression': utils.markdown(
             "The database expression for caravel to parse internal datetime "
             "constants to database timestamp type according to the DBAPI. "
-            "The string should follow the pattern of python string formatte\n"
-            "Ex: TO_DATE({}, 'YYYYMMDD')")),
+            "The string should follow the pattern of python string formatter \n"
+            "`Ex: TO_DATE({}, 'YYYYMMDD')`", True),
     }
     label_columns = {
         'column_name': _("Column"),
@@ -355,11 +355,11 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on_']
     add_columns = [
-        'table_name', 'database', 'schema', 'timestamp_format',
+        'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
         'table_name', 'is_featured', 'database', 'schema',
-        'timestamp_format', 'description', 'owner',
+        'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
@@ -368,8 +368,6 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'schema': (
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
-        'timestamp_format': (
-            "Use default(%Y-%m-%d %H:%M:%S.%f) if empty"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),

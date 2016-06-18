@@ -439,25 +439,6 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
-    def dttm_converter(self, dttm, tf=None):
-        """Returns a string that the database flavor understands as a date"""
-        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
-        default = "'{}'".format(dttm.strftime(tf))
-        iso = dttm.isoformat()
-        d = {
-            'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
-            'mysql': default,
-            'oracle':
-                """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-                    dttm.isoformat()),
-            'presto': default,
-            'sqlite': default,
-        }
-        for k, v in d.items():
-            if self.sqlalchemy_uri.startswith(k):
-                return v
-        return default
-
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
 
