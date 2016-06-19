@@ -82,6 +82,15 @@ the credential you entered while creating the admin account, and navigate to
 your datasources for Caravel to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
+Configuration behind a load balancer
+------------------------------------
+
+If you are running caravel behind a load balancer or reverse proxy (e.g. NGINX
+or ELB on AWS), you may need to utilise a healthcheck endpoint so that your
+load balancer knows if your caravel instance is running. This is provided
+at ``/health`` which will return a 200 response containing "OK" if the
+webserver is running.
+
 
 Configuration
 -------------
