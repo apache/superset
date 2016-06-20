@@ -162,12 +162,12 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
-        'python_date_format': Markup(
+        'python_date_format': utils.markdown(Markup(
             "The pattern of timestamp format, use "
             "<a href='https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior'>"
             "python datetime string pattern</a> "
-            "expression. If the timestamp is in epoch time, put in 'unix' "
-            "and put in the corresponding datebase expression for conversion"),
+            "expression. If time is stored in epoch format, put `epoch`. Leave `database_expression` "
+            "below empty if timestamp is stored in String or Integer(epoch) type"), True),
         'database_expression': utils.markdown(
             "The database expression to casr internal datetime "
             "constants to database date/imestamp type according to the DBAPI. "
