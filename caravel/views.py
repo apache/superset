@@ -169,9 +169,10 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "expression. If the timestamp is in epoch time, put in 'unix' "
             "and put in the corresponding datebase expression for conversion"),
         'database_expression': utils.markdown(
-            "The database expression for caravel to parse internal datetime "
-            "constants to database timestamp type according to the DBAPI. "
-            "The string should follow the pattern of python string formatter \n"
+            "The database expression to casr internal datetime "
+            "constants to database date/imestamp type according to the DBAPI. "
+            "The expression should follow the pattern of %Y-%m-%d %H:%M:%S, based on different DBAPI. "
+            "The string should be a python string formatter \n"
             "`Ex: TO_DATE({}, 'YYYYMMDD')`", True),
     }
     label_columns = {
@@ -697,6 +698,15 @@ class R(BaseView):
 appbuilder.add_view_no_menu(R)
 
 
+def caravel_has_access(permission_name, view_name):
+    """Protecting from has_access failing from missing perms/view"""
+    try:
+        return appbuilder.sm.has_access(permission_name, view_name)
+    except:
+        pass
+    return False
+
+
 class Caravel(BaseView):
 
     """The base views for Caravel!"""
@@ -719,12 +729,9 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = self.appbuilder.sm.has_access(
-            'can_add', 'SliceModelView')
-        slice_edit_perm = self.appbuilder.sm.has_access(
-            'can_edit', 'SliceModelView')
-        slice_download_perm = self.appbuilder.sm.has_access(
-            'can_download', 'SliceModelView')
+        slice_add_perm = caravel_has_access('can_add', 'SliceModelView')
+        slice_edit_perm = caravel_has_access('can_edit', 'SliceModelView')
+        slice_download_perm = caravel_has_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -736,9 +743,9 @@ class Caravel(BaseView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = self.appbuilder.sm.has_access(
+        all_datasource_access = caravel_has_access(
             'all_datasource_access', 'all_datasource_access')
-        datasource_access = self.appbuilder.sm.has_access(
+        datasource_access = caravel_has_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
@@ -960,6 +967,19 @@ class Caravel(BaseView):
         return Response(
             json.dumps({'count': count}),
             mimetype="application/json")
+
+    @has_access
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        """Redirects a request for a slice id to its corresponding URL"""
+        session = db.session()
+        qry = session.query(models.Slice).filter_by(id=int(slice_id))
+        slc = qry.first()
+        if slc:
+            return redirect(slc.slice_url)
+        else:
+            flash("The specified slice could not be found", "danger")
+            return redirect('/slicemodelview/list/')
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
