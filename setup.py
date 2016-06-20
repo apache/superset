@@ -17,7 +17,7 @@ setup(
     scripts=['caravel/bin/caravel'],
     install_requires=[
         'babel==2.3.4',
-        'cryptography==1.1.1',
+        'cryptography==1.1.2',
         'flask-appbuilder==1.7.1',
         'Flask-BabelPkg==0.9.6',
         'flask-cache==0.13.1',
