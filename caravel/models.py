@@ -588,7 +588,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         tf = tf or '%Y-%m-%d %H:%M:%S.%f'
         if db_expr:
             return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
-        else if tf == 'epoch':
+        elif tf == 'epoch':
             return str((dttm - datetime(1970,1,1)).total_seconds())
         else:
             return "'{}'".format(dttm.strftime(tf))

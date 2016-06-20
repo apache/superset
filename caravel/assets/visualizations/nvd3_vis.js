@@ -75,7 +75,7 @@ function nvd3Vis(slice) {
             chart.width(width);
             chart.xAxis
             .showMaxMin(false)
-            .staggerLabels(true)
+            .staggerLabels(true);
 
             chart.stacked(fd.bar_stacked);
             break;
