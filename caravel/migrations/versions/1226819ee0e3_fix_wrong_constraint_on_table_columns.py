@@ -14,6 +14,7 @@ from alembic import op
 from caravel import db, models
 from caravel.utils import generic_find_constraint_name
 import logging
+
 naming_convention = {
     "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
 }
