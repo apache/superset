@@ -663,8 +663,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            tf = '%Y-%m-%d %H:%M:%S.%f'
-
             column_info = db.session().query(TableColumn).filter_by(table_id=self.id, column_name=granularity).first()
             tf = column_info.python_date_format
             db_expr = column_info.database_expression
@@ -672,7 +670,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
             outer_from = text(self.dttm_converter(from_dttm, tf=tf, col_type=column_type))
             outer_to = text(self.dttm_converter(to_dttm, tf=tf, col_type=column_type))
-
 
             time_filter = [
                 timestamp >= outer_from,
@@ -742,7 +739,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
             )
-        print(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
