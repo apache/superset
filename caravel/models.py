@@ -628,7 +628,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         select_exprs = []
         groupby_exprs = []
 
-
         if groupby:
             select_exprs = []
             inner_select_exprs = []
@@ -651,7 +650,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             dttm_expr = cols[granularity].sqla_col.label('timestamp')
             timestamp = dttm_expr
 
-            
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
