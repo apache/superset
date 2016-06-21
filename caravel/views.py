@@ -12,6 +12,7 @@ import time
 import traceback
 from datetime import datetime
 
+import functools
 import pandas as pd
 import sqlalchemy as sqla
 
@@ -20,7 +21,7 @@ from flask import (
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access
+from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babelpkg import gettext as __
 from flask_babelpkg import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
@@ -35,6 +36,38 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+
+
+def get_error_msg():
+    if config.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it")
+    return error_msg
+
+
+def api(f):
+    """
+    A decorator to label an endpoint as an API. Catches uncaught exceptions and
+    return the response in the JSON format
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except Exception as e:
+            logging.exception(e)
+            resp = Response(
+                json.dumps({
+                    'message': get_error_msg()
+                }),
+                status=500,
+                mimetype="application/json")
+            return resp
+
+    return functools.update_wrapper(wraps, f)
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -861,7 +894,8 @@ class Caravel(BaseView):
             msg = "Slice [{}] has been overwritten".format(slc.slice_name)
             flash(msg, "info")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
@@ -875,7 +909,8 @@ class Caravel(BaseView):
             db.session.commit()
         return Response("OK", mimetype="application/json")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/activity_per_day")
     def activity_per_day(self):
         """endpoint to power the calendar heatmap on the welcome page"""
@@ -891,7 +926,8 @@ class Caravel(BaseView):
         payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
@@ -915,7 +951,8 @@ class Caravel(BaseView):
         session.close()
         return "SUCCESS"
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         """Tests a sqla connection"""
@@ -1121,13 +1158,7 @@ class Caravel(BaseView):
 
     @app.errorhandler(500)
     def show_traceback(self):
-        if config.get("SHOW_STACKTRACE"):
-            error_msg = traceback.format_exc()
-        else:
-            error_msg = "FATAL ERROR\n"
-            error_msg = (
-                "Stacktrace is hidden. Change the SHOW_STACKTRACE "
-                "configuration setting to enable it")
+        error_msg = get_error_msg()
         return render_template(
             'caravel/traceback.html',
             error_msg=error_msg,

@@ -258,7 +258,7 @@ class CoreTests(CaravelTestCase):
 
         self.logout()
         self.assertRaises(
-            utils.CaravelSecurityException, self.test_save_dash, 'alpha')
+            AssertionError, self.test_save_dash, 'alpha')
 
         alpha = appbuilder.sm.find_user('alpha')
 
