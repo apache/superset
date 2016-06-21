@@ -295,6 +295,10 @@ class Dashboard(Model, AuditMixinNullable):
         return self.dashboard_title
 
     @property
+    def table_names(self):
+        return ", ".join({"{}".format(s.datasource) for s in self.slices})
+
+    @property
     def url(self):
         return "/caravel/dashboard/{}/".format(self.slug or self.id)
 

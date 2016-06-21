@@ -509,6 +509,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
+    show_columns = edit_columns + ['table_names']
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
@@ -541,6 +542,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         'position_json': _("Position JSON"),
         'css': _("CSS"),
         'json_metadata': _("JSON Metadata"),
+        'table_names': _("Underlying Tables"),
     }
 
     def pre_add(self, obj):
