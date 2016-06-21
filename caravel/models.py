@@ -28,6 +28,7 @@ from flask_babelpkg import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
+from pydruid.utils.having import Having, Aggregation
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -41,7 +42,7 @@ from sqlalchemy_utils import EncryptedType
 import caravel
 from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
-from caravel.utils import flasher, MetricPermException
+from caravel.utils import flasher, MetricPermException, DimSelector
 
 config = app.config
 
@@ -1191,37 +1192,14 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
-        filters = None
-        for col, op, eq in filter:
-            cond = None
-            if op == '==':
-                cond = Dimension(col) == eq
-            elif op == '!=':
-                cond = ~(Dimension(col) == eq)
-            elif op in ('in', 'not in'):
-                fields = []
-                splitted = eq.split(',')
-                if len(splitted) > 1:
-                    for s in eq.split(','):
-                        s = s.strip()
-                        fields.append(Dimension(col) == s)
-                    cond = Filter(type="or", fields=fields)
-                else:
-                    cond = Dimension(col) == eq
-                if op == 'not in':
-                    cond = ~cond
-            elif op == 'regex':
-                cond = Filter(type="regex", pattern=eq, dimension=col)
-            if filters:
-                filters = Filter(type="and", fields=[
-                    cond,
-                    filters
-                ])
-            else:
-                filters = cond
 
+        filters = self.get_filters(filter)
         if filters:
             qry['filter'] = filters
+
+        having_filters = self.get_having_filters(extras.get('having'))
+        if having_filters:
+            qry['having'] = having_filters
 
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
@@ -1302,6 +1280,62 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             df=df,
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
+
+    @staticmethod
+    def get_filters(raw_filters):
+        filters = None
+        for col, op, eq in raw_filters:
+            cond = None
+            if op == '==':
+                cond = Dimension(col) == eq
+            elif op == '!=':
+                cond = ~(Dimension(col) == eq)
+            elif op in ('in', 'not in'):
+                fields = []
+                splitted = eq.split(',')
+                if len(splitted) > 1:
+                    for s in eq.split(','):
+                        s = s.strip()
+                        fields.append(Dimension(col) == s)
+                    cond = Filter(type="or", fields=fields)
+                else:
+                    cond = Dimension(col) == eq
+                if op == 'not in':
+                    cond = ~cond
+            elif op == 'regex':
+                cond = Filter(type="regex", pattern=eq, dimension=col)
+            if filters:
+                filters = Filter(type="and", fields=[
+                    cond,
+                    filters
+                ])
+            else:
+                filters = cond
+        return filters
+
+    def get_having_filters(self, raw_filters):
+        filters = None
+        for col, op, eq in raw_filters:
+            cond = None
+            if op == '==':
+                if col in self.column_names:
+                    cond = DimSelector(dimension=col, value=eq)
+                else:
+                    cond = Aggregation(col) == eq
+            elif op == '!=':
+                cond = ~(Aggregation(col) == eq)
+            elif op == '>':
+                cond = Aggregation(col) > eq
+            elif op == '<':
+                cond = Aggregation(col) < eq
+            if filters:
+                filters = Filter(type="and", fields=[
+                    Having.build_having(cond),
+                    Having.build_having(filters)
+                ])
+            else:
+                filters = cond
+        return filters
 
 
 class Log(Model):

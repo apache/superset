@@ -132,7 +132,7 @@
                 </div>
               </div>
             {% endfor %}
-            <div class="panel panel-default">
+            <div id="filter_panel" class="panel panel-default">
               <div class="panel-heading">
                 <span class="legend_label">{{ _("Filters") }}</span>
                 <i  class="fa fa-info-circle" data-toggle="tooltip"
@@ -159,6 +159,41 @@
                 </button>
               </div>
             </div>
+
+
+            {% if form.having_col_0 %}
+              <div id="having_panel" class="panel panel-default">
+                <div class="panel-heading">
+                  <span class="legend_label">Result Filters ("having" filters)</span>
+                  <i class="fa fa-info-circle" data-toggle="tooltip"
+                     data-placement="bottom"
+                     title="The filters to apply after post-aggregation"></i>
+                  <span class="collapser"> [-]</span>
+                </div>
+                <div class="panel-body">
+                  <div id="having0" style="display: none;">
+                    <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
+                    <div class="row">
+                      <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
+                      <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
+                      <button type="button"
+                              class="btn btn-default btn-sm remove"
+                              aria-label="Delete filter">
+                                    <span class="fa fa-minus"
+                                          aria-hidden="true"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="filters"></div>
+                  <button type="button" id="plus"
+                          class="btn btn-default btn-sm"
+                          aria-label="Add a filter">
+                    <span class="fa fa-plus" aria-hidden="true"></span>
+                    <span>Add filter</span>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
             {{ form.slice_id() }}
             {{ form.slice_name() }}
             {{ form.collapsed_fieldsets() }}

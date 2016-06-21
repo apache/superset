@@ -162,21 +162,22 @@ class BaseViz(object):
     def form_class(self):
         return FormFactory(self).get_form()
 
-    def query_filters(self):
+    def query_filters(self, is_having_filter=False):
         """Processes the filters for the query"""
         form_data = self.form_data
         # Building filters
         filters = []
+        field_prefix = 'flt' if not is_having_filter else 'having'
         for i in range(1, 10):
-            col = form_data.get("flt_col_" + str(i))
-            op = form_data.get("flt_op_" + str(i))
-            eq = form_data.get("flt_eq_" + str(i))
+            col = form_data.get(field_prefix + "_col_" + str(i))
+            op = form_data.get(field_prefix + "_op_" + str(i))
+            eq = form_data.get(field_prefix + "_eq_" + str(i))
             if col and op and eq:
                 filters.append((col, op, eq))
 
         # Extra filters (coming from dashboard)
         extra_filters = form_data.get('extra_filters')
-        if extra_filters:
+        if extra_filters and not is_having_filter:
             extra_filters = json.loads(extra_filters)
             for slice_filters in extra_filters.values():
                 for col, vals in slice_filters.items():
@@ -208,7 +209,7 @@ class BaseViz(object):
         # for instance the extra where clause that applies only to Tables
         extras = {
             'where': form_data.get("where", ''),
-            'having': form_data.get("having", ''),
+            'having': self.query_filters(True) or form_data.get("having", ''),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
