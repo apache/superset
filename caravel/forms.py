@@ -846,6 +846,8 @@ class FormFactory(object):
                 setattr(QueryForm, attr, self.field_dict[attr])
 
         filter_choices = self.choicify(['in', 'not in'])
+        having_op_choices = []
+        filter_prefixes = ['flt']
         # datasource type specific form elements
         datasource_classname = viz.datasource.__class__.__name__
         time_fields = None
@@ -885,21 +887,31 @@ class FormFactory(object):
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
             field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
             filter_choices = self.choicify(['in', 'not in', 'regex'])
+            having_op_choices = self.choicify(['>', '<', '=='])
+            filter_prefixes += ['having']
         add_to_form(('since', 'until'))
 
-        filter_cols = viz.datasource.filterable_column_names or ['']
-        for i in range(10):
-            setattr(QueryForm, 'flt_col_' + str(i), SelectField(
-                _('Filter 1'),
-                default=filter_cols[0],
-                choices=self.choicify(filter_cols)))
-            setattr(QueryForm, 'flt_op_' + str(i), SelectField(
-                _('Filter 1'),
-                default='in',
-                choices=filter_choices))
-            setattr(
-                QueryForm, 'flt_eq_' + str(i),
-                TextField(_("Super"), default=''))
+        filter_cols = self.choicify(
+            viz.datasource.filterable_column_names or [''])
+        having_cols = filter_cols + viz.datasource.metrics_combo
+        for field_prefix in filter_prefixes:
+            is_having_filter = field_prefix == 'having'
+            col_choices = filter_cols if not is_having_filter else having_cols
+            op_choices = filter_choices if not is_having_filter else \
+                having_op_choices
+            for i in range(10):
+                setattr(QueryForm, field_prefix + '_col_' + str(i),
+                        SelectField(
+                            _('Filter 1'),
+                            default=col_choices[0][0],
+                            choices=col_choices))
+                setattr(QueryForm, field_prefix + '_op_' + str(i), SelectField(
+                    _('Filter 1'),
+                    default=op_choices[0][0],
+                    choices=op_choices))
+                setattr(
+                    QueryForm, field_prefix + '_eq_' + str(i),
+                    TextField(_("Super"), default=''))
 
         if time_fields:
             QueryForm.fieldsets = ({

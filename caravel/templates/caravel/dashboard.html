@@ -8,6 +8,7 @@
 {% block body %}
 
 <div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}" data-css="{{ dashboard.css }}">
+  {% include 'caravel/flash_wrapper.html' %}
 
 <!-- Modal -->
 <div class="modal fade" id="css_modal" tabindex="-1" role="dialog">

@@ -15,6 +15,13 @@ function nvd3Vis(slice) {
 
   var render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
+      // Check error first, otherwise payload can be null
+      if (error) {
+        slice.error(error.responseText, error);
+        return '';
+      }
+
       var width = slice.width();
       var fd = payload.form_data;
       var barchartWidth = function () {
@@ -30,15 +37,6 @@ function nvd3Vis(slice) {
           return width;
         }
       };
-      slice.container.html('');
-      if (error) {
-        if (error.responseText) {
-          slice.error(error.responseText);
-        } else {
-          slice.error(error);
-        }
-        return '';
-      }
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
       var reduceXTicks = fd.reduce_x_ticks || false;

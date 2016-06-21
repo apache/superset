@@ -365,9 +365,12 @@ var Dashboard = function (dashboardData) {
             });
           },
           error: function (error) {
+            var respJSON = error.responseJSON;
+            var errorMsg = (respJSON && respJSON.message) ? respJSON.message :
+                error.responseText;
             showModal({
               title: "Error",
-              body: "Sorry, there was an error saving this dashboard:<br />" + error
+              body: "Sorry, there was an error saving this dashboard:<br />" + errorMsg
             });
             console.warn("Save dashboard error", error);
           }

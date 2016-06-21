@@ -28,6 +28,7 @@ from flask_babelpkg import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
+from pydruid.utils.having import Having, Aggregation
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -41,7 +42,7 @@ from sqlalchemy_utils import EncryptedType
 import caravel
 from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
-from caravel.utils import flasher, MetricPermException
+from caravel.utils import flasher, MetricPermException, DimSelector
 
 config = app.config
 
@@ -293,6 +294,10 @@ class Dashboard(Model, AuditMixinNullable):
 
     def __repr__(self):
         return self.dashboard_title
+
+    @property
+    def table_names(self):
+        return ", ".join({"{}".format(s.datasource) for s in self.slices})
 
     @property
     def url(self):
@@ -955,7 +960,14 @@ class DruidCluster(Model, AuditMixinNullable):
 
         return json.loads(requests.get(endpoint).text)
 
+    def get_druid_version(self):
+        endpoint = (
+            "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
+        ).format(obj=self)
+        return json.loads(requests.get(endpoint).text)['version']
+
     def refresh_datasources(self):
+        self.druid_version = self.get_druid_version()
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
@@ -1028,6 +1040,13 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if m.metric_name == metric_name
         ][0]
 
+    def version_higher(self, v1, v2):
+        v1nums = [int(n) for n in v1.split('.')]
+        v2nums = [int(n) for n in v2.split('.')]
+        return v1nums[0] > v2nums[0] or \
+            (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or \
+            (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2] > v2nums[2])
+
     def latest_metadata(self):
         """Returns segment metadata from the latest segment"""
         client = self.cluster.get_pydruid_client()
@@ -1040,8 +1059,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which trigged a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
+        start = (0 if self.version_higher(self.cluster.druid_version, '0.8.2') else 1)
         intervals = (max_time - timedelta(days=7)).isoformat() + '/'
-        intervals += (max_time - timedelta(days=1)).isoformat()
+        intervals += (max_time - timedelta(days=start)).isoformat()
         segment_metadata = client.segment_metadata(
             datasource=self.datasource_name,
             intervals=intervals)
@@ -1192,37 +1212,14 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
-        filters = None
-        for col, op, eq in filter:
-            cond = None
-            if op == '==':
-                cond = Dimension(col) == eq
-            elif op == '!=':
-                cond = ~(Dimension(col) == eq)
-            elif op in ('in', 'not in'):
-                fields = []
-                splitted = eq.split(',')
-                if len(splitted) > 1:
-                    for s in eq.split(','):
-                        s = s.strip()
-                        fields.append(Dimension(col) == s)
-                    cond = Filter(type="or", fields=fields)
-                else:
-                    cond = Dimension(col) == eq
-                if op == 'not in':
-                    cond = ~cond
-            elif op == 'regex':
-                cond = Filter(type="regex", pattern=eq, dimension=col)
-            if filters:
-                filters = Filter(type="and", fields=[
-                    cond,
-                    filters
-                ])
-            else:
-                filters = cond
 
+        filters = self.get_filters(filter)
         if filters:
             qry['filter'] = filters
+
+        having_filters = self.get_having_filters(extras.get('having'))
+        if having_filters:
+            qry['having'] = having_filters
 
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
@@ -1303,6 +1300,62 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             df=df,
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
+
+    @staticmethod
+    def get_filters(raw_filters):
+        filters = None
+        for col, op, eq in raw_filters:
+            cond = None
+            if op == '==':
+                cond = Dimension(col) == eq
+            elif op == '!=':
+                cond = ~(Dimension(col) == eq)
+            elif op in ('in', 'not in'):
+                fields = []
+                splitted = eq.split(',')
+                if len(splitted) > 1:
+                    for s in eq.split(','):
+                        s = s.strip()
+                        fields.append(Dimension(col) == s)
+                    cond = Filter(type="or", fields=fields)
+                else:
+                    cond = Dimension(col) == eq
+                if op == 'not in':
+                    cond = ~cond
+            elif op == 'regex':
+                cond = Filter(type="regex", pattern=eq, dimension=col)
+            if filters:
+                filters = Filter(type="and", fields=[
+                    cond,
+                    filters
+                ])
+            else:
+                filters = cond
+        return filters
+
+    def get_having_filters(self, raw_filters):
+        filters = None
+        for col, op, eq in raw_filters:
+            cond = None
+            if op == '==':
+                if col in self.column_names:
+                    cond = DimSelector(dimension=col, value=eq)
+                else:
+                    cond = Aggregation(col) == eq
+            elif op == '!=':
+                cond = ~(Aggregation(col) == eq)
+            elif op == '>':
+                cond = Aggregation(col) > eq
+            elif op == '<':
+                cond = Aggregation(col) < eq
+            if filters:
+                filters = Filter(type="and", fields=[
+                    Having.build_having(cond),
+                    Having.build_having(filters)
+                ])
+            else:
+                filters = cond
+        return filters
 
 
 class Log(Model):

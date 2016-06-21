@@ -10,7 +10,8 @@ var config = {
     explore: APP_DIR + '/javascripts/explore.js',
     welcome: APP_DIR + '/javascripts/welcome.js',
     sql: APP_DIR + '/javascripts/sql.js',
-    standalone: APP_DIR + '/javascripts/standalone.js'
+    standalone: APP_DIR + '/javascripts/standalone.js',
+    common: APP_DIR + '/javascripts/common.js'
   },
   output: {
     path: BUILD_DIR,

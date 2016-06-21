@@ -13,7 +13,7 @@ function bigNumberVis(slice) {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       //Define the percentage bounds that define color from red to green
       if (error !== null) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
       div.html(''); //reset
