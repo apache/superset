@@ -68,8 +68,11 @@ Follow these few simple steps to install Caravel.::
     # Load some data to play with
     caravel load_examples
 
-    # Start the development web server
-    caravel runserver -d
+    # Start the web server on port 8088
+    caravel runserver -p 8088
+
+    # To start a development web server, use the -d switch
+    # caravel runserver -d
 
 
 After installation, you should be able to point your browser to the right

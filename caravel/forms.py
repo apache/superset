@@ -224,6 +224,16 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'reduce_x_ticks': (BetterBooleanField, {
+                "label": _("Reduce X ticks"),
+                "default": False,
+                "description": (
+                    "Reduces the number of X axis ticks to be rendered. "
+                    "If true, the x axis wont overflow and labels may be "
+                    "missing. If false, a minimum width will be applied "
+                    "to columns and the width may overflow into an "
+                    "horizontal scroll."),
+            }),
             'include_series': (BetterBooleanField, {
                 "label": _("Include Series"),
                 "default": False,
@@ -283,6 +293,14 @@ class FormFactory(object):
                 "description": _(
                     "Defines the origin where time buckets start, "
                     "accepts natural dates as in 'now', 'sunday' or '1970-01-01'")
+            }),
+            'bottom_margin': (FreeFormSelectField, {
+                "label": _("Bottom Margin"),
+                "choices": self.choicify([50, 75, 100, 125, 150, 200]),
+                "default": 50,
+                "description": _(
+                    "Bottom marging, in pixels, allowing for more room for "
+                    "axis labels"),
             }),
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
@@ -547,6 +565,14 @@ class FormFactory(object):
                     "{{ width }} and/or {{ height }} in your URL string."
                 ),
                 "default": 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
+            }),
+            'x_axis_label': (TextField, {
+                "label": _("X Axis Label"),
+                "default": '',
+            }),
+            'y_axis_label': (TextField, {
+                "label": _("Y Axis Label"),
+                "default": '',
             }),
             'where': (TextField, {
                 "label": _("Custom WHERE clause"),
@@ -834,10 +860,11 @@ class FormFactory(object):
             grains = viz.datasource.database.grains()
 
             if grains:
+                grains_choices = [(grain.name, grain.label) for grain in grains]
                 time_fields = ('granularity_sqla', 'time_grain_sqla')
                 self.field_dict['time_grain_sqla'] = SelectField(
                     _('Time Grain'),
-                    choices=self.choicify((grain.name for grain in grains)),
+                    choices=grains_choices,
                     default="Time Column",
                     description=_(
                         "The time granularity for the visualization. This "
