@@ -113,7 +113,7 @@ var px = (function () {
     ["%a %b %d, %I %p", function (d) {
       return d.getHours() !== 0;
     }], // If there are hours that are multiples of 3, show date and AM/PM
-    ["%a %b %d, %Y", function (d) {
+    ["%a %b %d", function (d) {
       return d.getDate() !== 1;
     }], // If not the first of the month, do "month day, year."
     ["%B %Y", function (d) {
