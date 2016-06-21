@@ -104,8 +104,13 @@ class BaseViz(object):
     def reassignments(self):
         pass
 
-    def get_url(self, **kwargs):
-        """Returns the URL for the viz"""
+    def get_url(self, for_cache_key=False, **kwargs):
+        """Returns the URL for the viz
+
+        :param for_cache_key: when getting the url as the identifier to hash
+            for the cache key
+        :type for_cache_key: boolean
+        """
         d = self.orig_form_data.copy()
         if 'json' in d:
             del d['json']
@@ -124,11 +129,13 @@ class BaseViz(object):
                     v = d.get(key)
                 if not isinstance(v, list):
                     v = [v]
-                for item in sorted(v):
+                for item in v:
                     od.add(key, item)
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
+        if for_cache_key and 'force' in od:
+            del od['force']
         return href(od)
 
     def get_df(self, query_obj=None):
@@ -316,7 +323,7 @@ class BaseViz(object):
 
     @property
     def cache_key(self):
-        url = self.get_url(json="true", force="false")
+        url = self.get_url(for_cache_key=True, json="true", force="false")
         return hashlib.md5(url.encode('utf-8')).hexdigest()
 
     @property
