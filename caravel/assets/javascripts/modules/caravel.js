@@ -283,9 +283,27 @@ var px = (function () {
         $('.query-and-save button').removeAttr('disabled');
         always(data);
       },
-      error: function (msg) {
+      getErrorMsg: function (xhr) {
+        if (xhr.statusText === "timeout") {
+          return "The request timed out";
+        }
+        var msg = "";
+        if (!xhr.responseText) {
+          var status = xhr.status;
+          msg += "An unknown error occurred. (Status: " + status + ")";
+          if (status === 0) {
+            // This may happen when the worker in gunicorn times out
+            msg += " Maybe the request timed out?";
+          }
+        }
+        return msg;
+      },
+      error: function (msg, xhr) {
         token.find("img.loading").hide();
-        var err = '<div class="alert alert-danger">' + msg + '</div>';
+        var err = msg ? ('<div class="alert alert-danger">' + msg + '</div>') : "";
+        if (xhr) {
+          err += '<div class="alert alert-danger">' + this.getErrorMsg(xhr) + '</div>';
+        }
         container.html(err);
         container.show();
         $('span.query').removeClass('disabled');

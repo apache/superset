@@ -13,7 +13,7 @@ function iframeWidget(slice) {
         slice.done(payload);
       })
       .fail(function (xhr) {
-        slice.error(xhr.responseText);
+        slice.error(xhr.responseText, xhr);
       });
   }
 

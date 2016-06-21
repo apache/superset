@@ -16,7 +16,7 @@ function tableVis(slice) {
     $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
 
     function onError(xhr) {
-      slice.error(xhr.responseText);
+      slice.error(xhr.responseText, xhr);
     }
 
     function onSuccess(json) {
