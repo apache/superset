@@ -158,6 +158,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  MSSQL        | ``pip install pymssql``             | ``mssql://``                                    |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Impala       | ``pip install impyla``              | ``impala://``                                   |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
