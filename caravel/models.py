@@ -585,16 +585,20 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def dttm_converter(self, dttm, tf=None, db_expr=None):
-        """If datebase_expression is empty, the internal dttm
-           will be parsed as the string with the pattern that
-           user input (python_date_format)
-           If database_expression is not empty, the internal dttm
-           will be parsed as the sql sentence for datebase to convert"""
+
+        """Convert datetime object to string
+
+        If datebase_expression is empty, the internal dttm
+        will be parsed as the string with the pattern that
+        user input (python_date_format)
+        If database_expression is not empty, the internal dttm
+        will be parsed as the sql sentence for datebase to convert
+        """
         tf = tf or '%Y-%m-%d %H:%M:%S.%f'
         if db_expr:
             return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf == 'epoch':
-            return str((dttm - datetime(1970,1,1)).total_seconds())
+            return str((dttm - datetime(1970, 1, 1)).total_seconds())
         else:
             return "'{}'".format(dttm.strftime(tf))
 
@@ -1177,13 +1181,13 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         conf.get('name', ''))
 
         aggregations = {
-                m.metric_name: m.json_obj
+            m.metric_name: m.json_obj
                 for m in self.metrics
                 if m.metric_name in all_metrics
             }
 
         rejected_metrics = [
-                m.metric_name for m in self.metrics
+            m.metric_name for m in self.metrics
                 if m.is_restricted and
                 m.metric_name in aggregations.keys() and
                 not sm.has_access('metric_access', m.perm)
