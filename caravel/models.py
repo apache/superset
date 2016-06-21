@@ -668,7 +668,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             column_info = db.session().query(TableColumn).filter_by(table_id=self.id, column_name=granularity).first()
             tf = column_info.python_date_format
             db_expr = column_info.database_expression
-            column_type = column_info.type
 
             outer_from = text(self.dttm_converter(from_dttm, tf=tf, db_expr=db_expr))
             outer_to = text(self.dttm_converter(to_dttm, tf=tf, db_expr=db_expr))
