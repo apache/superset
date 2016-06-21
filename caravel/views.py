@@ -328,10 +328,10 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DatabaseView,
     "Databases",
-    label=_("Databases"),
+    label=__("Databases"),
     icon="fa-database",
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     category_icon='fa-database',)
 
 
@@ -388,9 +388,9 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     TableModelView,
     "Tables",
-    label=_("Tables"),
+    label=__("Tables"),
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     icon='fa-table',)
 
 
@@ -421,10 +421,10 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
         name="Druid Clusters",
-        label=_("Druid Clusters"),
+        label=__("Druid Clusters"),
         icon="fa-cubes",
         category="Sources",
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         category_icon='fa-database',)
 
 
@@ -481,7 +481,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     SliceModelView,
     "Slices",
-    label=_("Slices"),
+    label=__("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -555,7 +555,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=_("Dashboards"),
+    label=__("Dashboards"),
     icon="fa-dashboard",
     category="",
     category_icon='',)
@@ -585,9 +585,9 @@ class LogModelView(CaravelModelView):
 appbuilder.add_view(
     LogModelView,
     "Action Log",
-    label=_("Action Log"),
+    label=__("Action Log"),
     category="Security",
-    category_label=_("Security"),
+    category_label=__("Security"),
     icon="fa-list-ol")
 
 
@@ -632,9 +632,9 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
-        label=_("Druid Datasources"),
+        label=__("Druid Datasources"),
         category="Sources",
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         icon="fa-cube")
 
 
@@ -952,6 +952,19 @@ class Caravel(BaseView):
             mimetype="application/json")
 
     @has_access
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        """Redirects a request for a slice id to its corresponding URL"""
+        session = db.session()
+        qry = session.query(models.Slice).filter_by(id=int(slice_id))
+        slc = qry.first()
+        if slc:
+            return redirect(slc.slice_url)
+        else:
+            flash("The specified slice could not be found", "danger")
+            return redirect('/slicemodelview/list/')
+
+    @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
@@ -1131,7 +1144,7 @@ if config['DRUID_IS_ACTIVE']:
         "Refresh Druid Metadata",
         href='/caravel/refresh_datasources/',
         category='Sources',
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         category_icon='fa-database',
         icon="fa-cog")
 
@@ -1146,10 +1159,10 @@ appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
-    label=_("CSS Templates"),
+    label=__("CSS Templates"),
     icon="fa-css3",
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     category_icon='')
 
 
