@@ -148,7 +148,7 @@ class BaseViz(object):
                 col_name = self.datasource.main_dttm_col
             columns = self.datasource.table_columns
             for col in columns:
-                if col_name == col:
+                if col_name == col.column_name:
                     timestamp_format = col.python_date_format
                     break
 
@@ -164,10 +164,9 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                if timestamp_format == "unix":
-                    df.timestamp = datetime.fromtimestamp(int(df.timestamp)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                if timestamp_format == "epoch":
                     df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False)
+                        df.timestamp, utc=False, unit="s")
                 else:
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)

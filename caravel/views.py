@@ -166,14 +166,14 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "The pattern of timestamp format, use "
             "<a href='https://docs.python.org/2/library/datetime.html#strftime-strptime-behavior'>"
             "python datetime string pattern</a> "
-            "expression. If time is stored in epoch format, put `epoch`. Leave `database_expression` "
+            "expression. If time is stored in epoch format, put `epoch`. Leave `Database Expression` "
             "below empty if timestamp is stored in String or Integer(epoch) type"), True),
         'database_expression': utils.markdown(
             "The database expression to casr internal datetime "
             "constants to database date/imestamp type according to the DBAPI. "
             "The expression should follow the pattern of %Y-%m-%d %H:%M:%S, based on different DBAPI. "
             "The string should be a python string formatter \n"
-            "`Ex: TO_DATE({}, 'YYYYMMDD')`", True),
+            "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle", True),
     }
     label_columns = {
         'column_name': _("Column"),

@@ -579,15 +579,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
-    def dttm_converter(self, dttm, tf=None, col_type=None, db_expr=None):
+    def dttm_converter(self, dttm, tf=None, db_expr=None):
         """If datebase_expression is empty, the internal dttm
            will be parsed as the string with the pattern that
            user input (python_date_format)
            If database_expression is not empty, the internal dttm
            will be parsed as the sql sentence for datebase to convert"""
-        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
+        tf = tf or '%Y-%m-%d %H:%M:%S'
         if db_expr:
-            return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+            return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf == 'epoch':
             return str((dttm - datetime(1970,1,1)).total_seconds())
         else:
@@ -670,8 +670,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             db_expr = column_info.database_expression
             column_type = column_info.type
 
-            outer_from = text(self.dttm_converter(from_dttm, tf=tf, col_type=column_type))
-            outer_to = text(self.dttm_converter(to_dttm, tf=tf, col_type=column_type))
+            outer_from = text(self.dttm_converter(from_dttm, tf=tf, db_expr=db_expr))
+            outer_to = text(self.dttm_converter(to_dttm, tf=tf, db_expr=db_expr))
 
             time_filter = [
                 timestamp >= outer_from,
@@ -680,10 +680,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
                 inner_time_filter[0] = timestamp >= text(
-                    self.dttm_converter(inner_from_dttm, tf=tf, col_type=column_type))
+                    self.dttm_converter(inner_from_dttm, tf=tf, db_expr=db_expr))
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= text(
-                    self.dttm_converter(inner_to_dttm, tf=tf, col_type=column_type))
+                    self.dttm_converter(inner_to_dttm, tf=tf, db_expr=db_expr))
         else:
             inner_time_filter = []
 
