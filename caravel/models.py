@@ -670,7 +670,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            column_info = db.session().query(TableColumn).filter_by(table_id=self.id, column_name=granularity).first()
+            column_info = db.session().query(TableColumn).filter_by(
+                table_id=self.id, column_name=granularity).first()
             tf = column_info.python_date_format
             db_expr = column_info.database_expression
 
@@ -1176,16 +1177,16 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         conf.get('name', ''))
 
         aggregations = {
-            m.metric_name: m.json_obj
-            for m in self.metrics
-            if m.metric_name in all_metrics
+                m.metric_name: m.json_obj
+                for m in self.metrics
+                if m.metric_name in all_metrics
             }
 
         rejected_metrics = [
-            m.metric_name for m in self.metrics
-            if m.is_restricted and
-            m.metric_name in aggregations.keys() and
-            not sm.has_access('metric_access', m.perm)
+                m.metric_name for m in self.metrics
+                if m.is_restricted and
+                m.metric_name in aggregations.keys() and
+                not sm.has_access('metric_access', m.perm)
             ]
 
         if rejected_metrics:
