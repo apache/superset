@@ -140,13 +140,14 @@ class CoreTests(CaravelTestCase):
         assert 'Energy' in resp.data.decode('utf-8')
 
     def test_slices(self):
-        # Testing by running all the examples
+        # Testing by hitting the two supported end points for all slices
         self.login(username='admin')
         Slc = models.Slice
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                (slc.slice_name, 'slice_url',  slc.slice_url),
+                (slc.slice_name, 'slice_url', slc.slice_url),
+                (slc.slice_name, 'slice_id_endpoint', '/caravel/slices/{}'.format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
             ]
