@@ -590,7 +590,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
            user input (python_date_format)
            If database_expression is not empty, the internal dttm
            will be parsed as the sql sentence for datebase to convert"""
-        tf = tf or '%Y-%m-%d %H:%M:%S'
+        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
         if db_expr:
             return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
         elif tf == 'epoch':
