@@ -96,8 +96,18 @@ var toggleCheckbox = function (apiUrlPrefix, selector) {
   });
 };
 
+/**
+ * Fix the height of the table body of a DataTable with scrollY set
+ */
+var fixDataTableBodyHeight = function ($tableDom, height) {
+  var headHeight = $tableDom.find('.dataTables_scrollHead').height();
+  $tableDom.find('.dataTables_scrollBody')
+      .css('max-height', height - headHeight);
+};
+
 module.exports = {
   wrapSvgText: wrapSvgText,
   showModal: showModal,
-  toggleCheckbox: toggleCheckbox
+  toggleCheckbox: toggleCheckbox,
+  fixDataTableBodyHeight: fixDataTableBodyHeight
 };
