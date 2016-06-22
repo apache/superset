@@ -444,9 +444,10 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
-    def dttm_converter(self, dttm):
+    def dttm_converter(self, dttm, tf=None):
         """Returns a string that the database flavor understands as a date"""
-        default = "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
+        default = "'{}'".format(dttm.strftime(tf))
         iso = dttm.isoformat()
         d = {
             'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
@@ -524,6 +525,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    timestamp_format = Column(String(256))
 
     baselink = "tablemodelview"
 
@@ -673,18 +675,18 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            tf = '%Y-%m-%d %H:%M:%S.%f'
+            tf = self.timestamp_format
             time_filter = [
-                timestamp >= text(self.database.dttm_converter(from_dttm)),
-                timestamp <= text(self.database.dttm_converter(to_dttm)),
+                timestamp >= text(self.database.dttm_converter(from_dttm, tf)),
+                timestamp <= text(self.database.dttm_converter(to_dttm, tf)),
             ]
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
                 inner_time_filter[0] = timestamp >= text(
-                    self.database.dttm_converter(inner_from_dttm))
+                    self.database.dttm_converter(inner_from_dttm, tf))
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= text(
-                    self.database.dttm_converter(inner_to_dttm))
+                    self.database.dttm_converter(inner_to_dttm, tf))
         else:
             inner_time_filter = []
 

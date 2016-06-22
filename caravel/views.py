@@ -375,10 +375,11 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on_']
     add_columns = [
-        'table_name', 'database', 'schema',
+        'table_name', 'database', 'schema', 'timestamp_format',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema',
+        'timestamp_format', 'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
@@ -387,6 +388,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'schema': (
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
+        'timestamp_format': (
+            "Use default(%Y-%m-%d %H:%M:%S.%f) if empty"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),

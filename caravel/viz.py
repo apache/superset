@@ -147,6 +147,11 @@ class BaseViz(object):
         self.results = None
 
         # The datasource here can be different backend but the interface is common
+        # timestamp_format is not necessary for Druid side, so when the datasource
+        # is not table, timestamp_format is set as None
+        timestamp_format = None
+        if self.datasource.type == 'table':
+            timestamp_format = self.datasource.timestamp_format
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
@@ -154,7 +159,8 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(df.timestamp, utc=False)
+                df.timestamp = pd.to_datetime(
+                    df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
