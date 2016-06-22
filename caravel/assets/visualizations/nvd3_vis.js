@@ -143,11 +143,11 @@ function nvd3Vis(slice) {
 
           case 'area':
             chart = nv.models.stackedAreaChart();
+            chart.showControls(false);
             chart.style(fd.stacked_style);
             chart.xScale(d3.time.scale.utc());
             chart.xAxis
             .showMaxMin(false)
-            .showControls(false)
             .staggerLabels(true);
             break;
 
