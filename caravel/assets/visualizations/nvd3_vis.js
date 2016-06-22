@@ -80,7 +80,7 @@ function nvd3Vis(slice) {
 
           case 'dist_bar':
             chart = nv.models.multiBarChart()
-            .showControls(false) //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .showControls(false)
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
@@ -143,6 +143,7 @@ function nvd3Vis(slice) {
 
           case 'area':
             chart = nv.models.stackedAreaChart();
+            chart.showControls(false);
             chart.style(fd.stacked_style);
             chart.xScale(d3.time.scale.utc());
             chart.xAxis
