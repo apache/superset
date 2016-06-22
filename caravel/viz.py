@@ -24,6 +24,7 @@ from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types
+from six.moves import zip
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -1665,6 +1666,7 @@ class HorizonViz(NVD3TimeSeriesViz):
             ('series_height', 'horizon_color_scale'),
         ), }]
 
+
 class MapboxViz(BaseViz):
 
     """Rich maps made with Mapbox"""
@@ -1760,18 +1762,18 @@ class MapboxViz(BaseViz):
         else:
             # Ensuring columns chosen are all in group by
             if (label_col and len(label_col) >= 1
-                and label_col[0] != "count"
-                and label_col[0] not in fd.get('groupby')):
+                    and label_col[0] != "count"
+                    and label_col[0] not in fd.get('groupby')):
                 raise Exception(
                     "Choice of [Label] must be present in [Group By]")
 
             if (fd.get("point_radius") != "Auto"
-                and fd.get("point_radius") not in fd.get('groupby')):
+                    and fd.get("point_radius") not in fd.get('groupby')):
                 raise Exception(
                     "Choice of [Point Radius] must be present in [Group By]")
 
-            if (fd.get('all_columns_x') not in fd.get('groupby') or
-                fd.get('all_columns_y') not in fd.get('groupby')):
+            if (fd.get('all_columns_x') not in fd.get('groupby')
+                    or fd.get('all_columns_y') not in fd.get('groupby')):
                 raise Exception(
                     "[Longitude] and [Latitude] columns must be present in [Group By]")
         return d
@@ -1790,40 +1792,40 @@ class MapboxViz(BaseViz):
             else:
                 metric_col = df[label_col[0]]
         point_radius_col = ([None] * len(df.index)
-                             if fd.get("point_radius") == "Auto"
-                             else df[fd.get("point_radius")])
+             if fd.get("point_radius") == "Auto"
+             else df[fd.get("point_radius")])
 
         # using geoJSON formatting
         geo_json = {
-          "type": "FeatureCollection",
-          "features": [
+            "type": "FeatureCollection",
+            "features": [
             {
-              "type": "Feature",
-              "properties": {
-                "metric": metric,
-                "radius": point_radius,
-              },
-              "geometry": {
-                "type": "Point",
-                "coordinates": [lon, lat],
-              }
+                "type": "Feature",
+                "properties": {
+                    "metric": metric,
+                    "radius": point_radius,
+                },
+                "geometry": {
+                    "type": "Point",
+                    "coordinates": [lon, lat],
+                }
             }
             for lon, lat, metric, point_radius
             in zip(
                 df[fd.get('all_columns_x')],
                 df[fd.get('all_columns_y')],
                 metric_col, point_radius_col)
-          ]
+            ]
         }
 
         return {
             "geoJSON": geo_json,
+            "customMetric": custom_metric,
+            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
-            "customMetric": custom_metric,
             "clusteringRadius": fd.get("clustering_radius"),
             "pointRadiusUnit": fd.get("point_radius_unit"),
-            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
             "globalOpacity": fd.get("global_opacity"),
             "viewportLongitude": fd.get("viewport_longitude"),
             "viewportLatitude": fd.get("viewport_latitude"),

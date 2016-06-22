@@ -6,8 +6,6 @@ require('./mapbox.css');
 
 import React from 'react';
 import ReactDOM from 'react-dom';
-import mapboxgl from 'mapbox-gl';
-import MapGL from 'react-map-gl';
 import ScatterPlotOverlay from 'react-map-gl/src/overlays/scatterplot.react.js';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
@@ -16,6 +14,14 @@ import ViewportMercator from 'viewport-mercator-project';
 const earthCircumferenceKm = 40075.16;
 
 class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
+  _kmToPixels(kilometers, latitude, zoomLevel) {
+    // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
+    var latitudeRad = latitude * (Math.PI / 180);
+    // Seems like the zoomLevel is off by one
+    var kmPerPixel = earthCircumferenceKm * Math.cos(latitudeRad) / Math.pow(2, zoomLevel + 8 + 1);
+    return d3.round(kilometers / kmPerPixel, 2);
+  }
+
   _isNumeric(num) {
     return !isNaN(parseFloat(num)) && isFinite(num);
   }
@@ -55,19 +61,21 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
   // Modified from https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
   _redraw() {
     const milesToKm = 1.60934;
-    var pixelRatio = window.devicePixelRatio || 1;
-    var canvas = this.refs.overlay;
-    var ctx = canvas.getContext('2d');
-    var props = this.props;
-    var radius = this.props.dotRadius;
-    var fill = this.props.dotFill;
+    var pixelRatio = window.devicePixelRatio || 1,
+        canvas = this.refs.overlay,
+        ctx = canvas.getContext('2d'),
+        props = this.props,
+        radius = props.dotRadius,
+        mercator = ViewportMercator(props),
+        maxCount = -1,
+        clusterLabelMap = [],
+        rgb = props.rgb;
+
     ctx.save();
     ctx.scale(pixelRatio, pixelRatio);
     ctx.clearRect(0, 0, props.width, props.height);
     ctx.globalCompositeOperation = this.props.compositeOperation;
-    var mercator = ViewportMercator(this.props);
-    var maxCount = -1;
-    var clusterLabelMap = [];
+
     props.locations.forEach(function (location, i) {
       if (location.get("properties").get("cluster")) {
         var clusterLabel = location.get("properties").get("metric")
@@ -94,18 +102,18 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
         clusterLabelMap[i] = clusterLabel;
       }
     }, this);
-    var rgb = props.rgb;
 
-    if ((this.props.renderWhileDragging || !this.props.isDragging) && this.props.locations) {
+    if ((props.renderWhileDragging || !props.isDragging) && props.locations) {
       this.props.locations.forEach(function _forEach(location, i) {
-        var pixel = mercator.project(this.props.lngLatAccessor(location));
-        var pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
-        if (pixelRounded[0] + radius >= 0 &&
-            pixelRounded[0] - radius < props.width &&
-            pixelRounded[1] + radius >= 0 &&
-            pixelRounded[1] - radius < props.height) {
-          ctx.beginPath();
+        var pixel = mercator.project(props.lngLatAccessor(location)),
+            pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
 
+        if (pixelRounded[0] + radius >= 0
+              && pixelRounded[0] - radius < props.width
+              && pixelRounded[1] + radius >= 0
+              && pixelRounded[1] - radius < props.height) {
+
+          ctx.beginPath();
           if (location.get("properties").get("cluster")) {
             var clusterLabel = clusterLabelMap[i],
                 scaledRadius = d3.round(
@@ -138,10 +146,10 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
              if (radiusProperty !== null) {
               if (props.pointRadiusUnit === "Kilometers") {
                 pointLabel = d3.round(pointRadius, 2) + "km";
-                pointRadius = props.kmToPixels(pointRadius, props.latitude, props.zoom);
+                pointRadius = this._kmToPixels(pointRadius, props.latitude, props.zoom);
               } else if (props.pointRadiusUnit === "Miles") {
                 pointLabel = d3.round(pointRadius, 2) + "mi";
-                pointRadius = props.kmToPixels(pointRadius * milesToKm, props.latitude, props.zoom);
+                pointRadius = this._kmToPixels(pointRadius * milesToKm, props.latitude, props.zoom);
               }
             }
 
@@ -166,6 +174,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
         }
       }, this);
     }
+
     ctx.restore();
   }
 }
@@ -201,7 +210,7 @@ class MapboxViz extends React.Component {
         width: this.props.sliceWidth,
         height: this.props.sliceHeight,
         longitude: this.state.viewport.longitude,
-        latitude: this.state.viewport.latitude,
+        latitude: this.state.viewport.latitude
       }),
       topLeft = mercator.unproject([0, 0]),
       bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]),
@@ -222,13 +231,12 @@ class MapboxViz extends React.Component {
         onChangeViewport={this.onChangeViewport}>
         <ScatterPlotGlowOverlay
           {...this.state.viewport}
-          isDragging={this.state.viewport.isDragging !== undefined ? this.state.viewport.isDragging : false}
+          isDragging={this.state.viewport.isDragging === undefined ? false : this.state.viewport.isDragging}
           width={this.props.sliceWidth}
           height={this.props.sliceHeight}
           locations={Immutable.fromJS(clusters)}
           dotRadius={this.props.pointRadius}
           pointRadiusUnit={this.props.pointRadiusUnit}
-          kmToPixels={this.props.kmToPixels}
           rgb={this.props.rgb}
           globalOpacity={this.props.globalOpacity}
           compositeOperation={"screen"}
@@ -242,14 +250,6 @@ class MapboxViz extends React.Component {
     );
   }
 }
-
-function kmToPixels(kilometers, latitude, zoomLevel) {
-  // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
-  var latitudeRad = latitude * (Math.PI / 180);
-  // Seems like the zoomLevel is off by one
-  var kmPerPixel = earthCircumferenceKm * Math.cos(latitudeRad) / Math.pow(2, zoomLevel + 8 + 1);
-  return d3.round(kilometers / kmPerPixel, 2);
-};
 
 function mapbox(slice) {
   const defaultPointRadius = 60;
@@ -287,18 +287,18 @@ function mapbox(slice) {
         reducer = function (a, b) {
           if (a instanceof Array) {
             if (b instanceof Array) {
-              return a.concat(b)
+              return a.concat(b);
             }
             a.push(b);
             return a;
           } else {
             if (b instanceof Array) {
               b.push(a);
-              return b
+              return b;
             }
             return [a, b];
           }
-        }
+        };
       }
 
       clusterer = supercluster({
@@ -319,8 +319,7 @@ function mapbox(slice) {
           sliceWidth={slice.width()}
           clusterer={clusterer}
           pointRadius={defaultPointRadius}
-          aggregatorName={aggName}
-          kmToPixels={kmToPixels}/>,
+          aggregatorName={aggName}/>,
         div.node()
       );
 
@@ -332,6 +331,6 @@ function mapbox(slice) {
     render: render,
     resize: function () {}
   };
-};
+}
 
 module.exports = mapbox;

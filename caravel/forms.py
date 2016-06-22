@@ -872,7 +872,8 @@ class FormFactory(object):
             'global_opacity': (DecimalField, {
                 "label": _("Opacity"),
                 "default": 1,
-                "description": _("Opacity of all clusters, points, and labels. Between 0 and 1."),
+                "description": _("Opacity of all clusters, points, and labels. "
+                    "Between 0 and 1."),
             }),
             'viewport_zoom': (DecimalField, {
                 "label": _("Zoom"),
@@ -896,7 +897,8 @@ class FormFactory(object):
             'render_while_dragging': (BetterBooleanField, {
                 "label": _("Live render"),
                 "default": True,
-                "description": _("Points and clusters will update as viewport is being changed")
+                "description": _("Points and clusters will update as viewport "
+                    "is being changed")
             }),
             'mapbox_color': (FreeFormSelectField, {
                 "label": _("RGB Color"),

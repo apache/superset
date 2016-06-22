@@ -1000,7 +1000,6 @@ def load_long_lat_data():
         "datasource_name": "long_lat",
         "datasource_type": "table",
         "granularity": "day",
-        "row_limit": config.get("ROW_LIMIT"),
         "since": "2014-01-01",
         "until": "2016-12-12",
         "where": "",
