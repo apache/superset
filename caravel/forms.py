@@ -872,7 +872,8 @@ class FormFactory(object):
             'global_opacity': (DecimalField, {
                 "label": _("Opacity"),
                 "default": 1,
-                "description": _("Opacity of all clusters, points, and labels. "
+                "description": _(
+                    "Opacity of all clusters, points, and labels. "
                     "Between 0 and 1."),
             }),
             'viewport_zoom': (DecimalField, {

@@ -24,7 +24,6 @@ from flask_babelpkg import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types
-from six.moves import zip
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -1761,19 +1760,19 @@ class MapboxViz(BaseViz):
             d['columns'] = list(set(d['columns']))
         else:
             # Ensuring columns chosen are all in group by
-            if (label_col and len(label_col) >= 1
-                    and label_col[0] != "count"
-                    and label_col[0] not in fd.get('groupby')):
+            if (label_col and len(label_col) >= 1 and
+                    label_col[0] != "count" and
+                    label_col[0] not in fd.get('groupby')):
                 raise Exception(
                     "Choice of [Label] must be present in [Group By]")
 
-            if (fd.get("point_radius") != "Auto"
-                    and fd.get("point_radius") not in fd.get('groupby')):
+            if (fd.get("point_radius") != "Auto" and
+                    fd.get("point_radius") not in fd.get('groupby')):
                 raise Exception(
                     "Choice of [Point Radius] must be present in [Group By]")
 
-            if (fd.get('all_columns_x') not in fd.get('groupby')
-                    or fd.get('all_columns_y') not in fd.get('groupby')):
+            if (fd.get('all_columns_x') not in fd.get('groupby') or
+                    fd.get('all_columns_y') not in fd.get('groupby')):
                 raise Exception(
                     "[Longitude] and [Latitude] columns must be present in [Group By]")
         return d
@@ -1791,30 +1790,31 @@ class MapboxViz(BaseViz):
                 metric_col = df[fd.get('all_columns_y')]
             else:
                 metric_col = df[label_col[0]]
-        point_radius_col = ([None] * len(df.index)
-             if fd.get("point_radius") == "Auto"
-             else df[fd.get("point_radius")])
+        point_radius_col = (
+            [None] * len(df.index)
+            if fd.get("point_radius") == "Auto"
+            else df[fd.get("point_radius")])
 
         # using geoJSON formatting
         geo_json = {
             "type": "FeatureCollection",
             "features": [
-            {
-                "type": "Feature",
-                "properties": {
-                    "metric": metric,
-                    "radius": point_radius,
-                },
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [lon, lat],
+                {
+                    "type": "Feature",
+                    "properties": {
+                        "metric": metric,
+                        "radius": point_radius,
+                    },
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [lon, lat],
+                    }
                 }
-            }
-            for lon, lat, metric, point_radius
-            in zip(
-                df[fd.get('all_columns_x')],
-                df[fd.get('all_columns_y')],
-                metric_col, point_radius_col)
+                for lon, lat, metric, point_radius
+                in zip(
+                    df[fd.get('all_columns_x')],
+                    df[fd.get('all_columns_y')],
+                    metric_col, point_radius_col)
             ]
         }
 
