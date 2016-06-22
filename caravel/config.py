@@ -1,7 +1,7 @@
 """The main config file for Caravel
 
-All configuration in this file can be overridden by providing a local_config
-in your PYTHONPATH as there is a ``from local_config import *``
+All configuration in this file can be overridden by providing a caravel_config
+in your PYTHONPATH as there is a ``from caravel_config import *``
 at the end of this file.
 """
 from __future__ import absolute_import
