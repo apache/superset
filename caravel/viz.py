@@ -189,7 +189,8 @@ class BaseViz(object):
             for slice_filters in extra_filters.values():
                 for col, vals in slice_filters.items():
                     if col and vals:
-                        filters += [(col, 'in', ",".join(vals))]
+                        if col in self.datasource.filterable_column_names:
+                            filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):
