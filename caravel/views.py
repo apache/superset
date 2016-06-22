@@ -206,7 +206,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "String or Integer(epoch) type"), True),
         'database_expression': utils.markdown(
             "The database expression to cast internal datetime "
-            "constants to database date/imestamp type according to the DBAPI. "
+            "constants to database date/timestamp type according to the DBAPI. "
             "The expression should follow the pattern of "
             "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
             "The string should be a python string formatter \n"
