@@ -152,7 +152,7 @@ class BaseViz(object):
             dttm_col = self.datasource.get_col(query_obj['granularity'])
             if dttm_col:
                 timestamp_format = dttm_col.python_date_format
-                
+
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
@@ -173,9 +173,6 @@ class BaseViz(object):
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, unit="ms")
                 else:
-                    print('+++++')
-                    print((df.timestamp.index.is_all_dates))
-                    print('+++++')
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
