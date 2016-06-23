@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from collections import OrderedDict
 from copy import copy
+import json
 import math
 
 from flask_babelpkg import lazy_gettext as _
@@ -129,6 +130,10 @@ class FormFactory(object):
         gb_cols = datasource.groupby_column_names
         default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = self.choicify(gb_cols)
+        order_by_choices = []
+        for s in sorted(datasource.num_cols):
+            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
+            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
         # Pool of all the fields that can be used in Caravel
         field_data = {
             'viz_type': (SelectField, {
@@ -141,6 +146,11 @@ class FormFactory(object):
                 "label": _("Metrics"),
                 "choices": datasource.metrics_combo,
                 "default": [default_metric],
+                "description": _("One or many metrics to display")
+            }),
+            'order_by_cols': (SelectMultipleSortableField, {
+                "label": _("Ordering"),
+                "choices": order_by_choices,
                 "description": _("One or many metrics to display")
             }),
             'metric': (SelectField, {
