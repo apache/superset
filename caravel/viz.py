@@ -146,19 +146,14 @@ class BaseViz(object):
         self.error_msg = ""
         self.results = None
 
-        # The datasource here can be different backend but the interface is common
+        
         timestamp_format = None
         if self.datasource.type == 'table':
-            dttm_cols = self.datasource.dttm_cols
-            col_name = query_obj['granularity']
-            if col_name not in dttm_cols:
-                col_name = self.datasource.main_dttm_col
-            columns = self.datasource.table_columns
-            for col in columns:
-                if col_name == col.column_name:
-                    timestamp_format = col.python_date_format
-                    break
-
+            dttm_col = self.datasource.get_col(query_obj['granularity'])
+            if dttm_col:
+                timestamp_format = dttm_col.python_date_format
+                
+        # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
@@ -171,10 +166,16 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                if timestamp_format == "epoch":
+                if timestamp_format == "epoch_s":
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, unit="s")
+                elif timestamp_format == "epoch_ms":
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, unit="ms")
                 else:
+                    print('+++++')
+                    print((df.timestamp.index.is_all_dates))
+                    print('+++++')
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:

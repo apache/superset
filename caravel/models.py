@@ -584,23 +584,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
-    def dttm_converter(self, dttm, tf=None, db_expr=None):
-
-        """Convert datetime object to string
-
-        If datebase_expression is empty, the internal dttm
-        will be parsed as the string with the pattern that
-        user input (python_date_format)
-        If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for datebase to convert
-        """
-        tf = tf or '%Y-%m-%d %H:%M:%S.%f'
-        if db_expr:
-            return db_expr.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
-        elif tf == 'epoch':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds())
-        else:
-            return "'{}'".format(dttm.strftime(tf))
+    def get_col(self, col_name):
+        columns = self.table_columns
+        for col in columns:
+            if col_name == col.column_name:
+                return col
 
     def query(  # sqla
             self, groupby, metrics,
@@ -658,7 +646,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
-            dttm_expr = cols[granularity].sqla_col.label('timestamp')
+            dttm_col = cols[granularity]
+            dttm_expr = dttm_col.sqla_col.label('timestamp')
             timestamp = dttm_expr
 
             # Transforming time grain into an expression based on configuration
@@ -674,13 +663,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            column_info = db.session().query(TableColumn).filter_by(
-                table_id=self.id, column_name=granularity).first()
-            tf = column_info.python_date_format
-            db_expr = column_info.database_expression
-
-            outer_from = text(self.dttm_converter(from_dttm, tf=tf, db_expr=db_expr))
-            outer_to = text(self.dttm_converter(to_dttm, tf=tf, db_expr=db_expr))
+            outer_from = text(dttm_col.dttm_sql_literal(from_dttm))
+            outer_to = text(dttm_col.dttm_sql_literal(to_dttm))
 
             time_filter = [
                 timestamp >= outer_from,
@@ -689,10 +673,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
                 inner_time_filter[0] = timestamp >= text(
-                    self.dttm_converter(inner_from_dttm, tf=tf, db_expr=db_expr))
+                    dttm_col.dttm_sql_literal(inner_from_dttm))
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= text(
-                    self.dttm_converter(inner_to_dttm, tf=tf, db_expr=db_expr))
+                    dttm_col.dttm_sql_literal(inner_to_dttm))
         else:
             inner_time_filter = []
 
@@ -930,6 +914,40 @@ class TableColumn(Model, AuditMixinNullable):
         else:
             col = literal_column(self.expression).label(name)
         return col
+
+    def dttm_sql_literal(self, dttm):
+
+        """Convert datetime object to string
+
+        If datebase_expression is empty, the internal dttm
+        will be parsed as the string with the pattern that
+        user input (python_date_format)
+        If database_expression is not empty, the internal dttm
+        will be parsed as the sql sentence for datebase to convert
+        """
+        tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
+        if self.database_expression:
+            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        elif tf == 'epoch_s':
+            return str((dttm - datetime(1970, 1, 1)).total_seconds())
+        elif tf == 'epoch_ms':
+            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+        else:
+            default = "'{}'".format(dttm.strftime(tf))
+            iso = dttm.isoformat()
+            d = {
+                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
+                'mysql': default,
+                'oracle':
+                    """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
+                        dttm.isoformat()),
+                'presto': default,
+                'sqlite': default,
+            }
+            for k, v in d.items():
+                if self.table.database.sqlalchemy_uri.startswith(k):
+                    return v
+            return default
 
 
 class DruidCluster(Model, AuditMixinNullable):
