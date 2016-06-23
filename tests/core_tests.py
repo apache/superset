@@ -266,7 +266,7 @@ class CoreTests(CaravelTestCase):
 
         self.logout()
         self.assertRaises(
-            utils.CaravelSecurityException, self.test_save_dash, 'alpha')
+            AssertionError, self.test_save_dash, 'alpha')
 
         alpha = appbuilder.sm.find_user('alpha')
 
@@ -363,6 +363,7 @@ class DruidTests(CaravelTestCase):
 
         db.session.add(cluster)
         cluster.get_datasources = Mock(return_value=['test_datasource'])
+        cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()
         datasource_id = cluster.datasources[0].id
         db.session.commit()

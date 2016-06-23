@@ -15,6 +15,13 @@ function nvd3Vis(slice) {
 
   var render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
+      // Check error first, otherwise payload can be null
+      if (error) {
+        slice.error(error.responseText, error);
+        return '';
+      }
+
       var width = slice.width();
       var fd = payload.form_data;
       var barchartWidth = function () {
@@ -30,15 +37,6 @@ function nvd3Vis(slice) {
           return width;
         }
       };
-      slice.container.html('');
-      if (error) {
-        if (error.responseText) {
-          slice.error(error.responseText);
-        } else {
-          slice.error(error);
-        }
-        return '';
-      }
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
       var reduceXTicks = fd.reduce_x_ticks || false;
@@ -82,7 +80,7 @@ function nvd3Vis(slice) {
 
           case 'dist_bar':
             chart = nv.models.multiBarChart()
-            .showControls(false) //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .showControls(false)
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
@@ -145,6 +143,7 @@ function nvd3Vis(slice) {
 
           case 'area':
             chart = nv.models.stackedAreaChart();
+            chart.showControls(false);
             chart.style(fd.stacked_style);
             chart.xScale(d3.time.scale.utc());
             chart.xAxis
