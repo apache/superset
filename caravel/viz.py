@@ -146,7 +146,6 @@ class BaseViz(object):
         self.error_msg = ""
         self.results = None
 
-        
         timestamp_format = None
         if self.datasource.type == 'table':
             dttm_col = self.datasource.get_col(query_obj['granularity'])

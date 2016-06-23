@@ -916,7 +916,6 @@ class TableColumn(Model, AuditMixinNullable):
         return col
 
     def dttm_sql_literal(self, dttm):
-
         """Convert datetime object to string
 
         If datebase_expression is empty, the internal dttm
@@ -936,7 +935,7 @@ class TableColumn(Model, AuditMixinNullable):
             default = "'{}'".format(dttm.strftime(tf))
             iso = dttm.isoformat()
             d = {
-                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
+                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso),  # untested
                 'mysql': default,
                 'oracle':
                     """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
