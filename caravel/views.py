@@ -939,7 +939,8 @@ class Caravel(BaseView):
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         check_ownership(dash, raise_if_false=True)
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
-        dash.position_json = json.dumps(data['positions'], indent=4)
+        positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
+        dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dash.metadata_dejson
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
