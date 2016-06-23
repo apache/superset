@@ -406,6 +406,7 @@ class Database(Model, AuditMixinNullable):
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
                 Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
+                Grain('quarter', _('quarter'), "date_trunc('quarter', CAST({col} AS DATE))"),
                 Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
                       "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
                 Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
