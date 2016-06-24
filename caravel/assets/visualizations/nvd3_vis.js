@@ -213,12 +213,7 @@ function nvd3Vis(slice) {
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
 
-        if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
-          chart.yAxis.tickFormat(d3.format('.3p'));
-          if (chart.y2Axis !== undefined) {
-            chart.y2Axis.tickFormat(d3.format('.3p'));
-          }
-        } else if (fd.y_axis_format) {
+        if (fd.y_axis_format) {
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
           if (chart.y2Axis !== undefined) {
