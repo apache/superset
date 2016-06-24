@@ -1,5 +1,5 @@
 .sunburst text {
-  shape-rendering: crispEdges;
+  text-rendering: optimizeLegibility;
 }
 .sunburst path {
   stroke: #333;
