@@ -383,67 +383,74 @@ def load_world_bank_health_n_pop():
     js = textwrap.dedent("""\
     [
         {
-            "size_y": 4,
-            "size_x": 2,
-            "col": 9,
-            "slice_id": "605",
-            "row": 6
-        },
-        {
-            "size_y": 4,
-            "size_x": 2,
-            "col": 11,
-            "slice_id": "606",
-            "row": 6
-        },
-        {
-            "size_y": 2,
-            "size_x": 2,
             "col": 1,
-            "slice_id": "607",
-            "row": 0
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1231"
         },
         {
-            "size_y": 2,
+            "col": 1,
+            "row": 2,
             "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1232"
+        },
+        {
+            "col": 10,
+            "row": 0,
+            "size_x": 3,
+            "size_y": 7,
+            "slice_id": "1233"
+        },
+        {
+            "col": 1,
+            "row": 4,
+            "size_x": 6,
+            "size_y": 3,
+            "slice_id": "1234"
+        },
+        {
             "col": 3,
-            "slice_id": "608",
-            "row": 0
-        },
-        {
-            "size_y": 3,
-            "size_x": 8,
-            "col": 5,
-            "slice_id": "609",
-            "row": 3
-        },
-        {
+            "row": 0,
+            "size_x": 7,
             "size_y": 4,
-            "size_x": 8,
-            "col": 1,
-            "slice_id": "610",
-            "row": 6
+            "slice_id": "1235"
         },
         {
+            "col": 5,
+            "row": 7,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1236"
+        },
+        {
+            "col": 7,
+            "row": 4,
+            "size_x": 3,
             "size_y": 3,
+            "slice_id": "1237"
+        },
+        {
+            "col": 1,
+            "row": 7,
             "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1238"
+        },
+        {
             "col": 9,
-            "slice_id": "611",
-            "row": 0
-        },
-        {
-            "size_y": 3,
+            "row": 11,
             "size_x": 4,
-            "col": 5,
-            "slice_id": "612",
-            "row": 0
-        },
-        {
             "size_y": 4,
-            "size_x": 4,
+            "slice_id": "1239"
+        },
+        {
             "col": 1,
-            "slice_id": "613",
-            "row": 2
+            "row": 11,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1240"
         }
     ]
     """)
@@ -729,71 +736,71 @@ def load_birth_names():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-        [
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 8,
-                "slice_id": "85",
-                "row": 7
-            },
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 10,
-                "slice_id": "86",
-                "row": 7
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 1,
-                "slice_id": "87",
-                "row": 1
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 3,
-                "slice_id": "88",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 7,
-                "col": 5,
-                "slice_id": "89",
-                "row": 4
-            },
-            {
-                "size_y": 4,
-                "size_x": 7,
-                "col": 1,
-                "slice_id": "90",
-                "row": 7
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 9,
-                "slice_id": "91",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 4,
-                "col": 5,
-                "slice_id": "92",
-                "row": 1
-            },
-            {
-                "size_y": 4,
-                "size_x": 4,
-                "col": 1,
-                "slice_id": "93",
-                "row": 3
-            }
-        ]
+    [
+        {
+            "col": 9,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1267"
+        },
+        {
+            "col": 11,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1268"
+        },
+        {
+            "col": 1,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1269"
+        },
+        {
+            "col": 3,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1270"
+        },
+        {
+            "col": 5,
+            "row": 3,
+            "size_x": 8,
+            "size_y": 3,
+            "slice_id": "1271"
+        },
+        {
+            "col": 1,
+            "row": 6,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1272"
+        },
+        {
+            "col": 10,
+            "row": 0,
+            "size_x": 3,
+            "size_y": 3,
+            "slice_id": "1273"
+        },
+        {
+            "col": 5,
+            "row": 0,
+            "size_x": 5,
+            "size_y": 3,
+            "slice_id": "1274"
+        },
+        {
+            "col": 1,
+            "row": 2,
+            "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1275"
+        }
+    ]
         """)
     l = json.loads(js)
     for i, pos in enumerate(l):
