@@ -64,7 +64,7 @@ function nvd3Vis(slice) {
 
           case 'bar':
             chart = nv.models.multiBarChart()
-            .showControls(false)
+            .showControls(fd.show_controls)
             .groupSpacing(0.1);
 
             if (!reduceXTicks) {
@@ -80,7 +80,7 @@ function nvd3Vis(slice) {
 
           case 'dist_bar':
             chart = nv.models.multiBarChart()
-            .showControls(false)
+            .showControls(fd.show_controls)
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
@@ -143,7 +143,7 @@ function nvd3Vis(slice) {
 
           case 'area':
             chart = nv.models.stackedAreaChart();
-            chart.showControls(false);
+            chart.showControls(fd.show_controls);
             chart.style(fd.stacked_style);
             chart.xScale(d3.time.scale.utc());
             chart.xAxis

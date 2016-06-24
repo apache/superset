@@ -1084,7 +1084,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
             ('line_interpolation', 'bar_stacked'),
             ('x_axis_showminmax', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
-            ('reduce_x_ticks', None),
+            ('reduce_x_ticks', 'show_controls'),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
 
@@ -1110,7 +1110,7 @@ class NVD3TimeSeriesStackedViz(NVD3TimeSeriesViz):
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
             ('x_axis_format', 'y_axis_format'),
-            ('x_axis_showminmax'),
+            ('x_axis_showminmax', 'show_controls'),
             ('line_interpolation', 'stacked_style'),
         ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
 
@@ -1169,6 +1169,7 @@ class DistributionBarViz(DistributionPieViz):
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
+            ('show_controls', None),
         )
     },)
     form_overrides = {

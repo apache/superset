@@ -61,7 +61,7 @@
     "less": "^2.6.1",
     "less-loader": "^2.2.2",
     "mustache": "^2.2.1",
-    "nvd3": "1.8.2",
+    "nvd3": "1.8.3",
     "react": "^0.14.7",
     "react-bootstrap": "^0.28.3",
     "react-dom": "^0.14.7",
