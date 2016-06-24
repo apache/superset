@@ -12,7 +12,7 @@ import datetime
 import random
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Date, Float
+from sqlalchemy import String, DateTime, Date, Float, BigInteger, Date
 
 from caravel import app, db, models, utils
 
@@ -937,6 +937,81 @@ def load_random_time_series_data():
     print("Creating a slice")
     slc = Slice(
         slice_name="Calendar Heatmap",
+        viz_type='cal_heatmap',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+def load_multiformat_time_series_data():
+    """Loading time series data from a zip file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='s')
+    pdf.timestamp = pd.to_datetime(pdf.timestamp, unit='s')
+    pdf.to_sql(
+        'multiformat_time_series',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            "ds": Date,
+            'timestamp': DateTime,
+            "epoch_s": BigInteger,
+            "epoch_ms" :BigInteger,
+            "string0": String,
+            "string1": String,
+            "string2": String,
+            "string3": String,
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table [multiformat_time_series] reference")
+    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series').first()
+    if not obj:
+        obj = TBL(table_name='multiformat_time_series')
+    obj.main_dttm_col = 'ds'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    dttm_and_expr_dict = {
+        'ds': [None, None],
+        'timestamp': [None, None],
+        'epoch_s': ['epoch_s', None],
+        'epoch_ms': ['epoch_ms', None],
+        'string2': ['%Y%m%d-%H%M%S', None],
+        'string1': ['%Y-%m-%d^%H:%M:%S', None],
+        'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
+        'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
+    }
+    for col in obj.table_columns:
+        dttm_and_expr = dttm_and_expr_dict[col.column_name]
+        col.python_date_format = dttm_and_expr[0]
+        col.dbatabase_expr= dttm_and_expr[1]
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "multiformat_time_series",
+        "datasource_type": "table",
+        "granularity": "day",
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "1 year ago",
+        "until": "now",
+        "where": "",
+        "viz_type": "cal_heatmap",
+        "domain_granularity": "month",
+        "subdomain_granularity": "day",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Calendar Heatmap multiformat",
         viz_type='cal_heatmap',
         datasource_type='table',
         table=tbl,
