@@ -173,6 +173,9 @@ ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
+# Set this API key to enable Mapbox visualizations
+MAPBOX_API_KEY = ""
+
 
 try:
     from caravel_config import *  # noqa
