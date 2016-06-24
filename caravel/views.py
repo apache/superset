@@ -250,8 +250,7 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table', 'is_restricted']
@@ -275,16 +274,18 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'table': _("Table"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
         'datasource', 'is_restricted']
@@ -313,8 +314,11 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'datasource': _("Druid Datasource"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
