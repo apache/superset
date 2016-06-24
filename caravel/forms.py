@@ -225,6 +225,14 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'show_controls': (BetterBooleanField, {
+                "label": _("Extra Controls"),
+                "default": False,
+                "description": (
+                    "Whether to show extra controls or not. Extra controls "
+                    "include things like making mulitBar charts stacked "
+                    "or side by side.")
+            }),
             'reduce_x_ticks': (BetterBooleanField, {
                 "label": _("Reduce X ticks"),
                 "default": False,
