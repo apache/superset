@@ -1196,19 +1196,19 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             m.metric_name: m.json_obj
             for m in self.metrics
             if m.metric_name in all_metrics
-            }
+        }
 
         rejected_metrics = [
             m.metric_name for m in self.metrics
             if m.is_restricted and
             m.metric_name in aggregations.keys() and
             not sm.has_access('metric_access', m.perm)
-            ]
+        ]
 
         if rejected_metrics:
             raise MetricPermException(
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
-            )
+        )
 
         granularity = granularity or "all"
         if granularity != "all":
