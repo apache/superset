@@ -29,6 +29,20 @@
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
       <div class="header">
+          <div class="btn-group query-and-save">
+            <button type="button" class="btn btn-primary query">
+              <i class="fa fa-bolt"></i>{{ _("Query") }}
+            </button>
+            <button
+                type="button"
+                id="btn_save"
+                class="btn btn-default"
+                {{ "disabled" if not can_add }}
+                data-target="#save_modal"
+                data-toggle="modal">
+              <i class="fa fa-plus-circle"></i>{{ _("Save") }}
+            </button>
+          </div>
           <span title="Data Source" data-toggle="tooltip">
             <select id="datasource_id" class="select2">
               {% for ds in datasources %}
@@ -92,22 +106,6 @@
         <hr/>
       </div>
         <div id="form_container" class="col-left-fixed">
-          <div class="row center-block">
-            <div class="btn-group query-and-save">
-              <button type="button" class="btn btn-primary query">
-                <i class="fa fa-bolt"></i>{{ _("Query") }}
-              </button>
-              {% if viz.form_data.slice_id %}
-                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_edit }}" id="btn_overwrite">
-                  <i class="fa fa-save"></i>{{  _("Overwrite") }}
-                  </button>
-              {% endif %}
-                  <button type="button" class="btn btn-default {{ "disabled disabledButton" if not can_add }}" id="btn_save">
-                  <i class="fa fa-plus-circle"></i>{{ _("Save as") }}
-                  </button>
-            </div>
-          </div>
-          <br/>
           {% for fieldset in form.fieldsets %}
               <div class="panel panel-default">
                 {% if fieldset.label %}
@@ -210,6 +208,8 @@
             {{ form.slice_name() }}
             {{ form.collapsed_fieldsets() }}
             <input type="hidden" name="action" id="action" value="">
+            <input type="hidden" name="userid" id="userid" value="{{ userid }}">
+            <input type="hidden" name="goto_dash" id="goto_dash" value="false">
             <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
             <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
             <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
@@ -261,6 +261,54 @@
             </div>
             <div class="modal-footer">
               <button type="button" class="btn btn-default" data-dismiss="modal">{{ _("Close") }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal fade" id="save_modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title">{{ _("Save a Slice") }}</h4>
+            </div>
+            <div class="modal-body">
+              {% if slice %}
+                <input
+                    type="radio"
+                    name="rdo_save"
+                    value="overwrite"
+                    {{ 'disabled' if not can_edit else '' }}
+                    {{ 'checked' if can_edit else '' }}>
+                Overwrite slice [{{ slice.slice_name }}] <br><br>
+              {% endif %}
+              <input
+                id="save_as_new"
+                type="radio"
+                name="rdo_save"
+                value="saveas"
+                {{ 'checked' if not slice or not can_edit else '' }}>
+              Save as
+              <input type="text" name="new_slice_name" placeholder="[slice name]"><br>
+              <hr/>
+              <input type="radio" name="add_to_dash" checked value="false">Do not add to a dashboard<br><br>
+              <input id="add_to_dash_existing" type="radio" name="add_to_dash" value="existing">Add slice to existing dashboard
+              <input type="text" id="save_to_dashboard_id" name="save_to_dashboard_id"><br><br>
+              <input type="radio" id="add_to_new_dash" name="add_to_dash" value="new">Add to new dashboard
+              <input type="text" name="new_dashboard_name" placeholder="[dashboard name]">  <br><br>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="btn_modal_save" class="btn btn-primary pull-left">
+                {{ _("Save") }}
+              </button>
+              <button type="button" id="btn_modal_save_goto_dash" class="btn btn-primary pull-left gotodash" disabled>
+                {{ _("Save & go to dashboard") }}
+              </button>
+              <button type="button" class="btn btn-default pull-right" data-dismiss="modal">
+                {{ _("Cancel") }}
+              </button>
             </div>
           </div>
         </div>

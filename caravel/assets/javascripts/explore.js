@@ -333,23 +333,6 @@ function initExploreView() {
   $("#having_panel #plus").click(function () {
     add_filter(undefined, "having");
   });
-  $("#btn_save").click(function () {
-    var slice_name = prompt("Name your slice!");
-    if (slice_name !== "" && slice_name !== null) {
-      $("#slice_name").val(slice_name);
-      prepForm();
-      $("#action").val("save");
-      $("#query").submit();
-    }
-  });
-  $("#btn_overwrite").click(function () {
-    var flag = confirm("Overwrite slice [" + $("#slice_name").val() + "] !?");
-    if (flag) {
-      $("#action").val("overwrite");
-      prepForm();
-      $("#query").submit();
-    }
-  });
 
   $(".query").click(function () {
     query(true);
@@ -400,6 +383,78 @@ function initExploreView() {
     });
     $(this).remove();
   });
+
+  function prepSaveDialog() {
+    var setButtonsState = function () {
+      var add_to_dash = $("input[name=add_to_dash]:checked").val();
+      if (add_to_dash === 'existing' || add_to_dash === 'new') {
+        $('.gotodash').removeAttr('disabled');
+      } else {
+        $('.gotodash').prop('disabled', true);
+      }
+    };
+    var url = '/dashboardmodelviewasync/api/read';
+    url += '?_flt_0_owners=' + $('#userid').val();
+    $.get(url, function (data) {
+      var choices = [];
+      for (var i=0; i< data.pks.length; i++) {
+        choices.push({ id: data.pks[i], text: data.result[i].dashboard_title });
+      }
+      $('#save_to_dashboard_id').select2({
+        data: choices,
+        dropdownAutoWidth: true
+      }).on("select2-selecting", function () {
+        $("#add_to_dash_existing").prop("checked", true);
+        setButtonsState();
+      });
+    });
+
+    $("input[name=add_to_dash]").change(setButtonsState);
+    $("input[name='new_dashboard_name']").on('focus', function () {
+      $("#add_to_new_dash").prop("checked", true);
+      setButtonsState();
+    });
+    $("input[name='new_slice_name']").on('focus', function () {
+      $("#save_as_new").prop("checked", true);
+      setButtonsState();
+    });
+    $('#btn_modal_save').click(function () {
+      var action = $('input[name=rdo_save]:checked').val();
+      if (action === 'saveas') {
+        var slice_name = $('input[name=new_slice_name]').val();
+        if (slice_name === '') {
+          showModal({
+            title: "Error",
+            body: "You must pick a name for the new slice"
+          });
+          return;
+        }
+        document.getElementById("slice_name").value = slice_name;
+      }
+      var add_to_dash = $('input[name=add_to_dash]:checked').val();
+      if (add_to_dash === 'existing' && $('#save_to_dashboard_id').val() === '') {
+        showModal({
+          title: "Error",
+          body: "You must pick an existing dashboard"
+        });
+        return;
+      } else if (add_to_dash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
+        showModal({
+          title: "Error",
+          body: "Please enter a name for the new dashboard"
+        });
+        return;
+      }
+      $('#action').val(action);
+      prepForm();
+      $("#query").submit();
+    });
+    $('#btn_modal_save_goto_dash').click(function () {
+      document.getElementById("goto_dash").value = 'true';
+      $('#btn_modal_save').click();
+    });
+  }
+  prepSaveDialog();
 }
 
 $(document).ready(function () {
