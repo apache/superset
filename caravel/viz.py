@@ -350,16 +350,11 @@ class TableViz(BaseViz):
     fieldsets = ({
         'label': _("GROUP BY"),
         'description': _('Use this section if you want a query that aggregates'),
-        'fields': (
-            'groupby',
-            'metrics',
-        )
+        'fields': ('groupby', 'metrics')
     }, {
         'label': _("NOT GROUPED BY"),
         'description': _('Use this section if you want to query atomic rows'),
-        'fields': (
-            'all_columns',
-        )
+        'fields': ('all_columns', 'order_by_cols'),
     }, {
         'label': _("Options"),
         'fields': (
@@ -385,6 +380,7 @@ class TableViz(BaseViz):
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
+            d['orderby'] = [json.loads(t) for t in fd.get('order_by_cols', [])]
         return d
 
     def get_df(self, query_obj=None):
