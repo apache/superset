@@ -1039,10 +1039,10 @@ def load_multiformat_time_series_data():
             'ds2': DateTime,
             "epoch_s": BigInteger,
             "epoch_ms": BigInteger,
-            "string0": String,
-            "string1": String,
-            "string2": String,
-            "string3": String,
+            "string0": String(100),
+            "string1": String(100),
+            "string2": String(100),
+            "string3": String(100),
         },
         index=False)
     print("Done loading table!")
