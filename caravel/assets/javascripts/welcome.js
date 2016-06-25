@@ -78,5 +78,4 @@ $(document).ready(function () {
     });
   });
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');
-  modelViewTable('#slice_table', 'SliceAsync', 'changed_on', 'desc');
 });
