@@ -34,6 +34,15 @@ class MetricPermException(Exception):
     pass
 
 
+def can_access(security_manager, permission_name, view_name):
+    """Protecting from has_access failing from missing perms/view"""
+    try:
+        return security_manager.has_access(permission_name, view_name)
+    except:
+        pass
+    return False
+
+
 def flasher(msg, severity=None):
     """Flask's flash if available, logging call if not"""
     try:
@@ -232,18 +241,24 @@ def init(caravel):
 
 
 def init_metrics_perm(caravel, metrics=None):
+    """Create permissions for restricted metrics
+
+    :param metrics: a list of metrics to be processed, if not specified,
+        all metrics are processed
+    :type metrics: models.SqlMetric or models.DruidMetric
+    """
     db = caravel.db
     models = caravel.models
     sm = caravel.appbuilder.sm
 
-    if metrics is None:
+    if not metrics:
         metrics = []
         for model in [models.SqlMetric, models.DruidMetric]:
             metrics += list(db.session.query(model).all())
 
-    metric_perms = filter(None, [metric.perm for metric in metrics])
-    for metric_perm in metric_perms:
-        merge_perm(sm, 'metric_access', metric_perm)
+    for metric in metrics:
+        if metric.is_restricted and metric.perm:
+            merge_perm(sm, 'metric_access', metric.perm)
 
 
 def datetime_f(dttm):
