@@ -956,7 +956,7 @@ def load_multiformat_time_series_data():
     with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
         pdf = pd.read_json(f)
     pdf.ds = pd.to_datetime(pdf.ds, unit='s')
-    pdf.timestamp = pd.to_datetime(pdf.timestamp, unit='s')
+    pdf.ds2 = pd.to_datetime(pdf.ds2, unit='s')
     pdf.to_sql(
         'multiformat_time_series',
         db.engine,
@@ -964,9 +964,9 @@ def load_multiformat_time_series_data():
         chunksize=500,
         dtype={
             "ds": Date,
-            'timestamp': DateTime,
+            'ds2': DateTime,
             "epoch_s": BigInteger,
-            "epoch_ms" :BigInteger,
+            "epoch_ms": BigInteger,
             "string0": String,
             "string1": String,
             "string2": String,
@@ -985,7 +985,7 @@ def load_multiformat_time_series_data():
     obj.is_featured = False
     dttm_and_expr_dict = {
         'ds': [None, None],
-        'timestamp': [None, None],
+        'ds2': [None, None],
         'epoch_s': ['epoch_s', None],
         'epoch_ms': ['epoch_ms', None],
         'string2': ['%Y%m%d-%H%M%S', None],
@@ -994,6 +994,7 @@ def load_multiformat_time_series_data():
         'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
     }
     for col in obj.table_columns:
+        print(col.column_name)
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
         col.dbatabase_expr= dttm_and_expr[1]
@@ -1002,26 +1003,30 @@ def load_multiformat_time_series_data():
     obj.fetch_metadata()
     tbl = obj
 
-    slice_data = {
-        "datasource_id": "7",
-        "datasource_name": "multiformat_time_series",
-        "datasource_type": "table",
-        "granularity": "day",
-        "row_limit": config.get("ROW_LIMIT"),
-        "since": "1 year ago",
-        "until": "now",
-        "where": "",
-        "viz_type": "cal_heatmap",
-        "domain_granularity": "month",
-        "subdomain_granularity": "day",
-    }
+    print("Creating some slices")
+    i = 0
+    for col in tbl.table_columns:
+        slice_data = {
+            "granularity_sqla": col.column_name,
+            "datasource_id": "7",
+            "datasource_name": "multiformat_time_series",
+            "datasource_type": "table",
+            "granularity": "day",
+            "row_limit": config.get("ROW_LIMIT"),
+            "since": "1 year ago",
+            "until": "now",
+            "where": "",
+            "viz_type": "cal_heatmap",
+            "domain_granularity": "month",
+            "subdomain_granularity": "day",
+        }
 
-    print("Creating a slice")
-    slc = Slice(
-        slice_name="Calendar Heatmap multiformat",
-        viz_type='cal_heatmap',
-        datasource_type='table',
-        table=tbl,
-        params=get_slice_json(slice_data),
-    )
-    merge_slice(slc)
+        slc = Slice(
+            slice_name="Calendar Heatmap multiformat" + str(i),
+            viz_type='cal_heatmap',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_data),
+        )
+        i += 1
+        merge_slice(slc)
