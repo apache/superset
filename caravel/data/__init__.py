@@ -12,7 +12,7 @@ import datetime
 import random
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Date, Float, BigInteger, Date
+from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
 from caravel import app, db, models, utils
 
@@ -952,6 +952,7 @@ def load_random_time_series_data():
     merge_slice(slc)
 
 def load_multiformat_time_series_data():
+
     """Loading time series data from a zip file in the repo"""
     with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
         pdf = pd.read_json(f)
@@ -997,7 +998,7 @@ def load_multiformat_time_series_data():
         print(col.column_name)
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
-        col.dbatabase_expr= dttm_and_expr[1]
+        col.dbatabase_expr = dttm_and_expr[1]
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
