@@ -383,67 +383,74 @@ def load_world_bank_health_n_pop():
     js = textwrap.dedent("""\
     [
         {
-            "size_y": 4,
-            "size_x": 2,
-            "col": 9,
-            "slice_id": "605",
-            "row": 6
-        },
-        {
-            "size_y": 4,
-            "size_x": 2,
-            "col": 11,
-            "slice_id": "606",
-            "row": 6
-        },
-        {
-            "size_y": 2,
-            "size_x": 2,
             "col": 1,
-            "slice_id": "607",
-            "row": 0
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1231"
         },
         {
-            "size_y": 2,
+            "col": 1,
+            "row": 2,
             "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1232"
+        },
+        {
+            "col": 10,
+            "row": 0,
+            "size_x": 3,
+            "size_y": 7,
+            "slice_id": "1233"
+        },
+        {
+            "col": 1,
+            "row": 4,
+            "size_x": 6,
+            "size_y": 3,
+            "slice_id": "1234"
+        },
+        {
             "col": 3,
-            "slice_id": "608",
-            "row": 0
-        },
-        {
-            "size_y": 3,
-            "size_x": 8,
-            "col": 5,
-            "slice_id": "609",
-            "row": 3
-        },
-        {
+            "row": 0,
+            "size_x": 7,
             "size_y": 4,
-            "size_x": 8,
-            "col": 1,
-            "slice_id": "610",
-            "row": 6
+            "slice_id": "1235"
         },
         {
+            "col": 5,
+            "row": 7,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1236"
+        },
+        {
+            "col": 7,
+            "row": 4,
+            "size_x": 3,
             "size_y": 3,
+            "slice_id": "1237"
+        },
+        {
+            "col": 1,
+            "row": 7,
             "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1238"
+        },
+        {
             "col": 9,
-            "slice_id": "611",
-            "row": 0
-        },
-        {
-            "size_y": 3,
+            "row": 11,
             "size_x": 4,
-            "col": 5,
-            "slice_id": "612",
-            "row": 0
-        },
-        {
             "size_y": 4,
-            "size_x": 4,
+            "slice_id": "1239"
+        },
+        {
             "col": 1,
-            "slice_id": "613",
-            "row": 2
+            "row": 11,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1240"
         }
     ]
     """)
@@ -729,71 +736,71 @@ def load_birth_names():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-        [
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 8,
-                "slice_id": "85",
-                "row": 7
-            },
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 10,
-                "slice_id": "86",
-                "row": 7
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 1,
-                "slice_id": "87",
-                "row": 1
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 3,
-                "slice_id": "88",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 7,
-                "col": 5,
-                "slice_id": "89",
-                "row": 4
-            },
-            {
-                "size_y": 4,
-                "size_x": 7,
-                "col": 1,
-                "slice_id": "90",
-                "row": 7
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 9,
-                "slice_id": "91",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 4,
-                "col": 5,
-                "slice_id": "92",
-                "row": 1
-            },
-            {
-                "size_y": 4,
-                "size_x": 4,
-                "col": 1,
-                "slice_id": "93",
-                "row": 3
-            }
-        ]
+    [
+        {
+            "col": 9,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1267"
+        },
+        {
+            "col": 11,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1268"
+        },
+        {
+            "col": 1,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1269"
+        },
+        {
+            "col": 3,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1270"
+        },
+        {
+            "col": 5,
+            "row": 3,
+            "size_x": 8,
+            "size_y": 3,
+            "slice_id": "1271"
+        },
+        {
+            "col": 1,
+            "row": 6,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1272"
+        },
+        {
+            "col": 10,
+            "row": 0,
+            "size_x": 3,
+            "size_y": 3,
+            "slice_id": "1273"
+        },
+        {
+            "col": 5,
+            "row": 0,
+            "size_x": 5,
+            "size_y": 3,
+            "slice_id": "1274"
+        },
+        {
+            "col": 1,
+            "row": 2,
+            "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1275"
+        }
+    ]
         """)
     l = json.loads(js)
     for i, pos in enumerate(l):
@@ -938,6 +945,76 @@ def load_random_time_series_data():
     slc = Slice(
         slice_name="Calendar Heatmap",
         viz_type='cal_heatmap',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+
+def load_long_lat_data():
+    """Loading lat/long data from a csv file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
+        pdf = pd.read_csv(f, encoding="utf-8")
+    pdf['date'] = datetime.datetime.now().date()
+    pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
+    pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
+    pdf.to_sql(
+        'long_lat',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'longitude': Float(),
+            'latitude': Float(),
+            'number': Float(),
+            'street': String(100),
+            'unit': String(10),
+            'city': String(50),
+            'district': String(50),
+            'region': String(50),
+            'postcode': Float(),
+            'id': String(100),
+            'date': Date(),
+            'occupancy': Float(),
+            'radius_miles': Float(),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table reference")
+    obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    if not obj:
+        obj = TBL(table_name='long_lat')
+    obj.main_dttm_col = 'date'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "long_lat",
+        "datasource_type": "table",
+        "granularity": "day",
+        "since": "2014-01-01",
+        "until": "2016-12-12",
+        "where": "",
+        "viz_type": "mapbox",
+        "all_columns_x": "LON",
+        "all_columns_y": "LAT",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "all_columns": ["occupancy"],
+        "row_limit": 500000,
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Mapbox Long/Lat",
+        viz_type='mapbox',
         datasource_type='table',
         table=tbl,
         params=get_slice_json(slice_data),

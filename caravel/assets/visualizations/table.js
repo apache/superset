@@ -119,6 +119,7 @@ function tableVis(slice) {
       var height = slice.container.height();
       var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
+        aaSorting: [],
         searching: form_data.include_search,
         bInfo: false,
         scrollY: height + "px",

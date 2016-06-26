@@ -36,6 +36,12 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+can_access = utils.can_access
+
+
+class BaseCaravelView(BaseView):
+    def can_access(self, permission_name, view_name):
+        return utils.can_access(appbuilder.sm, permission_name, view_name)
 
 
 def get_error_msg():
@@ -243,8 +249,7 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table', 'is_restricted']
@@ -268,16 +273,18 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'table': _("Table"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
         'datasource', 'is_restricted']
@@ -306,8 +313,11 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'datasource': _("Druid Datasource"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
@@ -683,7 +693,7 @@ def ping():
     return "OK"
 
 
-class R(BaseView):
+class R(BaseCaravelView):
 
     """used for short urls"""
 
@@ -716,16 +726,7 @@ class R(BaseView):
 appbuilder.add_view_no_menu(R)
 
 
-def caravel_has_access(permission_name, view_name):
-    """Protecting from has_access failing from missing perms/view"""
-    try:
-        return appbuilder.sm.has_access(permission_name, view_name)
-    except:
-        pass
-    return False
-
-
-class Caravel(BaseView):
+class Caravel(BaseCaravelView):
 
     """The base views for Caravel!"""
 
@@ -747,9 +748,9 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = caravel_has_access('can_add', 'SliceModelView')
-        slice_edit_perm = caravel_has_access('can_edit', 'SliceModelView')
-        slice_download_perm = caravel_has_access('can_download', 'SliceModelView')
+        slice_add_perm = self.can_access('can_add', 'SliceModelView')
+        slice_edit_perm = self.can_access('can_edit', 'SliceModelView')
+        slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -761,9 +762,9 @@ class Caravel(BaseView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = caravel_has_access(
+        all_datasource_access = self.can_access(
             'all_datasource_access', 'all_datasource_access')
-        datasource_access = caravel_has_access(
+        datasource_access = self.can_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
@@ -841,7 +842,7 @@ class Caravel(BaseView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -937,7 +938,8 @@ class Caravel(BaseView):
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         check_ownership(dash, raise_if_false=True)
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
-        dash.position_json = json.dumps(data['positions'], indent=4)
+        positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
+        dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dash.metadata_dejson
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -1026,15 +1028,15 @@ class Caravel(BaseView):
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
-            dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
+            dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
+            dash_edit_perm=self.can_access('can_edit', 'DashboardModelView'))
 
     @has_access
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
         if (
-                not self.appbuilder.sm.has_access(
+                not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             flash(
                 "This view requires the `all_datasource_access` "
@@ -1099,7 +1101,7 @@ class Caravel(BaseView):
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if (
-                not self.appbuilder.sm.has_access(
+                not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             raise utils.CaravelSecurityException(_(
                 "This view requires the `all_datasource_access` permission"))

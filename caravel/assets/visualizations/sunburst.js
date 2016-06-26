@@ -270,6 +270,11 @@ function sunburstVis(slice) {
           .attr("x", (breadcrumbDims.width + breadcrumbDims.tipTailWidth) / 2)
           .attr("y", breadcrumbDims.height / 4)
           .attr("dy", "0.35em")
+          .style("fill", function (d) {
+            // Make text white or black based on the lightness of the background
+            var col = d3.hsl(colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1));
+            return col.l < 0.5 ? 'white' : 'black';
+          })
           .attr("class", "step-label")
           .text(function (d) { return d.name.replace(/_/g, " "); })
           .call(wrapSvgText, breadcrumbDims.width, breadcrumbDims.height / 2);

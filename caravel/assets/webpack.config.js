@@ -17,12 +17,23 @@ var config = {
     path: BUILD_DIR,
     filename: '[name].entry.js'
   },
+  resolve: {
+    alias: {
+      webworkify: 'webworkify-webpack'
+    }
+  },
   module: {
     loaders: [
       {
         test: /\.jsx?/,
         include: APP_DIR,
         exclude: APP_DIR + '/node_modules',
+        loader: 'babel'
+      },
+    /* for react-map-gl overlays */
+      {
+        test: /\.react\.js$/,
+        include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
         loader: 'babel'
       },
     /* for require('*.css') */
@@ -43,8 +54,22 @@ var config = {
         test: /\.less$/,
         include: APP_DIR,
         loader: "style!css!less"
+      },
+    /* for mapbox */
+      {
+        test: /\.json$/,
+        loader: 'json-loader'
+      }, {
+        test: /\.js$/,
+        include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
+        loader: 'transform/cacheable?brfs'
       }
-    ]
+    ],
+    postLoaders: [{
+      include: /node_modules\/mapbox-gl/,
+      loader: 'transform',
+      query: 'brfs'
+    }]
   },
   plugins: []
 };
