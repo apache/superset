@@ -5,6 +5,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import celery
+from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
 import textwrap
@@ -130,7 +132,17 @@ def refresh_druid():
 @manager.command
 def worker():
     """Starts a Caravel worker for async query load"""
-    raise NotImplementedError("# TODO! @b.kyryliuk")
+    # celery -A tasks worker --loglevel=info
+    print("Broker url: ")
+    print(config.get('CELERY_CONFIG').BROKER_URL)
+    application = celery.current_app._get_current_object()
+    c_worker = celery_worker.worker(app=application)
+    options = {
+        'broker': config.get('CELERY_CONFIG').BROKER_URL,
+        'loglevel': 'INFO',
+        'traceback': True,
+    }
+    c_worker.run(**options)
 
 
 if __name__ == "__main__":
