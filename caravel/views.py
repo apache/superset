@@ -573,6 +573,20 @@ class SliceAsync(SliceModelView):  # noqa
 appbuilder.add_view_no_menu(SliceAsync)
 
 
+class SliceAddView(SliceModelView):  # noqa
+    list_columns = [
+        'slice_link', 'viz_type',
+        'creator', 'modified', 'data']
+    label_columns = {
+        'icons': ' ',
+        'viz_type': _('Type'),
+        'slice_link': _('Slice'),
+        'viz_type': _('Visualization Type'),
+    }
+
+appbuilder.add_view_no_menu(SliceAddView)
+
+
 class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'creator', 'modified']
@@ -1019,6 +1033,23 @@ class Caravel(BaseCaravelView):
         session.commit()
         session.close()
         return "SUCCESS"
+
+    @api
+    @has_access_api
+    @expose("/add_slices/<dashboard_id>/", methods=['POST'])
+    def add_slices(self, dashboard_id):
+        """Add and save slices to a dashboard"""
+        data = json.loads(request.form.get('data'))
+        session = db.session()
+        Slice = models.Slice # noqa
+        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        check_ownership(dash, raise_if_false=True)
+        new_slices = session.query(Slice).filter(Slice.id.in_(data['slice_ids']))
+        dash.slices += new_slices
+        session.merge(dash)
+        session.commit()
+        session.close()
+        return "SLICES ADDED"
 
     @api
     @has_access_api

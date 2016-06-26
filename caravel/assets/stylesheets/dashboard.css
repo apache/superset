@@ -44,3 +44,17 @@
 .dashboard  div.nvtooltip {
   z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
+
+.add-slice-selected {
+  background: gray;
+  color: white;
+}
+
+#add-slice-container .modal-body {
+  height: 300px;
+  overflow-y: scroll;
+}
+
+.hidden {
+  display: none;
+}

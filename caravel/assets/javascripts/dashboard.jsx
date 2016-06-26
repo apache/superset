@@ -6,6 +6,7 @@ var showModal = require('./modules/utils.js').showModal;
 require('bootstrap');
 import React from 'react';
 import { render } from 'react-dom';
+import update from 'immutability-helper';
 
 var ace = require('brace');
 require('brace/mode/css');
@@ -89,9 +90,6 @@ class GridLayout extends React.Component {
       }),
       slices: this.state.slices.filter(function (slice) {
         return slice.slice_id !== sliceId;
-      }),
-      sliceElements: this.state.sliceElements.filter(function (sliceElement) {
-        return sliceElement.key !== String(sliceId);
       })
     });
   }
@@ -125,8 +123,7 @@ class GridLayout extends React.Component {
   }
 
   componentWillMount() {
-    var layout = [],
-      sliceElements = [];
+    var layout = [];
 
     this.props.slices.forEach(function (slice, index) {
       var pos = this.props.posDict[slice.slice_id];
@@ -138,19 +135,6 @@ class GridLayout extends React.Component {
           size_y: 4
         };
       }
-
-      sliceElements.push(
-        <div
-          id={"slice_" + slice.slice_id}
-          key={slice.slice_id}
-          data-slice-id={slice.slice_id}
-          className={"widget " + slice.viz_name}>
-          <SliceCell
-            slice={slice}
-            removeSlice={this.removeSlice.bind(this)}
-            expandedSlices={this.props.dashboard.metadata.expanded_slices}/>
-        </div>
-      );
 
       layout.push({
         i: String(slice.slice_id),
@@ -164,7 +148,6 @@ class GridLayout extends React.Component {
 
     this.setState({
       layout: layout,
-      sliceElements: sliceElements,
       slices: this.props.slices
     });
   }
@@ -182,8 +165,123 @@ class GridLayout extends React.Component {
         margin={[20, 20]}
         useCSSTransforms={false}
         draggableHandle=".drag">
-        {this.state.sliceElements}
+        {this.state.slices.map(function (slice) {
+          return (
+            <div
+              id={"slice_" + slice.slice_id}
+              key={slice.slice_id}
+              data-slice-id={slice.slice_id}
+              className={"widget " + slice.viz_name}>
+              <SliceCell
+                slice={slice}
+                removeSlice={this.removeSlice.bind(this)}
+                expandedSlices={this.props.dashboard.metadata.expanded_slices}/>
+            </div>
+          );
+        }, this)}
       </ResponsiveReactGridLayout>
+    );
+  }
+}
+
+class SliceAdder extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      slices: []
+    };
+
+    this.addSlices = this.addSlices.bind(this);
+    this.toggleSlice = this.toggleSlice.bind(this);
+    this.slicesLoaded = false;
+  }
+
+  addSlices() {
+    var slices = this.state.slices.filter(function (slice) {
+      return slice.isSelected;
+    });
+    var sliceIds = [];
+
+    var sliceObjects = slices.map(function (slice) {
+      var sliceObj = px.Slice(slice.data, this.props.dashboard);
+      $("#slice_" + slice.data.slice_id).find('a.refresh').click(function () {
+        sliceObj.render(true);
+      });
+      this.props.dashboard.slices.push(sliceObj);
+      sliceIds.push(sliceObj.data.slice_id)
+      return sliceObj;
+    }, this);
+
+    this.props.dashboard.addSlicesToDashboard(sliceIds);
+  }
+
+  toggleSlice(sliceIndex) {
+    this.setState({
+      slices: update(this.state.slices, {
+        [sliceIndex]: {
+          isSelected: {
+            $set: !this.state.slices[sliceIndex].isSelected
+          }
+        }
+      })
+    });
+  }
+
+  componentDidMount() {
+    this.slicesRequest = $.get("/sliceaddview/api/read", function (response) {
+      this.slicesLoaded = true;
+      this.setState({
+        slices: response.result
+      });
+    }.bind(this));
+  }
+
+  componentWillUnmount() {
+    this.slicesRequest.abort();
+  }
+
+  render() {
+    return (
+      <div className="modal fade" id="add_slice_modal" role="dialog">
+          <div className="modal-dialog" role="document">
+              <div className="modal-content">
+                  <div className="modal-header">
+                      <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                      <h4 className="modal-title" id="myModalLabel">Add New Slice</h4>
+                  </div>
+                  <div className="modal-body">
+                    <img src={"/static/assets/images/loading.gif"}
+                         className={this.slicesLoaded ? "hidden" : ""}
+                         alt="loading"/>
+                    {this.state.slices.map(function (slice, i) {
+                      return (
+                        <div key={i}
+                             onClick={() => this.toggleSlice(i)}
+                             className={slice.isSelected ? "add-slice-selected" : ""}>
+                          {slice.data.slice_name}
+                        </div>
+                      );
+                    }, this)}
+                  </div>
+                  <div className="modal-footer">
+                      <button type="button"
+                              className="btn btn-default"
+                              data-dismiss="modal">
+                          Cancel
+                      </button>
+                      <button type="button"
+                              className="btn btn-default"
+                              data-dismiss="modal"
+                              onClick={this.addSlices}>
+                          Add Slices
+                      </button>
+                  </div>
+              </div>
+          </div>
+      </div>
     );
   }
 }
@@ -315,14 +413,81 @@ var Dashboard = function (dashboardData) {
         }
       }
     },
-    initDashboardView: function () {
-      var posDict = {}
-      this.position_json.forEach(function (position) {
-        posDict[position.slice_id] = position;
+    showAddSlice: function () {
+      render(
+        <SliceAdder dashboard={dashboard}/>,
+        document.getElementById("add-slice-container")
+      );
+    },
+    addSlicesToDashboard: function (sliceIds) {
+      $.ajax({
+        type: "POST",
+        url: '/caravel/add_slices/' + dashboard.id + '/',
+        data: {
+          data: JSON.stringify({slice_ids: sliceIds})
+        },
+        success: function () {
+          // Refresh page to allow for slices to re-render
+          window.location.reload();
+        },
+        error: function (error) {
+          var respJSON = error.responseJSON;
+          var errorMsg = (respJSON && respJSON.message) ? respJSON.message :
+              error.responseText;
+          showModal({
+            title: "Error",
+            body: "Sorry, there was an error adding slices to this dashboard:<br />" + errorMsg
+          });
+          console.warn("Add new slices error", error);
+        }
       });
+    },
+    saveDashboard: function () {
+      var expanded_slices = {};
+      $.each($(".slice_info"), function (i, d) {
+        var widget = $(this).parents('.widget');
+        var slice_description = widget.find('.slice_description');
+        if (slice_description.is(":visible")) {
+          expanded_slices[$(widget).attr('data-slice-id')] = true;
+        }
+      });
+      var data = {
+        positions: this.reactGridLayout.serialize(),
+        css: this.editor.getValue(),
+        expanded_slices: expanded_slices
+      };
+      $.ajax({
+        type: "POST",
+        url: '/caravel/save_dash/' + dashboard.id + '/',
+        data: {
+          data: JSON.stringify(data)
+        },
+        success: function () {
+          showModal({
+            title: "Success",
+            body: "This dashboard was saved successfully."
+          });
+        },
+        error: function (error) {
+          var respJSON = error.responseJSON;
+          var errorMsg = (respJSON && respJSON.message) ? respJSON.message :
+              error.responseText;
+          showModal({
+            title: "Error",
+            body: "Sorry, there was an error saving this dashboard:<br />" + errorMsg
+          });
+          console.warn("Save dashboard error", error);
+        }
+      });
+    },
+    initDashboardView: function () {
+      this.posDict = {};
+      this.position_json.forEach(function (position) {
+        this.posDict[position.slice_id] = position;
+      }, this);
 
-      reactGridLayout = render(
-        <GridLayout slices={this.slices} posDict={posDict} dashboard={dashboard}/>,
+      this.reactGridLayout = render(
+        <GridLayout slices={this.slices} posDict={this.posDict} dashboard={dashboard}/>,
         document.getElementById("grid-container")
       );
 
@@ -338,46 +503,11 @@ var Dashboard = function (dashboardData) {
         }
       );
       $("div.grid-container").css('visibility', 'visible');
-      $("#savedash").click(function () {
-        var expanded_slices = {};
-        $.each($(".slice_info"), function (i, d) {
-          var widget = $(this).parents('.widget');
-          var slice_description = widget.find('.slice_description');
-          if (slice_description.is(":visible")) {
-            expanded_slices[$(widget).attr('data-slice-id')] = true;
-          }
-        });
-        var data = {
-          positions: reactGridLayout.serialize(),
-          css: editor.getValue(),
-          expanded_slices: expanded_slices
-        };
-        $.ajax({
-          type: "POST",
-          url: '/caravel/save_dash/' + dashboard.id + '/',
-          data: {
-            data: JSON.stringify(data)
-          },
-          success: function () {
-            showModal({
-              title: "Success",
-              body: "This dashboard was saved successfully."
-            });
-          },
-          error: function (error) {
-            var respJSON = error.responseJSON;
-            var errorMsg = (respJSON && respJSON.message) ? respJSON.message :
-                error.responseText;
-            showModal({
-              title: "Error",
-              body: "Sorry, there was an error saving this dashboard:<br />" + errorMsg
-            });
-            console.warn("Save dashboard error", error);
-          }
-        });
-      });
+      $("#savedash").click(this.saveDashboard.bind(this));
+      $("#add-slice").click(this.showAddSlice);
 
       var editor = ace.edit("dash_css");
+      this.editor = editor;
       editor.$blockScrolling = Infinity;
 
       editor.setTheme("ace/theme/crimson_editor");
