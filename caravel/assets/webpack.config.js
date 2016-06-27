@@ -43,12 +43,6 @@ const config = {
           ],
         },
       },
-      /* for react-map-gl overlays */
-      {
-        test: /\.react\.js$/,
-        include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
-        loader: 'babel',
-      },
       /* for require('*.css') */
       {
         test: /\.css$/,

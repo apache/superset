@@ -1,25 +1,43 @@
-const d3 = window.d3 || require('d3');
-require('./mapbox.css');
-
 import React from 'react';
-import ReactDOM from 'react-dom';
-import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/src/overlays/scatterplot.react.js';
-import Immutable from 'immutable';
-import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
+import COMPOSITE_TYPES from 'canvas-composite-types';
+import Immutable from 'immutable';
 import {
   kmToPixels,
   rgbLuminance,
   isNumeric,
-  MILES_PER_KM,
-  DEFAULT_LONGITUDE,
-  DEFAULT_LATITUDE,
-  DEFAULT_ZOOM
-} from '../utils/common';
+  MILES_PER_KM
+} from '../../utils/utils';
 
-class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
-  _drawText(ctx, pixel, options = {}) {
+const propTypes = {
+  width: React.PropTypes.number.isRequired,
+  height: React.PropTypes.number.isRequired,
+  latitude: React.PropTypes.number.isRequired,
+  longitude: React.PropTypes.number.isRequired,
+  zoom: React.PropTypes.number.isRequired,
+  isDragging: React.PropTypes.bool.isRequired,
+  locations: React.PropTypes.instanceOf(Immutable.List).isRequired,
+  lngLatAccessor: React.PropTypes.func.isRequired,
+  renderWhileDragging: React.PropTypes.bool,
+  globalOpacity: React.PropTypes.number.isRequired,
+  pointRadius: React.PropTypes.number.isRequired,
+  pointRadiusUnit: React.PropTypes.string,
+  rgb: React.PropTypes.array.isRequired,
+  aggregatorName: React.PropTypes.string,
+  compositeOperation: React.PropTypes.oneOf(COMPOSITE_TYPES).isRequired
+};
+
+// Modified: https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
+class ScatterPlotClusterOverlay extends React.Component {
+  componentDidMount() {
+    this.drawPoints();
+  }
+
+  componentDidUpdate() {
+    this.drawPoints();
+  }
+
+  drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
     const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
     const maxWidth = radius * 1.8;
@@ -47,13 +65,12 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
     ctx.shadowColor = '';
   }
 
-  // Modified: https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
-  _redraw() {
+  drawPoints() {
     const props = this.props;
     const pixelRatio = window.devicePixelRatio || 1;
     const canvas = this.refs.overlay;
     const ctx = canvas.getContext('2d');
-    const radius = props.dotRadius;
+    const radius = props.pointRadius;
     const mercator = ViewportMercator(props);
     const rgb = props.rgb;
     let maxLabel = -1;
@@ -121,7 +138,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
               clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
                              clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' :
                              clusterLabel;
-              this._drawText(ctx, pixelRounded, {
+              this.drawText(ctx, pixelRounded, {
                 fontHeight: fontHeight,
                 label: clusterLabel,
                 radius: scaledRadius,
@@ -161,7 +178,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fill();
 
             if (pointLabel !== undefined) {
-              this._drawText(ctx, pixelRounded, {
+              this.drawText(ctx, pixelRounded, {
                 fontHeight: d3.round(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
@@ -176,162 +193,30 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
 
     ctx.restore();
   }
-}
-
-class MapboxViz extends React.Component {
-  constructor(props) {
-    super(props);
-
-    const longitude = this.props.viewportLongitude || DEFAULT_LONGITUDE;
-    const latitude = this.props.viewportLatitude || DEFAULT_LATITUDE;
-
-    this.state = {
-      viewport: {
-        longitude: longitude,
-        latitude: latitude,
-        zoom: this.props.viewportZoom || DEFAULT_ZOOM,
-        startDragLngLat: [longitude, latitude]
-      }
-    };
-
-    this.onChangeViewport = this.onChangeViewport.bind(this);
-  }
-
-  onChangeViewport(viewport) {
-    this.setState({
-      viewport: viewport
-    });
-  }
 
   render() {
-    const mercator = ViewportMercator({
-      width: this.props.sliceWidth,
-      height: this.props.sliceHeight,
-      longitude: this.state.viewport.longitude,
-      latitude: this.state.viewport.latitude,
-      zoom: this.state.viewport.zoom
-    });
-    const topLeft = mercator.unproject([0, 0]);
-    const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
-    const bbox = [topLeft[0], bottomRight[1], bottomRight[0], topLeft[1]];
-    const clusters = this.props.clusterer.getClusters(bbox, Math.round(this.state.viewport.zoom));
-    const isDragging = this.state.viewport.isDragging === undefined ? false :
-                       this.state.viewport.isDragging;
-
-    d3.select('#viewport_longitude').attr('value', this.state.viewport.longitude);
-    d3.select('#viewport_latitude').attr('value', this.state.viewport.latitude);
-    d3.select('#viewport_zoom').attr('value', this.state.viewport.zoom);
+    const pixelRatio = window.devicePixelRatio || 1;
+    const style = {
+      width: this.props.width + 'px',
+      height: this.props.height + 'px',
+      position: 'absolute',
+      pointerEvents: 'none',
+      opacity: this.props.globalOpacity,
+      left: 0,
+      top: 0
+    }
 
     return (
-      <MapGL
-        {...this.state.viewport}
-        mapStyle={this.props.mapStyle}
-        width={this.props.sliceWidth}
-        height={this.props.sliceHeight}
-        mapboxApiAccessToken={this.props.mapboxApiKey}
-        onChangeViewport={this.onChangeViewport}>
-        <ScatterPlotGlowOverlay
-          {...this.state.viewport}
-          isDragging={isDragging}
-          width={this.props.sliceWidth}
-          height={this.props.sliceHeight}
-          locations={Immutable.fromJS(clusters)}
-          dotRadius={this.props.pointRadius}
-          pointRadiusUnit={this.props.pointRadiusUnit}
-          rgb={this.props.rgb}
-          globalOpacity={this.props.globalOpacity}
-          compositeOperation={'screen'}
-          renderWhileDragging={this.props.renderWhileDragging}
-          aggregatorName={this.props.aggregatorName}
-          lngLatAccessor={function (location) {
-            const coordinates = location.get('geometry').get('coordinates');
-            return [coordinates.get(0), coordinates.get(1)];
-          }}/>
-      </MapGL>
-    );
+      <canvas
+        ref={'overlay'}
+        width={this.props.width * pixelRatio}
+        height={this.props.height * pixelRatio}
+        style={style}
+      />
+    )
   }
 }
 
-function mapbox(slice) {
-  const DEFAULT_POINT_RADIUS = 60;
-  const DEFAULT_MAX_ZOOM = 16;
-  const div = d3.select(slice.selector);
-  let clusterer;
+ScatterPlotClusterOverlay.propTypes = propTypes;
 
-  let render = function () {
-
-    d3.json(slice.jsonEndpoint(), function (error, json) {
-
-      if (error !== null) {
-        slice.error(error.responseText);
-        return '';
-      }
-
-      // Validate mapbox color
-      const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
-      if (rgb === null) {
-        slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-        return '';
-      }
-
-      const aggName = json.data.aggregatorName;
-      let reducer;
-
-      if (aggName === 'sum' || !json.data.customMetric) {
-        reducer = function (a, b) {
-          return a + b;
-        };
-      } else if (aggName === 'min') {
-        reducer = Math.min;
-      } else if (aggName === 'max') {
-        reducer = Math.max;
-      } else {
-        reducer = function (a, b) {
-          if (a instanceof Array) {
-            if (b instanceof Array) {
-              return a.concat(b);
-            }
-            a.push(b);
-            return a;
-          } else {
-            if (b instanceof Array) {
-              b.push(a);
-              return b;
-            }
-            return [a, b];
-          }
-        };
-      }
-
-      clusterer = supercluster({
-        radius: json.data.clusteringRadius,
-        maxZoom: DEFAULT_MAX_ZOOM,
-        metricKey: 'metric',
-        metricReducer: reducer
-      });
-      clusterer.load(json.data.geoJSON.features);
-
-      div.selectAll('*').remove();
-      ReactDOM.render(
-        <MapboxViz
-          {...json.data}
-          rgb={rgb}
-          sliceHeight={slice.height()}
-          sliceWidth={slice.width()}
-          clusterer={clusterer}
-          pointRadius={DEFAULT_POINT_RADIUS}
-          aggregatorName={aggName}/>,
-        div.node()
-      );
-
-      slice.done(json);
-    });
-  };
-
-  return {
-    render: render,
-    resize: function () {}
-  };
-}
-
-module.exports = mapbox;
+export default ScatterPlotClusterOverlay;
