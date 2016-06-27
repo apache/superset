@@ -204,7 +204,7 @@ class ScatterPlotClusterOverlay extends React.Component {
       opacity: this.props.globalOpacity,
       left: 0,
       top: 0
-    }
+    };
 
     return (
       <canvas
@@ -213,7 +213,7 @@ class ScatterPlotClusterOverlay extends React.Component {
         height={this.props.height * pixelRatio}
         style={style}
       />
-    )
+    );
   }
 }
 

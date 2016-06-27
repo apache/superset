@@ -5,9 +5,6 @@ const LUMINANCE_RED_WEIGHT = 0.2126;
 const LUMINANCE_GREEN_WEIGHT = 0.7152;
 const LUMINANCE_BLUE_WEIGHT = 0.0722;
 const MILES_PER_KM = 1.60934;
-const DEFAULT_LONGITUDE = -122.405293;
-const DEFAULT_LATITUDE = 37.772123;
-const DEFAULT_ZOOM = 11;
 
 function kmToPixels(kilometers, latitude, zoomLevel) {
   // Algorithm from: http://wiki.openstreetmap.org/wiki/Zoom_levels
@@ -32,10 +29,7 @@ export {
   LUMINANCE_GREEN_WEIGHT,
   LUMINANCE_BLUE_WEIGHT,
   MILES_PER_KM,
-  DEFAULT_LONGITUDE,
-  DEFAULT_LATITUDE,
-  DEFAULT_ZOOM,
   kmToPixels,
   isNumeric,
-  rgbLuminance,
-}
+  rgbLuminance
+};
