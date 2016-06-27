@@ -565,7 +565,6 @@ class SliceAsync(SliceModelView):  # noqa
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'viz_type': _('Type'),
         'slice_link': _('Slice'),
         'viz_type': _('Visualization Type'),
     }
@@ -579,7 +578,6 @@ class SliceAddView(SliceModelView):  # noqa
         'creator', 'modified', 'data']
     label_columns = {
         'icons': ' ',
-        'viz_type': _('Type'),
         'slice_link': _('Slice'),
         'viz_type': _('Visualization Type'),
     }

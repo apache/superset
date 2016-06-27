@@ -201,6 +201,23 @@ class CoreTests(CaravelTestCase):
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SUCCESS" in resp.data.decode('utf-8')
 
+    def test_add_slices(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
+        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
+        existing_slice = db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
+        data = {
+            "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
+        }
+        url = '/caravel/add_slices/{}/'.format(dash.id)
+        resp = self.client.post(url, data=dict(data=json.dumps(data)))
+        assert "SLICES ADDED" in resp.data.decode('utf-8')
+
+        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
+        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
+        assert new_slice in dash.slices
+        assert len(set(dash.slices)) == len(dash.slices)
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
