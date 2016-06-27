@@ -16,6 +16,8 @@ require('./caravel-select2.js');
 require('../node_modules/react-grid-layout/css/styles.css');
 require('../node_modules/react-resizable/css/styles.css');
 
+require('datatables.net-bs');
+require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 require('../stylesheets/dashboard.css');
 
 import { Responsive, WidthProvider } from "react-grid-layout";
@@ -229,10 +231,13 @@ class SliceAdder extends React.Component {
   }
 
   componentDidMount() {
-    this.slicesRequest = $.get("/sliceaddview/api/read", function (response) {
+    var uri = "/sliceaddview/api/read?_flt_0_created_by=" + this.props.dashboard.curUserId;
+    this.slicesRequest = $.get(uri, function (response) {
       this.slicesLoaded = true;
       this.setState({
         slices: response.result
+      }, function () {
+        $("#add-slice-container table").DataTable();
       });
     }.bind(this));
   }
@@ -250,21 +255,38 @@ class SliceAdder extends React.Component {
                       <button type="button" className="close" data-dismiss="modal" aria-label="Close">
                         <span aria-hidden="true">&times;</span>
                       </button>
-                      <h4 className="modal-title" id="myModalLabel">Add New Slice</h4>
+                      <h4 className="modal-title" id="myModalLabel">Add New Slices</h4>
                   </div>
                   <div className="modal-body">
                     <img src={"/static/assets/images/loading.gif"}
-                         className={this.slicesLoaded ? "hidden" : ""}
+                         className={"loading " + (this.slicesLoaded ? "hidden" : "")}
                          alt="loading"/>
-                    {this.state.slices.map(function (slice, i) {
-                      return (
-                        <div key={i}
-                             onClick={() => this.toggleSlice(i)}
-                             className={slice.isSelected ? "add-slice-selected" : ""}>
-                          {slice.data.slice_name}
-                        </div>
-                      );
-                    }, this)}
+                    <table className="dataframe table table-condensed table-hover dataTable no-footer">
+                      <thead className={this.slicesLoaded ? "" : "hidden"}>
+                        <tr>
+                          <th>Name</th>
+                          <th>Viz</th>
+                          <th>Creator</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {this.state.slices.map(function (slice, i) {
+                          if (this.props.slicesOnDashMap[String(slice.data.slice_id)]) {
+                            return null;
+                          }
+
+                          return (
+                            <tr key={i}
+                                onClick={() => this.toggleSlice(i)}
+                                className={slice.isSelected ? "add-slice-selected" : ""}>
+                                <td>{slice.data.slice_name}</td>
+                                <td>{slice.viz_type}</td>
+                                <td>{slice.creator}</td>
+                            </tr>
+                          );
+                        }, this)}
+                      </tbody>
+                    </table>
                   </div>
                   <div className="modal-footer">
                       <button type="button"
@@ -287,8 +309,6 @@ class SliceAdder extends React.Component {
 }
 
 var Dashboard = function (dashboardData) {
-  var reactGridLayout;
-
   var dashboard = $.extend(dashboardData, {
     filters: {},
     init: function () {
@@ -414,8 +434,13 @@ var Dashboard = function (dashboardData) {
       }
     },
     showAddSlice: function () {
+      var slicesOnDashMap = {};
+      this.reactGridLayout.serialize().forEach(function (position) {
+        slicesOnDashMap[position.slice_id] = true;
+      }, this);
+
       render(
-        <SliceAdder dashboard={dashboard}/>,
+        <SliceAdder dashboard={dashboard} slicesOnDashMap={slicesOnDashMap}/>,
         document.getElementById("add-slice-container")
       );
     },
@@ -491,6 +516,8 @@ var Dashboard = function (dashboardData) {
         document.getElementById("grid-container")
       );
 
+      this.curUserId = $('.dashboard').data('user');
+
       dashboard = this;
 
       // Displaying widget controls on hover
@@ -504,7 +531,7 @@ var Dashboard = function (dashboardData) {
       );
       $("div.grid-container").css('visibility', 'visible');
       $("#savedash").click(this.saveDashboard.bind(this));
-      $("#add-slice").click(this.showAddSlice);
+      $("#add-slice").click(this.showAddSlice.bind(this));
 
       var editor = ace.edit("dash_css");
       this.editor = editor;

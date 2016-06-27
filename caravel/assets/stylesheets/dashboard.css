@@ -50,9 +50,20 @@
   color: white;
 }
 
+.add-slice-selected:hover {
+  background: lightgray !important;
+  color: white !important;
+}
+
 #add-slice-container .modal-body {
-  height: 300px;
-  overflow-y: scroll;
+  height: inherit;
+  overflow-y: auto;
+}
+
+.modal img.loading {
+  width: 50px;
+  margin: 0;
+  position: relative;
 }
 
 .hidden {

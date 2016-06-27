@@ -1131,6 +1131,7 @@ class Caravel(BaseCaravelView):
 
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
+            user_id=g.user.get_id(),
             templates=templates,
             dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
             dash_edit_perm=check_ownership(dash, raise_if_false=False))
