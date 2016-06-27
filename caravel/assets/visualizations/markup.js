@@ -1,5 +1,7 @@
 var $ = window.$ || require('jquery');
 
+require('./markup.css');
+
 function markupWidget(slice) {
 
   function refresh() {
