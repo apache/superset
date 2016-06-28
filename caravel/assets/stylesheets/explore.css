@@ -8,10 +8,11 @@
     top: 0;
 }
 
-hr {
+.header hr {
     margin-top: 10px;
     margin-bottom: 10px;
 }
+
 .navbar {
     margin-bottom: 10px;
 }

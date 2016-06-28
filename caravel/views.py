@@ -245,7 +245,6 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
@@ -497,7 +496,6 @@ if config['DRUID_IS_ACTIVE']:
         category="Sources",
         category_label=__("Sources"),
         category_icon='fa-database',)
-
 
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
@@ -874,6 +872,7 @@ class Caravel(BaseCaravelView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
+
         as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
         for k in d:
             v = d.get(k)
@@ -890,8 +889,7 @@ class Caravel(BaseCaravelView):
             table_id = args.get('datasource_id')
 
         if action in ('saveas'):
-            owners = [g.user] if g.user else []
-            slc = models.Slice(owners=owners)
+            slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
@@ -907,12 +905,10 @@ class Caravel(BaseCaravelView):
             self.overwrite_slice(slc)
 
         # Adding slice to a dashboard if requested
-        Dash = models.Dashboard  # noqa
-        add_to_dash = request.args.get('add_to_dash')
         dash = None
-        if add_to_dash == 'existing':
+        if request.args.get('add_to_dash') == 'existing':
             dash = (
-                db.session.query(Dash)
+                db.session.query(models.Dashoard)
                 .filter_by(id=int(request.args.get('save_to_dashboard_id')))
                 .one()
             )
@@ -921,11 +917,10 @@ class Caravel(BaseCaravelView):
                     slc.slice_name,
                     dash.dashboard_title),
                 "info")
-        elif add_to_dash == 'new':
-            owners = [g.user] if g.user else []
-            dash = Dash(
+        elif request.args.get('add_to_dash') == 'new':
+            dash = models.Dashoard(
                 dashboard_title=request.args.get('new_dashboard_name'),
-                owners=owners)
+                owners=[g.user] if g.user else [])
             flash(
                 "Dashboard [{}] just got created and slice [{}] was added "
                 "to it".format(
@@ -1025,7 +1020,11 @@ class Caravel(BaseCaravelView):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
-            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args', {})
+            connect_args = (
+                request.json
+                .get('extras', {})
+                .get('engine_params', {})
+                .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
