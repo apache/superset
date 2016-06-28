@@ -273,7 +273,7 @@ var px = (function () {
         }
         $('#timer').removeClass('btn-warning');
         $('#timer').addClass('btn-success');
-        $('span.query').removeClass('disabled');
+        $('span.view_query').removeClass('disabled');
         $('#json').click(function () {
           window.location = data.json_endpoint;
         });
