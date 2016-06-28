@@ -55,26 +55,38 @@
             </span>
           {% endif %}
           <div class="pull-right">
-            <span id="is_cached" class="label label-default" title={{_("Force refresh")}} data-toggle="tooltip">
+            <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
               cached
             </span>
             <div class="btn-group results" role="group">
               <a role="button" tabindex="0" class="btn btn-default" id="shortner" data-toggle="popover" data-trigger="focus">
-                <i class="fa fa-link" data-toggle="tooltip" title={{_("Short URL")}}></i>&nbsp;
+                <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
               </a>
-              <span class="btn btn-default" id="standalone" title={{ _("Generate an embeddable iframe") }} data-toggle="tooltip">
+              <span class="btn btn-default" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
                 <i class="fa fa-code"></i>&nbsp;
               </span>
-              <span class="btn btn-default " id="json" title={{ _("Export to .json")}} data-toggle="tooltip">
+              <span class="btn btn-default " id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
                 <i class="fa fa-file-code-o"></i>
                 .json
               </span>
-              <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title={{ _("Export to .csv format") }} data-toggle="tooltip">
+              <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
                 <i class="fa fa-file-text-o"></i>.csv
               </span>
-              <span class="btn btn-warning notbtn" id="timer">{{ _("0 sec") }}</span>
-              <span class="btn btn-info disabled query"
-                data-toggle="modal" data-target="#query_modal">{{ _("query") }}</span>
+              <span
+                  class="btn btn-warning notbtn"
+                  id="timer"
+                  title="{{ _("Query timer") }}"
+                  data-toggle="tooltip">
+                {{ _("0 sec") }}
+              </span>
+              <span
+                  class="btn btn-info disabled view_query"
+                  data-toggle="modal"
+                  data-target="#query_modal">
+                  <span data-toggle="tooltip" title="{{ _("View database query") }}">
+                    {{ _("query") }}
+                  </span>
+              </span>
             </div>
           </div>
         <hr/>
@@ -137,7 +149,7 @@
                 <span class="legend_label">{{ _("Filters") }}</span>
                 <i  class="fa fa-info-circle" data-toggle="tooltip"
                     data-placement="bottom"
-                    title={{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}></i>
+                    title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}"></i>
                 <span class="collapser"> [-]</span>
               </div>
               <div class="panel-body">
