@@ -3,6 +3,7 @@
 
 {% block body %}
 <div class="container-fluid">
+  {% include 'caravel/flash_wrapper.html' %}
   <div class="sqlcontent" style="display: none;">
     <h3>db: [{{ db }}]</h3>
     <div class="row interactions">

@@ -23,44 +23,41 @@ require('../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
 var slice;
 
+var getPanelClass = function (fieldPrefix) {
+  return (fieldPrefix === "flt" ? "filter" : "having") + "_panel";
+};
+
 function prepForm() {
-  var i = 1;
   // Assigning the right id to form elements in filters
-  $("#filters > div").each(function () {
-    $(this).attr("id", function () {
-        return "flt_" + i;
-      });
-    $(this).find("#flt_col_0")
-      .attr("id", function () {
-        return "flt_col_" + i;
-      })
-      .attr("name", function () {
-        return "flt_col_" + i;
-      });
-    $(this).find("#flt_op_0")
-      .attr("id", function () {
-        return "flt_op_" + i;
-      })
-      .attr("name", function () {
-        return "flt_op_" + i;
-      });
-    $(this).find("#flt_eq_0")
-      .attr("id", function () {
-        return "flt_eq_" + i;
-      })
-      .attr("name", function () {
-        return "flt_eq_" + i;
-      });
-    i++;
+  var fixId = function ($filter, fieldPrefix, i) {
+    $filter.attr("id", function () {
+      return fieldPrefix + "_" + i;
+    });
+
+    ["col", "op", "eq"].forEach(function (fieldMiddle) {
+      var fieldName = fieldPrefix + "_" + fieldMiddle;
+      $filter.find("#" + fieldName + "_0")
+          .attr("id", function () {
+            return fieldName + "_" + i;
+          })
+          .attr("name", function () {
+            return fieldName + "_" + i;
+          });
+    });
+  };
+
+  ["flt", "having"].forEach(function (fieldPrefix) {
+    var i = 1;
+    $("#" + getPanelClass(fieldPrefix) + " #filters > div").each(function () {
+      fixId($(this), fieldPrefix, i);
+      i++;
+    });
   });
 }
 
 function query(force, pushState) {
   if (force === undefined) {
     force = false;
-  }
-  if (pushState !== false) {
-    history.pushState({}, document.title, slice.querystring());
   }
   $('.query-and-save button').attr('disabled', 'disabled');
   $('.btn-group.results span,a').attr('disabled', 'disabled');
@@ -69,6 +66,10 @@ function query(force, pushState) {
   }
   $('#is_cached').hide();
   prepForm();
+  if (pushState !== false) {
+    // update the url after prepForm() fix the field ids
+    history.pushState({}, document.title, slice.querystring());
+  }
   slice.render(force);
 }
 
@@ -291,24 +292,26 @@ function initExploreView() {
   $(".ui-helper-hidden-accessible").remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
   function set_filters() {
-    for (var i = 1; i < 10; i++) {
-      var eq = px.getParam("flt_eq_" + i);
-      var col = px.getParam("flt_col_" + i);
-      if (eq !== '' && col !== '') {
-        add_filter(i);
+    ["flt", "having"].forEach(function (prefix) {
+      for (var i = 1; i < 10; i++) {
+        var eq = px.getParam(prefix + "_eq_" + i);
+        var col = px.getParam(prefix + "_col_" + i);
+        if (eq !== '' && col !== '') {
+          add_filter(i, prefix);
+        }
       }
-    }
+    });
   }
   set_filters();
 
-  function add_filter(i) {
-    var cp = $("#flt0").clone();
-    $(cp).appendTo("#filters");
+  function add_filter(i, fieldPrefix) {
+    var cp = $("#"+fieldPrefix+"0").clone();
+    $(cp).appendTo("#" + getPanelClass(fieldPrefix) + " #filters");
     $(cp).show();
     if (i !== undefined) {
-      $(cp).find("#flt_eq_0").val(px.getParam("flt_eq_" + i));
-      $(cp).find("#flt_op_0").val(px.getParam("flt_op_" + i));
-      $(cp).find("#flt_col_0").val(px.getParam("flt_col_" + i));
+      $(cp).find("#"+fieldPrefix+"_eq_0").val(px.getParam(fieldPrefix+"_eq_" + i));
+      $(cp).find("#"+fieldPrefix+"_op_0").val(px.getParam(fieldPrefix+"_op_" + i));
+      $(cp).find("#"+fieldPrefix+"_col_0").val(px.getParam(fieldPrefix+"_col_" + i));
     }
     $(cp).find('select').select2();
     $(cp).find('.remove').click(function () {
@@ -324,23 +327,11 @@ function initExploreView() {
     returnLocation.reload();
   });
 
-  $("#plus").click(add_filter);
-  $("#btn_save").click(function () {
-    var slice_name = prompt("Name your slice!");
-    if (slice_name !== "" && slice_name !== null) {
-      $("#slice_name").val(slice_name);
-      prepForm();
-      $("#action").val("save");
-      $("#query").submit();
-    }
+  $("#filter_panel #plus").click(function () {
+    add_filter(undefined, "flt");
   });
-  $("#btn_overwrite").click(function () {
-    var flag = confirm("Overwrite slice [" + $("#slice_name").val() + "] !?");
-    if (flag) {
-      $("#action").val("overwrite");
-      prepForm();
-      $("#query").submit();
-    }
+  $("#having_panel #plus").click(function () {
+    add_filter(undefined, "having");
   });
 
   $(".query").click(function () {
@@ -392,6 +383,78 @@ function initExploreView() {
     });
     $(this).remove();
   });
+
+  function prepSaveDialog() {
+    var setButtonsState = function () {
+      var add_to_dash = $("input[name=add_to_dash]:checked").val();
+      if (add_to_dash === 'existing' || add_to_dash === 'new') {
+        $('.gotodash').removeAttr('disabled');
+      } else {
+        $('.gotodash').prop('disabled', true);
+      }
+    };
+    var url = '/dashboardmodelviewasync/api/read';
+    url += '?_flt_0_owners=' + $('#userid').val();
+    $.get(url, function (data) {
+      var choices = [];
+      for (var i=0; i< data.pks.length; i++) {
+        choices.push({ id: data.pks[i], text: data.result[i].dashboard_title });
+      }
+      $('#save_to_dashboard_id').select2({
+        data: choices,
+        dropdownAutoWidth: true
+      }).on("select2-selecting", function () {
+        $("#add_to_dash_existing").prop("checked", true);
+        setButtonsState();
+      });
+    });
+
+    $("input[name=add_to_dash]").change(setButtonsState);
+    $("input[name='new_dashboard_name']").on('focus', function () {
+      $("#add_to_new_dash").prop("checked", true);
+      setButtonsState();
+    });
+    $("input[name='new_slice_name']").on('focus', function () {
+      $("#save_as_new").prop("checked", true);
+      setButtonsState();
+    });
+    $('#btn_modal_save').click(function () {
+      var action = $('input[name=rdo_save]:checked').val();
+      if (action === 'saveas') {
+        var slice_name = $('input[name=new_slice_name]').val();
+        if (slice_name === '') {
+          showModal({
+            title: "Error",
+            body: "You must pick a name for the new slice"
+          });
+          return;
+        }
+        document.getElementById("slice_name").value = slice_name;
+      }
+      var add_to_dash = $('input[name=add_to_dash]:checked').val();
+      if (add_to_dash === 'existing' && $('#save_to_dashboard_id').val() === '') {
+        showModal({
+          title: "Error",
+          body: "You must pick an existing dashboard"
+        });
+        return;
+      } else if (add_to_dash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
+        showModal({
+          title: "Error",
+          body: "Please enter a name for the new dashboard"
+        });
+        return;
+      }
+      $('#action').val(action);
+      prepForm();
+      $("#query").submit();
+    });
+    $('#btn_modal_save_goto_dash').click(function () {
+      document.getElementById("goto_dash").value = 'true';
+      $('#btn_modal_save').click();
+    });
+  }
+  prepSaveDialog();
 }
 
 $(document).ready(function () {

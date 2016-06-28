@@ -12,6 +12,7 @@ import time
 import traceback
 from datetime import datetime
 
+import functools
 import pandas as pd
 import sqlalchemy as sqla
 
@@ -20,9 +21,9 @@ from flask import (
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access
-from flask_babelpkg import gettext as __
-from flask_babelpkg import lazy_gettext as _
+from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_babel import gettext as __
+from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine, select, text
@@ -35,6 +36,44 @@ from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
 
 config = app.config
 log_this = models.Log.log_this
+can_access = utils.can_access
+
+
+class BaseCaravelView(BaseView):
+    def can_access(self, permission_name, view_name):
+        return utils.can_access(appbuilder.sm, permission_name, view_name)
+
+
+def get_error_msg():
+    if config.get("SHOW_STACKTRACE"):
+        error_msg = traceback.format_exc()
+    else:
+        error_msg = "FATAL ERROR \n"
+        error_msg += (
+            "Stacktrace is hidden. Change the SHOW_STACKTRACE "
+            "configuration setting to enable it")
+    return error_msg
+
+
+def api(f):
+    """
+    A decorator to label an endpoint as an API. Catches uncaught exceptions and
+    return the response in the JSON format
+    """
+    def wraps(self, *args, **kwargs):
+        try:
+            return f(self, *args, **kwargs)
+        except Exception as e:
+            logging.exception(e)
+            resp = Response(
+                json.dumps({
+                    'message': get_error_msg()
+                }),
+                status=500,
+                mimetype="application/json")
+            return resp
+
+    return functools.update_wrapper(wraps, f)
 
 
 def check_ownership(obj, raise_if_false=True):
@@ -46,6 +85,8 @@ def check_ownership(obj, raise_if_false=True):
     model. It is meant to be used in the ModelView's pre_update hook in
     which raising will abort the update.
     """
+    if not obj:
+        return False
     roles = (r.name for r in get_user_roles())
     if 'Admin' in roles:
         return True
@@ -57,7 +98,11 @@ def check_ownership(obj, raise_if_false=True):
             orig_obj.created_by and
             orig_obj.created_by.username == g.user.username):
         return True
-    if hasattr(orig_obj, 'owners') and g.user.username in owner_names:
+    if (
+            hasattr(orig_obj, 'owners') and
+            g.user and
+            hasattr(g.user, 'username') and
+            g.user.username in owner_names):
         return True
     if raise_if_false:
         raise utils.CaravelSecurityException(
@@ -148,7 +193,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', ]
+        'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -162,6 +207,24 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
+        'python_date_format': utils.markdown(Markup(
+            "The pattern of timestamp format, use "
+            "<a href='https://docs.python.org/2/library/"
+            "datetime.html#strftime-strptime-behavior'>"
+            "python datetime string pattern</a> "
+            "expression. If time is stored in epoch "
+            "format, put `epoch_s` or `epoch_ms`. Leave `Database Expression` "
+            "below empty if timestamp is stored in "
+            "String or Integer(epoch) type"), True),
+        'database_expression': utils.markdown(
+            "The database expression to cast internal datetime "
+            "constants to database date/timestamp type according to the DBAPI. "
+            "The expression should follow the pattern of "
+            "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
+            "The string should be a python string formatter \n"
+            "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle"
+            "Caravel uses default expression based on DB URI if this "
+            "field is blank.", True),
     }
     label_columns = {
         'column_name': _("Column"),
@@ -176,9 +239,10 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'max': _("Max"),
         'expression': _("Expression"),
         'is_dttm': _("Is temporal"),
+        'python_date_format': _("Datetime Format"),
+        'database_expression': _("Database Expression")
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
-
 
 
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
@@ -211,8 +275,7 @@ appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
         'expression', 'table', 'is_restricted']
@@ -236,16 +299,18 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'table': _("Table"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
 class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type',
-                    'is_restricted']
+    list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
         'datasource', 'is_restricted']
@@ -274,8 +339,11 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'datasource': _("Druid Datasource"),
     }
 
-    def post_add(self, new_item):
-        utils.init_metrics_perm(caravel, [new_item])
+    def post_add(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
+
+    def post_update(self, metric):
+        utils.init_metrics_perm(caravel, [metric])
 
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
@@ -329,10 +397,10 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DatabaseView,
     "Databases",
-    label=_("Databases"),
+    label=__("Databases"),
     icon="fa-database",
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     category_icon='fa-database',)
 
 
@@ -345,7 +413,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema',
+        'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
@@ -389,9 +458,9 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     TableModelView,
     "Tables",
-    label=_("Tables"),
+    label=__("Tables"),
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     icon='fa-table',)
 
 
@@ -422,12 +491,11 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidClusterModelView,
         name="Druid Clusters",
-        label=_("Druid Clusters"),
+        label=__("Druid Clusters"),
         icon="fa-cubes",
         category="Sources",
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         category_icon='fa-database',)
-
 
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
@@ -483,7 +551,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     SliceModelView,
     "Slices",
-    label=_("Slices"),
+    label=__("Slices"),
     icon="fa-bar-chart",
     category="",
     category_icon='',)
@@ -509,6 +577,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     edit_columns = [
         'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
         'json_metadata']
+    show_columns = edit_columns + ['table_names']
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
@@ -541,6 +610,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         'position_json': _("Position JSON"),
         'css': _("CSS"),
         'json_metadata': _("JSON Metadata"),
+        'table_names': _("Underlying Tables"),
     }
 
     def pre_add(self, obj):
@@ -557,14 +627,14 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=_("Dashboards"),
+    label=__("Dashboards"),
     icon="fa-dashboard",
     category="",
     category_icon='',)
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'creator', 'modified']
+    list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
     label_columns = {
         'dashboard_link': 'Dashboard',
     }
@@ -587,9 +657,9 @@ class LogModelView(CaravelModelView):
 appbuilder.add_view(
     LogModelView,
     "Action Log",
-    label=_("Action Log"),
+    label=__("Action Log"),
     category="Security",
-    category_label=_("Security"),
+    category_label=__("Security"),
     icon="fa-list-ol")
 
 
@@ -634,9 +704,9 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_view(
         DruidDatasourceModelView,
         "Druid Datasources",
-        label=_("Druid Datasources"),
+        label=__("Druid Datasources"),
         category="Sources",
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         icon="fa-cube")
 
 
@@ -650,7 +720,7 @@ def ping():
     return "OK"
 
 
-class R(BaseView):
+class R(BaseCaravelView):
 
     """used for short urls"""
 
@@ -683,16 +753,7 @@ class R(BaseView):
 appbuilder.add_view_no_menu(R)
 
 
-def caravel_has_access(permission_name, view_name):
-    """Protecting from has_access failing from missing perms/view"""
-    try:
-        return appbuilder.sm.has_access(permission_name, view_name)
-    except:
-        pass
-    return False
-
-
-class Caravel(BaseView):
+class Caravel(BaseCaravelView):
 
     """The base views for Caravel!"""
 
@@ -701,6 +762,7 @@ class Caravel(BaseView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
+
         error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
@@ -714,9 +776,6 @@ class Caravel(BaseView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = caravel_has_access('can_add', 'SliceModelView')
-        slice_edit_perm = caravel_has_access('can_edit', 'SliceModelView')
-        slice_download_perm = caravel_has_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -728,16 +787,20 @@ class Caravel(BaseView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = caravel_has_access(
+        slice_add_perm = self.can_access('can_add', 'SliceModelView')
+        slice_edit_perm = check_ownership(slc, raise_if_false=False)
+        slice_download_perm = self.can_access('can_download', 'SliceModelView')
+
+        all_datasource_access = self.can_access(
             'all_datasource_access', 'all_datasource_access')
-        datasource_access = caravel_has_access(
+        datasource_access = self.can_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
             flash(__("You don't seem to have access to this datasource"), "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
-        if action in ('save', 'overwrite'):
+        if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
@@ -783,11 +846,11 @@ class Caravel(BaseView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-
             resp = self.render_template(
                 template, viz=obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
-                can_download=slice_download_perm)
+                can_download=slice_download_perm,
+                userid=g.user.get_id() if g.user else '')
             try:
                 pass
             except Exception as e:
@@ -799,8 +862,9 @@ class Caravel(BaseView):
                     mimetype="application/json")
             return resp
 
-    def save_or_overwrite_slice(self, args, slc, slice_add_perm, slice_edit_perm):
-        """save or overwrite a slice"""
+    def save_or_overwrite_slice(
+            self, args, slc, slice_add_perm, slice_edit_perm):
+        """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
 
@@ -808,7 +872,8 @@ class Caravel(BaseView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns')
+
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -823,8 +888,8 @@ class Caravel(BaseView):
         elif datasource_type == 'table':
             table_id = args.get('datasource_id')
 
-        if action == "save":
-            slc = models.Slice()
+        if action in ('saveas'):
+            slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
@@ -834,12 +899,43 @@ class Caravel(BaseView):
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
 
-        if action == 'save' and slice_add_perm:
+        if action in ('saveas') and slice_add_perm:
             self.save_slice(slc)
         elif action == 'overwrite' and slice_edit_perm:
             self.overwrite_slice(slc)
 
-        return redirect(slc.slice_url)
+        # Adding slice to a dashboard if requested
+        dash = None
+        if request.args.get('add_to_dash') == 'existing':
+            dash = (
+                db.session.query(models.Dashboard)
+                .filter_by(id=int(request.args.get('save_to_dashboard_id')))
+                .one()
+            )
+            flash(
+                "Slice [{}] was added to dashboard [{}]".format(
+                    slc.slice_name,
+                    dash.dashboard_title),
+                "info")
+        elif request.args.get('add_to_dash') == 'new':
+            dash = models.Dashboard(
+                dashboard_title=request.args.get('new_dashboard_name'),
+                owners=[g.user] if g.user else [])
+            flash(
+                "Dashboard [{}] just got created and slice [{}] was added "
+                "to it".format(
+                    dash.dashboard_title,
+                    slc.slice_name),
+                "info")
+
+        if dash and slc not in dash.slices:
+            dash.slices.append(slc)
+            db.session.commit()
+
+        if request.args.get('goto_dash') == 'true':
+            return redirect(dash.url)
+        else:
+            return redirect(slc.slice_url)
 
     def save_slice(self, slc):
         session = db.session()
@@ -859,7 +955,8 @@ class Caravel(BaseView):
             msg = "Slice [{}] has been overwritten".format(slc.slice_name)
             flash(msg, "info")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
@@ -873,7 +970,8 @@ class Caravel(BaseView):
             db.session.commit()
         return Response("OK", mimetype="application/json")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/activity_per_day")
     def activity_per_day(self):
         """endpoint to power the calendar heatmap on the welcome page"""
@@ -889,7 +987,8 @@ class Caravel(BaseView):
         payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
@@ -901,7 +1000,8 @@ class Caravel(BaseView):
         dash = session.query(Dash).filter_by(id=dashboard_id).first()
         check_ownership(dash, raise_if_false=True)
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
-        dash.position_json = json.dumps(data['positions'], indent=4)
+        positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
+        dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
         md = dash.metadata_dejson
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
@@ -913,13 +1013,18 @@ class Caravel(BaseView):
         session.close()
         return "SUCCESS"
 
-    @has_access
+    @api
+    @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
-            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args', {})
+            connect_args = (
+                request.json
+                .get('extras', {})
+                .get('engine_params', {})
+                .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
@@ -954,6 +1059,19 @@ class Caravel(BaseView):
             mimetype="application/json")
 
     @has_access
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        """Redirects a request for a slice id to its corresponding URL"""
+        session = db.session()
+        qry = session.query(models.Slice).filter_by(id=int(slice_id))
+        slc = qry.first()
+        if slc:
+            return redirect(slc.slice_url)
+        else:
+            flash("The specified slice could not be found", "danger")
+            return redirect('/slicemodelview/list/')
+
+    @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
@@ -976,15 +1094,15 @@ class Caravel(BaseView):
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
-            dash_save_perm=appbuilder.sm.has_access('can_save_dash', 'Caravel'),
-            dash_edit_perm=appbuilder.sm.has_access('can_edit', 'DashboardModelView'))
+            dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
+            dash_edit_perm=check_ownership(dash, raise_if_false=False))
 
     @has_access
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
         if (
-                not self.appbuilder.sm.has_access(
+                not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             flash(
                 "This view requires the `all_datasource_access` "
@@ -1049,7 +1167,7 @@ class Caravel(BaseView):
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if (
-                not self.appbuilder.sm.has_access(
+                not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             raise utils.CaravelSecurityException(_(
                 "This view requires the `all_datasource_access` permission"))
@@ -1106,13 +1224,7 @@ class Caravel(BaseView):
 
     @app.errorhandler(500)
     def show_traceback(self):
-        if config.get("SHOW_STACKTRACE"):
-            error_msg = traceback.format_exc()
-        else:
-            error_msg = "FATAL ERROR\n"
-            error_msg = (
-                "Stacktrace is hidden. Change the SHOW_STACKTRACE "
-                "configuration setting to enable it")
+        error_msg = get_error_msg()
         return render_template(
             'caravel/traceback.html',
             error_msg=error_msg,
@@ -1133,7 +1245,7 @@ if config['DRUID_IS_ACTIVE']:
         "Refresh Druid Metadata",
         href='/caravel/refresh_datasources/',
         category='Sources',
-        category_label=_("Sources"),
+        category_label=__("Sources"),
         category_icon='fa-database',
         icon="fa-cog")
 
@@ -1148,10 +1260,10 @@ appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
     "CSS Templates",
-    label=_("CSS Templates"),
+    label=__("CSS Templates"),
     icon="fa-css3",
     category="Sources",
-    category_label=_("Sources"),
+    category_label=__("Sources"),
     category_icon='')
 
 

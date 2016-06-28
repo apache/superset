@@ -140,13 +140,14 @@ class CoreTests(CaravelTestCase):
         assert 'Energy' in resp.data.decode('utf-8')
 
     def test_slices(self):
-        # Testing by running all the examples
+        # Testing by hitting the two supported end points for all slices
         self.login(username='admin')
         Slc = models.Slice
         urls = []
         for slc in db.session.query(Slc).all():
             urls += [
-                (slc.slice_name, 'slice_url',  slc.slice_url),
+                (slc.slice_name, 'slice_url', slc.slice_url),
+                (slc.slice_name, 'slice_id_endpoint', '/caravel/slices/{}'.format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
             ]
@@ -257,7 +258,7 @@ class CoreTests(CaravelTestCase):
 
         self.logout()
         self.assertRaises(
-            utils.CaravelSecurityException, self.test_save_dash, 'alpha')
+            AssertionError, self.test_save_dash, 'alpha')
 
         alpha = appbuilder.sm.find_user('alpha')
 
@@ -354,6 +355,7 @@ class DruidTests(CaravelTestCase):
 
         db.session.add(cluster)
         cluster.get_datasources = Mock(return_value=['test_datasource'])
+        cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()
         datasource_id = cluster.datasources[0].id
         db.session.commit()

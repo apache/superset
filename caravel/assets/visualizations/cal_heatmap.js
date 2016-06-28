@@ -16,7 +16,7 @@ function calHeatmap(slice) {
     d3.json(slice.jsonEndpoint(), function (error, json) {
 
       if (error !== null) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
 

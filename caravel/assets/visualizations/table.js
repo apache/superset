@@ -6,6 +6,7 @@ var px = window.px || require('../javascripts/modules/caravel.js');
 require('./table.css');
 require('datatables.net-bs');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+var utils = require('../javascripts/modules/utils');
 
 function tableVis(slice) {
   var f = d3.format('.3s');
@@ -16,7 +17,7 @@ function tableVis(slice) {
     $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
 
     function onError(xhr) {
-      slice.error(xhr.responseText);
+      slice.error(xhr.responseText, xhr);
     }
 
     function onSuccess(json) {
@@ -115,11 +116,18 @@ function tableVis(slice) {
             return d.val;
           }
         });
+      var height = slice.container.height();
       var datatable = slice.container.find('.dataTable').DataTable({
         paging: false,
+        aaSorting: [],
         searching: form_data.include_search,
-        bInfo: false
+        bInfo: false,
+        scrollY: height + "px",
+        scrollCollapse: true,
+        scrollX: true
       });
+      utils.fixDataTableBodyHeight(
+          slice.container.find('.dataTables_wrapper'), height);
       // Sorting table by main column
       if (form_data.metrics.length > 0) {
         var main_metric = form_data.metrics[0];

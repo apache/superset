@@ -19,6 +19,7 @@ from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
+from pydruid.utils.having import Having
 
 
 class CaravelException(Exception):
@@ -31,6 +32,15 @@ class CaravelSecurityException(CaravelException):
 
 class MetricPermException(Exception):
     pass
+
+
+def can_access(security_manager, permission_name, view_name):
+    """Protecting from has_access failing from missing perms/view"""
+    try:
+        return security_manager.has_access(permission_name, view_name)
+    except:
+        pass
+    return False
 
 
 def flasher(msg, severity=None):
@@ -75,6 +85,18 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+class DimSelector(Having):
+    def __init__(self, **args):
+        # Just a hack to prevent any exceptions
+        Having.__init__(self, type='equalTo', aggregation=None, value=None)
+
+        self.having = {'having': {
+            'type': 'dimSelector',
+            'dimension': args['dimension'],
+            'value': args['value'],
+        }}
 
 
 def list_minus(l, minus):
@@ -219,18 +241,24 @@ def init(caravel):
 
 
 def init_metrics_perm(caravel, metrics=None):
+    """Create permissions for restricted metrics
+
+    :param metrics: a list of metrics to be processed, if not specified,
+        all metrics are processed
+    :type metrics: models.SqlMetric or models.DruidMetric
+    """
     db = caravel.db
     models = caravel.models
     sm = caravel.appbuilder.sm
 
-    if metrics is None:
+    if not metrics:
         metrics = []
         for model in [models.SqlMetric, models.DruidMetric]:
             metrics += list(db.session.query(model).all())
 
-    metric_perms = filter(None, [metric.perm for metric in metrics])
-    for metric_perm in metric_perms:
-        merge_perm(sm, 'metric_access', metric_perm)
+    for metric in metrics:
+        if metric.is_restricted and metric.perm:
+            merge_perm(sm, 'metric_access', metric.perm)
 
 
 def datetime_f(dttm):

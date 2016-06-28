@@ -16,7 +16,7 @@ function directedForceVis(slice) {
       var charge = json.form_data.charge || -500;
 
       if (error !== null) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
       var links = json.data;

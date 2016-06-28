@@ -32,7 +32,12 @@
             $('#' + id).click(function(){window.location = '/tablemodelview/add';})
           });
       }).fail(function(error) {
-          alert("ERROR: " + error.responseText);
+          var respJSON = error.responseJSON;
+          var errorMsg = error.responseText;
+          if (respJSON && respJSON.message) {
+              errorMsg = respJSON.message;
+          }
+          alert("ERROR: " + errorMsg);
       });
       return false;
     });

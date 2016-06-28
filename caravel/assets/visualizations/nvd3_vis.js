@@ -15,25 +15,28 @@ function nvd3Vis(slice) {
 
   var render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
+      // Check error first, otherwise payload can be null
+      if (error) {
+        slice.error(error.responseText, error);
+        return '';
+      }
+
       var width = slice.width();
+      var fd = payload.form_data;
       var barchartWidth = function () {
-        var bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        var bars;
+        if (fd.bar_stacked) {
+          bars = d3.max(payload.data, function (d) { return d.values.length; });
+        } else {
+          bars = d3.sum(payload.data, function (d) { return d.values.length; });
+        }
         if (bars * minBarWidth > width) {
           return bars * minBarWidth;
         } else {
           return width;
         }
       };
-      slice.container.html('');
-      if (error) {
-        if (error.responseText) {
-          slice.error(error.responseText);
-        } else {
-          slice.error(error);
-        }
-        return '';
-      }
-      var fd = payload.form_data;
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
       var reduceXTicks = fd.reduce_x_ticks || false;
@@ -61,7 +64,7 @@ function nvd3Vis(slice) {
 
           case 'bar':
             chart = nv.models.multiBarChart()
-            .showControls(true)
+            .showControls(fd.show_controls)
             .groupSpacing(0.1);
 
             if (!reduceXTicks) {
@@ -70,14 +73,14 @@ function nvd3Vis(slice) {
             chart.width(width);
             chart.xAxis
             .showMaxMin(false)
-            .staggerLabels(true)
+            .staggerLabels(true);
 
             chart.stacked(fd.bar_stacked);
             break;
 
           case 'dist_bar':
             chart = nv.models.multiBarChart()
-            .showControls(true) //Allow user to switch between 'Grouped' and 'Stacked' mode.
+            .showControls(fd.show_controls)
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
             .groupSpacing(0.1); //Distance between each group of bars.
@@ -140,6 +143,7 @@ function nvd3Vis(slice) {
 
           case 'area':
             chart = nv.models.stackedAreaChart();
+            chart.showControls(fd.show_controls);
             chart.style(fd.stacked_style);
             chart.xScale(d3.time.scale.utc());
             chart.xAxis
@@ -209,12 +213,7 @@ function nvd3Vis(slice) {
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
 
-        if (fd.contribution || fd.num_period_compare || viz_type === 'compare') {
-          chart.yAxis.tickFormat(d3.format('.3p'));
-          if (chart.y2Axis !== undefined) {
-            chart.y2Axis.tickFormat(d3.format('.3p'));
-          }
-        } else if (fd.y_axis_format) {
+        if (fd.y_axis_format) {
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
 
           if (chart.y2Axis !== undefined) {
