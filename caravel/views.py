@@ -85,6 +85,8 @@ def check_ownership(obj, raise_if_false=True):
     model. It is meant to be used in the ModelView's pre_update hook in
     which raising will abort the update.
     """
+    if not obj:
+        return False
     roles = (r.name for r in get_user_roles())
     if 'Admin' in roles:
         return True
@@ -96,7 +98,11 @@ def check_ownership(obj, raise_if_false=True):
             orig_obj.created_by and
             orig_obj.created_by.username == g.user.username):
         return True
-    if hasattr(orig_obj, 'owners') and g.user.username in owner_names:
+    if (
+            hasattr(orig_obj, 'owners') and
+            g.user and
+            hasattr(g.user, 'username') and
+            g.user.username in owner_names):
         return True
     if raise_if_false:
         raise utils.CaravelSecurityException(
@@ -237,7 +243,6 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'database_expression': _("Database Expression")
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
-
 
 
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
@@ -493,7 +498,6 @@ if config['DRUID_IS_ACTIVE']:
         category_icon='fa-database',)
 
 
-
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     add_template = "caravel/add_slice.html"
@@ -630,7 +634,7 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'creator', 'modified']
+    list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
     label_columns = {
         'dashboard_link': 'Dashboard',
     }
@@ -758,6 +762,7 @@ class Caravel(BaseCaravelView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id):
+
         error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
@@ -771,9 +776,6 @@ class Caravel(BaseCaravelView):
         datasource = datasource[0] if datasource else None
         slice_id = request.args.get("slice_id")
         slc = None
-        slice_add_perm = self.can_access('can_add', 'SliceModelView')
-        slice_edit_perm = self.can_access('can_edit', 'SliceModelView')
-        slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         if slice_id:
             slc = (
@@ -785,6 +787,10 @@ class Caravel(BaseCaravelView):
             flash(__("The datasource seems to have been deleted"), "alert")
             return redirect(error_redirect)
 
+        slice_add_perm = self.can_access('can_add', 'SliceModelView')
+        slice_edit_perm = check_ownership(slc, raise_if_false=False)
+        slice_download_perm = self.can_access('can_download', 'SliceModelView')
+
         all_datasource_access = self.can_access(
             'all_datasource_access', 'all_datasource_access')
         datasource_access = self.can_access(
@@ -794,7 +800,7 @@ class Caravel(BaseCaravelView):
             return redirect(error_redirect)
 
         action = request.args.get('action')
-        if action in ('save', 'overwrite'):
+        if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
@@ -840,11 +846,11 @@ class Caravel(BaseCaravelView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-
             resp = self.render_template(
                 template, viz=obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
-                can_download=slice_download_perm)
+                can_download=slice_download_perm,
+                userid=g.user.get_id() if g.user else '')
             try:
                 pass
             except Exception as e:
@@ -856,8 +862,9 @@ class Caravel(BaseCaravelView):
                     mimetype="application/json")
             return resp
 
-    def save_or_overwrite_slice(self, args, slc, slice_add_perm, slice_edit_perm):
-        """save or overwrite a slice"""
+    def save_or_overwrite_slice(
+            self, args, slc, slice_add_perm, slice_edit_perm):
+        """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
 
@@ -865,6 +872,7 @@ class Caravel(BaseCaravelView):
         d = args.to_dict(flat=False)
         del d['action']
         del d['previous_viz_type']
+
         as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
         for k in d:
             v = d.get(k)
@@ -880,8 +888,8 @@ class Caravel(BaseCaravelView):
         elif datasource_type == 'table':
             table_id = args.get('datasource_id')
 
-        if action == "save":
-            slc = models.Slice()
+        if action in ('saveas'):
+            slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
@@ -891,12 +899,43 @@ class Caravel(BaseCaravelView):
         slc.datasource_type = datasource_type
         slc.slice_name = slice_name
 
-        if action == 'save' and slice_add_perm:
+        if action in ('saveas') and slice_add_perm:
             self.save_slice(slc)
         elif action == 'overwrite' and slice_edit_perm:
             self.overwrite_slice(slc)
 
-        return redirect(slc.slice_url)
+        # Adding slice to a dashboard if requested
+        dash = None
+        if request.args.get('add_to_dash') == 'existing':
+            dash = (
+                db.session.query(models.Dashoard)
+                .filter_by(id=int(request.args.get('save_to_dashboard_id')))
+                .one()
+            )
+            flash(
+                "Slice [{}] was added to dashboard [{}]".format(
+                    slc.slice_name,
+                    dash.dashboard_title),
+                "info")
+        elif request.args.get('add_to_dash') == 'new':
+            dash = models.Dashoard(
+                dashboard_title=request.args.get('new_dashboard_name'),
+                owners=[g.user] if g.user else [])
+            flash(
+                "Dashboard [{}] just got created and slice [{}] was added "
+                "to it".format(
+                    dash.dashboard_title,
+                    slc.slice_name),
+                "info")
+
+        if dash and slc not in dash.slices:
+            dash.slices.append(slc)
+            db.session.commit()
+
+        if request.args.get('goto_dash') == 'true':
+            return redirect(dash.url)
+        else:
+            return redirect(slc.slice_url)
 
     def save_slice(self, slc):
         session = db.session()
@@ -981,7 +1020,11 @@ class Caravel(BaseCaravelView):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
-            connect_args = request.json.get('extras', {}).get('engine_params', {}).get('connect_args', {})
+            connect_args = (
+                request.json
+                .get('extras', {})
+                .get('engine_params', {})
+                .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
@@ -1052,7 +1095,7 @@ class Caravel(BaseCaravelView):
             "caravel/dashboard.html", dashboard=dash,
             templates=templates,
             dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
-            dash_edit_perm=self.can_access('can_edit', 'DashboardModelView'))
+            dash_edit_perm=check_ownership(dash, raise_if_false=False))
 
     @has_access
     @expose("/sql/<database_id>/")
