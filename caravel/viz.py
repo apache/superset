@@ -146,15 +146,34 @@ class BaseViz(object):
         self.error_msg = ""
         self.results = None
 
+        timestamp_format = None
+        if self.datasource.type == 'table':
+            dttm_col = self.datasource.get_col(query_obj['granularity'])
+            if dttm_col:
+                timestamp_format = dttm_col.python_date_format
+
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
+        # Transform the timestamp we received from database to pandas supported
+        # datetime format. If no python_date_format is specified, the pattern will
+        # be considered as the default ISO date format
+        # If the datetime format is unix, the parse will use the corresponding
+        # parsing logic.
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(df.timestamp, utc=False)
+                if timestamp_format == "epoch_s":
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, unit="s")
+                elif timestamp_format == "epoch_ms":
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, unit="ms")
+                else:
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)

@@ -187,7 +187,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', ]
+        'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
@@ -201,6 +201,24 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
+        'python_date_format': utils.markdown(Markup(
+            "The pattern of timestamp format, use "
+            "<a href='https://docs.python.org/2/library/"
+            "datetime.html#strftime-strptime-behavior'>"
+            "python datetime string pattern</a> "
+            "expression. If time is stored in epoch "
+            "format, put `epoch_s` or `epoch_ms`. Leave `Database Expression` "
+            "below empty if timestamp is stored in "
+            "String or Integer(epoch) type"), True),
+        'database_expression': utils.markdown(
+            "The database expression to cast internal datetime "
+            "constants to database date/timestamp type according to the DBAPI. "
+            "The expression should follow the pattern of "
+            "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
+            "The string should be a python string formatter \n"
+            "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle"
+            "Caravel uses default expression based on DB URI if this "
+            "field is blank.", True),
     }
     label_columns = {
         'column_name': _("Column"),
@@ -215,6 +233,8 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'max': _("Max"),
         'expression': _("Expression"),
         'is_dttm': _("Is temporal"),
+        'python_date_format': _("Datetime Format"),
+        'database_expression': _("Database Expression")
     }
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
@@ -388,7 +408,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema', 'description', 'owner',
+        'table_name', 'is_featured', 'database', 'schema',
+        'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
