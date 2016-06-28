@@ -50,17 +50,14 @@
               {% endfor %}
             </select>
           </span>
-          <span class="label-bordered">
-            <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
-              &nbsp;
-              <i class="fa fa-edit"></i>&nbsp;
-            </a>
-          </span>
+          <a href="{{ datasource.url }}" class="btn btn-default-outline" data-toggle="tooltip" title="Edit/configure datasource">
+            <i class="fa fa-edit"></i>&nbsp;
+          </a>
           <span title="Visualization Type" data-toggle="tooltip">
             {{ form.get_field("viz_type")(class_="select2-with-images") }}
           </span>
           {% if slice %}
-            <span class="label-bordered" title="Slice" data-toggle="tooltip" data-placement="bottom">
+            <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip" data-placement="bottom">
                 <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
                 {{ slice.slice_name }}
                 <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit">

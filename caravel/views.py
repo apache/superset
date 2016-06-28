@@ -908,7 +908,7 @@ class Caravel(BaseCaravelView):
         dash = None
         if request.args.get('add_to_dash') == 'existing':
             dash = (
-                db.session.query(models.Dashoard)
+                db.session.query(models.Dashboard)
                 .filter_by(id=int(request.args.get('save_to_dashboard_id')))
                 .one()
             )
@@ -918,7 +918,7 @@ class Caravel(BaseCaravelView):
                     dash.dashboard_title),
                 "info")
         elif request.args.get('add_to_dash') == 'new':
-            dash = models.Dashoard(
+            dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
             flash(
