@@ -32,3 +32,9 @@ It can be gigantic! As mentioned above, the main criteria is whether your
 database can execute queries and return results in a time frame that is
 acceptable to your users. Many distributed databases out there can execute
 queries that scan through terabytes in an interactive fashion.
+
+
+Is there shortcut for the Query button
+--------------------------------------
+
+Yes, `q` or `Q` will do it.
