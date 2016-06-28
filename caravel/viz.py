@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from flask import request
-from flask_babelpkg import lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types

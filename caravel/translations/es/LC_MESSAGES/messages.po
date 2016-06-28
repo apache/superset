@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2016-06-15 10:14+0200\n"
+"POT-Creation-Date: 2016-06-27 11:56-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -18,908 +18,1034 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.3.4\n"
 
-#: caravel/forms.py:135
+#: caravel/forms.py:140
 msgid "Viz"
 msgstr ""
 
-#: caravel/forms.py:138
+#: caravel/forms.py:143
 msgid "The type of visualization to display"
 msgstr ""
 
-#: caravel/forms.py:141
+#: caravel/forms.py:146
 msgid "Metrics"
 msgstr ""
 
-#: caravel/forms.py:144
+#: caravel/forms.py:149 caravel/forms.py:154
 msgid "One or many metrics to display"
 msgstr ""
 
-#: caravel/forms.py:147 caravel/views.py:231 caravel/views.py:269
+#: caravel/forms.py:152
+msgid "Ordering"
+msgstr ""
+
+#: caravel/forms.py:157 caravel/views.py:269 caravel/views.py:309
 msgid "Metric"
 msgstr ""
 
-#: caravel/forms.py:150
+#: caravel/forms.py:160
 msgid "Choose the metric"
 msgstr ""
 
-#: caravel/forms.py:153
+#: caravel/forms.py:163
 msgid "Chart Style"
 msgstr ""
 
-#: caravel/forms.py:155
+#: caravel/forms.py:165
 msgid "stack"
 msgstr ""
 
-#: caravel/forms.py:156
+#: caravel/forms.py:166
 msgid "stream"
 msgstr ""
 
-#: caravel/forms.py:157
+#: caravel/forms.py:167
 msgid "expand"
 msgstr ""
 
-#: caravel/forms.py:163
+#: caravel/forms.py:173
 msgid "Color Scheme"
 msgstr ""
 
-#: caravel/forms.py:165
+#: caravel/forms.py:175
 msgid "fire"
 msgstr ""
 
-#: caravel/forms.py:166
+#: caravel/forms.py:176
 msgid "blue_white_yellow"
 msgstr ""
 
-#: caravel/forms.py:167
+#: caravel/forms.py:177
 msgid "white_black"
 msgstr ""
 
-#: caravel/forms.py:168
+#: caravel/forms.py:178
 msgid "black_white"
 msgstr ""
 
-#: caravel/forms.py:174
+#: caravel/forms.py:184
 msgid "Normalize Across"
 msgstr ""
 
-#: caravel/forms.py:176
+#: caravel/forms.py:186
 msgid "heatmap"
 msgstr ""
 
-#: caravel/forms.py:177
+#: caravel/forms.py:187
 msgid "x"
 msgstr ""
 
-#: caravel/forms.py:178
+#: caravel/forms.py:188
 msgid "y"
 msgstr ""
 
-#: caravel/forms.py:181
+#: caravel/forms.py:191
 msgid ""
 "Color will be rendered based on a ratio of the cell against the sum of "
 "across this criteria"
 msgstr ""
 
-#: caravel/forms.py:187
+#: caravel/forms.py:197
 msgid "Color Scale"
 msgstr ""
 
-#: caravel/forms.py:189
+#: caravel/forms.py:199
 msgid "series"
 msgstr ""
 
-#: caravel/forms.py:190
+#: caravel/forms.py:200
 msgid "overall"
 msgstr ""
 
-#: caravel/forms.py:191
+#: caravel/forms.py:201
 msgid "change"
 msgstr ""
 
-#: caravel/forms.py:194
+#: caravel/forms.py:204
 msgid "Defines how the color are attributed."
 msgstr ""
 
-#: caravel/forms.py:197
+#: caravel/forms.py:207
 msgid "Rendering"
 msgstr ""
 
-#: caravel/forms.py:199
+#: caravel/forms.py:209
 msgid "pixelated (Sharp)"
 msgstr ""
 
-#: caravel/forms.py:200
+#: caravel/forms.py:210
 msgid "auto (Smooth)"
 msgstr ""
 
-#: caravel/forms.py:203
+#: caravel/forms.py:213
 msgid ""
 "image-rendering CSS attribute of the canvas object that defines how the "
 "browser scales up the image"
 msgstr ""
 
-#: caravel/forms.py:208
+#: caravel/forms.py:218
 msgid "XScale Interval"
 msgstr ""
 
-#: caravel/forms.py:211
+#: caravel/forms.py:221
 msgid "Number of step to take between ticks when printing the x scale"
 msgstr ""
 
-#: caravel/forms.py:216
+#: caravel/forms.py:226
 msgid "YScale Interval"
 msgstr ""
 
-#: caravel/forms.py:219
+#: caravel/forms.py:229
 msgid "Number of step to take between ticks when printing the y scale"
 msgstr ""
 
-#: caravel/forms.py:224
+#: caravel/forms.py:234
 msgid "Stacked Bars"
 msgstr ""
 
-#: caravel/forms.py:229
+#: caravel/forms.py:239
+msgid "Extra Controls"
+msgstr ""
+
+#: caravel/forms.py:247
+msgid "Reduce X ticks"
+msgstr ""
+
+#: caravel/forms.py:249
+msgid ""
+"Reduces the number of X axis ticks to be rendered. If true, the x axis "
+"wont overflow and labels may be missing. If false, a minimum width will "
+"be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
+
+#: caravel/forms.py:257
 msgid "Include Series"
 msgstr ""
 
-#: caravel/forms.py:231
+#: caravel/forms.py:259
 msgid "Include series name as an axis"
 msgstr ""
 
-#: caravel/forms.py:234
+#: caravel/forms.py:262
 msgid "Color Metric"
 msgstr ""
 
-#: caravel/forms.py:237
+#: caravel/forms.py:265
 msgid "A metric to use for color"
 msgstr ""
 
-#: caravel/forms.py:240
+#: caravel/forms.py:268
 msgid "Country Field Type"
 msgstr ""
 
-#: caravel/forms.py:243
+#: caravel/forms.py:271
 msgid "Full name"
 msgstr ""
 
-#: caravel/forms.py:244
+#: caravel/forms.py:272
 msgid "code International Olympic Committee (cioc)"
 msgstr ""
 
-#: caravel/forms.py:245
+#: caravel/forms.py:273
 msgid "code ISO 3166-1 alpha-2 (cca2)"
 msgstr ""
 
-#: caravel/forms.py:246
+#: caravel/forms.py:274
 msgid "code ISO 3166-1 alpha-3 (cca3)"
 msgstr ""
 
-#: caravel/forms.py:248
+#: caravel/forms.py:276
 msgid ""
 "The country code standard that Caravel should expect to find in the "
 "[country] column"
 msgstr ""
 
-#: caravel/forms.py:253
+#: caravel/forms.py:281
 msgid "Group by"
 msgstr ""
 
-#: caravel/forms.py:255
+#: caravel/forms.py:283
 msgid "One or many fields to group by"
 msgstr ""
 
-#: caravel/forms.py:258 caravel/forms.py:263
+#: caravel/forms.py:286 caravel/forms.py:291
 msgid "Columns"
 msgstr ""
 
-#: caravel/forms.py:260
+#: caravel/forms.py:288
 msgid "One or many fields to pivot as columns"
 msgstr ""
 
-#: caravel/forms.py:265 caravel/forms.py:270 caravel/forms.py:275
+#: caravel/forms.py:293 caravel/forms.py:298 caravel/forms.py:303
 msgid "Columns to display"
 msgstr ""
 
-#: caravel/forms.py:268
+#: caravel/forms.py:296
 msgid "X"
 msgstr ""
 
-#: caravel/forms.py:273
+#: caravel/forms.py:301
 msgid "Y"
 msgstr ""
 
-#: caravel/forms.py:278
+#: caravel/forms.py:306
 msgid "Origin"
 msgstr ""
 
-#: caravel/forms.py:280
+#: caravel/forms.py:308
 msgid "default"
 msgstr ""
 
-#: caravel/forms.py:281 caravel/forms.py:431
+#: caravel/forms.py:309 caravel/forms.py:467
 msgid "now"
 msgstr ""
 
-#: caravel/forms.py:284
+#: caravel/forms.py:312
 msgid ""
 "Defines the origin where time buckets start, accepts natural dates as in "
 "'now', 'sunday' or '1970-01-01'"
 msgstr ""
 
-#: caravel/forms.py:289
+#: caravel/forms.py:317
+msgid "Bottom Margin"
+msgstr ""
+
+#: caravel/forms.py:320
+msgid "Bottom marging, in pixels, allowing for more room for axis labels"
+msgstr ""
+
+#: caravel/forms.py:325
 msgid "Time Granularity"
 msgstr ""
 
-#: caravel/forms.py:292
+#: caravel/forms.py:328
 msgid "all"
 msgstr ""
 
-#: caravel/forms.py:293
+#: caravel/forms.py:329
 msgid "5 seconds"
 msgstr ""
 
-#: caravel/forms.py:294
+#: caravel/forms.py:330
 msgid "30 seconds"
 msgstr ""
 
-#: caravel/forms.py:295
+#: caravel/forms.py:331
 msgid "1 minute"
 msgstr ""
 
-#: caravel/forms.py:296
+#: caravel/forms.py:332
 msgid "5 minutes"
 msgstr ""
 
-#: caravel/forms.py:297
+#: caravel/forms.py:333
 msgid "1 hour"
 msgstr ""
 
-#: caravel/forms.py:298
+#: caravel/forms.py:334
 msgid "6 hour"
 msgstr ""
 
-#: caravel/forms.py:299
+#: caravel/forms.py:335
 msgid "1 day"
 msgstr ""
 
-#: caravel/forms.py:300
+#: caravel/forms.py:336
 msgid "7 days"
 msgstr ""
 
-#: caravel/forms.py:302
+#: caravel/forms.py:338
 msgid ""
 "The time granularity for the visualization. Note that you can type and "
 "use simple natural language as in '10 seconds', '1 day' or '56 weeks'"
 msgstr ""
 
-#: caravel/forms.py:308
+#: caravel/forms.py:344
 msgid "Domain"
 msgstr ""
 
-#: caravel/forms.py:311 caravel/forms.py:325 caravel/models.py:427
+#: caravel/forms.py:347 caravel/forms.py:361 caravel/models.py:417
+#: caravel/models.py:435
 msgid "hour"
 msgstr ""
 
-#: caravel/forms.py:312 caravel/forms.py:326 caravel/models.py:411
-#: caravel/models.py:419 caravel/models.py:428
+#: caravel/forms.py:348 caravel/forms.py:362 caravel/models.py:419
+#: caravel/models.py:427 caravel/models.py:436
 msgid "day"
 msgstr ""
 
-#: caravel/forms.py:313 caravel/forms.py:327 caravel/models.py:402
-#: caravel/models.py:412 caravel/models.py:420 caravel/models.py:429
+#: caravel/forms.py:349 caravel/forms.py:363 caravel/models.py:407
+#: caravel/models.py:420 caravel/models.py:428 caravel/models.py:437
 msgid "week"
 msgstr ""
 
-#: caravel/forms.py:314 caravel/forms.py:328 caravel/models.py:403
-#: caravel/models.py:414 caravel/models.py:421 caravel/models.py:430
+#: caravel/forms.py:350 caravel/forms.py:364 caravel/models.py:408
+#: caravel/models.py:422 caravel/models.py:429 caravel/models.py:438
 msgid "month"
 msgstr ""
 
-#: caravel/forms.py:315 caravel/models.py:431
+#: caravel/forms.py:351 caravel/models.py:439
 msgid "year"
 msgstr ""
 
-#: caravel/forms.py:317
+#: caravel/forms.py:353
 msgid "The time unit used for the grouping of blocks"
 msgstr ""
 
-#: caravel/forms.py:321
+#: caravel/forms.py:357
 msgid "Subdomain"
 msgstr ""
 
-#: caravel/forms.py:324 caravel/forms.py:657
+#: caravel/forms.py:360 caravel/forms.py:701
 msgid "min"
 msgstr ""
 
-#: caravel/forms.py:330
+#: caravel/forms.py:366
 msgid ""
 "The time unit for each block. Should be a smaller unit than "
 "domain_granularity. Should be larger or equal to Time Grain"
 msgstr ""
 
-#: caravel/forms.py:335
+#: caravel/forms.py:371
 msgid "Link Length"
 msgstr ""
 
-#: caravel/forms.py:347
+#: caravel/forms.py:383
 msgid "Link length in the force layout"
 msgstr ""
 
-#: caravel/forms.py:350
+#: caravel/forms.py:386
 msgid "Charge"
 msgstr ""
 
-#: caravel/forms.py:364
+#: caravel/forms.py:400
 msgid "Charge in the force layout"
 msgstr ""
 
-#: caravel/forms.py:367 caravel/models.py:401 caravel/models.py:410
-#: caravel/models.py:418 caravel/models.py:424
+#: caravel/forms.py:403 caravel/models.py:406 caravel/models.py:416
+#: caravel/models.py:426 caravel/models.py:432
 msgid "Time Column"
 msgstr ""
 
-#: caravel/forms.py:370
+#: caravel/forms.py:406
 msgid ""
 "The time column for the visualization. Note that you can define arbitrary"
 " expression that return a DATETIME column in the table editor. Also note "
 "that the filter bellow is applied against this column or expression"
 msgstr ""
 
-#: caravel/forms.py:378
+#: caravel/forms.py:414
 msgid "Resample Rule"
 msgstr ""
 
-#: caravel/forms.py:381
+#: caravel/forms.py:417
 msgid "1T"
 msgstr ""
 
-#: caravel/forms.py:382
+#: caravel/forms.py:418
 msgid "1H"
 msgstr ""
 
-#: caravel/forms.py:383
+#: caravel/forms.py:419
 msgid "1D"
 msgstr ""
 
-#: caravel/forms.py:384
+#: caravel/forms.py:420
 msgid "7D"
 msgstr ""
 
-#: caravel/forms.py:385
+#: caravel/forms.py:421
 msgid "1M"
 msgstr ""
 
-#: caravel/forms.py:386
+#: caravel/forms.py:422
 msgid "1AS"
 msgstr ""
 
-#: caravel/forms.py:388
+#: caravel/forms.py:424
 msgid "Pandas resample rule"
 msgstr ""
 
-#: caravel/forms.py:391
+#: caravel/forms.py:427
 msgid "Resample How"
 msgstr ""
 
-#: caravel/forms.py:395 caravel/forms.py:656
+#: caravel/forms.py:431 caravel/forms.py:700
 msgid "mean"
 msgstr ""
 
-#: caravel/forms.py:396 caravel/forms.py:655
+#: caravel/forms.py:432 caravel/forms.py:699
 msgid "sum"
 msgstr ""
 
-#: caravel/forms.py:397 caravel/forms.py:659
+#: caravel/forms.py:433 caravel/forms.py:703
 msgid "median"
 msgstr ""
 
-#: caravel/forms.py:399
+#: caravel/forms.py:435
 msgid "Pandas resample how"
 msgstr ""
 
-#: caravel/forms.py:402
+#: caravel/forms.py:438
 msgid "Resample Fill Method"
 msgstr ""
 
-#: caravel/forms.py:406
+#: caravel/forms.py:442
 msgid "ffill"
 msgstr ""
 
-#: caravel/forms.py:407
+#: caravel/forms.py:443
 msgid "bfill"
 msgstr ""
 
-#: caravel/forms.py:409
+#: caravel/forms.py:445
 msgid "Pandas resample fill method"
 msgstr ""
 
-#: caravel/forms.py:412
+#: caravel/forms.py:448
 msgid "Since"
 msgstr ""
 
-#: caravel/forms.py:415
+#: caravel/forms.py:451
 msgid "1 hour ago"
 msgstr ""
 
-#: caravel/forms.py:416
+#: caravel/forms.py:452
 msgid "12 hours ago"
 msgstr ""
 
-#: caravel/forms.py:417 caravel/forms.py:432
+#: caravel/forms.py:453 caravel/forms.py:468
 msgid "1 day ago"
 msgstr ""
 
-#: caravel/forms.py:418 caravel/forms.py:433
+#: caravel/forms.py:454 caravel/forms.py:469
 msgid "7 days ago"
 msgstr ""
 
-#: caravel/forms.py:419 caravel/forms.py:434
+#: caravel/forms.py:455 caravel/forms.py:470
 msgid "28 days ago"
 msgstr ""
 
-#: caravel/forms.py:420 caravel/forms.py:435
+#: caravel/forms.py:456 caravel/forms.py:471
 msgid "90 days ago"
 msgstr ""
 
-#: caravel/forms.py:421 caravel/forms.py:436
+#: caravel/forms.py:457 caravel/forms.py:472
 msgid "1 year ago"
 msgstr ""
 
-#: caravel/forms.py:423
+#: caravel/forms.py:459
 msgid ""
 "Timestamp from filter. This supports free form typing and natural "
 "language as in '1 day ago', '28 days' or '3 years'"
 msgstr ""
 
-#: caravel/forms.py:428
+#: caravel/forms.py:464
 msgid "Until"
 msgstr ""
 
-#: caravel/forms.py:440
+#: caravel/forms.py:476
 msgid "Max Bubble Size"
 msgstr ""
 
-#: caravel/forms.py:453
+#: caravel/forms.py:489
 msgid "Whisker/outlier options"
 msgstr ""
 
-#: caravel/forms.py:455
+#: caravel/forms.py:491
 msgid "Determines how whiskers and outliers are calculated."
 msgstr ""
 
-#: caravel/forms.py:458
+#: caravel/forms.py:494
 msgid "Tukey"
 msgstr ""
 
-#: caravel/forms.py:459
+#: caravel/forms.py:495
 msgid "Min/max (no outliers)"
 msgstr ""
 
-#: caravel/forms.py:460
+#: caravel/forms.py:496
 msgid "2/98 percentiles"
 msgstr ""
 
-#: caravel/forms.py:461
+#: caravel/forms.py:497
 msgid "9/91 percentiles"
 msgstr ""
 
-#: caravel/forms.py:465
+#: caravel/forms.py:501
 msgid "Ratio"
 msgstr ""
 
-#: caravel/forms.py:467
+#: caravel/forms.py:503
 msgid "Target aspect ratio for treemap tiles."
 msgstr ""
 
-#: caravel/forms.py:470 caravel/viz.py:831 caravel/viz.py:880
+#: caravel/forms.py:506 caravel/viz.py:837 caravel/viz.py:886
 msgid "Number format"
 msgstr ""
 
-#: caravel/forms.py:480
+#: caravel/forms.py:516
 msgid ""
 "D3 format syntax for numbers https: //github.com/mbostock/\n"
 "d3/wiki/Formatting"
 msgstr ""
 
-#: caravel/forms.py:485
+#: caravel/forms.py:521
 msgid "Row limit"
 msgstr ""
 
-#: caravel/forms.py:491
+#: caravel/forms.py:527
 msgid "Series limit"
 msgstr ""
 
-#: caravel/forms.py:494
+#: caravel/forms.py:530
 msgid "Limits the number of time series that get displayed"
 msgstr ""
 
-#: caravel/forms.py:498
+#: caravel/forms.py:534
 msgid "Rolling"
 msgstr ""
 
-#: caravel/forms.py:501
+#: caravel/forms.py:537
 msgid ""
 "Defines a rolling window function to apply, works along with the "
 "[Periods] text box"
 msgstr ""
 
-#: caravel/forms.py:506
+#: caravel/forms.py:542
 msgid "Periods"
 msgstr ""
 
-#: caravel/forms.py:508
+#: caravel/forms.py:544
 msgid ""
 "Defines the size of the rolling window function, relative to the time "
 "granularity selected"
 msgstr ""
 
-#: caravel/forms.py:513 caravel/viz.py:1161
+#: caravel/forms.py:549 caravel/viz.py:1173
 msgid "Series"
 msgstr ""
 
-#: caravel/forms.py:516
+#: caravel/forms.py:552
 msgid ""
 "Defines the grouping of entities. Each serie is shown as a specific color"
 " on the chart and has a legend toggle"
 msgstr ""
 
-#: caravel/forms.py:522
+#: caravel/forms.py:558
 msgid "Entity"
 msgstr ""
 
-#: caravel/forms.py:525
+#: caravel/forms.py:561
 msgid "This define the element to be plotted on the chart"
 msgstr ""
 
-#: caravel/forms.py:528
+#: caravel/forms.py:564
 msgid "X Axis"
 msgstr ""
 
-#: caravel/forms.py:531
+#: caravel/forms.py:567
 msgid "Metric assigned to the [X] axis"
 msgstr ""
 
-#: caravel/forms.py:534
+#: caravel/forms.py:570
 msgid "Y Axis"
 msgstr ""
 
-#: caravel/forms.py:537
+#: caravel/forms.py:573
 msgid "Metric assigned to the [Y] axis"
 msgstr ""
 
-#: caravel/forms.py:540
+#: caravel/forms.py:576
 msgid "Bubble Size"
 msgstr ""
 
-#: caravel/forms.py:545
+#: caravel/forms.py:581
 msgid "URL"
 msgstr ""
 
-#: caravel/forms.py:546
+#: caravel/forms.py:582
 msgid ""
 "The URL, this field is templated, so you can integrate {{ width }} and/or"
 " {{ height }} in your URL string."
 msgstr ""
 
-#: caravel/forms.py:553
+#: caravel/forms.py:589
+msgid "X Axis Label"
+msgstr ""
+
+#: caravel/forms.py:593
+msgid "Y Axis Label"
+msgstr ""
+
+#: caravel/forms.py:597
 msgid "Custom WHERE clause"
 msgstr ""
 
-#: caravel/forms.py:555
+#: caravel/forms.py:599
 msgid ""
 "The text in this box gets included in your query's WHERE clause, as an "
 "AND to other criteria. You can include complex expression, parenthesis "
 "and anything else supported by the backend it is directed towards."
 msgstr ""
 
-#: caravel/forms.py:562
+#: caravel/forms.py:606
 msgid "Custom HAVING clause"
 msgstr ""
 
-#: caravel/forms.py:564
+#: caravel/forms.py:608
 msgid ""
 "The text in this box gets included in your query's HAVING clause, as an "
 "AND to other criteria. You can include complex expression, parenthesis "
 "and anything else supported by the backend it is directed towards."
 msgstr ""
 
-#: caravel/forms.py:571
+#: caravel/forms.py:615
 msgid "Comparison Period Lag"
 msgstr ""
 
-#: caravel/forms.py:572
+#: caravel/forms.py:616
 msgid "Based on granularity, number of time periods to compare against"
 msgstr ""
 
-#: caravel/forms.py:577
+#: caravel/forms.py:621
 msgid "Comparison suffix"
 msgstr ""
 
-#: caravel/forms.py:578
+#: caravel/forms.py:622
 msgid "Suffix to apply after the percentage display"
 msgstr ""
 
-#: caravel/forms.py:581
+#: caravel/forms.py:625
 msgid "Table Timestamp Format"
 msgstr ""
 
-#: caravel/forms.py:584
+#: caravel/forms.py:628
 msgid "Timestamp Format"
 msgstr ""
 
-#: caravel/forms.py:587
+#: caravel/forms.py:631
 msgid "Series Height"
 msgstr ""
 
-#: caravel/forms.py:590
+#: caravel/forms.py:634
 msgid "Pixel height of each series"
 msgstr ""
 
-#: caravel/forms.py:593
+#: caravel/forms.py:637
 msgid "X axis format"
 msgstr ""
 
-#: caravel/forms.py:596 caravel/forms.py:611
+#: caravel/forms.py:640 caravel/forms.py:655
 msgid ""
 "D3 format syntax for y axis https: //github.com/mbostock/\n"
 "d3/wiki/Formatting"
 msgstr ""
 
-#: caravel/forms.py:601
+#: caravel/forms.py:645
 msgid "Y axis format"
 msgstr ""
 
-#: caravel/forms.py:616
+#: caravel/forms.py:660
 msgid "Markup Type"
 msgstr ""
 
-#: caravel/forms.py:618
+#: caravel/forms.py:662
 msgid "markdown"
 msgstr ""
 
-#: caravel/forms.py:619
+#: caravel/forms.py:663
 msgid "html"
 msgstr ""
 
-#: caravel/forms.py:622
+#: caravel/forms.py:666
 msgid "Pick your favorite markup language"
 msgstr ""
 
-#: caravel/forms.py:625
+#: caravel/forms.py:669
 msgid "Rotation"
 msgstr ""
 
-#: caravel/forms.py:627
+#: caravel/forms.py:671
 msgid "random"
 msgstr ""
 
-#: caravel/forms.py:628
+#: caravel/forms.py:672
 msgid "flat"
 msgstr ""
 
-#: caravel/forms.py:629
+#: caravel/forms.py:673
 msgid "square"
 msgstr ""
 
-#: caravel/forms.py:632
+#: caravel/forms.py:676
 msgid "Rotation to apply to words in the cloud"
 msgstr ""
 
-#: caravel/forms.py:635
+#: caravel/forms.py:679
 msgid "Line Style"
 msgstr ""
 
-#: caravel/forms.py:637
+#: caravel/forms.py:681
 msgid "linear"
 msgstr ""
 
-#: caravel/forms.py:638
+#: caravel/forms.py:682
 msgid "basis"
 msgstr ""
 
-#: caravel/forms.py:639
+#: caravel/forms.py:683
 msgid "cardinal"
 msgstr ""
 
-#: caravel/forms.py:640
+#: caravel/forms.py:684
 msgid "monotone"
 msgstr ""
 
-#: caravel/forms.py:641
+#: caravel/forms.py:685
 msgid "step-before"
 msgstr ""
 
-#: caravel/forms.py:642
+#: caravel/forms.py:686
 msgid "step-after"
 msgstr ""
 
-#: caravel/forms.py:645
+#: caravel/forms.py:689
 msgid "Line interpolation as defined by d3.js"
 msgstr ""
 
-#: caravel/forms.py:648
+#: caravel/forms.py:692
 msgid "Code"
 msgstr ""
 
-#: caravel/forms.py:649
+#: caravel/forms.py:693
 msgid "Put your code here"
 msgstr ""
 
-#: caravel/forms.py:653
+#: caravel/forms.py:697
 msgid "Aggregation function"
 msgstr ""
 
-#: caravel/forms.py:658
+#: caravel/forms.py:702
 msgid "max"
 msgstr ""
 
-#: caravel/forms.py:660
+#: caravel/forms.py:704
 msgid "stdev"
 msgstr ""
 
-#: caravel/forms.py:661
+#: caravel/forms.py:705
 msgid "var"
 msgstr ""
 
-#: caravel/forms.py:664
+#: caravel/forms.py:708
 msgid ""
 "Aggregate function to apply when pivoting and computing the total rows "
 "and columns"
 msgstr ""
 
-#: caravel/forms.py:669
+#: caravel/forms.py:713
 msgid "Font Size From"
 msgstr ""
 
-#: caravel/forms.py:671
+#: caravel/forms.py:715
 msgid "Font size for the smallest value in the list"
 msgstr ""
 
-#: caravel/forms.py:674
+#: caravel/forms.py:718
 msgid "Font Size To"
 msgstr ""
 
-#: caravel/forms.py:676
+#: caravel/forms.py:720
 msgid "Font size for the biggest value in the list"
 msgstr ""
 
-#: caravel/forms.py:679
+#: caravel/forms.py:723
 msgid "Range Filter"
 msgstr ""
 
-#: caravel/forms.py:681
+#: caravel/forms.py:725
 msgid "Whether to display the time range interactive selector"
 msgstr ""
 
-#: caravel/forms.py:685
+#: caravel/forms.py:729
 msgid "Data Table"
 msgstr ""
 
-#: caravel/forms.py:687
+#: caravel/forms.py:731
 msgid "Whether to display the interactive data table"
 msgstr ""
 
-#: caravel/forms.py:690
+#: caravel/forms.py:734
 msgid "Search Box"
 msgstr ""
 
-#: caravel/forms.py:692
+#: caravel/forms.py:736
 msgid "Whether to include a client side search box"
 msgstr ""
 
-#: caravel/forms.py:696
+#: caravel/forms.py:740
 msgid "Show Bubbles"
 msgstr ""
 
-#: caravel/forms.py:698
+#: caravel/forms.py:742
 msgid "Whether to display bubbles on top of countries"
 msgstr ""
 
-#: caravel/forms.py:702
+#: caravel/forms.py:746
 msgid "Legend"
 msgstr ""
 
-#: caravel/forms.py:704
+#: caravel/forms.py:748
 msgid "Whether to display the legend (toggles)"
 msgstr ""
 
-#: caravel/forms.py:707
+#: caravel/forms.py:751
 msgid "X bounds"
 msgstr ""
 
-#: caravel/forms.py:709
+#: caravel/forms.py:753
 msgid "Whether to display the min and max values of the X axis"
 msgstr ""
 
-#: caravel/forms.py:713
+#: caravel/forms.py:757
 msgid "Rich Tooltip"
 msgstr ""
 
-#: caravel/forms.py:715
+#: caravel/forms.py:759
 msgid "The rich tooltip shows a list of all series for that point in time"
 msgstr ""
 
-#: caravel/forms.py:720
+#: caravel/forms.py:764
 msgid "Y Axis Zero"
 msgstr ""
 
-#: caravel/forms.py:722
+#: caravel/forms.py:766
 msgid "Force the Y axis to start at 0 instead of the minimum value"
 msgstr ""
 
-#: caravel/forms.py:727
+#: caravel/forms.py:771
 msgid "Y Log"
 msgstr ""
 
-#: caravel/forms.py:729
+#: caravel/forms.py:773
 msgid "Use a log scale for the Y axis"
 msgstr ""
 
-#: caravel/forms.py:732
+#: caravel/forms.py:776
 msgid "X Log"
 msgstr ""
 
-#: caravel/forms.py:734
+#: caravel/forms.py:778
 msgid "Use a log scale for the X axis"
 msgstr ""
 
-#: caravel/forms.py:737
+#: caravel/forms.py:781
 msgid "Donut"
 msgstr ""
 
-#: caravel/forms.py:739
+#: caravel/forms.py:783
 msgid "Do you want a donut or a pie?"
 msgstr ""
 
-#: caravel/forms.py:742
+#: caravel/forms.py:786
 msgid "Contribution"
 msgstr ""
 
-#: caravel/forms.py:744
+#: caravel/forms.py:788
 msgid "Compute the contribution to the total"
 msgstr ""
 
-#: caravel/forms.py:747
+#: caravel/forms.py:791
 msgid "Period Ratio"
 msgstr ""
 
-#: caravel/forms.py:750
+#: caravel/forms.py:794
 msgid ""
 "[integer] Number of period to compare against, this is relative to the "
 "granularity selected"
 msgstr ""
 
-#: caravel/forms.py:755
+#: caravel/forms.py:799
 msgid "Time Shift"
 msgstr ""
 
-#: caravel/forms.py:757
+#: caravel/forms.py:801
 msgid ""
 "Overlay a timeseries from a relative time period. Expects relative time "
 "delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days"
 msgstr ""
 
-#: caravel/forms.py:764
+#: caravel/forms.py:808
 msgid "Subheader"
 msgstr ""
 
-#: caravel/forms.py:765
+#: caravel/forms.py:809
 msgid "Description text that shows up below your Big Number"
 msgstr ""
 
-#: caravel/forms.py:828
+#: caravel/forms.py:816
+msgid ""
+"'count' is COUNT(*) if a group by is used. Numerical columns will be "
+"aggregated with the aggregator. Non-numerical columns will be used to "
+"label points. Leave empty to get a count of points in each cluster."
+msgstr ""
+
+#: caravel/forms.py:832
+msgid "Base layer map style"
+msgstr ""
+
+#: caravel/forms.py:835
+msgid "Clustering Radius"
+msgstr ""
+
+#: caravel/forms.py:848
+msgid ""
+"The radius (in pixels) the algorithm uses to define a cluster. Choose 0 "
+"to turn off clustering, but beware that a large number of points (>1000) "
+"will cause lag."
+msgstr ""
+
+#: caravel/forms.py:854
+msgid "Point Radius"
+msgstr ""
+
+#: caravel/forms.py:857
+msgid ""
+"The radius of individual points (ones that are not in a cluster). Either "
+"a numerical column or 'Auto', which scales the point based on the largest"
+" cluster"
+msgstr ""
+
+#: caravel/forms.py:863
+msgid "Point Radius Unit"
+msgstr ""
+
+#: caravel/forms.py:870
+msgid "The unit of measure for the specified point radius"
+msgstr ""
+
+#: caravel/forms.py:873
+msgid "Opacity"
+msgstr ""
+
+#: caravel/forms.py:875
+msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
+msgstr ""
+
+#: caravel/forms.py:880
+msgid "Zoom"
+msgstr ""
+
+#: caravel/forms.py:883
+msgid "Zoom level of the map"
+msgstr ""
+
+#: caravel/forms.py:887
+msgid "Default latitude"
+msgstr ""
+
+#: caravel/forms.py:889
+msgid "Latitude of default viewport"
+msgstr ""
+
+#: caravel/forms.py:893
+msgid "Default longitude"
+msgstr ""
+
+#: caravel/forms.py:895
+msgid "Longitude of default viewport"
+msgstr ""
+
+#: caravel/forms.py:899
+msgid "Live render"
+msgstr ""
+
+#: caravel/forms.py:901
+msgid "Points and clusters will update as viewport is being changed"
+msgstr ""
+
+#: caravel/forms.py:905
+msgid "RGB Color"
+msgstr ""
+
+#: caravel/forms.py:915
+msgid "The color for points and clusters in RGB"
+msgstr ""
+
+#: caravel/forms.py:978
 msgid "SQL"
 msgstr ""
 
-#: caravel/forms.py:830
+#: caravel/forms.py:980
 msgid "This section exposes ways to include snippets of SQL in your query"
 msgstr ""
 
-#: caravel/forms.py:841
+#: caravel/forms.py:991
 msgid "Time Grain"
 msgstr ""
 
-#: caravel/forms.py:844
+#: caravel/forms.py:994
 msgid ""
 "The time granularity for the visualization. This applies a date "
 "transformation to alter your time column and defines a new time "
@@ -927,702 +1053,713 @@ msgid ""
 "in the Caravel source code"
 msgstr ""
 
-#: caravel/forms.py:867 caravel/forms.py:871
+#: caravel/forms.py:1027 caravel/forms.py:1031
 msgid "Filter 1"
 msgstr ""
 
-#: caravel/forms.py:876
+#: caravel/forms.py:1036
 msgid "Super"
 msgstr ""
 
-#: caravel/forms.py:880
+#: caravel/forms.py:1040
 msgid "Time"
 msgstr ""
 
-#: caravel/forms.py:885
+#: caravel/forms.py:1045
 msgid "Time related form attributes"
 msgstr ""
 
-#: caravel/models.py:404
+#: caravel/models.py:409
+msgid "quarter"
+msgstr ""
+
+#: caravel/models.py:410
 msgid "week_ending_saturday"
 msgstr ""
 
-#: caravel/models.py:406
+#: caravel/models.py:412
 msgid "week_start_sunday"
 msgstr ""
 
-#: caravel/models.py:425
+#: caravel/models.py:433
 msgid "second"
 msgstr ""
 
-#: caravel/models.py:426
+#: caravel/models.py:434
 msgid "minute"
 msgstr ""
 
-#: caravel/models.py:616
+#: caravel/models.py:631
 msgid ""
 "Datetime column not provided as part table configuration and is required "
 "by this type of chart"
 msgstr ""
 
-#: caravel/models.py:1280
+#: caravel/models.py:1301
 msgid "No data was returned."
 msgstr ""
 
-#: caravel/views.py:158
+#: caravel/views.py:197
 msgid ""
 "Whether to make this column available as a [Time Granularity] option, "
 "column has to be DATETIME or DATETIME-like"
 msgstr ""
 
-#: caravel/views.py:167 caravel/views.py:195
+#: caravel/views.py:206 caravel/views.py:234
 msgid "Column"
 msgstr ""
 
-#: caravel/views.py:168 caravel/views.py:233 caravel/views.py:271
+#: caravel/views.py:207 caravel/views.py:271 caravel/views.py:311
 msgid "Verbose Name"
 msgstr ""
 
-#: caravel/views.py:169 caravel/views.py:232 caravel/views.py:270
-#: caravel/views.py:459 caravel/views.py:600
+#: caravel/views.py:208 caravel/views.py:270 caravel/views.py:310
+#: caravel/views.py:510 caravel/views.py:662
 msgid "Description"
 msgstr ""
 
-#: caravel/views.py:170 caravel/views.py:198
+#: caravel/views.py:209 caravel/views.py:237
 msgid "Groupable"
 msgstr ""
 
-#: caravel/views.py:171 caravel/views.py:199
+#: caravel/views.py:210 caravel/views.py:238
 msgid "Filterable"
 msgstr ""
 
-#: caravel/views.py:172 caravel/views.py:236 caravel/views.py:362
-#: caravel/views.py:465
+#: caravel/views.py:211 caravel/views.py:274 caravel/views.py:405
+#: caravel/views.py:516
 msgid "Table"
 msgstr ""
 
-#: caravel/views.py:173 caravel/views.py:200
+#: caravel/views.py:212 caravel/views.py:239
 msgid "Count Distinct"
 msgstr ""
 
-#: caravel/views.py:174 caravel/views.py:201
+#: caravel/views.py:213 caravel/views.py:240
 msgid "Sum"
 msgstr ""
 
-#: caravel/views.py:175 caravel/views.py:202
+#: caravel/views.py:214 caravel/views.py:241
 msgid "Min"
 msgstr ""
 
-#: caravel/views.py:176 caravel/views.py:203
+#: caravel/views.py:215 caravel/views.py:242
 msgid "Max"
 msgstr ""
 
-#: caravel/views.py:177
+#: caravel/views.py:216
 msgid "Expression"
 msgstr ""
 
-#: caravel/views.py:178
+#: caravel/views.py:217
 msgid "Is temporal"
 msgstr ""
 
-#: caravel/views.py:196 caravel/views.py:234 caravel/views.py:272
-#: caravel/views.py:487
+#: caravel/views.py:235 caravel/views.py:272 caravel/views.py:312
+#: caravel/views.py:541
 msgid "Type"
 msgstr ""
 
-#: caravel/views.py:197 caravel/views.py:458
+#: caravel/views.py:236 caravel/views.py:509
 msgid "Datasource"
 msgstr ""
 
-#: caravel/views.py:223 caravel/views.py:263
+#: caravel/views.py:261 caravel/views.py:303
 msgid ""
 "Whether the access to this metric is restricted to certain roles. Only "
 "roles with the permission 'metric access on XXX (the name of this "
 "metric)' are allowed to access this metric"
 msgstr ""
 
-#: caravel/views.py:235
+#: caravel/views.py:273
 msgid "SQL Expression"
 msgstr ""
 
-#: caravel/views.py:273 caravel/views.py:567
+#: caravel/views.py:313 caravel/views.py:629
 msgid "JSON"
 msgstr ""
 
-#: caravel/views.py:274
+#: caravel/views.py:314
 msgid "Druid Datasource"
 msgstr ""
 
-#: caravel/views.py:310 caravel/views.py:364
+#: caravel/views.py:353 caravel/views.py:407
 msgid "Database"
 msgstr ""
 
-#: caravel/views.py:311
+#: caravel/views.py:354
 msgid "SQL link"
 msgstr ""
 
-#: caravel/views.py:312 caravel/views.py:456 caravel/views.py:522
+#: caravel/views.py:355 caravel/views.py:507 caravel/views.py:583
 msgid "Creator"
 msgstr ""
 
-#: caravel/views.py:313 caravel/views.py:365
+#: caravel/views.py:356 caravel/views.py:408
 msgid "Last Changed"
 msgstr ""
 
-#: caravel/views.py:314
+#: caravel/views.py:357
 msgid "SQLAlchemy URI"
 msgstr ""
 
-#: caravel/views.py:315 caravel/views.py:371 caravel/views.py:455
-#: caravel/views.py:606
+#: caravel/views.py:358 caravel/views.py:414 caravel/views.py:506
+#: caravel/views.py:668
 msgid "Cache Timeout"
 msgstr ""
 
-#: caravel/views.py:316
+#: caravel/views.py:359
 msgid "Extra"
 msgstr ""
 
-#: caravel/views.py:332
-msgid "Databases"
-msgstr ""
-
-#: caravel/views.py:335 caravel/views.py:394 caravel/views.py:428
-#: caravel/views.py:622 caravel/views.py:1113 caravel/views.py:1131
-msgid "Sources"
-msgstr ""
-
-#: caravel/views.py:363
+#: caravel/views.py:406
 msgid "Changed By"
 msgstr ""
 
-#: caravel/views.py:366
+#: caravel/views.py:409
 msgid "SQL Editor"
 msgstr ""
 
-#: caravel/views.py:367 caravel/views.py:602
+#: caravel/views.py:410 caravel/views.py:664
 msgid "Is Featured"
 msgstr ""
 
-#: caravel/views.py:368
+#: caravel/views.py:411
 msgid "Schema"
 msgstr ""
 
-#: caravel/views.py:369 caravel/views.py:604
+#: caravel/views.py:412 caravel/views.py:666
 msgid "Default Endpoint"
 msgstr ""
 
-#: caravel/views.py:370
+#: caravel/views.py:413
 msgid "Offset"
 msgstr ""
 
-#: caravel/views.py:392
-msgid "Tables"
-msgstr ""
-
-#: caravel/views.py:411 caravel/views.py:599
+#: caravel/views.py:454 caravel/views.py:661
 msgid "Cluster"
 msgstr ""
 
-#: caravel/views.py:412
+#: caravel/views.py:455
 msgid "Coordinator Host"
 msgstr ""
 
-#: caravel/views.py:413
+#: caravel/views.py:456
 msgid "Coordinator Port"
 msgstr ""
 
-#: caravel/views.py:414
+#: caravel/views.py:457
 msgid "Coordinator Endpoint"
 msgstr ""
 
-#: caravel/views.py:415
+#: caravel/views.py:458
 msgid "Broker Host"
 msgstr ""
 
-#: caravel/views.py:416
+#: caravel/views.py:459
 msgid "Broker Port"
 msgstr ""
 
-#: caravel/views.py:417
+#: caravel/views.py:460
 msgid "Broker Endpoint"
 msgstr ""
 
-#: caravel/views.py:425
-msgid "Druid Clusters"
+#: caravel/views.py:495
+msgid ""
+"These parameters are generated dynamically when clicking the save or "
+"overwrite button in the explore view. This JSON object is exposed here "
+"for reference and for power users who may want to alter specific "
+"parameters."
 msgstr ""
 
-#: caravel/foo/templates/caravel/welcome.html:25
-#: caravel/templates/caravel/welcome.html:25 caravel/views.py:457
-#: caravel/views.py:543
+#: caravel/views.py:500
+msgid "Duration (in seconds) of the caching timeout for this slice."
+msgstr ""
+
+#: caravel/templates/caravel/welcome.html:26 caravel/views.py:508
 msgid "Dashboards"
 msgstr ""
 
-#: caravel/views.py:460
+#: caravel/views.py:511
 msgid "Last Modified"
 msgstr ""
 
-#: caravel/views.py:461 caravel/views.py:521
+#: caravel/views.py:512 caravel/views.py:582
 msgid "Owners"
 msgstr ""
 
-#: caravel/views.py:462
+#: caravel/views.py:513
 msgid "Parameters"
 msgstr ""
 
-#: caravel/views.py:463 caravel/views.py:488
+#: caravel/views.py:514 caravel/views.py:542
 msgid "Slice"
 msgstr ""
 
-#: caravel/views.py:464
+#: caravel/views.py:515
 msgid "Name"
 msgstr ""
 
-#: caravel/views.py:466 caravel/views.py:489
+#: caravel/views.py:517 caravel/views.py:543
 msgid "Visualization Type"
 msgstr ""
 
-#: caravel/foo/templates/caravel/welcome.html:46
-#: caravel/templates/caravel/welcome.html:46 caravel/views.py:475
-#: caravel/views.py:520
-msgid "Slices"
-msgstr ""
-
-#: caravel/views.py:504
+#: caravel/views.py:559
 msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
 msgstr ""
 
-#: caravel/views.py:509
+#: caravel/views.py:564
 msgid ""
 "The css for individual dashboards can be altered here, or in the "
 "dashboard view where changes are immediately visible"
 msgstr ""
 
-#: caravel/views.py:513
+#: caravel/views.py:568
 msgid "To get a readable URL for your dashboard"
 msgstr ""
 
-#: caravel/views.py:517
+#: caravel/views.py:569
+msgid ""
+"This JSON object is generated dynamically when clicking the save or "
+"overwrite button in the dashboard view. It is exposed here for reference "
+"and for power users who may want to alter specific parameters."
+msgstr ""
+
+#: caravel/views.py:574
+msgid "Owners is a list of users who can alter the dashboard."
+msgstr ""
+
+#: caravel/views.py:578
 msgid "Dashboard"
 msgstr ""
 
-#: caravel/views.py:518
+#: caravel/views.py:579
 msgid "Title"
 msgstr ""
 
-#: caravel/views.py:519
+#: caravel/views.py:580
 msgid "Slug"
 msgstr ""
 
-#: caravel/views.py:523
+#: caravel/views.py:581
+msgid "Slices"
+msgstr ""
+
+#: caravel/views.py:584
 msgid "Modified"
 msgstr ""
 
-#: caravel/views.py:524
+#: caravel/views.py:585
 msgid "Position JSON"
 msgstr ""
 
-#: caravel/views.py:525
+#: caravel/views.py:586
 msgid "CSS"
 msgstr ""
 
-#: caravel/views.py:526
+#: caravel/views.py:587
 msgid "JSON Metadata"
 msgstr ""
 
-#: caravel/views.py:564
+#: caravel/views.py:588
+msgid "Underlying Tables"
+msgstr ""
+
+#: caravel/views.py:626
 msgid "User"
 msgstr ""
 
-#: caravel/views.py:565
+#: caravel/views.py:627
 msgid "Action"
 msgstr ""
 
-#: caravel/views.py:566
+#: caravel/views.py:628
 msgid "dttm"
 msgstr ""
 
-#: caravel/views.py:573
-msgid "Action Log"
-msgstr ""
-
-#: caravel/views.py:575
-msgid "Security"
-msgstr ""
-
-#: caravel/views.py:592
+#: caravel/views.py:654
 msgid "Timezone offset (in hours) for this datasource"
 msgstr ""
 
-#: caravel/views.py:598
+#: caravel/views.py:660
 msgid "Data Source"
 msgstr ""
 
-#: caravel/views.py:601
+#: caravel/views.py:663
 msgid "Owner"
 msgstr ""
 
-#: caravel/views.py:603
+#: caravel/views.py:665
 msgid "Is Hidden"
 msgstr ""
 
-#: caravel/views.py:605
+#: caravel/views.py:667
 msgid "Time Offset"
 msgstr ""
 
-#: caravel/views.py:620
-msgid "Druid Datasources"
-msgstr ""
-
-#: caravel/views.py:1031
+#: caravel/views.py:1108
 msgid "This view requires the `all_datasource_access` permission"
 msgstr ""
 
-#: caravel/views.py:1128
-msgid "CSS Templates"
-msgstr ""
-
-#: caravel/viz.py:339
+#: caravel/viz.py:348
 msgid "Table View"
 msgstr ""
 
-#: caravel/viz.py:342
+#: caravel/viz.py:351
 msgid "GROUP BY"
 msgstr ""
 
-#: caravel/viz.py:343
+#: caravel/viz.py:352
 msgid "Use this section if you want a query that aggregates"
 msgstr ""
 
-#: caravel/viz.py:349
+#: caravel/viz.py:355
 msgid "NOT GROUPED BY"
 msgstr ""
 
-#: caravel/viz.py:350
+#: caravel/viz.py:356
 msgid "Use this section if you want to query atomic rows"
 msgstr ""
 
-#: caravel/viz.py:355
+#: caravel/viz.py:359
 msgid "Options"
 msgstr ""
 
-#: caravel/viz.py:405
+#: caravel/viz.py:410
 msgid "Pivot Table"
 msgstr ""
 
-#: caravel/viz.py:467
+#: caravel/viz.py:472
 msgid "Markup"
 msgstr ""
 
-#: caravel/viz.py:495
+#: caravel/viz.py:500
 msgid "Word Cloud"
 msgstr ""
 
-#: caravel/viz.py:527
+#: caravel/viz.py:532
 msgid "Treemap"
 msgstr ""
 
-#: caravel/viz.py:537 caravel/viz.py:652 caravel/viz.py:759 caravel/viz.py:923
-#: caravel/viz.py:1067 caravel/viz.py:1094 caravel/viz.py:1149
-#: caravel/viz.py:1647
+#: caravel/viz.py:542 caravel/viz.py:657 caravel/viz.py:764 caravel/viz.py:929
+#: caravel/viz.py:1074 caravel/viz.py:1103 caravel/viz.py:1158
+#: caravel/viz.py:1663
 msgid "Chart Options"
 msgstr ""
 
-#: caravel/viz.py:571
+#: caravel/viz.py:576
 msgid "Calender Heatmap"
 msgstr ""
 
-#: caravel/viz.py:642
+#: caravel/viz.py:647
 msgid "Box Plot"
 msgstr ""
 
-#: caravel/viz.py:749
+#: caravel/viz.py:754
 msgid "Bubble Chart"
 msgstr ""
 
-#: caravel/viz.py:817
+#: caravel/viz.py:823
 msgid "Big Number with Trendline"
 msgstr ""
 
-#: caravel/viz.py:867
+#: caravel/viz.py:873
 msgid "Big Number"
 msgstr ""
 
-#: caravel/viz.py:913
+#: caravel/viz.py:919
 msgid "Time Series - Line Chart"
 msgstr ""
 
-#: caravel/viz.py:932
+#: caravel/viz.py:939
 msgid "Advanced Analytics"
 msgstr ""
 
-#: caravel/viz.py:933
+#: caravel/viz.py:940
 msgid ""
 "This section contains options that allow for advanced analytical post "
 "processing of query results"
 msgstr ""
 
-#: caravel/viz.py:1065
+#: caravel/viz.py:1072
 msgid "Time Series - Bar Chart"
 msgstr ""
 
-#: caravel/viz.py:1083
+#: caravel/viz.py:1092
 msgid "Time Series - Percent Change"
 msgstr ""
 
-#: caravel/viz.py:1091
+#: caravel/viz.py:1100
 msgid "Time Series - Stacked"
 msgstr ""
 
-#: caravel/viz.py:1110
+#: caravel/viz.py:1119
 msgid "Distribution - NVD3 - Pie Chart"
 msgstr ""
 
-#: caravel/viz.py:1146
+#: caravel/viz.py:1155
 msgid "Distribution - Bar Chart"
 msgstr ""
 
-#: caravel/viz.py:1164
+#: caravel/viz.py:1176
 msgid "Breakdowns"
 msgstr ""
 
-#: caravel/viz.py:1165
+#: caravel/viz.py:1177
 msgid "Defines how each series is broken down"
 msgstr ""
 
-#: caravel/viz.py:1226
+#: caravel/viz.py:1242
 msgid "Sunburst"
 msgstr ""
 
-#: caravel/viz.py:1241
+#: caravel/viz.py:1257
 msgid "Primary Metric"
 msgstr ""
 
-#: caravel/viz.py:1242
+#: caravel/viz.py:1258
 msgid "The primary metric is used to define the arc segment sizes"
 msgstr ""
 
-#: caravel/viz.py:1247
+#: caravel/viz.py:1263
 msgid "Secondary Metric"
 msgstr ""
 
-#: caravel/viz.py:1248
+#: caravel/viz.py:1264
 msgid ""
 "This secondary metric is used to define the color as a ratio against the "
 "primary metric. If the two metrics match, color is mapped level groups"
 msgstr ""
 
-#: caravel/viz.py:1254
+#: caravel/viz.py:1270
 msgid "Hierarchy"
 msgstr ""
 
-#: caravel/viz.py:1255
+#: caravel/viz.py:1271
 msgid "This defines the level of the hierarchy"
 msgstr ""
 
-#: caravel/viz.py:1292
+#: caravel/viz.py:1308
 msgid "Sankey"
 msgstr ""
 
-#: caravel/viz.py:1305 caravel/viz.py:1375
+#: caravel/viz.py:1321 caravel/viz.py:1391
 msgid "Source / Target"
 msgstr ""
 
-#: caravel/viz.py:1306 caravel/viz.py:1376
+#: caravel/viz.py:1322 caravel/viz.py:1392
 msgid "Choose a source and a target"
 msgstr ""
 
-#: caravel/viz.py:1356
+#: caravel/viz.py:1372
 msgid "Directed Force Layout"
 msgstr ""
 
-#: caravel/viz.py:1367
+#: caravel/viz.py:1383
 msgid "Force Layout"
 msgstr ""
 
-#: caravel/viz.py:1398
+#: caravel/viz.py:1414
 msgid "World Map"
 msgstr ""
 
-#: caravel/viz.py:1409
+#: caravel/viz.py:1425
 msgid "Bubbles"
 msgstr ""
 
-#: caravel/viz.py:1418
+#: caravel/viz.py:1434
 msgid "Country Field"
 msgstr ""
 
-#: caravel/viz.py:1419
+#: caravel/viz.py:1435
 msgid "3 letter code of the country"
 msgstr ""
 
-#: caravel/viz.py:1422
+#: caravel/viz.py:1438
 msgid "Metric for color"
 msgstr ""
 
-#: caravel/viz.py:1423
+#: caravel/viz.py:1439
 msgid "Metric that defines the color of the country"
 msgstr ""
 
-#: caravel/viz.py:1426
+#: caravel/viz.py:1442
 msgid "Bubble size"
 msgstr ""
 
-#: caravel/viz.py:1427
+#: caravel/viz.py:1443
 msgid "Metric that defines the size of the bubble"
 msgstr ""
 
-#: caravel/foo/templates/caravel/explore.html:137
-#: caravel/templates/caravel/explore.html:137 caravel/viz.py:1472
+#: caravel/templates/caravel/explore.html:137 caravel/viz.py:1488
 msgid "Filters"
 msgstr ""
 
-#: caravel/viz.py:1484
+#: caravel/viz.py:1500
 msgid "Filter fields"
 msgstr ""
 
-#: caravel/viz.py:1485
+#: caravel/viz.py:1501
 msgid "The fields you want to filter on"
 msgstr ""
 
-#: caravel/viz.py:1520
+#: caravel/viz.py:1536
 msgid "iFrame"
 msgstr ""
 
-#: caravel/viz.py:1538
+#: caravel/viz.py:1554
 msgid "Parallel Coordinates"
 msgstr ""
 
-#: caravel/viz.py:1574
+#: caravel/viz.py:1590
 msgid "Heatmap"
 msgstr ""
 
-#: caravel/viz.py:1587
+#: caravel/viz.py:1603
 msgid "Heatmap Options"
 msgstr ""
 
-#: caravel/viz.py:1642
+#: caravel/viz.py:1658
 msgid "Horizon Charts"
 msgstr ""
 
-#: caravel/foo/templates/appbuilder/navbar.html:24
-#: caravel/templates/appbuilder/navbar.html:24
-msgid "Documentation"
+#: caravel/viz.py:1674
+msgid "Mapbox"
 msgstr ""
 
-#: caravel/foo/templates/appbuilder/navbar_right.html:34
-#: caravel/templates/appbuilder/navbar_right.html:34
+#: caravel/viz.py:1726
+msgid ""
+"Aggregate function applied to the list of points in each cluster to "
+"produce the cluster label."
+msgstr ""
+
+#: caravel/viz.py:1732
+msgid "Show a tooltip when hovering over points and clusters describing the label"
+msgstr ""
+
+#: caravel/viz.py:1737
+msgid ""
+"One or many fields to group by. If grouping, latitude and longitude "
+"columns must be present."
+msgstr ""
+
+#: caravel/templates/appbuilder/navbar_right.html:36
 msgid "Profile"
 msgstr ""
 
-#: caravel/foo/templates/appbuilder/navbar_right.html:35
-#: caravel/templates/appbuilder/navbar_right.html:35
+#: caravel/templates/appbuilder/navbar_right.html:37
 msgid "Logout"
 msgstr ""
 
-#: caravel/foo/templates/appbuilder/navbar_right.html:40
-#: caravel/templates/appbuilder/navbar_right.html:40
+#: caravel/templates/appbuilder/navbar_right.html:42
 msgid "Login"
 msgstr ""
 
-#: caravel/foo/templates/caravel/explore.html:58
 #: caravel/templates/caravel/explore.html:58
 msgid "Force refresh"
 msgstr ""
 
-#: caravel/foo/templates/caravel/explore.html:63
 #: caravel/templates/caravel/explore.html:63
 msgid "Short URL"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:65
-msgid "Standalone version, use to embed anywhere"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:68
-#: caravel/templates/caravel/explore.html:68
-msgid "Export to .json"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:72
-#: caravel/templates/caravel/explore.html:72
-msgid "Export to .csv format"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:75
-#: caravel/templates/caravel/explore.html:75
-msgid "0 sec"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:77
-#: caravel/templates/caravel/explore.html:77
-msgid "query"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:86
-#: caravel/foo/templates/caravel/explore.html:192
-#: caravel/templates/caravel/explore.html:86
-#: caravel/templates/caravel/explore.html:192
-msgid "Query"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:90
-#: caravel/templates/caravel/explore.html:90
-msgid "Overwrite"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:94
-#: caravel/templates/caravel/explore.html:94
-msgid "Save as"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:140
-#: caravel/templates/caravel/explore.html:140
-msgid "Filters are defined using comma delimited strings as in 'US,FR,Other'"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:158
-#: caravel/templates/caravel/explore.html:158
-msgid "Add filter"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:198
-#: caravel/foo/templates/caravel/explore.html:216
-#: caravel/templates/caravel/explore.html:198
-#: caravel/templates/caravel/explore.html:216
-msgid "Close"
-msgstr ""
-
-#: caravel/foo/templates/caravel/explore.html:210
-#: caravel/templates/caravel/explore.html:210
-msgid "Datasource Description"
-msgstr ""
-
-#: caravel/foo/templates/caravel/sql.html:11
-#: caravel/templates/caravel/sql.html:11
-msgid "Run!"
-msgstr ""
-
-#: caravel/foo/templates/caravel/sql.html:12
-#: caravel/templates/caravel/sql.html:12
-msgid "Create View"
-msgstr ""
-
-#: caravel/foo/templates/caravel/welcome.html:8
-#: caravel/foo/templates/caravel/welcome.html:13
-#: caravel/templates/caravel/welcome.html:8
-#: caravel/templates/caravel/welcome.html:13
-msgid "Welcome!"
-msgstr ""
-
-#: caravel/foo/templates/caravel/models/database/macros.html:4
-#: caravel/templates/caravel/models/database/macros.html:4
-msgid "Test Connection"
 msgstr ""
 
 #: caravel/templates/caravel/explore.html:65
 msgid "Generate an embeddable iframe"
 msgstr ""
+
+#: caravel/templates/caravel/explore.html:68
+msgid "Export to .json"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:72
+msgid "Export to .csv format"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:75
+msgid "0 sec"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:77
+msgid "query"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:86
+#: caravel/templates/caravel/explore.html:227
+msgid "Query"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:90
+msgid "Overwrite"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:94
+msgid "Save as"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:140
+msgid "Filters are defined using comma delimited strings as in 'US,FR,Other'"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:158
+msgid "Add filter"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:233
+#: caravel/templates/caravel/explore.html:251
+msgid "Close"
+msgstr ""
+
+#: caravel/templates/caravel/explore.html:245
+msgid "Datasource Description"
+msgstr ""
+
+#: caravel/templates/caravel/sql.html:12
+msgid "Run!"
+msgstr ""
+
+#: caravel/templates/caravel/sql.html:13
+msgid "Create View"
+msgstr ""
+
+#: caravel/templates/caravel/welcome.html:8
+#: caravel/templates/caravel/welcome.html:14
+msgid "Welcome!"
+msgstr ""
+
+#: caravel/templates/caravel/models/database/macros.html:4
+msgid "Test Connection"
+msgstr ""
+
+#~ msgid "Databases"
+#~ msgstr ""
+
+#~ msgid "Sources"
+#~ msgstr ""
+
+#~ msgid "Tables"
+#~ msgstr ""
+
+#~ msgid "Druid Clusters"
+#~ msgstr ""
+
+#~ msgid "Action Log"
+#~ msgstr ""
+
+#~ msgid "Security"
+#~ msgstr ""
+
+#~ msgid "Druid Datasources"
+#~ msgstr ""
+
+#~ msgid "CSS Templates"
+#~ msgstr ""
+
+#~ msgid "Documentation"
+#~ msgstr ""
+
+#~ msgid "Standalone version, use to embed anywhere"
+#~ msgstr ""
 

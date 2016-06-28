@@ -9,7 +9,7 @@ from copy import copy
 import json
 import math
 
-from flask_babelpkg import lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField, DecimalField)
