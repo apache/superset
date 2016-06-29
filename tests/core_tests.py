@@ -17,7 +17,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
 from caravel import app, db, models, utils, appbuilder
-from caravel.models import DruidCluster
+from caravel.models import DruidCluster, DruidDatasource
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
@@ -218,6 +218,27 @@ class CoreTests(CaravelTestCase):
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
+    def test_add_slice_redirect_to_sqla(self, username='admin'):
+        self.login(username=username)
+        url = '/slicemodelview/add'
+        resp = self.client.get(url, follow_redirects=True)
+        assert "Click on a table link to create a Slice" in resp.data.decode('utf-8')
+
+    def test_add_slice_redirect_to_druid(self, username='admin'):
+        datasource = DruidDatasource(
+            datasource_name="datasource_name",
+        )
+        db.session.add(datasource)
+        db.session.commit()
+
+        self.login(username=username)
+        url = '/slicemodelview/add'
+        resp = self.client.get(url, follow_redirects=True)
+        assert "Click on a datasource link to create a Slice" in resp.data.decode('utf-8')
+
+        db.session.delete(datasource)
+        db.session.commit()
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
@@ -409,7 +430,7 @@ class DruidTests(CaravelTestCase):
         instance.export_pandas.return_value = df
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
-        resp = self.client.get('/caravel/explore/druid/1/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&groupby=name&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id=1&datasource_type=druid&previous_viz_type=table&json=true&force=true')
+        resp = self.client.get('/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&groupby=name&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id={}&datasource_type=druid&previous_viz_type=table&json=true&force=true'.format(datasource_id, datasource_id))
         assert "Canada" in resp.data.decode('utf-8')
 
 

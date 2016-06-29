@@ -520,7 +520,6 @@ if config['DRUID_IS_ACTIVE']:
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
-    add_template = "caravel/add_slice.html"
     can_add = False
     label_columns = {
         'datasource_link': 'Datasource',
@@ -567,6 +566,28 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 
     def pre_delete(self, obj):
         check_ownership(obj)
+
+    @expose('/add', methods=['GET', 'POST'])
+    @has_access
+    def add(self):
+        widget = self._add()
+        if not widget:
+            return redirect(self.get_redirect())
+
+        a_druid_datasource = db.session.query(models.DruidDatasource).first()
+        if a_druid_datasource is not None:
+            url = "/druiddatasourcemodelview/list/"
+            msg = _(
+                "Click on a datasource link to create a Slice, "
+                "or click on a table link <a href='/tablemodelview/list/'>here</a> "
+                "to create a Slice for a table"
+            )
+        else:
+            url = "/tablemodelview/list/"
+            msg = _("Click on a table link to create a Slice")
+
+        redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
+        return redirect(redirect_url)
 
 appbuilder.add_view(
     SliceModelView,
