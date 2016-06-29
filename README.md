@@ -23,8 +23,8 @@ Video - Introduction to Caravel
 
 Screenshots
 ------------
-![img](http://i.imgur.com/JRbTnTx.png)
-![img](http://i.imgur.com/4wRtxwb.png)
+![img](http://i.imgur.com/x8t30YU.png)
+![img](http://i.imgur.com/DRCnbq6.png)
 
 Caravel
 ---------
@@ -79,12 +79,13 @@ Installation & Configuration
 More screenshots
 ----------------
 
-![img](http://i.imgur.com/MAFZTtU.png)
-![img](http://i.imgur.com/xcy1QjN.png)
-![img](http://i.imgur.com/RWqA8ly.png)
-![img](http://i.imgur.com/D2kZL7q.png)
-![img](http://i.imgur.com/0UPTK61.png)
-![img](http://i.imgur.com/ahHoCuS.png)
+![img](http://i.imgur.com/SAhDJCI.png)
+![img](http://i.imgur.com/iuLpv1c.png)
+![img](http://i.imgur.com/V2FWeZx.png)
+![img](http://i.imgur.com/BeUtCzF.png)
+![img](http://i.imgur.com/phoY7jI.png)
+![img](http://i.imgur.com/NvIDgdC.png)
+![img](http://i.imgur.com/DzwYyns.png)
 
 
 Resources
