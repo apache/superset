@@ -8,6 +8,10 @@ var jQuery = window.jQuery = $;
 var px = require('./modules/caravel.js');
 var showModal = require('./modules/utils.js').showModal;
 
+import React from 'react';
+import ReactDOM from 'react-dom';
+import QueryAndSaveBtns from './explore/components/QueryAndSaveBtns.jsx';
+
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
@@ -66,6 +70,7 @@ function query(force, pushState) {
   }
   $('#is_cached').hide();
   prepForm();
+
   if (pushState !== false) {
     // update the url after prepForm() fix the field ids
     history.pushState({}, document.title, slice.querystring());
@@ -333,9 +338,14 @@ function initExploreView() {
     add_filter(undefined, "having");
   });
 
-  $(".query").click(function () {
-    query(true);
-  });
+  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
+  ReactDOM.render(
+    <QueryAndSaveBtns
+      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
+      onQuery={() => query(true)}
+    />,
+    queryAndSaveBtnsEl
+  );
 
   function create_choices(term, data) {
     var filtered = $(data).filter(function () {

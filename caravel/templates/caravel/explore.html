@@ -29,20 +29,10 @@
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
       <div class="header">
-          <div class="btn-group query-and-save">
-            <button type="button" class="btn btn-primary query">
-              <i class="fa fa-bolt"></i>{{ _("Query") }}
-            </button>
-            <button
-                type="button"
-                id="btn_save"
-                class="btn btn-default"
-                {{ "disabled" if not can_add }}
-                data-target="#save_modal"
-                data-toggle="modal">
-              <i class="fa fa-plus-circle"></i>{{ _("Save") }}
-            </button>
-          </div>
+          <span id="js-query-and-save-btns"
+               data-can-add="{{ can_add }}"
+          ></span>
+
           <span title="Data Source" data-toggle="tooltip">
             <select id="datasource_id" class="select2">
               {% for ds in datasources %}
@@ -319,5 +309,5 @@
 
 {% block tail_js %}
   {{ super() }}
-  <script src="/static/assets/javascripts/dist/explore.entry.js"></script>
+  <script src="/static/assets/javascripts/dist/explore.entry.jsx"></script>
 {% endblock %}
