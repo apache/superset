@@ -294,9 +294,8 @@ function initExploreView() {
   function set_filters() {
     ["flt", "having"].forEach(function (prefix) {
       for (var i = 1; i < 10; i++) {
-        var eq = px.getParam(prefix + "_eq_" + i);
         var col = px.getParam(prefix + "_col_" + i);
-        if (eq !== '' && col !== '') {
+        if (col !== '') {
           add_filter(i, prefix);
         }
       }

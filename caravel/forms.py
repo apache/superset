@@ -1009,12 +1009,14 @@ class FormFactory(object):
             field_css_classes['granularity'] = ['form-control', 'select2_freeform']
             field_css_classes['druid_time_origin'] = ['form-control', 'select2_freeform']
             filter_choices = self.choicify(['in', 'not in', 'regex'])
-            having_op_choices = self.choicify(['>', '<', '=='])
+            having_op_choices = self.choicify(
+                ['==', '!=', '>', '<', '>=', '<='])
             filter_prefixes += ['having']
         add_to_form(('since', 'until'))
 
+        # filter_cols defaults to ''. Filters with blank col will be ignored
         filter_cols = self.choicify(
-            viz.datasource.filterable_column_names or [''])
+            ([''] + viz.datasource.filterable_column_names) or [''])
         having_cols = filter_cols + viz.datasource.metrics_combo
         for field_prefix in filter_prefixes:
             is_having_filter = field_prefix == 'having'
