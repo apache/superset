@@ -83,11 +83,11 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    @renders('created_by')
+    @renders('created_on')
     def creator(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @renders('changed_by')
+    @property
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
@@ -168,7 +168,7 @@ class Slice(Model, AuditMixinNullable):
     def datasource(self):
         return self.table or self.druid_datasource
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         if self.table:
             return self.table.link
@@ -570,7 +570,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def name(self):
         return self.table_name
 
-    @property
+    @renders('table_name')
     def table_link(self):
         return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
@@ -1071,7 +1071,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def __repr__(self):
         return self.datasource_name
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
         return '<a href="{url}">{obj.datasource_name}</a>'.format(
