@@ -625,6 +625,9 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         check_ownership(obj)
         self.pre_add(obj)
 
+    def pre_delete(self, obj):
+        check_ownership(obj)
+
 
 appbuilder.add_view(
     DashboardModelView,
