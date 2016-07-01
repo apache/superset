@@ -238,7 +238,7 @@ class FormFactory(object):
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,
-                "description": (
+                "description": _(
                     "Whether to show extra controls or not. Extra controls "
                     "include things like making mulitBar charts stacked "
                     "or side by side.")

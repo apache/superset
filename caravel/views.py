@@ -1246,7 +1246,7 @@ appbuilder.add_view_no_menu(Caravel)
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
-        "Refresh Druid Metadata",
+        _("Refresh Druid Metadata"),
         href='/caravel/refresh_datasources/',
         category='Sources',
         category_label=__("Sources"),
