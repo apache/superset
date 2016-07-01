@@ -198,7 +198,7 @@ class BaseViz(object):
             col = form_data.get(field_prefix + "_col_" + str(i))
             op = form_data.get(field_prefix + "_op_" + str(i))
             eq = form_data.get(field_prefix + "_eq_" + str(i))
-            if col and op and eq:
+            if col and op and eq is not None:
                 filters.append((col, op, eq))
 
         # Extra filters (coming from dashboard)
@@ -236,7 +236,8 @@ class BaseViz(object):
         # for instance the extra where clause that applies only to Tables
         extras = {
             'where': form_data.get("where", ''),
-            'having': self.query_filters(True) or form_data.get("having", ''),
+            'having': form_data.get("having", ''),
+            'having_druid': self.query_filters(True),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }

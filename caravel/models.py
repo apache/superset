@@ -28,7 +28,7 @@ from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
-from pydruid.utils.having import Having, Aggregation
+from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -1283,7 +1283,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if filters:
             qry['filter'] = filters
 
-        having_filters = self.get_having_filters(extras.get('having'))
+        having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
 
@@ -1399,26 +1399,37 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 filters = cond
         return filters
 
+    def _get_having_obj(self, col, op, eq):
+        cond = None
+        if op == '==':
+            if col in self.column_names:
+                cond = DimSelector(dimension=col, value=eq)
+            else:
+                cond = Aggregation(col) == eq
+        elif op == '>':
+            cond = Aggregation(col) > eq
+        elif op == '<':
+            cond = Aggregation(col) < eq
+
+        return cond
+
     def get_having_filters(self, raw_filters):
         filters = None
+        reversed_op_map = {
+            '!=': '==',
+            '>=': '<',
+            '<=': '>'
+        }
+
         for col, op, eq in raw_filters:
             cond = None
-            if op == '==':
-                if col in self.column_names:
-                    cond = DimSelector(dimension=col, value=eq)
-                else:
-                    cond = Aggregation(col) == eq
-            elif op == '!=':
-                cond = ~(Aggregation(col) == eq)
-            elif op == '>':
-                cond = Aggregation(col) > eq
-            elif op == '<':
-                cond = Aggregation(col) < eq
+            if op in ['==', '>', '<']:
+                cond = self._get_having_obj(col, op, eq)
+            elif op in reversed_op_map:
+                cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+
             if filters:
-                filters = Filter(type="and", fields=[
-                    Having.build_having(cond),
-                    Having.build_having(filters)
-                ])
+                filters = filters & cond
             else:
                 filters = cond
         return filters
