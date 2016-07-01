@@ -43,9 +43,3 @@ framework, in the meantime, we've tagged a few pull requests as
 visualizations.
 
 https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed
-
-
-Is there shortcut for the Query button
---------------------------------------
-
-Yes, `q` or `Q` will do it.
