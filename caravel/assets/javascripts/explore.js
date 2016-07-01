@@ -8,6 +8,8 @@ var jQuery = window.jQuery = $;
 var px = require('./modules/caravel.js');
 var showModal = require('./modules/utils.js').showModal;
 
+var isQueryRunning = false;
+
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
@@ -56,6 +58,10 @@ function prepForm() {
 }
 
 function query(force, pushState) {
+  if (isQueryRunning) {
+    return;
+  }
+  isQueryRunning = true;
   if (force === undefined) {
     force = false;
   }
@@ -71,6 +77,7 @@ function query(force, pushState) {
     history.pushState({}, document.title, slice.querystring());
   }
   slice.render(force);
+  isQueryRunning = false;
 }
 
 function initExploreView() {
@@ -482,4 +489,9 @@ $(document).ready(function () {
 
   $('div.toggle').addClass('pull-right');
   slice.bindResizeToWindowResize();
+  document.addEventListener("keyup", function (k) {
+    if (k.key === 'q' || k.key === 'Q') {
+      query(true);
+    }
+  });
 });
