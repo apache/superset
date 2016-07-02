@@ -164,7 +164,7 @@ class CoreTests(CaravelTestCase):
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
-        modules = [utils]
+        modules = [utils, models]
         for mod in modules:
             failed, tests = doctest.testmod(mod)
             if failed:

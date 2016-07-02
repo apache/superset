@@ -198,7 +198,7 @@ class BaseViz(object):
             col = form_data.get(field_prefix + "_col_" + str(i))
             op = form_data.get(field_prefix + "_op_" + str(i))
             eq = form_data.get(field_prefix + "_eq_" + str(i))
-            if col and op and eq:
+            if col and op and eq is not None:
                 filters.append((col, op, eq))
 
         # Extra filters (coming from dashboard)
@@ -236,7 +236,8 @@ class BaseViz(object):
         # for instance the extra where clause that applies only to Tables
         extras = {
             'where': form_data.get("where", ''),
-            'having': self.query_filters(True) or form_data.get("having", ''),
+            'having': form_data.get("having", ''),
+            'having_druid': self.query_filters(True),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
@@ -1704,26 +1705,26 @@ class MapboxViz(BaseViz):
             'render_while_dragging',
         )
     }, {
-        'label': 'Points',
+        'label': _('Points'),
         'fields': (
             'point_radius',
             'point_radius_unit',
         )
     }, {
-        'label': 'Labelling',
+        'label': _('Labelling'),
         'fields': (
             'mapbox_label',
             'pandas_aggfunc',
         )
     }, {
-        'label': 'Visual Tweaks',
+        'label': _('Visual Tweaks'),
         'fields': (
             'mapbox_style',
             'global_opacity',
             'mapbox_color',
         )
     }, {
-        'label': 'Viewport',
+        'label': _('Viewport'),
         'fields': (
             'viewport_longitude',
             'viewport_latitude',
@@ -1733,21 +1734,21 @@ class MapboxViz(BaseViz):
 
     form_overrides = {
         'all_columns_x': {
-            'label': 'Longitude',
-            'description': "Column containing longitude data",
+            'label': _('Longitude'),
+            'description': _("Column containing longitude data"),
         },
         'all_columns_y': {
-            'label': 'Latitude',
-            'description': "Column containing latitude data",
+            'label': _('Latitude'),
+            'description': _("Column containing latitude data"),
         },
         'pandas_aggfunc': {
-            'label': 'Cluster label aggregator',
+            'label': _('Cluster label aggregator'),
             'description': _(
                 "Aggregate function applied to the list of points "
                 "in each cluster to produce the cluster label."),
         },
         'rich_tooltip': {
-            'label': 'Tooltip',
+            'label': _('Tooltip'),
             'description': _(
                 "Show a tooltip when hovering over points and clusters "
                 "describing the label"),

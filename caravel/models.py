@@ -28,7 +28,7 @@ from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
-from pydruid.utils.having import Having, Aggregation
+from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -83,11 +83,11 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    @renders('created_by')
+    @renders('created_on')
     def creator(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @renders('changed_by')
+    @property
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
@@ -168,7 +168,7 @@ class Slice(Model, AuditMixinNullable):
     def datasource(self):
         return self.table or self.druid_datasource
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         if self.table:
             return self.table.link
@@ -574,7 +574,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def name(self):
         return self.table_name
 
-    @property
+    @renders('table_name')
     def table_link(self):
         return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
@@ -1075,7 +1075,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def __repr__(self):
         return self.datasource_name
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
         return '<a href="{url}">{obj.datasource_name}</a>'.format(
@@ -1087,9 +1087,31 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if m.metric_name == metric_name
         ][0]
 
-    def version_higher(self, v1, v2):
-        v1nums = [int(n) for n in v1.split('.')]
-        v2nums = [int(n) for n in v2.split('.')]
+    @staticmethod
+    def version_higher(v1, v2):
+        """is v1 higher than v2
+
+        >>> DruidDatasource.version_higher('0.8.2', '0.9.1')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.6.1')
+        True
+        >>> DruidDatasource.version_higher('0.8.2', '0.8.2')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.9.BETA')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.9')
+        False
+        """
+        def int_or_0(v):
+            try:
+                v = int(v)
+            except Exception as e:
+                v = 0
+            return v
+        v1nums = [int_or_0(n) for n in v1.split('.')]
+        v2nums = [int_or_0(n) for n in v2.split('.')]
+        v1nums = (v1nums + [0, 0, 0])[:3]
+        v2nums = (v2nums + [0, 0, 0])[:3]
         return v1nums[0] > v2nums[0] or \
             (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or \
             (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2] > v2nums[2])
@@ -1265,7 +1287,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if filters:
             qry['filter'] = filters
 
-        having_filters = self.get_having_filters(extras.get('having'))
+        having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
 
@@ -1381,26 +1403,37 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 filters = cond
         return filters
 
+    def _get_having_obj(self, col, op, eq):
+        cond = None
+        if op == '==':
+            if col in self.column_names:
+                cond = DimSelector(dimension=col, value=eq)
+            else:
+                cond = Aggregation(col) == eq
+        elif op == '>':
+            cond = Aggregation(col) > eq
+        elif op == '<':
+            cond = Aggregation(col) < eq
+
+        return cond
+
     def get_having_filters(self, raw_filters):
         filters = None
+        reversed_op_map = {
+            '!=': '==',
+            '>=': '<',
+            '<=': '>'
+        }
+
         for col, op, eq in raw_filters:
             cond = None
-            if op == '==':
-                if col in self.column_names:
-                    cond = DimSelector(dimension=col, value=eq)
-                else:
-                    cond = Aggregation(col) == eq
-            elif op == '!=':
-                cond = ~(Aggregation(col) == eq)
-            elif op == '>':
-                cond = Aggregation(col) > eq
-            elif op == '<':
-                cond = Aggregation(col) < eq
+            if op in ['==', '>', '<']:
+                cond = self._get_having_obj(col, op, eq)
+            elif op in reversed_op_map:
+                cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+
             if filters:
-                filters = Filter(type="and", fields=[
-                    Having.build_having(cond),
-                    Having.build_having(filters)
-                ])
+                filters = filters & cond
             else:
                 filters = cond
         return filters

@@ -409,6 +409,8 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     list_columns = [
         'table_link', 'database', 'sql_link', 'is_featured',
         'changed_by_', 'changed_on_']
+    order_columns = [
+        'table_link', 'database', 'sql_link', 'is_featured', 'changed_on_']
     add_columns = [
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -623,6 +625,9 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         check_ownership(obj)
         self.pre_add(obj)
 
+    def pre_delete(self, obj):
+        check_ownership(obj)
+
 
 appbuilder.add_view(
     DashboardModelView,
@@ -666,7 +671,9 @@ appbuilder.add_view(
 class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'modified', 'offset']
+        'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
+    order_columns = [
+        'datasource_link', 'changed_on_', 'offset']
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
@@ -682,7 +689,7 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
     label_columns = {
-        'datasource_name': _("Data Source"),
+        'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
         'description': _("Description"),
         'owner': _("Owner"),
@@ -1242,7 +1249,7 @@ appbuilder.add_view_no_menu(Caravel)
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
-        "Refresh Druid Metadata",
+        _("Refresh Druid Metadata"),
         href='/caravel/refresh_datasources/',
         category='Sources',
         category_label=__("Sources"),
