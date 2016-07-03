@@ -15,6 +15,7 @@ import time
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
+from alembic import op
 from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md

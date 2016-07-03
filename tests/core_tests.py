@@ -69,12 +69,16 @@ class CaravelTestCase(unittest.TestCase):
         assert 'Welcome' in resp.data.decode('utf-8')
 
     def logout(self):
+<<<<<<< HEAD
+        resp = self.client.get('/logout/', follow_redirects=True)
+=======
         self.client.get('/logout/', follow_redirects=True)
 
     def test_welcome(self):
         self.login()
         resp = self.client.get('/caravel/welcome')
         assert 'Welcome' in resp.data.decode('utf-8')
+>>>>>>> upstream/master
 
     def setup_public_access_for_dashboard(self, table_name):
         public_role = appbuilder.sm.find_role('Public')
@@ -228,7 +232,11 @@ class CoreTests(CaravelTestCase):
         # Try access after adding appropriate permissions.
         resp = self.client.get('/slicemodelview/list/')
         data = resp.data.decode('utf-8')
+<<<<<<< HEAD
+        assert 'birth_names</a>' in data
+=======
         assert 'birth_names' in data
+>>>>>>> upstream/master
 
         resp = self.client.get('/dashboardmodelview/list/')
         data = resp.data.decode('utf-8')
