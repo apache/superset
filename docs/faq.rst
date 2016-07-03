@@ -32,3 +32,14 @@ It can be gigantic! As mentioned above, the main criteria is whether your
 database can execute queries and return results in a time frame that is
 acceptable to your users. Many distributed databases out there can execute
 queries that scan through terabytes in an interactive fashion.
+
+
+How do I create my own visualization?
+-------------------------------------
+
+We are planning on making it easier to add new visualizations to the
+framework, in the meantime, we've tagged a few pull requests as
+``example`` to give people examples of how to contribute new
+visualizations.
+
+https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed

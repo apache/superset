@@ -7,3 +7,12 @@
     left: 0;
     top: 0;
 }
+
+.header hr {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.navbar {
+    margin-bottom: 10px;
+}

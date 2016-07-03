@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
 from flask import request
-from flask_babelpkg import lazy_gettext as _
+from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types
@@ -146,15 +146,34 @@ class BaseViz(object):
         self.error_msg = ""
         self.results = None
 
+        timestamp_format = None
+        if self.datasource.type == 'table':
+            dttm_col = self.datasource.get_col(query_obj['granularity'])
+            if dttm_col:
+                timestamp_format = dttm_col.python_date_format
+
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
+        # Transform the timestamp we received from database to pandas supported
+        # datetime format. If no python_date_format is specified, the pattern will
+        # be considered as the default ISO date format
+        # If the datetime format is unix, the parse will use the corresponding
+        # parsing logic.
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                df.timestamp = pd.to_datetime(df.timestamp, utc=False)
+                if timestamp_format == "epoch_s":
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, unit="s")
+                elif timestamp_format == "epoch_ms":
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, unit="ms")
+                else:
+                    df.timestamp = pd.to_datetime(
+                        df.timestamp, utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
@@ -179,7 +198,7 @@ class BaseViz(object):
             col = form_data.get(field_prefix + "_col_" + str(i))
             op = form_data.get(field_prefix + "_op_" + str(i))
             eq = form_data.get(field_prefix + "_eq_" + str(i))
-            if col and op and eq:
+            if col and op and eq is not None:
                 filters.append((col, op, eq))
 
         # Extra filters (coming from dashboard)
@@ -217,7 +236,8 @@ class BaseViz(object):
         # for instance the extra where clause that applies only to Tables
         extras = {
             'where': form_data.get("where", ''),
-            'having': self.query_filters(True) or form_data.get("having", ''),
+            'having': form_data.get("having", ''),
+            'having_druid': self.query_filters(True),
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
@@ -1685,26 +1705,26 @@ class MapboxViz(BaseViz):
             'render_while_dragging',
         )
     }, {
-        'label': 'Points',
+        'label': _('Points'),
         'fields': (
             'point_radius',
             'point_radius_unit',
         )
     }, {
-        'label': 'Labelling',
+        'label': _('Labelling'),
         'fields': (
             'mapbox_label',
             'pandas_aggfunc',
         )
     }, {
-        'label': 'Visual Tweaks',
+        'label': _('Visual Tweaks'),
         'fields': (
             'mapbox_style',
             'global_opacity',
             'mapbox_color',
         )
     }, {
-        'label': 'Viewport',
+        'label': _('Viewport'),
         'fields': (
             'viewport_longitude',
             'viewport_latitude',
@@ -1714,21 +1734,21 @@ class MapboxViz(BaseViz):
 
     form_overrides = {
         'all_columns_x': {
-            'label': 'Longitude',
-            'description': "Column containing longitude data",
+            'label': _('Longitude'),
+            'description': _("Column containing longitude data"),
         },
         'all_columns_y': {
-            'label': 'Latitude',
-            'description': "Column containing latitude data",
+            'label': _('Latitude'),
+            'description': _("Column containing latitude data"),
         },
         'pandas_aggfunc': {
-            'label': 'Cluster label aggregator',
+            'label': _('Cluster label aggregator'),
             'description': _(
                 "Aggregate function applied to the list of points "
                 "in each cluster to produce the cluster label."),
         },
         'rich_tooltip': {
-            'label': 'Tooltip',
+            'label': _('Tooltip'),
             'description': _(
                 "Show a tooltip when hovering over points and clusters "
                 "describing the label"),

@@ -25,6 +25,15 @@ function tableVis(slice) {
       var form_data = json.form_data;
       var metrics = json.form_data.metrics;
 
+      // Removing metrics (aggregates) that are strings
+      var real_metrics = [];
+      for (var k in data.records[0]) {
+        if (metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
+          real_metrics.push(k);
+        }
+      }
+      metrics = real_metrics;
+
       function col(c) {
         var arr = [];
         for (var i = 0; i < data.records.length; i++) {

@@ -23,12 +23,12 @@ from flask import request, g
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from flask_babelpkg import lazy_gettext as _
+from flask_babel import lazy_gettext as _
 
 from pydruid.client import PyDruid
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
-from pydruid.utils.having import Having, Aggregation
+from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
@@ -83,11 +83,11 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    @renders('created_by')
+    @renders('created_on')
     def creator(self):  # noqa
         return '{}'.format(self.created_by or '')
 
-    @renders('changed_by')
+    @property
     def changed_by_(self):
         return '{}'.format(self.changed_by or '')
 
@@ -168,7 +168,7 @@ class Slice(Model, AuditMixinNullable):
     def datasource(self):
         return self.table or self.druid_datasource
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         if self.table:
             return self.table.link
@@ -445,24 +445,6 @@ class Database(Model, AuditMixinNullable):
             if self.sqlalchemy_uri.startswith(db_type):
                 return grains
 
-    def dttm_converter(self, dttm):
-        """Returns a string that the database flavor understands as a date"""
-        default = "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
-        iso = dttm.isoformat()
-        d = {
-            'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso), #untested
-            'mysql': default,
-            'oracle':
-                """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-                    dttm.isoformat()),
-            'presto': default,
-            'sqlite': default,
-        }
-        for k, v in d.items():
-            if self.sqlalchemy_uri.startswith(k):
-                return v
-        return default
-
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
 
@@ -525,6 +507,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    table_columns = relationship("TableColumn", back_populates="table")
 
     baselink = "tablemodelview"
 
@@ -587,7 +570,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def name(self):
         return self.table_name
 
-    @property
+    @renders('table_name')
     def table_link(self):
         return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
@@ -606,6 +589,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
+
+    def get_col(self, col_name):
+        columns = self.table_columns
+        for col in columns:
+            if col_name == col.column_name:
+                return col
 
     def query(  # sqla
             self, groupby, metrics,
@@ -661,7 +650,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
-            dttm_expr = cols[granularity].sqla_col.label('timestamp')
+            dttm_col = cols[granularity]
+            dttm_expr = dttm_col.sqla_col.label('timestamp')
             timestamp = dttm_expr
 
             # Transforming time grain into an expression based on configuration
@@ -677,18 +667,20 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 select_exprs += [timestamp_grain]
                 groupby_exprs += [timestamp_grain]
 
-            tf = '%Y-%m-%d %H:%M:%S.%f'
+            outer_from = text(dttm_col.dttm_sql_literal(from_dttm))
+            outer_to = text(dttm_col.dttm_sql_literal(to_dttm))
+
             time_filter = [
-                timestamp >= text(self.database.dttm_converter(from_dttm)),
-                timestamp <= text(self.database.dttm_converter(to_dttm)),
+                timestamp >= outer_from,
+                timestamp <= outer_to,
             ]
             inner_time_filter = copy(time_filter)
             if inner_from_dttm:
                 inner_time_filter[0] = timestamp >= text(
-                    self.database.dttm_converter(inner_from_dttm))
+                    dttm_col.dttm_sql_literal(inner_from_dttm))
             if inner_to_dttm:
                 inner_time_filter[1] = timestamp <= text(
-                    self.database.dttm_converter(inner_to_dttm))
+                    dttm_col.dttm_sql_literal(inner_to_dttm))
         else:
             inner_time_filter = []
 
@@ -909,6 +901,8 @@ class TableColumn(Model, AuditMixinNullable):
     filterable = Column(Boolean, default=False)
     expression = Column(Text, default='')
     description = Column(Text, default='')
+    python_date_format = Column(String(255))
+    database_expression = Column(String(255))
 
     num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
     date_types = ('DATE', 'TIME')
@@ -937,6 +931,39 @@ class TableColumn(Model, AuditMixinNullable):
         else:
             col = literal_column(self.expression).label(name)
         return col
+
+    def dttm_sql_literal(self, dttm):
+        """Convert datetime object to string
+
+        If datebase_expression is empty, the internal dttm
+        will be parsed as the string with the pattern that
+        user input (python_date_format)
+        If database_expression is not empty, the internal dttm
+        will be parsed as the sql sentence for datebase to convert
+        """
+        tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
+        if self.database_expression:
+            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        elif tf == 'epoch_s':
+            return str((dttm - datetime(1970, 1, 1)).total_seconds())
+        elif tf == 'epoch_ms':
+            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+        else:
+            default = "'{}'".format(dttm.strftime(tf))
+            iso = dttm.isoformat()
+            d = {
+                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso),  # untested
+                'mysql': default,
+                'oracle':
+                    """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
+                        dttm.isoformat()),
+                'presto': default,
+                'sqlite': default,
+            }
+            for k, v in d.items():
+                if self.table.database.sqlalchemy_uri.startswith(k):
+                    return v
+            return default
 
 
 class DruidCluster(Model, AuditMixinNullable):
@@ -1044,7 +1071,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def __repr__(self):
         return self.datasource_name
 
-    @property
+    @renders('datasource_name')
     def datasource_link(self):
         url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
         return '<a href="{url}">{obj.datasource_name}</a>'.format(
@@ -1056,9 +1083,31 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if m.metric_name == metric_name
         ][0]
 
-    def version_higher(self, v1, v2):
-        v1nums = [int(n) for n in v1.split('.')]
-        v2nums = [int(n) for n in v2.split('.')]
+    @staticmethod
+    def version_higher(v1, v2):
+        """is v1 higher than v2
+
+        >>> DruidDatasource.version_higher('0.8.2', '0.9.1')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.6.1')
+        True
+        >>> DruidDatasource.version_higher('0.8.2', '0.8.2')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.9.BETA')
+        False
+        >>> DruidDatasource.version_higher('0.8.2', '0.9')
+        False
+        """
+        def int_or_0(v):
+            try:
+                v = int(v)
+            except Exception as e:
+                v = 0
+            return v
+        v1nums = [int_or_0(n) for n in v1.split('.')]
+        v2nums = [int_or_0(n) for n in v2.split('.')]
+        v1nums = (v1nums + [0, 0, 0])[:3]
+        v2nums = (v2nums + [0, 0, 0])[:3]
         return v1nums[0] > v2nums[0] or \
             (v1nums[0] == v2nums[0] and v1nums[1] > v2nums[1]) or \
             (v1nums[0] == v2nums[0] and v1nums[1] == v2nums[1] and v1nums[2] > v2nums[2])
@@ -1234,7 +1283,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if filters:
             qry['filter'] = filters
 
-        having_filters = self.get_having_filters(extras.get('having'))
+        having_filters = self.get_having_filters(extras.get('having_druid'))
         if having_filters:
             qry['having'] = having_filters
 
@@ -1350,26 +1399,37 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 filters = cond
         return filters
 
+    def _get_having_obj(self, col, op, eq):
+        cond = None
+        if op == '==':
+            if col in self.column_names:
+                cond = DimSelector(dimension=col, value=eq)
+            else:
+                cond = Aggregation(col) == eq
+        elif op == '>':
+            cond = Aggregation(col) > eq
+        elif op == '<':
+            cond = Aggregation(col) < eq
+
+        return cond
+
     def get_having_filters(self, raw_filters):
         filters = None
+        reversed_op_map = {
+            '!=': '==',
+            '>=': '<',
+            '<=': '>'
+        }
+
         for col, op, eq in raw_filters:
             cond = None
-            if op == '==':
-                if col in self.column_names:
-                    cond = DimSelector(dimension=col, value=eq)
-                else:
-                    cond = Aggregation(col) == eq
-            elif op == '!=':
-                cond = ~(Aggregation(col) == eq)
-            elif op == '>':
-                cond = Aggregation(col) > eq
-            elif op == '<':
-                cond = Aggregation(col) < eq
+            if op in ['==', '>', '<']:
+                cond = self._get_having_obj(col, op, eq)
+            elif op in reversed_op_map:
+                cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+
             if filters:
-                filters = Filter(type="and", fields=[
-                    Having.build_having(cond),
-                    Having.build_having(filters)
-                ])
+                filters = filters & cond
             else:
                 filters = cond
         return filters
