@@ -44,7 +44,6 @@ class BetterBooleanField(BooleanField):
 
 
 class SelectMultipleSortableField(SelectMultipleField):
-
     """Works along with select2sortable to preserves the sort order"""
 
     def iter_choices(self):

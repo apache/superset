@@ -68,6 +68,8 @@ you to create your own roles, and union them to existing ones.
 
 The best way to go is probably to give user ``Gamma`` plus another role
 that would add specific permissions needed by this type of users. 
+<<<<<<< HEAD
+=======
 
 
 Restricting the access to the metrics
@@ -90,3 +92,4 @@ Any users without the permission will see the error message
 *Access to the metrics denied: revenue (Status: 500)* in the slices.
 It also happens when the user wants to access a post-aggregation metric that
 is dependent on revenue.
+>>>>>>> upstream/master
