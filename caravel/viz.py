@@ -164,18 +164,18 @@ class BaseViz(object):
         if df is None or df.empty:
             raise Exception("No data, review your incantations!")
         else:
-            if 'timestamp' in df.columns:
+            if '_timestamp_' in df.columns:
                 if timestamp_format == "epoch_s":
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="s")
+                    df._timestamp_ = pd.to_datetime(
+                        df._timestamp_, utc=False, unit="s")
                 elif timestamp_format == "epoch_ms":
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="ms")
+                    df._timestamp_ = pd.to_datetime(
+                        df._timestamp_, utc=False, unit="ms")
                 else:
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, format=timestamp_format)
+                    df._timestamp_ = pd.to_datetime(
+                        df._timestamp_, utc=False, format=timestamp_format)
                 if self.datasource.offset:
-                    df.timestamp += timedelta(hours=self.datasource.offset)
+                    df._timestamp_ += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(0)
         return df
@@ -407,8 +407,8 @@ class TableViz(BaseViz):
         df = super(TableViz, self).get_df(query_obj)
         if (
                 self.form_data.get("granularity") == "all" and
-                'timestamp' in df):
-            del df['timestamp']
+                '_timestamp_' in df):
+            del df['_timestamp_']
         return df
 
     def get_data(self):
@@ -465,8 +465,8 @@ class PivotTableViz(BaseViz):
         df = super(PivotTableViz, self).get_df(query_obj)
         if (
                 self.form_data.get("granularity") == "all" and
-                'timestamp' in df):
-            del df['timestamp']
+                '_timestamp_' in df):
+            del df['_timestamp_']
         df = df.pivot_table(
             index=self.form_data.get('groupby'),
             columns=self.form_data.get('columns'),
@@ -614,8 +614,8 @@ class CalHeatmapViz(BaseViz):
         df = self.get_df()
         form_data = self.form_data
 
-        df.columns = ["timestamp", "metric"]
-        timestamps = {str(obj["timestamp"].value / 10**9):
+        df.columns = ["_timestamp_", "metric"]
+        timestamps = {str(obj["_timestamp_"].value / 10**9):
                       obj.get("metric") for obj in df.to_dict("records")}
 
         start = utils.parse_human_datetime(form_data.get("since"))
@@ -979,7 +979,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             raise Exception("Pick a time granularity for your time series")
 
         df = df.pivot_table(
-            index="timestamp",
+            index="_timestamp_",
             columns=form_data.get('groupby'),
             values=form_data.get('metrics'))
 
@@ -1039,7 +1039,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in "biufc":
                 continue
-            df['timestamp'] = pd.to_datetime(df.index, utc=False)
+            df['_timestamp_'] = pd.to_datetime(df.index, utc=False)
             if isinstance(name, string_types):
                 series_title = name
             else:
@@ -1056,7 +1056,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 "classed": classed,
                 "values": [
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
-                    for ds in df.timestamp
+                    for ds in df._timestamp_
                 ],
             }
             chart_data.append(d)
