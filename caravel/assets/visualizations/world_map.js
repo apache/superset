@@ -15,12 +15,12 @@ function worldMapChart(slice) {
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
       div.selectAll("*").remove();
-      var fd = json.form_data;
-
       if (error !== null) {
         slice.error(error.responseText, error);
         return '';
       }
+      var fd = json.form_data;
+
       var ext = d3.extent(json.data, function (d) {
         return d.m1;
       });
@@ -42,6 +42,9 @@ function worldMapChart(slice) {
       var d = {};
       for (var i = 0; i < json.data.length; i++) {
         var country = json.data[i];
+        if (!country.country) { // Ignore 0's
+          continue;
+        }
         country.fillColor = colorScale(country.m1);
         d[country.country] = country;
       }
