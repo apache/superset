@@ -295,11 +295,13 @@ class FormFactory(object):
             'all_columns_x': (SelectField, {
                 "label": _("X"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'all_columns_y': (SelectField, {
                 "label": _("Y"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'druid_time_origin': (FreeFormSelectField, {
@@ -829,6 +831,7 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
+                "default": "mapbox://styles/mapbox/streets-v9",
                 "description": _("Base layer map style")
             }),
             'clustering_radius': (FreeFormSelectField, {

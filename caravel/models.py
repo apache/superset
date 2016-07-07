@@ -1190,7 +1190,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,):  # noqa
+            select=None,  # noqa
+            columns=None, ):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
