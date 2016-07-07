@@ -1490,11 +1490,11 @@ class WorldMapViz(BaseViz):
         df.columns = ['country', 'm1', 'm2']
         d = df.to_dict(orient='records')
         for row in d:
-            if not isinstance(row['country'], basestring):
-                continue
+            country = None
+            if isinstance(row['country'], basestring):
+                country = countries.get(
+                    self.form_data.get('country_fieldtype'), row['country'])
 
-            country = countries.get(
-                self.form_data.get('country_fieldtype'), row['country'])
             if country:
                 row['country'] = country['cca3']
                 row['latitude'] = country['lat']
