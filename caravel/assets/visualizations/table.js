@@ -74,7 +74,7 @@ function tableVis(slice) {
         .data(function (row, i) {
           return data.columns.map(function (c) {
             var val = row[c];
-            if (c === '_timestamp_') {
+            if (c === 'time_serial') {
               val = timestampFormatter(val);
             }
             return {
