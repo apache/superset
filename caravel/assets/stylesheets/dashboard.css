@@ -45,27 +45,17 @@
   z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
 
-.add-slice-selected {
-  background: gray;
-  color: white;
-}
-
-.add-slice-selected:hover {
-  background: lightgray !important;
-  color: white !important;
-}
-
-#add-slice-container .modal-body {
-  height: inherit;
-  overflow-y: auto;
-}
-
 .modal img.loading {
   width: 50px;
   margin: 0;
   position: relative;
 }
 
-.hidden {
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden, #pageDropDown {
   display: none;
 }

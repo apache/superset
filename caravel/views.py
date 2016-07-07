@@ -575,7 +575,7 @@ appbuilder.add_view_no_menu(SliceAsync)
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
         'slice_link', 'viz_type',
-        'creator', 'modified', 'data']
+        'owners', 'modified', 'data', 'changed_on']
     label_columns = {
         'icons': ' ',
         'slice_link': _('Slice'),
