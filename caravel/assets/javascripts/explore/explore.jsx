@@ -439,8 +439,6 @@ function initExploreView() {
 }
 
 function saveSlice() {
-  console.log('saveSlice')
-
   var action = $('input[name=rdo_save]:checked').val();
   if (action === 'saveas') {
     var slice_name = $('input[name=new_slice_name]').val();
