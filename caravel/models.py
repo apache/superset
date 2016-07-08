@@ -400,23 +400,34 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        presto_date = "COALESCE(TRY_CAST({col} as DATE), date_parse({col}, '%Y-%m-%d %H:%i:%S'))"
+        presto_date = ("COALESCE(TRY_CAST({col} as DATE), "
+                       "date_parse({col}, '%Y-%m-%d %H:%i:%S'))")
 
         Grain = namedtuple('Grain', 'name label function')
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('second', _('second'), "date_trunc('second', {date})".format(date=presto_date)),
-                Grain('minute', _('minute'), "date_trunc('minute', {date})".format(date=presto_date)),
-                Grain('hour', _('hour'), "date_trunc('hour', {date})".format(date=presto_date)),
-                Grain('day', _('day'), "date_trunc('day', {date})".format(date=presto_date)),
-                Grain('week', _('week'), "date_trunc('week', {date})".format(date=presto_date)),
-                Grain('month', _('month'), "date_trunc('month', {date})".format(date=presto_date)),
-                Grain('quarter', _('quarter'), "date_trunc('quarter', {date})".format(date=presto_date)),
-                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
-                      "date_trunc('week', date_add('day', 1, {date})))".format(date=presto_date)),
-                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
-                      "date_trunc('week', date_add('day', 1, {date})))".format(date=presto_date)),
+                Grain('second', _('second'),
+                      "date_trunc('second', {date})".format(date=presto_date)),
+                Grain('minute', _('minute'),
+                      "date_trunc('minute', {date})".format(date=presto_date)),
+                Grain('hour', _('hour'),
+                      "date_trunc('hour', {date})".format(date=presto_date)),
+                Grain('day', _('day'),
+                      "date_trunc('day', {date})".format(date=presto_date)),
+                Grain('week', _('week'),
+                      "date_trunc('week', {date})".format(date=presto_date)),
+                Grain('month', _('month'),
+                      "date_trunc('month', {date})".format(date=presto_date)),
+                Grain('quarter', _('quarter'),
+                      "date_trunc('quarter', {date})".format(date=presto_date)),
+                Grain("week_ending_saturday", _('week_ending_saturday'),
+                      "date_add('day', 5, date_trunc('week', date_add('day', 1, {date})))"
+                      .format(date=presto_date)),
+                Grain("week_start_sunday", _('week_start_sunday'),
+                      "date_add('day', -1, date_trunc('week', "
+                      "date_add('day', 1, {date})))"
+                      .format(date=presto_date)),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
@@ -431,8 +442,10 @@ class Database(Model, AuditMixinNullable):
             'sqlite': (
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain("week", _('week'),
+                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'),
+                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
                 Grain("Time Column", _('Time Column'), "{col}"),
