@@ -44,3 +44,18 @@
 .dashboard  div.nvtooltip {
   z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
+
+.modal img.loading {
+  width: 50px;
+  margin: 0;
+  position: relative;
+}
+
+.react-bs-container-body {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.hidden, #pageDropDown {
+  display: none;
+}
