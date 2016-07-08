@@ -285,7 +285,7 @@ def load_world_bank_health_n_pop():
                 metric="sum__SP_RUR_TOTL_ZS",
                 num_period_compare="10")),
         Slice(
-            slice_name="Life Expexctancy VS Rural %",
+            slice_name="Life Expectancy VS Rural %",
             viz_type='bubble',
             datasource_type='table',
             table=tbl,
@@ -368,7 +368,7 @@ def load_world_bank_health_n_pop():
                     'sum__SP_RUR_TOTL_ZS',
                     'sum__SH_DYN_AIDS'],
                 secondary_metric='sum__SP_POP_TOTL',
-                series=["country_name"],)),
+                series="country_name",)),
     ]
     for slc in slices:
         merge_slice(slc)
@@ -1068,6 +1068,7 @@ def load_multiformat_time_series_data():
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
         col.dbatabase_expr = dttm_and_expr[1]
+        col.is_dttm = True
     db.session.merge(obj)
     db.session.commit()
     obj.fetch_metadata()
