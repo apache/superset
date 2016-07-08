@@ -5,21 +5,25 @@
 // js
 var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
-var px = require('./modules/caravel.js');
-var showModal = require('./modules/utils.js').showModal;
+var px = require('./../modules/caravel.js');
+var showModal = require('./../modules/utils.js').showModal;
+
+import React from 'react';
+import ReactDOM from 'react-dom';
+import QueryAndSaveBtns from './components/QueryAndSaveBtns.jsx';
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
 
-require('./caravel-select2.js');
+require('./../caravel-select2.js');
 
-require('../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
+require('../../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
 
 // css
-require('../vendor/pygments.css');
-require('../stylesheets/explore.css');
-require('../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
+require('../../vendor/pygments.css');
+require('../../stylesheets/explore.css');
+require('../../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
 var slice;
 
@@ -66,6 +70,7 @@ function query(force, pushState) {
   }
   $('#is_cached').hide();
   prepForm();
+
   if (pushState !== false) {
     // update the url after prepForm() fix the field ids
     history.pushState({}, document.title, slice.querystring());
@@ -333,9 +338,14 @@ function initExploreView() {
     add_filter(undefined, "having");
   });
 
-  $(".query").click(function () {
-    query(true);
-  });
+  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
+  ReactDOM.render(
+    <QueryAndSaveBtns
+      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
+      onQuery={() => query(true)}
+    />,
+    queryAndSaveBtnsEl
+  );
 
   function create_choices(term, data) {
     var filtered = $(data).filter(function () {
@@ -417,43 +427,49 @@ function initExploreView() {
       $("#save_as_new").prop("checked", true);
       setButtonsState();
     });
-    $('#btn_modal_save').click(function () {
-      var action = $('input[name=rdo_save]:checked').val();
-      if (action === 'saveas') {
-        var slice_name = $('input[name=new_slice_name]').val();
-        if (slice_name === '') {
-          showModal({
-            title: "Error",
-            body: "You must pick a name for the new slice"
-          });
-          return;
-        }
-        document.getElementById("slice_name").value = slice_name;
-      }
-      var add_to_dash = $('input[name=add_to_dash]:checked').val();
-      if (add_to_dash === 'existing' && $('#save_to_dashboard_id').val() === '') {
-        showModal({
-          title: "Error",
-          body: "You must pick an existing dashboard"
-        });
-        return;
-      } else if (add_to_dash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
-        showModal({
-          title: "Error",
-          body: "Please enter a name for the new dashboard"
-        });
-        return;
-      }
-      $('#action').val(action);
-      prepForm();
-      $("#query").submit();
-    });
-    $('#btn_modal_save_goto_dash').click(function () {
-      document.getElementById("goto_dash").value = 'true';
-      $('#btn_modal_save').click();
+
+    $('#btn_modal_save').on('click', () => saveSlice());
+
+    $('#btn_modal_save_goto_dash').click(() => {
+      document.getElementById('goto_dash').value = 'true';
+      saveSlice();
     });
   }
   prepSaveDialog();
+}
+
+function saveSlice() {
+  console.log('saveSlice')
+
+  var action = $('input[name=rdo_save]:checked').val();
+  if (action === 'saveas') {
+    var slice_name = $('input[name=new_slice_name]').val();
+    if (slice_name === '') {
+      showModal({
+        title: "Error",
+        body: "You must pick a name for the new slice"
+      });
+      return;
+    }
+    document.getElementById("slice_name").value = slice_name;
+  }
+  var add_to_dash = $('input[name=add_to_dash]:checked').val();
+  if (add_to_dash === 'existing' && $('#save_to_dashboard_id').val() === '') {
+    showModal({
+      title: "Error",
+      body: "You must pick an existing dashboard"
+    });
+    return;
+  } else if (add_to_dash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
+    showModal({
+      title: "Error",
+      body: "Please enter a name for the new dashboard"
+    });
+    return;
+  }
+  $('#action').val(action);
+  prepForm();
+  $("#query").submit();
 }
 
 $(document).ready(function () {
