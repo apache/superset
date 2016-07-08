@@ -400,17 +400,23 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
+        presto_date = "COALESCE(TRY_CAST({col} as DATE), date_parse({col}, '%Y-%m-%d %H:%i:%S'))"
+
         Grain = namedtuple('Grain', 'name label function')
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
-                Grain('quarter', _('quarter'), "date_trunc('quarter', CAST({col} AS DATE))"),
+                Grain('second', _('second'), "date_trunc('second', {date})".format(date=presto_date)),
+                Grain('minute', _('minute'), "date_trunc('minute', {date})".format(date=presto_date)),
+                Grain('hour', _('hour'), "date_trunc('hour', {date})".format(date=presto_date)),
+                Grain('day', _('day'), "date_trunc('day', {date})".format(date=presto_date)),
+                Grain('week', _('week'), "date_trunc('week', {date})".format(date=presto_date)),
+                Grain('month', _('month'), "date_trunc('month', {date})".format(date=presto_date)),
+                Grain('quarter', _('quarter'), "date_trunc('quarter', {date})".format(date=presto_date)),
                 Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
+                      "date_trunc('week', date_add('day', 1, {date})))".format(date=presto_date)),
                 Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
+                      "date_trunc('week', date_add('day', 1, {date})))".format(date=presto_date)),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
@@ -935,11 +941,11 @@ class TableColumn(Model, AuditMixinNullable):
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to string
 
-        If datebase_expression is empty, the internal dttm
+        If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
-        user input (python_date_format)
+        the user inputted (python_date_format)
         If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for datebase to convert
+        will be parsed as the sql sentence for the database to convert
         """
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
