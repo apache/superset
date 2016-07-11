@@ -1491,7 +1491,7 @@ class WorldMapViz(BaseViz):
         d = df.to_dict(orient='records')
         for row in d:
             country = None
-            if isinstance(row['country'], basestring):
+            if isinstance(row['country'], string_types):
                 country = countries.get(
                     self.form_data.get('country_fieldtype'), row['country'])
 
