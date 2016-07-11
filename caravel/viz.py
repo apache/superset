@@ -310,6 +310,7 @@ class BaseViz(object):
                 # cache.set call can fail if the backend is down or if
                 # the key is too large or whatever other reasons
                 logging.warning("Could not cache key {}".format(cache_key))
+                logging.exception(e)
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
@@ -320,6 +321,7 @@ class BaseViz(object):
 
     @property
     def data(self):
+        """This is the data object serialized to the js layer"""
         content = {
             'csv_endpoint': self.csv_endpoint,
             'form_data': self.form_data,
@@ -327,6 +329,11 @@ class BaseViz(object):
             'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
+            'column_formats': {
+                m.metric_name: m.d3format
+                for m in self.datasource.metrics
+                if m.d3format
+            },
         }
         return content
 
