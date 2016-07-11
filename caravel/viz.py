@@ -1479,8 +1479,10 @@ class WorldMapViz(BaseViz):
         secondary_metric = self.form_data.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df[cols]
-            ndf['m1'] = df[metric]
-            ndf['m2'] = df[metric]
+            # df[metric] will be a DataFrame
+            # because there are duplicate column names
+            ndf['m1'] = df[metric].iloc[:, 0]
+            ndf['m2'] = ndf['m1']
         else:
             cols += [metric, secondary_metric]
             ndf = df[cols]
@@ -1488,8 +1490,11 @@ class WorldMapViz(BaseViz):
         df.columns = ['country', 'm1', 'm2']
         d = df.to_dict(orient='records')
         for row in d:
-            country = countries.get(
-                self.form_data.get('country_fieldtype'), row['country'])
+            country = None
+            if isinstance(row['country'], basestring):
+                country = countries.get(
+                    self.form_data.get('country_fieldtype'), row['country'])
+
             if country:
                 row['country'] = country['cca3']
                 row['latitude'] = country['lat']

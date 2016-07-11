@@ -15,23 +15,27 @@ function worldMapChart(slice) {
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
       div.selectAll("*").remove();
-      var fd = json.form_data;
-
       if (error !== null) {
         slice.error(error.responseText, error);
         return '';
       }
-      var ext = d3.extent(json.data, function (d) {
+      var fd = json.form_data;
+      var data = json.data.filter(function (d) {
+        // Ignore XXX's to get better normalization
+        return d.country && d.country !== 'XXX';
+      });
+
+      var ext = d3.extent(data, function (d) {
         return d.m1;
       });
-      var extRadius = d3.extent(json.data, function (d) {
+      var extRadius = d3.extent(data, function (d) {
         return d.m2;
       });
       var radiusScale = d3.scale.linear()
         .domain([extRadius[0], extRadius[1]])
         .range([1, fd.max_bubble_size]);
 
-      json.data.forEach(function (d) {
+      data.forEach(function (d) {
         d.radius = radiusScale(d.m2);
       });
 
@@ -40,8 +44,8 @@ function worldMapChart(slice) {
         .range(["#FFF", "black"]);
 
       var d = {};
-      for (var i = 0; i < json.data.length; i++) {
-        var country = json.data[i];
+      for (var i = 0; i < data.length; i++) {
+        var country = data[i];
         country.fillColor = colorScale(country.m1);
         d[country.country] = country;
       }
@@ -52,7 +56,7 @@ function worldMapChart(slice) {
 
       var map = new Datamap({
         element: slice.container.get(0),
-        data: json.data,
+        data: data,
         fills: {
           defaultFill: '#ddd'
         },
@@ -93,7 +97,7 @@ function worldMapChart(slice) {
       map.updateChoropleth(d);
 
       if (fd.show_bubbles) {
-        map.bubbles(json.data);
+        map.bubbles(data);
         div.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
       }
 
