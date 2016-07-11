@@ -551,7 +551,7 @@ class FormFactory(object):
                 "default": default_groupby,
                 "description": _(
                     "Defines the grouping of entities. "
-                    "Each serie is shown as a specific color on the chart and "
+                    "Each series is shown as a specific color on the chart and "
                     "has a legend toggle")
             }),
             'entity': (SelectField, {
