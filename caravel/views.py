@@ -356,6 +356,17 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
+    show_columns = [
+        'tables',
+        'cache_timeout',
+        'extra',
+        'database_name',
+        'sqlalchemy_uri',
+        'created_by',
+        'created_on',
+        'changed_by',
+        'changed_on'
+    ]
     add_template = "caravel/models/database/add.html"
     edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')
