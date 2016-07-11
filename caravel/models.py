@@ -37,6 +37,8 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.sql.expression import ColumnClause
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy_utils import EncryptedType
 
 import caravel
@@ -47,6 +49,17 @@ from caravel.utils import flasher, MetricPermException, DimSelector
 config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+
+
+# TODO: sqlalchemy 1.2 release should be doing this on its own.
+# Patch only if the column clause is specific for DateTime set
+@compiles(ColumnClause)
+def _remove_percents(element, compiler, **kw):
+    text = compiler.visit_column(element, **kw)
+    if element.is_literal and hasattr(element.type, 'python_type') \
+        and type(element.type) is DateTime:
+            text = text.replace('%%', '%')
+    return text
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -659,7 +672,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if time_grain_sqla:
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr)).label('timestamp')
+                    udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
             else:
                 timestamp_grain = timestamp
 
