@@ -51,16 +51,6 @@ config = app.config
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
-# TODO: sqlalchemy 1.2 release should be doing this on its own.
-# Patch only if the column clause is specific for DateTime set
-@compiles(ColumnClause)
-def _remove_percents(element, compiler, **kw):
-    text = compiler.visit_column(element, **kw)
-    if element.is_literal and hasattr(element.type, 'python_type') and \
-            type(element.type) is DateTime:
-
-        text = text.replace('%%', '%')
-    return text
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -664,6 +654,21 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
+            # TODO: sqlalchemy 1.2 release should be doing this on its own.
+            # Patch only if the column clause is specific for DateTime set and
+            # granularity is selected.
+            @compiles(ColumnClause)
+            def _remove_percents(element, compiler, **kw):
+                text = compiler.visit_column(element, **kw)
+                try:
+                    if element.is_literal and hasattr(element.type, 'python_type') and \
+                            type(element.type) is DateTime:
+
+                        text = text.replace('%%', '%')
+                except NotImplementedError:
+                    pass  # Some elements raise NotImplementedError for python_type
+                return text
+
             dttm_col = cols[granularity]
             dttm_expr = dttm_col.sqla_col.label('timestamp')
             timestamp = dttm_expr
