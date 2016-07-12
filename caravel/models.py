@@ -56,7 +56,7 @@ QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 @compiles(ColumnClause)
 def _remove_percents(element, compiler, **kw):
     text = compiler.visit_column(element, **kw)
-    if element.is_literal and hasattr(element.type, 'python_type') and
+    if element.is_literal and hasattr(element.type, 'python_type') and \
             type(element.type) is DateTime:
 
         text = text.replace('%%', '%')
