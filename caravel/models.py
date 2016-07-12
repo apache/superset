@@ -51,8 +51,6 @@ config = app.config
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 
 
-
-
 class JavascriptPostAggregator(Postaggregator):
     def __init__(self, name, field_names, function):
         self.post_aggregator = {
@@ -654,11 +652,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
+
             # TODO: sqlalchemy 1.2 release should be doing this on its own.
             # Patch only if the column clause is specific for DateTime set and
             # granularity is selected.
             @compiles(ColumnClause)
-            def _remove_percents(element, compiler, **kw):
+            def _(element, compiler, **kw):
                 text = compiler.visit_column(element, **kw)
                 try:
                     if element.is_literal and hasattr(element.type, 'python_type') and \
