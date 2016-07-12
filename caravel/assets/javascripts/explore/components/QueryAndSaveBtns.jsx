@@ -6,28 +6,25 @@ const propTypes = {
   onQuery: PropTypes.func.isRequired,
 };
 
-export default class QueryAndSaveBtns extends React.Component {
-  render() {
-    const saveClasses = classnames('btn btn-default', {
-      'disabled disabledButton': this.props.canAdd !== 'True',
-    });
+export default function QueryAndSaveBtns({ canAdd, onQuery }) {
+  const saveClasses = classnames('btn btn-default', {
+    'disabled disabledButton': canAdd !== 'True',
+  });
 
-    return (
-      <div className="btn-group query-and-save">
-        <button type="button" className="btn btn-primary" onClick={this.props.onQuery}>
-          <i className="fa fa-bolt"></i>Query
-        </button>
-        <button type="button"
-                className={saveClasses}
-                onClick={this.props.onSave}
-                data-target="#save_modal"
-                data-toggle="modal"
-        >
-          <i className="fa fa-plus-circle"></i>Save as
-        </button>
-      </div>
-    );
-  }
+  return (
+    <div className="btn-group query-and-save">
+      <button type="button" className="btn btn-primary" onClick={onQuery}>
+        <i className="fa fa-bolt"></i>Query
+      </button>
+      <button type="button"
+              className={saveClasses}
+              data-target="#save_modal"
+              data-toggle="modal"
+      >
+        <i className="fa fa-plus-circle"></i>Save as
+      </button>
+    </div>
+  );
 }
 
 QueryAndSaveBtns.propTypes = propTypes;
