@@ -400,34 +400,30 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        presto_date = ("COALESCE(TRY_CAST({col} as DATE), "
-                       "date_parse({col}, '%Y-%m-%d %H:%i:%S'))")
-
         Grain = namedtuple('Grain', 'name label function')
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('second', _('second'),
-                      "date_trunc('second', {date})".format(date=presto_date)),
+                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
                 Grain('minute', _('minute'),
-                      "date_trunc('minute', {date})".format(date=presto_date)),
+                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
                 Grain('hour', _('hour'),
-                      "date_trunc('hour', {date})".format(date=presto_date)),
+                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
                 Grain('day', _('day'),
-                      "date_trunc('day', {date})".format(date=presto_date)),
+                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
                 Grain('week', _('week'),
-                      "date_trunc('week', {date})".format(date=presto_date)),
+                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
                 Grain('month', _('month'),
-                      "date_trunc('month', {date})".format(date=presto_date)),
+                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
                 Grain('quarter', _('quarter'),
-                      "date_trunc('quarter', {date})".format(date=presto_date)),
+                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
                 Grain("week_ending_saturday", _('week_ending_saturday'),
-                      "date_add('day', 5, date_trunc('week', date_add('day', 1, {date})))"
-                      .format(date=presto_date)),
+                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+                      "CAST({col} AS TIMESTAMP))))"),
                 Grain("week_start_sunday", _('week_start_sunday'),
                       "date_add('day', -1, date_trunc('week', "
-                      "date_add('day', 1, {date})))"
-                      .format(date=presto_date)),
+                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
