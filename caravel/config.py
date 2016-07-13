@@ -188,20 +188,13 @@ SQL_MAX_ROW = 1000
 """
 # Example:
 class CeleryConfig(object):
-    BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-    ## Broker settings.
-    BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-    CELERY_IMPORTS = ('myapp.tasks', )
-    CELERY_RESULT_BACKEND = 'db+sqlite:///results.db'
-    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-"""
-class CeleryConfig(object):
-    ## Broker settings.
     BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
     CELERY_IMPORTS = ('caravel.tasks', )
     CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
+"""
+CELERY_CONFIG = None
 
 try:
     from caravel_config import *  # noqa
