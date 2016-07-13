@@ -2,6 +2,7 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var px = require('../modules/caravel.js');
 var d3 = require('d3');
+var urlLib = require('url');
 var showModal = require('../modules/utils.js').showModal;
 
 import React from 'react';
@@ -39,16 +40,26 @@ var Dashboard = function (dashboardData) {
       });
       this.slices = sliceObjects;
       this.refreshTimer = null;
+      this.loadPreSelectFilters();
       this.startPeriodicRender(0);
       this.bindResizeToWindowResize();
     },
-    setFilter: function (slice_id, col, vals) {
-      this.addFilter(slice_id, col, vals, false);
-    },
-    addFilter: function (slice_id, col, vals, merge) {
-      if (merge === undefined) {
-        merge = true;
+    loadPreSelectFilters: function () {
+      try {
+        var filters = JSON.parse(px.getParam("preselect_filters") || "{}");
+        for (var slice_id in filters) {
+          for (var col in filters[slice_id]) {
+            this.setFilter(slice_id, col, filters[slice_id][col], false, false);
+          }
+        }
+      } catch (e) {
+        console.error(e);
       }
+    },
+    setFilter: function (slice_id, col, vals, refresh) {
+      this.addFilter(slice_id, col, vals, false, refresh);
+    },
+    addFilter: function (slice_id, col, vals, merge = true, refresh = true) {
       if (!(slice_id in this.filters)) {
         this.filters[slice_id] = {};
       }
@@ -57,11 +68,21 @@ var Dashboard = function (dashboardData) {
       } else {
         this.filters[slice_id][col] = d3.merge([this.filters[slice_id][col], vals]);
       }
-      this.refreshExcept(slice_id);
+      if (refresh) {
+        this.refreshExcept(slice_id);
+      }
+      this.updateFilterParamsInUrl();
     },
     readFilters: function () {
       // Returns a list of human readable active filters
       return JSON.stringify(this.filters, null, 4);
+    },
+    updateFilterParamsInUrl: function () {
+      var urlObj = urlLib.parse(location.href, true);
+      urlObj.query = urlObj.query || {};
+      urlObj.query.preselect_filters = this.readFilters();
+      urlObj.search = null;
+      history.pushState(urlObj.query, window.title, urlLib.format(urlObj));
     },
     bindResizeToWindowResize: function () {
       var resizeTimer;
@@ -118,6 +139,7 @@ var Dashboard = function (dashboardData) {
     clearFilters: function (slice_id) {
       delete this.filters[slice_id];
       this.refreshExcept(slice_id);
+      this.updateFilterParamsInUrl();
     },
     removeFilter: function (slice_id, col, vals) {
       if (slice_id in this.filters) {
@@ -132,6 +154,7 @@ var Dashboard = function (dashboardData) {
         }
       }
       this.refreshExcept(slice_id);
+      this.updateFilterParamsInUrl();
     },
     getSlice: function (slice_id) {
       slice_id = parseInt(slice_id, 10);
