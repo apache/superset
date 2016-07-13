@@ -233,8 +233,8 @@ var px = (function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         var endpoint = parser.pathname + this.querystring({
-              extraFilters: params.extraFilters
-            });
+          extraFilters: params.extraFilters
+        });
         endpoint += "&json=true";
         endpoint += "&force=" + this.force;
         return endpoint;

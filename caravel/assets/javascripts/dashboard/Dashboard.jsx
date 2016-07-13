@@ -59,11 +59,7 @@ var Dashboard = function (dashboardData) {
     setFilter: function (slice_id, col, vals, refresh) {
       this.addFilter(slice_id, col, vals, false, refresh);
     },
-    addFilter: function (slice_id, col, vals, merge, refresh) {
-      if (merge === undefined) {
-        merge = true;
-      }
-      refresh = refresh !== false;
+    addFilter: function (slice_id, col, vals, merge = true, refresh = true) {
       if (!(slice_id in this.filters)) {
         this.filters[slice_id] = {};
       }
