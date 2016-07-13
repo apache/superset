@@ -131,9 +131,10 @@ def refresh_druid():
 
 @manager.command
 def worker():
-    """Starts a Caravel worker for async query load"""
+    """Starts a Caravel worker for async SQL query execution."""
     # celery -A tasks worker --loglevel=info
-    print("Broker url: ")
+    print("Starting SQL Celery worker.")
+    print("Celery broker url: ")
     print(config.get('CELERY_CONFIG').BROKER_URL)
     application = celery.current_app._get_current_object()
     c_worker = celery_worker.worker(app=application)

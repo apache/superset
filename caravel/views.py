@@ -1372,12 +1372,6 @@ class Caravel(BaseCaravelView):
         return self.render_template('caravel/welcome.html', utils=utils)
 
 
-    @has_access
-    @expose("/table")
-    def table(self):
-        """SQL Editor"""
-        return self.render_template('caravel/table.html')
-
 appbuilder.add_view_no_menu(Caravel)
 
 if config['DRUID_IS_ACTIVE']:

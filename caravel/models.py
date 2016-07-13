@@ -373,7 +373,6 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
-    allow_temp_table = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -1665,16 +1664,3 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
-
-
-class Query(Model):
-    """Used to store the information related to the executed queries."""
-    # TODO(@b.kyryliuk): add indexes
-    __tablename__ = 'query'
-    id = Column(Integer, primary_key=True)
-    sql = Column(Text)
-    user_id = Column(Integer, ForeignKey('ab_user.id'))
-    start_dttm = Column(DateTime, default=datetime.now, nullable=True)
-    finish_dttm = Column(DateTime, default=None, nullable=True)
-    tmp_table_id = Column(Integer)  # TODO(@b.kyryliuk): add a foregin key to link the query with the tmp table
-
