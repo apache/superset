@@ -19,6 +19,9 @@
 ### Steps:
 ----------
 
+### Follow these steps before putting anything on the server.
+-------------------------------------------------------------
+
 Clone the repo in your local
 ```
 git clone git@github.com:manu3loq/caravel.git
@@ -39,7 +42,10 @@ Bulid a source distribution of the project
 python setup.py sdist
 ```
 
-Put the generated tar file(`dist/*`) on the server
+### The following steps are to be executed on the server. Make sure you have ssh access.
+- This is a dirty process I know. Please contribute a Docker file :)
+
+Put the generated tar file(`dist/*`) on the server. Use `sftp` or whatever your favorite tool is.
 
 Create a folder under `/var/www/` and activate virtualenv
 ```
