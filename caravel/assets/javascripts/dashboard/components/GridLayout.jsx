@@ -164,7 +164,7 @@ class GridLayout extends React.Component {
         {this.state.slices.map((slice) => {
           return (
             <div
-              id="slice_${slice.slice_id}"
+              id={'slice_' + slice.slice_id}
               key={slice.slice_id}
               data-slice-id={slice.slice_id}
               className={"widget " + slice.viz_name}>
