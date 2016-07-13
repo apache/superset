@@ -284,7 +284,7 @@ class BaseViz(object):
                     cached_data = cached_data.decode('utf-8')
                 payload = json.loads(cached_data)
             except Exception as e:
-                logging.error("Error reading cache")
+                logging.error("Error reading cache: " + str(e))
                 payload = None
             logging.info("Serving from cache")
 

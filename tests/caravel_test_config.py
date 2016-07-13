@@ -10,3 +10,11 @@ CARAVEL_WEBSERVER_PORT = 8081
 if 'CARAVEL__SQLALCHEMY_DATABASE_URI' in os.environ:
     SQLALCHEMY_DATABASE_URI = os.environ.get('CARAVEL__SQLALCHEMY_DATABASE_URI')
 
+
+class CeleryConfig(object):
+    BROKER_URL = 'sqla+sqlite:////tmp/celerydb.sqlite'
+    CELERY_IMPORTS = ('caravel.tasks', )
+    CELERY_RESULT_BACKEND = 'db+sqlite:////tmp/celery_results.sqlite'
+    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '1/s'}}
+    CONCURRENCY = 1
+CELERY_CONFIG = CeleryConfig
