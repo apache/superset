@@ -37,7 +37,7 @@ SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
 # this is for platform specific: "nt" is for windows, "posix" is *nix (including Mac)
 if os.name == "nt":
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///c:\\tmp\\caravel.db'    
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///c:\\tmp\\caravel.db'
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
