@@ -15,7 +15,7 @@ var config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: '[name].entry.jsx'
+    filename: '[name].entry.js'
   },
   resolve: {
     alias: {
