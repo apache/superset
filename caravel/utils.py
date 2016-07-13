@@ -21,6 +21,8 @@ from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 from pydruid.utils.having import Having
 
+EPOCH = datetime(1970, 1, 1)
+
 
 class CaravelException(Exception):
     pass
@@ -309,7 +311,7 @@ def json_int_dttm_ser(obj):
     if val is not None:
         return val
     if isinstance(obj, datetime):
-        obj = int(time.mktime(obj.timetuple())) * 1000
+        obj = (obj - EPOCH).total_seconds() * 1000
     else:
         raise TypeError(
              "Unserializable object {} of type {}".format(obj, type(obj))
