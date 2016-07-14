@@ -2,6 +2,7 @@ var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
 var Mustache = require('mustache');
+var utils = require('./utils');
 
 // vis sources
 var sourceMap = {
@@ -239,6 +240,12 @@ var px = (function () {
         endpoint += "&json=true";
         endpoint += "&force=" + this.force;
         return endpoint;
+      },
+      d3format: function (col, number) {
+        // uses the utils memoized d3format function and formats based on
+        // column level defined preferences
+        var format = this.data.column_formats[col];
+        return utils.d3format(format, number);
       },
       done: function (data) {
         clearInterval(timer);
