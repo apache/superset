@@ -508,6 +508,25 @@ class MarkupViz(BaseViz):
         return dict(html=self.rendered())
 
 
+class SeparatorViz(MarkupViz):
+
+    """Use to create section headers in a dashboard, similar to `Markup`"""
+
+    viz_type = "separator"
+    verbose_name = _("Separator")
+    form_overrides = {
+        'code': {
+            'default': (
+                "####Section Title\n"
+                "A paragraph describing the section"
+                "of the dashboard, right before the separator line "
+                "\n\n"
+                "---------------"
+            ),
+        }
+    }
+
+
 class WordCloudViz(BaseViz):
 
     """Build a colorful word cloud
@@ -1887,6 +1906,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    SeparatorViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

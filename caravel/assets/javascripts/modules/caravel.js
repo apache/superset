@@ -18,6 +18,7 @@ var sourceMap = {
   iframe: 'iframe.js',
   line: 'nvd3_vis.js',
   markup: 'markup.js',
+  separator: 'markup.js',
   para: 'parallel_coordinates.js',
   pie: 'nvd3_vis.js',
   box_plot: 'nvd3_vis.js',
