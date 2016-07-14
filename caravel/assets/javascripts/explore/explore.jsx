@@ -40,7 +40,7 @@ function prepForm() {
 
     ["col", "op", "eq"].forEach(function (fieldMiddle) {
       var fieldName = fieldPrefix + "_" + fieldMiddle;
-      $filter.find("#" + fieldName + "_0")
+      $filter.find("[id^='" + fieldName + "_']")
           .attr("id", function () {
             return fieldName + "_" + i;
           })
