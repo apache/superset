@@ -30,7 +30,7 @@ const config = {
         exclude: APP_DIR + '/node_modules',
         loader: 'babel',
         query: {
-          presets: ['react', 'es2015', 'stage-0']
+          presets: ['airbnb', 'es2015', 'react']
         }
       },
 
