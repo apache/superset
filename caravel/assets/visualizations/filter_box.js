@@ -20,6 +20,18 @@ function filterBox(slice) {
     slice.setFilter($(this).attr('name'), vals);
   };
 
+  var sortAlphabetically = function (data) {
+    data.sort(function (a, b) {
+      return String(a.text).localeCompare(b.text);
+    });
+  };
+
+  var sortByMetric = function (data) {
+    data.sort(function (a, b) {
+      return -(a.metric - b.metric);
+    });
+  };
+
   var refresh = function () {
     d3token.selectAll("*").remove();
     var container = d3token
@@ -34,8 +46,9 @@ function filterBox(slice) {
     }), function (payload) {
         var maxes = {};
 
-        for (var filter in payload.data) {
+        Object.keys(payload.data).forEach(function (filter) {
           var data = payload.data[filter];
+          var sortedBy = 'metric';
           maxes[filter] = d3.max(data, function (d) {
             return d.metric;
           });
@@ -45,6 +58,26 @@ function filterBox(slice) {
 
           div.append("label").text(filter);
 
+          var button = div.append('a')
+            .attr('href', '#')
+            .classed('pull-right', true)
+            .on('click', function (d) {
+              if (sortedBy === 'metric') {
+                sortAlphabetically(data);
+                sortedBy = 'alphabet';
+              } else {
+                sortByMetric(data);
+                sortedBy = 'metric';
+              }
+
+              updateButtonLabel();
+              d3.event.preventDefault();
+            });
+          var updateButtonLabel = function () {
+            button.text(sortedBy === "metric" ?
+              "Alphabetic order" : "Order by metric");
+          };
+          updateButtonLabel();
           div.append('div')
             .attr('name', filter)
             .classed('form-control', true)
@@ -52,20 +85,24 @@ function filterBox(slice) {
             .attr('id', id);
 
           filtersObj[filter] = $('#' + id).select2({
-              placeholder: "Select [" + filter + ']',
-              containment: 'parent',
-              dropdownAutoWidth: true,
-              data: data,
-              multiple: true,
-              formatResult: select2Formatter
-            })
+            placeholder: "Select [" + filter + ']',
+            containment: 'parent',
+            dropdownAutoWidth: true,
+            data: function () {
+              return {
+                results: data
+              };
+            },
+            multiple: true,
+            formatResult: select2Formatter
+          })
             .on('change', fltChanged);
 
           var preSelect = preSelectDict[filter];
           if (preSelect !== undefined) {
            filtersObj[filter].select2('val', preSelect);
           }
-        }
+        });
         slice.done(payload);
 
         function select2Formatter(result, container /*, query, escapeMarkup*/) {
