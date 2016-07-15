@@ -8,6 +8,7 @@ require('../node_modules/nvd3/build/nv.d3.min.css');
 require('./nvd3_vis.css');
 
 const minBarWidth = 15;
+const animationTime = 1000;
 
 function nvd3Vis(slice) {
   var chart;
@@ -40,6 +41,7 @@ function nvd3Vis(slice) {
       var viz_type = fd.viz_type;
       var f = d3.format('.3s');
       var reduceXTicks = fd.reduce_x_ticks || false;
+      var stacked = false;
 
       nv.addGraph(function () {
         switch (viz_type) {
@@ -75,7 +77,14 @@ function nvd3Vis(slice) {
             .showMaxMin(false)
             .staggerLabels(true);
 
-            chart.stacked(fd.bar_stacked);
+            stacked = fd.bar_stacked;
+            chart.stacked(stacked);
+
+            if (fd.show_bar_value) {
+              setTimeout(function () {
+                addTotalBarValues(chart, payload.data, stacked);
+              }, animationTime);
+            }
             break;
 
           case 'dist_bar':
@@ -88,7 +97,14 @@ function nvd3Vis(slice) {
             chart.xAxis
             .showMaxMin(false);
 
-            chart.stacked(fd.bar_stacked);
+            stacked = fd.bar_stacked;
+            chart.stacked(stacked);
+
+            if (fd.show_bar_value) {
+              setTimeout(function () {
+                addTotalBarValues(chart, payload.data, stacked);
+              }, animationTime);
+            }
             if (!reduceXTicks) {
               width = barchartWidth();
             }
@@ -263,6 +279,49 @@ function nvd3Vis(slice) {
     if (chart && chart.update) {
       chart.update();
     }
+  };
+
+  var addTotalBarValues = function (chart, data, stacked) {
+    var svg = d3.select("svg"),
+      rectsToBeLabeled,
+      format = d3.format('.3s'),
+      countSeriesDisplayed = data.length;
+
+    var totalStackedValues = stacked && data.length !== 0 ?
+      data[0].values.map(function (bar, iBar) {
+        var bars = data.map(function (series) {
+          return series.values[iBar];
+        });
+        return d3.sum(bars, function (d) {
+          return d.y;
+        });
+      }) : [];
+
+    rectsToBeLabeled = svg.selectAll("g.nv-group").filter(
+      function (d, i) {
+        if (!stacked) {
+          return true;
+        }
+        return i === countSeriesDisplayed - 1;
+      }).selectAll("rect.positive");
+
+    var groupLabels = svg.select("g.nv-barsWrap").append("g");
+    rectsToBeLabeled.each(
+      function (d, index) {
+        var rectObj = d3.select(this);
+        var transformAttr = rectObj.attr("transform");
+        var yPos = parseFloat(rectObj.attr("y"));
+        var xPos = parseFloat(rectObj.attr("x"));
+        var rectWidth = parseFloat(rectObj.attr("width"));
+        var t = groupLabels.append("text")
+          .attr("x", xPos) // rough position first, fine tune later
+          .attr("y", yPos - 5)
+          .text(format(stacked ? totalStackedValues[index] : d.y))
+          .attr("transform", transformAttr)
+          .attr("class", "bar-chart-label");
+        var labelWidth = t.node().getBBox().width;
+        t.attr("x", xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+      });
   };
 
   return {
