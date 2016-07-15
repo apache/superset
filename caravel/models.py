@@ -965,6 +965,7 @@ class TableColumn(Model, AuditMixinNullable):
                         dttm.isoformat()),
                 'presto': default,
                 'sqlite': default,
+                'hive': "TO_DATE('{}')".format(dttm.isoformat())
             }
             for k, v in d.items():
                 if self.table.database.sqlalchemy_uri.startswith(k):
@@ -973,7 +974,6 @@ class TableColumn(Model, AuditMixinNullable):
 
 
 class DruidCluster(Model, AuditMixinNullable):
-
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
