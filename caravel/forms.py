@@ -409,7 +409,7 @@ class FormFactory(object):
                     "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor. Also note that the "
-                    "filter bellow is applied against this column or "
+                    "filter below is applied against this column or "
                     "expression")
             }),
             'resample_rule': (FreeFormSelectField, {
