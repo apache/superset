@@ -208,7 +208,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d caravel/translations -l es
 
-Then it's a matter of running the statement bellow to gather all stings that
+Then it's a matter of running the statement below to gather all stings that
 need translation
 
     fabmanager babel-extract --target caravel/translations/
