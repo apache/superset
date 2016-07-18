@@ -278,7 +278,7 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'is_restricted']
+        'expression', 'table', 'd3format', 'is_restricted']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
@@ -287,6 +287,13 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
                            "to certain roles. Only roles with the permission "
                            "'metric access on XXX (the name of this metric)' "
                            "are allowed to access this metric"),
+        'd3format': utils.markdown(
+            "d3 formatting string as defined [here]"
+            "(https://github.com/d3/d3-format/blob/master/README.md#format). "
+            "For instance, this default formatting applies in the Table "
+            "visualization and allow for different metric to use different "
+            "formats", True
+        ),
     }
     add_columns = edit_columns
     page_size = 500
@@ -313,7 +320,7 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource', 'is_restricted']
+        'datasource', 'd3format', 'is_restricted']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -356,6 +363,17 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
+    show_columns = [
+        'tables',
+        'cache_timeout',
+        'extra',
+        'database_name',
+        'sqlalchemy_uri',
+        'created_by',
+        'created_on',
+        'changed_by',
+        'changed_on'
+    ]
     add_template = "caravel/models/database/add.html"
     edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')

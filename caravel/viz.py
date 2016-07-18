@@ -310,6 +310,7 @@ class BaseViz(object):
                 # cache.set call can fail if the backend is down or if
                 # the key is too large or whatever other reasons
                 logging.warning("Could not cache key {}".format(cache_key))
+                logging.exception(e)
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
@@ -320,6 +321,7 @@ class BaseViz(object):
 
     @property
     def data(self):
+        """This is the data object serialized to the js layer"""
         content = {
             'csv_endpoint': self.csv_endpoint,
             'form_data': self.form_data,
@@ -327,6 +329,11 @@ class BaseViz(object):
             'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
+            'column_formats': {
+                m.metric_name: m.d3format
+                for m in self.datasource.metrics
+                if m.d3format
+            },
         }
         return content
 
@@ -506,6 +513,25 @@ class MarkupViz(BaseViz):
 
     def get_data(self):
         return dict(html=self.rendered())
+
+
+class SeparatorViz(MarkupViz):
+
+    """Use to create section headers in a dashboard, similar to `Markup`"""
+
+    viz_type = "separator"
+    verbose_name = _("Separator")
+    form_overrides = {
+        'code': {
+            'default': (
+                "####Section Title\n"
+                "A paragraph describing the section"
+                "of the dashboard, right before the separator line "
+                "\n\n"
+                "---------------"
+            ),
+        }
+    }
 
 
 class WordCloudViz(BaseViz):
@@ -1304,9 +1330,8 @@ class SunburstViz(BaseViz):
         metric = self.form_data.get('metric')
         secondary_metric = self.form_data.get('secondary_metric')
         if metric == secondary_metric:
-            ndf = df[cols]
-            ndf['m1'] = df[metric]
-            ndf['m2'] = df[metric]
+            ndf = df
+            ndf.columns = [cols + ['m1', 'm2']]
         else:
             cols += [
                 self.form_data['metric'], self.form_data['secondary_metric']]
@@ -1491,7 +1516,7 @@ class WorldMapViz(BaseViz):
         d = df.to_dict(orient='records')
         for row in d:
             country = None
-            if isinstance(row['country'], basestring):
+            if isinstance(row['country'], string_types):
                 country = countries.get(
                     self.form_data.get('country_fieldtype'), row['country'])
 
@@ -1888,6 +1913,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    SeparatorViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

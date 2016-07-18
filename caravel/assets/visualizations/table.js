@@ -2,14 +2,13 @@ var $ = window.$ = require('jquery');
 var jQuery = window.jQuery = $;
 var d3 = require('d3');
 var px = window.px || require('../javascripts/modules/caravel.js');
+var utils = require('../javascripts/modules/utils.js');
 
 require('./table.css');
 require('datatables.net-bs');
 require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
-var utils = require('../javascripts/modules/utils');
 
 function tableVis(slice) {
-  var f = d3.format('.3s');
   var fC = d3.format('0,000');
   var timestampFormatter;
 
@@ -120,7 +119,7 @@ function tableVis(slice) {
         })
         .html(function (d) {
           if (d.isMetric) {
-            return f(d.val);
+            return slice.d3format(d.col, d.val);
           } else {
             return d.val;
           }

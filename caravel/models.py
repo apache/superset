@@ -416,6 +416,11 @@ class Database(Model, AuditMixinNullable):
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
+                Grain("second", _('second'), "DATE_ADD(DATE({col}), "
+                      "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
+                      " + SECOND({col})) SECOND)"),
+                Grain("minute", _('minute'), "DATE_ADD(DATE({col}), "
+                      "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)"),
                 Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
                       "INTERVAL HOUR({col}) HOUR)"),
                 Grain('day', _('day'), 'DATE({col})'),
@@ -883,6 +888,7 @@ class SqlMetric(Model, AuditMixinNullable):
     expression = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def sqla_col(self):
@@ -1208,7 +1214,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,):  # noqa
+            select=None,  # noqa
+            columns=None, ):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
@@ -1511,6 +1518,7 @@ class DruidMetric(Model, AuditMixinNullable):
     json = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def json_obj(self):

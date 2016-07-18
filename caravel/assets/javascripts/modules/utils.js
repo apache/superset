@@ -105,9 +105,20 @@ var fixDataTableBodyHeight = function ($tableDom, height) {
       .css('max-height', height - headHeight);
 };
 
+var formatters = {};
+function d3format(format, number) {
+  // Formats a number and memoizes formatters to be reused
+  format = format || '.3s';
+  if (!(format in formatters)) {
+    formatters[format] = d3.format(format);
+  }
+  return formatters[format](number);
+}
+
 module.exports = {
   wrapSvgText: wrapSvgText,
   showModal: showModal,
   toggleCheckbox: toggleCheckbox,
-  fixDataTableBodyHeight: fixDataTableBodyHeight
+  fixDataTableBodyHeight: fixDataTableBodyHeight,
+  d3format: d3format
 };

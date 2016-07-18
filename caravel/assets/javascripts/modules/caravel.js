@@ -2,6 +2,7 @@ var $ = require('jquery');
 var jQuery = $;
 var d3 = require('d3');
 var Mustache = require('mustache');
+var utils = require('./utils');
 
 // vis sources
 var sourceMap = {
@@ -18,6 +19,7 @@ var sourceMap = {
   iframe: 'iframe.js',
   line: 'nvd3_vis.js',
   markup: 'markup.js',
+  separator: 'markup.js',
   para: 'parallel_coordinates.js',
   pie: 'nvd3_vis.js',
   box_plot: 'nvd3_vis.js',
@@ -203,11 +205,13 @@ var px = (function () {
       container: container,
       container_id: container_id,
       selector: selector,
-      querystring: function () {
+      querystring: function (params) {
+        params = params || {};
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         if (dashboard !== undefined) {
-          var flts = encodeURIComponent(JSON.stringify(dashboard.filters));
+          var flts = params.extraFilters === false ?
+              '' : encodeURIComponent(JSON.stringify(dashboard.filters));
           qrystr = parser.search + "&extra_filters=" + flts;
         } else if ($('#query').length === 0) {
           qrystr = parser.search;
@@ -226,13 +230,22 @@ var px = (function () {
         };
         return Mustache.render(s, context);
       },
-      jsonEndpoint: function () {
+      jsonEndpoint: function (params) {
+        params = params || {};
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
-        var endpoint = parser.pathname + this.querystring();
+        var endpoint = parser.pathname + this.querystring({
+          extraFilters: params.extraFilters
+        });
         endpoint += "&json=true";
         endpoint += "&force=" + this.force;
         return endpoint;
+      },
+      d3format: function (col, number) {
+        // uses the utils memoized d3format function and formats based on
+        // column level defined preferences
+        var format = this.data.column_formats[col];
+        return utils.d3format(format, number);
       },
       done: function (data) {
         clearInterval(timer);
@@ -363,6 +376,11 @@ var px = (function () {
       setFilter: function (col, vals) {
         if (dashboard !== undefined) {
           dashboard.setFilter(slice_id, col, vals);
+        }
+      },
+      getFilters: function (col, vals) {
+        if (dashboard !== undefined) {
+          return dashboard.filters[slice_id];
         }
       },
       clearFilter: function () {
