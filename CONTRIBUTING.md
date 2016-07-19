@@ -139,9 +139,17 @@ npm run dev
 
 ## Testing
 
-Tests can then be run with:
+Python tests can be run with:
 
     ./run_tests.sh
+
+We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+
+    cd /caravel/caravel/assets/javascripts
+    npm i
+    npm run test
+
+## Linting
 
 Lint the project with:
 
