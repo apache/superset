@@ -111,6 +111,23 @@ function nvd3Vis(slice) {
             chart.width(width);
             break;
 
+          case 'bar_plus_line':
+            chart = nv.models.linePlusBarChart()
+              .options({
+                focusEnable: false
+              });
+
+            if (!reduceXTicks) {
+              width = barchartWidth();
+            }
+            chart.width(width);
+            chart.xAxis
+              .showMaxMin(false)
+              .staggerLabels(true);
+
+            chart.bars.forceY([0]);
+            break;
+
           case 'pie':
             chart = nv.models.pieChart();
             colorKey = 'x';
@@ -231,11 +248,11 @@ function nvd3Vis(slice) {
         }
 
         if (fd.y_axis_format) {
-          chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
-
-          if (chart.y2Axis !== undefined) {
-            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
-          }
+          [chart.yAxis, chart.y1Axis, chart.y2Axis].forEach(function (axis) {
+            if (axis !== undefined) {
+              axis.tickFormat(d3.format(fd.y_axis_format));
+            }
+          });
         }
         chart.color(function (d, i) {
           return px.color.category21(d[colorKey]);

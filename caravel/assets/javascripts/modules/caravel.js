@@ -7,6 +7,7 @@ const utils = require('./utils');
 const sourceMap = {
   area: 'nvd3_vis.js',
   bar: 'nvd3_vis.js',
+  bar_plus_line: 'nvd3_vis.js',
   bubble: 'nvd3_vis.js',
   big_number: 'big_number.js',
   big_number_total: 'big_number.js',
