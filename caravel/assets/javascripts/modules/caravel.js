@@ -316,7 +316,10 @@ var px = (function () {
         token.find("img.loading").hide();
         var err = msg ? ('<div class="alert alert-danger">' + msg + '</div>') : "";
         if (xhr) {
-          err += '<div class="alert alert-danger">' + this.getErrorMsg(xhr) + '</div>';
+          var extendedMsg = this.getErrorMsg(xhr);
+          if (extendedMsg) {
+            err += '<div class="alert alert-danger">' + extendedMsg + '</div>';
+          }
         }
         container.html(err);
         container.show();
