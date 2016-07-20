@@ -346,3 +346,12 @@ def generic_find_constraint_name(table, columns, referenced, db):
                 fk.referred_table.name == referenced and
                 set(fk.column_keys) == columns):
             return fk.name
+
+
+def generic_find_unique_constraint_name(table, columns, db):
+    """Utility to find a unique constraint name in alembic migrations"""
+    t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
+
+    for idx in t.indexes:
+        if idx.unique and set(c.name for c in idx.columns) == set(columns):
+            return idx.name
