@@ -28,8 +28,8 @@ div.widget .chart-controls {
   box-shadow: 2px 1px 5px -2px #aaa;
   background-color: #fff;
   overflow: visible;
-  z-index: 5;
 }
+
 .dashboard .slice-grid .dragging,
 .dashboard .slice-grid .resizing {
   opacity: 0.5;
@@ -51,10 +51,6 @@ div.widget .chart-controls {
 .dashboard div.slice_content {
   width: 100%;
   height: 100%;
-}
-
-.dashboard  div.nvtooltip {
-  z-index: 888;  /* this lets tool tips go on top of other slices  */
 }
 
 .modal img.loading {
