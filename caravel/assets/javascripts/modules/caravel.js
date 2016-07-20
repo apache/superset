@@ -32,7 +32,7 @@ var sourceMap = {
   treemap: 'treemap.js',
   cal_heatmap: 'cal_heatmap.js',
   horizon: 'horizon.js',
-  mapbox: 'mapbox.jsx'
+  mapbox: 'mapbox.jsx',
 };
 
 var color = function () {
@@ -41,13 +41,13 @@ var color = function () {
     //rausch    hackb      kazan      babu      lima        beach     barol
     '#ff5a5f', '#7b0051', '#007A87', '#00d1c1', '#8ce071', '#ffb400', '#b4a76c',
     '#ff8083', '#cc0086', '#00a1b3', '#00ffeb', '#bbedab', '#ffd266', '#cbc29a',
-    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e'
+    '#ff3339', '#ff1ab1', '#005c66', '#00b3a5', '#55d12e', '#b37e00', '#988b4e',
   ];
   var spectrums = {
     blue_white_yellow: ['#00d1c1', 'white', '#ffb400'],
     fire: ['white', 'yellow', 'red', 'black'],
     white_black: ['white', 'black'],
-    black_white: ['black', 'white']
+    black_white: ['black', 'white'],
   };
   var colorBnb = function () {
     // Color factory
@@ -84,7 +84,7 @@ var color = function () {
   return {
     bnbColors: bnbColors,
     category21: colorBnb(),
-    colorScalerFactory: colorScalerFactory
+    colorScalerFactory: colorScalerFactory,
   };
 };
 
@@ -124,7 +124,7 @@ var px = (function () {
     }], // If the first of the month, do "month day, year."
     ["%Y", function (d) {
       return true;
-    }] // fall back on month, year
+    }], // fall back on month, year
   ]);
 
   function formatDate(dttm) {
@@ -226,7 +226,7 @@ var px = (function () {
       render_template: function (s) {
         var context = {
           width: this.width,
-          height: this.height
+          height: this.height,
         };
         return Mustache.render(s, context);
       },
@@ -235,7 +235,7 @@ var px = (function () {
         var parser = document.createElement('a');
         parser.href = data.json_endpoint;
         var endpoint = parser.pathname + this.querystring({
-          extraFilters: params.extraFilters
+          extraFilters: params.extraFilters,
         });
         endpoint += "&json=true";
         endpoint += "&force=" + this.force;
@@ -395,7 +395,7 @@ var px = (function () {
         if (dashboard !== undefined) {
           delete dashboard.removeFilter(slice_id, col, vals);
         }
-      }
+      },
     };
     var visType = data.form_data.viz_type;
     px.registerViz(visType);
@@ -424,7 +424,7 @@ var px = (function () {
     timeFormatFactory: timeFormatFactory,
     color: color(),
     getParam: getParam,
-    initFavStars: initFavStars
+    initFavStars: initFavStars,
   };
 })();
 

@@ -35,7 +35,7 @@ function modelViewTable(selector, modelView, orderCol, order) {
       bLengthChange: false,
       aaSorting: [],
       searching: true,
-      bInfo: false
+      bInfo: false,
     });
 
     // Hack to move the searchbox in the right spot
@@ -74,7 +74,7 @@ $(document).ready(function () {
       domain: "month",
       subDomain: "day",
       itemName: "action",
-      tooltip: true
+      tooltip: true,
     });
   });
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');

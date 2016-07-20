@@ -15,7 +15,7 @@ function markupWidget(slice) {
   }
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

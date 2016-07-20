@@ -180,7 +180,7 @@ function bigNumberVis(slice) {
 
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 

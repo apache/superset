@@ -11,17 +11,17 @@ const config = {
     welcome: APP_DIR + '/javascripts/welcome.js',
     sql: APP_DIR + '/javascripts/sql.js',
     standalone: APP_DIR + '/javascripts/standalone.js',
-    common: APP_DIR + '/javascripts/common.js'
+    common: APP_DIR + '/javascripts/common.js',
   },
   output: {
     path: BUILD_DIR,
-    filename: '[name].entry.js'
+    filename: '[name].entry.js',
   },
   resolve: {
     extensions: ['', '.js', '.jsx'],
     alias: {
-      webworkify: 'webworkify-webpack'
-    }
+      webworkify: 'webworkify-webpack',
+    },
   },
   module: {
     loaders: [
@@ -30,22 +30,22 @@ const config = {
         exclude: APP_DIR + '/node_modules',
         loader: 'babel',
         query: {
-          presets: ['airbnb', 'es2015', 'react']
-        }
+          presets: ['airbnb', 'es2015', 'react'],
+        },
       },
 
       /* for react-map-gl overlays */
       {
         test: /\.react\.js$/,
         include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
-        loader: 'babel'
+        loader: 'babel',
       },
 
       /* for require('*.css') */
       {
         test: /\.css$/,
         include: APP_DIR,
-        loader: "style-loader!css-loader"
+        loader: "style-loader!css-loader",
       },
 
       /* for css linking images */
@@ -61,32 +61,32 @@ const config = {
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: "style!css!less"
+        loader: "style!css!less",
       },
 
       /* for mapbox */
       {
         test: /\.json$/,
-        loader: 'json-loader'
+        loader: 'json-loader',
       },
       {
         test: /\.js$/,
         include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
-        loader: 'transform/cacheable?brfs'
-      }
+        loader: 'transform/cacheable?brfs',
+      },
     ],
     postLoaders: [{
       include: /node_modules\/mapbox-gl/,
       loader: 'transform',
-      query: 'brfs'
-    }]
+      query: 'brfs',
+    }],
   },
   externals: {
     cheerio: 'window',
     'react/lib/ExecutionEnvironment': true,
-    'react/lib/ReactContext': true
+    'react/lib/ReactContext': true,
   },
-  plugins: []
+  plugins: [],
 };
 
 module.exports = config;
