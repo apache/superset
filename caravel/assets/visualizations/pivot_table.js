@@ -21,7 +21,7 @@ module.exports = function (slice) {
           bInfo: false,
           scrollY: height + "px",
           scrollCollapse: true,
-          scrollX: true
+          scrollX: true,
         });
         table.column('-1').order('desc').draw();
         utils.fixDataTableBodyHeight(
@@ -34,6 +34,6 @@ module.exports = function (slice) {
   }
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 };
