@@ -230,7 +230,7 @@ function horizonViz(slice) {
   }
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

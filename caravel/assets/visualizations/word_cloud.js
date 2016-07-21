@@ -14,7 +14,7 @@ function wordCloudChart(slice) {
       var data = json.data;
       var range = [
         json.form_data.size_from,
-        json.form_data.size_to
+        json.form_data.size_to,
       ];
       var rotation = json.form_data.rotation;
       var f_rotation;
@@ -84,7 +84,7 @@ function wordCloudChart(slice) {
 
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

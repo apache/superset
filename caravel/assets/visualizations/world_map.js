@@ -58,7 +58,7 @@ function worldMapChart(slice) {
         element: slice.container.get(0),
         data: data,
         fills: {
-          defaultFill: '#ddd'
+          defaultFill: '#ddd',
         },
         geographyConfig: {
           popupOnHover: true,
@@ -70,7 +70,7 @@ function worldMapChart(slice) {
           highlightBorderWidth: 1,
           popupTemplate: function (geo, data) {
             return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>' + f(data.m1) + '</div>';
-          }
+          },
         },
         bubblesConfig: {
           borderWidth: 1,
@@ -90,8 +90,8 @@ function worldMapChart(slice) {
           highlightBorderOpacity: 1,
           highlightFillOpacity: 0.85,
           exitDelay: 100,
-          key: JSON.stringify
-        }
+          key: JSON.stringify,
+        },
       });
 
       map.updateChoropleth(d);
@@ -108,7 +108,7 @@ function worldMapChart(slice) {
 
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 

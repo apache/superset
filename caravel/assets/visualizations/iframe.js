@@ -19,7 +19,7 @@ function iframeWidget(slice) {
 
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

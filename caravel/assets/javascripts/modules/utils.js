@@ -120,5 +120,5 @@ module.exports = {
   showModal: showModal,
   toggleCheckbox: toggleCheckbox,
   fixDataTableBodyHeight: fixDataTableBodyHeight,
-  d3format: d3format
+  d3format: d3format,
 };

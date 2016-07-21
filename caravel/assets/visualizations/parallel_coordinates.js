@@ -76,7 +76,7 @@ function parallelCoordVis(slice) {
               mouseover: function (d) {
                 parcoords.highlight([d]);
               },
-              mouseout: parcoords.unhighlight
+              mouseout: parcoords.unhighlight,
             });
           // update data table on brush event
           parcoords.on("brush", function (d) {
@@ -88,7 +88,7 @@ function parallelCoordVis(slice) {
                 mouseover: function (d) {
                   parcoords.highlight([d]);
                 },
-                mouseout: parcoords.unhighlight
+                mouseout: parcoords.unhighlight,
               });
           });
         }
@@ -101,7 +101,7 @@ function parallelCoordVis(slice) {
 
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

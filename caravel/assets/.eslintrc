@@ -30,7 +30,7 @@
     "brace-style": [2, "1tbs", { "allowSingleLine": true }],
     "callback-return": [2, ["callback"]],
     "camelcase": [0],
-    "comma-dangle": [2, "never"],
+    "comma-dangle": [2, "always-multiline"],
     "comma-spacing": [2],
     "comma-style": [2, "last"],
     "curly": [2, "all"],

@@ -267,7 +267,7 @@ function nvd3Vis(slice) {
 
   return {
     render: render,
-    resize: update
+    resize: update,
   };
 }
 

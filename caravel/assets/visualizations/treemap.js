@@ -251,7 +251,7 @@ function treemap(slice) {
 
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 
