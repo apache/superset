@@ -139,9 +139,17 @@ npm run dev
 
 ## Testing
 
-Tests can then be run with:
+Python tests can be run with:
 
     ./run_tests.sh
+
+We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+
+    cd /caravel/caravel/assets/javascripts
+    npm i
+    npm run test
+
+## Linting
 
 Lint the project with:
 
@@ -208,7 +216,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d caravel/translations -l es
 
-Then it's a matter of running the statement bellow to gather all stings that
+Then it's a matter of running the statement below to gather all stings that
 need translation
 
     fabmanager babel-extract --target caravel/translations/
