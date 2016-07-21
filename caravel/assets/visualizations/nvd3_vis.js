@@ -117,9 +117,6 @@ function nvd3Vis(slice) {
                 focusEnable: false
               });
 
-            if (!reduceXTicks) {
-              width = barchartWidth();
-            }
             chart.width(width);
             chart.xAxis
               .showMaxMin(false)

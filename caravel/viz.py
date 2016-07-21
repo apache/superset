@@ -1924,6 +1924,7 @@ viz_types_list = [
     NVD3CompareTimeSeriesViz,
     NVD3TimeSeriesStackedViz,
     NVD3TimeSeriesBarViz,
+    NVD3TimeSeriesBarPlusLineViz,
     DistributionBarViz,
     DistributionPieViz,
     BubbleViz,
@@ -1945,7 +1946,6 @@ viz_types_list = [
     HorizonViz,
     MapboxViz,
     SeparatorViz,
-    NVD3TimeSeriesBarPlusLineViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
