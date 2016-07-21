@@ -1253,6 +1253,10 @@ class Caravel(BaseCaravelView):
         session.commit()
         return content
 
+    @expose("/theme/")
+    def theme(self):
+        return self.render_template('caravel/theme.html')
+
     @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
