@@ -79,7 +79,7 @@ function tableVis(slice) {
             return {
               col: c,
               val: val,
-              isMetric: metrics.indexOf(c) >= 0
+              isMetric: metrics.indexOf(c) >= 0,
             };
           });
         }).enter()
@@ -132,7 +132,7 @@ function tableVis(slice) {
         bInfo: false,
         scrollY: height + "px",
         scrollCollapse: true,
-        scrollX: true
+        scrollX: true,
       });
       utils.fixDataTableBodyHeight(
           slice.container.find('.dataTables_wrapper'), height);
@@ -148,7 +148,7 @@ function tableVis(slice) {
 
   return {
     render: refresh,
-    resize: function () {}
+    resize: function () {},
   };
 }
 

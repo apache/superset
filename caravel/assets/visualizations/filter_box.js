@@ -30,7 +30,7 @@ function filterBox(slice) {
     $.getJSON(slice.jsonEndpoint({
         // filter box should ignore the filters
         // otherwise there will be only a few options in the dropdown menu
-        extraFilters: false
+        extraFilters: false,
     }), function (payload) {
         var maxes = {};
 
@@ -57,7 +57,7 @@ function filterBox(slice) {
               dropdownAutoWidth: true,
               data: data,
               multiple: true,
-              formatResult: select2Formatter
+              formatResult: select2Formatter,
             })
             .on('change', fltChanged);
 
@@ -85,7 +85,7 @@ function filterBox(slice) {
   };
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

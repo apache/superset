@@ -17,7 +17,7 @@ function heatmapVis(slice) {
       top: 10,
       right: 10,
       bottom: 35,
-      left: 35
+      left: 35,
     };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
@@ -92,7 +92,7 @@ function heatmapVis(slice) {
         .range([0, hmWidth]),
         d3.scale.linear()
         .domain([0, heatmapDim[Y]])
-        .range([0, hmHeight])
+        .range([0, hmHeight]),
       ];
 
       var container = d3.select(slice.selector);
@@ -228,7 +228,7 @@ function heatmapVis(slice) {
   }
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

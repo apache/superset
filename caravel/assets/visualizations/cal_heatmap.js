@@ -39,7 +39,7 @@ function calHeatmap(slice) {
           subDomain: json.data["subdomain"],
           range: json.data["range"],
           browsing: true,
-          legend: [extents[0], extents[0]+step, extents[0]+step*2, extents[0]+step*3]
+          legend: [extents[0], extents[0]+step, extents[0]+step*2, extents[0]+step*3],
         });
       } catch (e) {
         slice.error(e);
@@ -51,7 +51,7 @@ function calHeatmap(slice) {
 
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 
