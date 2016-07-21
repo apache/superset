@@ -28,31 +28,31 @@ require('../../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 var slice;
 
 var getPanelClass = function (fieldPrefix) {
-  return (fieldPrefix === "flt" ? "filter" : "having") + "_panel";
+  return (fieldPrefix === 'flt' ? 'filter' : 'having') + '_panel';
 };
 
 function prepForm() {
   // Assigning the right id to form elements in filters
   var fixId = function ($filter, fieldPrefix, i) {
-    $filter.attr("id", function () {
-      return fieldPrefix + "_" + i;
+    $filter.attr('id', function () {
+      return fieldPrefix + '_' + i;
     });
 
-    ["col", "op", "eq"].forEach(function (fieldMiddle) {
-      var fieldName = fieldPrefix + "_" + fieldMiddle;
-      $filter.find("[id^='" + fieldName + "_']")
-          .attr("id", function () {
-            return fieldName + "_" + i;
+    ['col', 'op', 'eq'].forEach(function (fieldMiddle) {
+      var fieldName = fieldPrefix + '_' + fieldMiddle;
+      $filter.find('[id^=' + fieldName + '_]')
+          .attr('id', function () {
+            return fieldName + '_' + i;
           })
-          .attr("name", function () {
-            return fieldName + "_" + i;
+          .attr('name', function () {
+            return fieldName + '_' + i;
           });
     });
   };
 
-  ["flt", "having"].forEach(function (fieldPrefix) {
+  ['flt', 'having'].forEach(function (fieldPrefix) {
     var i = 1;
-    $("#" + getPanelClass(fieldPrefix) + " #filters > div").each(function () {
+    $('#' + getPanelClass(fieldPrefix) + ' #filters > div').each(function () {
       fixId($(this), fieldPrefix, i);
       i++;
     });
@@ -79,11 +79,10 @@ function query(force, pushState) {
 }
 
 function initExploreView() {
-
   function get_collapsed_fieldsets() {
-    var collapsed_fieldsets = $("#collapsed_fieldsets").val();
+    var collapsed_fieldsets = $('#collapsed_fieldsets').val();
 
-    if (collapsed_fieldsets !== undefined && collapsed_fieldsets !== "") {
+    if (collapsed_fieldsets !== undefined && collapsed_fieldsets !== '') {
       collapsed_fieldsets = collapsed_fieldsets.split('||');
     } else {
       collapsed_fieldsets = [];
@@ -93,18 +92,18 @@ function initExploreView() {
 
   function toggle_fieldset(legend, animation) {
     var parent = legend.parent();
-    var fieldset = parent.find(".legend_label").text();
+    var fieldset = parent.find('.legend_label').text();
     var collapsed_fieldsets = get_collapsed_fieldsets();
     var index;
 
-    if (parent.hasClass("collapsed")) {
+    if (parent.hasClass('collapsed')) {
       if (animation) {
-        parent.find(".panel-body").slideDown();
+        parent.find('.panel-body').slideDown();
       } else {
-        parent.find(".panel-body").show();
+        parent.find('.panel-body').show();
       }
-      parent.removeClass("collapsed");
-      parent.find("span.collapser").text("[-]");
+      parent.removeClass('collapsed');
+      parent.find('span.collapser').text('[-]');
 
       // removing from array, js is overcomplicated
       index = collapsed_fieldsets.indexOf(fieldset);
@@ -113,20 +112,20 @@ function initExploreView() {
       }
     } else { // not collapsed
       if (animation) {
-        parent.find(".panel-body").slideUp();
+        parent.find('.panel-body').slideUp();
       } else {
-        parent.find(".panel-body").hide();
+        parent.find('.panel-body').hide();
       }
 
-      parent.addClass("collapsed");
-      parent.find("span.collapser").text("[+]");
+      parent.addClass('collapsed');
+      parent.find('span.collapser').text('[+]');
       index = collapsed_fieldsets.indexOf(fieldset);
-      if (index === -1 && fieldset !== "" && fieldset !== undefined) {
+      if (index === -1 && fieldset !== '' && fieldset !== undefined) {
         collapsed_fieldsets.push(fieldset);
       }
     }
 
-    $("#collapsed_fieldsets").val(collapsed_fieldsets.join("||"));
+    $('#collapsed_fieldsets').val(collapsed_fieldsets.join('||'));
   }
 
   px.initFavStars();
@@ -137,7 +136,7 @@ function initExploreView() {
   });
 
   function copyURLToClipboard(url) {
-    var textArea = document.createElement("textarea");
+    var textArea = document.createElement('textarea');
     textArea.style.position = 'fixed';
     textArea.style.left = '-1000px';
     textArea.value = url;
@@ -148,10 +147,10 @@ function initExploreView() {
     try {
       var successful = document.execCommand('copy');
       if (!successful) {
-        throw new Error("Not successful");
+        throw new Error('Not successful');
       }
     } catch (err) {
-      window.alert("Sorry, your browser does not support copying. Use Ctrl / Cmd + C!");
+      window.alert('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!');
     }
     document.body.removeChild(textArea);
     return successful;
@@ -159,12 +158,12 @@ function initExploreView() {
 
   $('#shortner').click(function () {
     $.ajax({
-      type: "POST",
+      type: 'POST',
       url: '/r/shortner/',
       data: {
-        data: '/' + window.location.pathname + slice.querystring()
+        data: '/' + window.location.pathname + slice.querystring(),
       },
-      success: function (data) {
+      success(data) {
         var close = '<a style="cursor: pointer;"><i class="fa fa-close" id="close_shortner"></i></a>';
         var copy = '<a style="cursor: pointer;"><i class="fa fa-clipboard" title="Copy to clipboard" id="copy_url"></i></a>';
         var spaces = '&nbsp;&nbsp;&nbsp;';
@@ -175,14 +174,14 @@ function initExploreView() {
             content: popover,
             placement: 'left',
             html: true,
-            trigger: 'manual'
+            trigger: 'manual',
           })
           .popover('show');
 
         $('#copy_url').tooltip().click(function () {
           var success = copyURLToClipboard(data);
           if (success) {
-            $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
+            $(this).attr('data-original-title', 'Copied!').tooltip('fixTitle').tooltip('show');
             window.setTimeout(destroyPopover, 1200);
           }
         });
@@ -192,13 +191,13 @@ function initExploreView() {
           $shortner.popover('destroy');
         }
       },
-      error: function (error) {
+      error(error) {
         showModal({
-          title: "Error",
-          body: "Sorry, an error occurred during this operation:<br/>" + error
+          title: 'Error',
+          body: 'Sorry, an error occurred during this operation:<br/>' + error,
         });
-        console.warn("Short URL error", error);
-      }
+        console.warn('Short URL error', error);
+      },
     });
   });
 
@@ -219,13 +218,13 @@ function initExploreView() {
       title: 'embed html',
       placement: 'left',
       html: true,
-      trigger: 'manual'
+      trigger: 'manual',
     })
     .popover('show');
     $('#copy_embed').tooltip().click(function () {
       var success = copyURLToClipboard(dataToCopy);
       if (success) {
-        $(this).attr("data-original-title", "Copied!").tooltip('fixTitle').tooltip('show');
+        $(this).attr('data-original-title', 'Copied!').tooltip('fixTitle').tooltip('show');
         window.setTimeout(destroyPopover, 1200);
       }
     });
@@ -250,17 +249,17 @@ function initExploreView() {
     function generateEmbedHTML() {
       var width = $standalone_width.val();
       var height = $standalone_height.val();
-      dataToCopy = '<iframe src="' + src_link + '" width="' + width + '" height="' + height +'"';
+      dataToCopy = '<iframe src="' + src_link + '" width="' + width + '" height="' + height + '"';
       dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
       $standalone_text.val(dataToCopy);
     }
   });
 
-  $("#viz_type").change(function () {
-    $("#query").submit();
+  $('#viz_type').change(function () {
+    $('#query').submit();
   });
 
-  $("#datasource_id").change(function () {
+  $('#datasource_id').change(function () {
     var url = $(this).find('option:selected').attr('url');
     window.location = url;
   });
@@ -278,28 +277,28 @@ function initExploreView() {
     );
   }
 
-  $(".select2").select2({
-    dropdownAutoWidth: true
-  });
-  $(".select2Sortable").select2({
-    dropdownAutoWidth: true
-  });
-  $(".select2-with-images").select2({
+  $('.select2').select2({
     dropdownAutoWidth: true,
-    dropdownCssClass: "bigdrop",
-    formatResult: formatViz
   });
-  $(".select2Sortable").select2Sortable({
-    bindOrder: 'sortableStop'
+  $('.select2Sortable').select2({
+    dropdownAutoWidth: true,
   });
-  $("form").show();
+  $('.select2-with-images').select2({
+    dropdownAutoWidth: true,
+    dropdownCssClass: 'bigdrop',
+    formatResult: formatViz,
+  });
+  $('.select2Sortable').select2Sortable({
+    bindOrder: 'sortableStop',
+  });
+  $('form').show();
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
-  $(".ui-helper-hidden-accessible").remove(); // jQuery-ui 1.11+ creates a div for every tooltip
+  $('.ui-helper-hidden-accessible').remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
   function set_filters() {
-    ["flt", "having"].forEach(function (prefix) {
+    ['flt', 'having'].forEach(function (prefix) {
       for (var i = 1; i < 10; i++) {
-        var col = px.getParam(prefix + "_col_" + i);
+        var col = px.getParam(prefix + '_col_' + i);
         if (col !== '') {
           add_filter(i, prefix);
         }
@@ -309,13 +308,13 @@ function initExploreView() {
   set_filters();
 
   function add_filter(i, fieldPrefix) {
-    var cp = $("#"+fieldPrefix+"0").clone();
-    $(cp).appendTo("#" + getPanelClass(fieldPrefix) + " #filters");
+    var cp = $('#' + fieldPrefix + '0').clone();
+    $(cp).appendTo('#' + getPanelClass(fieldPrefix) + ' #filters');
     $(cp).show();
     if (i !== undefined) {
-      $(cp).find("#"+fieldPrefix+"_eq_0").val(px.getParam(fieldPrefix+"_eq_" + i));
-      $(cp).find("#"+fieldPrefix+"_op_0").val(px.getParam(fieldPrefix+"_op_" + i));
-      $(cp).find("#"+fieldPrefix+"_col_0").val(px.getParam(fieldPrefix+"_col_" + i));
+      $(cp).find('#' + fieldPrefix + '_eq_0').val(px.getParam(fieldPrefix + '_eq_' + i));
+      $(cp).find('#' + fieldPrefix + '_op_0').val(px.getParam(fieldPrefix + '_op_' + i));
+      $(cp).find('#' + fieldPrefix + '_col_0').val(px.getParam(fieldPrefix + '_col_' + i));
     }
     $(cp).find('select').select2();
     $(cp).find('.remove').click(function () {
@@ -323,7 +322,7 @@ function initExploreView() {
     });
   }
 
-  $(window).bind("popstate", function (event) {
+  $(window).bind('popstate', function (event) {
     // Browser back button
     var returnLocation = history.location || document.location;
     // Could do something more lightweight here, but we're not optimizing
@@ -331,11 +330,11 @@ function initExploreView() {
     returnLocation.reload();
   });
 
-  $("#filter_panel #plus").click(function () {
-    add_filter(undefined, "flt");
+  $('#filter_panel #plus').click(function () {
+    add_filter(undefined, 'flt');
   });
-  $("#having_panel #plus").click(function () {
-    add_filter(undefined, "having");
+  $('#having_panel #plus').click(function () {
+    add_filter(undefined, 'having');
   });
 
   const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
@@ -354,7 +353,7 @@ function initExploreView() {
     if (filtered.length === 0) {
       return {
         id: term,
-        text: term
+        text: term,
       };
     }
   }
@@ -362,11 +361,11 @@ function initExploreView() {
   function initSelectionToValue(element, callback) {
     callback({
       id: element.val(),
-      text: element.val()
+      text: element.val(),
     });
   }
 
-  $(".select2_freeform").each(function () {
+  $('.select2_freeform').each(function () {
     var parent = $(this).parent();
     var name = $(this).attr('name');
     var l = [];
@@ -374,7 +373,7 @@ function initExploreView() {
     for (var i = 0; i < this.options.length; i++) {
       l.push({
         id: this.options[i].value,
-        text: this.options[i].text
+        text: this.options[i].text,
       });
       if (this.options[i].selected) {
         selected = this.options[i].value;
@@ -388,14 +387,14 @@ function initExploreView() {
       initSelection: initSelectionToValue,
       dropdownAutoWidth: true,
       multiple: false,
-      data: l
+      data: l,
     });
     $(this).remove();
   });
 
   function prepSaveDialog() {
     var setButtonsState = function () {
-      var add_to_dash = $("input[name=add_to_dash]:checked").val();
+      var add_to_dash = $('input[name=add_to_dash]:checked').val();
       if (add_to_dash === 'existing' || add_to_dash === 'new') {
         $('.gotodash').removeAttr('disabled');
       } else {
@@ -406,25 +405,25 @@ function initExploreView() {
     url += '?_flt_0_owners=' + $('#userid').val();
     $.get(url, function (data) {
       var choices = [];
-      for (var i=0; i< data.pks.length; i++) {
+      for (var i = 0; i < data.pks.length; i++) {
         choices.push({ id: data.pks[i], text: data.result[i].dashboard_title });
       }
       $('#save_to_dashboard_id').select2({
         data: choices,
-        dropdownAutoWidth: true
-      }).on("select2-selecting", function () {
-        $("#add_to_dash_existing").prop("checked", true);
+        dropdownAutoWidth: true,
+      }).on('select2-selecting', function () {
+        $('#add_to_dash_existing').prop('checked', true);
         setButtonsState();
       });
     });
 
-    $("input[name=add_to_dash]").change(setButtonsState);
+    $('input[name=add_to_dash]').change(setButtonsState);
     $("input[name='new_dashboard_name']").on('focus', function () {
-      $("#add_to_new_dash").prop("checked", true);
+      $('#add_to_new_dash').prop('checked', true);
       setButtonsState();
     });
     $("input[name='new_slice_name']").on('focus', function () {
-      $("#save_as_new").prop("checked", true);
+      $('#save_as_new').prop('checked', true);
       setButtonsState();
     });
 
@@ -444,30 +443,30 @@ function saveSlice() {
     var slice_name = $('input[name=new_slice_name]').val();
     if (slice_name === '') {
       showModal({
-        title: "Error",
-        body: "You must pick a name for the new slice"
+        title: 'Error',
+        body: 'You must pick a name for the new slice',
       });
       return;
     }
-    document.getElementById("slice_name").value = slice_name;
+    document.getElementById('slice_name').value = slice_name;
   }
   var add_to_dash = $('input[name=add_to_dash]:checked').val();
   if (add_to_dash === 'existing' && $('#save_to_dashboard_id').val() === '') {
     showModal({
-      title: "Error",
-      body: "You must pick an existing dashboard"
+      title: 'Error',
+      body: 'You must pick an existing dashboard',
     });
     return;
   } else if (add_to_dash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
     showModal({
-      title: "Error",
-      body: "Please enter a name for the new dashboard"
+      title: 'Error',
+      body: 'Please enter a name for the new dashboard',
     });
     return;
   }
   $('#action').val(action);
   prepForm();
-  $("#query").submit();
+  $('#query').submit();
 }
 
 $(document).ready(function () {
@@ -489,9 +488,9 @@ $(document).ready(function () {
   // make checkbox inputs display as toggles
   $(':checkbox')
     .addClass('pull-right')
-    .attr("data-onstyle", "default")
+    .attr('data-onstyle', 'default')
     .bootstrapToggle({
-      size: 'mini'
+      size: 'mini',
     });
 
   $('div.toggle').addClass('pull-right');

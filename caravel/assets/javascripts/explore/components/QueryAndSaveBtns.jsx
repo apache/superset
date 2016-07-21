@@ -16,10 +16,11 @@ export default function QueryAndSaveBtns({ canAdd, onQuery }) {
       <button type="button" className="btn btn-primary" onClick={onQuery}>
         <i className="fa fa-bolt"></i>Query
       </button>
-      <button type="button"
-              className={saveClasses}
-              data-target="#save_modal"
-              data-toggle="modal"
+      <button
+        type="button"
+        className={saveClasses}
+        data-target="#save_modal"
+        data-toggle="modal"
       >
         <i className="fa fa-plus-circle"></i>Save as
       </button>
