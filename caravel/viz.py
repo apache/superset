@@ -23,7 +23,7 @@ from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
-from six import string_types
+from six import string_types, PY3
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -279,7 +279,10 @@ class BaseViz(object):
         if payload:
             is_cached = True
             try:
-                payload = json.loads(zlib.decompress(payload))
+                cached_data = zlib.decompress(payload)
+                if PY3:
+                    cached_data = cached_data.decode('utf-8')
+                payload = json.loads(cached_data)
             except Exception as e:
                 logging.error("Error reading cache")
                 payload = None
@@ -302,9 +305,12 @@ class BaseViz(object):
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             try:
+                data = self.json_dumps(payload)
+                if PY3:
+                    data = bytes(data, 'utf-8')
                 cache.set(
                     cache_key,
-                    zlib.compress(self.json_dumps(payload)),
+                    zlib.compress(data),
                     timeout=cache_timeout)
             except Exception as e:
                 # cache.set call can fail if the backend is down or if
