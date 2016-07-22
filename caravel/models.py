@@ -1495,7 +1495,7 @@ class DruidMetric(Model, AuditMixinNullable):
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='metrics',
@@ -1529,7 +1529,7 @@ class DruidColumn(Model, AuditMixinNullable):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='columns',
