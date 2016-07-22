@@ -728,6 +728,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
+            # some sql dialects require for order by expressions 
+            # to also be in the select clause
+            inner_select_exprs += [main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
