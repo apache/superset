@@ -49,7 +49,7 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
-[API Documentation](http://pythonhosted.com/caravel)
+Latest documentation and tutorial are available [here](http://airbnb.io/caravel)
 
 ## Setting up a Python development environment
 
