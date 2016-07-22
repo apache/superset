@@ -404,13 +404,26 @@ class Database(Model, AuditMixinNullable):
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
-                Grain('quarter', _('quarter'), "date_trunc('quarter', CAST({col} AS DATE))"),
-                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
-                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
+                Grain('second', _('second'),
+                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+                Grain('minute', _('minute'),
+                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+                Grain('hour', _('hour'),
+                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+                Grain('day', _('day'),
+                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+                Grain('week', _('week'),
+                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+                Grain('month', _('month'),
+                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+                Grain('quarter', _('quarter'),
+                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+                Grain("week_ending_saturday", _('week_ending_saturday'),
+                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+                      "CAST({col} AS TIMESTAMP))))"),
+                Grain("week_start_sunday", _('week_start_sunday'),
+                      "date_add('day', -1, date_trunc('week', "
+                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
@@ -430,8 +443,10 @@ class Database(Model, AuditMixinNullable):
             'sqlite': (
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain("week", _('week'),
+                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'),
+                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
                 Grain("Time Column", _('Time Column'), "{col}"),
@@ -944,11 +959,11 @@ class TableColumn(Model, AuditMixinNullable):
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to string
 
-        If datebase_expression is empty, the internal dttm
+        If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
-        user input (python_date_format)
+        the user inputted (python_date_format)
         If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for datebase to convert
+        will be parsed as the sql sentence for the database to convert
         """
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
