@@ -160,6 +160,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Impala       | ``pip install impyla``              | ``impala://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  SparkSQL     | ``pip install pyhive``              | ``jdbc+hive://``                                |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
