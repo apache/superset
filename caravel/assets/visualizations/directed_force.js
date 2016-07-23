@@ -24,10 +24,10 @@ function directedForceVis(slice) {
       // Compute the distinct nodes from the links.
       links.forEach(function (link) {
         link.source = nodes[link.source] || (nodes[link.source] = {
-          name: link.source
+          name: link.source,
         });
         link.target = nodes[link.target] || (nodes[link.target] = {
-          name: link.target
+          name: link.target,
         });
         link.value = Number(link.value);
 
@@ -168,7 +168,7 @@ function directedForceVis(slice) {
   };
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 

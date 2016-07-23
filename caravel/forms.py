@@ -295,11 +295,13 @@ class FormFactory(object):
             'all_columns_x': (SelectField, {
                 "label": _("X"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'all_columns_y': (SelectField, {
                 "label": _("Y"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'druid_time_origin': (FreeFormSelectField, {
@@ -407,7 +409,7 @@ class FormFactory(object):
                     "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor. Also note that the "
-                    "filter bellow is applied against this column or "
+                    "filter below is applied against this column or "
                     "expression")
             }),
             'resample_rule': (FreeFormSelectField, {
@@ -551,7 +553,7 @@ class FormFactory(object):
                 "default": default_groupby,
                 "description": _(
                     "Defines the grouping of entities. "
-                    "Each serie is shown as a specific color on the chart and "
+                    "Each series is shown as a specific color on the chart and "
                     "has a legend toggle")
             }),
             'entity': (SelectField, {
@@ -829,6 +831,7 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
+                "default": "mapbox://styles/mapbox/streets-v9",
                 "description": _("Base layer map style")
             }),
             'clustering_radius': (FreeFormSelectField, {

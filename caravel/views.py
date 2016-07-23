@@ -278,7 +278,7 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'is_restricted']
+        'expression', 'table', 'd3format', 'is_restricted']
     description_columns = {
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
@@ -287,6 +287,13 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
                            "to certain roles. Only roles with the permission "
                            "'metric access on XXX (the name of this metric)' "
                            "are allowed to access this metric"),
+        'd3format': utils.markdown(
+            "d3 formatting string as defined [here]"
+            "(https://github.com/d3/d3-format/blob/master/README.md#format). "
+            "For instance, this default formatting applies in the Table "
+            "visualization and allow for different metric to use different "
+            "formats", True
+        ),
     }
     add_columns = edit_columns
     page_size = 500
@@ -313,7 +320,7 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
         'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource', 'is_restricted']
+        'datasource', 'd3format', 'is_restricted']
     add_columns = edit_columns
     page_size = 500
     validators_columns = {
@@ -356,6 +363,17 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
+    show_columns = [
+        'tables',
+        'cache_timeout',
+        'extra',
+        'database_name',
+        'sqlalchemy_uri',
+        'created_by',
+        'created_on',
+        'changed_by',
+        'changed_on'
+    ]
     add_template = "caravel/models/database/add.html"
     edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')
@@ -565,12 +583,24 @@ class SliceAsync(SliceModelView):  # noqa
         'creator', 'modified', 'icons']
     label_columns = {
         'icons': ' ',
-        'viz_type': _('Type'),
         'slice_link': _('Slice'),
         'viz_type': _('Visualization Type'),
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
+
+
+class SliceAddView(SliceModelView):  # noqa
+    list_columns = [
+        'slice_link', 'viz_type',
+        'owners', 'modified', 'data', 'changed_on']
+    label_columns = {
+        'icons': ' ',
+        'slice_link': _('Slice'),
+        'viz_type': _('Visualization Type'),
+    }
+
+appbuilder.add_view_no_menu(SliceAddView)
 
 
 class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
@@ -1022,6 +1052,23 @@ class Caravel(BaseCaravelView):
 
     @api
     @has_access_api
+    @expose("/add_slices/<dashboard_id>/", methods=['POST'])
+    def add_slices(self, dashboard_id):
+        """Add and save slices to a dashboard"""
+        data = json.loads(request.form.get('data'))
+        session = db.session()
+        Slice = models.Slice # noqa
+        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        check_ownership(dash, raise_if_false=True)
+        new_slices = session.query(Slice).filter(Slice.id.in_(data['slice_ids']))
+        dash.slices += new_slices
+        session.merge(dash)
+        session.commit()
+        session.close()
+        return "SLICES ADDED"
+
+    @api
+    @has_access_api
     @expose("/testconn", methods=["POST", "GET"])
     def testconn(self):
         """Tests a sqla connection"""
@@ -1100,6 +1147,7 @@ class Caravel(BaseCaravelView):
 
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
+            user_id=g.user.get_id(),
             templates=templates,
             dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
             dash_edit_perm=check_ownership(dash, raise_if_false=False))

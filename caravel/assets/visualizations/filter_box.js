@@ -26,7 +26,12 @@ function filterBox(slice) {
       .append('div')
       .classed('padded', true);
 
-    $.getJSON(slice.jsonEndpoint(), function (payload) {
+    var preSelectDict = slice.getFilters() || {};
+    $.getJSON(slice.jsonEndpoint({
+        // filter box should ignore the filters
+        // otherwise there will be only a few options in the dropdown menu
+        extraFilters: false,
+    }), function (payload) {
         var maxes = {};
 
         for (var filter in payload.data) {
@@ -52,9 +57,14 @@ function filterBox(slice) {
               dropdownAutoWidth: true,
               data: data,
               multiple: true,
-              formatResult: select2Formatter
+              formatResult: select2Formatter,
             })
             .on('change', fltChanged);
+
+          var preSelect = preSelectDict[filter];
+          if (preSelect !== undefined) {
+           filtersObj[filter].select2('val', preSelect);
+          }
         }
         slice.done(payload);
 
@@ -75,7 +85,7 @@ function filterBox(slice) {
   };
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

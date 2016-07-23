@@ -43,3 +43,14 @@ framework, in the meantime, we've tagged a few pull requests as
 visualizations.
 
 https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed
+
+
+Why are my queries timing out?
+------------------------------
+
+If you are seeing timeouts (504 Gateway Time-out) when running queries,
+it's because the web server is timing out web requests. If you want to
+increase the default (50), you can specify the timeout when starting the
+web server with the ``-t`` flag, which is expressed in seconds.
+
+``caravel runserver -t 300``

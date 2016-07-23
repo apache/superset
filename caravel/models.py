@@ -404,13 +404,26 @@ class Database(Model, AuditMixinNullable):
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
-                Grain('quarter', _('quarter'), "date_trunc('quarter', CAST({col} AS DATE))"),
-                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
-                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
+                Grain('second', _('second'),
+                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+                Grain('minute', _('minute'),
+                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+                Grain('hour', _('hour'),
+                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+                Grain('day', _('day'),
+                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+                Grain('week', _('week'),
+                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+                Grain('month', _('month'),
+                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+                Grain('quarter', _('quarter'),
+                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+                Grain("week_ending_saturday", _('week_ending_saturday'),
+                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+                      "CAST({col} AS TIMESTAMP))))"),
+                Grain("week_start_sunday", _('week_start_sunday'),
+                      "date_add('day', -1, date_trunc('week', "
+                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
@@ -430,8 +443,10 @@ class Database(Model, AuditMixinNullable):
             'sqlite': (
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain("week", _('week'),
+                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'),
+                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
                 Grain("Time Column", _('Time Column'), "{col}"),
@@ -728,6 +743,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
+            # some sql dialects require for order by expressions 
+            # to also be in the select clause
+            inner_select_exprs += [main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
@@ -870,6 +888,7 @@ class SqlMetric(Model, AuditMixinNullable):
     expression = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def sqla_col(self):
@@ -940,11 +959,11 @@ class TableColumn(Model, AuditMixinNullable):
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to string
 
-        If datebase_expression is empty, the internal dttm
+        If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
-        user input (python_date_format)
+        the user inputted (python_date_format)
         If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for datebase to convert
+        will be parsed as the sql sentence for the database to convert
         """
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
@@ -1195,7 +1214,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,):  # noqa
+            select=None,  # noqa
+            columns=None, ):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
@@ -1490,7 +1510,7 @@ class DruidMetric(Model, AuditMixinNullable):
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='metrics',
@@ -1498,6 +1518,7 @@ class DruidMetric(Model, AuditMixinNullable):
     json = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def json_obj(self):
@@ -1523,7 +1544,7 @@ class DruidColumn(Model, AuditMixinNullable):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='columns',

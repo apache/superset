@@ -160,6 +160,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  Impala       | ``pip install impyla``              | ``impala://``                                   |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  SparkSQL     | ``pip install pyhive``              | ``jdbc+hive://``                                |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -175,8 +177,10 @@ caching purpose. Configuring your caching backend is as easy as providing
 a ``CACHE_CONFIG``, constant in your ``caravel_config.py`` that
 complies with the Flask-Cache specifications.
 
-Flask-Cache supports multiple caching backends (Redis, Memcache,
-SimpleCache (in-memory), or the local filesystem).
+Flask-Cache supports multiple caching backends (Redis, Memcached,
+SimpleCache (in-memory), or the local filesystem). If you are going to use
+Memcached please use the pylibmc client library as python-memcached does
+not handle storing binary data correctly.
 
 For setting your timeouts, this is done in the Caravel metadata and goes
 up the "timeout searchpath", from your slice configuration, to your

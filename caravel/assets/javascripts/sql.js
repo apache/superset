@@ -32,12 +32,12 @@ $(document).ready(function () {
     editor.setTheme("ace/theme/crimson_editor");
     editor.setOptions({
       minLines: 16,
-      maxLines: Infinity
+      maxLines: Infinity,
     });
     editor.getSession().setMode("ace/mode/sql");
     editor.focus();
     $("select").select2({
-      dropdownAutoWidth: true
+      dropdownAutoWidth: true,
     });
 
     function showTableMetadata() {
@@ -49,7 +49,7 @@ $(document).ready(function () {
     $("#create_view").click(function () {
       showModal({
         title: "Error",
-        body: "Sorry, this feature is not yet implemented"
+        body: "Sorry, this feature is not yet implemented",
       });
     });
     $(".sqlcontent").show();
@@ -80,8 +80,8 @@ $(document).ready(function () {
         data: {
           data: JSON.stringify({
             database_id: $('#database_id').val(),
-            sql: editor.getSession().getValue()
-          })
+            sql: editor.getSession().getValue(),
+          }),
         },
         success: function (data) {
           $('#loading').hide(0);
@@ -92,14 +92,14 @@ $(document).ready(function () {
             retrieve: true,
             paging: false,
             searching: true,
-            aaSorting: []
+            aaSorting: [],
           });
         },
         error: function (err, err2) {
           $('#loading').hide(0);
           $('#results').show(0);
           $('#results').html(err.responseText);
-        }
+        },
       });
     });
   }
