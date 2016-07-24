@@ -196,6 +196,8 @@ class CoreTests(CaravelTestCase):
             'css': '',
             'expanded_slices': {},
             'positions': positions,
+            'autorefresh_seconds': 60,
+            'autorefresh_from_cache': True,
         }
         url = '/caravel/save_dash/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))

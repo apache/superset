@@ -44,21 +44,22 @@
         <div class="modal-content">
             <div class="modal-header">
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
-                <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
+                <h4 class="modal-title" id="myModalLabel">Autorefresh Interval and Settings</h4>
+                <h6><strong>Choose if and how frequently the dashboard should refresh.</strong></h6>
             </div>
             <div class="modal-body">
-                <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
-                    <option value="0">Don't refresh</option>
-                    <option value="10">10 seconds</option>
-                    <option value="30">30 seconds</option>
-                    <option value="60">1 minute</option>
-                    <option value="300">5 minutes</option>
-                </select><br>
+                <label for="refresh_dash_interval">Dashboard Refresh Interval</label>
+                <input id="refresh_dash_interval" value="{{ dashboard.autorefresh_seconds }}" />
+                <p class="help-block">Number of seconds between refreshes. Set to 0 for no auto-refresh.</p>
+                <br>
+                <label for="refresh_dash_from_cache">Refresh from Cache</label>
+                <input type="checkbox" id="refresh_dash_force" {{ "checked" if dashboard.autorefresh_from_cache }}/>
+                <p class="help-block">If unchecked the dashboard will force fresh values from the database. While checked the dashboard will allow values from the cache resulting in better performance for multiple users.</p>
+                <br>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">
-                    Close
+                <button type="button" class="btn btn-default" data-dismiss="modal" id="refresh_dash_apply">
+                    Apply and Close
                 </button>
             </div>
         </div>
@@ -84,7 +85,7 @@
               <i class="fa fa-plus" data-toggle="tooltip" title="Add a new slice to the dashboard"></i>
           </button>
           <button type="button" id="refresh_dash_periodic" class="btn btn-default" data-toggle="modal" data-target="#refresh_modal">
-              <i class="fa fa-clock-o" data-toggle="tooltip" title="Decide how frequent should the dashboard refresh"></i>
+              <i class="fa fa-clock-o" data-toggle="tooltip" title="Decide if and how frequent should the dashboard refresh"></i>
           </button>
           <button type="button" id="filters" class="btn btn-default" data-toggle="tooltip" title="View the list of active filters">
             <i class="fa fa-filter"></i>
@@ -95,7 +96,7 @@
           <a id="editdash" class="btn btn-default {{ "disabled disabledButton" if not dash_edit_perm }} " href="/dashboardmodelview/edit/{{ dashboard.id }}" title="Edit this dashboard's property" data-toggle="tooltip" >
               <i class="fa fa-edit"></i>
           </a>
-          <button type="button" id="savedash" class="btn btn-default {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="tooltip" title="Save the current positioning and CSS">
+          <button type="button" id="savedash" class="btn btn-default {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="tooltip" title="Save the current refresh settings, positioning and CSS">
             <i class="fa fa-save"></i>
           </button>
         </div>

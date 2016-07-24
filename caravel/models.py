@@ -291,6 +291,9 @@ class Dashboard(Model, AuditMixinNullable):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
+    # A Zero for autorefresh_seconds implies no autorefresh
+    autorefresh_seconds = Column(Integer, default=0, nullable=False)
+    autorefresh_from_cache = Column(Boolean, default=True, nullable=False)
 
     def __repr__(self):
         return self.dashboard_title
@@ -315,6 +318,7 @@ class Dashboard(Model, AuditMixinNullable):
 
     @property
     def json_data(self):
+        """Returns the configuration data for the dashboard as json"""
         d = {
             'id': self.id,
             'metadata': self.metadata_dejson,
@@ -322,6 +326,8 @@ class Dashboard(Model, AuditMixinNullable):
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
             'position_json': json.loads(self.position_json) if self.position_json else [],
+            'autorefresh_seconds': self.autorefresh_seconds,
+            'autorefresh_from_cache': self.autorefresh_from_cache,
         }
         return json.dumps(d)
 

@@ -607,12 +607,23 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
-        'dashboard_title', 'slug', 'slices', 'owners', 'position_json', 'css',
+        'dashboard_title', 'slug', 'slices', 'owners',
+        'autorefresh_seconds', 'autorefresh_from_cache',
+        'position_json', 'css',
         'json_metadata']
     show_columns = edit_columns + ['table_names']
     add_columns = edit_columns
     base_order = ('changed_on', 'desc')
     description_columns = {
+        'autorefresh_seconds': _(
+            "The number of seconds between automatic refreshes "
+            "of the dashboard. The default value of 0 means the "
+            "dashboard will not automatically refresh."),
+        'autorefresh_from_cache': _(
+            "If checked the dashboard will used cached values when "
+            "refreshing. To force the dashboard to always use fresh "
+            "values then uncheck this option. Performance with many "
+            "users will be lower if unchecked."),
         'position_json': _(
             "This json object describes the positioning of the widgets in "
             "the dashboard. It is dynamically generated when adjusting "
@@ -639,6 +650,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         'owners': _("Owners"),
         'creator': _("Creator"),
         'modified': _("Modified"),
+        'autorefresh_seconds': _("Dashboard Refresh Frequency"),
+        'autorefresh_from_cache': _("Refresh From Cache"),
         'position_json': _("Position JSON"),
         'css': _("CSS"),
         'json_metadata': _("JSON Metadata"),
@@ -1045,6 +1058,8 @@ class Caravel(BaseCaravelView):
         md['expanded_slices'] = data['expanded_slices']
         dash.json_metadata = json.dumps(md, indent=4)
         dash.css = data['css']
+        dash.autorefresh_seconds = data['autorefresh_seconds']
+        dash.autorefresh_from_cache = data['autorefresh_from_cache']
         session.merge(dash)
         session.commit()
         session.close()

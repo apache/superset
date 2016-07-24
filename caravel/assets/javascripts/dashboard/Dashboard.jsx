@@ -42,7 +42,7 @@ var Dashboard = function (dashboardData) {
       this.slices = sliceObjects;
       this.refreshTimer = null;
       this.loadPreSelectFilters();
-      this.startPeriodicRender(0);
+      this.startPeriodicRender();
       this.bindResizeToWindowResize();
     },
     loadPreSelectFilters: function () {
@@ -103,13 +103,14 @@ var Dashboard = function (dashboardData) {
         this.refreshTimer = null;
       }
     },
-    startPeriodicRender: function (interval) {
+    startPeriodicRender: function () {
       this.stopPeriodicRender();
       var dash = this;
+      var interval = dash.autorefresh_seconds * 1000;
+      var force = !(dash.autorefresh_from_cache);
       var maxRandomDelay = Math.min(interval * 0.2, 5000);
       var refreshAll = function () {
         dash.slices.forEach(function (slice) {
-          var force = !dash.firstLoad;
           setTimeout(function () {
             slice.render(force);
           },
@@ -127,7 +128,9 @@ var Dashboard = function (dashboardData) {
           }, interval);
         }
       };
-      fetchAndRender();
+      if (interval > 0) {
+        fetchAndRender();
+      };
     },
     refreshExcept: function (slice_id) {
       var immune = this.metadata.filter_immune_slices || [];
@@ -213,7 +216,9 @@ var Dashboard = function (dashboardData) {
       var data = {
         positions: this.reactGridLayout.serialize(),
         css: this.editor.getValue(),
-        expanded_slices: expandedSlices
+        expanded_slices: expandedSlices,
+        autorefresh_seconds: dashboard.autorefresh_seconds,
+        autorefresh_from_cache: dashboard.autorefresh_from_cache
       };
       $.ajax({
         type: "POST",
@@ -296,6 +301,11 @@ var Dashboard = function (dashboardData) {
       $("#refresh_dash_interval").on("change", function () {
         var interval = $(this).find('option:selected').val() * 1000;
         dashboard.startPeriodicRender(interval);
+      });
+      $("#refresh_dash_apply").click(function () {
+        dashboard.autorefresh_seconds = $("refresh_dash_interval").val() * 1000;
+        dashboard.autorefresh_from_cache = $("refresh_dash_from_cache").is(':checked');
+        dashboard.startPeriodicRender(dashboard.autorefresh_seconds, dashboard.autorefresh_from_cache);
       });
       $('#refresh_dash').click(function () {
         dashboard.slices.forEach(function (slice) {
