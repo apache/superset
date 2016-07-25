@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import enum
 import functools
 import json
 import logging
@@ -37,6 +38,7 @@ from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.types import Enum
 from sqlalchemy_utils import EncryptedType
 
 import caravel
@@ -1664,3 +1666,59 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
+
+
+class QueryResult(Model):
+    """ORM model for SQL query results"""
+
+    __tablename__ = 'query_result'
+    id = Column(Integer, primary_key=True)
+    query_id = Column(Integer, ForeignKey('query.id'), nullable=False)
+    tmp_table_id = Column(Integer, ForeignKey('tables.id'), nullable=True)
+    expiration_date = Column(DateTime, default=func.now())
+    # TODO(b.kyryliuk): add data preview, first 10000 columns or so.
+
+
+class QueryStatus(Enum):
+    SCHEDULED = "SCHEDULED"
+    CANCELLED = "CANCELLED"
+    IN_PROGRESS = "IN_PROGRESS"
+    FINISHED = "FINISHED"
+    TIMED_OUT = "TIMED_OUT"
+    FAILED = "FAILED"
+
+
+class Query(Model):
+
+    """ORM model for SQL query"""
+
+    __tablename__ = 'query'
+    id = Column(Integer, primary_key=True)
+
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+    table_ids = Column(Integer, ForeignKey('tables.id'), nullable=True)
+
+    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
+    result_id = Column(
+        Integer, ForeignKey('query_result.id'), nullable=True)
+
+    name = Column(String(256))
+    query = Column(String(10000))
+    # Configured in the caravel config.
+    query_limit = Column(Integer)
+    # query_status = Column(Enum(QueryStatus))
+    query_status = Column(Enum(
+        "SCHEDULED",
+        "CANCELLED",
+        "IN_PROGRESS",
+        "FINISHED",
+        "TIMED_OUT",
+        "FAILED",
+        name="query_status"))
+
+    # 1..100
+    query_progress = Column(Integer)
+    start_time = Column(DateTime, default=func.now())
+    end_time = Column(DateTime)
+    # Time the query was accessed.
+    viewed_on = Column(DateTime, default=func.now())
