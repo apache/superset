@@ -9,3 +9,4 @@ set -e
 caravel/bin/caravel db upgrade
 caravel/bin/caravel version -v
 python setup.py nosetests
+
