@@ -5,6 +5,7 @@ Organizations
 ----------
  - [Airbnb](https://github.com/airbnb)
  - [GfK Data Lab] (http://datalab.gfk.com)
+ - [Maieutical Labs] (https://cloudschooling.it)
 
 Projects
 ----------
