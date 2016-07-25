@@ -8,9 +8,7 @@ from datetime import datetime
 import doctest
 import json
 import imp
-import mock
 import os
-import sqlalchemy
 import unittest
 
 from mock import Mock, patch
@@ -20,7 +18,7 @@ from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
 from caravel import app, db, models, utils, appbuilder, tasks
-from caravel.models import DruidCluster, DruidDatasource
+from caravel.models import DruidCluster
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
@@ -126,28 +124,6 @@ class CoreTests(CaravelTestCase):
 
     def tearDown(self):
         pass
-
-    @mock.patch('caravel.db')
-    @mock.patch('pandas.read_sql_query')
-    def test_celery_sql_execution(
-            self, caravel_db_mock, unused_pd_read_sql_query_mock):
-        mydb = mock.MagicMock()
-        sqlite_connection = sqlalchemy.create_engine(
-            "sqlite:///tmp/caravel_unittests.db")
-        mydb.get_sqla_engine = mock.MagicMock(return_value=sqlite_connection)
-        tasks.get_sql_results_internal(
-            "SELECT * FROM TABLE", mock.MagicMock(), mydb)
-        caravel_db_mock.assert_called_once_with(
-            con=sqlite_connection,
-            sql="SELECT * \nFROM (SELECT * FROM TABLE) AS inner_qry\n"
-                " LIMIT 1000 OFFSET 0")
-
-        caravel_db_mock.reset_mock()
-        app.config['SQL_MAX_ROW'] = None
-        tasks.get_sql_results_internal(
-            "SELECT * FROM TABLE", mock.MagicMock(), mydb)
-        caravel_db_mock.assert_called_once_with(
-            con=sqlite_connection, sql="SELECT * FROM TABLE")
 
     def test_save_slice(self):
         self.login(username='admin')
