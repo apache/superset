@@ -235,6 +235,11 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'show_bar_value': (BetterBooleanField, {
+                "label": _("Bar Values"),
+                "default": False,
+                "description": "Show the value on top of the bars or not"
+            }),
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,

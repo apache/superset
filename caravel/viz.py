@@ -1125,7 +1125,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': _('Chart Options'),
         'fields': (
-            ('show_brush', 'show_legend'),
+            ('show_brush', 'show_legend', 'show_bar_value'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
             ('x_axis_format', 'y_axis_format'),
@@ -1213,7 +1213,7 @@ class DistributionBarViz(DistributionPieViz):
             'columns',
             'metrics',
             'row_limit',
-            ('show_legend', 'bar_stacked'),
+            ('show_legend', 'show_bar_value', 'bar_stacked'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
