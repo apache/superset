@@ -235,6 +235,11 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'show_bar_value': (BetterBooleanField, {
+                "label": _("Bar Values"),
+                "default": False,
+                "description": "Show the value on top of the bars or not"
+            }),
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,
@@ -409,7 +414,7 @@ class FormFactory(object):
                     "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor. Also note that the "
-                    "filter bellow is applied against this column or "
+                    "filter below is applied against this column or "
                     "expression")
             }),
             'resample_rule': (FreeFormSelectField, {

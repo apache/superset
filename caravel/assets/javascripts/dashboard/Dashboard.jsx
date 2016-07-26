@@ -14,8 +14,9 @@ var ace = require('brace');
 require('bootstrap');
 require('brace/mode/css');
 require('brace/theme/crimson_editor');
+require('./main.css');
 require('../caravel-select2.js');
-require('../../stylesheets/dashboard.css');
+
 
 var Dashboard = function (dashboardData) {
   var dashboard = $.extend(dashboardData, {
@@ -251,7 +252,7 @@ var Dashboard = function (dashboardData) {
       dashboard = this;
 
       // Displaying widget controls on hover
-      $('.chart-header').hover(
+      $('.react-grid-item').hover(
         function () {
           $(this).find('.chart-controls').fadeIn(300);
         },

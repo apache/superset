@@ -13,7 +13,7 @@ function sankeyVis(slice) {
       top: 5,
       right: 5,
       bottom: 5,
-      left: 5
+      left: 5,
     };
     var width = slice.width() - margin.left - margin.right;
     var height = slice.height() - margin.top - margin.bottom;
@@ -143,7 +143,7 @@ function sankeyVis(slice) {
             "<div class='percents'>",
               "<span class='emph'>", (isFinite(sourcePercent) ? sourcePercent : "100"), "%</span> of ", d.source.name, "<br/>",
               "<span class='emph'>" + (isFinite(targetPercent) ? targetPercent : "--") + "%</span> of ", d.target.name, "target",
-            "</div>"
+            "</div>",
           ].join("");
         }
         return html;
@@ -170,7 +170,7 @@ function sankeyVis(slice) {
   };
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 

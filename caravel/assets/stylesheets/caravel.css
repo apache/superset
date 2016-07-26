@@ -183,18 +183,6 @@ div.widget .chart-header a {
   display: none;
 }
 
-div.widget .chart-controls {
-  background-clip: content-box;
-  background-color: #f1f1f1;
-  position: absolute;
-  right: 0;
-  left: 0;
-  top: 5px;
-  padding: 5px 5px;
-  opacity: 0.75;
-  display: none;
-}
-
 div.widget .slice_container {
   overflow: auto;
 }
