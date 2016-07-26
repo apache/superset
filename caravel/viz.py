@@ -1166,6 +1166,73 @@ class DistributionPieViz(NVD3Viz):
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
+class HistogramViz(BaseViz):
+
+    """A histogram (incomplete)"""
+
+    viz_type = "histogram"
+    verbose_name = _("Distribution - Histogram")
+    is_timeseries = False
+    fieldsets = ({
+        'label': _('Chart Options'),
+        'fields': (
+            'groupby',
+            'columns',
+            'row_limit',
+            ('y_axis_format', 'bottom_margin'),
+            ('x_axis_lable', 'y_axis_label'),
+            ('reduce_x_ticks', 'contribution'),
+            ('show_controls', None),
+        )
+    },)
+
+    form_overrides = {
+            'groupby': {
+                'label': _('Series'),
+             },
+            'columns': {
+                'label': _('Breakdowns'),
+                'description': _("Defines how much each series is broken down"),
+            },
+    }
+
+    def query_obj(self):
+        d = None
+        form_data = self.form_data
+        d['is_timeseries'] = False
+        gb = form_data.get('groupby') or []
+        cols = form_data.get('columns') or []
+        if(len(cols)>1):
+            raise Exception("Can't have more than one column for histogram")
+        if (len(gb) != 0):
+            raise Exception("Can't use groupby in histogram")
+        d['filter'] = self.query_filters()
+        d['row_limit'] = int(form_data.get('row_limit', config.get("ROW_LIMIT")))
+        return d
+
+    def get_df(self, query_obj=None):
+        """Returns a pandas dataframe based on the query object"""
+        if not query_obj:
+            query_obj = self.query_obj()
+
+        self.error_msg = ""
+        self.results = self.datasource.query(**query_obj)
+        self.query = self.results.query
+        df = self.results.df
+
+        return df;
+
+    def get_series(self, df):
+        chart_data = []
+        for index, row in df.iterrows():
+            chart_data.append(row[0])
+        return chart_data
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = self.to_series(df)
+        return chart_data
+
 
 class DistributionBarViz(DistributionPieViz):
 
@@ -1887,6 +1954,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    HistogramViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
