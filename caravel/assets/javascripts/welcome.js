@@ -1,4 +1,5 @@
 const $ = window.$ = require('jquery');
+/* eslint no-unused-vars: 0 */
 const jQuery = window.jQuery = $;
 require('../stylesheets/welcome.css');
 require('bootstrap');
