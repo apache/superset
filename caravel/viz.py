@@ -177,7 +177,7 @@ class BaseViz(object):
                 if self.datasource.offset:
                     df.timestamp += timedelta(hours=self.datasource.offset)
         df.replace([np.inf, -np.inf], np.nan)
-        df = df.fillna(0)
+        df = df.fillna('NULL')
         return df
 
     @property
