@@ -7,7 +7,7 @@
     "test": "spec"
   },
   "scripts": {
-    "test": "mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
+    "test": "npm run lint && mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
     "dev": "webpack -d --watch --colors",
     "prod": "webpack -p --colors",
     "lint": "npm run --silent lint:js",
@@ -81,7 +81,11 @@
     "chai": "^3.5.0",
     "css-loader": "^0.23.1",
     "enzyme": "^2.0.0",
-    "eslint": "^2.2.0",
+    "eslint": "^2.13.1",
+    "eslint-config-airbnb": "^9.0.1",
+    "eslint-plugin-import": "^1.11.1",
+    "eslint-plugin-jsx-a11y": "^2.0.1",
+    "eslint-plugin-react": "^5.2.2",
     "exports-loader": "^0.6.3",
     "file-loader": "^0.8.5",
     "imports-loader": "^0.6.5",

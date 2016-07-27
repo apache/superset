@@ -1,7 +1,10 @@
 const path = require('path');
 
-const APP_DIR = path.resolve(__dirname, './'); // input
-const BUILD_DIR = path.resolve(__dirname, './javascripts/dist'); // output
+// input dir
+const APP_DIR = path.resolve(__dirname, './');
+
+// output dir
+const BUILD_DIR = path.resolve(__dirname, './javascripts/dist');
 
 const config = {
   entry: {
@@ -18,10 +21,12 @@ const config = {
     filename: '[name].entry.js',
   },
   resolve: {
-    extensions: ['', '.js', '.jsx'],
-    alias: {
-      webworkify: 'webworkify-webpack',
-    },
+    extensions: [
+      '',
+      '.js',
+      '.jsx',
+    ],
+    alias: { webworkify: 'webworkify-webpack' },
   },
   module: {
     loaders: [
@@ -30,40 +35,53 @@ const config = {
         exclude: APP_DIR + '/node_modules',
         loader: 'babel',
         query: {
-          presets: ['airbnb', 'es2015', 'react'],
+          presets: [
+            'airbnb',
+            'es2015',
+            'react',
+          ],
         },
       },
-
       /* for react-map-gl overlays */
       {
         test: /\.react\.js$/,
         include: APP_DIR + '/node_modules/react-map-gl/src/overlays',
         loader: 'babel',
       },
-
       /* for require('*.css') */
       {
         test: /\.css$/,
         include: APP_DIR,
-        loader: "style-loader!css-loader",
+        loader: 'style-loader!css-loader',
       },
-
       /* for css linking images */
-      { test: /\.png$/, loader: "url-loader?limit=100000" },
-      { test: /\.jpg$/, loader: "file-loader" },
-      { test: /\.gif$/, loader: "file-loader" },
-
+      {
+        test: /\.png$/,
+        loader: 'url-loader?limit=100000',
+      },
+      {
+        test: /\.jpg$/,
+        loader: 'file-loader',
+      },
+      {
+        test: /\.gif$/,
+        loader: 'file-loader',
+      },
       /* for font-awesome */
-      { test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "url-loader?limit=10000&minetype=application/font-woff" },
-      { test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/, loader: "file-loader" },
-
+      {
+        test: /\.woff(2)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        loader: 'url-loader?limit=10000&minetype=application/font-woff',
+      },
+      {
+        test: /\.(ttf|eot|svg)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+        loader: 'file-loader',
+      },
       /* for require('*.less') */
       {
         test: /\.less$/,
         include: APP_DIR,
-        loader: "style!css!less",
+        loader: 'style!css!less',
       },
-
       /* for mapbox */
       {
         test: /\.json$/,
@@ -88,5 +106,4 @@ const config = {
   },
   plugins: [],
 };
-
 module.exports = config;
