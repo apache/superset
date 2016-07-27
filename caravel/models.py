@@ -1410,6 +1410,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
                 else:
+                    #allows setting filter to query that value of dimension is null 
+                    if eq == 'null' or eq == 'NULL':
+                        eq = None
                     cond = Dimension(col) == eq
                 if op == 'not in':
                     cond = ~cond
