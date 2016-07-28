@@ -27,14 +27,6 @@ app.config['CSRF_ENABLED'] = False
 app.config['SECRET_KEY'] = 'thisismyscretkey'
 app.config['WTF_CSRF_ENABLED'] = False
 app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
-
-class CeleryConfig(object):
-    BROKER_URL = 'sqla+sqlite:////tmp/celerydb.sqlite'
-    CELERY_IMPORTS = ('caravel.tasks',)
-    CELERY_RESULT_BACKEND = 'db+sqlite:////tmp/celery_results.sqlite'
-    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
-app.config['CELERY_CONFIG'] = CeleryConfig
-
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
