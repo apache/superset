@@ -1,15 +1,13 @@
-"""Unit tests for Caravel Celery worker"""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
+'''Unit tests for Caravel Celery worker'''
 import imp
+import json
 import subprocess
 import os
-os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
-
 import time
 import unittest
+
+# Set environ before caravel module is imported.
+os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 import caravel
 from caravel import app, appbuilder, db, models, tasks, utils
 
@@ -21,8 +19,8 @@ class CeleryConfig(object):
     CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 app.config['CELERY_CONFIG'] = CeleryConfig
 
-BASE_DIR = app.config.get("BASE_DIR")
-cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
+BASE_DIR = app.config.get('BASE_DIR')
+cli = imp.load_source('cli', BASE_DIR + '/bin/caravel')
 
 
 class CeleryTestCase(unittest.TestCase):
@@ -49,11 +47,10 @@ class CeleryTestCase(unittest.TestCase):
         except OSError:
             pass
 
-        worker_command = BASE_DIR + "/bin/caravel worker"
+        worker_command = BASE_DIR + '/bin/caravel worker'
         subprocess.Popen(
             worker_command, shell=True, stdout=subprocess.PIPE)
         cli.load_examples(load_test_data=True)
-
 
     @classmethod
     def tearDownClass(cls):
@@ -77,100 +74,95 @@ class CeleryTestCase(unittest.TestCase):
     def test_run_async_query_delay_get(self):
         # DB #0 doesn't exist.
         result1 = tasks.get_sql_results.delay(
-            0, "SELECT * FROM dontexist", 1).get()
-        expected_result1 = (
-            '{"msg": "Database with id 0 is missing."}')
-        self.assertEqual(expected_result1, result1)
+            0, 'SELECT * FROM dontexist', 1).get()
+        expected_result1 = {'msg': 'Database with id 0 is missing.'}
+        self.assertEqual(expected_result1, json.loads(result1))
         session1 = db.create_scoped_session()
         query1 = session1.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist").first()
+            query_text='SELECT * FROM dontexist').first()
         session1.close()
         self.assertIsNone(query1)
 
         session2 = db.create_scoped_session()
         query2 = session2.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist1").first()
+            query_text='SELECT * FROM dontexist1').first()
         self.assertEqual(models.QueryStatus.FAILED, query2.query_status)
         session2.close()
 
         result2 = tasks.get_sql_results.delay(
-            1, "SELECT * FROM dontexist1", 1).get()
-        print("blabla")
-        print(result2)
-        expected_result2 = (
-            '{"msg": "(sqlite3.OperationalError) no such table: dontexist1"}')
-        self.assertEqual(expected_result2, result2)
+            1, 'SELECT * FROM dontexist1', 1).get()
+        self.assertTrue('msg' in result2)
         session2 = db.create_scoped_session()
         query2 = session2.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist1").first()
+            query_text='SELECT * FROM dontexist1').first()
         self.assertEqual(models.QueryStatus.FAILED, query2.query_status)
         session2.close()
 
-        result3 = tasks.get_sql_results.delay(
-            1, "SELECT name FROM ab_permission WHERE name='can_select_star'",
-            1).get()
-        expected_result3 = (
-            '{"data": [{"name": "can_select_star"}], "columns": ["name"]}')
-        self.assertEqual(expected_result3, result3)
+        where_query = (
+            "SELECT name FROM ab_permission WHERE name='can_select_star'")
+        result3 = tasks.get_sql_results.delay(1, where_query, 1).get()
+        expected_result3 = {
+            'columns': ['name'], 'data': [{'name': 'can_select_star'}]}
+        self.assertEqual(
+            sorted(expected_result3.items()),
+            sorted(json.loads(result3).items()))
         session3 = db.create_scoped_session()
         query3 = session3.query(models.Query).filter_by(
-            query_text=
-            "SELECT name FROM ab_permission WHERE name='can_select_star'").first()
+            query_text=where_query).first()
         self.assertEqual(models.QueryStatus.FINISHED, query3.query_status)
         session3.close()
 
         result4 = tasks.get_sql_results.delay(
-            1, "SELECT * FROM ab_permission WHERE id=666", 1).get()
-        expected_result4 = '{"data": [], "columns": ["id", "name"]}'
-        self.assertEqual(expected_result4, result4)
+            1, 'SELECT * FROM ab_permission WHERE id=666', 1).get()
+        expected_result4 = {'columns': ['id', 'name'], 'data': []}
+        self.assertEqual(expected_result4, json.loads(result4))
         session4 = db.create_scoped_session()
         query4 = session4.query(models.Query).filter_by(
-            query_text="SELECT * FROM ab_permission WHERE id=666").first()
+            query_text='SELECT * FROM ab_permission WHERE id=666').first()
         self.assertEqual(models.QueryStatus.FINISHED, query4.query_status)
         session4.close()
 
     def test_run_async_query_delay(self):
         celery_task1 = tasks.get_sql_results.delay(
-            0, "SELECT * FROM dontexist", 1)
+            0, 'SELECT * FROM dontexist', 1)
         celery_task2 = tasks.get_sql_results.delay(
-            1, "SELECT * FROM dontexist1", 1)
-        celery_task3 = tasks.get_sql_results.delay(
-            1, "SELECT name FROM ab_permission WHERE name='can_select_star'", 1)
+            1, 'SELECT * FROM dontexist1', 1)
+        where_query = (
+            "SELECT name FROM ab_permission WHERE name='can_select_star'")
+        celery_task3 = tasks.get_sql_results.delay(1, where_query, 1)
         celery_task4 = tasks.get_sql_results.delay(
-            1, "SELECT * FROM ab_permission WHERE id=666", 1)
+            1, 'SELECT * FROM ab_permission WHERE id=666', 1)
 
         time.sleep(2)
 
         # DB #0 doesn't exist.
-        expected_result1 = (
-            '{"msg": "Database with id 0 is missing."}')
-        self.assertEqual(expected_result1, celery_task1.get())
+        expected_result1 = {'msg': 'Database with id 0 is missing.'}
+        self.assertEqual(expected_result1, json.loads(celery_task1.get()))
         session2 = db.create_scoped_session()
         query2 = session2.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist1").first()
+            query_text='SELECT * FROM dontexist1').first()
         self.assertEqual(models.QueryStatus.FAILED, query2.query_status)
-        expected_result2 = (
-            '{"msg": "(sqlite3.OperationalError) no such table: dontexist1"}')
-        self.assertEqual(expected_result2, celery_task2.get())
-        expected_result3 = (
-            '{"data": [{"name": "can_select_star"}], "columns": ["name"]}')
-        self.assertEqual(expected_result3, celery_task3.get())
-        expected_result4 = '{"data": [], "columns": ["id", "name"]}'
-        self.assertEqual(expected_result4, celery_task4.get())
+        self.assertTrue('msg' in celery_task2.get())
+        expected_result3 = {
+            'columns': ['name'], 'data': [{'name': 'can_select_star'}]}
+        self.assertEqual(
+            sorted(expected_result3.items()),
+            sorted(json.loads(celery_task3.get()).items()))
+        expected_result4 = {'columns': ['id', 'name'], 'data': []}
+        self.assertEqual(expected_result4, json.loads(celery_task4.get()))
 
         session = db.create_scoped_session()
         query1 = session.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist").first()
+            query_text='SELECT * FROM dontexist').first()
         self.assertIsNone(query1)
         query2 = session.query(models.Query).filter_by(
-            query_text="SELECT * FROM dontexist1").first()
+            query_text='SELECT * FROM dontexist1').first()
         self.assertEqual(models.QueryStatus.FAILED, query2.query_status)
         query3 = session.query(models.Query).filter_by(
-            query_text=
-            "SELECT name FROM ab_permission WHERE name='can_select_star'").first()
+            query_text=where_query).first()
         self.assertEqual(models.QueryStatus.FINISHED, query3.query_status)
         query4 = session.query(models.Query).filter_by(
-            query_text="SELECT * FROM ab_permission WHERE id=666").first()
+            query_text='SELECT * FROM ab_permission WHERE id=666').first()
         self.assertEqual(models.QueryStatus.FINISHED, query4.query_status)
         session.close()
 
