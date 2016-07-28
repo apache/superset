@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import update from 'immutability-helper';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
@@ -6,15 +7,14 @@ require('../../../node_modules/react-bootstrap-table/css/react-bootstrap-table.c
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
-  caravel: PropTypes.object.isRequired
+  caravel: PropTypes.object.isRequired,
 };
 
 class SliceAdder extends React.Component {
   constructor(props) {
     super(props);
-
     this.state = {
-      slices: []
+      slices: [],
     };
 
     this.addSlices = this.addSlices.bind(this);
@@ -22,46 +22,47 @@ class SliceAdder extends React.Component {
     this.toggleAllSlices = this.toggleAllSlices.bind(this);
     this.slicesLoaded = false;
     this.selectRowProp = {
-      mode: "checkbox",
+      mode: 'checkbox',
       clickToSelect: true,
       onSelect: this.toggleSlice,
-      onSelectAll: this.toggleAllSlices
+      onSelectAll: this.toggleAllSlices,
     };
     this.options = {
-      defaultSortOrder: "desc",
-      defaultSortName: "modified",
-      sizePerPage: 10
+      defaultSortOrder: 'desc',
+      defaultSortName: 'modified',
+      sizePerPage: 10,
     };
   }
 
   componentDidMount() {
-    var uri = "/sliceaddview/api/read?_flt_0_created_by=" + this.props.dashboard.curUserId;
+    const uri = '/sliceaddview/api/read?_flt_0_created_by=' + this.props.dashboard.curUserId;
     this.slicesRequest = $.ajax({
       url: uri,
       type: 'GET',
       success: function (response) {
         this.slicesLoaded = true;
-
         // Prepare slice data for table
-        let slices = response.result;
-        slices.forEach(function (slice) {
-          slice.id = slice.data.slice_id;
-          slice.sliceName = slice.data.slice_name;
-          slice.vizType = slice.viz_type;
-          slice.modified = slice.modified;
+        const slices = response.result.map(function (slice) {
+          return {
+            id: slice.data.slice_id,
+            sliceName: slice.data.slice_name,
+            vizType: slice.viz_type,
+            modified: slice.modified,
+            data: slice.data,
+          };
         });
 
         this.setState({
-          slices: slices,
-          selectionMap: {}
+          slices,
+          selectionMap: {},
         });
       }.bind(this),
       error: function (error) {
         this.errored = true;
         this.setState({
-          errorMsg: this.props.dashboard.getAjaxErrorMsg(error)
+          errorMsg: this.props.dashboard.getAjaxErrorMsg(error),
         });
-      }.bind(this)
+      }.bind(this),
     });
   }
 
@@ -70,13 +71,12 @@ class SliceAdder extends React.Component {
   }
 
   addSlices() {
-    var slices = this.state.slices.filter(function (slice) {
+    const slices = this.state.slices.filter(function (slice) {
       return this.state.selectionMap[slice.id];
     }, this);
-
     slices.forEach(function (slice) {
-      var sliceObj = this.props.caravel.Slice(slice.data, this.props.dashboard);
-      $("#slice_" + slice.data.slice_id).find('a.refresh').click(function () {
+      const sliceObj = this.props.caravel.Slice(slice.data, this.props.dashboard);
+      $('#slice_' + slice.data.slice_id).find('a.refresh').click(function () {
         sliceObj.render(true);
       });
       this.props.dashboard.slices.push(sliceObj);
@@ -89,23 +89,23 @@ class SliceAdder extends React.Component {
     this.setState({
       selectionMap: update(this.state.selectionMap, {
         [slice.id]: {
-            $set: !this.state.selectionMap[slice.id]
-        }
-      })
+          $set: !this.state.selectionMap[slice.id],
+        },
+      }),
     });
   }
 
   toggleAllSlices(value) {
-    let updatePayload = {};
+    const updatePayload = {};
 
     this.state.slices.forEach(function (slice) {
       updatePayload[slice.id] = {
-        $set: value
+        $set: value,
       };
     }, this);
 
     this.setState({
-      selectionMap: update(this.state.selectionMap, updatePayload)
+      selectionMap: update(this.state.selectionMap, updatePayload),
     });
   }
 
@@ -134,13 +134,15 @@ class SliceAdder extends React.Component {
     }, this);
     const modalContent = (
       <div>
-        <img src="/static/assets/images/loading.gif"
-             className={"loading " + (hideLoad ? "hidden" : "")}
-             alt={hideLoad ? "" : "loading"}/>
-        <div className={this.errored ? "" : "hidden"}>
+        <img
+          src="/static/assets/images/loading.gif"
+          className={'loading ' + (hideLoad ? 'hidden' : '')}
+          alt={hideLoad ? '' : 'loading'}
+        />
+        <div className={this.errored ? '' : 'hidden'}>
           {this.state.errorMsg}
         </div>
-        <div className={this.slicesLoaded ? "" : "hidden"}>
+        <div className={this.slicesLoaded ? '' : 'hidden'}>
           <BootstrapTable
             ref="table"
             data={this.state.slices}
@@ -149,37 +151,52 @@ class SliceAdder extends React.Component {
             hover
             search
             pagination
-            height="auto">
-            <TableHeaderColumn dataField="sliceName" isKey={true} dataSort={true}>Name</TableHeaderColumn>
-            <TableHeaderColumn dataField="vizType" dataSort={true}>Viz</TableHeaderColumn>
+            height="auto"
+          >
+            <TableHeaderColumn
+              dataField="sliceName"
+              isKey
+              dataSort
+            >
+              Name
+            </TableHeaderColumn>
+            <TableHeaderColumn
+              dataField="vizType"
+              dataSort
+            >
+              Viz
+            </TableHeaderColumn>
             <TableHeaderColumn
               dataField="modified"
-              dataSort={true}
+              dataSort
               sortFunc={this.modifiedDateComparator}
               // Will cause react-bootstrap-table to interpret the HTML returned
-              dataFormat={modified => modified}>
+              dataFormat={modified => modified}
+            >
               Modified
             </TableHeaderColumn>
           </BootstrapTable>
         </div>
       </div>
     );
-    const customButtons = [
-      <button key={0}
-              type="button"
-              className="btn btn-default"
-              data-dismiss="modal"
-              onClick={this.addSlices}
-              disabled={!enableAddSlice}>
-          Add Slices
+    const customButton = (
+      <button
+        type="button"
+        className="btn btn-default"
+        data-dismiss="modal"
+        onClick={this.addSlices}
+        disabled={!enableAddSlice}
+      >
+        Add Slices
       </button>
-    ];
+    );
 
     return (
-      <Modal modalId='add_slice_modal'
-             modalContent={modalContent}
-             title='Add New Slices'
-             customButtons={customButtons}
+      <Modal
+        modalId="add_slice_modal"
+        modalContent={modalContent}
+        title="Add New Slices"
+        customButton={customButton}
       />
     );
   }

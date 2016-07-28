@@ -1,56 +1,51 @@
-var $ = require('jquery');
-var d3 = require('d3');
-
+const $ = require('jquery');
+const d3 = require('d3');
 /*
     Utility function that takes a d3 svg:text selection and a max width, and splits the
     text's text across multiple tspan lines such that any given line does not exceed max width
 
-    If text does not span multiple lines AND adjustedY is passed, will set the text to the passed val
+    If text does not span multiple lines AND adjustedY is passed,
+    will set the text to the passed val
  */
 function wrapSvgText(text, width, adjustedY) {
-  var lineHeight = 1; // ems
-
+  const lineHeight = 1;
+  // ems
   text.each(function () {
-    var text = d3.select(this),
-        words = text.text().split(/\s+/),
-        word,
-        line = [],
-        lineNumber = 0,
-        x = text.attr("x"),
-        y = text.attr("y"),
-        dy = parseFloat(text.attr("dy")),
-        tspan = text.text(null)
-          .append("tspan")
-          .attr("x", x)
-          .attr("y", y)
-          .attr("dy", dy + "em");
+    const d3Text = d3.select(this);
+    const words = d3Text.text().split(/\s+/);
+    let word;
+    let line = [];
+    let lineNumber = 0;
+    const x = d3Text.attr('x');
+    const y = d3Text.attr('y');
+    const dy = parseFloat(d3Text.attr('dy'));
+    let tspan =
+      d3Text.text(null).append('tspan').attr('x', x)
+            .attr('y', y)
+            .attr('dy', dy + 'em');
 
-    var didWrap = false;
-
-    for (var i = 0; i < words.length; i++) {
+    let didWrap = false;
+    for (let i = 0; i < words.length; i++) {
       word = words[i];
       line.push(word);
-      tspan.text(line.join(" "));
-
+      tspan.text(line.join(' '));
       if (tspan.node().getComputedTextLength() > width) {
-        line.pop(); // remove word that pushes over the limit
-        tspan.text(line.join(" "));
+        line.pop();
+        // remove word that pushes over the limit
+        tspan.text(line.join(' '));
         line = [word];
-        tspan = text.append("tspan")
-          .attr("x", x)
-          .attr("y", y)
-          .attr("dy", ++lineNumber * lineHeight + dy + "em")
-          .text(word);
-
+        tspan =
+          d3Text.append('tspan').attr('x', x).attr('y', y)
+                .attr('dy', ++lineNumber * lineHeight + dy + 'em')
+                .text(word);
         didWrap = true;
       }
     }
-    if (!didWrap && typeof adjustedY !== "undefined") {
-      tspan.attr("y", adjustedY);
+    if (!didWrap && typeof adjustedY !== 'undefined') {
+      tspan.attr('y', adjustedY);
     }
   });
 }
-
 /**
  * Sets the body and title content of a modal, and shows it. Assumes HTML for modal exists and that
  * it handles closing (i.e., works with bootstrap)
@@ -65,47 +60,41 @@ function wrapSvgText(text, width, adjustedY) {
  *   }
  */
 function showModal(options) {
-  options.modalSelector = options.modalSelector || ".misc-modal";
-  options.titleSelector = options.titleSelector || ".misc-modal .modal-title";
-  options.bodySelector = options.bodySelector || ".misc-modal .modal-body";
-
-  $(options.titleSelector).html(options.title || "");
-  $(options.bodySelector).html(options.body || "");
-  $(options.modalSelector).modal("show");
+  /* eslint no-param-reassign: 0 */
+  options.modalSelector = options.modalSelector || '.misc-modal';
+  options.titleSelector = options.titleSelector || '.misc-modal .modal-title';
+  options.bodySelector = options.bodySelector || '.misc-modal .modal-body';
+  $(options.titleSelector).html(options.title || '');
+  $(options.bodySelector).html(options.body || '');
+  $(options.modalSelector).modal('show');
 }
-
-var showApiMessage = function (resp) {
-  var template = '<div class="alert"> ' +
-      '<button type="button" class="close" ' +
-      'data-dismiss="alert">×</button> </div>';
-
-  var severity = resp.severity || 'info';
-  $(template)
-      .addClass('alert-' + severity)
-      .append(resp.message)
-      .appendTo($('#alert-container'));
+const showApiMessage = function (resp) {
+  const template =
+    '<div class="alert"> ' +
+    '<button type="button" class="close" ' +
+    'data-dismiss="alert">\xD7</button> </div>';
+  const severity = resp.severity || 'info';
+  $(template).addClass('alert-' + severity)
+             .append(resp.message)
+             .appendTo($('#alert-container'));
 };
-
-var toggleCheckbox = function (apiUrlPrefix, selector) {
-  var apiUrl = apiUrlPrefix + $(selector)[0].checked;
-  $.get(apiUrl).fail(function (xhr, textStatus, errorThrown) {
-    var resp = xhr.responseJSON;
+const toggleCheckbox = function (apiUrlPrefix, selector) {
+  const apiUrl = apiUrlPrefix + $(selector)[0].checked;
+  $.get(apiUrl).fail(function (xhr) {
+    const resp = xhr.responseJSON;
     if (resp && resp.message) {
       showApiMessage(resp);
     }
   });
 };
-
 /**
  * Fix the height of the table body of a DataTable with scrollY set
  */
-var fixDataTableBodyHeight = function ($tableDom, height) {
-  var headHeight = $tableDom.find('.dataTables_scrollHead').height();
-  $tableDom.find('.dataTables_scrollBody')
-      .css('max-height', height - headHeight);
+const fixDataTableBodyHeight = function ($tableDom, height) {
+  const headHeight = $tableDom.find('.dataTables_scrollHead').height();
+  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight);
 };
-
-var formatters = {};
+const formatters = {};
 function d3format(format, number) {
   // Formats a number and memoizes formatters to be reused
   format = format || '.3s';
@@ -114,11 +103,10 @@ function d3format(format, number) {
   }
   return formatters[format](number);
 }
-
 module.exports = {
-  wrapSvgText: wrapSvgText,
-  showModal: showModal,
-  toggleCheckbox: toggleCheckbox,
-  fixDataTableBodyHeight: fixDataTableBodyHeight,
-  d3format: d3format,
+  d3format,
+  fixDataTableBodyHeight,
+  showModal,
+  toggleCheckbox,
+  wrapSvgText,
 };
