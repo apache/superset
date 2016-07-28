@@ -319,6 +319,21 @@ def json_int_dttm_ser(obj):
     return obj
 
 
+def error_msg_from_exception(e):
+    """Translate exception into error message
+    Database have different ways to handle exception. This function attempts
+    to make sense of the exception object and construct a human readable
+    sentence.
+    """
+    msg = ''
+    if hasattr(e, 'message'):
+        if (type(e.message) is dict):
+            msg = e.message.get('message')
+        elif e.message:
+            msg = "{}".format(e.message)
+    return msg or '{}'.format(e)
+
+
 def markdown(s, markup_wrap=False):
     s = s or ''
     s = md(s, [
