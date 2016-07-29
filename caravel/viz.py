@@ -1175,7 +1175,9 @@ class DistributionPieViz(NVD3Viz):
         'fields': (
             'metrics', 'groupby',
             'limit',
+            'pie_label_type',
             ('donut', 'show_legend'),
+            'labels_outside',
         )
     },)
 

@@ -137,12 +137,13 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             let pointLabel;
 
              if (radiusProperty !== null) {
+              const pointLatitude = props.lngLatAccessor(location)[1];
               if (props.pointRadiusUnit === 'Kilometers') {
                 pointLabel = d3.round(pointRadius, 2) + 'km';
-                pointRadius = kmToPixels(pointRadius, props.latitude, props.zoom);
+                pointRadius = kmToPixels(pointRadius, pointLatitude, props.zoom);
               } else if (props.pointRadiusUnit === 'Miles') {
                 pointLabel = d3.round(pointRadius, 2) + 'mi';
-                pointRadius = kmToPixels(pointRadius * MILES_PER_KM, props.latitude, props.zoom);
+                pointRadius = kmToPixels(pointRadius * MILES_PER_KM, pointLatitude, props.zoom);
               }
             }
 

@@ -117,9 +117,10 @@ function nvd3Vis(slice) {
             chart.valueFormat(f);
             if (fd.donut) {
               chart.donut(true);
-              chart.labelsOutside(true);
             }
-            chart.labelsOutside(true);
+            chart.labelsOutside(fd.labels_outside);
+            chart.labelThreshold(0.05)  //Configure the minimum slice size for labels to show up
+              .labelType(fd.pie_label_type);
             chart.cornerRadius(true);
             break;
 

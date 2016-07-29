@@ -695,6 +695,16 @@ class FormFactory(object):
                 "default": 'linear',
                 "description": _("Line interpolation as defined by d3.js")
             }),
+            'pie_label_type': (SelectField, {
+                "label": _("Label Type"),
+                "default": 'key',
+                "choices": (
+                    ('key', _("Category Name")),
+                    ('value', _("Value")),
+                    ('percent', _("Percentage")),
+                ),
+                "description": _("What should be shown on the label?")
+            }),
             'code': (TextAreaField, {
                 "label": _("Code"),
                 "description": _("Put your code here"),
@@ -788,6 +798,11 @@ class FormFactory(object):
                 "label": _("Donut"),
                 "default": False,
                 "description": _("Do you want a donut or a pie?")
+            }),
+            'labels_outside': (BetterBooleanField, {
+                "label": _("Put labels outside"),
+                "default": True,
+                "description": _("Put the labels outside the pie?")
             }),
             'contribution': (BetterBooleanField, {
                 "label": _("Contribution"),
