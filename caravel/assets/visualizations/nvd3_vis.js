@@ -114,7 +114,7 @@ function nvd3Vis(slice) {
           case 'bar_plus_line':
             chart = nv.models.linePlusBarChart()
               .options({
-                focusEnable: false
+                focusEnable: false,
               });
 
             chart.width(width);
