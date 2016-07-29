@@ -1,7 +1,6 @@
 // JS
-var d3 = window.d3 || require('d3')
+var d3 = require('d3')
 var px = window.px || require('../javascripts/modules/caravel.js')
-
 
 // CSS
 require('./histogram.css')
@@ -14,22 +13,21 @@ function histogram(slice) {
         
         var margin = { top: 0, right: 0, bottom: 0, left: 0 },
             width = slice.width() - margin.left - margin.right,
-            height = slice.height() - navBarHeight - navBarBuffer -
-                margin.top - margin.bottom,
+            height = slice.height() - margin.top - margin.bottom,
             formatNumber = d3.format(",.0f")
-
-        var x = d3.scale.linear()
-            .domain([0, width])
-            .range([0, width])
         
-        var bins = d3.histogram()
-            .domain(x.domain())
-            .thresholds(x.ticks(20))
+        var bins = d3.layout.histogram()
             (data);
 
+        var x = d3.scale.linear()
+            .domain(bins.map(function(d) { return d.x; }))
+            .range([0, width]);
+        
         var y = d3.scale.linear()
-            .domain([0, d3.max(bins, function(d) { return d.length; })])
+            .domain([0, d3.max(bins, function(d) { return d.y; })])
             .range([height, 0])
+        
+        var xAxis = d3.svg.axis().scale(x).orient("bottom").tickSize(6, 0);
 
         var svg = div.append("svg")
             .attr("width", width + margin.left + margin.right)
@@ -41,24 +39,28 @@ function histogram(slice) {
             .data(bins)
          .enter().append("g")
             .attr("class", "bar")
-            .attr("transform", function(d) { return "translate(" + x(d.x0) + "," + y(d.length) + ")"; });
+            .attr("transform", function(d) { 
+                return "translate(" + x(d.x) + "," + y(d.y) + ")"; 
+            });
 
         bar.append("rect")
-            .attr("x", 1)
-            .attr("width", x(bins[0].x1) - x(bins[0].x0) -1)
-            .attr("height", function(d) { return height - y(d.length); });
+            .attr("width", 1.0)
+            .attr("x", function(d) { return x(d.x); })
+            .attr("y", function(d) { return y(d.y); })
+            .attr("height", function(d) { return y.range()[0] - y(d.y); })
+            .order();
 
         bar.append("text")
             .attr("dy", ".75em")
             .attr("y", 6)
-            .attr("x", (x(bins[0].x1) - x(bins[0].x0)) / 2)
+            .attr("x", (x(bins[0].x) - x(bins[0].y)) / 2)
             .attr("text-anchor", "middle")
             .text(function(d) { return formatNumber(d.length); });
 
         svg.append("g")
-            .attr("class", "axis axis--x")
-            .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x));
+            .select(".x.axis")
+            .attr("transform", "translate(0," + y.range()[0] + ")")
+            .call(xAxis);
 
         slice.done(json); 
     };

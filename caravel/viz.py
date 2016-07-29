@@ -1203,61 +1203,107 @@ class HistogramViz(BaseViz):
     """A histogram (incomplete)"""
 
     viz_type = "histogram"
-    verbose_name = _("Distribution - Histogram")
+    verbose_name = _("Histogram")
     is_timeseries = False
     fieldsets = ({
-        'label': _('Chart Options'),
+        'label': None,
         'fields': (
-            'groupby',
-            'columns',
+            ('all_columns_x'),
             'row_limit',
-            ('y_axis_format', 'bottom_margin'),
-            ('x_axis_lable', 'y_axis_label'),
-            ('reduce_x_ticks', 'contribution'),
-            ('show_controls', None),
         )
     },)
 
     form_overrides = {
-            'groupby': {
-                'label': _('Series'),
-             },
-            'columns': {
-                'label': _('Breakdowns'),
-                'description': _("Defines how much each series is broken down"),
-            },
+        'all_columns_x': {
+            'label': _('Numeric Column'),
+            'description' : _("Select the numeric column to draw the histogram"),
+        }
     }
 
     def query_obj(self):
-        d = None
+
+        d = super(HistogramViz, self).query_obj()
+
         form_data = self.form_data
+
+        d['row_limit'] = 100 # form_data.get('row_limit') or 10000
+
+        numeric_column = form_data.get('all_columns_x') or None
+        if numeric_column is None:
+            raise Exception("Must have one numeric column specified")
+
+        from caravel.models import SqlMetric
+        M = SqlMetric
+
+        # Add Width Bucket as Metric to select a bucket id column
+        self.datasource.metrics.append(M(
+            metric_name='width_bucket__' + numeric_column,
+            verbose_name='width_bucket__' + numeric_column,
+            metric_type='width_bucket',
+            expression="WIDTH_BUCKET({}, 1, 10000, 20)".format(numeric_column)
+        ))
+
+        min_numeric_column_metric = [ m for m in filter(lambda m: m.expression=="MIN({})".format(numeric_column), self.datasource.metrics)]
+        max_numeric_column_metric = [ m for m in filter(lambda m: m.expression=="MAX({})".format(numeric_column), self.datasource.metrics)]
+
+        if(len(min_numeric_column_metric)!=1):
+            self.datasource.metrics.append(M(
+                metric_name='min__'+numeric_column,
+                verbose_name='min__'+numeric_column,
+                metric_type='min',
+                expression="MIN({})".format(numeric_column)
+            ))
+            min_numeric_column_metric = 'min__' + numeric_column
+        else:
+            min_numeric_column_metric = min_numeric_column_metric[0]
+
+        if (len(max_numeric_column_metric)!=1):
+            self.datasource.metrics.append(M(
+                metric_name='max__' + numeric_column,
+                verbose_name='max__' + numeric_column,
+                metric_type='max',
+                expression="MAX({})".format(numeric_column)
+            ))
+            max_numeric_column_metric = 'max__' + numeric_column
+        else:
+            max_numeric_column_metric = 'min__' + numeric_column[0]
+
+        d['columns'] = [numeric_column]
+        d['metrics'] = [] # form_data.get('metric')] or []
         d['is_timeseries'] = False
-        gb = form_data.get('groupby') or []
-        cols = form_data.get('columns') or []
-        if(len(cols)>1):
-            raise Exception("Can't have more than one column for histogram")
-        if (len(gb) != 0):
-            raise Exception("Can't use groupby in histogram")
-        d['filter'] = self.query_filters()
-        d['row_limit'] = int(form_data.get('row_limit', config.get("ROW_LIMIT")))
+        d['groupby'] = [] # form_data.get('metric')] or []
+
         return d
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
+
         if not query_obj:
             query_obj = self.query_obj()
 
         self.error_msg = ""
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
+        print("Query Made to DB : {};".format(self.query))
         df = self.results.df
+
+        if df is None or df.empty:
+            raise Exception("No data, to build histogram")
+
+        df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(0)
 
         return df;
 
-    def get_series(self, df):
+    def to_series(self, df):
         chart_data = []
-        for index, row in df.iterrows():
-            chart_data.append(row[0])
+        ct = 0
+        for value in df[df.columns[0]].values:
+            chart_data.append(value)
+            ct += 1
+            if(ct > 100):
+                break
+        print("Here is chart data : {}".format(chart_data[:10]))
         return chart_data
 
     def get_data(self):
