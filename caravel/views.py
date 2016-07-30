@@ -1214,7 +1214,7 @@ class Caravel(BaseCaravelView):
     @log_this
     def runsql(self):
         """Runs arbitrary sql and returns and html table"""
-        # TODO deprecate in fabor on `sql_json`
+        # TODO deprecate in favor on `sql_json`
         session = db.session()
         limit = 1000
         data = json.loads(request.form.get('data'))
@@ -1226,7 +1226,7 @@ class Caravel(BaseCaravelView):
                 not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             raise utils.CaravelSecurityException(_(
-                "This view requires the `all_datasource_access` permission"))
+                "SQL Lab requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
