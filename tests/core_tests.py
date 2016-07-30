@@ -226,6 +226,26 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
+    def run_sql(self, sql):
+        self.login(username='admin')
+        dbid = (
+            db.session.query(models.Database)
+            .filter_by(database_name="main")
+            .first().id
+        )
+        resp = self.client.post(
+            '/caravel/sql_json/',
+            data=dict(database_id=dbid, sql=sql),
+        )
+        return json.loads(resp.data.decode('utf-8'))
+
+    def test_sql_json(self):
+        data = self.run_sql("SELECT * FROM ab_user")
+        assert len(data['data']) > 0
+
+        data = self.run_sql("SELECT * FROM unexistant_table")
+        assert len(data['error']) > 0
+
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
         self.revoke_public_access('birth_names')
