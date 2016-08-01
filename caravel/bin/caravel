@@ -147,8 +147,5 @@ def worker():
     c_worker.run(**options)
 
 
-if config.get('CELERY_CONFIG'):
-    print(config.get('CELERY_CONFIG').BROKER_URL)
-
 if __name__ == "__main__":
     manager.run()
