@@ -17,16 +17,20 @@ from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
-from caravel import app, db, models, utils, appbuilder, tasks
-from caravel.models import DruidCluster
+from caravel import app, db, models, utils, appbuilder
+from caravel.models import DruidCluster, DruidDatasource
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
-app.config['TESTING'] = True
+# Disable celery.
+app.config['CELERY_CONFIG'] = None
 app.config['CSRF_ENABLED'] = False
-app.config['SECRET_KEY'] = 'thisismyscretkey'
-app.config['WTF_CSRF_ENABLED'] = False
 app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
+app.config['SECRET_KEY'] = 'thisismyscretkey'
+app.config['SQL_SELECT_AS_CTA'] = False
+app.config['TESTING'] = True
+app.config['WTF_CSRF_ENABLED'] = False
+
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
@@ -242,7 +246,10 @@ class CoreTests(CaravelTestCase):
         self.login(username=username)
         url = '/slicemodelview/add'
         resp = self.client.get(url, follow_redirects=True)
-        assert "Click on a table link to create a Slice" in resp.data.decode('utf-8')
+        assert (
+            "Click on a table link to create a Slice" in
+            resp.data.decode('utf-8')
+        )
 
     def test_add_slice_redirect_to_druid(self, username='admin'):
         datasource = DruidDatasource(
@@ -254,7 +261,10 @@ class CoreTests(CaravelTestCase):
         self.login(username=username)
         url = '/slicemodelview/add'
         resp = self.client.get(url, follow_redirects=True)
-        assert "Click on a datasource link to create a Slice" in resp.data.decode('utf-8')
+        assert (
+            "Click on a datasource link to create a Slice"
+            in resp.data.decode('utf-8')
+        )
 
         db.session.delete(datasource)
         db.session.commit()

@@ -32,8 +32,9 @@ from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
-    BigInteger, Column, Integer, String, ForeignKey, Text, Boolean, DateTime,
-    Date, Table, create_engine, MetaData, desc, asc, select, and_, func)
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
+    create_engine, MetaData, desc, asc, select, and_, func
+)
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
@@ -378,7 +379,7 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
-    select_as_create_table_as = Column(Boolean, default=False)
+    select_as_create_table_as = Column(Boolean, default=True)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -1721,23 +1722,20 @@ class Query(Model):
     id = Column(Integer, primary_key=True)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
-    table_names = Column(Integer, ForeignKey('tables.id'), nullable=True)
-    # Add comma seperate table names as not all of them would be in the
-    # tables table.
 
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(64))
     user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
 
     # models.QueryStatus
-    query_status = Column(String(16))
+    status = Column(String(16))
 
-    query_name = Column(String(64))
-    query_text = Column(String(10000))
+    name = Column(String(64))
+    sql = Column(Text)
     # Could be configured in the caravel config
-    query_limit = Column(Integer)
+    limit = Column(Integer)
 
     # 1..100
-    query_progress = Column(Integer)
-    start_time = Column(BigInteger)
-    end_time = Column(BigInteger)
+    progress = Column(Integer)
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
