@@ -311,7 +311,7 @@ def json_int_dttm_ser(obj):
     if val is not None:
         return val
     if isinstance(obj, date):
-        obj = datetime.combine(obj, datetime.time.min())
+        obj = datetime.combine(obj, datetime.min.time())
     if isinstance(obj, datetime):
         obj = (obj - EPOCH).total_seconds() * 1000
     else:
