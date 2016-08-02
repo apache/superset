@@ -147,9 +147,14 @@ class CoreTests(CaravelTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'slice_id_endpoint', '/caravel/slices/{}'.format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
+                (slc.slice_name, 'slice_id',
+                    '/caravel/slices/{}/'.format(slc.id)),
+                (slc.slice_name, 'slice_id_standalone',
+                    '/caravel/slices/{}/?standalone=true'.format(slc.id)),
+                (slc.slice_name, 'slice_id_not_standalone',
+                    '/caravel/slices/{}/?standalone=false'.format(slc.id)),
             ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
