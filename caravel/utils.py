@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
+from datetime import datetime, date
 import decimal
 import functools
 import json
@@ -310,6 +310,8 @@ def json_int_dttm_ser(obj):
     val = base_json_conv(obj)
     if val is not None:
         return val
+    if isinstance(obj, date):
+        obj = datetime.combine(obj, datetime.time.min())
     if isinstance(obj, datetime):
         obj = (obj - EPOCH).total_seconds() * 1000
     else:
