@@ -4,9 +4,6 @@ import unittest
 
 
 class UtilsTestCase(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super(UtilsTestCase, self).__init__(*args, **kwargs)
-
-    def test_jsonDateSerialization(self):
+    def test_json_int_dttm_ser(self):
         utils.json_int_dttm_ser(date.today())
         utils.json_int_dttm_ser(datetime.now())
