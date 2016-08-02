@@ -186,3 +186,7 @@ div.widget .chart-header a {
 div.widget .slice_container {
   overflow: auto;
 }
+
+.alert a:not(.close) {
+  color: gray !important;
+}

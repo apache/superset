@@ -1275,6 +1275,10 @@ class Caravel(BaseCaravelView):
         session.commit()
         return content
 
+    @expose("/theme/")
+    def theme(self):
+        return self.render_template('caravel/theme.html')
+
     @has_access
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
