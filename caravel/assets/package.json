@@ -57,7 +57,7 @@
     "jquery-ui": "1.10.5",
     "mapbox-gl": "^0.20.0",
     "mustache": "^2.2.1",
-    "nvd3": "1.8.3",
+    "nvd3": "1.8.4",
     "react": "^15.2.1",
     "react-bootstrap": "^0.28.3",
     "react-bootstrap-table": "^2.3.7",

@@ -90,7 +90,7 @@ class GridLayout extends React.Component {
         rowHeight={100}
         autoSize
         margin={[20, 20]}
-        useCSSTransforms={false}
+        useCSSTransforms={true}
         draggableHandle=".drag"
       >
         {
