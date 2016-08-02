@@ -1027,7 +1027,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if self.sort_series:
             dfs = df.sum()
-            dfs.sort(ascending=False)
+            dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
         if form_data.get("contribution"):
@@ -1175,7 +1175,9 @@ class DistributionPieViz(NVD3Viz):
         'fields': (
             'metrics', 'groupby',
             'limit',
+            'pie_label_type',
             ('donut', 'show_legend'),
+            'labels_outside',
         )
     },)
 
@@ -1363,7 +1365,7 @@ class DistributionBarViz(DistributionPieViz):
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
-        row.sort(ascending=False)
+        row.sort_values(ascending=False, inplace=True)
         columns = fd.get('columns') or []
         pt = df.pivot_table(
             index=self.groupby,

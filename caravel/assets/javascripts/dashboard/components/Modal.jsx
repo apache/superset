@@ -4,37 +4,37 @@ const propTypes = {
   modalId: PropTypes.string.isRequired,
   title: PropTypes.string,
   modalContent: PropTypes.node,
-  customButtons: PropTypes.node
+  customButton: PropTypes.node,
 };
 
-class Modal extends React.Component {
-  render() {
-    return (
-      <div className="modal fade" id={this.props.modalId} role="dialog">
-          <div className="modal-dialog" role="document">
-              <div className="modal-content">
-                  <div className="modal-header">
-                      <button type="button" className="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                      </button>
-                      <h4 className="modal-title">{this.props.title}</h4>
-                  </div>
-                  <div className="modal-body">
-                    {this.props.modalContent}
-                  </div>
-                  <div className="modal-footer">
-                      <button type="button"
-                              className="btn btn-default"
-                              data-dismiss="modal">
-                          Cancel
-                      </button>
-                      {this.props.customButtons}
-                  </div>
-              </div>
+function Modal({ modalId, title, modalContent, customButton }) {
+  return (
+    <div className="modal fade" id={modalId} role="dialog">
+      <div className="modal-dialog" role="document">
+        <div className="modal-content">
+          <div className="modal-header">
+            <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 className="modal-title">{title}</h4>
           </div>
+          <div className="modal-body">
+            {modalContent}
+          </div>
+          <div className="modal-footer">
+            <button
+              type="button"
+              className="btn btn-default"
+              data-dismiss="modal"
+            >
+              Cancel
+            </button>
+            {customButton}
+          </div>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
 }
 
 Modal.propTypes = propTypes;

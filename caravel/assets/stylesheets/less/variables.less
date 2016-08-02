@@ -27,11 +27,34 @@
 @gray-lighter:           lighten(@gray-base, 93.5%); // #eee
 
 @brand-primary:         @kazan;
-@brand-success:         darken(@lima, 15%);
-@brand-info:            @beach;
-@brand-warning:         @hackberry;
-@brand-danger:          darken(@rausch, 5%);
+@brand-success:         darken(@lima, 25%);
+@brand-warning:         darken(@beach, 10%);
+@brand-info:            darken(@babu, 10%);
+@brand-danger:          darken(@rausch, 15%);
 
+@default-color:         #444;
+@default-bg:            #fff;
+@default-border:        transparent;
+
+@primary-color:         white;
+@primary-bg:            @brand-primary;
+@primary-border:        transparent;
+
+@success-color:         @brand-success;
+@success-bg:            lighten(@brand-success, 50%);
+@success-border:        transparent;
+
+@info-color:            @brand-info;
+@info-bg:               lighten(@brand-info, 60%);
+@info-border:           transparent;
+
+@warning-color:         @brand-warning;
+@warning-bg:            lighten(@brand-warning, 50%);
+@warning-border:        transparent;
+
+@danger-color:          @brand-danger;
+@danger-bg:             lighten(@brand-danger, 40%);
+@danger-border:         transparent;
 
 //== Scaffolding
 //
@@ -156,29 +179,29 @@
 
 @btn-font-weight:                normal;
 
-@btn-default-color:              #444;
-@btn-default-bg:                 #fff;
-@btn-default-border:             transparent;
+@btn-default-color:              @default-color;
+@btn-default-bg:                 @default-bg;
+@btn-default-border:             @default-border;
 
-@btn-primary-color:              #444;
-@btn-primary-bg:                 #eee;
-@btn-primary-border:             transparent;
+@btn-primary-color:              black;
+@btn-primary-bg:                 #DDD;
+@btn-primary-border:             @primary-border;
 
-@btn-success-color:              #fff;
-@btn-success-bg:                 @brand-success;
-@btn-success-border:             transparent;
+@btn-success-color:              @success-color;
+@btn-success-bg:                 @success-bg;
+@btn-success-border:             @success-border;
 
-@btn-info-color:                 #fff;
-@btn-info-bg:                    @brand-info;
-@btn-info-border:                transparent;
+@btn-info-color:                 @info-color;
+@btn-info-bg:                    @info-bg;
+@btn-info-border:                @info-border;
 
-@btn-warning-color:              #fff;
-@btn-warning-bg:                 @brand-warning;
-@btn-warning-border:             transparent;
+@btn-warning-color:              @warning-color;
+@btn-warning-bg:                 @warning-bg;
+@btn-warning-border:             @warning-border;
 
-@btn-danger-color:               #fff;
-@btn-danger-bg:                  @brand-danger;
-@btn-danger-border:              transparent;
+@btn-danger-color:               @danger-color;
+@btn-danger-bg:                  @danger-bg;
+@btn-danger-border:              @danger-border;
 
 @btn-link-disabled-color:        @gray-light;
 
@@ -508,21 +531,21 @@
 //
 //## Define colors for form feedback states and, by default, alerts.
 
-@state-success-text:             @brand-success;
-@state-success-bg:               #dff0d8;
-@state-success-border:           darken(spin(@state-success-bg, -10), 5%);
+@state-success-text:             @success-color;
+@state-success-bg:               @success-bg;
+@state-success-border:           @success-border;
 
-@state-info-text:                @brand-info;
-@state-info-bg:                  #e1bee7;
-@state-info-border:              darken(spin(@state-info-bg, -10), 7%);
+@state-info-text:                @info-color;
+@state-info-bg:                  @info-bg;
+@state-info-border:              @info-border;
 
-@state-warning-text:             @brand-warning;
-@state-warning-bg:               #ffe0b2;
-@state-warning-border:           darken(spin(@state-warning-bg, -10), 5%);
+@state-warning-text:             @warning-color;
+@state-warning-bg:               @warning-bg;
+@state-warning-border:           @warning-border;
 
-@state-danger-text:              @brand-danger;
-@state-danger-bg:                #f9bdbb;
-@state-danger-border:            darken(spin(@state-danger-bg, -10), 5%);
+@state-danger-text:              @danger-color;
+@state-danger-bg:                @danger-bg;
+@state-danger-border:            @danger-border;
 
 
 //== Tooltips
@@ -576,23 +599,18 @@
 //
 //##
 
-//** Default label background color
 @label-default-bg:            @gray-light;
-//** Primary label background color
 @label-primary-bg:            @brand-primary;
-//** Success label background color
-@label-success-bg:            @brand-success;
-//** Info label background color
-@label-info-bg:               @brand-info;
-//** Warning label background color
-@label-warning-bg:            @brand-warning;
-//** Danger label background color
-@label-danger-bg:             @brand-danger;
+@label-success-bg:            lighten(@brand-success, 30%);
+@label-info-bg:               lighten(@brand-info, 25%);
+@label-warning-bg:            lighten(@brand-warning, 30%);
+@label-danger-bg:             lighten(@brand-danger, 20%);
 
 //** Default label text color
 @label-color:                 #fff;
 //** Default text color of a linked label
 @label-link-hover-color:      #fff;
+
 
 
 //== Modals
@@ -651,6 +669,7 @@
 @alert-danger-bg:             @state-danger-bg;
 @alert-danger-text:           @state-danger-text;
 @alert-danger-border:         @state-danger-border;
+
 
 
 //== Progress bars

@@ -180,7 +180,8 @@ complies with the Flask-Cache specifications.
 Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the pylibmc client library as python-memcached does
-not handle storing binary data correctly.
+not handle storing binary data correctly. If you use Redis, please install 
+[python-redis](https://pypi.python.org/pypi/redis).
 
 For setting your timeouts, this is done in the Caravel metadata and goes
 up the "timeout searchpath", from your slice configuration, to your

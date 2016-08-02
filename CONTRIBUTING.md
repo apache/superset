@@ -196,7 +196,7 @@ meets these guidelines:
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Caravel. The
 key is to instrument the strings that need translation using
-`from flask.ext.babelpkg import lazy_gettext as _`. Once this is imported in
+`from flask_babel import lazy_gettext as _`. Once this is imported in
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 

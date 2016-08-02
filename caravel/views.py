@@ -520,7 +520,6 @@ if config['DRUID_IS_ACTIVE']:
 
 class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
-    add_template = "caravel/add_slice.html"
     can_add = False
     label_columns = {
         'datasource_link': 'Datasource',
@@ -567,6 +566,28 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
 
     def pre_delete(self, obj):
         check_ownership(obj)
+
+    @expose('/add', methods=['GET', 'POST'])
+    @has_access
+    def add(self):
+        widget = self._add()
+        if not widget:
+            return redirect(self.get_redirect())
+
+        a_druid_datasource = db.session.query(models.DruidDatasource).first()
+        if a_druid_datasource is not None:
+            url = "/druiddatasourcemodelview/list/"
+            msg = _(
+                "Click on a datasource link to create a Slice, "
+                "or click on a table link <a href='/tablemodelview/list/'>here</a> "
+                "to create a Slice for a table"
+            )
+        else:
+            url = "/tablemodelview/list/"
+            msg = _("Click on a table link to create a Slice")
+
+        redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
+        return redirect(redirect_url)
 
 appbuilder.add_view(
     SliceModelView,
@@ -910,7 +931,7 @@ class Caravel(BaseCaravelView):
         del d['action']
         del d['previous_viz_type']
 
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label', 'order_by_cols')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -1214,6 +1235,7 @@ class Caravel(BaseCaravelView):
     @log_this
     def runsql(self):
         """Runs arbitrary sql and returns and html table"""
+        # TODO deprecate in favor on `sql_json`
         session = db.session()
         limit = 1000
         data = json.loads(request.form.get('data'))
@@ -1225,7 +1247,7 @@ class Caravel(BaseCaravelView):
                 not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             raise utils.CaravelSecurityException(_(
-                "This view requires the `all_datasource_access` permission"))
+                "SQL Lab requires the `all_datasource_access` permission"))
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -1252,6 +1274,63 @@ class Caravel(BaseCaravelView):
                 ).format(e.message)
         session.commit()
         return content
+
+    @expose("/theme/")
+    def theme(self):
+        return self.render_template('caravel/theme.html')
+
+    @has_access
+    @expose("/sql_json/", methods=['POST', 'GET'])
+    @log_this
+    def sql_json(self):
+        """Runs arbitrary sql and returns and json"""
+        session = db.session()
+        limit = 1000
+        sql = request.form.get('sql')
+        database_id = request.form.get('database_id')
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if (
+                not self.can_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            raise utils.CaravelSecurityException(_(
+                "This view requires the `all_datasource_access` permission"))
+
+        error_msg = ""
+        if not mydb:
+            error_msg = "The database selected doesn't seem to exist"
+        else:
+            eng = mydb.get_sqla_engine()
+            if limit:
+                sql = sql.strip().strip(';')
+                qry = (
+                    select('*')
+                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                    .limit(limit)
+                )
+                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+            try:
+                df = pd.read_sql_query(sql=sql, con=eng)
+                df = df.fillna(0)  # TODO make sure NULL
+            except Exception as e:
+                logging.exception(e)
+                error_msg = utils.error_msg_from_exception(e)
+
+        session.commit()
+        if error_msg:
+            return Response(
+                json.dumps({
+                    'error': error_msg,
+                }),
+                status=500,
+                mimetype="application/json")
+        else:
+            data = {
+                'columns': [c for c in df.columns],
+                'data': df.to_dict(orient='records'),
+            }
+            return json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False)
+
 
     @has_access
     @expose("/refresh_datasources/")
