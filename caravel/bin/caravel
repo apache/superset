@@ -9,8 +9,8 @@ from datetime import datetime
 from subprocess import Popen
 import textwrap
 
-from flask.ext.migrate import MigrateCommand
-from flask.ext.script import Manager
+from flask_migrate import MigrateCommand
+from flask_script import Manager
 
 import caravel
 from caravel import app, ascii_art, db, data, utils
@@ -25,6 +25,9 @@ manager.add_command('db', MigrateCommand)
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
+    '-a', '--address', default=config.get("CARAVEL_WEBSERVER_ADDRESS"),
+    help="Specify the address to which to bind the web server")
+@manager.option(
     '-p', '--port', default=config.get("CARAVEL_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 @manager.option(
@@ -33,7 +36,7 @@ manager.add_command('db', MigrateCommand)
 @manager.option(
     '-t', '--timeout', default=config.get("CARAVEL_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, port, timeout, workers):
+def runserver(debug, address, port, timeout, workers):
     """Starts a Caravel web server"""
     debug = debug or config.get("DEBUG")
     if debug:
@@ -46,7 +49,9 @@ def runserver(debug, port, timeout, workers):
             "gunicorn "
             "-w {workers} "
             "--timeout {timeout} "
-            "-b 0.0.0.0:{port} "
+            "-b {address}:{port} "
+            "--limit-request-line 0 "
+            "--limit-request-field_size 0 "
             "caravel:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
@@ -56,21 +61,25 @@ def init():
     """Inits the Caravel application"""
     utils.init(caravel)
 
-@manager.command
-def version():
+@manager.option(
+    '-v', '--verbose', action='store_true',
+    help="Show extra information")
+def version(verbose):
     """Prints the current version number"""
     s = (
         "\n{boat}\n\n"
         "-----------------------\n"
         "Caravel {version}\n"
-        "-----------------------\n").format(
+        "-----------------------").format(
         boat=ascii_art.boat, version=caravel.VERSION)
     print(s)
+    if verbose:
+        print("[DB] : " + "{}".format(db.engine))
 
 @manager.option(
-    '-s', '--sample', action='store_true',
-    help="Only load 1000 rows (faster, used for testing)")
-def load_examples(sample):
+    '-t', '--load-test-data', action='store_true',
+    help="Load additional test data")
+def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
 
@@ -84,6 +93,19 @@ def load_examples(sample):
 
     print("Loading [Birth names]")
     data.load_birth_names()
+
+    print("Loading [Random time series data]")
+    data.load_random_time_series_data()
+
+    print("Loading [Random long/lat data]")
+    data.load_long_lat_data()
+
+    print("Loading [Multiformat time series]")
+    data.load_multiformat_time_series_data()
+
+    if load_test_data:
+        print("Loading [Unicode test data]")
+        data.load_unicode_test_data()
 
 @manager.command
 def refresh_druid():

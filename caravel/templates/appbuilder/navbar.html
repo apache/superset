@@ -10,12 +10,10 @@
         <span class="icon-bar"></span>
       </button>
       <a class="navbar-brand" style="padding:7px;opacity:0.9;" href="{{appbuilder.get_url_for_index}}">
-        <img width="50" src="/static/assets/images/caravel_logo.png">
+        <img width="50" src="{{ appbuilder.app_icon }}">
       </a>
       <span class="navbar-brand">
-        <a href="{{appbuilder.get_url_for_index}}">
           {{ appbuilder.app_name }}
-        </a>
       </span>
     </div>
     <div class="navbar-collapse collapse">
@@ -23,7 +21,12 @@
         {% include 'appbuilder/navbar_menu.html' %}
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li><a href="http://airbnb.io/caravel"><i class="fa fa-book"></i> Documentation</a></li>
+        <li><a href="https://github.com/airbnb/caravel" title="Caravel's Github">
+          <i class="fa fa-github fa-lg"></i></a>
+        </li>
+        <li><a href="http://airbnb.io/caravel" title="Documentation">
+          <i class="fa fa-book fa-lg"></i> </a>
+        </li>
         {% include 'appbuilder/navbar_right.html' %}
       </ul>
     </div>

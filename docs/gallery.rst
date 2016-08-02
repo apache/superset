@@ -70,3 +70,14 @@ Gallery
 .. image:: _static/img/viz_thumbnails/treemap.png
    :scale: 25 %
 
+.. image:: _static/img/viz_thumbnails/cal_heatmap.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/horizon.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/mapbox.png
+   :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/separator.png
+   :scale: 25 %

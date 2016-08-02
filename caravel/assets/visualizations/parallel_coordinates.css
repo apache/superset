@@ -1,0 +1,7 @@
+.para div.grid {
+    overflow: auto;
+}
+
+.para .grid div.row:hover {
+    background-color: #CCC;
+}

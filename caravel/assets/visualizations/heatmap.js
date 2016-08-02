@@ -17,13 +17,14 @@ function heatmapVis(slice) {
       top: 10,
       right: 10,
       bottom: 35,
-      left: 35
+      left: 35,
     };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
       var matrix = {};
       if (error) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
       var fd = payload.form_data;
@@ -91,7 +92,7 @@ function heatmapVis(slice) {
         .range([0, hmWidth]),
         d3.scale.linear()
         .domain([0, heatmapDim[Y]])
-        .range([0, hmHeight])
+        .range([0, hmHeight]),
       ];
 
       var container = d3.select(slice.selector);
@@ -221,13 +222,13 @@ function heatmapVis(slice) {
         imageObj.src = canvas.node().toDataURL();
       }
 
-      slice.done();
+      slice.done(payload);
 
     });
   }
   return {
     render: refresh,
-    resize: refresh
+    resize: refresh,
   };
 }
 

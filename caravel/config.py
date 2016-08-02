@@ -1,7 +1,7 @@
 """The main config file for Caravel
 
-All configuration in this file can be overridden by providing a local_config
-in your PYTHONPATH as there is a ``from local_config import *``
+All configuration in this file can be overridden by providing a caravel_config
+in your PYTHONPATH as there is a ``from caravel_config import *``
 at the end of this file.
 """
 from __future__ import absolute_import
@@ -18,11 +18,12 @@ BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 
 # ---------------------------------------------------------
-# Caravel specifix config
+# Caravel specific config
 # ---------------------------------------------------------
 ROW_LIMIT = 50000
-WEBSERVER_THREADS = 8
+CARAVEL_WORKERS = 16
 
+CARAVEL_WEBSERVER_ADDRESS = '0.0.0.0'
 CARAVEL_WEBSERVER_PORT = 8088
 CARAVEL_WEBSERVER_TIMEOUT = 60
 
@@ -34,6 +35,9 @@ SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
 SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
+# this is for platform specific: "nt" is for windows, "posix" is *nix (including Mac)
+if os.name == "nt":
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///c:\\tmp\\caravel.db'    
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -53,7 +57,7 @@ SHOW_STACKTRACE = True
 APP_NAME = "Caravel"
 
 # Uncomment to setup Setup an App icon
-# APP_ICON = "/static/img/something.png"
+APP_ICON = "/static/assets/images/caravel_logo.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -93,16 +97,27 @@ AUTH_TYPE = AUTH_DB
 #    { 'name': 'AOL', 'url': 'http://openid.aol.com/<username>' },
 #    { 'name': 'Flickr', 'url': 'http://www.flickr.com/<username>' },
 #    { 'name': 'MyOpenID', 'url': 'https://www.myopenid.com' }]
+
+# ---------------------------------------------------
+# Roles config
+# ---------------------------------------------------
+# Grant public role the same set of permissions as for the GAMMA role.
+# This is useful if one wants to enable anonymous users to view
+# dashboards. Explicit grant on specific datasets is still required.
+PUBLIC_ROLE_LIKE_GAMMA = False
+
 # ---------------------------------------------------
 # Babel config for translations
 # ---------------------------------------------------
 # Setup default language
 BABEL_DEFAULT_LOCALE = 'en'
 # Your application default translation path
-BABEL_DEFAULT_FOLDER = 'translations'
+BABEL_DEFAULT_FOLDER = 'babel/translations'
 # The allowed translation for you app
 LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
+    # 'fr': {'flag': 'fr', 'name': 'French'},
+    # 'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
 # ---------------------------------------------------
 # Image and file configuration
@@ -121,6 +136,10 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
+# CORS Options
+ENABLE_CORS = False
+CORS_OPTIONS = {}
+
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -130,7 +149,42 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 VIZ_TYPE_BLACKLIST = []
 
+# ---------------------------------------------------
+# List of data sources not to be refreshed in druid cluster
+# ---------------------------------------------------
+
+DRUID_DATA_SOURCE_BLACKLIST = []
+
+"""
+1) http://docs.python-guide.org/en/latest/writing/logging/
+2) https://docs.python.org/2/library/logging.config.html
+"""
+
+# Console Log Settings
+
+LOG_FORMAT = '%(asctime)s:%(levelname)s:%(name)s:%(message)s'
+LOG_LEVEL = 'DEBUG'
+
+# ---------------------------------------------------
+# Enable Time Rotate Log Handler
+# ---------------------------------------------------
+# LOG_LEVEL = DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+ENABLE_TIME_ROTATE = False
+TIME_ROTATE_LOG_LEVEL = 'DEBUG'
+FILENAME = '/tmp/caravel.log'
+ROLLOVER = 'midnight'
+INTERVAL = 1
+BACKUP_COUNT = 30
+
+# Set this API key to enable Mapbox visualizations
+MAPBOX_API_KEY = ""
+
+
 try:
     from caravel_config import *  # noqa
-except Exception:
+except ImportError:
     pass
+
+if not CACHE_DEFAULT_TIMEOUT:
+    CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')

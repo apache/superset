@@ -7,16 +7,16 @@ require('./directed_force.css');
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
 function directedForceVis(slice) {
   var div = d3.select(slice.selector);
-  var link_length = slice.data.form_data.link_length || 200;
-  var charge = slice.data.form_data.charge || -500;
 
   var render = function () {
     var width = slice.width();
     var height = slice.height() - 25;
     d3.json(slice.jsonEndpoint(), function (error, json) {
+      var link_length = json.form_data.link_length || 200;
+      var charge = json.form_data.charge || -500;
 
       if (error !== null) {
-        slice.error(error.responseText);
+        slice.error(error.responseText, error);
         return '';
       }
       var links = json.data;
@@ -24,10 +24,10 @@ function directedForceVis(slice) {
       // Compute the distinct nodes from the links.
       links.forEach(function (link) {
         link.source = nodes[link.source] || (nodes[link.source] = {
-          name: link.source
+          name: link.source,
         });
         link.target = nodes[link.target] || (nodes[link.target] = {
-          name: link.target
+          name: link.target,
         });
         link.value = Number(link.value);
 
@@ -168,7 +168,7 @@ function directedForceVis(slice) {
   };
   return {
     render: render,
-    resize: render
+    resize: render,
   };
 }
 

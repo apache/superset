@@ -8,9 +8,11 @@ import gzip
 import json
 import os
 import textwrap
+import datetime
+import random
 
 import pandas as pd
-from sqlalchemy import String, DateTime, Float
+from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
 from caravel import app, db, models, utils
 
@@ -283,7 +285,7 @@ def load_world_bank_health_n_pop():
                 metric="sum__SP_RUR_TOTL_ZS",
                 num_period_compare="10")),
         Slice(
-            slice_name="Life Expexctancy VS Rural %",
+            slice_name="Life Expectancy VS Rural %",
             viz_type='bubble',
             datasource_type='table',
             table=tbl,
@@ -366,88 +368,89 @@ def load_world_bank_health_n_pop():
                     'sum__SP_RUR_TOTL_ZS',
                     'sum__SH_DYN_AIDS'],
                 secondary_metric='sum__SP_POP_TOTL',
-                series=["country_name"],)),
+                series="country_name",)),
     ]
     for slc in slices:
         merge_slice(slc)
 
     print("Creating a World's Health Bank dashboard")
-    dash_name = "World's Health Bank Dashboard"
-    dash = db.session.query(Dash).filter_by(dashboard_title=dash_name).first()
+    dash_name = "World's Bank Data"
+    slug = "world_health"
+    dash = db.session.query(Dash).filter_by(slug=slug).first()
 
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
     [
         {
+            "col": 1,
+            "row": 0,
+            "size_x": 2,
             "size_y": 2,
-            "size_x": 3,
-            "col": 10,
-            "slice_id": "22",
-            "row": 1
+            "slice_id": "1231"
         },
         {
-            "size_y": 3,
-            "size_x": 3,
-            "col": 10,
-            "slice_id": "23",
-            "row": 3
-        },
-        {
-            "size_y": 8,
-            "size_x": 3,
             "col": 1,
-            "slice_id": "24",
-            "row": 1
+            "row": 2,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1232"
         },
         {
-            "size_y": 3,
-            "size_x": 6,
-            "col": 4,
-            "slice_id": "25",
-            "row": 6
-        },
-        {
-            "size_y": 5,
-            "size_x": 6,
-            "col": 4,
-            "slice_id": "26",
-            "row": 1
-        },
-        {
-            "size_y": 4,
-            "size_x": 6,
-            "col": 7,
-            "slice_id": "27",
-            "row": 9
-        },
-        {
-            "size_y": 3,
-            "size_x": 3,
             "col": 10,
-            "slice_id": "28",
-            "row": 6
+            "row": 0,
+            "size_x": 3,
+            "size_y": 7,
+            "slice_id": "1233"
         },
         {
-            "size_y": 4,
-            "size_x": 6,
             "col": 1,
-            "slice_id": "29",
-            "row": 9
+            "row": 4,
+            "size_x": 6,
+            "size_y": 3,
+            "slice_id": "1234"
         },
         {
-            "size_y": 4,
-            "size_x": 5,
-            "col": 8,
-            "slice_id": "30",
-            "row": 13
-        },
-        {
-            "size_y": 4,
+            "col": 3,
+            "row": 0,
             "size_x": 7,
+            "size_y": 4,
+            "slice_id": "1235"
+        },
+        {
+            "col": 5,
+            "row": 7,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1236"
+        },
+        {
+            "col": 7,
+            "row": 4,
+            "size_x": 3,
+            "size_y": 3,
+            "slice_id": "1237"
+        },
+        {
             "col": 1,
-            "slice_id": "31",
-            "row": 13
+            "row": 7,
+            "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1238"
+        },
+        {
+            "col": 9,
+            "row": 11,
+            "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1239"
+        },
+        {
+            "col": 1,
+            "row": 11,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1240"
         }
     ]
     """)
@@ -457,7 +460,7 @@ def load_world_bank_health_n_pop():
 
     dash.dashboard_title = dash_name
     dash.position_json = json.dumps(l, indent=4)
-    dash.slug = "world_health"
+    dash.slug = slug
 
     dash.slices = slices[:-1]
     db.session.merge(dash)
@@ -473,14 +476,14 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Flat")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #FAFAFA;
         border: 1px solid #CCC;
         box-shadow: none;
         border-radius: 0px;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 1px solid #000;
         background-color: #EAEAEA;
     }
@@ -513,7 +516,7 @@ def load_css_templates():
     if not obj:
         obj = CSS(template_name="Courier Black")
     css = textwrap.dedent("""\
-    .gridster li.widget {
+    .gridster div.widget {
         transition: background-color 0.5s ease;
         background-color: #EEE;
         border: 2px solid #444;
@@ -527,7 +530,7 @@ def load_css_templates():
     .navbar {
         box-shadow: none;
     }
-    .gridster li.widget:hover {
+    .gridster div.widget:hover {
         border: 2px solid #000;
         background-color: #EAEAEA;
     }
@@ -585,7 +588,7 @@ def load_birth_names():
     print("Done loading table!")
     print("-" * 80)
 
-    print("Creating table reference")
+    print("Creating table [birth_names] reference")
     obj = db.session.query(TBL).filter_by(table_name='birth_names').first()
     if not obj:
         obj = TBL(table_name='birth_names')
@@ -733,71 +736,71 @@ def load_birth_names():
     if not dash:
         dash = Dash()
     js = textwrap.dedent("""\
-        [
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 8,
-                "slice_id": "85",
-                "row": 7
-            },
-            {
-                "size_y": 4,
-                "size_x": 2,
-                "col": 10,
-                "slice_id": "86",
-                "row": 7
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 1,
-                "slice_id": "87",
-                "row": 1
-            },
-            {
-                "size_y": 2,
-                "size_x": 2,
-                "col": 3,
-                "slice_id": "88",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 7,
-                "col": 5,
-                "slice_id": "89",
-                "row": 4
-            },
-            {
-                "size_y": 4,
-                "size_x": 7,
-                "col": 1,
-                "slice_id": "90",
-                "row": 7
-            },
-            {
-                "size_y": 3,
-                "size_x": 3,
-                "col": 9,
-                "slice_id": "91",
-                "row": 1
-            },
-            {
-                "size_y": 3,
-                "size_x": 4,
-                "col": 5,
-                "slice_id": "92",
-                "row": 1
-            },
-            {
-                "size_y": 4,
-                "size_x": 4,
-                "col": 1,
-                "slice_id": "93",
-                "row": 3
-            }
-        ]
+    [
+        {
+            "col": 9,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1267"
+        },
+        {
+            "col": 11,
+            "row": 6,
+            "size_x": 2,
+            "size_y": 4,
+            "slice_id": "1268"
+        },
+        {
+            "col": 1,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1269"
+        },
+        {
+            "col": 3,
+            "row": 0,
+            "size_x": 2,
+            "size_y": 2,
+            "slice_id": "1270"
+        },
+        {
+            "col": 5,
+            "row": 3,
+            "size_x": 8,
+            "size_y": 3,
+            "slice_id": "1271"
+        },
+        {
+            "col": 1,
+            "row": 6,
+            "size_x": 8,
+            "size_y": 4,
+            "slice_id": "1272"
+        },
+        {
+            "col": 10,
+            "row": 0,
+            "size_x": 3,
+            "size_y": 3,
+            "slice_id": "1273"
+        },
+        {
+            "col": 5,
+            "row": 0,
+            "size_x": 5,
+            "size_y": 3,
+            "slice_id": "1274"
+        },
+        {
+            "col": 1,
+            "row": 2,
+            "size_x": 4,
+            "size_y": 4,
+            "slice_id": "1275"
+        }
+    ]
         """)
     l = json.loads(js)
     for i, pos in enumerate(l):
@@ -808,3 +811,291 @@ def load_birth_names():
     dash.slices = slices[:-1]
     db.session.merge(dash)
     db.session.commit()
+
+
+def load_unicode_test_data():
+    """Loading unicode test dataset from a csv file in the repo"""
+    df = pd.read_csv(os.path.join(DATA_FOLDER, 'unicode_utf8_unixnl_test.csv'),
+                     encoding="utf-8")
+    # generate date/numeric data
+    df['date'] = datetime.datetime.now().date()
+    df['value'] = [random.randint(1, 100) for _ in range(len(df))]
+    df.to_sql(
+        'unicode_test',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'phrase': String(500),
+            'short_phrase': String(10),
+            'with_missing': String(100),
+            'date': Date(),
+            'value': Float(),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table [unicode_test] reference")
+    obj = db.session.query(TBL).filter_by(table_name='unicode_test').first()
+    if not obj:
+        obj = TBL(table_name='unicode_test')
+    obj.main_dttm_col = 'date'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "3",
+        "datasource_name": "unicode_test",
+        "datasource_type": "table",
+        "flt_op_1": "in",
+        "granularity": "date",
+        "groupby": [],
+        "metric": 'sum__value',
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "100 years ago",
+        "until": "now",
+        "where": "",
+        "viz_type": "word_cloud",
+        "size_from": "10",
+        "series": "short_phrase",
+        "size_to": "70",
+        "rotation": "square",
+        "limit": "100",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Unicode Cloud",
+        viz_type='word_cloud',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+    print("Creating a dashboard")
+    dash = db.session.query(Dash).filter_by(dashboard_title="Unicode Test").first()
+
+    if not dash:
+        dash = Dash()
+    pos = {
+        "size_y": 4,
+        "size_x": 4,
+        "col": 1,
+        "row": 1,
+        "slice_id": slc.id,
+    }
+    dash.dashboard_title = "Unicode Test"
+    dash.position_json = json.dumps([pos], indent=4)
+    dash.slug = "unicode-test"
+    dash.slices = [slc]
+    db.session.merge(dash)
+    db.session.commit()
+
+
+def load_random_time_series_data():
+    """Loading random time series data from a zip file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'random_time_series.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='s')
+    pdf.to_sql(
+        'random_time_series',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'ds': DateTime,
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table [random_time_series] reference")
+    obj = db.session.query(TBL).filter_by(table_name='random_time_series').first()
+    if not obj:
+        obj = TBL(table_name='random_time_series')
+    obj.main_dttm_col = 'ds'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "6",
+        "datasource_name": "random_time_series",
+        "datasource_type": "table",
+        "granularity": "day",
+        "row_limit": config.get("ROW_LIMIT"),
+        "since": "1 year ago",
+        "until": "now",
+        "where": "",
+        "viz_type": "cal_heatmap",
+        "domain_granularity": "month",
+        "subdomain_granularity": "day",
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Calendar Heatmap",
+        viz_type='cal_heatmap',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+
+def load_long_lat_data():
+    """Loading lat/long data from a csv file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'san_francisco.csv.gz')) as f:
+        pdf = pd.read_csv(f, encoding="utf-8")
+    pdf['date'] = datetime.datetime.now().date()
+    pdf['occupancy'] = [random.randint(1, 6) for _ in range(len(pdf))]
+    pdf['radius_miles'] = [random.uniform(1, 3) for _ in range(len(pdf))]
+    pdf.to_sql(
+        'long_lat',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            'longitude': Float(),
+            'latitude': Float(),
+            'number': Float(),
+            'street': String(100),
+            'unit': String(10),
+            'city': String(50),
+            'district': String(50),
+            'region': String(50),
+            'postcode': Float(),
+            'id': String(100),
+            'date': Date(),
+            'occupancy': Float(),
+            'radius_miles': Float(),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+
+    print("Creating table reference")
+    obj = db.session.query(TBL).filter_by(table_name='long_lat').first()
+    if not obj:
+        obj = TBL(table_name='long_lat')
+    obj.main_dttm_col = 'date'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "long_lat",
+        "datasource_type": "table",
+        "granularity": "day",
+        "since": "2014-01-01",
+        "until": "2016-12-12",
+        "where": "",
+        "viz_type": "mapbox",
+        "all_columns_x": "LON",
+        "all_columns_y": "LAT",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "all_columns": ["occupancy"],
+        "row_limit": 500000,
+    }
+
+    print("Creating a slice")
+    slc = Slice(
+        slice_name="Mapbox Long/Lat",
+        viz_type='mapbox',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc)
+
+
+def load_multiformat_time_series_data():
+
+    """Loading time series data from a zip file in the repo"""
+    with gzip.open(os.path.join(DATA_FOLDER, 'multiformat_time_series.json.gz')) as f:
+        pdf = pd.read_json(f)
+    pdf.ds = pd.to_datetime(pdf.ds, unit='s')
+    pdf.ds2 = pd.to_datetime(pdf.ds2, unit='s')
+    pdf.to_sql(
+        'multiformat_time_series',
+        db.engine,
+        if_exists='replace',
+        chunksize=500,
+        dtype={
+            "ds": Date,
+            'ds2': DateTime,
+            "epoch_s": BigInteger,
+            "epoch_ms": BigInteger,
+            "string0": String(100),
+            "string1": String(100),
+            "string2": String(100),
+            "string3": String(100),
+        },
+        index=False)
+    print("Done loading table!")
+    print("-" * 80)
+    print("Creating table [multiformat_time_series] reference")
+    obj = db.session.query(TBL).filter_by(table_name='multiformat_time_series').first()
+    if not obj:
+        obj = TBL(table_name='multiformat_time_series')
+    obj.main_dttm_col = 'ds'
+    obj.database = get_or_create_db(db.session)
+    obj.is_featured = False
+    dttm_and_expr_dict = {
+        'ds': [None, None],
+        'ds2': [None, None],
+        'epoch_s': ['epoch_s', None],
+        'epoch_ms': ['epoch_ms', None],
+        'string2': ['%Y%m%d-%H%M%S', None],
+        'string1': ['%Y-%m-%d^%H:%M:%S', None],
+        'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
+        'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
+    }
+    for col in obj.table_columns:
+        dttm_and_expr = dttm_and_expr_dict[col.column_name]
+        col.python_date_format = dttm_and_expr[0]
+        col.dbatabase_expr = dttm_and_expr[1]
+        col.is_dttm = True
+    db.session.merge(obj)
+    db.session.commit()
+    obj.fetch_metadata()
+    tbl = obj
+
+    print("Creating some slices")
+    for i, col in enumerate(tbl.table_columns):
+        slice_data = {
+            "granularity_sqla": col.column_name,
+            "datasource_id": "8",
+            "datasource_name": "multiformat_time_series",
+            "datasource_type": "table",
+            "granularity": "day",
+            "row_limit": config.get("ROW_LIMIT"),
+            "since": "1 year ago",
+            "until": "now",
+            "where": "",
+            "viz_type": "cal_heatmap",
+            "domain_granularity": "month",
+            "subdomain_granularity": "day",
+        }
+
+        slc = Slice(
+            slice_name="Calendar Heatmap multiformat" + str(i),
+            viz_type='cal_heatmap',
+            datasource_type='table',
+            table=tbl,
+            params=get_slice_json(slice_data),
+        )
+        merge_slice(slc)

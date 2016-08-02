@@ -6,6 +6,7 @@ Caravel
 [![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
 [![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
 [![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
+[![PyPI](https://img.shields.io/pypi/pyversions/caravel.svg?maxAge=2592000)](https://pypi.python.org/pypi/caravel)
 [![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
@@ -22,8 +23,8 @@ Video - Introduction to Caravel
 
 Screenshots
 ------------
-![img](http://i.imgur.com/JRbTnTx.png)
-![img](http://i.imgur.com/4wRtxwb.png)
+![img](http://i.imgur.com/x8t30YU.png)
+![img](http://i.imgur.com/DRCnbq6.png)
 
 Caravel
 ---------
@@ -45,6 +46,7 @@ Caravel provides:
     made available to the user
 * Deep integration with Druid allows for Caravel to stay blazing fast while
     slicing and dicing large, realtime datasets
+* Fast loading dashboards with configurable caching
 
 
 Database Support
@@ -77,19 +79,21 @@ Installation & Configuration
 More screenshots
 ----------------
 
-![img](http://i.imgur.com/MAFZTtU.png)
-![img](http://i.imgur.com/xcy1QjN.png)
-![img](http://i.imgur.com/RWqA8ly.png)
-![img](http://i.imgur.com/D2kZL7q.png)
-![img](http://i.imgur.com/0UPTK61.png)
-![img](http://i.imgur.com/ahHoCuS.png)
+![img](http://i.imgur.com/SAhDJCI.png)
+![img](http://i.imgur.com/iuLpv1c.png)
+![img](http://i.imgur.com/V2FWeZx.png)
+![img](http://i.imgur.com/BeUtCzF.png)
+![img](http://i.imgur.com/phoY7jI.png)
+![img](http://i.imgur.com/NvIDgdC.png)
+![img](http://i.imgur.com/DzwYyns.png)
 
 
 Resources
 -------------
 * [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
-* [Docker image](https://hub.docker.com/r/kochalex/caravel/) (community contributed)
+* [Docker image 1](https://hub.docker.com/r/kochalex/caravel/)
+  [Docker image 2](https://hub.docker.com/r/amancevice/caravel/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 

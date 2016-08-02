@@ -3,13 +3,14 @@
 
 {% block body %}
 <div class="container-fluid">
+  {% include 'caravel/flash_wrapper.html' %}
   <div class="sqlcontent" style="display: none;">
     <h3>db: [{{ db }}]</h3>
     <div class="row interactions">
       <div class="col-xs-7">
         <input type="hidden" id="database_id" value="{{ db.id }}">
-        <button class="btn btn-primary" id="run">Run!</button>
-        <button class="btn btn-default" id="create_view">Create View</button>
+        <button class="btn btn-primary" id="run">{{_("Run!")}}</button>
+        <button class="btn btn-default" id="create_view">{{_("Create View")}}</button>
       </div>
       <div class="col-xs-5">
         <select id="dbtable">

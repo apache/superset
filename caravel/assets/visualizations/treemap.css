@@ -1,15 +1,43 @@
-.node {
-  border: solid 1px white;
-  font: 10px sans-serif;
-  line-height: 12px;
-  overflow: hidden;
-  position: absolute;
-  text-indent: 2px;
-  padding: 0px;  /* form div giving top 1px */
-  box-sizing: content-box;  /* otherwise inheriting border-box */
+text {
+  pointer-events: none;
 }
 
-.treemap-container {
-  position: relative;
-  margin: auto;
+.grandparent text {
+  font-weight: bold;
+}
+
+rect {
+  fill: none;
+  stroke: #fff;
+}
+
+rect.parent,
+.grandparent rect {
+  stroke-width: 2px;
+}
+
+rect.parent {
+    pointer-events: none;
+}
+
+.grandparent rect {
+  fill: #eee;
+}
+
+.grandparent:hover rect {
+  fill: #aaa;
+}
+
+.children rect.parent,
+.grandparent rect {
+  cursor: pointer;
+}
+
+.children rect.parent {
+  fill: #bbb;
+  fill-opacity: .5;
+}
+
+.children:hover rect.child {
+  fill: #bbb;
 }
