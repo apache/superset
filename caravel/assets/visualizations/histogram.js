@@ -54,19 +54,20 @@ function histogram(slice) {
             .data([bins]) 
         
         // Otherwise create the 
-        var _g = svg.append("g")
+        var _g = svg.append("g");
         _g.append("g").attr("class", "bars");
         _g.append("g").attr("class", "x axis");
         
       
         // Update the inner dimentions
         var g  = svg.select("g")
-           .attr("transform", "translate(" + margin.left + "," + (margin.top + navBarHeight + navBarBuffer) + ")")
+           .attr("transform", "translate(" + margin.left + "," + (margin.top + navBarHeight + navBarBuffer) + ")");
         
         // Update the bars
         var bar = svg.select(".bars").selectAll(".bar").data(bins);
         bar.enter().append("rect");
         bar.exit().remove();
+
         bar.attr("width", x.rangeBand())
             .attr("x", function(d) { return x(d.x); })
             .attr("y", function(d) { return y(d.y); })
