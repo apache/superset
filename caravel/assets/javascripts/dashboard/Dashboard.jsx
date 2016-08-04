@@ -52,10 +52,10 @@ function dashboardContainer(dashboardData) {
       dashboard.slices.forEach((data) => {
         if (data.error) {
           const html = '<div class="alert alert-danger">' + data.error + '</div>';
-          $('#slice_' + data.sliceId).find('.token').html(html);
+          $('#slice_' + data.slice_id).find('.token').html(html);
         } else {
           const slice = px.Slice(data, dash);
-          $('#slice_' + data.sliceId).find('a.refresh').click(() => {
+          $('#slice_' + data.slice_id).find('a.refresh').click(() => {
             slice.render(true);
           });
           sliceObjects.push(slice);
