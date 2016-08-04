@@ -310,7 +310,7 @@ class FormFactory(object):
                 "description": _("Columns to display")
             }),
             'druid_time_origin': (FreeFormSelectField, {
-                "label": _( "Origin"),
+                "label": _("Origin"),
                 "choices": (
                     ('', _('default')),
                     ('now', _('now')),

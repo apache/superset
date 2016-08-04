@@ -362,7 +362,6 @@ class Queryable(object):
             return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
 
 
-
 class Database(Model, AuditMixinNullable):
 
     """An ORM object that stores Database related information"""
@@ -535,7 +534,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         sqla.UniqueConstraint(
             'database_id', 'schema', 'table_name',
             name='_customer_location_uc'),)
-
 
     def __repr__(self):
         return self.table_name
@@ -743,7 +741,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
-            # some sql dialects require for order by expressions 
+            # some sql dialects require for order by expressions
             # to also be in the select clause
             inner_select_exprs += [main_metric_expr]
             subq = select(inner_select_exprs)
@@ -765,7 +763,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         sql = "{}".format(
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
-            )
+        )
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -1125,7 +1123,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         def int_or_0(v):
             try:
                 v = int(v)
-            except Exception as e:
+            except (TypeError, ValueError):
                 v = 0
             return v
         v1nums = [int_or_0(n) for n in v1.split('.')]
@@ -1282,7 +1280,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if rejected_metrics:
             raise MetricPermException(
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
-        )
+            )
 
         granularity = granularity or "all"
         if granularity != "all":
