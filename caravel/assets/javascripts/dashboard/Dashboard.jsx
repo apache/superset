@@ -45,7 +45,6 @@ function dashboardContainer(dashboardData) {
     filters: {},
     init() {
       this.initDashboardView();
-      this.firstLoad = true;
       px.initFavStars();
       const sliceObjects = [];
       const dash = this;
@@ -64,7 +63,7 @@ function dashboardContainer(dashboardData) {
       this.slices = sliceObjects;
       this.refreshTimer = null;
       this.loadPreSelectFilters();
-      this.startPeriodicRender(0);
+      this.startPeriodicRender();
       this.bindResizeToWindowResize();
     },
     loadPreSelectFilters() {
@@ -131,14 +130,12 @@ function dashboardContainer(dashboardData) {
       const maxRandomDelay = Math.min(interval * 0.2, 5000);
       const refreshAll = function () {
         dash.slices.forEach(function (slice) {
-          const force = !dash.firstLoad;
           setTimeout(function () {
             slice.render(force);
           },
           // Randomize to prevent all widgets refreshing at the same time
           maxRandomDelay * Math.random());
         });
-        dash.firstLoad = false;
       };
 
       const fetchAndRender = function () {
@@ -149,7 +146,9 @@ function dashboardContainer(dashboardData) {
           }, interval);
         }
       };
-      fetchAndRender();
+      if (interval > 0){
+        fetchAndRender();
+      }
     },
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
@@ -244,6 +243,8 @@ function dashboardContainer(dashboardData) {
         positions,
         css: this.editor.getValue(),
         expanded_slices: expandedSlices,
+        autorefresh_seconds: dashboard.autorefresh_seconds,
+        autorefresh_from_cache: dashboard.autorefresh_from_cache
       };
       $.ajax({
         type: 'POST',
@@ -323,9 +324,10 @@ function dashboardContainer(dashboardData) {
                 dashboard.readFilters(),
         });
       });
-      $('#refresh_dash_interval').on('change', function () {
-        const interval = $(this).find('option:selected').val() * 1000;
-        dashboard.startPeriodicRender(interval);
+      $("#refresh_dash_apply").click(function () {
+        dashboard.autorefresh_seconds = $("#refresh_dash_interval").val();
+        dashboard.autorefresh_from_cache = $("#refresh_dach_from_cache").is(':checked');
+        dashboard.startPeriodicRender();
       });
       $('#refresh_dash').click(() => {
         dashboard.slices.forEach((slice) => {
