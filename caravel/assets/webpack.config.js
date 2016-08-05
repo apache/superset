@@ -8,6 +8,9 @@ const APP_DIR = path.resolve(__dirname, './');
 const BUILD_DIR = path.resolve(__dirname, './javascripts/dist');
 
 const config = {
+  node: {
+    fs: 'empty',
+  },
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     dashboard: APP_DIR + '/javascripts/dashboard/Dashboard.jsx',
