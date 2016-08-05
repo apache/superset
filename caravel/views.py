@@ -127,6 +127,19 @@ class CaravelFilter(BaseFilter):
         return perms
 
 
+class TableSlice(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        perms = self.get_perms()
+        tables = []
+        for perm in perms:
+            match = re.search(r'\(id:(\d+)\)', perm)
+            tables.append(match.group(1))
+        qry = query.filter(self.model.id.in_(tables))
+        return qry
+
+
 class FilterSlice(CaravelFilter):
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
@@ -447,6 +460,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
     }
+    base_filters = [['id', TableSlice, lambda: []]]
     label_columns = {
         'table_link': _("Table"),
         'changed_by_': _("Changed By"),
