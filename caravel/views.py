@@ -170,6 +170,14 @@ class FilterDashboard(CaravelFilter):
         return query
 
 
+class FilterDashboardSlices(CaravelFilter):
+    def apply(self, query, value):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        qry = query.filter(self.model.perm.in_(self.get_perms()))
+        return qry
+
+
 def validate_json(form, field):  # noqa
     try:
         json.loads(field.data)
@@ -666,6 +674,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         'owners': _("Owners is a list of users who can alter the dashboard."),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
+    add_form_query_rel_fields = {'slices': [['slices', FilterDashboardSlices, None]]}
+    edit_form_query_rel_fields = {'slices': [['slices', FilterDashboardSlices, None]]}
     label_columns = {
         'dashboard_link': _("Dashboard"),
         'dashboard_title': _("Title"),
