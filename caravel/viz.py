@@ -1201,8 +1201,7 @@ class DistributionPieViz(NVD3Viz):
         return df.to_dict(orient="records")
 
 class HistogramViz(BaseViz):
-
-    """A histogram (incomplete)"""
+    """Histogram"""
 
     viz_type = "histogram"
     verbose_name = _("Histogram")
@@ -1210,8 +1209,13 @@ class HistogramViz(BaseViz):
     fieldsets = ({
         'label': None,
         'fields': (
-            ('all_columns_x'),
+            ('all_columns_x',),
             'row_limit',
+        )
+    }, {
+        'label': _("Histogram Options"),
+        'fields': (
+            'link_length',
         )
     },)
 
@@ -1219,61 +1223,22 @@ class HistogramViz(BaseViz):
         'all_columns_x': {
             'label': _('Numeric Column'),
             'description' : _("Select the numeric column to draw the histogram"),
+        },
+        'link_length' : {
+            'label': _("No of Bins"),
+            'description' : _("Select number of bins for the histogram"),
+            'default' : 5
         }
     }
 
     def query_obj(self):
 
         d = super(HistogramViz, self).query_obj()
-
-        form_data = self.form_data
-
-        d['row_limit'] = 100 # form_data.get('row_limit') or 10000
-
-        numeric_column = form_data.get('all_columns_x') or None
+        d['row_limit'] = self.form_data.get('row_limit') or 100000
+        numeric_column = self.form_data.get('all_columns_x') or None
         if numeric_column is None:
             raise Exception("Must have one numeric column specified")
-
-        from caravel.models import SqlMetric
-        M = SqlMetric
-
-        # Add Width Bucket as Metric to select a bucket id column
-        self.datasource.metrics.append(M(
-            metric_name='width_bucket__' + numeric_column,
-            verbose_name='width_bucket__' + numeric_column,
-            metric_type='width_bucket',
-            expression="WIDTH_BUCKET({}, 1, 10000, 20)".format(numeric_column)
-        ))
-
-        min_numeric_column_metric = [ m for m in filter(lambda m: m.expression=="MIN({})".format(numeric_column), self.datasource.metrics)]
-        max_numeric_column_metric = [ m for m in filter(lambda m: m.expression=="MAX({})".format(numeric_column), self.datasource.metrics)]
-
-        if(len(min_numeric_column_metric)!=1):
-            self.datasource.metrics.append(M(
-                metric_name='min__'+numeric_column,
-                verbose_name='min__'+numeric_column,
-                metric_type='min',
-                expression="MIN({})".format(numeric_column)
-            ))
-            min_numeric_column_metric = 'min__' + numeric_column
-        else:
-            min_numeric_column_metric = min_numeric_column_metric[0]
-
-        if (len(max_numeric_column_metric)!=1):
-            self.datasource.metrics.append(M(
-                metric_name='max__' + numeric_column,
-                verbose_name='max__' + numeric_column,
-                metric_type='max',
-                expression="MAX({})".format(numeric_column)
-            ))
-            max_numeric_column_metric = 'max__' + numeric_column
-        else:
-            max_numeric_column_metric = 'min__' + numeric_column[0]
-
         d['columns'] = [numeric_column]
-        d['metrics'] = [] # form_data.get('metric')] or []
-        d['is_timeseries'] = False
-        d['groupby'] = [] # form_data.get('metric')] or []
 
         return d
 
@@ -1283,10 +1248,8 @@ class HistogramViz(BaseViz):
         if not query_obj:
             query_obj = self.query_obj()
 
-        self.error_msg = ""
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
-        print("Query Made to DB : {};".format(self.query))
         df = self.results.df
 
         if df is None or df.empty:
@@ -1298,21 +1261,19 @@ class HistogramViz(BaseViz):
         return df;
 
     def to_series(self, df):
+        """
+        Returns a list of numeric values from a dataframes's first column
+        """
         chart_data = []
-        ct = 0
         for value in df[df.columns[0]].values:
             chart_data.append(value)
-            ct += 1
-            if(ct > 100):
-                break
-        print("Here is chart data : {}".format(chart_data[:10]))
         return chart_data
 
     def get_data(self):
+        """Returns the chart data"""
         df = self.get_df()
         chart_data = self.to_series(df)
         return chart_data
-
 
 class DistributionBarViz(DistributionPieViz):
 

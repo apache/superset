@@ -9,76 +9,101 @@ function histogram(slice) {
     
     var div = d3.select(slice.selector)
     
-    function irwinHallDistribution(n, m) {
-          var distribution = [];
-            for (var i = 0; i < n; i++) {
-                    for (var s = 0, j = 0; j < m; j++) {
-                              s += Math.random();
-                                  }
-                                      distribution.push(s / m);
-                                        }
-                                          return distribution;
-    }
-
-    var _draw_test = function(data, form_data) {
-    
-    }
-    var _draw = function(data, form_data) {
+    var _draw = function(data, noOfBins) {
         
-        var margin = { top: 0, right: 0, bottom: 0, left: 0 },
+        var margin = { top: 50, right: 10, bottom: 20, left: 50 },
             navBarHeight = 36,
             navBarTitleSize = navBarHeight / 3,
             navBarBuffer = 10,
             width = slice.width() - margin.left - margin.right,
             height = slice.height() - margin.top - margin.bottom - navBarHeight - navBarBuffer,
-            formatNumber = d3.format(",.0f"); 
-       
-        var bins = d3.layout.histogram()(data);
+            formatNumber = d3.format(",.0f"), 
+            formatTicks = d3.format(",.00f");
         
-        console.log(bins);
+        var bins = d3.layout.histogram().bins(noOfBins)(data),
+            x = d3.scale.ordinal(),
+            y = d3.scale.linear(),
+            xAxis = d3.svg.axis().scale(x).orient("bottom").ticks(noOfBins).tickFormat(formatTicks),
+            yAxis = d3.svg.axis().scale(y).orient("left").ticks(noOfBins*3);
+ 
+        x.domain(bins.map(function(d) { return d.x;}))
+         .rangeRoundBands([0, width], .1); 
         
-         var x = d3.scale.ordinal()
-            .domain(bins.map(function(d) { return d.x; }))
-            .rangeRoundBands([0, width], .1);
+        y.domain([0, d3.max(bins, function(d) { return d.y;})])
+         .range([height, 0]);
+
+        var svg = div.selectAll("svg").data([bins]).enter().append("svg");
         
-        var y = d3.scale.linear()
-            .domain([0, d3.max(bins, function(d) { return d.y;})])
-            .range([0, height]);
+        svg.append("rect")
+           .attr("width", "100%")
+           .attr("height", "100%")
+           .attr("fill", "#f6f6f6");
+
+        var gEnter = svg
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
         
-        var xAxis = d3.svg.axis().scale(x).orient("bottom").tickSize(6, 0);
+        gEnter.append("g").attr("class", "bars");
+        gEnter.append("g").attr("class", "x axis");
+
+        svg.attr("width", slice.width())
+           .attr("height", slice.height());
         
-        // Update the outer dimentsions
-        var svg = div.append("svg")
-            .attr("width", width)
-            .attr("height", height)
-            .data([bins]) 
+        var g = svg.select("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
         
-        // Otherwise create the 
-        var _g = svg.append("g");
-        _g.append("g").attr("class", "bars");
-        _g.append("g").attr("class", "x axis");
-        
-      
-        // Update the inner dimentions
-        var g  = svg.select("g")
-           .attr("transform", "translate(" + margin.left + "," + (margin.top + navBarHeight + navBarBuffer) + ")");
-        
-        // Update the bars
         var bar = svg.select(".bars").selectAll(".bar").data(bins);
         bar.enter().append("rect");
         bar.exit().remove();
-
-        bar.attr("width", x.rangeBand())
+        bar .attr("width", x.rangeBand())
             .attr("x", function(d) { return x(d.x); })
             .attr("y", function(d) { return y(d.y); })
             .attr("height", function(d) {
-                return y.range()[1] - y(d.y);
-            }).order();
-         
+                return y.range()[0] - y(d.y);
+            })
+            .attr("fill", function(d) { return px.color.category21(d.length); })
+            .order();
+       
+       // Find maximum length to position the ticks on top of the bar correctly 
+       var maxLength = d3.max(bins, function(d) { return d.length;});  
+ 
+       svg.selectAll(".bartext")
+          .data(bins)
+          .enter()
+          .append("text")
+          .attr("class", "bartext")
+          .attr("dy", ".75em")
+          .attr("y", function(d) { 
+            var padding = 0.0
+            if (d.length/maxLength < 0.1) {
+              padding = 12.0
+            } else {
+              padding = -8.0
+            }
+            return y(d.y) - padding;
+          })
+          .attr("x", function(d) { return x(d.x) + (x.rangeBand()/2);})
+          .attr("text-anchor", "middle")
+          .text(function(d) { return formatNumber(d.y); })
+          .attr("fill", "black")
+          .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        
         // Update the x-axis 
-        g.select(".x.axis")
-         .attr("transform", "translate(0," + y.range()[1] + ")")
-         .call(xAxis);
+        svg.append("g")
+           .attr("class", "axis")
+           .attr("transform", "translate(" + margin.left + "," + (height + margin.top) + ")")
+           .text("values")
+           .call(xAxis);
+        
+        // Update the Y Axis and add minor lines
+        svg.append("g")
+            .attr("class", "axis")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .text("count")
+            .call(yAxis)
+            .selectAll("g")
+            .filter(function(d) { return d; })
+            .classed("minor", true);
     };
 
     var render = function() {
@@ -88,11 +113,12 @@ function histogram(slice) {
                 slice.error(error.responseText, error);
                 return '';
             }
+            
+            var noOfBins = Number(json.form_data.link_length) || 10;
 
             div.selectAll("*").remove();
-            _draw(json.data, json.form_data);
+            _draw(json.data, noOfBins);
             slice.done(json);
-        
         });
     };
 

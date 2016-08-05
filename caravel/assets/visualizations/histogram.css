@@ -1,5 +1,16 @@
-.bars rect {
-    fill: steelblue;
+.bars rect {}
+
+.axis path
+
+.axis line {
+  fill: none;
+  stroke: black;
+  shape-rendering: crispEdges;
+}
+
+.axis text {
+  font-family: sans-serif;
+  font-size: 11px;
 }
 
 .axis text {

@@ -81,3 +81,6 @@ Gallery
 
 .. image:: _static/img/viz_thumbnails/separator.png
    :scale: 25 %
+
+.. image:: _static/img/viz_thumbnails/histogram.png
+   :scale: 25 %
