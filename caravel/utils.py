@@ -10,6 +10,7 @@ import functools
 import json
 import logging
 import numpy
+import uuid
 
 import parsedatetime
 import sqlalchemy as sa
@@ -282,6 +283,8 @@ def base_json_conv(obj):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
         return float(obj)
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj):
