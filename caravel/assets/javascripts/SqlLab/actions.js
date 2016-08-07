@@ -22,7 +22,7 @@ export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 
 export function resetState() {
- return { type: RESET_STATE };
+  return { type: RESET_STATE };
 }
 
 export function addQueryEditor(queryEditor) {

@@ -1,6 +1,14 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import { Button, ButtonGroup, DropdownButton, Label, MenuItem, OverlayTrigger, Tooltip } from 'react-bootstrap';
+import {
+  Button,
+  ButtonGroup,
+  DropdownButton,
+  Label,
+  MenuItem,
+  OverlayTrigger,
+  Tooltip,
+} from 'react-bootstrap';
 
 import AceEditor from 'react-ace';
 import 'brace/mode/sql';
@@ -29,6 +37,9 @@ class SqlEditor extends React.Component {
     };
   }
   componentDidMount() {
+    this.onMount();
+  }
+  onMount() {
     if (this.state.autorun) {
       this.setState({ autorun: false });
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
@@ -94,11 +105,8 @@ class SqlEditor extends React.Component {
     this.props.actions.stopQuery(this.props.latestQuery);
   }
   textChange(text) {
-    this.setState({ sql: text })
+    this.setState({ sql: text });
     this.props.actions.queryEditorSetSql(this.props.queryEditor, text);
-  }
-  notImplemented() {
-    alert('Not implemented');
   }
   addWorkspaceQuery() {
     this.props.actions.addWorkspaceQuery({
@@ -152,12 +160,12 @@ class SqlEditor extends React.Component {
       </ButtonGroup>
     );
     let limitWarning = null;
-    const row_limit = 1000;
-    if (this.props.latestQuery && this.props.latestQuery.rows === row_limit) {
+    const rowLimit = 1000;
+    if (this.props.latestQuery && this.props.latestQuery.rows === rowLimit) {
       const tooltip = (
         <Tooltip id="tooltip">
           It appears that the number of rows in the query results displayed
-          was limited on the server side to the {row_limit} limit.
+          was limited on the server side to the {rowLimit} limit.
         </Tooltip>
       );
       limitWarning = (
@@ -219,9 +227,8 @@ SqlEditor.propTypes = {
 SqlEditor.defaultProps = {
 };
 
-function mapStateToProps(state) {
-  return {
-  };
+function mapStateToProps() {
+  return {};
 }
 
 function mapDispatchToProps(dispatch) {

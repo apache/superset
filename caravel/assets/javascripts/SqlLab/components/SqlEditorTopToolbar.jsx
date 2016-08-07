@@ -123,9 +123,6 @@ class SqlEditorTopToolbar extends React.Component {
       that.setState({ databaseLoading: false });
     });
   }
-  notImplemented() {
-    alert('Not implemented');
-  }
   closePopover(ref) {
     this.refs[ref].hide();
   }
