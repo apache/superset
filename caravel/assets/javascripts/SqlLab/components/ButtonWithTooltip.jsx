@@ -1,33 +1,31 @@
 import React from 'react';
 import { Button, OverlayTrigger, Tooltip } from 'react-bootstrap';
 
-
-class ButtonWithTooltip extends React.Component {
-  render() {
-    let tooltip = (
-      <Tooltip id="tooltip">
-        {this.props.tooltip}
-      </Tooltip>
-    );
-    return (
-      <OverlayTrigger
-        overlay={tooltip}
-        delayShow={300}
-        placement={this.props.placement}
-        delayHide={150}
+const ButtonWithTooltip = (props) => {
+  let tooltip = (
+    <Tooltip id="tooltip">
+      {props.tooltip}
+    </Tooltip>
+  );
+  return (
+    <OverlayTrigger
+      overlay={tooltip}
+      delayShow={300}
+      placement={props.placement}
+      delayHide={150}
+    >
+      <Button
+        onClick={props.onClick}
+        bsStyle={props.bsStyle}
+        disabled={props.disabled}
+        className={props.className}
       >
-        <Button
-          onClick={this.props.onClick}
-          bsStyle={this.props.bsStyle}
-          disabled={this.props.disabled}
-          className={this.props.className}
-        >
-            {this.props.children}
-        </Button>
-      </OverlayTrigger>
-    );
-  }
-}
+          {props.children}
+      </Button>
+    </OverlayTrigger>
+  );
+};
+
 ButtonWithTooltip.defaultProps = {
   onClick: () => {},
   disabled: false,

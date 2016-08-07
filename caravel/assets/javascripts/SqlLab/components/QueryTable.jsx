@@ -1,11 +1,8 @@
 import React from 'react';
-import { Alert, Modal } from 'react-bootstrap';
 
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
-
-import Select from 'react-select';
 
 import moment from 'moment';
 import { Table } from 'reactable';
@@ -14,6 +11,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 
 import Link from './Link';
+import VisualizeModal from './VisualizeModal';
 
 // TODO move to CSS
 const STATE_COLOR_MAP = {
@@ -35,9 +33,7 @@ class QueryTable extends React.Component {
   }
   showVisualizeModal(query) {
     this.setState({ showVisualizeModal: true });
-    this.state.activeQuery = query;
-  }
-  changeChartType(event) {
+    this.setState({ activeQuery: query });
   }
   render() {
     const data = this.props.queries.map((query) => {
@@ -87,58 +83,13 @@ class QueryTable extends React.Component {
 
       return q;
     }).reverse();
-    let visualizeModalBody;
-    if (this.state.activeQuery) {
-      const cols = this.state.activeQuery.results.columns;
-      visualizeModalBody = (
-        <div>
-          <Select
-            name="select-chart-type"
-            placeholder="[Chart Type]"
-            options={[
-              { value: 'line', label: 'Time Series - Line Chart' },
-              { value: 'bar', label: 'Time Series - Bar Chart' },
-              { value: 'bar_dist', label: 'Distribution - Bar Chart' },
-              { value: 'pie', label: 'Pie Chart' },
-            ]}
-            value={null}
-            autosize={false}
-            onChange={this.changeChartType.bind(this)}
-          />
-          <Table
-            className="table table-condensed"
-            columns={['column', 'is_dimension', 'is_date', 'agg_func']}
-            data={cols.map((col) => ({
-              column: col,
-              is_dimension: <input type="checkbox" className="form-control" />,
-              is_date: <input type="checkbox" className="form-control" />,
-              agg_func: (
-                <Select
-                  options={[
-                    { value: 'sum', label: 'SUM(x)' },
-                    { value: 'min', label: 'MIN(x)' },
-                    { value: 'max', label: 'MAX(x)' },
-                    { value: 'avg', label: 'AVG(x)' },
-                    { value: 'count_distinct', label: 'COUNT(DISTINCT x)' },
-                  ]}
-                />
-              ),
-            }))}
-          />
-        </div>
-      );
-    }
     return (
       <div>
-        <Modal show={this.state.showVisualizeModal} onHide={this.hideVisualizeModal.bind(this)}>
-          <Modal.Header closeButton>
-            <Modal.Title>Visualize (mock)</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <Alert bsStyle="danger">Not functional - Work in progress!</Alert>
-            {visualizeModalBody}
-          </Modal.Body>
-        </Modal>
+        <VisualizeModal
+          show={this.state.showVisualizeModal}
+          query={this.state.activeQuery}
+          onHide={this.hideVisualizeModal.bind(this)}
+        />
         <Table
           columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
           className="table table-condensed"
@@ -158,9 +109,8 @@ QueryTable.defaultProps = {
   queries: [],
 };
 
-function mapStateToProps(state) {
-  return {
-  };
+function mapStateToProps() {
+  return {};
 }
 function mapDispatchToProps(dispatch) {
   return {
