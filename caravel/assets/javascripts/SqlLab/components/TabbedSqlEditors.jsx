@@ -35,10 +35,9 @@ class QueryEditors extends React.Component {
     }
   }
   render() {
-    const that = this;
     const editors = this.props.queryEditors.map((qe, i) => {
       let latestQuery;
-      that.props.queries.forEach((q) => {
+      this.props.queries.forEach((q) => {
         if (q.id === qe.latestQueryId) {
           latestQuery = q;
         }
@@ -53,10 +52,10 @@ class QueryEditors extends React.Component {
             className="no-shadow"
             id="bg-vertical-dropdown-1"
           >
-            <MenuItem eventKey="1" onClick={that.props.actions.removeQueryEditor.bind(that, qe)}>
+            <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> close tab
             </MenuItem>
-            <MenuItem eventKey="2" onClick={that.renameTab.bind(that, qe)}>
+            <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
           </DropdownButton>
@@ -90,8 +89,9 @@ class QueryEditors extends React.Component {
 }
 QueryEditors.propTypes = {
   actions: React.PropTypes.object,
-  tabHistory: React.PropTypes.array,
+  queries: React.PropTypes.array,
   queryEditors: React.PropTypes.array,
+  tabHistory: React.PropTypes.array,
   workspaceDatabase: React.PropTypes.object,
 };
 QueryEditors.defaultProps = {
