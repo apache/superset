@@ -12,10 +12,9 @@ import 'react-select/dist/react-select.css';
 class TableWorkspaceElement extends React.Component {
   selectStar() {
     let cols = '';
-    const that = this;
-    this.props.table.columns.forEach(function (col, i) {
+    this.props.table.columns.forEach((col, i) => {
       cols += col.name;
-      if (i < that.props.table.columns.length - 1) {
+      if (i < this.props.table.columns.length - 1) {
         cols += ', ';
       }
     });

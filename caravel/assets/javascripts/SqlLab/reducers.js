@@ -142,4 +142,4 @@ export const sqlLabReducer = function (state, action) {
     return actionHandlers[action.type]();
   }
   return state;
-}
+};
