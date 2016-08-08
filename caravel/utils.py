@@ -310,10 +310,10 @@ def json_int_dttm_ser(obj):
     val = base_json_conv(obj)
     if val is not None:
         return val
-    if isinstance(obj, date):
-        obj = datetime.combine(obj, datetime.min.time())
     if isinstance(obj, datetime):
         obj = (obj - EPOCH).total_seconds() * 1000
+    elif isinstance(obj, date):
+        obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
              "Unserializable object {} of type {}".format(obj, type(obj))
