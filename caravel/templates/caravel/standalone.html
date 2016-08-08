@@ -1,15 +1,18 @@
 <html>
   <head>
-    <script src="/static/assets/javascripts/dist/css-theme.entry.js"></script>
-    <script src="/static/assets/javascripts/dist/standalone.entry.js"></script>
-    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/caravel.css" />
+    <title>{{viz.token}}</title>
     <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/caravel.css" />
+    <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+
     {% set CSS_THEME = appbuilder.get_app.config.get("CSS_THEME") %}
     {% set height = request.args.get("height", 700) %}
     {% if CSS_THEME %}
       <link rel="stylesheet" type="text/css" href="{{ CSS_THEME }}" />
     {% endif %}
   </head>
+
   <body>
     <div
       id="{{ viz.token }}"
@@ -20,4 +23,7 @@
       <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
     </div>
   </body>
+  <script src="/static/assets/javascripts/dist/css-theme.entry.js"></script>
+  <script src="/static/assets/javascripts/dist/standalone.entry.js"></script>
 </html>
+

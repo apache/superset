@@ -19,3 +19,8 @@ input {
 .panel-body {
     overflow: auto;
 }
+
+.cal-heatmap-panel {
+  padding: 20px;
+  background-color: #fff;
+}
