@@ -24,8 +24,8 @@ div.widget .chart-controls {
 }
 .slice-grid div.widget {
   border-radius: 0;
-  border: 1px solid #ccc;
-  box-shadow: 2px 1px 5px -2px #aaa;
+  border: 0px;
+  box-shadow: none;
   background-color: #fff;
   overflow: visible;
 }
@@ -39,9 +39,7 @@ div.widget .chart-controls {
   margin: 5px;
   position: absolute;
 }
-.dashboard .title {
-  text-align: center;
-}
+
 .dashboard .slice_title {
   text-align: center;
   font-weight: bold;
@@ -69,7 +67,7 @@ div.widget .chart-controls {
 }
 
 .slice-grid div.separator.widget {
-  border: 1px solid transparent;
+ border: 1px solid transparent;
   box-shadow: none;
   z-index: 1;
 }
@@ -97,4 +95,16 @@ div.widget .chart-controls {
   right: 0;
   top: 0;
   bottom: 0;
+}
+
+.dashboard .title {
+  margin: 0 20px;
+}
+
+.dashboard .title .favstar {
+  font-size: 24px;
+}
+
+.chart-header .header {
+  font-size: 16px;
 }

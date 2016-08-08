@@ -18,7 +18,7 @@
       <div>
         {{ field.label }}
         {% if field.description %}
-        <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+        <i class="fa fa-question-circle-o" data-toggle="tooltip" data-placement="right"
           title="{{ field.description }}"></i>
         {% endif %}
         {{ field(class_=form.field_css_classes(field.name)) }}
@@ -28,37 +28,159 @@
 
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
-      <div class="header">
-          <span id="js-query-and-save-btns"
-               data-can-add="{{ can_add }}"
-          ></span>
+      <div id="form_container" class="col-left-fixed">
+        <div
+          id="js-query-and-save-btns"
+          class="query-and-save-btns-container"
+          data-can-add="{{ can_add }}"
+        ></div>
 
-          <span title="Data Source" data-toggle="tooltip">
-            <select id="datasource_id" class="select2">
-              {% for ds in datasources %}
-                <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
-              {% endfor %}
-            </select>
-          </span>
-          <a href="{{ datasource.url }}" class="btn btn-default-outline" data-toggle="tooltip" title="Edit/configure datasource">
-            <i class="fa fa-edit"></i>&nbsp;
-          </a>
-          <span title="Visualization Type" data-toggle="tooltip">
-            {{ form.get_field("viz_type")(class_="select2-with-images") }}
-          </span>
-          {% if slice %}
-            <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip" data-placement="bottom">
-                <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
-                {{ slice.slice_name }}
-                <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit">
-                  {% if slice.description %}
-                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
+        <div class="panel panel-default">
+          <div class="panel-heading">Datasource & Chart Type</div>
+          <div class="panel-body">
+            <div>
+              <!-- DATASOURCE -->
+              <span title="Data Source" data-toggle="tooltip">
+                <select id="datasource_id" class="select2">
+                  {% for ds in datasources %}
+                    <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
+                  {% endfor %}
+                </select>
+              </span>
+              <a href="{{ datasource.url }}" class="btn btn-default-outline" data-toggle="tooltip" title="Edit/configure datasource">
+                <i class="fa fa-edit"></i>&nbsp;
+              </a>
+            </div>
+            <br/>
+            <!-- CHART TYPE -->
+            <div title="Visualization Type" data-toggle="tooltip">
+              {{ form.get_field("viz_type")(class_="select2-with-images") }}
+            </div>
+          </div>
+        </div>
+        {% for fieldset in form.fieldsets %}
+            <div class="panel panel-default">
+              {% if fieldset.label %}
+                <div class="panel-heading">
+                  <span class="legend_label">{{ fieldset.label }}</span>
+                  {% if fieldset.description %}
+                    <i    class="fa fa-question-circle-o" data-toggle="tooltip"
+                          data-placement="bottom"
+                          title="{{ fieldset.description }}"></i>
                   {% endif %}
-                  <i class="fa fa-edit"></i>
-                </a>
-            </span>
+                  <!-- <span class="collapser"> [-]</span> -->
+                </div>
+              {% endif %}
+              <div class="panel-body">
+              {% for fieldname in fieldset.fields %}
+                {% if not fieldname %}
+                  <hr/>
+                {% elif fieldname is string %}
+                  {{ panofield(fieldname) }}
+                {% else %}
+                <div class="row">
+                  <div class="form-group">
+                    {% for name in fieldname %}
+                    <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                      {% if name %}
+                        {{ panofield(name) }}
+                      {% endif %}
+                    </div>
+                    {% endfor %}
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+          <div id="filter_panel" class="panel panel-default">
+            <div class="panel-heading">
+              <span class="legend_label">{{ _("Filters") }}</span>
+              <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                  data-placement="bottom"
+                  title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
+              <!--<span class="collapser"> [-]</span>-->
+            </div>
+            <div class="panel-body">
+              <div id="flt0" style="display: none;">
+                <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+                <div class="row">
+                  <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+                  <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+                  <button type="button" class="btn btn-default btn-sm remove" aria-label="Delete filter">
+                    <span class="fa fa-minus"  aria-hidden="true"></span>
+
+                  </button>
+                </div>
+              </div>
+              <div id="filters"></div>
+              <button type="button" id="plus" class="btn btn-default btn-sm" aria-label="Add a filter">
+                <span class="fa fa-plus" aria-hidden="true"></span>
+                <span>{{ _("Add filter") }}</span>
+              </button>
+            </div>
+          </div>
+
+
+          {% if form.having_col_0 %}
+            <div id="having_panel" class="panel panel-default">
+              <div class="panel-heading">
+                <span class="legend_label">Result Filters ("having" filters)</span>
+                <i class="fa fa-info-circle" data-toggle="tooltip"
+                   data-placement="bottom"
+                   title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
+                <span class="collapser"> [-]</span>
+              </div>
+              <div class="panel-body">
+                <div id="having0" style="display: none;">
+                  <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
+                  <div class="row">
+                    <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
+                    <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
+                    <button type="button"
+                            class="btn btn-default btn-sm remove"
+                            aria-label="Delete filter">
+                                  <span class="fa fa-minus"
+                                        aria-hidden="true"></span>
+                    </button>
+                  </div>
+                </div>
+                <div id="filters"></div>
+                <button type="button" id="plus"
+                        class="btn btn-default btn-sm"
+                        aria-label="Add a filter">
+                  <span class="fa fa-plus" aria-hidden="true"></span>
+                  <span>Add filter</span>
+                </button>
+              </div>
+            </div>
           {% endif %}
-          <div class="pull-right">
+          {{ form.slice_id() }}
+          {{ form.slice_name() }}
+          {{ form.collapsed_fieldsets() }}
+          <input type="hidden" name="action" id="action" value="">
+          <input type="hidden" name="userid" id="userid" value="{{ userid }}">
+          <input type="hidden" name="goto_dash" id="goto_dash" value="false">
+          <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
+          <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
+          <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
+          <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
+      </div>
+
+      <div class="col-offset">
+        {% block messages %}{% endblock %}
+        {% include 'appbuilder/flash.html' %}
+        <div class="slice-name__container">
+          <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
+          <div class="slice-name__text">{{slice.slice_name}}</div>
+          <a href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit Description" class="edit-slice-description-icon">
+            {% if slice.description %}
+              <i class="fa fa-question-circle-o" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
+            {% endif %}
+            <i class="fa fa-edit"></i>
+          </a>
+          <div class="slice-meta pull-right">
             <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
               cached
             </span>
@@ -93,132 +215,16 @@
               </span>
             </div>
           </div>
-        <hr/>
+        </div>
+        <div
+          id="{{ viz.token }}"
+          class="widget viz slice {{ viz.viz_type }}"
+          data-slice="{{ viz.json_data }}"
+          style="height: 700px;">
+          <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
+          <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+        </div>
       </div>
-        <div id="form_container" class="col-left-fixed">
-          {% for fieldset in form.fieldsets %}
-              <div class="panel panel-default">
-                {% if fieldset.label %}
-                  <div class="panel-heading">
-                    <span class="legend_label">{{ fieldset.label }}</span>
-                    {% if fieldset.description %}
-                      <i    class="fa fa-info-circle" data-toggle="tooltip"
-                            data-placement="bottom"
-                            title="{{ fieldset.description }}"></i>
-                    {% endif %}
-                    <span class="collapser"> [-]</span>
-                  </div>
-                {% endif %}
-                <div class="panel-body">
-                {% for fieldname in fieldset.fields %}
-                  {% if not fieldname %}
-                    <hr/>
-                  {% elif fieldname is string %}
-                    {{ panofield(fieldname) }}
-                  {% else %}
-                  <div class="row">
-                    <div class="form-group">
-                      {% for name in fieldname %}
-                      <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-                        {% if name %}
-                          {{ panofield(name) }}
-                        {% endif %}
-                      </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                  {% endif %}
-                {% endfor %}
-                </div>
-              </div>
-            {% endfor %}
-            <div id="filter_panel" class="panel panel-default">
-              <div class="panel-heading">
-                <span class="legend_label">{{ _("Filters") }}</span>
-                <i  class="fa fa-info-circle" data-toggle="tooltip"
-                    data-placement="bottom"
-                    title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-                <span class="collapser"> [-]</span>
-              </div>
-              <div class="panel-body">
-                <div id="flt0" style="display: none;">
-                  <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
-                  <div class="row">
-                    <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
-                    <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
-                    <button type="button" class="btn btn-default btn-sm remove" aria-label="Delete filter">
-                      <span class="fa fa-minus"  aria-hidden="true"></span>
-
-                    </button>
-                  </div>
-                </div>
-                <div id="filters"></div>
-                <button type="button" id="plus" class="btn btn-default btn-sm" aria-label="Add a filter">
-                  <span class="fa fa-plus" aria-hidden="true"></span>
-                  <span>{{ _("Add filter") }}</span>
-                </button>
-              </div>
-            </div>
-
-
-            {% if form.having_col_0 %}
-              <div id="having_panel" class="panel panel-default">
-                <div class="panel-heading">
-                  <span class="legend_label">Result Filters ("having" filters)</span>
-                  <i class="fa fa-info-circle" data-toggle="tooltip"
-                     data-placement="bottom"
-                     title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-                  <span class="collapser"> [-]</span>
-                </div>
-                <div class="panel-body">
-                  <div id="having0" style="display: none;">
-                    <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
-                    <div class="row">
-                      <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
-                      <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
-                      <button type="button"
-                              class="btn btn-default btn-sm remove"
-                              aria-label="Delete filter">
-                                    <span class="fa fa-minus"
-                                          aria-hidden="true"></span>
-                      </button>
-                    </div>
-                  </div>
-                  <div id="filters"></div>
-                  <button type="button" id="plus"
-                          class="btn btn-default btn-sm"
-                          aria-label="Add a filter">
-                    <span class="fa fa-plus" aria-hidden="true"></span>
-                    <span>Add filter</span>
-                  </button>
-                </div>
-              </div>
-            {% endif %}
-            {{ form.slice_id() }}
-            {{ form.slice_name() }}
-            {{ form.collapsed_fieldsets() }}
-            <input type="hidden" name="action" id="action" value="">
-            <input type="hidden" name="userid" id="userid" value="{{ userid }}">
-            <input type="hidden" name="goto_dash" id="goto_dash" value="false">
-            <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
-            <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
-            <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
-            <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
-        </div>
-
-        <div class="col-offset">
-          {% block messages %}{% endblock %}
-          {% include 'appbuilder/flash.html' %}
-          <div
-            id="{{ viz.token }}"
-            class="widget viz slice {{ viz.viz_type }}"
-            data-slice="{{ viz.json_data }}"
-            style="height: 700px;">
-            <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
-            <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
-          </div>
-          <div class="credits pull-right">{{ "credits: " + viz.credits |safe if viz. credits else "" }}</div>
-        </div>
       <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog" role="document">
           <div class="modal-content">

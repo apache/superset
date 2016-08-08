@@ -38,7 +38,6 @@
     "autobind-decorator": "^1.3.3",
     "bootstrap": "^3.3.6",
     "bootstrap-datepicker": "^1.6.0",
-    "bootstrap-toggle": "^2.2.1",
     "brace": "^0.7.0",
     "brfs": "^1.4.3",
     "cal-heatmap": "3.5.4",

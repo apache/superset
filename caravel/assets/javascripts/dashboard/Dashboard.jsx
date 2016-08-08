@@ -14,7 +14,7 @@ const ace = require('brace');
 require('bootstrap');
 require('brace/mode/css');
 require('brace/theme/crimson_editor');
-require('./main.css');
+require('../../stylesheets/dashboard.css');
 require('../caravel-select2.js');
 
 // Injects the passed css string into a style sheet with the specified className
