@@ -1970,6 +1970,51 @@ class MapboxViz(BaseViz):
         }
 
 
+class LayeredMapboxViz(BaseViz):
+
+    """Combination of multiple Mapbox visualizations"""
+
+    viz_type = "mapbox_layered"
+    verbose_name = _("Layered Mapbox")
+    is_timeseries = False
+    credits = (
+        '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'mapbox_layers',
+        )
+    }, {
+        'label': _('Visual Tweaks'),
+        'fields': (
+            'mapbox_style',
+        )
+    }, {
+        'label': _('Viewport'),
+        'fields': (
+            'viewport_longitude',
+            'viewport_latitude',
+            'viewport_zoom',
+        )
+    },)
+
+    def query_obj(self):
+        return super(LayeredMapboxViz, self).query_obj()
+
+    def get_data(self):
+        df = self.get_df()
+        fd = self.form_data
+        layers = fd.get("mapbox_layers").split(" ")
+        return {
+            "layers": layers,
+            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
+            "mapStyle": fd.get("mapbox_style"),
+            "viewportLongitude": fd.get("viewport_longitude"),
+            "viewportLatitude": fd.get("viewport_latitude"),
+            "viewportZoom": fd.get("viewport_zoom"),
+        }
+
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1997,6 +2042,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    LayeredMapboxViz,
     HistogramViz,
     SeparatorViz,
 ]

@@ -6,11 +6,12 @@ import Immutable from 'immutable';
 import supercluster from 'supercluster';
 
 const DEFAULT_MAX_ZOOM = 16;
+const DEFAULT_POINT_RADIUS = 60;
 const propTypes = {
   isDragging: React.PropTypes.bool.isRequired,
   width: React.PropTypes.number.isRequired,
   height: React.PropTypes.number.isRequired,
-  pointRadius: React.PropTypes.number.isRequired,
+  pointRadius: React.PropTypes.number,
   pointRadiusUnit: React.PropTypes.string.isRequired,
   globalOpacity: React.PropTypes.number.isRequired,
   renderWhileDragging: React.PropTypes.bool.isRequired,
@@ -92,7 +93,7 @@ class PointMapViz extends React.Component {
         width={this.props.width}
         height={this.props.height}
         locations={Immutable.fromJS(clusters)}
-        pointRadius={this.props.pointRadius}
+        pointRadius={this.props.pointRadius || DEFAULT_POINT_RADIUS}
         pointRadiusUnit={this.props.pointRadiusUnit}
         rgb={this.state.rgb}
         globalOpacity={this.props.globalOpacity}
@@ -111,3 +112,4 @@ class PointMapViz extends React.Component {
 PointMapViz.propTypes = propTypes;
 
 export default BaseMapWrapper(PointMapViz);
+export const PointMapRaw = PointMapViz;

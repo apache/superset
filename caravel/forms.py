@@ -949,6 +949,12 @@ class FormFactory(object):
                 ],
                 "description": _("The color for points and clusters in RGB")
             }),
+            'mapbox_layers': (FreeFormSelectField, {
+                "label": _("Layers"),
+                "default": "",
+                "choices": [],
+                "description": _("List of slices to add on the base map.")
+            }),
         }
 
         # Override default arguments with form overrides

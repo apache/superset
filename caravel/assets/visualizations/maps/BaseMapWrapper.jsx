@@ -2,7 +2,6 @@ import React from 'react';
 import MapGL from 'react-map-gl';
 
 const BaseMapWrapper = ComposedComponent => {
-  const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_LONGITUDE = -122.405293;
   const DEFAULT_LATITUDE = 37.772123;
   const DEFAULT_ZOOM = 11;
@@ -39,14 +38,14 @@ const BaseMapWrapper = ComposedComponent => {
                 zoom: this.props.viewportZoom || DEFAULT_ZOOM,
                 startDragLngLat: [longitude, latitude]
               },
-              pointRadius: DEFAULT_POINT_RADIUS
+              slice: this.props.slice
             },
             json.data
           ));
 
           this.props.slice.done(json);
         },
-        error: function () {
+        error: function (error) {
           this.props.slice.error(error.responseText);
           return '';
         }
