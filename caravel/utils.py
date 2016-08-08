@@ -10,7 +10,7 @@ import functools
 import json
 import logging
 import numpy
-import time
+import uuid
 
 import parsedatetime
 import sqlalchemy as sa
@@ -283,6 +283,8 @@ def base_json_conv(obj):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
         return float(obj)
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj):
@@ -300,7 +302,7 @@ def json_iso_dttm_ser(obj):
         obj = obj.isoformat()
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
 
@@ -316,7 +318,7 @@ def json_int_dttm_ser(obj):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
 

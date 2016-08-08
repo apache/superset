@@ -1331,7 +1331,6 @@ class Caravel(BaseCaravelView):
             }
             return json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False)
 
-
     @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
