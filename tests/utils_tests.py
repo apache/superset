@@ -13,3 +13,9 @@ class UtilsTestCase(unittest.TestCase):
         ms = utils.json_int_dttm_ser(now)
         deser = (utils.EPOCH + timedelta(milliseconds=ms))
         assert now == deser, "Serialization error: %s is not %s" % (str(now), str(deser))
+
+        try:
+            utils.json_int_dttm_ser("this is not a date")
+            assert False, "No exception thrown for an invalid value"
+        except:
+            pass
