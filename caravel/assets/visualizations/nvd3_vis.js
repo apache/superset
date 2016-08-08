@@ -1,6 +1,7 @@
 // JS
 var d3 = window.d3 || require('d3');
-var px = window.px || require('../javascripts/modules/caravel.js');
+import { category21 } from '../javascripts/modules/colors'
+import { timeFormatFactory, formatDate } from '../javascripts/modules/dates'
 var nv = require('nvd3');
 
 // CSS
@@ -203,14 +204,14 @@ function nvd3Vis(slice) {
         if (fd.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
-        var xAxisFormatter = null;
+        var xAxisFormatter;
         if (viz_type === 'bubble') {
           xAxisFormatter = d3.format('.3s');
         } else if (fd.x_axis_format === 'smart_date') {
-          xAxisFormatter = px.formatDate;
+          xAxisFormatter = formatDate;
           chart.xAxis.tickFormat(xAxisFormatter);
         } else if (fd.x_axis_format !== undefined) {
-          xAxisFormatter = px.timeFormatFactory(fd.x_axis_format);
+          xAxisFormatter = timeFormatFactory(fd.x_axis_format);
           chart.xAxis.tickFormat(xAxisFormatter);
         }
 
@@ -222,9 +223,9 @@ function nvd3Vis(slice) {
         if (viz_type === 'bubble') {
           chart.xAxis.tickFormat(d3.format('.3s'));
         } else if (fd.x_axis_format === 'smart_date') {
-          chart.xAxis.tickFormat(px.formatDate);
+          chart.xAxis.tickFormat(formatDate);
         } else if (fd.x_axis_format !== undefined) {
-          chart.xAxis.tickFormat(px.timeFormatFactory(fd.x_axis_format));
+          chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
         }
         if (chart.yAxis !== undefined) {
           chart.yAxis.tickFormat(d3.format('.3s'));
@@ -238,7 +239,7 @@ function nvd3Vis(slice) {
           }
         }
         chart.color(function (d, i) {
-          return px.color.category21(d[colorKey]);
+          return category21(d[colorKey]);
         });
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
