@@ -301,7 +301,7 @@ def json_iso_dttm_ser(obj):
         return val
     if isinstance(obj, datetime):
         obj = obj.isoformat()
-    if isinstance(obj, date):
+    elif isinstance(obj, date):
         obj = obj.isoformat()
     else:
         raise TypeError(
