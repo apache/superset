@@ -65,6 +65,21 @@ function tableVis(slice) {
           return d;
         });
 
+      if (form_data.all_columns.length == 0) {
+        var sum_arr = [];
+        var sum_row = data.records.pop();
+        $.each(sum_row, function(key, value) {
+          sum_arr.push(value);
+        });
+        table.append('tfoot').append('tr')
+          .selectAll('td')
+          .data(sum_arr).enter()
+          .append('td')
+          .text(function (d) {
+            return d;
+          });
+      }
+
       table.append('tbody')
         .selectAll('tr')
         .data(data.records).enter()
