@@ -1200,7 +1200,9 @@ class DistributionPieViz(NVD3Viz):
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
+
 class HistogramViz(BaseViz):
+
     """Histogram"""
 
     viz_type = "histogram"
@@ -1222,29 +1224,29 @@ class HistogramViz(BaseViz):
     form_overrides = {
         'all_columns_x': {
             'label': _('Numeric Column'),
-            'description' : _("Select the numeric column to draw the histogram"),
+            'description': _("Select the numeric column to draw the histogram"),
         },
-        'link_length' : {
+        'link_length': {
             'label': _("No of Bins"),
-            'description' : _("Select number of bins for the histogram"),
-            'default' : 5
+            'description': _("Select number of bins for the histogram"),
+            'default': 5
         }
     }
 
-    def query_obj(self):
 
+    def query_obj(self):
+        """Returns the query object for this visualization"""
         d = super(HistogramViz, self).query_obj()
-        d['row_limit'] = self.form_data.get('row_limit') or 100000
-        numeric_column = self.form_data.get('all_columns_x') or None
+        d['row_limit'] = self.form_data.get('row_limit', int(config.get('ROW_LIMIT')))
+        numeric_column = self.form_data.get('all_columns_x')
         if numeric_column is None:
             raise Exception("Must have one numeric column specified")
         d['columns'] = [numeric_column]
-
         return d
+
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
-
         if not query_obj:
             query_obj = self.query_obj()
 
@@ -1257,23 +1259,15 @@ class HistogramViz(BaseViz):
 
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(0)
+        return df
 
-        return df;
-
-    def to_series(self, df):
-        """
-        Returns a list of numeric values from a dataframes's first column
-        """
-        chart_data = []
-        for value in df[df.columns[0]].values:
-            chart_data.append(value)
-        return chart_data
 
     def get_data(self):
         """Returns the chart data"""
         df = self.get_df()
-        chart_data = self.to_series(df)
+        chart_data = df[df.columns[0]].values.tolist()
         return chart_data
+
 
 class DistributionBarViz(DistributionPieViz):
 
