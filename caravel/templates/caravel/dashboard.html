@@ -7,75 +7,77 @@
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}
 
-<div class="dashboard container-fluid" data-dashboard="{{ dashboard.json_data }}" data-css="{{ dashboard.css }}" data-user="{{ user_id }}">
+<div
+  class="dashboard container-fluid"
+  data-dashboard="{{ dashboard.json_data }}"
+  data-css="{{ dashboard.css }}"
+  data-user="{{ user_id }}"
+>
   {% include 'caravel/flash_wrapper.html' %}
 
-<!-- Modal -->
-<div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content css">
-      <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-        <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
-        <h6><strong>Styling applies to this dashboard only</strong></h6>
-      </div>
-      <div class="modal-body">
-        <select id="css_template" class="select2" style="margin-bottom: 5px;">
-          <option value="" data-css="">CSS template</option>
-          {% for t in templates %}
-            <option value="{{ t.id }}" data-css="{{t.css}}">
-              {{ t.template_name }}
-            </option>
-          {% endfor %}
-        </select><br>
-        <textarea id="dash_css" rows="30" cols="60">{{ dashboard.css }}</textarea>
-        <input type="hidden" id="dashboard_id" value="{{ dashboard.id }}" />
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-default" data-dismiss="modal">
-          Close
-        </button>
+  <!-- Modal -->
+  <div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content css">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
+          <h6><strong>Styling applies to this dashboard only</strong></h6>
+        </div>
+        <div class="modal-body">
+          <select id="css_template" class="select2" style="margin-bottom: 5px;">
+            <option value="" data-css="">CSS template</option>
+            {% for t in templates %}
+              <option value="{{ t.id }}" data-css="{{t.css}}">
+                {{ t.template_name }}
+              </option>
+            {% endfor %}
+          </select><br>
+          <textarea id="dash_css" rows="30" cols="60">{{ dashboard.css }}</textarea>
+          <input type="hidden" id="dashboard_id" value="{{ dashboard.id }}" />
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">
+            Close
+          </button>
+        </div>
       </div>
     </div>
   </div>
-</div>
-<div class="modal fade" id="refresh_modal" tabindex="-1" role="dialog">
+  <div class="modal fade" id="refresh_modal" tabindex="-1" role="dialog">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-                <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
-                <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
-            </div>
-            <div class="modal-body">
-                <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
-                    <option value="0">Don't refresh</option>
-                    <option value="10">10 seconds</option>
-                    <option value="30">30 seconds</option>
-                    <option value="60">1 minute</option>
-                    <option value="300">5 minutes</option>
-                </select><br>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" data-dismiss="modal">
-                    Close
-                </button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
+            <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
         </div>
-    </div>
-</div>
-<div id="add-slice-container"></div>
-
-<div class="title">
-    <div class="row">
-      <div class="col-md-3"></div>
-      <div class="col-md-6">
-        <h2>
-          <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
-          {{ dashboard.dashboard_title }}
-        </h2>
+        <div class="modal-body">
+            <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
+                <option value="0">Don't refresh</option>
+                <option value="10">10 seconds</option>
+                <option value="30">30 seconds</option>
+                <option value="60">1 minute</option>
+                <option value="300">5 minutes</option>
+            </select><br>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">
+              Close
+          </button>
+        </div>
       </div>
-      <div class="col-md-3">
+    </div>
+  </div>
+  <div id="add-slice-container"></div>
+
+  <div class="title">
+    <div class="row">
+      <div class="col-md-8">
+        <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
+        <h2>{{ dashboard.dashboard_title }}</h2>
+      </div>
+      <div class="col-md-4">
         <div class="btn-group pull-right" role="group" >
           <button type="button" id="refresh_dash" class="btn btn-default" data-toggle="tooltip" title="Force refresh the whole dashboard">
             <i class="fa fa-refresh"></i>
@@ -101,11 +103,10 @@
         </div>
       </div>
     </div>
-</div>
+  </div>
 
-<!-- gridster class used for backwards compatibility -->
-<div id="grid-container" class="slice-grid gridster">
-</div>
+  <!-- gridster class used for backwards compatibility -->
+  <div id="grid-container" class="slice-grid gridster"></div>
 
 </div>
 {% endblock %}
