@@ -606,7 +606,6 @@ class SliceAsync(SliceModelView):  # noqa
     label_columns = {
         'icons': ' ',
         'slice_link': _('Slice'),
-        'viz_type': _('Visualization Type'),
     }
 
 appbuilder.add_view_no_menu(SliceAsync)
