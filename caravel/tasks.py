@@ -11,37 +11,6 @@ import pandas as pd
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
 
-def init_query(database_id, sql, user_id, start_time, tmp_table_name):
-    """Initializes the models.Query object.
-
-    :param database_id: integer
-    :param sql: sql query that will be executed
-    :param user_id: integer
-    :param start_time: Datetime, time when query started.
-    :param tmp_table_name: table name for the CTA
-    :return: models.Query
-    """
-
-    # TODO(bkyryliuk): provide a way for the user to name the query.
-    # TODO(bkyryliuk): run explain query to derive the tables and fill in the
-    #                  table_ids
-    # TODO(bkyryliuk): check the user permissions
-    limit = app.config.get('SQL_MAX_ROW', None)
-    if not tmp_table_name:
-        tmp_table_name = 'tmp.{}_table_{}'.format(user_id, start_time)
-    query = models.Query(
-        user_id=user_id,
-        database_id=database_id,
-        limit=limit,
-        name='{}'.format(start_time),
-        sql=sql,
-        start_time=start_time,
-        tmp_table_name=tmp_table_name,
-        status=models.QueryStatus.IN_PROGRESS
-    )
-    return query
-
-
 def is_query_select(sql):
     try:
         return sqlparse.parse(sql)[0].get_type() == 'SELECT'
@@ -156,8 +125,25 @@ def get_sql_results(database_id, sql, user_id, tmp_table_name=""):
             'success': False
         }
 
-    query = init_query(
-        database_id, sql, user_id, datetime.now(), tmp_table_name)
+    # TODO(bkyryliuk): provide a way for the user to name the query.
+    # TODO(bkyryliuk): run explain query to derive the tables and fill in the
+    #                  table_ids
+    # TODO(bkyryliuk): check the user permissions
+    # TODO(bkyryliuk): store the tab name in the query model
+    limit = app.config.get('SQL_MAX_ROW', None)
+    start_time = datetime.now()
+    if not tmp_table_name:
+        tmp_table_name = 'tmp.{}_table_{}'.format(user_id, start_time)
+    query = models.Query(
+        user_id=user_id,
+        database_id=database_id,
+        limit=limit,
+        name='{}'.format(start_time),
+        sql=sql,
+        start_time=start_time,
+        tmp_table_name=tmp_table_name,
+        status=models.QueryStatus.IN_PROGRESS
+    )
     session.add(query)
     session.commit()
     query_result = get_sql_results_as_dict(
@@ -165,7 +151,6 @@ def get_sql_results(database_id, sql, user_id, tmp_table_name=""):
     query.end_time = datetime.now()
     if query_result['success']:
         query.status = models.QueryStatus.FINISHED
-        # TODO(bkyryliuk): fill in query.tmp_table_name
     else:
         query.status = models.QueryStatus.FAILED
     session.commit()

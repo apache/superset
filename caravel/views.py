@@ -1301,7 +1301,8 @@ class Caravel(BaseCaravelView):
                 status=500,
                 mimetype="application/json")
         if 'tmp_table' in data:
-            # TODO(bkyryliuk) implement retrieving the data from tmp table.
+            # TODO(bkyryliuk): add query id to the response and implement the
+            #                  endpoint to poll the status and results.
             return None
         return json.dumps(
             data, default=utils.json_int_dttm_ser, allow_nan=False)
