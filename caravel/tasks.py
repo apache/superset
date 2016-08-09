@@ -117,12 +117,12 @@ def get_sql_results(database_id, sql, user_id, tmp_table_name=""):
     except Exception as e:
         return {
             'error': utils.error_msg_from_exception(e),
-            'success': False
+            'success': False,
         }
     if not db_to_query:
         return {
             'error': "Database with id {0} is missing.".format(database_id),
-            'success': False
+            'success': False,
         }
 
     # TODO(bkyryliuk): provide a way for the user to name the query.
@@ -142,7 +142,7 @@ def get_sql_results(database_id, sql, user_id, tmp_table_name=""):
         sql=sql,
         start_time=start_time,
         tmp_table_name=tmp_table_name,
-        status=models.QueryStatus.IN_PROGRESS
+        status=models.QueryStatus.IN_PROGRESS,
     )
     session.add(query)
     session.commit()
@@ -187,12 +187,12 @@ def get_sql_results_as_dict(sql, db_to_query, tmp_table_name):
             eng.execute(sql)
             return {
                 'tmp_table': tmp_table_name,
-                'success': True
+                'success': True,
             }
         except Exception as e:
             return {
                 'error': utils.error_msg_from_exception(e),
-                'success': False
+                'success': False,
             }
 
     # otherwise run regular SQL query.
@@ -203,13 +203,13 @@ def get_sql_results_as_dict(sql, db_to_query, tmp_table_name):
         return {
             'columns': [c for c in df.columns],
             'data': df.to_dict(orient='records'),
-            'success': True
+            'success': True,
         }
 
     except Exception as e:
         return {
             'error': utils.error_msg_from_exception(e),
-            'success': False
+            'success': False,
         }
 
 
