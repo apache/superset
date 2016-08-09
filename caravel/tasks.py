@@ -105,6 +105,8 @@ def get_sql_results(database_id, sql, user_id, tmp_table_name="", schema=None):
     :param database_id: integer
     :param sql: string, query that will be executed
     :param user_id: integer
+    :param tmp_table_name: name of the table for CTA
+    :param schema: string, name of the schema (used in presto)
     :return: dataframe, query result
     """
     # Create a separate session, reusing the db.session leads to the
@@ -166,6 +168,7 @@ def get_sql_results_as_dict(db_to_query, sql, tmp_table_name, schema=None):
     :param sql: string, query that will be executed
     :param db_to_query: models.Database to query, cannot be None
     :param tmp_table_name: name of the table for CTA
+    :param schema: string, name of the schema (used in presto)
     :return: (dataframe, boolean), results and the status
     """
     eng = db_to_query.get_sqla_engine(schema=schema)
