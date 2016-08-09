@@ -22,15 +22,15 @@
 @gray-base:              #000;
 @gray-darker:            lighten(@gray-base, 13.5%); // #222
 @gray-dark:              #212121;
-@gray:                   #666;
+@gray:                   #333;
 @gray-light:             #bbb;
 @gray-lighter:           lighten(@gray-base, 93.5%); // #eee
 
-@brand-primary:         @kazan;
-@brand-success:         darken(@lima, 25%);
-@brand-warning:         darken(@beach, 10%);
-@brand-info:            darken(@babu, 10%);
-@brand-danger:          darken(@rausch, 15%);
+@brand-primary:         #000;
+@brand-success:         darken(@lima, 15%);
+@brand-info:            @beach;
+@brand-warning:         @hackberry;
+@brand-danger:          darken(@rausch, 5%);
 
 @default-color:         #444;
 @default-bg:            #fff;
@@ -61,7 +61,7 @@
 //## Settings for some of the most global styles.
 
 //** Background color for `<body>`.
-@body-bg:               #fff;
+@body-bg:               #EDEDED;
 //** Global text color on `<body>`.
 @text-color:            @gray;
 
@@ -83,16 +83,16 @@
 @font-family-monospace:   Menlo, Monaco, Consolas, "Courier New", monospace;
 @font-family-base:        @font-family-sans-serif;
 
-@font-size-base:          13px;
-@font-size-large:         ceil((@font-size-base * 1.25)); // ~18px
-@font-size-small:         ceil((@font-size-base * 0.85)); // ~12px
+@font-size-base:          12px;
+@font-size-large:         ceil((@font-size-base * 1.25));
+@font-size-small:         ceil((@font-size-base * 0.75));
 
 @font-size-h1:            56px;
 @font-size-h2:            45px;
 @font-size-h3:            34px;
 @font-size-h4:            24px;
 @font-size-h5:            20px;
-@font-size-h6:            14px;
+@font-size-h6:            12px;
 
 //** Unit-less `line-height` for use in components like buttons.
 @line-height-base:        1.846; // 20/14
@@ -101,9 +101,9 @@
 
 //** By default, this inherits from the `<body>`.
 @headings-font-family:    inherit;
-@headings-font-weight:    400;
+@headings-font-weight:    900;
 @headings-line-height:    1.1;
-@headings-color:          #444;
+@headings-color:          #333;
 
 
 //== Iconography
@@ -137,9 +137,9 @@
 @line-height-large:         1.3333333; // extra decimals for Win 8.1 Chrome
 @line-height-small:         1.5;
 
-@border-radius-base:        3px;
-@border-radius-large:       3px;
-@border-radius-small:       3px;
+@border-radius-base:        2px;
+@border-radius-large:       2px;
+@border-radius-small:       2px;
 
 //** Global color for active items (e.g., navs or dropdowns).
 @component-active-color:    #fff;
@@ -490,9 +490,9 @@
 @pagination-hover-bg:                  @gray-lighter;
 @pagination-hover-border:              #ddd;
 
-@pagination-active-color:              #fff;
-@pagination-active-bg:                 @brand-primary;
-@pagination-active-border:             @brand-primary;
+@pagination-active-color:              #333;
+@pagination-active-bg:                 #fff;
+@pagination-active-border:             #333;
 
 @pagination-disabled-color:            @gray-light;
 @pagination-disabled-bg:               #fff;
@@ -735,7 +735,7 @@
 
 @panel-bg:                    #fff;
 @panel-body-padding:          15px;
-@panel-heading-padding:       10px 15px;
+@panel-heading-padding:       5px 15px 3px 0px;
 @panel-footer-padding:        @panel-heading-padding;
 @panel-border-radius:         @border-radius-base;
 

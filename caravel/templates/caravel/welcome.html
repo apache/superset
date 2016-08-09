@@ -10,12 +10,9 @@
 {% block body %}
 <div class="container welcome">
   {% include 'caravel/flash_wrapper.html' %}
-  <div class="header">
-    <h3>{{ _("Welcome!") }}</h3>
+  <div class="cal-heatmap-panel">
+    <div id="cal-heatmap"></div>
   </div>
-  <hr/>
-  <div id="cal-heatmap"></div>
-  <hr/>
   <div class="row">
     <div class="col-md-12">
       <div class="panel panel-default">
