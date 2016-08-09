@@ -23,17 +23,6 @@ cli = imp.load_source('cli', BASE_DIR + '/bin/caravel')
 
 
 class UtilityFunctionTests(unittest.TestCase):
-    def test_init_query(self):
-        date = datetime.datetime(year=2016, month=11, day=6)
-        query = tasks.init_query(1, "sql", 2, date, 'tmp')
-        self.assertEqual(1, query.database_id)
-        self.assertEqual("sql", query.sql)
-        self.assertEqual(2, query.user_id)
-        self.assertEqual(models.QueryStatus.IN_PROGRESS, query.status)
-        self.assertEqual(date, query.start_time)
-        self.assertEqual(str(date), query.name)
-        self.assertEqual('tmp', query.tmp_table_name)
-
     def test_create_table_as(self):
         select_query = "SELECT * FROM outer_space;"
         updated_select_query = tasks.create_table_as(select_query, "tmp")
