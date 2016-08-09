@@ -48,10 +48,12 @@ function nvd3Vis(slice) {
           case 'line':
             if (fd.show_brush) {
               chart = nv.models.lineWithFocusChart();
-              chart.lines2.xScale(d3.time.scale.utc());
               chart.x2Axis
               .showMaxMin(fd.x_axis_showminmax)
               .staggerLabels(false);
+              if (chart.focus) {
+                chart.focus.xScale(d3.time.scale.utc());
+              }
             } else {
               chart = nv.models.lineChart();
             }
