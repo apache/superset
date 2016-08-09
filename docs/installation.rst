@@ -4,8 +4,8 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Caravel is currently only tested using Python 2.7.*. Python 3 support is
-on the roadmap, Python 2.6 won't be supported.
+Caravel is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
+Python 2.6 won't be supported.
 
 
 OS dependencies
