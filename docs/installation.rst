@@ -48,6 +48,26 @@ attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and r
     # You may also have to create C:\Temp
     C:\> md C:\Temp
 
+Python virtualenv
+-----------------
+It is recommended to install Caravel inside a virtualenv. Python 3 already ships virtualenv, for
+Python 2 you need to install it. If it's packaged for your operating systems install it from there
+otherwise you can install from pip: ::
+
+    pip install virtualenv
+
+You can create and activate a virtualenv by: ::
+
+    # virtualenv is shipped in Python 3 as pyvenv
+    virtualenv venv
+    . ./venv/bin/activate
+
+On windows the syntax for activating it is a bit different: ::
+
+    venv\Scripts\activate
+
+Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
+To exit a virtualenv just type ``deactivate``.
 
 Caravel installation and initialization
 ---------------------------------------
