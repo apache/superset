@@ -68,11 +68,13 @@ $(document).ready(function () {
         '#D6E685',
         '#1E6823',
       ],
-      // Based on github's colors
       domain: 'month',
       subDomain: 'day',
       itemName: 'action',
       tooltip: true,
+      cellSize: 10,
+      cellPadding: 2,
+      domainGutter: 22,
     });
   });
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');

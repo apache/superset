@@ -3,10 +3,10 @@
 // nb: to add a new vis, you must also add a Python fn in viz.py
 //
 // js
-var $ = window.$ = require('jquery');
-var jQuery = window.jQuery = $;
-var px = require('./../modules/caravel.js');
-var showModal = require('./../modules/utils.js').showModal;
+const $ = window.$ = require('jquery');
+const jQuery = window.jQuery = $;
+const px = require('./../modules/caravel.js');
+const showModal = require('./../modules/utils.js').showModal;
 
 import React from 'react';
 import ReactDOM from 'react-dom';
@@ -25,21 +25,21 @@ require('../../vendor/pygments.css');
 require('../../stylesheets/explore.css');
 require('../../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
-var slice;
+let slice;
 
-var getPanelClass = function (fieldPrefix) {
+const getPanelClass = function (fieldPrefix) {
   return (fieldPrefix === 'flt' ? 'filter' : 'having') + '_panel';
 };
 
 function prepForm() {
   // Assigning the right id to form elements in filters
-  var fixId = function ($filter, fieldPrefix, i) {
+  const fixId = function ($filter, fieldPrefix, i) {
     $filter.attr('id', function () {
       return fieldPrefix + '_' + i;
     });
 
     ['col', 'op', 'eq'].forEach(function (fieldMiddle) {
-      var fieldName = fieldPrefix + '_' + fieldMiddle;
+      const fieldName = fieldPrefix + '_' + fieldMiddle;
       $filter.find('[id^=' + fieldName + '_]')
           .attr('id', function () {
             return fieldName + '_' + i;
@@ -51,7 +51,7 @@ function prepForm() {
   };
 
   ['flt', 'having'].forEach(function (fieldPrefix) {
-    var i = 1;
+    let i = 1;
     $('#' + getPanelClass(fieldPrefix) + ' #filters > div').each(function () {
       fixId($(this), fieldPrefix, i);
       i++;
@@ -59,7 +59,8 @@ function prepForm() {
   });
 }
 
-function query(force, pushState) {
+function query(forceUpdate, pushState) {
+  let force = forceUpdate;
   if (force === undefined) {
     force = false;
   }
@@ -470,29 +471,19 @@ function saveSlice() {
 }
 
 $(document).ready(function () {
+  const data = $('.slice').data('slice');
+
   initExploreView();
 
   // Dynamically register this visualization
-  var visType = window.viz_type.value;
-  px.registerViz(visType);
+  px.registerViz(data.viz_name);
 
-  var data = $('.slice').data('slice');
   slice = px.Slice(data);
 
-  //
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
   query(false, false);
 
-  // make checkbox inputs display as toggles
-  $(':checkbox')
-    .addClass('pull-right')
-    .attr('data-onstyle', 'default')
-    .bootstrapToggle({
-      size: 'mini',
-    });
-
-  $('div.toggle').addClass('pull-right');
   slice.bindResizeToWindowResize();
 });
