@@ -74,8 +74,9 @@ function tableVis(slice) {
           sum_cols.push("sum_" + col);
         }
         console.log(sum_records);
-        var tfoot = table.append('tfoot').append('tr')
-          .selectAll('th')
+        var tfoot = table.append('tfoot');
+        tfoot.append('tr')
+          .select('th')
           .data(sum_cols).enter()
           .append('th')
           .text(function (d) {
@@ -88,14 +89,6 @@ function tableVis(slice) {
           .text(function (d) {
             return d;
           });
-        // table.append('tfoot').append('tr')
-        //   .selectAll('th')
-        //   .data(sum_cols).enter()
-        //   .append('th')
-        //   .text(function (d) {
-        //     return d;
-        //   });
-        
       }
 
       table.append('tbody')
