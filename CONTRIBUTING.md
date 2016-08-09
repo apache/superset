@@ -155,6 +155,7 @@ Lint the project with:
 
     # for python changes
     flake8 changes tests
+    flake8 changes caravel
 
     # for javascript
     npm run lint
