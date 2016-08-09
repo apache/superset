@@ -65,19 +65,37 @@ function tableVis(slice) {
           return d;
         });
 
-      if (form_data.all_columns.length == 0) {
-        var sum_arr = [];
+      if (form_data.all_columns == null || form_data.all_columns.length == 0) {
+        var sum_records = [];
+        var sum_cols = [];
         var sum_row = data.records.pop();
-        $.each(sum_row, function(key, value) {
-          sum_arr.push(value);
-        });
-        table.append('tfoot').append('tr')
+        for (var col of data.columns) {
+          sum_records.push(sum_row[col]);
+          sum_cols.push("sum_" + col);
+        }
+        console.log(sum_records);
+        var tfoot = table.append('tfoot').append('tr')
+          .selectAll('th')
+          .data(sum_cols).enter()
+          .append('th')
+          .text(function (d) {
+            return d;
+          });
+        tfoot.append('tr')
           .selectAll('td')
-          .data(sum_arr).enter()
+          .data(sum_records).enter()
           .append('td')
           .text(function (d) {
             return d;
           });
+        // table.append('tfoot').append('tr')
+        //   .selectAll('th')
+        //   .data(sum_cols).enter()
+        //   .append('th')
+        //   .text(function (d) {
+        //     return d;
+        //   });
+        
       }
 
       table.append('tbody')
