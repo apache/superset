@@ -32,7 +32,9 @@ from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import caravel
-from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel import (
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, tasks
+)
 
 config = app.config
 log_this = models.Log.log_this
@@ -1283,52 +1285,26 @@ class Caravel(BaseCaravelView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        session = db.session()
-        limit = 1000
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
         if (
                 not self.can_access(
                     'all_datasource_access', 'all_datasource_access')):
             raise utils.CaravelSecurityException(_(
                 "This view requires the `all_datasource_access` permission"))
 
-        error_msg = ""
-        if not mydb:
-            error_msg = "The database selected doesn't seem to exist"
-        else:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = pd.read_sql_query(sql=sql, con=eng)
-                df = df.fillna(0)  # TODO make sure NULL
-            except Exception as e:
-                logging.exception(e)
-                error_msg = utils.error_msg_from_exception(e)
-
-        session.commit()
-        if error_msg:
+        data = tasks.get_sql_results(database_id, sql, g.user.get_id())
+        if 'error' in data:
             return Response(
-                json.dumps({
-                    'error': error_msg,
-                }),
+                json.dumps(data),
                 status=500,
                 mimetype="application/json")
-        else:
-            data = {
-                'columns': [c for c in df.columns],
-                'data': df.to_dict(orient='records'),
-            }
-            return json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False)
+        if 'tmp_table' in data:
+            # TODO(bkyryliuk): add query id to the response and implement the
+            #                  endpoint to poll the status and results.
+            return None
+        return json.dumps(
+            data, default=utils.json_int_dttm_ser, allow_nan=False)
 
     @has_access
     @expose("/refresh_datasources/")

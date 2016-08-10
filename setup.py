@@ -16,6 +16,7 @@ setup(
     zip_safe=False,
     scripts=['caravel/bin/caravel'],
     install_requires=[
+        'celery==3.1.23',
         'cryptography==1.4',
         'flask-appbuilder==1.8.1',
         'flask-cache==0.13.1',
