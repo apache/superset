@@ -10,6 +10,7 @@ import json
 import imp
 import os
 import unittest
+
 from mock import Mock, patch
 
 from flask import escape
@@ -21,11 +22,15 @@ from caravel.models import DruidCluster, DruidDatasource
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
-app.config['TESTING'] = True
+# Disable celery.
+app.config['CELERY_CONFIG'] = None
 app.config['CSRF_ENABLED'] = False
-app.config['SECRET_KEY'] = 'thisismyscretkey'
-app.config['WTF_CSRF_ENABLED'] = False
 app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
+app.config['SECRET_KEY'] = 'thisismyscretkey'
+app.config['SQL_SELECT_AS_CTA'] = False
+app.config['TESTING'] = True
+app.config['WTF_CSRF_ENABLED'] = False
+
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
@@ -40,7 +45,7 @@ class CaravelTestCase(unittest.TestCase):
         admin = appbuilder.sm.find_user('admin')
         if not admin:
             appbuilder.sm.add_user(
-                'admin', 'admin',' user', 'admin@fab.org',
+                'admin', 'admin', ' user', 'admin@fab.org',
                 appbuilder.sm.find_role('Admin'),
                 password='general')
 
@@ -79,7 +84,7 @@ class CaravelTestCase(unittest.TestCase):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
-            if (    perm.permission.name == 'datasource_access' and
+            if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table_name in perm.view_menu.name):
                 appbuilder.sm.add_permission_role(public_role, perm)
 
@@ -87,7 +92,7 @@ class CaravelTestCase(unittest.TestCase):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
-            if (    perm.permission.name == 'datasource_access' and
+            if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table_name in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
 
@@ -95,15 +100,15 @@ class CaravelTestCase(unittest.TestCase):
 class CoreTests(CaravelTestCase):
 
     def __init__(self, *args, **kwargs):
-        # Load examples first, so that we setup proper permission-view relations
-        # for all example data sources.
+        # Load examples first, so that we setup proper permission-view
+        # relations for all example data sources.
         super(CoreTests, self).__init__(*args, **kwargs)
 
     @classmethod
     def setUpClass(cls):
         cli.load_examples(load_test_data=True)
         utils.init(caravel)
-        cls.table_ids = {tbl.table_name: tbl.id  for tbl in (
+        cls.table_ids = {tbl.table_name: tbl.id for tbl in (
             db.session
             .query(models.SqlaTable)
             .all()
@@ -126,7 +131,12 @@ class CoreTests(CaravelTestCase):
 
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
-        url = "/caravel/explore/table/{}/?viz_type=sankey&groupby=source&groupby=target&metric=sum__value&row_limit=5000&where=&having=&flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id={}&slice_name={}&collapsed_fieldsets=&action={}&datasource_name=energy_usage&datasource_id=1&datasource_type=table&previous_viz_type=sankey"
+        url = (
+            "/caravel/explore/table/{}/?viz_type=sankey&groupby=source&"
+            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
+            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id={}&slice_name={}&"
+            "collapsed_fieldsets=&action={}&datasource_name=energy_usage&"
+            "datasource_id=1&datasource_type=table&previous_viz_type=sankey")
 
         db.session.commit()
         resp = self.client.get(
@@ -146,6 +156,8 @@ class CoreTests(CaravelTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, 'slice_url', slc.slice_url),
+                (slc.slice_name, 'slice_id_endpoint', '/caravel/slices/{}'.
+                 format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
             ]
@@ -210,13 +222,20 @@ class CoreTests(CaravelTestCase):
 
     def test_shortner(self):
         self.login(username='admin')
-        data = "//caravel/explore/table/1/?viz_type=sankey&groupby=source&groupby=target&metric=sum__value&row_limit=5000&where=&having=&flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id=78&slice_name=Energy+Sankey&collapsed_fieldsets=&action=&datasource_name=energy_usage&datasource_id=1&datasource_type=table&previous_viz_type=sankey"
+        data = (
+            "//caravel/explore/table/1/?viz_type=sankey&groupby=source&"
+            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
+            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id=78&slice_name="
+            "Energy+Sankey&collapsed_fieldsets=&action=&datasource_name="
+            "energy_usage&datasource_id=1&datasource_type=table&"
+            "previous_viz_type=sankey")
         resp = self.client.post('/r/shortner/', data=data)
         assert '/r/' in resp.data.decode('utf-8')
 
     def test_save_dash(self, username='admin'):
         self.login(username=username)
-        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
         positions = []
         for i, slc in enumerate(dash.slices):
             d = {
@@ -237,18 +256,24 @@ class CoreTests(CaravelTestCase):
 
     def test_add_slices(self, username='admin'):
         self.login(username=username)
-        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
-        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
-        existing_slice = db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
+        new_slice = db.session.query(models.Slice).filter_by(
+            slice_name="Mapbox Long/Lat").first()
+        existing_slice = db.session.query(models.Slice).filter_by(
+            slice_name="Name Cloud").first()
         data = {
-            "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
+            "slice_ids": [new_slice.data["slice_id"],
+                          existing_slice.data["slice_id"]]
         }
         url = '/caravel/add_slices/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SLICES ADDED" in resp.data.decode('utf-8')
 
-        dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
-        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
+        new_slice = db.session.query(models.Slice).filter_by(
+            slice_name="Mapbox Long/Lat").first()
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
@@ -256,7 +281,10 @@ class CoreTests(CaravelTestCase):
         self.login(username=username)
         url = '/slicemodelview/add'
         resp = self.client.get(url, follow_redirects=True)
-        assert "Click on a table link to create a Slice" in resp.data.decode('utf-8')
+        assert (
+            "Click on a table link to create a Slice" in
+            resp.data.decode('utf-8')
+        )
 
     def test_add_slice_redirect_to_druid(self, username='admin'):
         datasource = DruidDatasource(
@@ -268,7 +296,10 @@ class CoreTests(CaravelTestCase):
         self.login(username=username)
         url = '/slicemodelview/add'
         resp = self.client.get(url, follow_redirects=True)
-        assert "Click on a datasource link to create a Slice" in resp.data.decode('utf-8')
+        assert (
+            "Click on a datasource link to create a Slice"
+            in resp.data.decode('utf-8')
+        )
 
         db.session.delete(datasource)
         db.session.commit()
@@ -404,26 +435,26 @@ class CoreTests(CaravelTestCase):
 
 SEGMENT_METADATA = [{
   "id": "some_id",
-  "intervals": [ "2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z" ],
+  "intervals": ["2013-05-13T00:00:00.000Z/2013-05-14T00:00:00.000Z"],
   "columns": {
     "__time": {
         "type": "LONG", "hasMultipleValues": False,
-        "size": 407240380, "cardinality": None, "errorMessage": None },
+        "size": 407240380, "cardinality": None, "errorMessage": None},
     "dim1": {
         "type": "STRING", "hasMultipleValues": False,
-        "size": 100000, "cardinality": 1944, "errorMessage": None },
+        "size": 100000, "cardinality": 1944, "errorMessage": None},
     "dim2": {
         "type": "STRING", "hasMultipleValues": True,
-        "size": 100000, "cardinality": 1504, "errorMessage": None },
+        "size": 100000, "cardinality": 1504, "errorMessage": None},
     "metric1": {
         "type": "FLOAT", "hasMultipleValues": False,
-        "size": 100000, "cardinality": None, "errorMessage": None }
+        "size": 100000, "cardinality": None, "errorMessage": None}
   },
   "aggregators": {
     "metric1": {
         "type": "longSum",
         "name": "metric1",
-        "fieldName": "metric1" }
+        "fieldName": "metric1"}
   },
   "size": 300000,
   "numRows": 5000000
@@ -489,7 +520,8 @@ class DruidTests(CaravelTestCase):
         datasource_id = cluster.datasources[0].id
         db.session.commit()
 
-        resp = self.client.get('/caravel/explore/druid/{}/'.format(datasource_id))
+        resp = self.client.get('/caravel/explore/druid/{}/'.format(
+            datasource_id))
         assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
 
         nres = [
@@ -501,9 +533,15 @@ class DruidTests(CaravelTestCase):
         instance.export_pandas.return_value = df
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
-        resp = self.client.get('/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&include_search=false&metrics=count&groupby=name&flt_col_0=dim1&flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&action=&datasource_name=test_datasource&datasource_id={}&datasource_type=druid&previous_viz_type=table&json=true&force=true'.format(datasource_id, datasource_id))
+        resp = self.client.get(
+            '/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&'
+            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
+            'include_search=false&metrics=count&groupby=name&flt_col_0=dim1&'
+            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
+            'action=&datasource_name=test_datasource&datasource_id={}&'
+            'datasource_type=druid&previous_viz_type=table&json=true&'
+            'force=true'.format(datasource_id, datasource_id))
         assert "Canada" in resp.data.decode('utf-8')
-
 
 if __name__ == '__main__':
     unittest.main()

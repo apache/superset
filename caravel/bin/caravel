@@ -5,9 +5,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import celery
+from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
-import textwrap
 
 from flask_migrate import MigrateCommand
 from flask_script import Manager
@@ -125,6 +126,25 @@ def refresh_druid():
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()
+
+
+@manager.command
+def worker():
+    """Starts a Caravel worker for async SQL query execution."""
+    # celery -A tasks worker --loglevel=info
+    print("Starting SQL Celery worker.")
+    if config.get('CELERY_CONFIG'):
+        print("Celery broker url: ")
+        print(config.get('CELERY_CONFIG').BROKER_URL)
+
+    application = celery.current_app._get_current_object()
+    c_worker = celery_worker.worker(app=application)
+    options = {
+        'broker': config.get('CELERY_CONFIG').BROKER_URL,
+        'loglevel': 'INFO',
+        'traceback': True,
+    }
+    c_worker.run(**options)
 
 
 if __name__ == "__main__":
