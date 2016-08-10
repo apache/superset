@@ -504,6 +504,11 @@ class Database(Model, AuditMixinNullable):
     def sql_link(self):
         return '<a href="{}">SQL</a>'.format(self.sql_url)
 
+    @property
+    def perm(self):
+        return (
+            "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
 

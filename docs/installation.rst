@@ -4,8 +4,8 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Caravel is currently only tested using Python 2.7.*. Python 3 support is
-on the roadmap, Python 2.6 won't be supported.
+Caravel is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
+Python 2.6 won't be supported.
 
 
 OS dependencies
@@ -40,14 +40,31 @@ that the required dependencies are installed: ::
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
 
-    C:\> \path\to\vcvarsall.bat x86_amd64
-    C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
-    C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
     C:\> pip install cryptography
 
     # You may also have to create C:\Temp
     C:\> md C:\Temp
 
+Python virtualenv
+-----------------
+It is recommended to install Caravel inside a virtualenv. Python 3 already ships virtualenv, for
+Python 2 you need to install it. If it's packaged for your operating systems install it from there
+otherwise you can install from pip: ::
+
+    pip install virtualenv
+
+You can create and activate a virtualenv by: ::
+
+    # virtualenv is shipped in Python 3 as pyvenv
+    virtualenv venv
+    . ./venv/bin/activate
+
+On windows the syntax for activating it is a bit different: ::
+
+    venv\Scripts\activate
+
+Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
+To exit a virtualenv just type ``deactivate``.
 
 Caravel installation and initialization
 ---------------------------------------
@@ -129,6 +146,11 @@ Flask App Builder, the web framework used by Caravel. Please consult
 the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure Caravel.
+
+Please make sure to change:
+
+* *SQLALCHEMY_DATABASE_URI*, by default it is stored on */tmp* and so will be cleared after each boot
+* *SECRET_KEY*, to a long random string
 
 Database dependencies
 ---------------------

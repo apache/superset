@@ -1201,6 +1201,74 @@ class DistributionPieViz(NVD3Viz):
         return df.to_dict(orient="records")
 
 
+class HistogramViz(BaseViz):
+
+    """Histogram"""
+
+    viz_type = "histogram"
+    verbose_name = _("Histogram")
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            ('all_columns_x',),
+            'row_limit',
+        )
+    }, {
+        'label': _("Histogram Options"),
+        'fields': (
+            'link_length',
+        )
+    },)
+
+    form_overrides = {
+        'all_columns_x': {
+            'label': _('Numeric Column'),
+            'description': _("Select the numeric column to draw the histogram"),
+        },
+        'link_length': {
+            'label': _("No of Bins"),
+            'description': _("Select number of bins for the histogram"),
+            'default': 5
+        }
+    }
+
+
+    def query_obj(self):
+        """Returns the query object for this visualization"""
+        d = super(HistogramViz, self).query_obj()
+        d['row_limit'] = self.form_data.get('row_limit', int(config.get('ROW_LIMIT')))
+        numeric_column = self.form_data.get('all_columns_x')
+        if numeric_column is None:
+            raise Exception("Must have one numeric column specified")
+        d['columns'] = [numeric_column]
+        return d
+
+
+    def get_df(self, query_obj=None):
+        """Returns a pandas dataframe based on the query object"""
+        if not query_obj:
+            query_obj = self.query_obj()
+
+        self.results = self.datasource.query(**query_obj)
+        self.query = self.results.query
+        df = self.results.df
+
+        if df is None or df.empty:
+            raise Exception("No data, to build histogram")
+
+        df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(0)
+        return df
+
+
+    def get_data(self):
+        """Returns the chart data"""
+        df = self.get_df()
+        chart_data = df[df.columns[0]].values.tolist()
+        return chart_data
+
+
 class DistributionBarViz(DistributionPieViz):
 
     """A good old bar chart"""
@@ -1921,6 +1989,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    HistogramViz,
     SeparatorViz,
 ]
 

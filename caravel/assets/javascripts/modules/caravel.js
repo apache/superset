@@ -32,6 +32,7 @@ const sourceMap = {
   cal_heatmap: 'cal_heatmap.js',
   horizon: 'horizon.js',
   mapbox: 'mapbox.jsx',
+  histogram: 'histogram.js',
 };
 const color = function () {
   // Color related utility functions go in this object
