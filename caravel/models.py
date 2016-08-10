@@ -32,8 +32,9 @@ from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
 from six import string_types
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
-    Table, create_engine, MetaData, desc, asc, select, and_, func)
+    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
+    create_engine, MetaData, desc, asc, select, and_, func
+)
 from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
@@ -378,6 +379,7 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
+    select_as_create_table_as = Column(Boolean, default=True)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -1729,3 +1731,39 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
+
+
+class QueryStatus:
+    SCHEDULED = 'SCHEDULED'
+    CANCELLED = 'CANCELLED'
+    IN_PROGRESS = 'IN_PROGRESS'
+    FINISHED = 'FINISHED'
+    TIMED_OUT = 'TIMED_OUT'
+    FAILED = 'FAILED'
+
+
+class Query(Model):
+
+    """ORM model for SQL query"""
+
+    __tablename__ = 'query'
+    id = Column(Integer, primary_key=True)
+
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+
+    # Store the tmp table into the DB only if the user asks for it.
+    tmp_table_name = Column(String(64))
+    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
+
+    # models.QueryStatus
+    status = Column(String(16))
+
+    name = Column(String(64))
+    sql = Column(Text)
+    # Could be configured in the caravel config
+    limit = Column(Integer)
+
+    # 1..100
+    progress = Column(Integer)
+    start_time = Column(DateTime)
+    end_time = Column(DateTime)
