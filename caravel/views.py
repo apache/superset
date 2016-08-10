@@ -1062,7 +1062,7 @@ class Caravel(BaseCaravelView):
     @expose("/tables/<db_id>/<schema>")
     def tables(self, db_id, schema):
         """endpoint to power the calendar heatmap on the welcome page"""
-        schema = None if schema == 'null' else schema
+        schema = None if schema in ('null', 'undefined') else schema
         database = (
             db.session
             .query(models.Database)
@@ -1231,7 +1231,7 @@ class Caravel(BaseCaravelView):
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = None if schema == 'null' else schema
+        schema = None if schema in ('null', 'undefined') else schema
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
         t = mydb.get_columns(table_name, schema)
