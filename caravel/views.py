@@ -32,7 +32,9 @@ from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import caravel
-from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel import (
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, tasks
+)
 
 config = app.config
 log_this = models.Log.log_this
@@ -1098,7 +1100,7 @@ class Caravel(BaseCaravelView):
     @expose("/tables/<db_id>/<schema>")
     def tables(self, db_id, schema):
         """endpoint to power the calendar heatmap on the welcome page"""
-        schema = None if schema == 'null' else schema
+        schema = None if schema in ('null', 'undefined') else schema
         database = (
             db.session
             .query(models.Database)
@@ -1279,7 +1281,7 @@ class Caravel(BaseCaravelView):
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = None if schema == 'null' else schema
+        schema = None if schema in ('null', 'undefined') else schema
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
         t = mydb.get_columns(table_name, schema)
@@ -1391,12 +1393,9 @@ class Caravel(BaseCaravelView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        session = db.session()
-        limit = 1000
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema')
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not (self.can_access(
                 'all_datasource_access', 'all_datasource_access') or
@@ -1405,44 +1404,19 @@ class Caravel(BaseCaravelView):
                 "SQL Lab requires the `all_datasource_access` or "
                 "specific DB permission"))
 
-        error_msg = ""
-        if not mydb:
-            error_msg = "The database selected doesn't seem to exist"
-        else:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*'])
-                                 .alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = '{}'.format(qry.compile(
-                    eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = mydb.get_df(sql, schema)
-                df = df.fillna(0)  # TODO make sure NULL
-            except Exception as e:
-                error_msg = utils.error_msg_from_exception(e)
-
-        session.commit()
-        if error_msg:
-            return Response(
-                json.dumps({
-                    'error': error_msg,
-                }),
-                status=500,
-                mimetype="application/json")
-        else:
-            data = {
-                'columns': [c for c in df.columns],
-                'data': df.to_dict(orient='records'),
-                'ydata_tpe.to_dict': {
-                    k: '{}'.format(v) for k, v in df.dtypes.to_dict().items()},
-            }
-            return json.dumps(
-                data, default=utils.json_int_dttm_ser, allow_nan=False)
+        data = tasks.get_sql_results(database_id, sql, g.user.get_id(),
+                                     schema=schema)
+        if 'error' in data:
+                return Response(
+                    json.dumps(data),
+                    status=500,
+                    mimetype="application/json")
+        if 'tmp_table' in data:
+            # TODO(bkyryliuk): add query id to the response and implement the
+            #                  endpoint to poll the status and results.
+            return None
+        return json.dumps(
+            data, default=utils.json_int_dttm_ser, allow_nan=False)
 
     @has_access
     @expose("/refresh_datasources/")
