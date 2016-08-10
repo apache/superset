@@ -1396,6 +1396,8 @@ class Caravel(BaseCaravelView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema')
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
 
         if not (self.can_access(
                 'all_datasource_access', 'all_datasource_access') or
