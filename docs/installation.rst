@@ -147,6 +147,11 @@ the `Flask App Builder Documentation
 <http://flask-appbuilder.readthedocs.org/en/latest/config.html>`_
 for more information on how to configure Caravel.
 
+Please make sure to change:
+
+* *SQLALCHEMY_DATABASE_URI*, by default it is stored on */tmp* and so will be cleared after each boot
+* *SECRET_KEY*, to a long random string
+
 Database dependencies
 ---------------------
 
