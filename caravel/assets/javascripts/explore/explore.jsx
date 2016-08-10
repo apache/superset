@@ -476,7 +476,7 @@ $(document).ready(function () {
   initExploreView();
 
   // Dynamically register this visualization
-  px.registerViz(data.viz_name);
+  px.registerViz(data.viz_name || 'table');
 
   slice = px.Slice(data);
 

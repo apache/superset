@@ -44,13 +44,18 @@
     background-size: 200%;
     background-position: 50%;
 
+    border: 1px solid #AAA;
+
     &:focus {
       background-color: @bg;
+      outline:0;
     }
 
     &:hover,
     &:active:hover {
-      background-color: darken(@bg, 6%);
+      background-color: darken(@bg, 12%);
+      border: 1px solid #888;
+      .box-shadow(0px 0px 2px rgba(0,0,0,.4));
     }
 
     &:active {
@@ -73,7 +78,7 @@
 }
 .btn {
   text-transform: uppercase;
-  .box-shadow(0px 0px 2px rgba(0,0,0,.4));
+  border: 1px solid #AAA;
   .transition(all 0.4s);
 
   &-link {
@@ -102,7 +107,7 @@
   .btn + .btn-group,
   .btn-group + .btn,
   .btn-group + .btn-group {
-    margin-left: 0;
+    margin-left: -1;
   }
 
   &-vertical {
@@ -132,8 +137,9 @@ button {
   letter-spacing: .1px;
 }
 
-a {
+tbody a {
   .transition(all 0.2s);
+  text-decoration: underline;
 }
 
 // Tables =====================================================================
@@ -414,27 +420,33 @@ input[type="checkbox"],
 
 .nav-tabs {
   > li > a,
-  > li > a:hover
+  > li > a:hover,
   > li > a:focus {
-    margin-right: 0;
-    background-color: transparent;
-    border: 1px solid #ccc;
+    padding: 3px 10px;
+    background-color: #ddd;
+    border: 1px solid #aaa;
+    color: #888;
     margin-right: 1px;
-    border-radius: 10px 10px 0px 0px;
-    color: @navbar-default-link-color;
+    border-radius: 5px 5px 0px 0px;
     .transition(all 0.2s);
 
     &:hover {
-      color: @brand-primary;
+      margin-right: 1px;
+      border-color: #aaa;
+      background-color: #eee;
+      color: black;
     }
   }
 
   & > li.active > a,
-  & > li.active > a:hover
+  & > li.active > a:hover,
   & > li.active > a:focus {
 
+    padding: 3px 10px;
     border: 1px solid #aaa;
-    border-bottom: 3px solid black;
+    border-radius: 5px 5px 0px 0px;
+    color: @brand-primary;
+    background-color: #fff;
     margin-right: 1px;
     &:hover {
       color: @brand-primary;
