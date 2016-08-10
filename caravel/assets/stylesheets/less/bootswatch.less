@@ -70,11 +70,10 @@
 #btn(link,#fff);
 .btn-group {
   padding: 5px;
-  background-color: #fff;
 }
 .btn {
   text-transform: uppercase;
-  border: none;
+  .box-shadow(0px 0px 2px rgba(0,0,0,.4));
   .transition(all 0.4s);
 
   &-link {
@@ -91,7 +90,7 @@
   &-default {
 
     &.disabled {
-      background-color: rgba(0, 0, 0, 0.1);
+      background-color: rgba(0, 0, 0, 0.3);
       color: rgba(0, 0, 0, 0.4);
       opacity: 1;
     }
@@ -415,26 +414,29 @@ input[type="checkbox"],
 
 .nav-tabs {
   > li > a,
+  > li > a:hover
   > li > a:focus {
     margin-right: 0;
     background-color: transparent;
-    border: none;
+    border: 1px solid #ccc;
+    margin-right: 1px;
+    border-radius: 10px 10px 0px 0px;
     color: @navbar-default-link-color;
     .transition(all 0.2s);
 
     &:hover {
-      background-color: transparent;
       color: @brand-primary;
     }
   }
 
   & > li.active > a,
+  & > li.active > a:hover
   & > li.active > a:focus {
-    border: none;
-    color: @brand-primary;
 
+    border: 1px solid #aaa;
+    border-bottom: 3px solid black;
+    margin-right: 1px;
     &:hover {
-      border: none;
       color: @brand-primary;
     }
   }
@@ -600,12 +602,35 @@ input[type="checkbox"],
   }
 }
 
-.panel-default > .panel-heading {
-  color: #333!important;
+.panel > .panel-heading {
   border-bottom: 1px solid #aaa;
-  background-color: #fff!important;
-  margin: 10px;
+  background-color: #fff;
+  margin: 10px 5px;
   font-weight: bold;
+}
+
+.panel-default > .panel-heading {
+  border-bottom: 1px solid #aaa;
+}
+
+.panel-info > .panel-heading {
+  border-bottom: 1px solid @info-color;
+  color: @info-color;
+}
+
+.panel-danger > .panel-heading {
+  border-bottom: 1px solid @danger-color;
+  color: @danger-color;
+}
+
+.panel-warning > .panel-heading {
+  border-bottom: 1px solid @warning-color;
+  color: @warning-color;
+}
+
+.panel-success > .panel-heading {
+  border-bottom: 1px solid @success-color;
+  color: @success-color;
 }
 
 .popover {

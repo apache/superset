@@ -135,9 +135,6 @@ span.title-block {
 div.navbar {
   z-index: 999;
 }
-.panel.panel-primary {
-  margin: 10px;
-}
 .datasource form div.form-control {
   margin-bottom: 5px !important;
 }
