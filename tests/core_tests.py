@@ -16,7 +16,7 @@ from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
-from caravel import app, db, models, utils, appbuilder
+from caravel import app, db, models, utils, appbuilder, sm
 from caravel.models import DruidCluster, DruidDatasource
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
@@ -247,8 +247,8 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
-    def run_sql(self, sql):
-        self.login(username='admin')
+    def run_sql(self, sql, user_name):
+        self.login(username=user_name)
         dbid = (
             db.session.query(models.Database)
             .filter_by(database_name="main")
@@ -258,13 +258,47 @@ class CoreTests(CaravelTestCase):
             '/caravel/sql_json/',
             data=dict(database_id=dbid, sql=sql),
         )
+        self.logout()
         return json.loads(resp.data.decode('utf-8'))
 
-    def test_sql_json(self):
-        data = self.run_sql("SELECT * FROM ab_user")
+    def test_sql_json_no_access(self):
+        self.assertRaises(
+            utils.CaravelSecurityException,
+            self.run_sql, "SELECT * FROM ab_user", 'gamma')
+
+    def test_sql_json_has_access(self):
+        main_db = (
+            db.session.query(models.Database).filter_by(database_name="main")
+                .first()
+        )
+        utils.merge_perm(sm, 'database_access', main_db.perm)
+        db.session.commit()
+        main_db_permission_view = (
+            db.session.query(ab_models.PermissionView)
+                .join(ab_models.ViewMenu)
+                .filter(ab_models.ViewMenu.name == '[main].(id:1)')
+                .first()
+        )
+        astronaut = sm.add_role("Astronaut")
+        sm.add_permission_role(astronaut, main_db_permission_view)
+        # Astronaut role is Gamme + main db permissions
+        for gamma_perm in sm.find_role('Gamma').permissions:
+            sm.add_permission_role(astronaut, gamma_perm)
+
+        gagarin = appbuilder.sm.find_user('gagarin')
+        if not gagarin:
+            appbuilder.sm.add_user(
+                'gagarin', 'Iurii', 'Gagarin', 'gagarin@cosmos.ussr',
+                appbuilder.sm.find_role('Astronaut'),
+                password='general')
+        data = self.run_sql('SELECT * FROM ab_user', 'gagarin')
         assert len(data['data']) > 0
 
-        data = self.run_sql("SELECT * FROM unexistant_table")
+    def test_sql_json(self):
+        data = self.run_sql("SELECT * FROM ab_user", 'admin')
+        assert len(data['data']) > 0
+
+        data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
         assert len(data['error']) > 0
 
     def test_public_user_dashboard_access(self):
@@ -300,7 +334,6 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         data = resp.data.decode('utf-8')
         assert "/caravel/dashboard/world_health/" not in data
-
 
     def test_only_owners_can_save(self):
         dash = (

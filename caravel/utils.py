@@ -200,7 +200,7 @@ def init(caravel):
 
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
-        if perm.permission.name == 'datasource_access':
+        if perm.permission.name in ('datasource_access', 'database_access'):
             continue
         if perm.view_menu and perm.view_menu.name not in (
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
@@ -226,6 +226,7 @@ def init(caravel):
                     'can_edit',
                     'can_save',
                     'datasource_access',
+                    'database_access',
                     'muldelete',
                 )):
             sm.add_permission_role(gamma, perm)
@@ -239,6 +240,9 @@ def init(caravel):
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
 
+    db_perms = [db.perm for db in session.query(models.Database).all()]
+    for db_perm in db_perms:
+        merge_perm(sm, 'database_access', db_perm)
     init_metrics_perm(caravel)
 
 
