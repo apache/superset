@@ -1,10 +1,9 @@
 """Unit tests for Caravel Celery worker"""
-import datetime
 import imp
+import json
 import subprocess
 import os
 import pandas as pd
-import time
 import unittest
 
 import caravel
@@ -116,6 +115,18 @@ class CeleryTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CeleryTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
+
+    @classmethod
+    def setUpClass(cls):
+        try:
+            os.remove(app.config.get('SQL_CELERY_DB_FILE_PATH'))
+        except OSError as e:
+            app.logger.warn(str(e))
+        try:
+            os.remove(app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH'))
+        except OSError as e:
+            app.logger.warn(str(e))
+
         utils.init(caravel)
         admin = appbuilder.sm.find_user('admin')
         if not admin:
@@ -123,29 +134,20 @@ class CeleryTestCase(unittest.TestCase):
                 'admin', 'admin', ' user', 'admin@fab.org',
                 appbuilder.sm.find_role('Admin'),
                 password='general')
-        utils.init(caravel)
-
-    @classmethod
-    def setUpClass(cls):
-        try:
-            os.remove(app.config.get('SQL_CELERY_DB_FILE_PATH'))
-        except OSError:
-            pass
-        try:
-            os.remove(app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH'))
-        except OSError:
-            pass
+        cli.load_examples(load_test_data=True)
 
         worker_command = BASE_DIR + '/bin/caravel worker'
         subprocess.Popen(
             worker_command, shell=True, stdout=subprocess.PIPE)
-        cli.load_examples(load_test_data=True)
 
     @classmethod
     def tearDownClass(cls):
+        main_db = db.session.query(models.Database).filter_by(
+            database_name="main").first()
+        main_db.get_sqla_engine().execute("DELETE FROM query;")
+
         subprocess.call(
-            "ps auxww | grep 'celeryd' | awk '{print $2}' | "
-            "xargs kill -9",
+            "ps auxww | grep 'celeryd' | awk '{print $2}' | xargs kill -9",
             shell=True
         )
         subprocess.call(
@@ -160,6 +162,30 @@ class CeleryTestCase(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def login(self, username='admin', password='general'):
+        resp = self.client.post(
+            '/login/',
+            data=dict(username=username, password=password),
+            follow_redirects=True)
+        assert 'Welcome' in resp.data.decode('utf-8')
+
+    def logout(self):
+        self.client.get('/logout/', follow_redirects=True)
+
+    def run_sql(self, dbid, sql, select_as_cta='False', tmp_table_name='tmp'):
+        self.login()
+        resp = self.client.post(
+            '/caravel/sql_json/',
+            data=dict(
+                database_id=dbid,
+                sql=sql,
+                select_as_cta=select_as_cta,
+                tmp_table_name=tmp_table_name,
+            ),
+        )
+        self.logout()
+        return json.loads(resp.data.decode('utf-8'))
+
     def test_add_limit_to_the_query(self):
         query_session = tasks.get_session()
         db_to_query = query_session.query(models.Database).filter_by(
@@ -167,7 +193,7 @@ class CeleryTestCase(unittest.TestCase):
         eng = db_to_query.get_sqla_engine()
 
         select_query = "SELECT * FROM outer_space;"
-        updated_select_query = tasks.add_limit_to_the_query(
+        updated_select_query = tasks.add_limit_to_the_sql(
             select_query, 100, eng)
         # Different DB engines have their own spacing while compiling
         # the queries, that's why ' '.join(query.split()) is used.
@@ -178,7 +204,7 @@ class CeleryTestCase(unittest.TestCase):
         )
 
         select_query_no_semicolon = "SELECT * FROM outer_space"
-        updated_select_query_no_semicolon = tasks.add_limit_to_the_query(
+        updated_select_query_no_semicolon = tasks.add_limit_to_the_sql(
             select_query_no_semicolon, 100, eng)
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM outer_space) AS inner_qry "
@@ -187,19 +213,19 @@ class CeleryTestCase(unittest.TestCase):
         )
 
         incorrect_query = "SMTH WRONG SELECT * FROM outer_space"
-        updated_incorrect_query = tasks.add_limit_to_the_query(
+        updated_incorrect_query = tasks.add_limit_to_the_sql(
             incorrect_query, 100, eng)
         self.assertEqual(incorrect_query, updated_incorrect_query)
 
         insert_query = "INSERT INTO stomach VALUES (beer, chips);"
-        updated_insert_query = tasks.add_limit_to_the_query(
+        updated_insert_query = tasks.add_limit_to_the_sql(
             insert_query, 100, eng)
         self.assertEqual(insert_query, updated_insert_query)
 
         multi_line_query = (
             "SELECT * FROM planets WHERE\n Luke_Father = 'Darth Vader';"
         )
-        updated_multi_line_query = tasks.add_limit_to_the_query(
+        updated_multi_line_query = tasks.add_limit_to_the_sql(
             multi_line_query, 100, eng)
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM planets WHERE "
@@ -208,13 +234,13 @@ class CeleryTestCase(unittest.TestCase):
         )
 
         delete_query = "DELETE FROM planet WHERE name = 'Earth'"
-        updated_delete_query = tasks.add_limit_to_the_query(
+        updated_delete_query = tasks.add_limit_to_the_sql(
             delete_query, 100, eng)
         self.assertEqual(delete_query, updated_delete_query)
 
         create_table_as = (
             "CREATE TABLE pleasure AS SELECT chocolate FROM lindt_store;\n")
-        updated_create_table_as = tasks.add_limit_to_the_query(
+        updated_create_table_as = tasks.add_limit_to_the_sql(
             create_table_as, 100, eng)
         self.assertEqual(create_table_as, updated_create_table_as)
 
@@ -231,7 +257,7 @@ class CeleryTestCase(unittest.TestCase):
             "(B.TECH ,BE ,Degree ,MCA ,MiBA)\n                  "
             "AND Having Brothers= Null AND Sisters = Null"
         )
-        updated_sql_procedure = tasks.add_limit_to_the_query(
+        updated_sql_procedure = tasks.add_limit_to_the_sql(
             sql_procedure, 100, eng)
         self.assertEqual(sql_procedure, updated_sql_procedure)
 
@@ -242,11 +268,15 @@ class CeleryTestCase(unittest.TestCase):
 
         # Case 1.
         # DB #0 doesn't exist.
-        result1 = tasks.get_sql_results.delay(
-            0, 'SELECT * FROM dontexist', 1, tmp_table_name='tmp_1_1').get()
+        result1 = self.run_sql(
+            0,
+            'SELECT * FROM dontexist',
+            tmp_table_name='tmp_table_1_a',
+            select_as_cta='True',
+        )
         expected_result1 = {
             'error': 'Database with id 0 is missing.',
-            'success': False
+            'status': models.QueryStatus.FAILED,
         }
         self.assertEqual(
             sorted(expected_result1.items()),
@@ -255,18 +285,17 @@ class CeleryTestCase(unittest.TestCase):
         session1 = db.create_scoped_session()
         query1 = session1.query(models.Query).filter_by(
             sql='SELECT * FROM dontexist').first()
-        session1.close()
         self.assertIsNone(query1)
+        session1.close()
 
         # Case 2.
-        session2 = db.create_scoped_session()
-        query2 = session2.query(models.Query).filter_by(
-            sql='SELECT * FROM dontexist1').first()
-        self.assertEqual(models.QueryStatus.FAILED, query2.status)
-        session2.close()
-
-        result2 = tasks.get_sql_results.delay(
-            1, 'SELECT * FROM dontexist1', 1, tmp_table_name='tmp_2_1').get()
+        # Table doesn't exist.
+        result2 = self.run_sql(
+            1,
+            'SELECT * FROM dontexist1',
+            tmp_table_name='tmp_table_2_a',
+            select_as_cta='True',
+        )
         self.assertTrue('error' in result2)
         session2 = db.create_scoped_session()
         query2 = session2.query(models.Query).filter_by(
@@ -275,13 +304,20 @@ class CeleryTestCase(unittest.TestCase):
         session2.close()
 
         # Case 3.
+        # Table and DB exists, CTA call to the backend.
         where_query = (
             "SELECT name FROM ab_permission WHERE name='can_select_star'")
-        result3 = tasks.get_sql_results.delay(
-            1, where_query, 1, tmp_table_name='tmp_3_1').get()
+        result3 = self.run_sql(
+            1,
+            where_query,
+            tmp_table_name='tmp_table_3_a',
+            select_as_cta='True',
+        )
         expected_result3 = {
-            'tmp_table': 'tmp_3_1',
-            'success': True
+            u'query_id': 2,
+            u'status': models.QueryStatus.FINISHED,
+            u'columns': [u'name'],
+            u'data': [{u'name': u'can_select_star'}],
         }
         self.assertEqual(
             sorted(expected_result3.items()),
@@ -291,18 +327,24 @@ class CeleryTestCase(unittest.TestCase):
         query3 = session3.query(models.Query).filter_by(
             sql=where_query).first()
         session3.close()
-        df3 = pd.read_sql_query(sql="SELECT * FROM tmp_3_1", con=eng)
+        df3 = pd.read_sql_query(sql="SELECT * FROM tmp_table_3_a", con=eng)
         data3 = df3.to_dict(orient='records')
         self.assertEqual(models.QueryStatus.FINISHED, query3.status)
         self.assertEqual([{'name': 'can_select_star'}], data3)
 
         # Case 4.
-        result4 = tasks.get_sql_results.delay(
-            1, 'SELECT * FROM ab_permission WHERE id=666', 1,
-            tmp_table_name='tmp_4_1').get()
+        # Table and DB exists, CTA call to the backend, no data.
+        result4 = self.run_sql(
+            1,
+            'SELECT * FROM ab_permission WHERE id=666',
+            tmp_table_name='tmp_table_4_a',
+            select_as_cta='True',
+        )
         expected_result4 = {
-            'tmp_table': 'tmp_4_1',
-            'success': True
+            u'query_id': 3,
+            u'status': models.QueryStatus.FINISHED,
+            u'columns': [u'id', u'name'],
+            u'data': [],
         }
         self.assertEqual(
             sorted(expected_result4.items()),
@@ -312,87 +354,29 @@ class CeleryTestCase(unittest.TestCase):
         query4 = session4.query(models.Query).filter_by(
             sql='SELECT * FROM ab_permission WHERE id=666').first()
         session4.close()
-        df4 = pd.read_sql_query(sql="SELECT * FROM tmp_4_1", con=eng)
+        df4 = pd.read_sql_query(sql="SELECT * FROM tmp_table_4_a", con=eng)
         data4 = df4.to_dict(orient='records')
         self.assertEqual(models.QueryStatus.FINISHED, query4.status)
         self.assertEqual([], data4)
 
         # Case 5.
-        # Return the data directly if DB select_as_create_table_as is False.
-        main_db.select_as_create_table_as = False
-        db.session.commit()
-        result5 = tasks.get_sql_results.delay(
-            1, where_query, 1, tmp_table_name='tmp_5_1').get()
+        # Table and DB exists, select without CTA.
+        result5 = self.run_sql(
+            1,
+            where_query,
+            tmp_table_name='tmp_table_5_a',
+            select_as_cta='False',
+        )
         expected_result5 = {
-            'columns': ['name'],
-            'data': [{'name': 'can_select_star'}],
-            'success': True
+            u'query_id': 4,
+            u'columns': [u'name'],
+            u'data': [{u'name': u'can_select_star'}],
+            u'status': models.QueryStatus.FINISHED,
         }
         self.assertEqual(
             sorted(expected_result5.items()),
             sorted(result5.items())
         )
-
-    def test_run_async_query_delay(self):
-        celery_task1 = tasks.get_sql_results.delay(
-            0, 'SELECT * FROM dontexist', 1, tmp_table_name='tmp_1_2')
-        celery_task2 = tasks.get_sql_results.delay(
-            1, 'SELECT * FROM dontexist1', 1, tmp_table_name='tmp_2_2')
-        where_query = (
-            "SELECT name FROM ab_permission WHERE name='can_select_star'")
-        celery_task3 = tasks.get_sql_results.delay(
-            1, where_query, 1, tmp_table_name='tmp_3_2')
-        celery_task4 = tasks.get_sql_results.delay(
-            1, 'SELECT * FROM ab_permission WHERE id=666', 1,
-            tmp_table_name='tmp_4_2')
-
-        time.sleep(1)
-
-        # DB #0 doesn't exist.
-        expected_result1 = {
-            'error': 'Database with id 0 is missing.',
-            'success': False
-        }
-        self.assertEqual(
-            sorted(expected_result1.items()),
-            sorted(celery_task1.get().items())
-        )
-        session2 = db.create_scoped_session()
-        query2 = session2.query(models.Query).filter_by(
-            sql='SELECT * FROM dontexist1').first()
-        self.assertEqual(models.QueryStatus.FAILED, query2.status)
-        self.assertTrue('error' in celery_task2.get())
-        expected_result3 = {
-            'tmp_table': 'tmp_3_2',
-            'success': True
-        }
-        self.assertEqual(
-            sorted(expected_result3.items()),
-            sorted(celery_task3.get().items())
-        )
-        expected_result4 = {
-            'tmp_table': 'tmp_4_2',
-            'success': True
-        }
-        self.assertEqual(
-            sorted(expected_result4.items()),
-            sorted(celery_task4.get().items())
-        )
-
-        session = db.create_scoped_session()
-        query1 = session.query(models.Query).filter_by(
-            sql='SELECT * FROM dontexist').first()
-        self.assertIsNone(query1)
-        query2 = session.query(models.Query).filter_by(
-            sql='SELECT * FROM dontexist1').first()
-        self.assertEqual(models.QueryStatus.FAILED, query2.status)
-        query3 = session.query(models.Query).filter_by(
-            sql=where_query).first()
-        self.assertEqual(models.QueryStatus.FINISHED, query3.status)
-        query4 = session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_permission WHERE id=666').first()
-        self.assertEqual(models.QueryStatus.FINISHED, query4.status)
-        session.close()
 
 
 if __name__ == '__main__':
