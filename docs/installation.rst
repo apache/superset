@@ -40,9 +40,6 @@ that the required dependencies are installed: ::
 **Windows** isn't officially supported at this point, but if you want to
 attempt it, download `get-pip.py <https://bootstrap.pypa.io/get-pip.py>`_, and run ``python get-pip.py`` which may need admin access. Then run the following: ::
 
-    C:\> \path\to\vcvarsall.bat x86_amd64
-    C:\> set LIB=C:\OpenSSL-1.0.1f-64bit\lib;%LIB%
-    C:\> set INCLUDE=C:\OpenSSL-1.0.1f-64bit\include;%INCLUDE%
     C:\> pip install cryptography
 
     # You may also have to create C:\Temp
