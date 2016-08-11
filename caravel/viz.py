@@ -1962,6 +1962,29 @@ class MapboxViz(BaseViz):
         }
 
 
+class NVD3TimeSeriesBarPlusLineViz(NVD3TimeSeriesViz):
+
+    """A bar + line chart where the x axis is time"""
+
+    viz_type = "bar_plus_line"
+    sort_series = True
+    verbose_name = _("Time Series - Bar+Line Chart")
+    fieldsets = [{
+        'label': None,
+        'fields': (
+            'metrics',
+        ),
+    }, {
+        'label': _('Chart Options'),
+        'fields': (
+        ), }] + [NVD3TimeSeriesViz.fieldsets[2]]
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = self.to_series(df)
+        chart_data[0]['bar'] = True
+        return chart_data
+
 viz_types_list = [
     TableViz,
     PivotTableViz,
@@ -1969,6 +1992,7 @@ viz_types_list = [
     NVD3CompareTimeSeriesViz,
     NVD3TimeSeriesStackedViz,
     NVD3TimeSeriesBarViz,
+    NVD3TimeSeriesBarPlusLineViz,
     DistributionBarViz,
     DistributionPieViz,
     BubbleViz,
