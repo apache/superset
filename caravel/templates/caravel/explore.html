@@ -48,7 +48,7 @@
                 </select>
               </span>
               <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
-                <i class="fa fa-edit m-l-3" />
+                <i class="fa fa-edit m-l-3"></i>
               </a>
             </div>
             <br/>
@@ -172,14 +172,28 @@
         {% block messages %}{% endblock %}
         {% include 'appbuilder/flash.html' %}
         <div class="slice-name__container">
-          <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
-          <div class="slice-name__text">{{slice.slice_name}}</div>
-          <a href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit Description" class="edit-slice-description-icon">
-            {% if slice.description %}
-              <i class="fa fa-question-circle-o" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
-            {% endif %}
-            <i class="fa fa-edit"></i>
-          </a>
+          {% if slice %}
+            <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
+            <div class="slice-name__text">{{ slice.slice_name }} </div>
+            <a
+              href="/slicemodelview/edit/{{ slice.id }}"
+              data-toggle="tooltip"
+              title="Edit Description"
+              class="edit-slice-description-icon"
+            >
+              {% if slice.description %}
+                <i
+                  class="fa fa-question-circle-o"
+                  data-toggle="tooltip"
+                  data-placement="bottom"
+                  title="{{ slice.description }}">
+                </i>
+              {% endif %}
+              <i class="fa fa-edit"></i>
+            </a>
+          {% else %}
+            <div class="slice-name__text">&nbsp;</div>
+          {% endif %}
           <div class="slice-meta pull-right">
             <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
               cached
