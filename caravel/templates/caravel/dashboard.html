@@ -82,7 +82,7 @@
           <button type="button" id="refresh_dash" class="btn btn-default" data-toggle="tooltip" title="Force refresh the whole dashboard">
             <i class="fa fa-refresh"></i>
           </button>
-          <button type="button" id="add-slice" class="btn btn-default" data-toggle="modal" data-target="#add_slice_modal">
+          <button type="button" id="add-slice" class="btn btn-default {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="modal" data-target="#add_slice_modal">
               <i class="fa fa-plus" data-toggle="tooltip" title="Add a new slice to the dashboard"></i>
           </button>
           <button type="button" id="refresh_dash_periodic" class="btn btn-default" data-toggle="modal" data-target="#refresh_modal">
