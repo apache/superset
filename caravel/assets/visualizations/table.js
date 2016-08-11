@@ -65,29 +65,28 @@ function tableVis(slice) {
           return d;
         });
 
-      if (form_data.all_columns == null || form_data.all_columns.length == 0) {
-        var sum_records = [];
-        var sum_cols = [];
+      var all_columns = form_data.all_columns;
+      if (all_columns == null || all_columns.length == 0) {
         var sum_row = data.records.pop();
-        for (var col of data.columns) {
-          sum_records.push(sum_row[col]);
-          sum_cols.push("sum_" + col);
-        }
-        console.log(sum_records);
         var tfoot = table.append('tfoot');
         tfoot.append('tr')
-          .select('th')
-          .data(sum_cols).enter()
+          .selectAll('th')
+          .data(data.columns).enter()
           .append('th')
           .text(function (d) {
-            return d;
+            return "Total " + d;
           });
         tfoot.append('tr')
           .selectAll('td')
-          .data(sum_records).enter()
+          .data(data.columns).enter()
           .append('td')
           .text(function (d) {
-            return d;
+            var val = sum_row[d];
+            if (metrics.indexOf(d) >= 0) {
+              return slice.d3format(d, val);
+            } else {
+              return val;
+            }
           });
       }
 
