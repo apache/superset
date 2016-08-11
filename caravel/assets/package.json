@@ -8,8 +8,8 @@
   },
   "scripts": {
     "test": "npm run lint && mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
-    "dev": "webpack -d --watch --colors",
-    "prod": "webpack -p --colors",
+    "dev": "NODE_ENV=dev webpack -d --watch --colors",
+    "prod": "NODE_ENV=production webpack -p --colors",
     "lint": "npm run --silent lint:js",
     "lint:js": "eslint --ignore-path=.eslintignore --ext .js ."
   },
@@ -49,7 +49,7 @@
     "datamaps": "^0.4.4",
     "datatables-bootstrap3-plugin": "^0.4.0",
     "datatables.net-bs": "^1.10.11",
-    "font-awesome": "^4.5.0",
+    "font-awesome": "^4.6.3",
     "gridster": "^0.5.6",
     "immutability-helper": "^2.0.0",
     "jquery": "^2.2.1",

@@ -407,6 +407,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         db.password = conn.password
         conn.password = "X" * 10 if conn.password else None
         db.sqlalchemy_uri = str(conn)  # hides the password
+        utils.merge_perm(sm, 'database_access', db.perm)
 
     def pre_update(self, db):
         self.pre_add(db)
@@ -1140,7 +1141,9 @@ class Caravel(BaseCaravelView):
         qry = session.query(models.Slice).filter_by(id=int(slice_id))
         slc = qry.first()
         if slc:
-            return redirect(slc.slice_url)
+            url = '{slc.slice_url}&standalone={standalone}'.format(
+                slc=slc, standalone=request.args.get('standalone', 'false'))
+            return redirect(url)
         else:
             flash("The specified slice could not be found", "danger")
             return redirect('/slicemodelview/list/')
@@ -1164,27 +1167,30 @@ class Caravel(BaseCaravelView):
         def dashboard(**kwargs):  # noqa
             pass
         dashboard(dashboard_id=dash.id)
-
+        dash_edit_perm = check_ownership(dash, raise_if_false=False)
+        dash_save_perm = dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             user_id=g.user.get_id(),
             templates=templates,
-            dash_save_perm=self.can_access('can_save_dash', 'Caravel'),
-            dash_edit_perm=check_ownership(dash, raise_if_false=False))
+            dash_save_perm=dash_save_perm,
+            dash_edit_perm=dash_edit_perm)
 
     @has_access
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
-        if (
-                not self.can_access(
-                    'all_datasource_access', 'all_datasource_access')):
-            flash(
-                "This view requires the `all_datasource_access` "
-                "permission", "danger")
-            return redirect("/tablemodelview/list/")
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
+
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            flash(
+                "This view requires the specific database or "
+                "`all_datasource_access` permission", "danger"
+            )
+            return redirect("/tablemodelview/list/")
         engine = mydb.get_sqla_engine()
         tables = engine.table_names()
 
@@ -1221,6 +1227,18 @@ class Caravel(BaseCaravelView):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
         t = mydb.get_table(table_name)
+
+        # Prevent exposing column fields to users that cannot access DB.
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm) or
+                self.can_access('datasource_access', t.perm)):
+            flash(
+                "This view requires the specific database, table or "
+                "`all_datasource_access` permission", "danger"
+            )
+            return redirect("/tablemodelview/list/")
+
         fields = ", ".join(
             [c.name for c in t.columns] or "*")
         s = "SELECT\n{}\nFROM {}".format(fields, table_name)
@@ -1242,11 +1260,13 @@ class Caravel(BaseCaravelView):
         database_id = data.get('database_id')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
-        if (
-                not self.can_access(
-                    'all_datasource_access', 'all_datasource_access')):
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
             raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` permission"))
+                "SQL Lab requires the `all_datasource_access` or "
+                "specific db permission"))
+
         content = ""
         if mydb:
             eng = mydb.get_sqla_engine()
@@ -1254,10 +1274,12 @@ class Caravel(BaseCaravelView):
                 sql = sql.strip().strip(';')
                 qry = (
                     select('*')
-                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                    .select_from(TextAsFrom(text(sql), ['*'])
+                                 .alias('inner_qry'))
                     .limit(limit)
                 )
-                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+                sql = '{}'.format(qry.compile(
+                    eng, compile_kwargs={"literal_binds": True}))
             try:
                 df = pd.read_sql_query(sql=sql, con=eng)
                 content = df.to_html(
@@ -1289,11 +1311,12 @@ class Caravel(BaseCaravelView):
         database_id = request.form.get('database_id')
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
-        if (
-                not self.can_access(
-                    'all_datasource_access', 'all_datasource_access')):
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
             raise utils.CaravelSecurityException(_(
-                "This view requires the `all_datasource_access` permission"))
+                "SQL Lab requires the `all_datasource_access` or "
+                "specific DB permission"))
 
         error_msg = ""
         if not mydb:
@@ -1304,10 +1327,12 @@ class Caravel(BaseCaravelView):
                 sql = sql.strip().strip(';')
                 qry = (
                     select('*')
-                    .select_from(TextAsFrom(text(sql), ['*']).alias('inner_qry'))
+                    .select_from(TextAsFrom(text(sql), ['*'])
+                                 .alias('inner_qry'))
                     .limit(limit)
                 )
-                sql = str(qry.compile(eng, compile_kwargs={"literal_binds": True}))
+                sql = '{}'.format(qry.compile(
+                    eng, compile_kwargs={"literal_binds": True}))
             try:
                 df = pd.read_sql_query(sql=sql, con=eng)
                 df = df.fillna(0)  # TODO make sure NULL
@@ -1328,7 +1353,8 @@ class Caravel(BaseCaravelView):
                 'columns': [c for c in df.columns],
                 'data': df.to_dict(orient='records'),
             }
-            return json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False)
+            return json.dumps(
+                data, default=utils.json_int_dttm_ser, allow_nan=False)
 
     @has_access
     @expose("/refresh_datasources/")
@@ -1342,7 +1368,7 @@ class Caravel(BaseCaravelView):
             except Exception as e:
                 flash(
                     "Error while processing cluster '{}'\n{}".format(
-                        cluster_name, str(e)),
+                        cluster_name, utils.error_msg_from_exception(e)),
                     "danger")
                 logging.exception(e)
                 return redirect('/druidclustermodelview/list/')
