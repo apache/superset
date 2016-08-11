@@ -422,7 +422,9 @@ class TableViz(BaseViz):
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
             del df['timestamp']
-        if not self.form_data.get('all_columns'):
+        if (
+                df is not None and df.size > 0 and
+                not self.form_data.get('all_columns')):
             metrics = self.form_data.get('metrics') or ['count']
             sum_metrics = df[metrics].sum()
             df_sum = pd.DataFrame(data=sum_metrics).T
