@@ -396,6 +396,7 @@ class TableViz(BaseViz):
             'table_timestamp_format',
             'row_limit',
             ('include_search', None),
+            ('allow_empty', None),
         )
     })
     form_overrides = ({
@@ -419,7 +420,8 @@ class TableViz(BaseViz):
         return d
 
     def get_df(self, query_obj=None):
-        df = super(TableViz, self).get_df(query_obj, return_empty = True)
+        df = super(TableViz, self).get_df(query_obj, 
+            return_empty = self.form_data['allow_empty'])
         if (
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
