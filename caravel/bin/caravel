@@ -79,33 +79,34 @@ def version(verbose):
 @manager.option(
     '-t', '--load-test-data', action='store_true',
     help="Load additional test data")
-def load_examples(load_test_data):
+def load_examples(load_test_data, test=False):
     """Loads a set of Slices and Dashboards and a supporting dataset """
     print("Loading examples into {}".format(db))
-
-    data.load_css_templates()
 
     print("Loading energy related dataset")
     data.load_energy()
 
-    print("Loading [World Bank's Health Nutrition and Population Stats]")
-    data.load_world_bank_health_n_pop()
-
     print("Loading [Birth names]")
     data.load_birth_names()
-
-    print("Loading [Random time series data]")
-    data.load_random_time_series_data()
 
     print("Loading [Random long/lat data]")
     data.load_long_lat_data()
 
-    print("Loading [Multiformat time series]")
-    data.load_multiformat_time_series_data()
+    if not test:
+        data.load_css_templates()
 
-    if load_test_data:
-        print("Loading [Unicode test data]")
-        data.load_unicode_test_data()
+        print("Loading [World Bank's Health Nutrition and Population Stats]")
+        data.load_world_bank_health_n_pop()
+
+        print("Loading [Random time series data]")
+        data.load_random_time_series_data()
+
+        print("Loading [Multiformat time series]")
+        data.load_multiformat_time_series_data()
+
+        if load_test_data:
+            print("Loading [Unicode test data]")
+            data.load_unicode_test_data()
 
 @manager.command
 def refresh_druid():

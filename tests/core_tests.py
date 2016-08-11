@@ -102,7 +102,7 @@ class CoreTests(CaravelTestCase):
 
     @classmethod
     def setUpClass(cls):
-        cli.load_examples(load_test_data=True)
+        cli.load_examples(load_test_data=True, test=True)
         utils.init(caravel)
         cls.table_ids = {tbl.table_name: tbl.id  for tbl in (
             db.session
