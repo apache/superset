@@ -959,7 +959,7 @@ class TableColumn(Model, AuditMixinNullable):
             col = literal_column(self.expression).label(name)
         return col
 
-    def dttm_sql_literal(self, dttm):
+    def dttm_sql_literal(self, dttm, field_type):
         """Convert datetime object to string
 
         If database_expression is empty, the internal dttm
@@ -970,27 +970,21 @@ class TableColumn(Model, AuditMixinNullable):
         """
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
-            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))# Why are ms missing here?
         elif tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
         elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
-            default = "'{}'".format(dttm.strftime(tf))
-            iso = dttm.isoformat()
-            d = {
-                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso),  # untested
-                'mysql': default,
-                'oracle':
-                    """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-                        dttm.isoformat()),
-                'presto': default,
-                'sqlite': default,
-            }
-            for k, v in d.items():
-                if self.table.database.sqlalchemy_uri.startswith(k):
-                    return v
-            return default
+            uri = self.table.database.sqlachemy_uri
+            if uri.startswith('oracle'):
+               return "TO_TIMESTAMP('{}', 'YYYY-MM-DD HH24:MI:SS.ff6')"\
+                   .format(dttm.strftime('%Y-%m-%d %H:%M:%S.%f'))
+            elif uri.startswith('mssql'):
+                field_type = field_type.upper()
+                if field_type != 'DATETIME2':
+                    return "CONVERT({}, '{}', 121)".format(field_type, dttm.strftime(tf)[:-3])
+        return "'{}'".format(dttm.strftime(tf))
 
 
 class DruidCluster(Model, AuditMixinNullable):
