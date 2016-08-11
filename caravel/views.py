@@ -1141,7 +1141,9 @@ class Caravel(BaseCaravelView):
         qry = session.query(models.Slice).filter_by(id=int(slice_id))
         slc = qry.first()
         if slc:
-            return redirect(slc.slice_url)
+            url = '{slc.slice_url}&standalone={standalone}'.format(
+                slc=slc, standalone=request.args.get('standalone', 'false'))
+            return redirect(url)
         else:
             flash("The specified slice could not be found", "danger")
             return redirect('/slicemodelview/list/')
