@@ -6,9 +6,77 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import Select from 'react-select';
-import 'react-select/dist/react-select.css';
+import '../stylesheets/react-select/select.less';
 
 import './filter_box.css';
+
+class FilterBox extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selectedValues: props.origSelectedValues,
+    };
+  }
+  render() {
+    const filters = Object.keys(this.props.filtersChoices).map((filter) => {
+      const data = this.props.filtersChoices[filter];
+      const id = 'fltbox__' + filter;
+      const maxes = {};
+      maxes[filter] = d3.max(data, function (d) {
+        return d.metric;
+      });
+      return (
+        <div>
+          {filter}
+          <Select
+            placeholder={`Select [${filter}]`}
+            key={filter}
+            multi={true}
+            value={this.state.selectedValues[filter]}
+            options={data.map((opt) => {
+              const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
+              const backgroundImage = (
+                'linear-gradient(to right, lightgrey, ' +
+                `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
+              );
+              const style = {
+                backgroundImage,
+                padding:'2px 5px',
+              };
+              return { value: opt.id, label: opt.id, style };
+            })}
+            onChange={(selectedOptions) => {
+              const vals = selectedOptions.map((opt) => opt.value);
+              const selectedValues = this.state.selectedValues;
+              selectedValues[filter] = vals;
+              this.setState({ selectedValues });
+              this.props.onChange(filter, vals);
+            }}
+          />
+        </div>
+      );
+
+      const preSelect = preSelectDict[filter];
+      if (preSelect !== undefined) {
+        filtersObj[filter].select2('val', preSelect);
+      }
+    });
+    return (
+      <div>
+        {filters}
+      </div>
+    );
+  }
+}
+FilterBox.propTypes = {
+  origSelectedValues: React.PropTypes.objectOf(React.PropTypes.array),
+  filtersChoices: React.PropTypes.objectOf(React.PropTypes.array),
+  onChange: React.PropTypes.function,
+};
+FilterBox.defaultProps = {
+  origSelectedValues: {},
+  onChange: function () {},
+};
 
 function filterBox(slice) {
   const filtersObj = {};
@@ -24,49 +92,15 @@ function filterBox(slice) {
     // filter box should ignore the dashboard's filters
     const url = slice.jsonEndpoint({ extraFilters: false});
     $.getJSON(url, (payload) => {
-      let timeFilter;
-      const maxes = {};
-      const filters = Object.keys(payload.data).map((filter) => {
-        const data = payload.data[filter];
-        maxes[filter] = d3.max(data, function (d) {
-          return d.metric;
-        });
-        const id = 'fltbox__' + filter;
-        return (
-          <div>
-            {filter}
-            <Select
-              placeholder={`Select [${filter}]`}
-              multi={true}
-              options={data.map((opt) => {
-                const perc = Math.round((opt.metric / maxes[opt.filter]) * 100);
-                let style = (
-                  'padding: 2px 5px;' +
-                  'background-image: linear-gradient(to right, lightgrey, ' +
-                  `lightgrey ${perc}%, rgba(0,0,0,0) ${perc}%`
-                );
-                //return '<div style="' + style + '"><span>' + opt.text + '</span></div>';
-                return { value: opt.id, label: <div>{opt.id}</div> };
-              })}
-              onChange={(selectedOptions) => {
-                const vals = selectedOptions.map((opt) => opt.value);
-                slice.setFilter(filter, vals);
-              }}
-            />
-          </div>
-        );
-
-        const preSelect = preSelectDict[filter];
-        if (preSelect !== undefined) {
-          filtersObj[filter].select2('val', preSelect);
-        }
-      });
-      ReactDOM.render((
-        <div>
-          {timeFilter}
-          {filters}
-        </div>
-      ), document.getElementById(slice.containerId));
+      ReactDOM.render(
+        (
+          <FilterBox
+            filtersChoices={payload.data}
+            onChange={slice.setFilter}
+          />
+        ),
+        document.getElementById(slice.containerId)
+      );
       slice.done(payload);
     })
     .fail(function (xhr) {
