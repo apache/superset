@@ -1088,13 +1088,17 @@ class FormFactory(object):
                             _('Filter 1'),
                             default=col_choices[0][0],
                             choices=col_choices))
-                setattr(QueryForm, field_prefix + '_op_' + str(i), SelectField(
-                    _('Filter 1'),
-                    default=op_choices[0][0],
-                    choices=op_choices))
-                setattr(
-                    QueryForm, field_prefix + '_eq_' + str(i),
-                    TextField(_("Super"), default=''))
+                setattr(QueryForm, field_prefix + '_op_' + str(i),
+                        SelectField(
+                            _('Filter 1'),
+                            default=op_choices[0][0],
+                            choices=op_choices))
+                if viz.datasource.filter_select_enabled and not is_having_filter:
+                    setattr(QueryForm, field_prefix + '_eq_' + str(i),
+                            FreeFormSelectField(_("Super"), choices=[]))
+                else:
+                    setattr(QueryForm, field_prefix + '_eq_' + str(i),
+                            TextField(_("Super"), default=''))
 
         if time_fields:
             QueryForm.fieldsets = ({
