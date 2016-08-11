@@ -4,13 +4,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
+from datetime import datetime, date
 import decimal
 import functools
 import json
 import logging
 import numpy
-import time
+import uuid
 
 import parsedatetime
 import sqlalchemy as sa
@@ -200,7 +200,7 @@ def init(caravel):
 
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
-        if perm.permission.name == 'datasource_access':
+        if perm.permission.name in ('datasource_access', 'database_access'):
             continue
         if perm.view_menu and perm.view_menu.name not in (
                 'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
@@ -226,6 +226,7 @@ def init(caravel):
                     'can_edit',
                     'can_save',
                     'datasource_access',
+                    'database_access',
                     'muldelete',
                 )):
             sm.add_permission_role(gamma, perm)
@@ -239,6 +240,9 @@ def init(caravel):
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
 
+    db_perms = [db.perm for db in session.query(models.Database).all()]
+    for db_perm in db_perms:
+        merge_perm(sm, 'database_access', db_perm)
     init_metrics_perm(caravel)
 
 
@@ -283,6 +287,8 @@ def base_json_conv(obj):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
         return float(obj)
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj):
@@ -300,7 +306,7 @@ def json_iso_dttm_ser(obj):
         obj = obj.isoformat()
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
 
@@ -312,9 +318,11 @@ def json_int_dttm_ser(obj):
         return val
     if isinstance(obj, datetime):
         obj = (obj - EPOCH).total_seconds() * 1000
+    elif isinstance(obj, date):
+        obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
 
