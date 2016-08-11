@@ -4,7 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
+from datetime import datetime, date
 import decimal
 import functools
 import json
@@ -318,6 +318,8 @@ def json_int_dttm_ser(obj):
         return val
     if isinstance(obj, datetime):
         obj = (obj - EPOCH).total_seconds() * 1000
+    elif isinstance(obj, date):
+        obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
             "Unserializable object {} of type {}".format(obj, type(obj))
