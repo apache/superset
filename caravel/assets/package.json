@@ -59,6 +59,7 @@
     "nvd3": "1.8.4",
     "react": "^15.2.1",
     "react-bootstrap": "^0.28.3",
+    "react-bootstrap-datetimepicker": "0.0.22",
     "react-bootstrap-table": "^2.3.7",
     "react-dom": "^0.14.8",
     "react-grid-layout": "^0.12.3",

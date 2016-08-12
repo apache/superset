@@ -1,6 +1,6 @@
 // JS
 var d3 = window.d3 || require('d3');
-var px = window.px || require('../javascripts/modules/caravel.js');
+import { category21 } from '../javascripts/modules/colors'
 
 // CSS
 require('./treemap.css');
@@ -185,9 +185,8 @@ function treemap(slice) {
           .attr("dy", "1.0em")
           .text(function (d) { return formatNumber(d.value); });
       t.call(text);
-
       g.selectAll("rect")
-          .style("fill", function (d) { return px.color.category21(d.name); });
+          .style("fill", function (d) { return category21(d.name); });
 
       return g;
     };

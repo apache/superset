@@ -4,19 +4,26 @@
 }
 
 .dashboard .filter_box .slice_container > div {
-  padding-top: 0;
+    padding-top: 0;
 }
 
 ul.select2-results li.select2-highlighted div.filter_box{
- color: black;
- border-width: 1px;
- border-style: solid;
- border-color: #666;
+    color: black;
+    border-width: 1px;
+    border-style: solid;
+    border-color: #666;
 }
 
 ul.select2-results div.filter_box{
- color: black;
- border-style: solid;
- border-width: 1px;
- border-color: transparent;
+    color: black;
+    border-style: solid;
+    border-width: 1px;
+    border-color: transparent;
+}
+.filter_box .slice_container {
+    padding: 10px;
+    overflow: visible !important;
+}
+.filter_box:hover {
+    z-index: 1000;
 }

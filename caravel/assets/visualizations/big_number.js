@@ -4,7 +4,7 @@ var d3 = window.d3 || require('d3');
 // CSS
 require('./big_number.css');
 
-var px = require('../javascripts/modules/caravel.js');
+import { formatDate } from '../javascripts/modules/dates'
 
 function bigNumberVis(slice) {
   var div = d3.select(slice.selector);
@@ -140,7 +140,7 @@ function bigNumberVis(slice) {
         .scale(scale_x)
         .orient('bottom')
         .ticks(4)
-        .tickFormat(px.formatDate);
+        .tickFormat(formatDate);
         g.call(x_axis);
         g.attr('transform', 'translate(0,' + (height - margin) + ')');
 
