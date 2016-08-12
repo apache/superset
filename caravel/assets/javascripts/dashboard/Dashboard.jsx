@@ -154,7 +154,7 @@ function dashboardContainer(dashboardData) {
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
       this.slices.forEach(function (slice) {
-        if (slice.data.sliceId !== sliceId && immune.indexOf(slice.data.sliceId) === -1) {
+        if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.sliceId) === -1) {
           slice.render();
         }
       });
