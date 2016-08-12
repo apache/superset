@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 from datetime import datetime
 from subprocess import Popen
-import textwrap
 
 from flask_migrate import MigrateCommand
 from flask_script import Manager

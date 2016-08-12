@@ -18,6 +18,14 @@
         {% include 'appbuilder/navbar_menu.html' %}
       </ul>
       <ul class="nav navbar-nav navbar-right">
+        {% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
+        {% if WARNING_MSG %}
+          <li>
+            <div class="alert alert-danger" role="alert">
+              {{ WARNING_MSG | safe }}
+            </div>
+          </li>
+        {% endif %}
         <li><a href="https://github.com/airbnb/caravel" title="Caravel's Github">
           <i class="fa fa-github fa-lg"></i></a>
         </li>
