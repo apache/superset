@@ -1,5 +1,5 @@
-const d3 = window.d3 || require('d3');
-const $ = window.$ || require('jquery');
+const d3 = require('d3');
+const $ = require('jquery');
 /*
     Utility function that takes a d3 svg:text selection and a max width, and splits the
     text's text across multiple tspan lines such that any given line does not exceed max width

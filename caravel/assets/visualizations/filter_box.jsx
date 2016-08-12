@@ -46,7 +46,12 @@ class FilterBox extends React.Component {
               return { value: opt.id, label: opt.id, style };
             })}
             onChange={(selectedOptions) => {
-              const vals = selectedOptions.map((opt) => opt.value);
+              let vals;
+              if (selectedOptions) {
+                vals = selectedOptions.map((opt) => opt.value);
+              } else {
+                vals = null;
+              }
               const selectedValues = this.state.selectedValues;
               selectedValues[filter] = vals;
               this.setState({ selectedValues });
@@ -97,6 +102,7 @@ function filterBox(slice) {
           <FilterBox
             filtersChoices={payload.data}
             onChange={slice.setFilter}
+            origSelectedValues={slice.getFilters() || {}}
           />
         ),
         document.getElementById(slice.containerId)
