@@ -11,7 +11,7 @@
     "dev": "NODE_ENV=dev webpack -d --watch --colors",
     "prod": "NODE_ENV=production webpack -p --colors --progress",
     "lint": "npm run --silent lint:js",
-    "lint:js": "eslint --ignore-path=.eslintignore --ext .js ."
+    "lint:js": "eslint --ignore-path=.eslintignore --ext .js,.jsx ."
   },
   "repository": {
     "type": "git",

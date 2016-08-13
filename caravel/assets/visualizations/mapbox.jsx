@@ -1,6 +1,6 @@
-const d3 = window.d3 || require('d3');
-require('./mapbox.css');
+/* eslint-disable no-param-reassign */
 
+import d3 from 'd3';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
@@ -15,11 +15,13 @@ import {
   MILES_PER_KM,
   DEFAULT_LONGITUDE,
   DEFAULT_LATITUDE,
-  DEFAULT_ZOOM
+  DEFAULT_ZOOM,
 } from '../utils/common';
 
+require('./mapbox.css');
+
 class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
-  _drawText(ctx, pixel, options = {}) {
+  drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
     const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
     const maxWidth = radius * 1.8;
@@ -56,8 +58,8 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
     const radius = props.dotRadius;
     const mercator = ViewportMercator(props);
     const rgb = props.rgb;
+    const clusterLabelMap = [];
     let maxLabel = -1;
-    let clusterLabelMap = [];
 
     props.locations.forEach(function (location, i) {
       if (location.get('properties').get('cluster')) {
@@ -100,7 +102,6 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
               && pixelRounded[0] - radius < props.width
               && pixelRounded[1] + radius >= 0
               && pixelRounded[1] - radius < props.height) {
-
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
@@ -118,15 +119,17 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fill();
 
             if (isNumeric(clusterLabel)) {
-              clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
-                             clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' :
-                             clusterLabel;
-              this._drawText(ctx, pixelRounded, {
-                fontHeight: fontHeight,
+              if (clusterLabel >= 10000) {
+                clusterLabel = Math.round(clusterLabel / 1000) + 'k';
+              } else if (clusterLabel >= 1000) {
+                clusterLabel = (Math.round(clusterLabel / 100) / 10) + 'k';
+              }
+              this.drawText(ctx, pixelRounded, {
+                fontHeight,
                 label: clusterLabel,
                 radius: scaledRadius,
-                rgb: rgb,
-                shadow: true
+                rgb,
+                shadow: true,
               });
             }
           } else {
@@ -136,7 +139,7 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             let pointRadius = radiusProperty === null ? defaultRadius : radiusProperty;
             let pointLabel;
 
-             if (radiusProperty !== null) {
+            if (radiusProperty !== null) {
               const pointLatitude = props.lngLatAccessor(location)[1];
               if (props.pointRadiusUnit === 'Kilometers') {
                 pointLabel = d3.round(pointRadius, 2) + 'km';
@@ -161,12 +164,12 @@ class ScatterPlotGlowOverlay extends ScatterPlotOverlay {
             ctx.fill();
 
             if (pointLabel !== undefined) {
-              this._drawText(ctx, pixelRounded, {
+              this.drawText(ctx, pixelRounded, {
                 fontHeight: d3.round(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
-                rgb: rgb,
-                shadow: false
+                rgb,
+                shadow: false,
               });
             }
           }
@@ -187,11 +190,11 @@ class MapboxViz extends React.Component {
 
     this.state = {
       viewport: {
-        longitude: longitude,
-        latitude: latitude,
+        longitude,
+        latitude,
         zoom: this.props.viewportZoom || DEFAULT_ZOOM,
-        startDragLngLat: [longitude, latitude]
-      }
+        startDragLngLat: [longitude, latitude],
+      },
     };
 
     this.onChangeViewport = this.onChangeViewport.bind(this);
@@ -199,7 +202,7 @@ class MapboxViz extends React.Component {
 
   onChangeViewport(viewport) {
     this.setState({
-      viewport: viewport
+      viewport,
     });
   }
 
@@ -209,7 +212,7 @@ class MapboxViz extends React.Component {
       height: this.props.sliceHeight,
       longitude: this.state.viewport.longitude,
       latitude: this.state.viewport.latitude,
-      zoom: this.state.viewport.zoom
+      zoom: this.state.viewport.zoom,
     });
     const topLeft = mercator.unproject([0, 0]);
     const bottomRight = mercator.unproject([this.props.sliceWidth, this.props.sliceHeight]);
@@ -229,7 +232,8 @@ class MapboxViz extends React.Component {
         width={this.props.sliceWidth}
         height={this.props.sliceHeight}
         mapboxApiAccessToken={this.props.mapboxApiKey}
-        onChangeViewport={this.onChangeViewport}>
+        onChangeViewport={this.onChangeViewport}
+      >
         <ScatterPlotGlowOverlay
           {...this.state.viewport}
           isDragging={isDragging}
@@ -246,11 +250,28 @@ class MapboxViz extends React.Component {
           lngLatAccessor={function (location) {
             const coordinates = location.get('geometry').get('coordinates');
             return [coordinates.get(0), coordinates.get(1)];
-          }}/>
+          }}
+        />
       </MapGL>
     );
   }
 }
+MapboxViz.propTypes = {
+  aggregatorName: React.PropTypes.string,
+  clusterer: React.PropTypes.object,
+  globalOpacity: React.PropTypes.number,
+  mapStyle: React.PropTypes.string,
+  mapboxApiKey: React.PropTypes.string,
+  pointRadius: React.PropTypes.number,
+  pointRadiusUnit: React.PropTypes.string,
+  renderWhileDragging: React.PropTypes.bool,
+  rgb: React.PropTypes.array,
+  sliceHeight: React.PropTypes.number,
+  sliceWidth: React.PropTypes.number,
+  viewportLatitude: React.PropTypes.number,
+  viewportLongitude: React.PropTypes.number,
+  viewportZoom: React.PropTypes.number,
+};
 
 function mapbox(slice) {
   const DEFAULT_POINT_RADIUS = 60;
@@ -258,20 +279,18 @@ function mapbox(slice) {
   const div = d3.select(slice.selector);
   let clusterer;
 
-  let render = function () {
-
+  const render = function () {
     d3.json(slice.jsonEndpoint(), function (error, json) {
-
       if (error !== null) {
         slice.error(error.responseText);
-        return '';
+        return;
       }
 
       // Validate mapbox color
       const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
       if (rgb === null) {
         slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-        return '';
+        return;
       }
 
       const aggName = json.data.aggregatorName;
@@ -293,13 +312,12 @@ function mapbox(slice) {
             }
             a.push(b);
             return a;
-          } else {
-            if (b instanceof Array) {
-              b.push(a);
-              return b;
-            }
-            return [a, b];
           }
+          if (b instanceof Array) {
+            b.push(a);
+            return b;
+          }
+          return [a, b];
         };
       }
 
@@ -307,7 +325,7 @@ function mapbox(slice) {
         radius: json.data.clusteringRadius,
         maxZoom: DEFAULT_MAX_ZOOM,
         metricKey: 'metric',
-        metricReducer: reducer
+        metricReducer: reducer,
       });
       clusterer.load(json.data.geoJSON.features);
 
@@ -320,7 +338,8 @@ function mapbox(slice) {
           sliceWidth={slice.width()}
           clusterer={clusterer}
           pointRadius={DEFAULT_POINT_RADIUS}
-          aggregatorName={aggName}/>,
+          aggregatorName={aggName}
+        />,
         div.node()
       );
 
@@ -329,8 +348,8 @@ function mapbox(slice) {
   };
 
   return {
-    render: render,
-    resize: function () {}
+    render,
+    resize() {},
   };
 }
 
