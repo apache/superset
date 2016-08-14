@@ -1,0 +1,27 @@
+---
+engines:
+  csslint:
+    enabled: false
+  duplication:
+    enabled: true
+    config:
+      languages:
+      - javascript
+      - python
+  eslint:
+    enabled: true
+    config:
+      config: caravel/assets/.eslintrc
+  pep8:
+    enabled: true
+  fixme:
+    enabled: true
+  radon:
+    enabled: true
+ratings:
+  paths:
+  - "caravel/assets/**.js"
+  - "caravel/assets/**.jsx"
+  - "caravel/**.py"
+exclude_paths:
+- tests/
