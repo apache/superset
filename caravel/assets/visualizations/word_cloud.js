@@ -1,6 +1,6 @@
-var px = window.px || require('../javascripts/modules/caravel.js');
 var d3 = window.d3 || require('d3');
-var cloudLayout = require('d3-cloud');
+import cloudLayout from 'd3-cloud'
+import { category21 } from '../javascripts/modules/colors'
 
 function wordCloudChart(slice) {
   var chart = d3.select(slice.selector);
@@ -68,7 +68,7 @@ function wordCloudChart(slice) {
           })
           .style("font-family", "Impact")
           .style("fill", function (d) {
-            return px.color.category21(d.text);
+            return category21(d.text);
           })
           .attr("text-anchor", "middle")
           .attr("transform", function (d) {

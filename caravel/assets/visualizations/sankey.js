@@ -1,7 +1,7 @@
 // CSS
 require('./sankey.css');
 // JS
-var px = window.px || require('../javascripts/modules/caravel.js');
+import { category21 } from '../javascripts/modules/colors'
 var d3 = window.d3 || require('d3');
 d3.sankey = require('d3-sankey').sankey;
 
@@ -94,7 +94,7 @@ function sankeyVis(slice) {
         })
         .attr("width", sankey.nodeWidth())
         .style("fill", function (d) {
-          d.color = px.color.category21(d.name.replace(/ .*/, ""));
+          d.color = category21(d.name.replace(/ .*/, ""));
           return d.color;
         })
         .style("stroke", function (d) {

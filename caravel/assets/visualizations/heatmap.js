@@ -1,7 +1,7 @@
 // JS
 var $ = window.$ || require('jquery');
-var px = window.px || require('../javascripts/modules/caravel.js');
 var d3 = require('d3');
+import { colorScalerFactory  } from '../javascripts/modules/colors'
 
 d3.tip = require('d3-tip'); //using window.d3 doesn't capture events properly bc of multiple instances
 
@@ -84,7 +84,7 @@ function heatmapVis(slice) {
           Y = 1;
       var heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
 
-      var color = px.color.colorScalerFactory(fd.linear_color_scheme);
+      var color = colorScalerFactory(fd.linear_color_scheme);
 
       var scale = [
         d3.scale.linear()

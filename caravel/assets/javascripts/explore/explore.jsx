@@ -475,9 +475,6 @@ $(document).ready(function () {
 
   initExploreView();
 
-  // Dynamically register this visualization
-  px.registerViz(data.viz_name);
-
   slice = px.Slice(data);
 
   $('.slice').data('slice', slice);

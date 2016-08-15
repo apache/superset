@@ -10,6 +10,7 @@ Caravel
 [![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
+[![dependencies Status](https://david-dm.org/airbnb/caravel/status.svg?path=caravel/assets)](https://david-dm.org/airbnb/caravel?path=caravel/assets)
 
 Caravel is a data exploration platform designed to be visual, intuitive
 and interactive.
