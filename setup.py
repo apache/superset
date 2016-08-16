@@ -42,7 +42,7 @@ setup(
         'cors': ['Flask-Cors>=2.0.0'],
     },
     tests_require=[
-        'codeclimate-test-reporter'
+        'codeclimate-test-reporter',
         'coverage',
         'mock',
         'nose',
