@@ -1806,6 +1806,9 @@ class MapboxViz(BaseViz):
 
     viz_type = "mapbox"
     verbose_name = _("Mapbox")
+    description = _("Plot points on a map with Mapbox. If the map base isn't "
+        "loading, make sure you set MAPBOX_API_KEY in caravel config to an API "
+        "key obtained from mapbox.com by creating an account.")
     is_timeseries = False
     credits = (
         '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
@@ -1915,7 +1918,7 @@ class MapboxViz(BaseViz):
         df = self.get_df()
         fd = self.form_data
         label_col = fd.get('mapbox_label')
-        custom_metric = len(label_col) > 0 and len(label_col) >= 1
+        custom_metric = label_col is not None and len(label_col) >= 1
         metric_col = [None] * len(df.index)
         if custom_metric:
             if label_col[0] == fd.get('all_columns_x'):
@@ -1976,6 +1979,10 @@ class LayeredMapboxViz(BaseViz):
 
     viz_type = "mapbox_layers"
     verbose_name = _("Layered Mapbox")
+    description = _("[For Advanced Users] Layer one or more mapbox plots onto a single map. "
+        "The slices that you are layering must be created by you. To get a "
+        "slice's id, go into the edit view of a slice and view the URL which will "
+        "be of the form /edit/<slice_id>")
     is_timeseries = False
     credits = (
         '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
