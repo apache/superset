@@ -1,6 +1,6 @@
 var d3 = window.d3 || require('d3');
-var px = require('../javascripts/modules/caravel.js');
-var wrapSvgText = require('../javascripts/modules/utils.js').wrapSvgText;
+import { category21 } from '../javascripts/modules/colors'
+import { wrapSvgText } from '../javascripts/modules/utils'
 
 require('./sunburst.css');
 
@@ -132,7 +132,7 @@ function sunburstVis(slice) {
         .attr("d", arc)
         .attr("fill-rule", "evenodd")
         .style("fill", function (d) {
-          return colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1);
+          return colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1);
         })
         .style("opacity", 1)
         .on("mouseenter", mouseenter);
@@ -263,7 +263,7 @@ function sunburstVis(slice) {
       entering.append("svg:polygon")
           .attr("points", breadcrumbPoints)
           .style("fill", function (d) {
-            return colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1);
+            return colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1);
           });
 
       entering.append("svg:text")
@@ -272,7 +272,7 @@ function sunburstVis(slice) {
           .attr("dy", "0.35em")
           .style("fill", function (d) {
             // Make text white or black based on the lightness of the background
-            var col = d3.hsl(colorByCategory ? px.color.category21(d.name) : colorScale(d.m2 / d.m1));
+            var col = d3.hsl(colorByCategory ? category21(d.name) : colorScale(d.m2 / d.m1));
             return col.l < 0.5 ? 'white' : 'black';
           })
           .attr("class", "step-label")

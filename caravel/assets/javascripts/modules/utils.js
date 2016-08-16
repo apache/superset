@@ -1,5 +1,5 @@
-const $ = require('jquery');
 const d3 = require('d3');
+const $ = require('jquery');
 /*
     Utility function that takes a d3 svg:text selection and a max width, and splits the
     text's text across multiple tspan lines such that any given line does not exceed max width
@@ -7,7 +7,7 @@ const d3 = require('d3');
     If text does not span multiple lines AND adjustedY is passed,
     will set the text to the passed val
  */
-function wrapSvgText(text, width, adjustedY) {
+export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
   text.each(function () {

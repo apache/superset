@@ -180,6 +180,11 @@ BACKUP_COUNT = 30
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = ""
 
+# If defined, shows this text in an alert-warning box in the navbar
+# one example use case may be "STAGING" to make it clear that this is
+# not the production version of the site.
+WARNING_MSG = None
+
 
 try:
     from caravel_config import *  # noqa

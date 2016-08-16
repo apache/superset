@@ -1,12 +1,11 @@
 var $ = window.$ = require('jquery');
-var jQuery = window.jQuery = $;
 var d3 = require('d3');
-var px = window.px || require('../javascripts/modules/caravel.js');
-var utils = require('../javascripts/modules/utils.js');
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils'
+import { timeFormatFactory, formatDate } from '../javascripts/modules/dates'
 
 require('./table.css');
 require('datatables.net-bs');
-require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
 function tableVis(slice) {
   var fC = d3.format('0,000');
@@ -46,9 +45,9 @@ function tableVis(slice) {
       }
 
       if (json.form_data.table_timestamp_format === 'smart_date') {
-        timestampFormatter = px.formatDate;
+        timestampFormatter = formatDate;
       } else if (json.form_data.table_timestamp_format !== undefined) {
-        timestampFormatter = px.timeFormatFactory(json.form_data.table_timestamp_format);
+        timestampFormatter = timeFormatFactory(json.form_data.table_timestamp_format);
       }
 
       var div = d3.select(slice.selector);
@@ -134,7 +133,7 @@ function tableVis(slice) {
         scrollCollapse: true,
         scrollX: true,
       });
-      utils.fixDataTableBodyHeight(
+      fixDataTableBodyHeight(
           slice.container.find('.dataTables_wrapper'), height);
       // Sorting table by main column
       if (form_data.metrics.length > 0) {

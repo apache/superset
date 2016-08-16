@@ -202,3 +202,8 @@ div.widget .slice_container {
 .alert a:not(.close) {
   color: gray !important;
 }
+
+.navbar .alert {
+    padding: 5px 10px;
+    margin-top: 15px;
+}
