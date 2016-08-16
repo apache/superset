@@ -14,6 +14,7 @@ const BaseMapWrapper = ComposedComponent => {
       super(props);
 
       this.onChangeViewport = this.onChangeViewport.bind(this);
+      this.raiseError = this.raiseError.bind(this);
       this.sliceLoaded = false;
     }
 
@@ -35,7 +36,7 @@ const BaseMapWrapper = ComposedComponent => {
               viewport: {
                 longitude: longitude,
                 latitude: latitude,
-                zoom: this.props.viewportZoom || DEFAULT_ZOOM,
+                zoom: json.data.viewportZoom || DEFAULT_ZOOM,
                 startDragLngLat: [longitude, latitude]
               },
               slice: this.props.slice
@@ -62,6 +63,10 @@ const BaseMapWrapper = ComposedComponent => {
       });
     }
 
+    raiseError(e) {
+      this.props.slice.error(e);
+    }
+
     render() {
       if (!this.sliceLoaded) {
         return null;
@@ -83,6 +88,7 @@ const BaseMapWrapper = ComposedComponent => {
             {...this.state}
             isDragging={this.state.viewport.isDragging === undefined ? false :
                         this.state.viewport.isDragging}
+            raiseError={this.raiseError}
           />
         </MapGL>
       );

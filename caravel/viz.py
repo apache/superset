@@ -1974,7 +1974,7 @@ class LayeredMapboxViz(BaseViz):
 
     """Combination of multiple Mapbox visualizations"""
 
-    viz_type = "mapbox_layered"
+    viz_type = "mapbox_layers"
     verbose_name = _("Layered Mapbox")
     is_timeseries = False
     credits = (
@@ -2004,7 +2004,7 @@ class LayeredMapboxViz(BaseViz):
     def get_data(self):
         df = self.get_df()
         fd = self.form_data
-        layers = fd.get("mapbox_layers").split(" ")
+        layers = fd.get("mapbox_layers").split()
         return {
             "layers": layers,
             "mapboxApiKey": config.get('MAPBOX_API_KEY'),

@@ -15,7 +15,8 @@ const propTypes = {
   pointRadiusUnit: React.PropTypes.string.isRequired,
   globalOpacity: React.PropTypes.number.isRequired,
   renderWhileDragging: React.PropTypes.bool.isRequired,
-  geoJSON: React.PropTypes.object.isRequired
+  geoJSON: React.PropTypes.object.isRequired,
+  raiseError: React.PropTypes.func.isRequired
 };
 
 class PointMapViz extends React.Component {
@@ -29,8 +30,8 @@ class PointMapViz extends React.Component {
 
     // Validate mapbox color
     if (rgb === null) {
-      this.props.slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-      return '';
+      this.props.raiseError('Color field must be of form \'rgb(%d, %d, %d)\'');
+      return;
     }
 
     if (aggName === 'sum' || !this.props.customMetric) {

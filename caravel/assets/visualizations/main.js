@@ -16,7 +16,7 @@ const vizMap = {
   iframe: require('./iframe.js'),
   line: require('./nvd3_vis.js'),
   mapbox: require('./mapbox.jsx'),
-  mapbox_layered: 'maps/mapbox_layers.jsx',
+  mapbox_layers: require('./maps/mapbox_layers.jsx'),
   markup: require('./markup.js'),
   para: require('./parallel_coordinates.js'),
   pie: require('./nvd3_vis.js'),

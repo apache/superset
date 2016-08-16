@@ -949,11 +949,10 @@ class FormFactory(object):
                 ],
                 "description": _("The color for points and clusters in RGB")
             }),
-            'mapbox_layers': (FreeFormSelectField, {
+            'mapbox_layers': (TextField, {
                 "label": _("Layers"),
                 "default": "",
-                "choices": [],
-                "description": _("List of slices to add on the base map.")
+                "description": _("Space delimited list of slice ids of mapbox visualizations.")
             }),
         }
 

@@ -58,8 +58,7 @@ const px = function () {
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.sliceId;
-    // Get user id either on explore or dashboard page
-    const curUserId = $('#userid').val() || (dashboard ? dashboard.userid : null);
+    const sliceCreatorId = $('#slice_creator_id').val();
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -77,7 +76,7 @@ const px = function () {
       container,
       containerId,
       selector,
-      curUserId,
+      sliceCreatorId,
       querystring(params) {
         const newParams = params || {};
         const parser = document.createElement('a');

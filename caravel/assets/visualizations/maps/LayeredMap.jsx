@@ -9,21 +9,27 @@ import supercluster from 'supercluster';
 const DEFAULT_MAX_ZOOM = 16;
 const propTypes = {
   layers: React.PropTypes.arrayOf(React.PropTypes.string),
+  slice: React.PropTypes.object.isRequired,
+  raiseError: React.PropTypes.func.isRequired
 };
 
 class LayeredMapViz extends React.Component {
   constructor(props) {
     super(props);
 
+    this.raiseChildError = this.raiseChildError.bind(this);
     this.slicesLoaded = false;
   }
 
   componentDidMount() {
+    let uri = '/sliceaddview/api/read';
+    if (this.props.slice.sliceCreatorId) {
+      uri += '?_flt_0_created_by=' + sliceCreatorId
+    }
     this.sliceIdsRequest = $.ajax({
-      url: '/sliceaddview/api/read?_flt_0_created_by=' + this.props.slice.curUserId,
+      url: uri,
       type: 'GET',
       success: function (response) {
-        console.log(this.props.layers)
         let sliceMap = {}
         // Prepare slice data for table
         response.result.forEach(function (slice) {
@@ -32,67 +38,75 @@ class LayeredMapViz extends React.Component {
 
         let deferreds = [];
         this.props.layers.forEach((sliceId) => {
-          deferreds.push(this.getSliceJson(sliceMap[sliceId]));
+          const jsonEndpoint = sliceMap[sliceId];
+          if (jsonEndpoint === undefined) {
+            this.props.raiseError('Slice id ' + sliceId + ' is invalid. Ensure the slice \
+              exists and that the creator of Mapbox Layers is the same as slice ' + sliceId);
+          }
+          deferreds.push(this.getSliceJson(jsonEndpoint));
         }, this);
-        let that = this;
 
         this.slicesRequest = $.when.apply(null, deferreds)
           .done(function() {
-            // (data, textStatus, jqXHR) repeating
-            const args = Array.prototype.slice.call(arguments);
             let sliceArgs = [];
-            for (let i = 0 ; i < args.length ; i++) {
-              sliceArgs.push(args[i][0].data);
+            const args = Array.prototype.slice.call(arguments);
+
+            if (deferreds.length == 1) {
+              sliceArgs.push(args[0])
+            } else if (deferreds.length > 1) {
+              for (let i = 0 ; i < args.length ; i++) {
+                sliceArgs.push(args[i][0]);
+              }
             }
 
-            console.log(args)
-            console.log(sliceArgs)
-
-            that.slicesLoaded = true;
-            that.setState({
+            this.slicesLoaded = true;
+            this.setState({
               sliceArgs: sliceArgs
             });
-          });
+          }.bind(this));
       }.bind(this),
       error: function (error) {
-        console.log("get slice id errored")
+        this.props.raiseError('Getting a slice errored')
       }.bind(this),
     });
   }
 
   getSliceJson(jsonEndpoint) {
     return $.ajax({
-      type: "GET",
+      type: 'GET',
       url: jsonEndpoint,
       success: function (json) {
         return json.data;
       },
       error: function (error) {
-        console.log(error.responseText);
+        this.props.raiseError(error.responseText);
         return null;
       }
     });
   }
 
+  raiseChildError(e) {
+    this.props.raiseError('One or more slice layers errored with \"' + e + '\"');
+  }
+
   render() {
     if (!this.slicesLoaded || this.state.sliceArgs.length == 0) {
-      return null;
+      return <div>Loading layers...</div>;
     }
-
-    /*
-    todo:
-      allow list of slice ids, use: http://localhost:8088/sliceaddview/api/read to get json endpoint
-      use slice_id as key for layers
-    */
 
     return (<div>
       {this.state.sliceArgs.map((args, i) => {
-        return (
-          <PointMapRaw
-            key={i}
-            {...$.extend(args, this.props)}
-          />
-        );
+        if (args.form_data.viz_type == 'mapbox') {
+          return (
+            <PointMapRaw
+              key={i}
+              {...$.extend(args.data, this.props)}
+              raiseError={this.raiseChildError}
+            />
+          );
+        } else {
+          return null;
+        }
       })}
     </div>);
   }

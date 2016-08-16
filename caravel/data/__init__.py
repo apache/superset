@@ -995,6 +995,7 @@ def load_long_lat_data():
     obj.fetch_metadata()
     tbl = obj
 
+    # Mapbox viz 1
     slice_data = {
         "datasource_id": "7",
         "datasource_name": "long_lat",
@@ -1002,24 +1003,76 @@ def load_long_lat_data():
         "granularity": "day",
         "since": "2014-01-01",
         "until": "2016-12-12",
-        "where": "",
+        "where": "occupancy <= 5",
         "viz_type": "mapbox",
         "all_columns_x": "LON",
         "all_columns_y": "LAT",
         "mapbox_style": "mapbox://styles/mapbox/light-v9",
         "all_columns": ["occupancy"],
-        "row_limit": 500000,
+        "row_limit": 50000,
     }
 
-    print("Creating a slice")
-    slc = Slice(
-        slice_name="Mapbox Long/Lat",
+    print("Creating slice 1")
+    slc_1 = Slice(
+        slice_name="San Francisco Small Households",
         viz_type='mapbox',
         datasource_type='table',
         table=tbl,
         params=get_slice_json(slice_data),
     )
-    merge_slice(slc)
+    merge_slice(slc_1)
+
+    # Mapbox viz 2
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "long_lat",
+        "datasource_type": "table",
+        "granularity": "day",
+        "since": "2014-01-01",
+        "until": "2016-12-12",
+        "where": "occupancy >= 6",
+        "viz_type": "mapbox",
+        "all_columns_x": "LON",
+        "all_columns_y": "LAT",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "all_columns": ["occupancy"],
+        "mapbox_color": "rgb(220, 20, 60)",
+        "row_limit": 500,
+    }
+
+    print("Creating slice 2")
+    slc_2 = Slice(
+        slice_name="San Francisco Large Households",
+        viz_type='mapbox',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc_2)
+
+    # Mapbox layers
+    slice_data = {
+        "datasource_id": "7",
+        "datasource_name": "long_lat",
+        "datasource_type": "table",
+        "granularity": "day",
+        "since": "2014-01-01",
+        "until": "2016-12-12",
+        "mapbox_layers": "{} {}".format(slc_1.id, slc_2.id),
+        "viz_type": "mapbox_layers",
+        "mapbox_style": "mapbox://styles/mapbox/light-v9",
+        "row_limit": 0,
+    }
+
+    print("Creating slice 3")
+    slc_3 = Slice(
+        slice_name="San Francisco Households (Layers)",
+        viz_type='mapbox',
+        datasource_type='table',
+        table=tbl,
+        params=get_slice_json(slice_data),
+    )
+    merge_slice(slc_3)
 
 
 def load_multiformat_time_series_data():
