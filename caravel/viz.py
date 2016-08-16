@@ -1915,7 +1915,7 @@ class MapboxViz(BaseViz):
         df = self.get_df()
         fd = self.form_data
         label_col = fd.get('mapbox_label')
-        custom_metric = label_col and len(label_col) >= 1
+        custom_metric = len(label_col) > 0 and len(label_col) >= 1
         metric_col = [None] * len(df.index)
         if custom_metric:
             if label_col[0] == fd.get('all_columns_x'):
@@ -1958,7 +1958,7 @@ class MapboxViz(BaseViz):
             "mapboxApiKey": config.get('MAPBOX_API_KEY'),
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
-            "clusteringRadius": fd.get("clustering_radius"),
+            "clusteringRadius": int(fd.get("clustering_radius")),
             "pointRadiusUnit": fd.get("point_radius_unit"),
             "globalOpacity": fd.get("global_opacity"),
             "viewportLongitude": fd.get("viewport_longitude"),

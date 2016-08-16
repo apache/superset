@@ -16,7 +16,12 @@ const propTypes = {
   globalOpacity: React.PropTypes.number.isRequired,
   renderWhileDragging: React.PropTypes.bool.isRequired,
   geoJSON: React.PropTypes.object.isRequired,
-  raiseError: React.PropTypes.func.isRequired
+  raiseError: React.PropTypes.func.isRequired,
+  aggregatorName: React.PropTypes.string.isRequired,
+  color: React.PropTypes.string.isRequired,
+  customMetric: React.PropTypes.bool,
+  clusteringRadius: React.PropTypes.number,
+  viewport: React.PropTypes.object.isRequired,
 };
 
 class PointMapViz extends React.Component {
@@ -26,7 +31,6 @@ class PointMapViz extends React.Component {
     const aggName = this.props.aggregatorName;
     const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(this.props.color);
     let reducer;
-    let clusterer;
 
     // Validate mapbox color
     if (rgb === null) {
@@ -50,27 +54,26 @@ class PointMapViz extends React.Component {
           }
           a.push(b);
           return a;
-        } else {
-          if (b instanceof Array) {
-            b.push(a);
-            return b;
-          }
-          return [a, b];
         }
+        if (b instanceof Array) {
+          b.push(a);
+          return b;
+        }
+        return [a, b];
       };
     }
 
-    clusterer = supercluster({
+    const clusterer = supercluster({
       radius: this.props.clusteringRadius,
       maxZoom: DEFAULT_MAX_ZOOM,
       metricKey: 'metric',
-      metricReducer: reducer
+      metricReducer: reducer,
     });
     clusterer.load(this.props.geoJSON.features);
 
     this.state = {
-      clusterer: clusterer,
-      rgb: rgb
+      clusterer,
+      rgb,
     };
   }
 
@@ -80,7 +83,7 @@ class PointMapViz extends React.Component {
       height: this.props.height,
       longitude: this.props.viewport.longitude,
       latitude: this.props.viewport.latitude,
-      zoom: this.props.viewport.zoom
+      zoom: this.props.viewport.zoom,
     });
     const topLeft = mercator.unproject([0, 0]);
     const bottomRight = mercator.unproject([this.props.width, this.props.height]);

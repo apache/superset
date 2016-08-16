@@ -1,3 +1,4 @@
+/* eslint global-require: 0 */
 const d3 = window.d3 || require('d3');
 require('./mapbox.css');
 
@@ -5,10 +6,10 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import LayeredMap from './LayeredMap.jsx';
 
-function mapbox_layers(slice) {
+function mapboxLayers(slice) {
   const div = d3.select(slice.selector);
 
-  let render = function () {
+  const render = function () {
     div.selectAll('*').remove();
 
     ReactDOM.render(
@@ -20,9 +21,9 @@ function mapbox_layers(slice) {
   };
 
   return {
-    render: render,
-    resize: function () {}
+    render,
+    resize: () => {},
   };
 }
 
-module.exports = mapbox_layers;
+module.exports = mapboxLayers;

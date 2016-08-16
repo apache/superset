@@ -1,3 +1,4 @@
+/* eslint global-require: 0 */
 const d3 = window.d3 || require('d3');
 require('./mapbox.css');
 
@@ -8,7 +9,7 @@ import PointMap from './PointMap.jsx';
 function mapbox(slice) {
   const div = d3.select(slice.selector);
 
-  let render = function () {
+  const render = function () {
     div.selectAll('*').remove();
 
     ReactDOM.render(
@@ -20,8 +21,8 @@ function mapbox(slice) {
   };
 
   return {
-    render: render,
-    resize: function () {}
+    render,
+    resize: () => {},
   };
 }
 

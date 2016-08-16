@@ -1,3 +1,5 @@
+/* global d3, $ */
+
 import React from 'react';
 import MapGL from 'react-map-gl';
 
@@ -6,7 +8,7 @@ const BaseMapWrapper = ComposedComponent => {
   const DEFAULT_LATITUDE = 37.772123;
   const DEFAULT_ZOOM = 11;
   const propTypes = {
-    slice: React.PropTypes.object.isRequired
+    slice: React.PropTypes.object.isRequired,
   };
 
   class BaseMap extends React.Component {
@@ -21,9 +23,9 @@ const BaseMapWrapper = ComposedComponent => {
     componentDidMount() {
       this.sliceRequest = $.ajax({
         context: this,
-        type: "GET",
+        type: 'GET',
         url: this.props.slice.jsonEndpoint(),
-        success: function (json) {
+        success: (json) => {
           this.sliceLoaded = true;
 
           const longitude = json.data.viewportLongitude || DEFAULT_LONGITUDE;
@@ -34,22 +36,22 @@ const BaseMapWrapper = ComposedComponent => {
               width: this.props.slice.width(),
               height: this.props.slice.height(),
               viewport: {
-                longitude: longitude,
-                latitude: latitude,
+                longitude,
+                latitude,
                 zoom: json.data.viewportZoom || DEFAULT_ZOOM,
-                startDragLngLat: [longitude, latitude]
+                startDragLngLat: [longitude, latitude],
               },
-              slice: this.props.slice
+              slice: this.props.slice,
             },
             json.data
           ));
 
           this.props.slice.done(json);
         },
-        error: function (error) {
+        error: (error) => {
           this.props.slice.error(error.responseText);
           return '';
-        }
+        },
       });
     }
 
@@ -59,7 +61,7 @@ const BaseMapWrapper = ComposedComponent => {
 
     onChangeViewport(viewport) {
       this.setState({
-        viewport: viewport
+        viewport,
       });
     }
 
@@ -83,7 +85,8 @@ const BaseMapWrapper = ComposedComponent => {
           width={this.state.width}
           height={this.state.height}
           mapboxApiAccessToken={this.state.mapboxApiKey}
-          onChangeViewport={this.onChangeViewport}>
+          onChangeViewport={this.onChangeViewport}
+        >
           <ComposedComponent
             {...this.state}
             isDragging={this.state.viewport.isDragging === undefined ? false :

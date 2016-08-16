@@ -1,3 +1,5 @@
+/* global d3 */
+
 import React from 'react';
 import ViewportMercator from 'viewport-mercator-project';
 import COMPOSITE_TYPES from 'canvas-composite-types';
@@ -6,8 +8,8 @@ import {
   kmToPixels,
   rgbLuminance,
   isNumeric,
-  MILES_PER_KM
-} from '../../utils/utils';
+  MILES_PER_KM,
+} from '../../utils/common';
 
 const propTypes = {
   width: React.PropTypes.number.isRequired,
@@ -24,7 +26,7 @@ const propTypes = {
   pointRadiusUnit: React.PropTypes.string,
   rgb: React.PropTypes.array.isRequired,
   aggregatorName: React.PropTypes.string,
-  compositeOperation: React.PropTypes.oneOf(COMPOSITE_TYPES).isRequired
+  compositeOperation: React.PropTypes.oneOf(COMPOSITE_TYPES).isRequired,
 };
 
 // Modified: https://github.com/uber/react-map-gl/blob/master/src/overlays/scatterplot.react.js
@@ -37,6 +39,7 @@ class ScatterPlotClusterOverlay extends React.Component {
     this.drawPoints();
   }
 
+  /* eslint-disable no-param-reassign */
   drawText(ctx, pixel, options = {}) {
     const IS_DARK_THRESHOLD = 110;
     const { fontHeight = 0, label = '', radius = 0, rgb = [0, 0, 0], shadow = false } = options;
@@ -64,6 +67,7 @@ class ScatterPlotClusterOverlay extends React.Component {
     ctx.shadowBlur = 0;
     ctx.shadowColor = '';
   }
+  /* eslint-enable no-param-reassign */
 
   drawPoints() {
     const props = this.props;
@@ -74,7 +78,7 @@ class ScatterPlotClusterOverlay extends React.Component {
     const mercator = ViewportMercator(props);
     const rgb = props.rgb;
     let maxLabel = -1;
-    let clusterLabelMap = [];
+    const clusterLabelMap = [];
 
     props.locations.forEach(function (location, i) {
       if (location.get('properties').get('cluster')) {
@@ -114,10 +118,9 @@ class ScatterPlotClusterOverlay extends React.Component {
         const pixelRounded = [d3.round(pixel[0], 1), d3.round(pixel[1], 1)];
 
         if (pixelRounded[0] + radius >= 0
-              && pixelRounded[0] - radius < props.width
-              && pixelRounded[1] + radius >= 0
-              && pixelRounded[1] - radius < props.height) {
-
+          && pixelRounded[0] - radius < props.width
+          && pixelRounded[1] + radius >= 0
+          && pixelRounded[1] - radius < props.height) {
           ctx.beginPath();
           if (location.get('properties').get('cluster')) {
             let clusterLabel = clusterLabelMap[i];
@@ -135,15 +138,20 @@ class ScatterPlotClusterOverlay extends React.Component {
             ctx.fill();
 
             if (isNumeric(clusterLabel)) {
-              clusterLabel = clusterLabel >= 10000 ? Math.round(clusterLabel / 1000) + 'k' :
-                             clusterLabel >= 1000 ? (Math.round(clusterLabel / 100) / 10) + 'k' :
-                             clusterLabel;
+              if (clusterLabel >= 1000000) {
+                clusterLabel = Math.round(clusterLabel / 1000000) + 'm';
+              } else if (clusterLabel >= 10000) {
+                clusterLabel = Math.round(clusterLabel / 1000) + 'k';
+              } else if (clusterLabel >= 1000) {
+                clusterLabel = (Math.round(clusterLabel / 100) / 10) + 'k';
+              }
+
               this.drawText(ctx, pixelRounded, {
-                fontHeight: fontHeight,
+                fontHeight,
                 label: clusterLabel,
                 radius: scaledRadius,
-                rgb: rgb,
-                shadow: true
+                rgb,
+                shadow: true,
               });
             }
           } else {
@@ -153,7 +161,7 @@ class ScatterPlotClusterOverlay extends React.Component {
             let pointRadius = radiusProperty === null ? defaultRadius : radiusProperty;
             let pointLabel;
 
-             if (radiusProperty !== null) {
+            if (radiusProperty !== null) {
               const pointLatitude = props.lngLatAccessor(location)[1];
               if (props.pointRadiusUnit === 'Kilometers') {
                 pointLabel = d3.round(pointRadius, 2) + 'km';
@@ -182,8 +190,8 @@ class ScatterPlotClusterOverlay extends React.Component {
                 fontHeight: d3.round(pointRadius, 1),
                 label: pointLabel,
                 radius: pointRadius,
-                rgb: rgb,
-                shadow: false
+                rgb,
+                shadow: false,
               });
             }
           }
@@ -203,7 +211,7 @@ class ScatterPlotClusterOverlay extends React.Component {
       pointerEvents: 'none',
       opacity: this.props.globalOpacity,
       left: 0,
-      top: 0
+      top: 0,
     };
 
     return (
