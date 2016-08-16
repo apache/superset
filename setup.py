@@ -30,6 +30,7 @@ setup(
         'pandas==0.18.1',
         'parsedatetime==2.0.0',
         'pydruid==0.3.0',
+        'PyHive>=0.2.1',
         'python-dateutil==2.5.3',
         'requests==2.10.0',
         'simplejson==3.8.2',
@@ -37,6 +38,8 @@ setup(
         'sqlalchemy==1.0.13',
         'sqlalchemy-utils==0.32.7',
         'sqlparse==0.1.19',
+        'thrift>=0.9.3',
+        'thrift-sasl>=0.2.1',
         'werkzeug==0.11.10',
     ],
     extras_require={

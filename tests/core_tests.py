@@ -321,7 +321,7 @@ class CoreTests(CaravelTestCase):
         )
         resp = self.client.post(
             '/caravel/sql_json/',
-            data=dict(database_id=dbid, sql=sql),
+            data=dict(database_id=dbid, sql=sql, select_as_create_as=False),
         )
         self.logout()
         return json.loads(resp.data.decode('utf-8'))
@@ -340,9 +340,9 @@ class CoreTests(CaravelTestCase):
         db.session.commit()
         main_db_permission_view = (
             db.session.query(ab_models.PermissionView)
-                .join(ab_models.ViewMenu)
-                .filter(ab_models.ViewMenu.name == '[main].(id:1)')
-                .first()
+            .join(ab_models.ViewMenu)
+            .filter(ab_models.ViewMenu.name == '[main].(id:1)')
+            .first()
         )
         astronaut = sm.add_role("Astronaut")
         sm.add_permission_role(astronaut, main_db_permission_view)
@@ -361,6 +361,8 @@ class CoreTests(CaravelTestCase):
 
     def test_sql_json(self):
         data = self.run_sql("SELECT * FROM ab_user", 'admin')
+        print("self.run_sql")
+        print(str(data))
         assert len(data['data']) > 0
 
         data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
