@@ -46,25 +46,12 @@ class SqlEditor extends React.Component {
       this.startQuery();
     }
   }
-  getTableOptions(input, callback) {
-    const url = '/tableasync/api/read?_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc';
-    $.get(url, function (data) {
-      const options = [];
-      for (let i = 0; i < data.pks.length; i++) {
-        options.push({ value: data.pks[i], label: data.result[i].table_name });
-      }
-      callback(null, {
-        options,
-        cache: false,
-      });
-    });
-  }
   startQuery() {
     const that = this;
     const query = {
       id: shortid.generate(),
       sqlEditorId: this.props.queryEditor.id,
-      sql: this.state.sql,
+      sql: this.props.queryEditor.sql,
       state: 'running',
       tab: this.props.queryEditor.title,
       dbId: this.props.queryEditor.dbId,
@@ -72,7 +59,7 @@ class SqlEditor extends React.Component {
     };
     const url = '/caravel/sql_json/';
     const data = {
-      sql: this.state.sql,
+      sql: this.props.queryEditor.sql,
       database_id: this.props.queryEditor.dbId,
       schema: this.props.queryEditor.schema,
       json: true,

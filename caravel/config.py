@@ -201,6 +201,9 @@ CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
 
+# The db id here results in selecting this one as a default in SQL Lab
+DEFAULT_DB_ID = None
+
 try:
     from caravel_config import *  # noqa
 except ImportError:

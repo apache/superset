@@ -29,19 +29,6 @@ class SqlEditorTopToolbar extends React.Component {
     this.fetchSchemas();
     this.fetchTables();
   }
-  getTableOptions(input, callback) {
-    const url = '/tableasync/api/read?_oc_DatabaseAsync=database_name&_od_DatabaseAsync=asc';
-    $.get(url, function (data) {
-      const options = [];
-      for (let i = 0; i < data.pks.length; i++) {
-        options.push({ value: data.pks[i], label: data.result[i].table_name });
-      }
-      callback(null, {
-        options,
-        cache: false,
-      });
-    });
-  }
   getSql(table) {
     let cols = '';
     table.columns.forEach(function (col, i) {
@@ -70,16 +57,15 @@ class SqlEditorTopToolbar extends React.Component {
     const actualDbId = dbId || this.props.queryEditor.dbId;
     if (actualDbId) {
       const actualSchema = schema || this.props.queryEditor.schema;
-      const that = this;
       this.setState({ tableLoading: true });
       this.setState({ tableOptions: [] });
       const url = `/caravel/tables/${actualDbId}/${actualSchema}`;
-      $.get(url, function (data) {
+      $.get(url, (data) => {
         let tableOptions = data.tables.map((s) => ({ value: s, label: s }));
         const views = data.views.map((s) => ({ value: s, label: '[view] ' + s }));
         tableOptions = [...tableOptions, ...views];
-        that.setState({ tableOptions });
-        that.setState({ tableLoading: false });
+        this.setState({ tableOptions });
+        this.setState({ tableLoading: false });
       });
     }
   }
@@ -89,16 +75,15 @@ class SqlEditorTopToolbar extends React.Component {
     this.fetchTables(this.props.queryEditor.dbId, schema);
   }
   fetchSchemas(dbId) {
-    const that = this;
     const actualDbId = dbId || this.props.queryEditor.dbId;
     if (actualDbId) {
       this.setState({ schemaLoading: true });
       const url = `/databasetablesasync/api/read?_flt_0_id=${actualDbId}`;
-      $.get(url, function (data) {
+      $.get(url, (data) => {
         const schemas = data.result[0].all_schema_names;
         const schemaOptions = schemas.map((s) => ({ value: s, label: s }));
-        that.setState({ schemaOptions });
-        that.setState({ schemaLoading: false });
+        this.setState({ schemaOptions });
+        this.setState({ schemaLoading: false });
       });
     }
   }
@@ -115,12 +100,11 @@ class SqlEditorTopToolbar extends React.Component {
   }
   fetchDatabaseOptions() {
     this.setState({ databaseLoading: true });
-    const that = this;
     const url = '/databaseasync/api/read';
-    $.get(url, function (data) {
+    $.get(url, (data) => {
       const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
-      that.setState({ databaseOptions: options });
-      that.setState({ databaseLoading: false });
+      this.setState({ databaseOptions: options });
+      this.setState({ databaseLoading: false });
     });
   }
   closePopover(ref) {
@@ -128,19 +112,24 @@ class SqlEditorTopToolbar extends React.Component {
   }
   changeTable(tableOpt) {
     const tableName = tableOpt.value;
-    const that = this;
     const qe = this.props.queryEditor;
     const url = `/caravel/table/${qe.dbId}/${tableName}/${qe.schema}/`;
-    $.get(url, function (data) {
-      that.props.actions.addTable({
+    $.get(url, (data) => {
+      this.props.actions.addTable({
         id: shortid.generate(),
-        dbId: that.props.queryEditor.dbId,
-        queryEditorId: that.props.queryEditor.id,
+        dbId: this.props.queryEditor.dbId,
+        queryEditorId: this.props.queryEditor.id,
         name: data.name,
         schema: qe.schema,
         columns: data.columns,
         expanded: true,
         showPopup: false,
+      });
+    })
+    .fail((err) => {
+      this.props.actions.addAlert({
+        msg: 'Error occurred while fetching metadata',
+        bsStyle: 'danger',
       });
     });
   }

@@ -15,13 +15,24 @@ class QueryEditors extends React.Component {
       this.props.actions.queryEditorSetTitle(qe, newTitle);
     }
   }
+  activeQueryEditor() {
+    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+    for (let i = 0; i < this.props.queryEditors.length; i++) {
+      const qe = this.props.queryEditors[i]
+      if (qe.id === qeid) {
+        return qe;
+      }
+    }
+  }
   newQueryEditor() {
     queryCount++;
-    const dbId = (this.props.workspaceDatabase) ? this.props.workspaceDatabase.id : null;
+    const activeQueryEditor = this.activeQueryEditor();
+    console.log(activeQueryEditor);
     const qe = {
       id: shortid.generate(),
       title: `Query ${queryCount}`,
-      dbId,
+      dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
+      schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
       autorun: false,
       sql: 'SELECT ...',
     };
@@ -49,7 +60,7 @@ class QueryEditors extends React.Component {
           <DropdownButton
             bsSize="small"
             id={'ddbtn-tab-' + i}
-            className="no-shadow"
+            className="no-shadow tab-caret"
             id="bg-vertical-dropdown-1"
           >
             <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
@@ -92,7 +103,6 @@ QueryEditors.propTypes = {
   queries: React.PropTypes.array,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
-  workspaceDatabase: React.PropTypes.object,
 };
 QueryEditors.defaultProps = {
   tabHistory: [],
@@ -103,7 +113,6 @@ function mapStateToProps(state) {
   return {
     queryEditors: state.queryEditors,
     queries: state.queries,
-    workspaceDatabase: state.workspaceDatabase,
     tabHistory: state.tabHistory,
   };
 }
