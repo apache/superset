@@ -324,6 +324,8 @@ class CoreTests(CaravelTestCase):
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False),
         )
         self.logout()
+        print("CORE_SQL_RESULTS")
+        print(resp.data.decode('utf-8'))
         return json.loads(resp.data.decode('utf-8'))
 
     def test_sql_json_no_access(self):

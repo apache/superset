@@ -1761,6 +1761,8 @@ class Query(Model):
 
     # 1..100
     progress = Column(Integer)
+    # # of rows in the result set or rows modified.
+    rows = Column(Integer)
     error_message = Column(Text)
     start_time = Column(DateTime)
     end_time = Column(DateTime)

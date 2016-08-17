@@ -32,6 +32,7 @@ def upgrade():
         sa.Column('select_as_cta', sa.Boolean(), nullable=True),
         sa.Column('select_as_cta_used', sa.Boolean(), nullable=True),
         sa.Column('progress', sa.Integer(), nullable=True),
+        sa.Column('rows', sa.Integer(), nullable=True),
         sa.Column('error_message', sa.Text(), nullable=True),
         sa.Column('start_time', sa.DateTime(), nullable=True),
         sa.Column('end_time', sa.DateTime(), nullable=True),

@@ -33,7 +33,7 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, ascii_art, tasks
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab
 )
 
 config = app.config
@@ -1420,7 +1420,7 @@ class Caravel(BaseCaravelView):
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            tasks.get_sql_results.delay(query.id)
+            sql_lab.get_sql_results.delay(query.id)
             return Response(json.dumps(
                 {
                     'query_id': query.id,
@@ -1431,7 +1431,7 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Sync request.
-        data = tasks.get_sql_results(query.id)
+        data = sql_lab.get_sql_results(query.id)
         if data['status'] == models.QueryStatus.FAILED:
                 return Response(
                     json.dumps(
@@ -1478,9 +1478,9 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/query_results/", methods=['GET'])
+    @expose("/cta_query_results/", methods=['GET'])
     @log_this
-    def query_results(self):
+    def cta_query_results(self):
         """Runs arbitrary sql and returns and json"""
         query_id = request.form.get('query_id')
         s = db.session()
@@ -1494,28 +1494,34 @@ class Caravel(BaseCaravelView):
                 "SQL Lab requires the `all_datasource_access` or "
                 "specific DB permission"))
 
-        if query:
-            # Sync request.
-            # TODO(): add endpoint to query data with no magic.
-            data = tasks.get_sql_results_of_executed_query(query.id)
-            if data['error']:
-                return Response(
-                    json.dumps(
-                        data, default=utils.json_int_dttm_ser, allow_nan=False),
-                    status=500,
-                    mimetype="application/json")
+        if not query:
+            return Response(
+                json.dumps({
+                    'error': "Query with id {} wasn't found".format(query_id),
+                }),
+                status=404,
+                mimetype="application/json")
+
+        if query.status != models.QueryStatus.FINISHED:
+            return Response(
+                json.dumps({
+                    'error': "Query with id {} not finished yet".format(
+                        query_id),
+                }),
+                status=400,
+                mimetype="application/json")
+        try:
+            data = mydb.get_df(query.select_sql, query.schema)
             return Response(
                 json.dumps(
                     data, default=utils.json_int_dttm_ser, allow_nan=False),
                 status=200,
                 mimetype="application/json")
-
-        return Response(
-            json.dumps({
-                'error': "Query with id {} wasn't found".format(query_id),
-            }),
-            status=404,
-            mimetype="application/json")
+        except Exception as e:
+            return Response(
+                json.dumps('error', utils.error_msg_from_exception(e)),
+                status=500,
+                mimetype="application/json")
 
     @has_access
     @expose("/refresh_datasources/")
