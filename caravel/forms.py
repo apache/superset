@@ -952,7 +952,8 @@ class FormFactory(object):
             'mapbox_layers': (TextField, {
                 "label": _("Layers"),
                 "default": "",
-                "description": _("Space delimited list of slice ids of mapbox visualizations.")
+                "description": _(
+                    "Space delimited list of slice ids of mapbox visualizations.")
             }),
         }
 

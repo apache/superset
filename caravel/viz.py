@@ -1806,7 +1806,8 @@ class MapboxViz(BaseViz):
 
     viz_type = "mapbox"
     verbose_name = _("Mapbox")
-    description = _("Plot points on a map with Mapbox. If the map base isn't "
+    description = _(
+        "Plot points on a map with Mapbox. If the map base isn't "
         "loading, make sure you set MAPBOX_API_KEY in caravel config to an API "
         "key obtained from mapbox.com by creating an account.")
     is_timeseries = False
@@ -1979,7 +1980,8 @@ class LayeredMapboxViz(BaseViz):
 
     viz_type = "mapbox_layers"
     verbose_name = _("Layered Mapbox")
-    description = _("[For Advanced Users] Layer one or more mapbox plots onto a single map. "
+    description = _(
+        "[For Advanced Users] Layer one or more mapbox plots onto a single map. "
         "The slices that you are layering must be created by you. To get a "
         "slice's id, go into the edit view of a slice and view the URL which will "
         "be of the form /edit/<slice_id>")
@@ -2009,7 +2011,6 @@ class LayeredMapboxViz(BaseViz):
         return super(LayeredMapboxViz, self).query_obj()
 
     def get_data(self):
-        df = self.get_df()
         fd = self.form_data
         layers = fd.get("mapbox_layers").split()
         return {
