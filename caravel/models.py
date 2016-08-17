@@ -1433,9 +1433,14 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 if len(splitted) > 1:
                     for s in eq.split(','):
                         s = s.strip()
+                        if s == 'NULL':
+                            s = None
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
                 else:
+                    #allows setting filter to query that value of dimension is NULL 
+                    if eq == 'NULL':
+                        eq = None
                     cond = Dimension(col) == eq
                 if op == 'not in':
                     cond = ~cond
