@@ -15,7 +15,9 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
+DATA_DIR = os.path.join(os.path.expanduser('~'), '.caravel')
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
 # ---------------------------------------------------------
 # Caravel specific config
@@ -34,10 +36,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
-# this is for platform specific: "nt" is for windows, "posix" is *nix (including Mac)
-if os.name == "nt":
-    SQLALCHEMY_DATABASE_URI = 'sqlite:///c:\\tmp\\caravel.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'caravel.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -172,7 +171,7 @@ LOG_LEVEL = 'DEBUG'
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-FILENAME = '/tmp/caravel.log'
+FILENAME = os.path.join(DATA_DIR, 'caravel.log')
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
