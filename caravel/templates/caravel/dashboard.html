@@ -74,8 +74,11 @@
   <div class="title">
     <div class="row">
       <div class="col-md-8">
-        <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
-        <h2>{{ dashboard.dashboard_title }}</h2>
+        <h2>
+          {{ dashboard.dashboard_title }}
+          <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
+        </h2>
+
       </div>
       <div class="col-md-4">
         <div class="btn-group pull-right" role="group" >
