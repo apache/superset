@@ -7,7 +7,8 @@
     "test": "spec"
   },
   "scripts": {
-    "test": "npm run lint && mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
+    "test": "mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.* > lcov.info",
+    "test": "JSCOV=1 mocha -R mocha-lcov-reporter --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.* > lcov.info",
     "dev": "NODE_ENV=dev webpack -d --watch --colors",
     "prod": "NODE_ENV=production webpack -p --colors",
     "lint": "npm run --silent lint:js",
@@ -54,7 +55,9 @@
     "immutability-helper": "^2.0.0",
     "jquery": "^2.2.1",
     "jquery-ui": "1.10.5",
+    "jscover": "^1.0.0",
     "mapbox-gl": "^0.20.0",
+    "mocha-lcov-reporter": "^1.2.0",
     "mustache": "^2.2.1",
     "nvd3": "1.8.4",
     "react": "^15.2.1",
