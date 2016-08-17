@@ -224,8 +224,9 @@ class BaseViz(object):
             form_data.get("row_limit", config.get("ROW_LIMIT")))
         since = form_data.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
-        if from_dttm > datetime.now():
-            from_dttm = datetime.now() - (from_dttm-datetime.now())
+        now = datetime.now()
+        if from_dttm > now:
+            from_dttm = now - (from_dttm - now)
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
