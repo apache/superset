@@ -18,12 +18,9 @@ require('bootstrap');
 
 require('./../caravel-select2.js');
 
-require('../../node_modules/bootstrap-toggle/js/bootstrap-toggle.min.js');
-
 // css
 require('../../vendor/pygments.css');
 require('../../stylesheets/explore.css');
-require('../../node_modules/bootstrap-toggle/css/bootstrap-toggle.min.css');
 
 let slice;
 
