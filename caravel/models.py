@@ -457,6 +457,29 @@ class Database(Model, AuditMixinNullable):
                 Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
                 Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
             ),
+            'mssql': (
+                Grain("Time Column", _('Time Column'), "{col}"),
+                Grain("second", _('second'), "DATEADD(second, "
+                      "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
+                Grain("minute", _('minute'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}), 0)"),
+                Grain("5 minute", _('5 minute'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}) / 5 * 5, 0)"),
+                Grain("half hour", _('half hour'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}) / 30 * 30, 0)"),
+                Grain("hour", _('hour'), "DATEADD(hour, "
+                      "DATEDIFF(hour, 0, {col}), 0)"),
+                Grain("day", _('day'), "DATEADD(day, "
+                      "DATEDIFF(day, 0, {col}), 0)"),
+                Grain("week", _('week'), "DATEADD(week, "
+                      "DATEDIFF(week, 0, {col}), 0)"),
+                Grain("month", _('month'), "DATEADD(month, "
+                      "DATEDIFF(month, 0, {col}), 0)"),
+                Grain("quarter", _('quarter'), "DATEADD(quarter, "
+                      "DATEDIFF(quarter, 0, {col}), 0)"),
+                Grain("year", _('year'), "DATEADD(year, "
+                      "DATEDIFF(year, 0, {col}), 0)"),
+            ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
         db_time_grains['vertica'] = db_time_grains['postgresql']
