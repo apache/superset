@@ -5,7 +5,6 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import QueryLink from './QueryLink';
 
-// CSS
 import 'react-select/dist/react-select.css';
 
 const LeftPane = (props) => {
@@ -42,6 +41,14 @@ const LeftPane = (props) => {
           <hr />
           <Button onClick={props.actions.resetState.bind(this)}>
             Reset State
+          </Button>
+          <Button
+            onClick={props.actions.addAlert.bind(this, {
+              msg: 'This info alert is a demo alert',
+              bsStyle: 'info',
+            })}
+          >
+            Add Alert
           </Button>
         </div>
       </div>

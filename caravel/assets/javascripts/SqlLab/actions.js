@@ -20,6 +20,8 @@ export const SET_WORKSPACE_DB = 'SET_WORKSPACE_DB';
 export const ADD_WORKSPACE_QUERY = 'ADD_WORKSPACE_QUERY';
 export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
+export const ADD_ALERT = 'ADD_ALERT';
+export const REMOVE_ALERT = 'REMOVE_ALERT';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -27,6 +29,14 @@ export function resetState() {
 
 export function addQueryEditor(queryEditor) {
   return { type: ADD_QUERY_EDITOR, queryEditor };
+}
+
+export function addAlert(alert) {
+  return { type: ADD_ALERT, alert };
+}
+
+export function removeAlert(alert) {
+  return { type: REMOVE_ALERT, alert };
 }
 
 export function setActiveQueryEditor(queryEditor) {

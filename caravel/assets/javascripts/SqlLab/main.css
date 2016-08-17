@@ -250,3 +250,7 @@ div.tablePopover:hover {
     padding-bottom: 3px;
     padding-top: 3px;
 }
+button.tab-caret {
+    padding: 5px !important;
+    border-color: transparent;
+}

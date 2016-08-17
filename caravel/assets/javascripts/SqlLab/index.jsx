@@ -1,19 +1,19 @@
-var $ = window.$ = require('jquery');
-var jQuery = window.jQuery = $;
+const $ = window.$ = require('jquery');
+const jQuery = window.jQuery = $;
 require('bootstrap');
 
 import React from 'react';
 import { render } from 'react-dom';
+import * as Actions from './actions';
 
 import SplitPane from 'react-split-pane';
 
-import { Label, Tab, Tabs } from 'react-bootstrap';
-
 import LeftPane from './components/LeftPane';
 import TabbedSqlEditors from './components/TabbedSqlEditors';
+import Alerts from './components/Alerts';
 
-import { compose, createStore } from 'redux';
-import { Provider } from 'react-redux';
+import { bindActionCreators, compose, createStore } from 'redux';
+import { connect, Provider } from 'react-redux';
 
 import { initialState, sqlLabReducer } from './reducers';
 import persistState from 'redux-localstorage';
@@ -25,11 +25,12 @@ let store = createStore(sqlLabReducer, initialState, compose(persistState(), win
 // jquery hack to highlight the navbar menu
 $('a[href="/caravel/sqllab"]').parent().addClass('active');
 
-const App = React.createClass({
+class App extends React.Component {
   render() {
     return (
       <div className="App SqlLab">
         <div className="container-fluid">
+          <Alerts alerts={this.props.alerts} />
           <SplitPane split="vertical" minSize={200} defaultSize={300}>
             <div className="pane-cell pane-west m-t-5">
               <LeftPane />
@@ -41,12 +42,26 @@ const App = React.createClass({
         </div>
       </div>
     );
-  },
-});
+  }
+}
+
+function mapStateToProps(state) {
+  return {
+    alerts: state.alerts,
+  };
+}
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(Actions, dispatch),
+  };
+}
+
+const ReduxedApp = connect(mapStateToProps, mapDispatchToProps)(App);
 
 render(
   <Provider store={store}>
-    <App />
+    <ReduxedApp />
   </Provider>,
   document.getElementById('app')
 );
+

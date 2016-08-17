@@ -12,11 +12,12 @@ const defaultQueryEditor = {
 };
 
 export const initialState = {
-  queryEditors: [defaultQueryEditor],
+  alerts: [],
   queries: [],
+  queryEditors: [defaultQueryEditor],
+  tabHistory: [defaultQueryEditor.id],
   tables: [],
   workspaceQueries: [],
-  tabHistory: [defaultQueryEditor.id],
 };
 
 
@@ -46,8 +47,12 @@ function removeFromArr(state, arrKey, obj, idKey = 'id') {
 }
 
 function addToArr(state, arrKey, obj) {
+  const newObj = Object.assign({}, obj);
+  if (!(newObj.id)) {
+    newObj.id = shortid.generate();
+  }
   const newState = {};
-  newState[arrKey] = [...state[arrKey], Object.assign({}, obj)];
+  newState[arrKey] = [...state[arrKey], newObj];
   return Object.assign({}, state, newState);
 }
 
@@ -136,6 +141,12 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.REMOVE_WORKSPACE_QUERY]() {
       return removeFromArr(state, 'workspaceQueries', action.query);
+    },
+    [actions.ADD_ALERT]() {
+      return addToArr(state, 'alerts', action.alert);
+    },
+    [actions.REMOVE_ALERT]() {
+      return removeFromArr(state, 'alerts', action.alert);
     },
   };
   if (action.type in actionHandlers) {

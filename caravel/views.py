@@ -1259,6 +1259,12 @@ class Caravel(BaseCaravelView):
             dash_edit_perm=dash_edit_perm)
 
     @has_access
+    @expose("/sqllab_viz/")
+    @log_this
+    def sqllab_viz(self):
+        return json.dumps(request.args.to_dict(), indent=4)
+
+    @has_access
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
