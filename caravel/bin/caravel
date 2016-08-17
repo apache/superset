@@ -139,7 +139,17 @@ def synctable():
     
     need_insert = list(set(all_tables) - set(exists_tables))
 
-    print(need_insert)
+    for row in need_insert:
+        db_name = row[0]
+        table_name = row[1]
+
+        tbl = caravel.models.SqlaTable(table_name=table_name)
+        tbl.description = ""
+        tbl.is_featured = False
+        tbl.database = db.session.query(caravel.models.Database).filter_by(database_name=db_name).first()
+        db.session.merge(tbl)
+        db.session.commit()
+        tbl.fetch_metadata()
 
 if __name__ == "__main__":
     manager.run()
