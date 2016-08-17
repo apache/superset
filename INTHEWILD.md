@@ -7,6 +7,7 @@ Organizations
  - [GfK Data Lab] (http://datalab.gfk.com)
  - [Maieutical Labs] (https://cloudschooling.it)
  - [Shopkick] (https://www.shopkick.com)
+ - [Amino] (https://amino.com)
 
 Projects
 ----------
