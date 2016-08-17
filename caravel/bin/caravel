@@ -125,6 +125,21 @@ def refresh_druid():
             "[" + cluster.cluster_name + "]")
     session.commit()
 
+@manager.command
+def synctable():
+    exists_tables = []
+    for row in db.session.query(caravel.models.SqlaTable).all():
+        exists_tables += [(row.database, row.name)]
+    
+    all_tables = []
+    for _db in db.session.query(caravel.models.Database).all():
+        for _tablename in _db.get_sqla_engine().table_names():
+            all_tables += [(_db.database_name, _tablename)]
+    all_tables = [_ for _ in all_tables if _[1].startswith('data_')]
+    
+    need_insert = list(set(all_tables) - set(exists_tables))
+
+    print(need_insert)
 
 if __name__ == "__main__":
     manager.run()
