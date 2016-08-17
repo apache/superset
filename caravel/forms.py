@@ -820,10 +820,14 @@ class FormFactory(object):
             'period_ratio_type': (SelectField, {
                 "label": _("Period Ratio Type"),
                 "default": 'growth',
-                "choices": self.choicify(('factor', 'growth')),
+                "choices": (
+                    ('factor', _('factor')),
+                    ('growth', _('growth')),
+                    ('value', _('value')),
+                ),
                 "description": _(
-                    "`factor` means (new/previous), growth is "
-                    "((new/previous) - 1)")
+                    "`factor` means (new/previous), `growth` is "
+                    "((new/previous) - 1), `value` is (new-previous)")
             }),
             'time_compare': (TextField, {
                 "label": _("Time Shift"),

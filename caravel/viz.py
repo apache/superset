@@ -1041,8 +1041,10 @@ class NVD3TimeSeriesViz(NVD3Viz):
             prt = form_data.get('period_ratio_type')
             if prt and prt == 'growth':
                 df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
             else:
-                df = (df / df.shift(num_period_compare))
+                df = df / df.shift(num_period_compare)
 
             df = df[num_period_compare:]
 
