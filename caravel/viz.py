@@ -997,7 +997,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'fields': (
             ('rolling_type', 'rolling_periods'),
             'time_compare',
-            'num_period_compare',
+            ('num_period_compare', 'period_ratio_type'),
             None,
             ('resample_how', 'resample_rule',), 'resample_fillmethod'
         ),
@@ -1038,7 +1038,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
         num_period_compare = form_data.get("num_period_compare")
         if num_period_compare:
             num_period_compare = int(num_period_compare)
-            df = (df / df.shift(num_period_compare)) - 1
+            prt = form_data.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
             df = df[num_period_compare:]
 
         rolling_periods = form_data.get("rolling_periods")
