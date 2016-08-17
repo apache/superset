@@ -141,6 +141,9 @@ of the parameters you can copy / paste in that configuration module: ::
     # Flask-WTF flag for CSRF
     CSRF_ENABLED = True
 
+    # Set this API key to enable Mapbox visualizations
+    MAPBOX_API_KEY = ''
+
 This file also allows you to define configuration parameters used by
 Flask App Builder, the web framework used by Caravel. Please consult
 the `Flask App Builder Documentation
