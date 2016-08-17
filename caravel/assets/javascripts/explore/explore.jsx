@@ -128,11 +128,6 @@ function initExploreView() {
 
   px.initFavStars();
 
-  $('form .panel-heading').click(function () {
-    toggle_fieldset($(this), true);
-    $(this).css('cursor', 'pointer');
-  });
-
   function copyURLToClipboard(url) {
     var textArea = document.createElement('textarea');
     textArea.style.position = 'fixed';
