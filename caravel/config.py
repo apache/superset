@@ -178,6 +178,7 @@ BACKUP_COUNT = 30
 
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = ""
+
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000
 
@@ -192,10 +193,10 @@ WARNING_MSG = None
 """
 # Example:
 class CeleryConfig(object):
-    BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
-    CELERY_IMPORTS = ('caravel.tasks', )
-    CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
-    CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+  CELERY_IMPORTS = ('caravel.tasks', )
+  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
@@ -207,4 +208,3 @@ except ImportError:
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
-

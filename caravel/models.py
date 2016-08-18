@@ -379,7 +379,7 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
-    select_as_create_table_as = Column(Boolean, default=True)
+    select_as_create_table_as = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -1734,6 +1734,16 @@ class FavStar(Model):
 
 
 class QueryStatus:
+    def from_presto_states(self, presto_status):
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+        if presto_status.lower() == 'running':
+            return QueryStatus.IN_PROGRESS
+
     SCHEDULED = 'SCHEDULED'
     CANCELLED = 'CANCELLED'
     IN_PROGRESS = 'IN_PROGRESS'
@@ -1752,18 +1762,30 @@ class Query(Model):
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
     # Store the tmp table into the DB only if the user asks for it.
-    tmp_table_name = Column(String(64))
+    tmp_table_name = Column(String(256))
     user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
 
     # models.QueryStatus
     status = Column(String(16))
 
-    name = Column(String(64))
+    name = Column(String(256))
+    tab_name = Column(String(256))
+    schema = Column(String(256))
     sql = Column(Text)
-    # Could be configured in the caravel config
+    # Query to retrieve the results,
+    # used only in case of select_as_cta_used is true.
+    select_sql = Column(Text)
+    executed_sql = Column(Text)
+    # Could be configured in the caravel config.
     limit = Column(Integer)
+    limit_used = Column(Boolean)
+    select_as_cta = Column(Boolean)
+    select_as_cta_used = Column(Boolean)
 
     # 1..100
     progress = Column(Integer)
+    # # of rows in the result set or rows modified.
+    rows = Column(Integer)
+    error_message = Column(Text)
     start_time = Column(DateTime)
     end_time = Column(DateTime)

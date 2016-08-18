@@ -33,7 +33,7 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, ascii_art, tasks
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab
 )
 
 config = app.config
@@ -459,10 +459,12 @@ class DatabaseAsync(DatabaseView):
 
 appbuilder.add_view_no_menu(DatabaseAsync)
 
+
 class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
 
 class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
@@ -622,7 +624,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             url = "/druiddatasourcemodelview/list/"
             msg = _(
                 "Click on a datasource link to create a Slice, "
-                "or click on a table link <a href='/tablemodelview/list/'>here</a> "
+                "or click on a table link "
+                "<a href='/tablemodelview/list/'>here</a> "
                 "to create a Slice for a table"
             )
         else:
@@ -904,7 +907,8 @@ class Caravel(BaseCaravelView):
         datasource_access = self.can_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash(__("You don't seem to have access to this datasource"), "danger")
+            flash(__("You don't seem to have access to this datasource"),
+                  "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -981,7 +985,8 @@ class Caravel(BaseCaravelView):
         del d['action']
         del d['previous_viz_type']
 
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label', 'order_by_cols')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns',
+                   'mapbox_label', 'order_by_cols')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -1092,7 +1097,8 @@ class Caravel(BaseCaravelView):
             .group_by(Log.dt)
             .all()
         )
-        payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
+        payload = {str(time.mktime(dt.timetuple())):
+                   ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
 
     @api
@@ -1148,9 +1154,11 @@ class Caravel(BaseCaravelView):
         data = json.loads(request.form.get('data'))
         session = db.session()
         Slice = models.Slice # noqa
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        dash = (
+            session.query(models.Dashboard).filter_by(id=dashboard_id).first())
         check_ownership(dash, raise_if_false=True)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data['slice_ids']))
+        new_slices = session.query(Slice).filter(
+            Slice.id.in_(data['slice_ids']))
         dash.slices += new_slices
         session.merge(dash)
         session.commit()
@@ -1184,13 +1192,18 @@ class Caravel(BaseCaravelView):
         FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
-            class_name=class_name, obj_id=obj_id, user_id=g.user.get_id()).all()
+            class_name=class_name, obj_id=obj_id,
+            user_id=g.user.get_id()).all()
         if action == 'select':
             if not favs:
                 session.add(
                     FavStar(
-                        class_name=class_name, obj_id=obj_id, user_id=g.user.get_id(),
-                        dttm=datetime.now()))
+                        class_name=class_name,
+                        obj_id=obj_id,
+                        user_id=g.user.get_id(),
+                        dttm=datetime.now()
+                    )
+                )
             count = 1
         elif action == 'unselect':
             for fav in favs:
@@ -1396,8 +1409,23 @@ class Caravel(BaseCaravelView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema')
+        tab_name = request.form.get('tab_name')
+
+        async = request.form.get('async') == 'True'
+        tmp_table_name = request.form.get('tmp_table_name', None)
+        select_as_cta = request.form.get('select_as_cta') == 'True'
+
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if not mydb:
+            return Response(
+                json.dumps({
+                    'error': 'Database with id 0 is missing.',
+                    'status': models.QueryStatus.FAILED,
+                }),
+                status=500,
+                mimetype="application/json")
 
         if not (self.can_access(
                 'all_datasource_access', 'all_datasource_access') or
@@ -1406,19 +1434,132 @@ class Caravel(BaseCaravelView):
                 "SQL Lab requires the `all_datasource_access` or "
                 "specific DB permission"))
 
-        data = tasks.get_sql_results(database_id, sql, g.user.get_id(),
-                                     schema=schema)
-        if 'error' in data:
+        start_time = datetime.now()
+        query_name = '{}_{}_{}'.format(
+            g.user.get_id(), tab_name, start_time.strftime('%M:%S:%f'))
+
+        query = models.Query(
+            database_id=database_id,
+            limit=app.config.get('SQL_MAX_ROW', None),
+            name=query_name,
+            sql=sql,
+            schema=schema,
+            # TODO(bkyryliuk): consider it being DB property.
+            select_as_cta=select_as_cta,
+            start_time=start_time,
+            status=models.QueryStatus.SCHEDULED,
+            tab_name=tab_name,
+            tmp_table_name=tmp_table_name,
+            user_id=g.user.get_id(),
+        )
+        session.add(query)
+        session.commit()
+
+        # Async request.
+        if async:
+            # Ignore the celery future object and the request may time out.
+            sql_lab.get_sql_results.delay(query.id)
+            return Response(json.dumps(
+                {
+                    'query_id': query.id,
+                    'status': query.status,
+                },
+                default=utils.json_int_dttm_ser, allow_nan=False),
+                status=202,  # Accepted
+                mimetype="application/json")
+
+        # Sync request.
+        data = sql_lab.get_sql_results(query.id)
+        if data['status'] == models.QueryStatus.FAILED:
                 return Response(
-                    json.dumps(data),
+                    json.dumps(
+                        data, default=utils.json_int_dttm_ser, allow_nan=False),
                     status=500,
                     mimetype="application/json")
-        if 'tmp_table' in data:
-            # TODO(bkyryliuk): add query id to the response and implement the
-            #                  endpoint to poll the status and results.
-            return None
-        return json.dumps(
-            data, default=utils.json_int_dttm_ser, allow_nan=False)
+        return Response(
+            json.dumps(
+                data, default=utils.json_int_dttm_ser, allow_nan=False),
+            status=200,
+            mimetype="application/json")
+
+    @has_access
+    @expose("/queries/", methods=['GET'])
+    @log_this
+    def queries(self):
+        """Runs arbitrary sql and returns and json"""
+        last_updated = request.form.get('timestamp')
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=query_id).first()
+        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
+
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            raise utils.CaravelSecurityException(_(
+                "SQL Lab requires the `all_datasource_access` or "
+                "specific DB permission"))
+
+        if query:
+            return Response(
+                json.dumps({
+                    'status': query.status,
+                    'progress': query.progress
+                }),
+                status=200,
+                mimetype="application/json")
+
+        return Response(
+            json.dumps({
+                'error': "Query with id {} wasn't found".format(query_id),
+            }),
+            status=404,
+            mimetype="application/json")
+
+    @has_access
+    @expose("/cta_query_results/", methods=['GET'])
+    @log_this
+    def cta_query_results(self):
+        """Runs arbitrary sql and returns and json"""
+        query_id = request.form.get('query_id')
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=query_id).first()
+        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
+
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            raise utils.CaravelSecurityException(_(
+                "SQL Lab requires the `all_datasource_access` or "
+                "specific DB permission"))
+
+        if not query:
+            return Response(
+                json.dumps({
+                    'error': "Query with id {} wasn't found".format(query_id),
+                }),
+                status=404,
+                mimetype="application/json")
+
+        if query.status != models.QueryStatus.FINISHED:
+            return Response(
+                json.dumps({
+                    'error': "Query with id {} not finished yet".format(
+                        query_id),
+                }),
+                status=400,
+                mimetype="application/json")
+        try:
+            data = mydb.get_df(query.select_sql, query.schema)
+            return Response(
+                json.dumps(
+                    data, default=utils.json_int_dttm_ser, allow_nan=False),
+                status=200,
+                mimetype="application/json")
+        except Exception as e:
+            return Response(
+                json.dumps('error', utils.error_msg_from_exception(e)),
+                status=500,
+                mimetype="application/json")
 
     @has_access
     @expose("/refresh_datasources/")

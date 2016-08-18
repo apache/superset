@@ -13,17 +13,27 @@ down_revision = 'f162a1dea4c4'
 from alembic import op
 import sqlalchemy as sa
 
+
 def upgrade():
     op.create_table('query',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('database_id', sa.Integer(), nullable=False),
-        sa.Column('tmp_table_name', sa.String(length=64), nullable=True),
+        sa.Column('tmp_table_name', sa.String(length=256), nullable=True),
+        sa.Column('tab_name', sa.String(length=256),nullable=True),
         sa.Column('user_id', sa.Integer(), nullable=True),
         sa.Column('status', sa.String(length=16), nullable=True),
-        sa.Column('name', sa.String(length=64), nullable=True),
-        sa.Column('sql', sa.Text, nullable=True),
+        sa.Column('name', sa.String(length=256), nullable=True),
+        sa.Column('schema', sa.String(length=256), nullable=True),
+        sa.Column('sql', sa.Text(), nullable=True),
+        sa.Column('select_sql', sa.Text(), nullable=True),
+        sa.Column('executed_sql', sa.Text(), nullable=True),
         sa.Column('limit', sa.Integer(), nullable=True),
+        sa.Column('limit_used', sa.Boolean(), nullable=True),
+        sa.Column('select_as_cta', sa.Boolean(), nullable=True),
+        sa.Column('select_as_cta_used', sa.Boolean(), nullable=True),
         sa.Column('progress', sa.Integer(), nullable=True),
+        sa.Column('rows', sa.Integer(), nullable=True),
+        sa.Column('error_message', sa.Text(), nullable=True),
         sa.Column('start_time', sa.DateTime(), nullable=True),
         sa.Column('end_time', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['database_id'], [u'dbs.id'], ),
