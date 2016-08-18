@@ -125,6 +125,35 @@ def refresh_druid():
             "[" + cluster.cluster_name + "]")
     session.commit()
 
+@manager.option(
+    '-p', '--prefix', default='data_',
+    help="Sync Table Prefix")
+def synctable(prefix):
+    ''' Sync DB Table with Caravel Table'''
+    existing_tables = []
+    for row in db.session.query(caravel.models.SqlaTable).all():
+        existing_tables += [(row.database.database_name, row.name)]
+    all_tables = []
+    for caravel_db in db.session.query(caravel.models.Database).all():
+        for table_name in caravel_db.get_sqla_engine().table_names():
+            all_tables += [(caravel_db.database_name, table_name)]
+    
+    all_tables = [row for row in all_tables if row[1].startswith(prefix)]
+    
+    need_insert = list(set(all_tables) - set(existing_tables))
+
+    for db_name, table_name in need_insert:
+        tbl = caravel.models.SqlaTable(table_name=table_name)
+        tbl.description = ""
+        tbl.is_featured = False
+        tbl.database = db.session.query(caravel.models.Database).filter_by(database_name=db_name).first()
+        db.session.merge(tbl)
+        db.session.commit()
+        tbl.fetch_metadata()
+
+        print("[{db}] {table} insert success.".format(db=db_name, table=table_name))
+
+    print("[{}] Sync table complete.".format(len(need_insert)))
 
 if __name__ == "__main__":
     manager.run()
