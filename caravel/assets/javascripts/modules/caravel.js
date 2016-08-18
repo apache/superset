@@ -58,6 +58,7 @@ const px = function () {
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.sliceId;
+    const sliceCreatorId = $('#slice_creator_id').val();
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -75,6 +76,7 @@ const px = function () {
       container,
       containerId,
       selector,
+      sliceCreatorId,
       querystring(params) {
         const newParams = params || {};
         const parser = document.createElement('a');

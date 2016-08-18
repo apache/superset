@@ -949,6 +949,12 @@ class FormFactory(object):
                 ],
                 "description": _("The color for points and clusters in RGB")
             }),
+            'mapbox_layers': (TextField, {
+                "label": _("Layers"),
+                "default": "",
+                "description": _(
+                    "Space delimited list of slice ids of mapbox visualizations.")
+            }),
         }
 
         # Override default arguments with form overrides

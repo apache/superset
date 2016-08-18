@@ -176,7 +176,7 @@ ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
-# Set this API key to enable Mapbox visualizations
+# Set this API key (create an account on mapbox.com) to enable Mapbox visualizations
 MAPBOX_API_KEY = ""
 
 # If defined, shows this text in an alert-warning box in the navbar

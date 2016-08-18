@@ -59,6 +59,11 @@
             <!-- CHART TYPE -->
             <div title="Visualization Type" data-toggle="tooltip">
               {{ form.get_field("viz_type")(class_="select2-with-images") }}
+              {% if viz.description %}
+              <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                  data-placement="bottom"
+                  title="{{ viz.description }}"></i>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -172,6 +177,7 @@
           {{ form.collapsed_fieldsets() }}
           <input type="hidden" name="action" id="action" value="">
           <input type="hidden" name="userid" id="userid" value="{{ userid }}">
+          <input type="hidden" name="slice_creator_id" id="slice_creator_id" value="{{ slice.created_by_fk or '' }}">
           <input type="hidden" name="goto_dash" id="goto_dash" value="false">
           <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
           <input type="hidden" name="datasource_id" value="{{ datasource.id }}">

@@ -1806,6 +1806,10 @@ class MapboxViz(BaseViz):
 
     viz_type = "mapbox"
     verbose_name = _("Mapbox")
+    description = _(
+        "Plot points on a map with Mapbox. If the map base isn't "
+        "loading, make sure you set MAPBOX_API_KEY in caravel config to an API "
+        "key obtained from mapbox.com by creating an account.")
     is_timeseries = False
     credits = (
         '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
@@ -1915,7 +1919,7 @@ class MapboxViz(BaseViz):
         df = self.get_df()
         fd = self.form_data
         label_col = fd.get('mapbox_label')
-        custom_metric = label_col and len(label_col) >= 1
+        custom_metric = label_col is not None and len(label_col) >= 1
         metric_col = [None] * len(df.index)
         if custom_metric:
             if label_col[0] == fd.get('all_columns_x'):
@@ -1958,7 +1962,7 @@ class MapboxViz(BaseViz):
             "mapboxApiKey": config.get('MAPBOX_API_KEY'),
             "mapStyle": fd.get("mapbox_style"),
             "aggregatorName": fd.get("pandas_aggfunc"),
-            "clusteringRadius": fd.get("clustering_radius"),
+            "clusteringRadius": int(fd.get("clustering_radius")),
             "pointRadiusUnit": fd.get("point_radius_unit"),
             "globalOpacity": fd.get("global_opacity"),
             "viewportLongitude": fd.get("viewport_longitude"),
@@ -1967,6 +1971,55 @@ class MapboxViz(BaseViz):
             "renderWhileDragging": fd.get("render_while_dragging"),
             "tooltip": fd.get("rich_tooltip"),
             "color": fd.get("mapbox_color"),
+        }
+
+
+class LayeredMapboxViz(BaseViz):
+
+    """Combination of multiple Mapbox visualizations"""
+
+    viz_type = "mapbox_layers"
+    verbose_name = _("Layered Mapbox")
+    description = _(
+        "[For Advanced Users] Layer one or more mapbox plots onto a single map. "
+        "The slices that you are layering must be created by you. To get a "
+        "slice's id, go into the edit view of a slice and view the URL which will "
+        "be of the form /edit/<slice_id>")
+    is_timeseries = False
+    credits = (
+        '<a href=https://www.mapbox.com/mapbox-gl-js/api/>Mapbox GL JS</a>')
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'mapbox_layers',
+        )
+    }, {
+        'label': _('Visual Tweaks'),
+        'fields': (
+            'mapbox_style',
+        )
+    }, {
+        'label': _('Viewport'),
+        'fields': (
+            'viewport_longitude',
+            'viewport_latitude',
+            'viewport_zoom',
+        )
+    },)
+
+    def query_obj(self):
+        return super(LayeredMapboxViz, self).query_obj()
+
+    def get_data(self):
+        fd = self.form_data
+        layers = fd.get("mapbox_layers").split()
+        return {
+            "layers": layers,
+            "mapboxApiKey": config.get('MAPBOX_API_KEY'),
+            "mapStyle": fd.get("mapbox_style"),
+            "viewportLongitude": fd.get("viewport_longitude"),
+            "viewportLatitude": fd.get("viewport_latitude"),
+            "viewportZoom": fd.get("viewport_zoom"),
         }
 
 
@@ -1997,6 +2050,7 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    LayeredMapboxViz,
     HistogramViz,
     SeparatorViz,
 ]

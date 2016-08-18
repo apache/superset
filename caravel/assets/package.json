@@ -41,6 +41,7 @@
     "brace": "^0.7.0",
     "brfs": "^1.4.3",
     "cal-heatmap": "3.5.4",
+    "canvas-composite-types": "^1.0.4",
     "classnames": "^2.2.5",
     "d3": "^3.5.14",
     "d3-cloud": "^1.2.1",

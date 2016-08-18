@@ -238,7 +238,7 @@ class CoreTests(CaravelTestCase):
     def test_add_slices(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
-        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
+        new_slice = db.session.query(models.Slice).filter_by(slice_name="San Francisco Large Households").first()
         existing_slice = db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
         data = {
             "slice_ids": [new_slice.data["slice_id"], existing_slice.data["slice_id"]]
@@ -248,7 +248,7 @@ class CoreTests(CaravelTestCase):
         assert "SLICES ADDED" in resp.data.decode('utf-8')
 
         dash = db.session.query(models.Dashboard).filter_by(slug="births").first()
-        new_slice = db.session.query(models.Slice).filter_by(slice_name="Mapbox Long/Lat").first()
+        new_slice = db.session.query(models.Slice).filter_by(slice_name="San Francisco Large Households").first()
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
