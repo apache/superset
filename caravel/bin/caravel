@@ -132,8 +132,7 @@ def synctable(prefix):
     ''' Sync DB Table with Caravel Table'''
     existing_tables = []
     for row in db.session.query(caravel.models.SqlaTable).all():
-        existing_tables += [(row.database, row.name)]
-    
+        existing_tables += [(row.database.database_name, row.name)]
     all_tables = []
     for caravel_db in db.session.query(caravel.models.Database).all():
         for table_name in caravel_db.get_sqla_engine().table_names():
