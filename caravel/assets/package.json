@@ -9,7 +9,7 @@
   "scripts": {
     "test": "npm run lint && mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
     "dev": "NODE_ENV=dev webpack -d --watch --colors",
-    "prod": "NODE_ENV=production webpack -p --colors",
+    "prod": "NODE_ENV=production webpack -p --colors --progress",
     "lint": "npm run --silent lint:js",
     "lint:js": "eslint --ignore-path=.eslintignore --ext .js ."
   },
