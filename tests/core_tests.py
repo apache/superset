@@ -324,8 +324,6 @@ class CoreTests(CaravelTestCase):
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False),
         )
         self.logout()
-        print("CORE_SQL_RESULTS")
-        print(resp.data.decode('utf-8'))
         return json.loads(resp.data.decode('utf-8'))
 
     def test_sql_json_no_access(self):
@@ -363,8 +361,6 @@ class CoreTests(CaravelTestCase):
 
     def test_sql_json(self):
         data = self.run_sql("SELECT * FROM ab_user", 'admin')
-        print("self.run_sql")
-        print(str(data))
         assert len(data['data']) > 0
 
         data = self.run_sql("SELECT * FROM unexistant_table", 'admin')

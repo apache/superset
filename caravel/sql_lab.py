@@ -68,11 +68,6 @@ class QueryRunner:
 
     def run_sql(self):
         if not self._sanity_check():
-            print("FAILED QUERY#" + str(self._query.id))
-            print(self._query.executed_sql)
-            print(self._query.error_message)
-            print(self._query.status)
-            print(self._data)
             return self._query.status
 
         # TODO(bkyryliuk): dump results somewhere for the webserver.
@@ -142,7 +137,11 @@ class QueryRunner:
         self._columns = sql_results['columns']
         self._data = sql_results['data']
         self._query.rows = result_proxy.rowcount
+        self._query.progress = 100
         self._query.status = models.QueryStatus.FINISHED
+        if self._query.rows == -1 and self._data:
+            # Presto doesn't provide result_proxy.row_count
+            self._query.rows = len(self._data)
 
         # CTAs queries result in 1 cell having the # of the added rows.
         if self._query.select_as_cta_used:

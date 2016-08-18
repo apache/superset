@@ -1445,11 +1445,11 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/query_progress/", methods=['GET'])
+    @expose("/queries/", methods=['GET'])
     @log_this
-    def query_progress(self):
+    def queries(self):
         """Runs arbitrary sql and returns and json"""
-        query_id = request.form.get('query_id')
+        last_updated = request.form.get('timestamp')
         s = db.session()
         query = s.query(models.Query).filter_by(id=query_id).first()
         mydb = s.query(models.Database).filter_by(id=query.database_id).first()
