@@ -209,7 +209,7 @@ class SqlEditorTopToolbar extends React.Component {
       );
     });
     return (
-      <div className="clearfix sql-toolbar padded">
+      <div className="clearfix sql-toolbar">
         <div className="pull-left m-r-5">
           <Select
             name="select-db"

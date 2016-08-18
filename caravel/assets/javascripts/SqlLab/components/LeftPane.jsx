@@ -15,18 +15,21 @@ const LeftPane = (props) => {
   } else {
     queryElements = (
       <Alert bsStyle="info">
-        Use the save button on the SQL editor to save a query into this section for
-        future reference
+        Use the save button on the SQL editor to save a query
+        into this section for future reference.
       </Alert>
     );
   }
   return (
     <div className="panel panel-default LeftPane">
       <div className="panel-heading">
-        <h6 className="m-r-10">
+        <div className="panel-title">
           <i className="fa fa-flask" />
-          SQL Lab <Label bsStyle="danger">ALPHA</Label>
-        </h6>
+          SQL Lab
+          <div className="pull-right">
+            <Label bsStyle="danger">ALPHA</Label>
+          </div>
+        </div>
       </div>
       <div className="panel-body">
         <div>

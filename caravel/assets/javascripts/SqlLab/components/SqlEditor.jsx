@@ -175,7 +175,7 @@ class SqlEditor extends React.Component {
       );
     }
     const editorBottomBar = (
-      <div className="clearfix sql-toolbar padded">
+      <div className="clearfix sql-toolbar">
         <div className="pull-left">
           {runButtons}
           <span className="inlineblock valignTop" style={{ height: '20px' }}>

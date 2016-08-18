@@ -49,8 +49,6 @@ class QueryEditors extends React.Component {
           <DropdownButton
             bsSize="small"
             id={'ddbtn-tab-' + i}
-            className="no-shadow"
-            id="bg-vertical-dropdown-1"
           >
             <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> close tab
@@ -67,23 +65,25 @@ class QueryEditors extends React.Component {
           title={tabTitle}
           eventKey={qe.id}
         >
-          <Panel className="nopadding">
-            <SqlEditor
-              queryEditor={qe}
-              latestQuery={latestQuery}
-            />
-          </Panel>
+          <SqlEditor
+            queryEditor={qe}
+            latestQuery={latestQuery}
+          />
         </Tab>);
     });
     return (
-      <Tabs
-        bsStyle="tabs"
-        activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
-        onSelect={this.handleSelect.bind(this)}
-      >
-        {editors}
-        <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
-      </Tabs>
+      <div className="panel panel-default">
+        <div className="panel-body">
+          <Tabs
+            bsStyle="tabs"
+            activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
+            onSelect={this.handleSelect.bind(this)}
+          >
+            {editors}
+            <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
+          </Tabs>
+        </div>
+      </div>
     );
   }
 }
