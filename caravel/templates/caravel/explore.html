@@ -36,7 +36,11 @@
         ></div>
 
         <div class="panel panel-default">
-          <div class="panel-heading">Datasource & Chart Type</div>
+          <div class="panel-heading">
+            <div class="panel-title">
+              Datasource & Chart Type
+            </div>
+          </div>
           <div class="panel-body">
             <div>
               <!-- DATASOURCE -->
@@ -62,13 +66,14 @@
             <div class="panel panel-default">
               {% if fieldset.label %}
                 <div class="panel-heading">
-                  <span class="legend_label">{{ fieldset.label }}</span>
-                  {% if fieldset.description %}
-                    <i    class="fa fa-question-circle-o" data-toggle="tooltip"
-                          data-placement="bottom"
-                          title="{{ fieldset.description }}"></i>
-                  {% endif %}
-                  <!-- <span class="collapser"> [-]</span> -->
+                  <div class="panel-title">
+                    {{ fieldset.label }}
+                    {% if fieldset.description %}
+                      <i    class="fa fa-question-circle-o" data-toggle="tooltip"
+                            data-placement="bottom"
+                            title="{{ fieldset.description }}"></i>
+                    {% endif %}
+                  </div>
                 </div>
               {% endif %}
               <div class="panel-body">
@@ -96,11 +101,13 @@
           {% endfor %}
           <div id="filter_panel" class="panel panel-default">
             <div class="panel-heading">
-              <span class="legend_label">{{ _("Filters") }}</span>
-              <i  class="fa fa-question-circle-o" data-toggle="tooltip"
-                  data-placement="bottom"
-                  title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-              <!--<span class="collapser"> [-]</span>-->
+              <div class="panel-title">
+                {{ _("Filters") }}
+                <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                    data-placement="bottom"
+                    title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                </i>
+              </div>
             </div>
             <div class="panel-body">
               <div id="flt0" style="display: none;">
@@ -126,11 +133,15 @@
           {% if form.having_col_0 %}
             <div id="having_panel" class="panel panel-default">
               <div class="panel-heading">
-                <span class="legend_label">Result Filters ("having" filters)</span>
-                <i class="fa fa-info-circle" data-toggle="tooltip"
-                   data-placement="bottom"
-                   title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-                <span class="collapser"> [-]</span>
+                <div class="panel-title">
+                  Result Filters ("having" filters)
+                  <i
+                    class="fa fa-info-circle"
+                    data-toggle="tooltip"
+                    data-placement="bottom"
+                    title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                  </i>
+                </div>
               </div>
               <div class="panel-body">
                 <div id="having0" style="display: none;">
@@ -171,72 +182,88 @@
       <div class="col-offset">
         {% block messages %}{% endblock %}
         {% include 'appbuilder/flash.html' %}
-        <div class="slice-name__container">
-          {% if slice %}
-            <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
-            <div class="slice-name__text">{{ slice.slice_name }} </div>
-            <a
-              href="/slicemodelview/edit/{{ slice.id }}"
-              data-toggle="tooltip"
-              title="Edit Description"
-              class="edit-slice-description-icon"
-            >
-              {% if slice.description %}
-                <i
-                  class="fa fa-question-circle-o"
-                  data-toggle="tooltip"
-                  data-placement="bottom"
-                  title="{{ slice.description }}">
-                </i>
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <div class="row">
+              {% if slice %}
+                <div class="col-md-6">
+                  <div class="panel-title">
+                    <h5>
+                      {{ slice.slice_name }}
+                      <small class="star-edit-icons">
+                        <span class="favstar" obj_id="{{ slice.id }}"></span>
+                        <span>
+                          <a
+                            href="/slicemodelview/edit/{{ slice.id }}"
+                            data-toggle="tooltip"
+                            title="Edit Description"
+                            class="edit-slice-description-icon"
+                          >
+                            {% if slice.description %}
+                              <i
+                                class="fa fa-question-circle-o"
+                                data-toggle="tooltip"
+                                data-placement="bottom"
+                                title="{{ slice.description }}">
+                              </i>
+                            {% endif %}
+                            <i class="fa fa-edit"></i>
+                          </a>
+                        </span>
+                      </small>
+                    </h5>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="slice-meta-controls pull-right">
+                    <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
+                      cached
+                    </span>
+                    <div class="btn-group results" role="group">
+                      <a role="button" tabindex="0" class="btn btn-default" id="shortner" data-toggle="popover" data-trigger="focus">
+                        <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
+                      </a>
+                      <span class="btn btn-default" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
+                        <i class="fa fa-code"></i>&nbsp;
+                      </span>
+                      <span class="btn btn-default " id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
+                        <i class="fa fa-file-code-o"></i>
+                        .json
+                      </span>
+                      <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
+                        <i class="fa fa-file-text-o"></i>.csv
+                      </span>
+                      <span
+                          class="btn btn-warning notbtn"
+                          id="timer"
+                          title="{{ _("Query timer") }}"
+                          data-toggle="tooltip">
+                        {{ _("0 sec") }}
+                      </span>
+                      <span
+                          class="btn btn-info disabled view_query"
+                          data-toggle="modal"
+                          data-target="#query_modal">
+                          <span data-toggle="tooltip" title="{{ _("View database query") }}">
+                            {{ _("query") }}
+                          </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
               {% endif %}
-              <i class="fa fa-edit"></i>
-            </a>
-          {% else %}
-            <div class="slice-name__text">&nbsp;</div>
-          {% endif %}
-          <div class="slice-meta pull-right">
-            <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
-              cached
-            </span>
-            <div class="btn-group results" role="group">
-              <a role="button" tabindex="0" class="btn btn-default" id="shortner" data-toggle="popover" data-trigger="focus">
-                <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
-              </a>
-              <span class="btn btn-default" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
-                <i class="fa fa-code"></i>&nbsp;
-              </span>
-              <span class="btn btn-default " id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
-                <i class="fa fa-file-code-o"></i>
-                .json
-              </span>
-              <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
-                <i class="fa fa-file-text-o"></i>.csv
-              </span>
-              <span
-                  class="btn btn-warning notbtn"
-                  id="timer"
-                  title="{{ _("Query timer") }}"
-                  data-toggle="tooltip">
-                {{ _("0 sec") }}
-              </span>
-              <span
-                  class="btn btn-info disabled view_query"
-                  data-toggle="modal"
-                  data-target="#query_modal">
-                  <span data-toggle="tooltip" title="{{ _("View database query") }}">
-                    {{ _("query") }}
-                  </span>
-              </span>
             </div>
           </div>
-        </div>
-        <div
-          id="{{ viz.token }}"
-          class="widget viz slice {{ viz.viz_type }}"
-          data-slice="{{ viz.json_data }}"
-          style="height: 700px;">
-          <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
-          <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+          <div class="panel-body">
+            <div
+              id="{{ viz.token }}"
+              class="widget viz slice {{ viz.viz_type }}"
+              data-slice="{{ viz.json_data }}"
+              style="height: 700px;">
+              <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
+              <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">

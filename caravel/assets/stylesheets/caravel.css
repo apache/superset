@@ -52,14 +52,6 @@ input.form-control[type=text], input.form-control[type=search] {
     margin-left: 365px;
 }
 
-.favstar {
-    margin-right: 10px;
-    opacity: 0.5;
-    cursor: pointer;
-    float: left;
-    margin-top: 13px;
-}
-
 .slice_description{
     padding: 8px;
     margin: 5px;
@@ -206,4 +198,9 @@ div.widget .slice_container {
 .navbar .alert {
     padding: 5px 10px;
     margin-top: 15px;
+}
+
+.panel-title h5 {
+  margin-top: 0px;
+  margin-bottom: 10px;
 }
