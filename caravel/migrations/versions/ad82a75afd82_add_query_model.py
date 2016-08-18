@@ -35,6 +35,7 @@ def upgrade():
         sa.Column('rows', sa.Integer(), nullable=True),
         sa.Column('error_message', sa.Text(), nullable=True),
         sa.Column('start_time', sa.DateTime(), nullable=True),
+        sa.Column('changed_on', sa.DateTime(), nullable=True),
         sa.Column('end_time', sa.DateTime(), nullable=True),
         sa.ForeignKeyConstraint(['database_id'], [u'dbs.id'], ),
         sa.ForeignKeyConstraint(['user_id'], [u'ab_user.id'], ),
