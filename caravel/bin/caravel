@@ -151,5 +151,9 @@ def synctable(prefix):
         db.session.commit()
         tbl.fetch_metadata()
 
+        print("[{db}] {table} insert success.".format(db=db_name, table=table_name))
+
+    print("[{}] Sync table complete.".format(len(need_insert)))
+
 if __name__ == "__main__":
     manager.run()
