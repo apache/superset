@@ -357,7 +357,42 @@ class CoreTests(CaravelTestCase):
                 appbuilder.sm.find_role('Astronaut'),
                 password='general')
         data = self.run_sql('SELECT * FROM ab_user', 'gagarin')
+        db.session.query(models.Query).delete()
+        db.session.commit()
         assert len(data['data']) > 0
+
+    def test_queries_endpoint(self):
+        db.session.query(models.Query).delete()
+        resp = self.client.get('/caravel/queries/{}'.format(0))
+        self.assertEquals(403, resp.status_code)
+
+        self.login('admin')
+        resp = self.client.get('/caravel/queries/{}'.format(0))
+        data = json.loads(resp.data.decode('utf-8'))
+        self.assertEquals(0, len(data))
+        self.logout()
+
+        self.run_sql("SELECT * FROM ab_user", 'admin')
+        self.run_sql("SELECT * FROM ab_user1", 'admin')
+        self.login('admin')
+        resp = self.client.get('/caravel/queries/{}'.format(0))
+        data = json.loads(resp.data.decode('utf-8'))
+        self.assertEquals(2, len(data))
+
+        query = db.session.query(models.Query).filter_by(
+            sql='SELECT * FROM ab_user').first()
+        query.changed_on = utils.EPOCH
+        db.session.commit()
+
+        resp = self.client.get('/caravel/queries/{}'.format(123456))
+        data = json.loads(resp.data.decode('utf-8'))
+        self.assertEquals(1, len(data))
+
+        self.logout()
+        resp = self.client.get('/caravel/queries/{}'.format(0))
+        self.assertEquals(403, resp.status_code)
+
+        db.session.query(models.Query).delete()
 
     def test_sql_json(self):
         data = self.run_sql("SELECT * FROM ab_user", 'admin')

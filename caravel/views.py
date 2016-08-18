@@ -10,7 +10,7 @@ import re
 import sys
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import functools
 import pandas as pd
@@ -1528,13 +1528,24 @@ class Caravel(BaseCaravelView):
     @expose("/queries/<last_updated_ms>")
     @log_this
     def queries(self, last_updated_ms):
-        """Runs arbitrary sql and returns and json"""
+        """Get the updated queries."""
+
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
+
         # Unix time, milliseconds.
         if not last_updated_ms:
             last_updated_ms = 0
 
-        last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
-        print(last_updated_dt)
+        # Local date time, DO NOT USE IT.
+        # last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
+
+        # UTC date time, same that is stored in the DB.
+        last_updated_dt = utils.EPOCH + timedelta(
+            seconds=int(last_updated_ms) / 1000)
 
         s = db.session()
         sql_queries = s.query(models.Query).filter(
