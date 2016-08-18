@@ -20,17 +20,7 @@
 .panel.nopadding .panel-body {
     padding: 0px;
 }
-.panel {
-    width: 100%;
-    overflow: auto;
-    margin-bottom: 10px;
-}
-.SqlEditor .panel-heading {
-    padding: 5px;
-}
-.window.panel-heading {
-    padding: 1px 5px;
-}
+
 .loading {
     width: 50px;
     margin-top: 15px;
@@ -62,16 +52,11 @@ div.Workspace {
     background-color: orange;
     padding: 5px;
 }
-.sql-toolbar {
-    border-bottom: 1px solid #DDD;
-    border-top: 1px solid #DDD;
-}
+
 .padded {
     padding: 10px;
 }
-.nav-pills {
-    padding-bottom: 5px;
-}
+
 .p-t-10 {
     padding-top: 10px;
 }
@@ -111,19 +96,12 @@ div.Workspace {
     height: 100%;
     overflow: auto;
 }
-.ws-el .ws-el-controls { display: none; }
-.ws-el:hover .ws-el-controls { display: block; }
-.ws-el {
-    border-radius: 4px;
-    padding: 1px 6px;
-    border: 1px solid transparent;
-}
 .circle {
     border-radius: 50%;
     width: 10px;
     height: 10px;
     display: inline-block;
-    border: 1px solid #444;
+    background-color: #ccc;
 }
 .Pane2 {
     width: 0;
@@ -138,7 +116,6 @@ div.Workspace {
 .failed {
     background-color: red;
 }
-.ws-el:hover { border: 1px solid #DDD; }
 
 .handle {
     cursor: move;
@@ -151,15 +128,6 @@ div.Workspace {
     border: 1px solid #AAA;
     max-height: 600px;
     box-shadow: rgba(0, 0, 0, 0.8) 5px 5px 25px
-}
-
-.list-group-item {
-    padding: 5px 10px;
-}
-
-table {
-    font-size: 12px;
-    margin: 0px;
 }
 
 .SqlLab pre {
@@ -215,20 +183,13 @@ table {
     border-left: 5px solid rgba(0, 0, 0, 0.5);
     border-right: 5px solid rgba(0, 0, 0, 0.5);
 }
-Resizer.disabled {
+.Resizer.disabled {
     cursor: not-allowed;
 }
-Resizer.disabled:hover {
+.Resizer.disabled:hover {
     border-color: transparent;
 }
 
-a.Link {
-    padding: 7px 3px;
-}
-
-table .label {
-    margin-top: 5px;
-}
 .popover{
     max-width:400px;
 }
@@ -250,7 +211,8 @@ div.tablePopover:hover {
     padding-bottom: 3px;
     padding-top: 3px;
 }
-button.tab-caret {
-    padding: 5px !important;
-    border-color: transparent;
+
+.ace_editor {
+  border: 1px solid #ccc;
+  margin: 20px 0;
 }

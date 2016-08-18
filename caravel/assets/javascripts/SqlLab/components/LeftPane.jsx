@@ -14,44 +14,30 @@ const LeftPane = (props) => {
   } else {
     queryElements = (
       <Alert bsStyle="info">
-        Use the save button on the SQL editor to save a query into this section for
-        future reference
+        Use the save button on the SQL editor to save a query
+        into this section for future reference.
       </Alert>
     );
   }
   return (
-    <div className="panel panel-default LeftPane">
-      <div className="panel-heading">
-        <h6 className="m-r-10">
-          <i className="fa fa-flask" />
-          SQL Lab <Label bsStyle="danger">ALPHA</Label>
-        </h6>
-      </div>
-      <div className="panel-body">
-        <div>
-          <h6>
-            <span className="fa-stack">
-              <i className="fa fa-database fa-stack-lg"></i>
-              <i className="fa fa-search fa-stack-1x"></i>
-            </span> Saved Queries
-          </h6>
-          <div>
-            {queryElements}
+    <div>
+      <div className="panel panel-default LeftPane">
+        <div className="panel-heading">
+          <div className="panel-title">
+            Saved Queries
+            <div className="pull-right">
+              <Label bsStyle="danger">ALPHA</Label>
+            </div>
           </div>
-          <hr />
-          <Button onClick={props.actions.resetState.bind(this)}>
-            Reset State
-          </Button>
-          <Button
-            onClick={props.actions.addAlert.bind(this, {
-              msg: 'This info alert is a demo alert',
-              bsStyle: 'info',
-            })}
-          >
-            Add Alert
-          </Button>
+        </div>
+        <div className="panel-body">
+          {queryElements}
         </div>
       </div>
+      <br /><br />
+      <Button onClick={props.actions.resetState.bind(this)} bsStyle="danger">
+        Reset State
+      </Button>
     </div>
   );
 };

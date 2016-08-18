@@ -19,7 +19,7 @@ const SouthPane = (props) => {
     results = <div className="alert alert-info">Run a query to display results here</div>;
   }
   return (
-    <Tabs bsStyle="pills">
+    <Tabs bsStyle="tabs">
       <Tab title="Results" eventKey={1}>
         <div style={{ overflow: 'auto' }}>
           {results}
