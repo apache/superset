@@ -6,8 +6,7 @@ import React from 'react';
 import { render } from 'react-dom';
 import * as Actions from './actions';
 
-import SplitPane from 'react-split-pane';
-
+import { Label, Tab, Tabs } from 'react-bootstrap';
 import LeftPane from './components/LeftPane';
 import TabbedSqlEditors from './components/TabbedSqlEditors';
 import Alerts from './components/Alerts';
@@ -31,14 +30,14 @@ class App extends React.Component {
       <div className="App SqlLab">
         <div className="container-fluid">
           <Alerts alerts={this.props.alerts} />
-          <SplitPane split="vertical" minSize={200} defaultSize={300}>
-            <div className="pane-cell pane-west m-t-5">
+          <div className="row">
+            <div className="col-md-3">
               <LeftPane />
             </div>
-            <div className="pane-cell">
+            <div className="col-md-9">
               <TabbedSqlEditors />
             </div>
-          </SplitPane>
+          </div>
         </div>
       </div>
     );

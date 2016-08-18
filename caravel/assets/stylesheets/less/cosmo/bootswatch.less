@@ -24,13 +24,62 @@
 
 // Buttons ====================================================================
 
-.btn {
-  padding: 8px 12px 6px 12px;
-}
 .btn-default:hover {
   background-color: #efefef;
   border-color: #bbb;
 }
+
+.nav-tabs {
+  .dropdown-toggle.btn,
+  .dropdown-toggle.btn:hover,
+  .dropdown-toggle.btn:active,
+  .dropdown-toggle.btn:focus,
+  .btn-group.open .dropdown-toggle.btn,
+  .btn-group.open .dropdown-toggle.btn:hover,
+  .btn-group.open .dropdown-toggle.btn:active,
+  .btn-group.open .dropdown-toggle.btn:focus {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.caret {
+  border: none;
+  color: @gray;
+}
+
+.caret:before {
+  font-family: "FontAwesome";
+  font-size: 10px;
+  content: "\f078";
+}
+
+.caret:hover {
+  color: @gray-darker;
+}
+
+.dropdown-toggle.btn .caret {
+  margin-left: 6px;
+  margin-top: -21px;
+  margin-right: 6px;
+}
+
+.nav-tabs .dropdown-toggle.btn .caret,  {
+  margin-left: -12px;
+  margin-top: -10px;
+}
+
+.navbar-nav .caret,
+.panel-title .caret {
+  margin-left: 6px;
+  margin-top: -24px;
+  margin-right: 6px;
+}
+
+
+
+
 
 // Typography =================================================================
 
@@ -331,4 +380,9 @@ a.list-group-item {
   .success {
     color: @state-success-text;
   }
+}
+
+// Utils ==============================================================
+hr {
+  margin: 10px 0;
 }
