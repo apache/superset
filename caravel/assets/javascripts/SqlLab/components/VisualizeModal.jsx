@@ -40,8 +40,10 @@ class VisualizeModal extends React.Component {
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,
+      dbId: this.props.query.dbId,
     };
-    window.open('/caravel/sqllab_viz/?' + $.param(vizOptions));
+    console.log(vizOptions);
+    window.open('/caravel/sqllab_viz/?data=' + JSON.stringify(vizOptions));
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });

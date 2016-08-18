@@ -595,6 +595,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    sql = Column(Text)
     table_columns = relationship("TableColumn", back_populates="table")
 
     baselink = "tablemodelview"
@@ -777,6 +778,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         tbl = table(self.table_name)
         if self.schema:
             tbl.schema = self.schema
+
+        # Supporting arbitrary SQL statements in place of tables
+        if self.sql:
+            tbl = text('(' + self.sql + ') as expr_qry ')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)

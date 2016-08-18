@@ -477,7 +477,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema',
+        'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
@@ -490,6 +490,10 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
+        'sql': (
+            "This fields acts a Caravel view, meaning that Caravel will "
+            "run a query against this string as a subquery."
+        ),
     }
     base_filters = [['id', TableSlice, lambda: []]]
     label_columns = {
@@ -1262,7 +1266,39 @@ class Caravel(BaseCaravelView):
     @expose("/sqllab_viz/")
     @log_this
     def sqllab_viz(self):
-        return json.dumps(request.args.to_dict(), indent=4)
+        data = json.loads(request.args.get('data'))
+        table_name = data.get('datasourceName')
+        table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
+        if not table:
+            table = models.SqlaTable(
+                table_name=table_name,
+            )
+        table.database_id = data.get('dbId')
+        table.sql = data.get('sql')
+        db.session.add(table)
+        cols = []
+        metrics = []
+        for column_name, config in data.get('columns').items():
+            is_dim = config.get('is_dim', False)
+            cols.append(models.TableColumn(
+                column_name=column_name,
+                filterable=is_dim,
+                groupby=is_dim,
+            ))
+            agg = config.get('agg')
+            if agg:
+                metrics.append(models.SqlMetric(
+                    metric_name="{agg}__{column_name}".format(**locals()),
+                    expression="{agg}({column_name})".format(**locals()),
+                ))
+        metrics.append(models.SqlMetric(
+            metric_name="count".format(**locals()),
+            expression="count(*)".format(**locals()),
+        ))
+        table.columns = cols
+        table.metrics = metrics
+        db.session.commit()
+        return redirect('/caravel/explore/table/{table.id}/'.format(**locals()))
 
     @has_access
     @expose("/sql/<database_id>/")
