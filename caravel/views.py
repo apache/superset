@@ -1489,34 +1489,32 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/queries/", methods=['GET'])
+    @expose("/queries/<last_updated_ms>")
     @log_this
-    def queries(self):
+    def queries(self, last_updated_ms):
         """Runs arbitrary sql and returns and json"""
-        last_updated = request.form.get('timestamp')
+        # Unix time, milliseconds.
+        if not last_updated_ms:
+            last_updated_ms = 0
+
+        last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
+        print(last_updated_dt)
+
         s = db.session()
-        query = s.query(models.Query).filter_by(id=query_id).first()
-        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
+        sql_queries = s.query(models.Query).filter(
+            models.Query.user_id == g.user.get_id() or
+            models.Query.changed_on >= last_updated_dt)
 
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
-
-        if query:
+        if sql_queries:
+            dict_queries = [q.to_dict() for q in sql_queries]
             return Response(
-                json.dumps({
-                    'status': query.status,
-                    'progress': query.progress
-                }),
+                json.dumps(dict_queries, default=utils.json_int_dttm_ser),
                 status=200,
                 mimetype="application/json")
 
         return Response(
             json.dumps({
-                'error': "Query with id {} wasn't found".format(query_id),
+                'error': "No updates for the user {}".format(g.user.get_id()),
             }),
             status=404,
             mimetype="application/json")

@@ -1789,3 +1789,22 @@ class Query(Model):
     error_message = Column(Text)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'database_id': self.database_id,
+            'tab_name': self.tab_name,
+            'user_id': self.user_id,
+            'status': self.status,
+            'schema': self.schema,
+            'sql': self.sql,
+            'limit': self.limit,
+            'progress': self.progress,
+            'error_message': self.error_message,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'changed_on': self.end_time
+        }
