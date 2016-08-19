@@ -293,3 +293,19 @@ Upgrading should be as straightforward as running::
 
     pip install caravel --upgrade
     caravel db upgrade
+
+
+Making your own build
+---------------------
+
+For more advanced users, you may want to build Caravel from sources. That
+would be the case if you fork the project to add features specific to
+your environment.::
+
+    # assuming $CARAVEL_HOME as the root of the repo
+    cd $CARAVEL_HOME/caravel/assets
+    npm install
+    npm run prod
+    cd $CARAVEL_HOME
+    python setup.py install
+
