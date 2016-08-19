@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import logging
 from datetime import datetime
 from subprocess import Popen
+from collections import defaultdict
 
 from flask_migrate import MigrateCommand
 from flask_script import Manager
@@ -133,27 +134,31 @@ def synctable(prefix):
     existing_tables = []
     for row in db.session.query(caravel.models.SqlaTable).all():
         existing_tables += [(row.database.database_name, row.name)]
-    all_tables = []
+
+    insert_dict = defaultdict(list)
     for caravel_db in db.session.query(caravel.models.Database).all():
         for table_name in caravel_db.get_sqla_engine().table_names():
-            all_tables += [(caravel_db.database_name, table_name)]
+            table = (caravel_db.database_name, table_name)
+
+            if (table not in existing_tables) and table_name.startswith(prefix):
+                insert_dict[caravel_db].append(table_name)
     
-    all_tables = [row for row in all_tables if row[1].startswith(prefix)]
-    
-    need_insert = list(set(all_tables) - set(existing_tables))
+    count_insert = 0
+    for caravel_db, tables in insert_dict.items():
+        for table_name in tables:
+            count_insert += 1
 
-    for db_name, table_name in need_insert:
-        tbl = caravel.models.SqlaTable(table_name=table_name)
-        tbl.description = ""
-        tbl.is_featured = False
-        tbl.database = db.session.query(caravel.models.Database).filter_by(database_name=db_name).first()
-        db.session.merge(tbl)
-        db.session.commit()
-        tbl.fetch_metadata()
+            tbl = caravel.models.SqlaTable(table_name=table_name)
+            tbl.description = ""
+            tbl.is_featured = False
+            tbl.database = caravel_db
+            db.session.merge(tbl)
+            db.session.commit()
+            tbl.fetch_metadata()
 
-        print("[{db}] {table} insert success.".format(db=db_name, table=table_name))
+            print("[{db}] {table} insert success.".format(db=caravel_db.database_name, table=table_name))
 
-    print("[{}] Sync table complete.".format(len(need_insert)))
+    print("[{}] Sync table complete.".format(count_insert))
 
 if __name__ == "__main__":
     manager.run()
