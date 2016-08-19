@@ -129,20 +129,32 @@ def refresh_druid():
 @manager.option(
     '-p', '--prefix', default='data_',
     help="Sync Table Prefix")
-def synctable(prefix):
+@manager.option(
+    '-d', '--database',
+    help="Specifies database")
+def synctable(prefix, database=None):
     ''' Sync DB Table with Caravel Table'''
     existing_tables = []
     for row in db.session.query(caravel.models.SqlaTable).all():
         existing_tables += [(row.database.database_name, row.name)]
 
     insert_dict = defaultdict(list)
-    for caravel_db in db.session.query(caravel.models.Database).all():
+
+    if database is None:
+        caravel_dbs = db.session.query(caravel.models.Database).all()
+    else:
+        caravel_dbs = (db.session.query(caravel.models.Database)
+                                 .filter_by(database_name=database).all())
+    
+    # Get all need insert table
+    for caravel_db in caravel_dbs:
         for table_name in caravel_db.get_sqla_engine().table_names():
             table = (caravel_db.database_name, table_name)
 
             if (table not in existing_tables) and table_name.startswith(prefix):
                 insert_dict[caravel_db].append(table_name)
     
+    # Insert to caravel tables
     count_insert = 0
     for caravel_db, tables in insert_dict.items():
         for table_name in tables:
@@ -156,7 +168,10 @@ def synctable(prefix):
             db.session.commit()
             tbl.fetch_metadata()
 
-            print("[{db}] {table} insert success.".format(db=caravel_db.database_name, table=table_name))
+            print("[{db}] {table} insert success.".format(
+                db=caravel_db.database_name, 
+                table=table_name
+            ))
 
     print("[{}] Sync table complete.".format(count_insert))
 
