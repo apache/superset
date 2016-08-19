@@ -747,7 +747,7 @@ appbuilder.add_view(
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
-    list_columns = ['dashboard_link', 'creator', 'modified']
+    list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
     label_columns = {
         'dashboard_link': 'Dashboard',
     }
