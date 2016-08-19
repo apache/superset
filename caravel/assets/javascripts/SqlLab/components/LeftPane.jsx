@@ -21,33 +21,26 @@ const LeftPane = (props) => {
     );
   }
   return (
-    <div className="panel panel-default LeftPane">
-      <div className="panel-heading">
-        <div className="panel-title">
-          <i className="fa fa-flask" />
-          SQL Lab
-          <div className="pull-right">
-            <Label bsStyle="danger">ALPHA</Label>
+    <div>
+      <div className="panel panel-default LeftPane">
+        <div className="panel-heading">
+          <div className="panel-title">
+            Saved Queries
+            <div className="pull-right">
+              <Label bsStyle="danger">ALPHA</Label>
+            </div>
           </div>
         </div>
-      </div>
-      <div className="panel-body">
-        <div>
-          <h6>
-            <span className="fa-stack">
-              <i className="fa fa-database fa-stack-lg"></i>
-              <i className="fa fa-search fa-stack-1x"></i>
-            </span> Saved Queries
-          </h6>
-          <div>
+        <div className="panel-body">
+          <div className="list-group">
             {queryElements}
           </div>
-          <hr />
-          <Button onClick={props.actions.resetState.bind(this)}>
-            Reset State
-          </Button>
         </div>
       </div>
+      <br /><br />
+      <Button onClick={props.actions.resetState.bind(this)} bsStyle="danger">
+        Reset State
+      </Button>
     </div>
   );
 };
