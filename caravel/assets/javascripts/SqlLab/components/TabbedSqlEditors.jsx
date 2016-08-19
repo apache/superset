@@ -27,7 +27,6 @@ class QueryEditors extends React.Component {
   newQueryEditor() {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
-    console.log(activeQueryEditor);
     const qe = {
       id: shortid.generate(),
       title: `Query ${queryCount}`,

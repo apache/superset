@@ -42,14 +42,12 @@ class VisualizeModal extends React.Component {
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-    console.log(vizOptions);
     window.open('/caravel/sqllab_viz/?data=' + JSON.stringify(vizOptions));
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });
   }
   changeCheckbox(attr, col, event) {
-    console.log([attr, col, event]);
     let columns = this.mergedColumns();
     const column = Object.assign({}, columns[col], { [attr]: event.target.checked });
     columns = Object.assign({}, columns, { [col]: column });
@@ -63,7 +61,6 @@ class VisualizeModal extends React.Component {
     this.setState({ columns });
   }
   render() {
-    console.log(this.state);
     if (!(this.props.query)) {
       return <div />;
     }

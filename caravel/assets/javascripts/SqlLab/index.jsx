@@ -45,6 +45,11 @@ class App extends React.Component {
   }
 }
 
+App.propTypes = {
+  alerts: React.PropTypes.array,
+};
+
+
 function mapStateToProps(state) {
   return {
     alerts: state.alerts,
