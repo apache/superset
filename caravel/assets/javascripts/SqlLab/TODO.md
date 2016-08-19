@@ -6,6 +6,9 @@
 * Get a to work
 
 ## Cosmetic
+* Result set font is too big
+* lmiit/timer/buttons wrap
+* table label is transparent
 * SqlEditor buttons
 * use react-bootstrap-prompt for query title input
 * Make tabs look great
