@@ -143,13 +143,7 @@ def synctable(prefix, database):
         if check_status not in ['y', 'yes']:
             print("Exit sync table")
             exit()
-
-    existing_tables = []
-    for row in db.session.query(caravel.models.SqlaTable).all():
-        existing_tables += [(row.database.database_name, row.name)]
-
-    insert_dict = defaultdict(list)
-
+            
     if database is None:
         caravel_dbs = db.session.query(caravel.models.Database).all()
     else:
@@ -160,7 +154,12 @@ def synctable(prefix, database):
         print("Database not exists, please check database name")
         exit()
 
+    existing_tables = []
+    for row in db.session.query(caravel.models.SqlaTable).all():
+        existing_tables += [(row.database.database_name, row.name)]
+
     # Get all need insert table
+    insert_dict = defaultdict(list)
     for caravel_db in caravel_dbs:
         for table_name in caravel_db.get_sqla_engine().table_names():
             table = (caravel_db.database_name, table_name)
