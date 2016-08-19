@@ -131,7 +131,7 @@ def refresh_druid():
     help="Sync Table Prefix")
 @manager.option(
     '-d', '--database',
-    help="Specifies database")
+    help="Specifies database (use caravel db name, not real db name)")
 def synctable(prefix, database=None):
     ''' Sync DB Table with Caravel Table'''
     existing_tables = []
