@@ -54,3 +54,10 @@ increase the default (50), you can specify the timeout when starting the
 web server with the ``-t`` flag, which is expressed in seconds.
 
 ``caravel runserver -t 300``
+
+
+Why is the map not visible in the mapbox visualization?
+-------------------------------------------------------
+
+You need to register to mapbox.com, get an API key and configure it as
+``MAPBOX_API_KEY`` in ``caravel_config.py``.

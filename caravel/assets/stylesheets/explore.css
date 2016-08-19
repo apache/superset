@@ -9,33 +9,19 @@
     background-color: #fff;
 }
 
-.slice-name__container {
-  background-color: #fff;
-  padding: 16px 20px 20px 20px;
-}
-.slice-name__text {
-  color: #333;
-  font-size: 20px;
-  border-bottom: 1px solid #aaa;
-  padding-bottom: 10px;
-  padding-left: 42px;
-  font-weight: bold;
-}
-
-.edit-slice-description-icon {
-  float: left;
-  margin-top: -33px;
-  margin-left: 20px;
-}
-
-.slice-meta {
-  margin-top: -52px;
-}
-
 .navbar {
   margin-bottom: 22px;
 }
 
 .query-and-save-btns-container {
   margin-bottom: 22px;
+}
+
+.star-edit-icons {
+  padding-left: 10px;
+}
+
+.slice-meta-controls {
+  margin-top: -5px;
+  margin-right: -5px;
 }

@@ -817,6 +817,18 @@ class FormFactory(object):
                     "[integer] Number of period to compare against, "
                     "this is relative to the granularity selected")
             }),
+            'period_ratio_type': (SelectField, {
+                "label": _("Period Ratio Type"),
+                "default": 'growth',
+                "choices": (
+                    ('factor', _('factor')),
+                    ('growth', _('growth')),
+                    ('value', _('value')),
+                ),
+                "description": _(
+                    "`factor` means (new/previous), `growth` is "
+                    "((new/previous) - 1), `value` is (new-previous)")
+            }),
             'time_compare': (TextField, {
                 "label": _("Time Shift"),
                 "default": "",
