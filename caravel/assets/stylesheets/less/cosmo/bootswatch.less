@@ -1,11 +1,8 @@
-// Cosmo 3.3.7
+// Forked Cosmo 3.3.7
 // Bootswatch
 // -----------------------------------------------------
 
-// @web-font-path: "https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,700";
-
 @web-font-path: "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700";
-
 
 .web-font(@path) {
   @import url("@{path}");
@@ -29,6 +26,10 @@
 
 .btn {
   padding: 8px 12px 6px 12px;
+}
+.btn-default:hover {
+  background-color: #efefef;
+  border-color: #bbb;
 }
 
 // Typography =================================================================
@@ -155,6 +156,9 @@ table,
     border: 1px solid @brand-success;
   }
 }
+.label-default {
+  color: @btn-default-color;
+}
 
 // Navs =======================================================================
 
@@ -188,17 +192,27 @@ table,
 
 .alert {
   border: none;
+}
+.alert-link {
+  text-decoration: underline;
+}
 
-  .alert-link {
-    text-decoration: underline;
-    color: #fff;
-  }
+.alert-info .alert-link {
+  color: @alert-info-text;
+}
+.alert-danger .alert-link {
+  color: @alert-danger-text;
+}
+.alert-warning .alert-link {
+  color: @alert-warning-text;
+}
+.alert-success .alert-link {
+  color: @alert-success-text;
 }
 
 .label {
   border-radius: 0;
 }
-
 label {
   font-weight: normal;
 }
@@ -300,4 +314,21 @@ a.list-group-item {
 
 .tab-content {
   padding-top: 20px;
+}
+
+// Tables ==============================================================
+
+.table {
+  .info {
+    color: @state-info-text;
+  }
+  .danger {
+    color: @state-danger-text;
+  }
+  .warning {
+    color: @state-warning-text;
+  }
+  .success {
+    color: @state-success-text;
+  }
 }
