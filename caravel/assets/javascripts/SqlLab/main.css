@@ -96,13 +96,6 @@ div.Workspace {
     height: 100%;
     overflow: auto;
 }
-.ws-el .ws-el-controls { display: none; }
-.ws-el:hover .ws-el-controls { display: block; }
-.ws-el {
-    border-radius: 4px;
-    padding: 1px 6px;
-    border: 1px solid transparent;
-}
 .circle {
     border-radius: 50%;
     width: 10px;
@@ -123,7 +116,6 @@ div.Workspace {
 .failed {
     background-color: red;
 }
-.ws-el:hover { border: 1px solid #DDD; }
 
 .handle {
     cursor: move;

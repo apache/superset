@@ -22,23 +22,26 @@ class QueryLink extends React.Component {
   }
   render() {
     return (
-      <div className="ws-el">
-        {this.props.query.title}
-        <ButtonGroup className="ws-el-controls pull-right">
-          <Link
-            className="fa fa-plus-circle"
-            onClick={this.popTab.bind(this)}
-            tooltip="Pop this query in a new tab"
-            href="#"
-          />
-          <Link
-            className="fa fa-trash"
-            onClick={this.props.actions.removeWorkspaceQuery.bind(this, this.props.query)}
-            tooltip="Remove query from workspace"
-            href="#"
-          />
-        </ButtonGroup>
-      </div>
+      <a
+        href="#"
+        tooltip="Pop this query in a new tab"
+        onClick={this.popTab.bind(this)}
+        className="list-group-item"
+      >
+        <div className="row">
+          <div className="col-md-9">
+            {this.props.query.title}
+          </div>
+          <div className="col-md-3 text-right">
+            <Link
+              className="fa fa-trash"
+              onClick={this.props.actions.removeWorkspaceQuery.bind(this, this.props.query)}
+              tooltip="Remove query from workspace"
+              href="#"
+            />
+          </div>
+        </div>
+      </a>
     );
   }
 }
