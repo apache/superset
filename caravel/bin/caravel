@@ -152,7 +152,7 @@ def synctable(prefix):
             tbl.description = ""
             tbl.is_featured = False
             tbl.database = caravel_db
-            db.session.merge(tbl)
+            db.session.add(tbl)
             db.session.commit()
             tbl.fetch_metadata()
 
