@@ -193,5 +193,6 @@ div.widget .slice_container {
 
 .navbar .alert {
     padding: 5px 10px;
-    margin-top: 15px;
+    margin-top: 8px;
+    margin-bottom: 0px
 }
