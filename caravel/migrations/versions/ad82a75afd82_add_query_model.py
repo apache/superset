@@ -43,10 +43,9 @@ def upgrade():
     )
     op.add_column('dbs', sa.Column('select_as_create_table_as', sa.Boolean(),
                                    nullable=True))
-    op.create_index(op.f('ix_query_changed_on'), 'query', ['changed_on'],
-                    unique=False)
     op.create_index(
-        op.f('ix_query_user_id'), 'query', ['user_id'], unique=False)
+        op.f('ti_user_id_changed_on'),
+        'query', ['user_id', 'changed_on'], unique=False)
 
 
 def downgrade():

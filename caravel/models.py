@@ -1769,7 +1769,7 @@ class Query(Model):
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
     user_id = Column(
-        Integer, ForeignKey('ab_user.id'), nullable=True, index=True)
+        Integer, ForeignKey('ab_user.id'), nullable=True)
 
     # models.QueryStatus
     status = Column(String(16))
@@ -1796,8 +1796,11 @@ class Query(Model):
     start_time = Column(DateTime)
     end_time = Column(DateTime)
     changed_on = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True,
-        index=True)
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    __table_args__ = (
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
+    )
 
     def to_dict(self):
         return {
