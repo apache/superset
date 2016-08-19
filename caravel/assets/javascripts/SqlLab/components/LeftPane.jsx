@@ -32,9 +32,7 @@ const LeftPane = (props) => {
           </div>
         </div>
         <div className="panel-body">
-          <div className="list-group">
-            {queryElements}
-          </div>
+          {queryElements}
         </div>
       </div>
       <br /><br />
