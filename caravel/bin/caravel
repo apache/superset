@@ -127,19 +127,30 @@ def refresh_druid():
     session.commit()
 
 @manager.option(
-    '-p', '--prefix', default='data_',
+    '-p', '--prefix', default="",
     help="Sync Table Prefix")
 @manager.option(
-    '-d', '--database',
+    '-d', '--database', default=None,
     help="Specifies database (use caravel db name, not real db name)")
-def synctable(prefix, database=None):
+def synctable(prefix, database):
     ''' Sync DB Table with Caravel Table'''
+    print("")
+    
+    if (prefix == "" and database is None) or (database == 'main' and prefix == ""):
+        print("If you not set prefix and db name, some system table may be sync to caravel.")
+        
+        check_status = raw_input("Are you sure do this? (Y/N)").lower().strip()
+        if check_status not in ['y', 'yes']:
+            print("Exit sync table")
+            exit()
+
     existing_tables = []
     for row in db.session.query(caravel.models.SqlaTable).all():
         existing_tables += [(row.database.database_name, row.name)]
 
     insert_dict = defaultdict(list)
 
+    # db exists?
     if database is None:
         caravel_dbs = db.session.query(caravel.models.Database).all()
     else:
