@@ -135,7 +135,7 @@ def refresh_druid():
 def synctable(prefix, database):
     ''' Sync DB Table with Caravel Table'''
     print("")
-    
+
     if (prefix == "" and database is None) or (database == 'main' and prefix == ""):
         print("If you not set prefix and db name, some system table may be sync to caravel.")
         
@@ -150,13 +150,16 @@ def synctable(prefix, database):
 
     insert_dict = defaultdict(list)
 
-    # db exists?
     if database is None:
         caravel_dbs = db.session.query(caravel.models.Database).all()
     else:
         caravel_dbs = (db.session.query(caravel.models.Database)
                                  .filter_by(database_name=database).all())
     
+    if caravel_dbs == []:
+        print("Database not exists, please check database name")
+        exit()
+
     # Get all need insert table
     for caravel_db in caravel_dbs:
         for table_name in caravel_db.get_sqla_engine().table_names():
