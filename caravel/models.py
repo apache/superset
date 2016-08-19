@@ -1768,7 +1768,8 @@ class Query(Model):
 
     # Store the tmp table into the DB only if the user asks for it.
     tmp_table_name = Column(String(256))
-    user_id = Column(Integer, ForeignKey('ab_user.id'), nullable=True)
+    user_id = Column(
+        Integer, ForeignKey('ab_user.id'), nullable=True)
 
     # models.QueryStatus
     status = Column(String(16))
@@ -1794,3 +1795,26 @@ class Query(Model):
     error_message = Column(Text)
     start_time = Column(DateTime)
     end_time = Column(DateTime)
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    __table_args__ = (
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'database_id': self.database_id,
+            'tab_name': self.tab_name,
+            'user_id': self.user_id,
+            'status': self.status,
+            'schema': self.schema,
+            'sql': self.sql,
+            'limit': self.limit,
+            'progress': self.progress,
+            'error_message': self.error_message,
+            'start_time': self.start_time,
+            'end_time': self.end_time,
+            'changed_on': self.end_time
+        }
