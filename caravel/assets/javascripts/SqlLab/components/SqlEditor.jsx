@@ -123,7 +123,7 @@ class SqlEditor extends React.Component {
     let runButtons = (
       <ButtonGroup className="inline m-r-5">
         <Button onClick={this.startQuery.bind(this)} disabled={!(this.props.queryEditor.dbId)}>
-          <i className="fa fa-table" /> Run
+          <i className="fa fa-table" /> Run Query
         </Button>
       </ButtonGroup>
     );
@@ -175,17 +175,28 @@ class SqlEditor extends React.Component {
       );
     }
     const editorBottomBar = (
-      <div className="clearfix sql-toolbar">
-        <div className="pull-left">
-          {runButtons}
-          <span className="inlineblock valignTop" style={{ height: '20px' }}>
-            <input type="text" className="form-control" placeholder="CREATE TABLE AS" />
-          </span>
-        </div>
-        <div className="pull-right">
-          {limitWarning}
-          <Timer query={this.props.latestQuery} />
-          {rightButtons}
+      <div className="sql-toolbar">
+        <div className="row">
+          <div className="col-md-4">
+            {runButtons}
+          </div>
+          <div className="col-md-6">
+            <div className="pull-right">
+              <div className="input-group">
+                <input type="text" className="form-control" placeholder="new table name" />
+                <span className="input-group-btn">
+                  <button className="btn btn-default" type="button">Save results as table</button>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div className="col-md-2">
+            <div className="pull-right">
+              {limitWarning}
+              <Timer query={this.props.latestQuery} />
+              {rightButtons}
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -208,9 +219,8 @@ class SqlEditor extends React.Component {
               value={this.props.queryEditor.sql}
             />
             {editorBottomBar}
-            <div className="padded">
-              <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
-            </div>
+            <br />
+            <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
           </div>
         </div>
       </div>
