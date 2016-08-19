@@ -174,6 +174,9 @@ export const sqlLabReducer = function (state, action) {
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
     },
+    [actions.REFRESH_QUERIES]() {
+      return state;
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
