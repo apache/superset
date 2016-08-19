@@ -5,10 +5,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
+import csv
 import doctest
 import json
 import imp
 import os
+import io
 import unittest
 
 from mock import Mock, patch
@@ -115,7 +117,8 @@ class CoreTests(CaravelTestCase):
         )}
 
     def setUp(self):
-        pass
+        db.session.query(models.Query).delete()
+
 
     def tearDown(self):
         pass
@@ -331,6 +334,13 @@ class CoreTests(CaravelTestCase):
             utils.CaravelSecurityException,
             self.run_sql, "SELECT * FROM ab_user", 'gamma')
 
+    def test_sql_json(self):
+        data = self.run_sql("SELECT * FROM ab_user", 'admin')
+        assert len(data['data']) > 0
+
+        data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
+        assert len(data['error']) > 0
+
     def test_sql_json_has_access(self):
         main_db = (
             db.session.query(models.Database).filter_by(database_name="main")
@@ -361,8 +371,30 @@ class CoreTests(CaravelTestCase):
         db.session.commit()
         assert len(data['data']) > 0
 
+    def test_csv_endpoint(self):
+        self.run_sql("SELECT first_name, last_name FROM ab_user", 'admin')
+
+        # No access if the user is not logged in.
+        self.assertRaises(
+            utils.CaravelSecurityException,  self.client.get, '/caravel/csv/1')
+
+        self.login('admin')
+        resp = self.client.get('/caravel/csv/1')
+        cr = csv.reader(io.TextIOWrapper(resp.data))
+
+        expected_data = csv.reader("""
+            first_name,last_name
+            admin, user
+            gamma, user
+            alpha, user
+        """.split('\n'))
+
+        self.assertEqual(expected_data, cr)
+        for row in cr:
+            print(row)
+        self.logout()
+
     def test_queries_endpoint(self):
-        db.session.query(models.Query).delete()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
@@ -391,15 +423,6 @@ class CoreTests(CaravelTestCase):
         self.logout()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
-
-        db.session.query(models.Query).delete()
-
-    def test_sql_json(self):
-        data = self.run_sql("SELECT * FROM ab_user", 'admin')
-        assert len(data['data']) > 0
-
-        data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
-        assert len(data['error']) > 0
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
