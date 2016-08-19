@@ -22,6 +22,7 @@ export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
+export const REFRESH_QUERIES = 'REFRESH_QUERIES';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -109,4 +110,7 @@ export function addWorkspaceQuery(query) {
 
 export function removeWorkspaceQuery(query) {
   return { type: REMOVE_WORKSPACE_QUERY, query };
+}
+export function refreshQueries(alteredQueries) {
+  return { type: REFRESH_QUERIES, alteredQueries };
 }
