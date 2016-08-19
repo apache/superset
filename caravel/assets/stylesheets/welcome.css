@@ -24,3 +24,12 @@ input {
   padding: 20px;
   background-color: #fff;
 }
+.search input {
+  width: 400px;
+}
+.search-container .fa-search {
+  float: left;
+  margin-left: -25px;
+  margin-top: 12px;
+  font-size: 18px;
+}

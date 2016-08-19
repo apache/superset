@@ -28,145 +28,147 @@
 
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
-      <div id="form_container" class="col-left-fixed">
-        <div
-          id="js-query-and-save-btns"
-          class="query-and-save-btns-container"
-          data-can-add="{{ can_add }}"
-        ></div>
+      <div id="form_container" class="row">
+        <div class="col-md-3">
+          <div
+            id="js-query-and-save-btns"
+            class="query-and-save-btns-container"
+            data-can-add="{{ can_add }}"
+          >
+          </div>
 
-        <div class="panel panel-default">
-          <div class="panel-heading">
-            <div class="panel-title">
-              Datasource & Chart Type
-            </div>
-          </div>
-          <div class="panel-body">
-            <div>
-              <!-- DATASOURCE -->
-              <span title="Data Source" data-toggle="tooltip">
-                <select id="datasource_id" class="select2">
-                  {% for ds in datasources %}
-                    <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
-                  {% endfor %}
-                </select>
-              </span>
-              <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
-                <i class="fa fa-edit m-l-3"></i>
-              </a>
-            </div>
-            <br/>
-            <!-- CHART TYPE -->
-            <div title="Visualization Type" data-toggle="tooltip">
-              {{ form.get_field("viz_type")(class_="select2-with-images") }}
-            </div>
-          </div>
-        </div>
-        {% for fieldset in form.fieldsets %}
-            <div class="panel panel-default">
-              {% if fieldset.label %}
-                <div class="panel-heading">
-                  <div class="panel-title">
-                    {{ fieldset.label }}
-                    {% if fieldset.description %}
-                      <i    class="fa fa-question-circle-o" data-toggle="tooltip"
-                            data-placement="bottom"
-                            title="{{ fieldset.description }}"></i>
-                    {% endif %}
-                  </div>
-                </div>
-              {% endif %}
-              <div class="panel-body">
-              {% for fieldname in fieldset.fields %}
-                {% if not fieldname %}
-                  <hr/>
-                {% elif fieldname is string %}
-                  {{ panofield(fieldname) }}
-                {% else %}
-                <div class="row">
-                  <div class="form-group">
-                    {% for name in fieldname %}
-                    <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-                      {% if name %}
-                        {{ panofield(name) }}
-                      {% endif %}
-                    </div>
-                    {% endfor %}
-                  </div>
-                </div>
-                {% endif %}
-              {% endfor %}
-              </div>
-            </div>
-          {% endfor %}
-          <div id="filter_panel" class="panel panel-default">
+          <div class="panel panel-default">
             <div class="panel-heading">
               <div class="panel-title">
-                {{ _("Filters") }}
-                <i  class="fa fa-question-circle-o" data-toggle="tooltip"
-                    data-placement="bottom"
-                    title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}">
-                </i>
+                Datasource & Chart Type
               </div>
             </div>
             <div class="panel-body">
-              <div id="flt0" style="display: none;">
-                <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
-                <div class="row">
-                  <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
-                  <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
-                  <button type="button" class="btn btn-default btn-sm remove" aria-label="Delete filter">
-                    <span class="fa fa-minus"  aria-hidden="true"></span>
-
-                  </button>
-                </div>
+              <div>
+                <!-- DATASOURCE -->
+                <span title="Data Source" data-toggle="tooltip">
+                  <select id="datasource_id" class="select2">
+                    {% for ds in datasources %}
+                      <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
+                    {% endfor %}
+                  </select>
+                </span>
+                <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
+                  <i class="fa fa-edit m-l-3"></i>
+                </a>
               </div>
-              <div id="filters"></div>
-              <button type="button" id="plus" class="btn btn-default btn-sm" aria-label="Add a filter">
-                <span class="fa fa-plus" aria-hidden="true"></span>
-                <span>{{ _("Add filter") }}</span>
-              </button>
+              <br/>
+              <!-- CHART TYPE -->
+              <div title="Visualization Type" data-toggle="tooltip">
+                {{ form.get_field("viz_type")(class_="select2-with-images") }}
+              </div>
             </div>
           </div>
-
-
-          {% if form.having_col_0 %}
-            <div id="having_panel" class="panel panel-default">
+          {% for fieldset in form.fieldsets %}
+              <div class="panel panel-default">
+                {% if fieldset.label %}
+                  <div class="panel-heading">
+                    <div class="panel-title">
+                      {{ fieldset.label }}
+                      {% if fieldset.description %}
+                        <i class="fa fa-question-circle-o" data-toggle="tooltip"
+                              data-placement="bottom"
+                              title="{{ fieldset.description }}"></i>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="panel-body">
+                  {% for fieldname in fieldset.fields %}
+                    {% if not fieldname %}
+                      <hr/>
+                    {% elif fieldname is string %}
+                      {{ panofield(fieldname) }}
+                    {% else %}
+                      <div class="row">
+                        <div class="form-group">
+                          {% for name in fieldname %}
+                          <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                            {% if name %}
+                              {{ panofield(name) }}
+                            {% endif %}
+                          </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+            <div id="filter_panel" class="panel panel-default">
               <div class="panel-heading">
                 <div class="panel-title">
-                  Result Filters ("having" filters)
-                  <i
-                    class="fa fa-info-circle"
-                    data-toggle="tooltip"
-                    data-placement="bottom"
-                    title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                  {{ _("Filters") }}
+                  <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}">
                   </i>
                 </div>
               </div>
               <div class="panel-body">
-                <div id="having0" style="display: none;">
-                  <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
+                <div id="flt0" style="display: none;">
+                  <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
                   <div class="row">
-                    <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
-                    <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
-                    <button type="button"
-                            class="btn btn-default btn-sm remove"
-                            aria-label="Delete filter">
-                                  <span class="fa fa-minus"
-                                        aria-hidden="true"></span>
+                    <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+                    <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+                    <button type="button" class="btn btn-default btn-sm remove" aria-label="Delete filter">
+                      <span class="fa fa-minus"  aria-hidden="true"></span>
+
                     </button>
                   </div>
                 </div>
                 <div id="filters"></div>
-                <button type="button" id="plus"
-                        class="btn btn-default btn-sm"
-                        aria-label="Add a filter">
+                <button type="button" id="plus" class="btn btn-default btn-sm" aria-label="Add a filter">
                   <span class="fa fa-plus" aria-hidden="true"></span>
-                  <span>Add filter</span>
+                  <span>{{ _("Add filter") }}</span>
                 </button>
               </div>
             </div>
-          {% endif %}
+
+
+            {% if form.having_col_0 %}
+              <div id="having_panel" class="panel panel-default">
+                <div class="panel-heading">
+                  <div class="panel-title">
+                    Result Filters ("having" filters)
+                    <i
+                      class="fa fa-info-circle"
+                      data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                    </i>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div id="having0" style="display: none;">
+                    <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
+                    <div class="row">
+                      <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
+                      <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
+                      <button type="button"
+                              class="btn btn-default btn-sm remove"
+                              aria-label="Delete filter">
+                                    <span class="fa fa-minus"
+                                          aria-hidden="true"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="filters"></div>
+                  <button type="button" id="plus"
+                          class="btn btn-default btn-sm"
+                          aria-label="Add a filter">
+                    <span class="fa fa-plus" aria-hidden="true"></span>
+                    <span>Add filter</span>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
           {{ form.slice_id() }}
           {{ form.slice_name() }}
           {{ form.collapsed_fieldsets() }}
@@ -178,41 +180,44 @@
           <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
           <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
       </div>
-
-      <div class="col-offset">
+      <div class="col-md-9">
         {% block messages %}{% endblock %}
         {% include 'appbuilder/flash.html' %}
         <div class="panel panel-default">
           <div class="panel-heading">
-            <div class="row">
-              {% if slice %}
+            <div class="panel-title">
+              <div class="row">
                 <div class="col-md-6">
-                  <div class="panel-title">
-                    <h5>
-                      {{ slice.slice_name }}
-                      <small class="star-edit-icons">
-                        <span class="favstar" obj_id="{{ slice.id }}"></span>
-                        <span>
-                          <a
-                            href="/slicemodelview/edit/{{ slice.id }}"
-                            data-toggle="tooltip"
-                            title="Edit Description"
-                            class="edit-slice-description-icon"
-                          >
-                            {% if slice.description %}
-                              <i
-                                class="fa fa-question-circle-o"
-                                data-toggle="tooltip"
-                                data-placement="bottom"
-                                title="{{ slice.description }}">
-                              </i>
-                            {% endif %}
-                            <i class="fa fa-edit"></i>
-                          </a>
-                        </span>
-                      </small>
-                    </h5>
-                  </div>
+                  {% if slice %}
+                    {% if slice.slice_name %}
+                      <h2>
+                        {{ slice.slice_name }}
+                        <small class="star-edit-icons">
+                          <span class="favstar" obj_id="{{ slice.id }}"></span>
+                          <span>
+                            <a
+                              href="/slicemodelview/edit/{{ slice.id }}"
+                              data-toggle="tooltip"
+                              title="Edit Description"
+                              class="edit-slice-description-icon"
+                            >
+                              {% if slice.description %}
+                                <i
+                                  class="fa fa-question-circle-o"
+                                  data-toggle="tooltip"
+                                  data-placement="bottom"
+                                  title="{{ slice.description }}">
+                                </i>
+                              {% endif %}
+                              <i class="fa fa-edit"></i>
+                            </a>
+                          </span>
+                        </small>
+                      </h2>
+                    {% else %}
+                      <h2>untitled</h2>
+                    {% endif %}
+                  {% endif %}
                 </div>
                 <div class="col-md-6">
                   <div class="slice-meta-controls pull-right">
@@ -234,24 +239,24 @@
                         <i class="fa fa-file-text-o"></i>.csv
                       </span>
                       <span
-                          class="btn btn-warning notbtn"
-                          id="timer"
-                          title="{{ _("Query timer") }}"
-                          data-toggle="tooltip">
+                        class="btn btn-warning notbtn"
+                        id="timer"
+                        title="{{ _("Query timer") }}"
+                        data-toggle="tooltip">
                         {{ _("0 sec") }}
                       </span>
                       <span
-                          class="btn btn-info disabled view_query"
-                          data-toggle="modal"
-                          data-target="#query_modal">
-                          <span data-toggle="tooltip" title="{{ _("View database query") }}">
-                            {{ _("query") }}
-                          </span>
+                        class="btn btn-info disabled view_query"
+                        data-toggle="modal"
+                        data-target="#query_modal">
+                        <span data-toggle="tooltip" title="{{ _("View database query") }}">
+                          {{ _("query") }}
+                        </span>
                       </span>
                     </div>
                   </div>
                 </div>
-              {% endif %}
+              </div>
             </div>
           </div>
           <div class="panel-body">
@@ -337,7 +342,7 @@
               <input type="text" name="new_dashboard_name" placeholder="[dashboard name]">  <br><br>
             </div>
             <div class="modal-footer">
-              <button type="button" id="btn_modal_save" class="btn btn-primary pull-left">
+              <button type="button" id="btn_modal_save" class="btn pull-left">
                 {{ _("Save") }}
               </button>
               <button type="button" id="btn_modal_save_goto_dash" class="btn btn-primary pull-left gotodash" disabled>
