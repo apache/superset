@@ -216,3 +216,8 @@ div.tablePopover:hover {
   border: 1px solid #ccc;
   margin: 20px 0;
 }
+
+.Select-menu-outer {
+    min-width: 100%;
+    width: inherit;
+}

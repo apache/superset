@@ -12,13 +12,8 @@ import { github } from 'react-syntax-highlighter/dist/styles';
 
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
+import { STATE_BSSTYLE_MAP } from '../common.js';
 
-// TODO move to CSS
-const STATE_COLOR_MAP = {
-  failed: 'red',
-  running: 'lime',
-  success: 'green',
-};
 
 class QueryTable extends React.Component {
   constructor(props) {
@@ -35,6 +30,9 @@ class QueryTable extends React.Component {
     this.setState({ showVisualizeModal: true });
     this.setState({ activeQuery: query });
   }
+  notImplemented() {
+    alert('Not implemented yet!');
+  }
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
@@ -48,8 +46,7 @@ class QueryTable extends React.Component {
       q.sql = <SyntaxHighlighter language="sql" style={github}>{q.sql}</SyntaxHighlighter>;
       q.state = (
         <span
-          className="label label-default"
-          style={{ backgroundColor: STATE_COLOR_MAP[q.state] }}
+          className={"label label-" + STATE_BSSTYLE_MAP[q.state]}
         >
           {q.state}
         </span>
@@ -57,14 +54,23 @@ class QueryTable extends React.Component {
       q.actions = (
         <div>
           <Link
-            className="fa fa-line-chart fa-lg"
+            className="fa fa-line-chart"
             tooltip="Visualize the data out of this query"
             onClick={this.showVisualizeModal.bind(this, query)}
             href="#"
           />
           <Link
+            className="fa fa-pencil"
+            onClick={self.notImplemented}
+            tooltip="Overwrite text in editor with a query on this table"
+            placement="top"
+            href="#"
+          />
+          <Link
             className="fa fa-plus-circle"
-            tooltip="Pop a tab containing this query"
+            onClick={self.notImplemented}
+            tooltip="Run query in a new tab"
+            placement="top"
             href="#"
           />
           <Link
@@ -72,11 +78,6 @@ class QueryTable extends React.Component {
             href="#"
             tooltip="Remove query from log"
             onClick={this.props.actions.removeQuery.bind(this, query)}
-          />
-          <Link
-            className="fa fa-map-pin"
-            tooltip="Pin this query to the top of this query log"
-            href="#"
           />
         </div>
       );

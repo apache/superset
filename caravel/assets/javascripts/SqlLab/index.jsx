@@ -31,11 +31,11 @@ class App extends React.Component {
         <div className="container-fluid">
           <Alerts alerts={this.props.alerts} />
           <div className="row">
-            <div className="col-md-3">
-              <LeftPane />
-            </div>
             <div className="col-md-9">
               <TabbedSqlEditors />
+            </div>
+            <div className="col-md-3">
+              <LeftPane />
             </div>
           </div>
         </div>

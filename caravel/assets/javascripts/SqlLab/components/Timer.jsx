@@ -1,6 +1,7 @@
 import React from 'react';
 import moment from 'moment';
 
+import { STATE_BSSTYLE_MAP } from '../common.js';
 
 class Timer extends React.Component {
   constructor(props) {
@@ -44,7 +45,7 @@ class Timer extends React.Component {
     let timerSpan = null;
     if (this.props && this.props.query) {
       timerSpan = (
-        <span className={'label label-warning inlineBlock m-r-5 ' + this.props.query.state}>
+        <span className={'inlineBlock m-r-5 label label-' + STATE_BSSTYLE_MAP[this.props.query.state]}>
           {this.state.clockStr}
         </span>
       );

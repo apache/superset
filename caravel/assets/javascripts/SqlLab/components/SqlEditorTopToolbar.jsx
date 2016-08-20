@@ -123,7 +123,7 @@ class SqlEditorTopToolbar extends React.Component {
         schema: qe.schema,
         columns: data.columns,
         expanded: true,
-        showPopup: false,
+        showPopup: true,
       });
     })
     .fail(() => {
@@ -184,7 +184,12 @@ class SqlEditorTopToolbar extends React.Component {
       );
       return (
         <Label className="m-r-5 table-label" style={{ fontSize: '100%' }}>
-          <OverlayTrigger trigger="click" placement="bottom" overlay={popover} ref={popoverId}>
+          <OverlayTrigger
+              trigger="click"
+              placement="bottom"
+              overlay={popover}
+              ref={popoverId}
+            >
             <span className="m-r-5" style={{ cursor: 'pointer' }}>
               {table.name}
             </span>

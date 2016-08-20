@@ -13,6 +13,7 @@ class Link extends React.Component {
       <a
         href={this.props.href}
         onClick={this.props.onClick}
+        style={this.props.style}
         className={'Link ' + this.props.className}
       >
           {this.props.children}
@@ -34,12 +35,13 @@ class Link extends React.Component {
   }
 }
 Link.propTypes = {
+  children: React.PropTypes.object,
   className: React.PropTypes.string,
   href: React.PropTypes.string,
   onClick: React.PropTypes.func,
-  tooltip: React.PropTypes.string,
   placement: React.PropTypes.string,
-  children: React.PropTypes.object,
+  style: React.PropTypes.object,
+  tooltip: React.PropTypes.string,
 };
 Link.defaultProps = {
   disabled: false,
