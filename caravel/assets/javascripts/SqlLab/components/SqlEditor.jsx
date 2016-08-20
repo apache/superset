@@ -108,7 +108,7 @@ class SqlEditor extends React.Component {
   visualize() {}
   render() {
     let runButtons = (
-      <ButtonGroup className="inline m-r-5">
+      <ButtonGroup className="inline m-r-5 pull-left">
         <Button onClick={this.startQuery.bind(this)} disabled={!(this.props.queryEditor.dbId)}>
           <i className="fa fa-table" /> Run Query
         </Button>
@@ -116,7 +116,7 @@ class SqlEditor extends React.Component {
     );
     if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
       runButtons = (
-        <ButtonGroup className="inline m-r-5">
+        <ButtonGroup className="inline m-r-5 pull-left">
           <Button onClick={this.stopQuery.bind(this)}>
             <a className="fa fa-stop" /> Stop
           </Button>
@@ -164,11 +164,9 @@ class SqlEditor extends React.Component {
     const editorBottomBar = (
       <div className="sql-toolbar">
         <div className="row">
-          <div className="col-md-4">
+          <div className="col-md-8">
             {runButtons}
-          </div>
-          <div className="col-md-6">
-            <div className="pull-right">
+            <div className="pull-left">
               <div className="input-group">
                 <input type="text" className="form-control" placeholder="new table name" />
                 <span className="input-group-btn">
@@ -177,7 +175,7 @@ class SqlEditor extends React.Component {
               </div>
             </div>
           </div>
-          <div className="col-md-2">
+          <div className="col-md-4">
             <div className="pull-right">
               {limitWarning}
               <Timer query={this.props.latestQuery} />
