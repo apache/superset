@@ -8,5 +8,6 @@
     "prefer-arrow-callback": 0,
     "func-names": 0,
     "react/jsx-no-bind": 0,
+    "no-confusing-arrow": 0,
   }
 }
