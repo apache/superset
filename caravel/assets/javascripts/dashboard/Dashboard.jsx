@@ -1,5 +1,5 @@
 const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = $;
+const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 const px = require('../modules/caravel.js');
 const d3 = require('d3');
 const urlLib = require('url');

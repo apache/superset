@@ -149,4 +149,3 @@ function histogram(slice) {
 }
 
 module.exports = histogram;
-

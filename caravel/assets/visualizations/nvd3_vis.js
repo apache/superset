@@ -1,8 +1,8 @@
 // JS
-var d3 = window.d3 || require('d3');
-import { category21 } from '../javascripts/modules/colors'
-import { timeFormatFactory, formatDate } from '../javascripts/modules/dates'
-var nv = require('nvd3');
+import { category21 } from '../javascripts/modules/colors';
+import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+const d3 = require('d3');
+const nv = require('nvd3');
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
@@ -11,23 +11,66 @@ require('./nvd3_vis.css');
 const minBarWidth = 15;
 const animationTime = 1000;
 
-function nvd3Vis(slice) {
-  var chart;
-  var colorKey = 'key';
+const addTotalBarValues = function (chart, data, stacked) {
+  const svg = d3.select('svg');
+  const format = d3.format('.3s');
+  const countSeriesDisplayed = data.length;
 
-  var render = function () {
+  const totalStackedValues = stacked && data.length !== 0 ?
+    data[0].values.map(function (bar, iBar) {
+      const bars = data.map(function (series) {
+        return series.values[iBar];
+      });
+      return d3.sum(bars, function (d) {
+        return d.y;
+      });
+    }) : [];
+
+  const rectsToBeLabeled = svg.selectAll('g.nv-group').filter(
+    function (d, i) {
+      if (!stacked) {
+        return true;
+      }
+      return i === countSeriesDisplayed - 1;
+    }).selectAll('rect.positive');
+
+  const groupLabels = svg.select('g.nv-barsWrap').append('g');
+  rectsToBeLabeled.each(
+    function (d, index) {
+      const rectObj = d3.select(this);
+      const transformAttr = rectObj.attr('transform');
+      const yPos = parseFloat(rectObj.attr('y'));
+      const xPos = parseFloat(rectObj.attr('x'));
+      const rectWidth = parseFloat(rectObj.attr('width'));
+      const t = groupLabels.append('text')
+        .attr('x', xPos) // rough position first, fine tune later
+        .attr('y', yPos - 5)
+        .text(format(stacked ? totalStackedValues[index] : d.y))
+        .attr('transform', transformAttr)
+        .attr('class', 'bar-chart-label');
+      const labelWidth = t.node().getBBox().width;
+      t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
+    });
+};
+
+function nvd3Vis(slice) {
+  let chart;
+  let colorKey = 'key';
+
+
+  const render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       slice.container.html('');
       // Check error first, otherwise payload can be null
       if (error) {
         slice.error(error.responseText, error);
-        return '';
+        return;
       }
 
-      var width = slice.width();
-      var fd = payload.form_data;
-      var barchartWidth = function () {
-        var bars;
+      let width = slice.width();
+      const fd = payload.form_data;
+      const barchartWidth = function () {
+        let bars;
         if (fd.bar_stacked) {
           bars = d3.max(payload.data, function (d) { return d.values.length; });
         } else {
@@ -35,17 +78,16 @@ function nvd3Vis(slice) {
         }
         if (bars * minBarWidth > width) {
           return bars * minBarWidth;
-        } else {
-          return width;
         }
+        return width;
       };
-      var viz_type = fd.viz_type;
-      var f = d3.format('.3s');
-      var reduceXTicks = fd.reduce_x_ticks || false;
-      var stacked = false;
-
+      const vizType = fd.viz_type;
+      const f = d3.format('.3s');
+      const reduceXTicks = fd.reduce_x_ticks || false;
+      let stacked = false;
+      let row;
       nv.addGraph(function () {
-        switch (viz_type) {
+        switch (vizType) {
           case 'line':
             if (fd.show_brush) {
               chart = nv.models.lineWithFocusChart();
@@ -93,7 +135,7 @@ function nvd3Vis(slice) {
             .showControls(fd.show_controls)
             .reduceXTicks(reduceXTicks)
             .rotateLabels(45)
-            .groupSpacing(0.1); //Distance between each group of bars.
+            .groupSpacing(0.1); // Distance between each group of bars.
 
             chart.xAxis
             .showMaxMin(false);
@@ -120,7 +162,7 @@ function nvd3Vis(slice) {
               chart.donut(true);
             }
             chart.labelsOutside(fd.labels_outside);
-            chart.labelThreshold(0.05)  //Configure the minimum slice size for labels to show up
+            chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
               .labelType(fd.pie_label_type);
             chart.cornerRadius(true);
             break;
@@ -140,20 +182,21 @@ function nvd3Vis(slice) {
             break;
 
           case 'bubble':
-            var row = function (col1, col2) {
-              return "<tr><td>" + col1 + "</td><td>" + col2 + "</td></tr>";
-            };
+            row = (col1, col2) => `<tr><td>${col1}</td><td>${col2}</td></tr>`;
             chart = nv.models.scatterChart();
             chart.showDistX(true);
             chart.showDistY(true);
             chart.tooltip.contentGenerator(function (obj) {
-              var p = obj.point;
-              var s = "<table>";
-              s += '<tr><td style="color:' + p.color + ';"><strong>' + p[fd.entity] + '</strong> (' + p.group + ')</td></tr>';
+              const p = obj.point;
+              let s = '<table>';
+              s += (
+                `<tr><td style="color: ${p.color};">` +
+                  `<strong>${p[fd.entity]}</strong> (${p.group})` +
+                '</td></tr>');
               s += row(fd.x, f(p.x));
               s += row(fd.y, f(p.y));
               s += row(fd.size, f(p.size));
-              s += "</table>";
+              s += '</table>';
               return s;
             });
             chart.pointRange([5, fd.max_bubble_size * fd.max_bubble_size]);
@@ -180,20 +223,19 @@ function nvd3Vis(slice) {
             break;
 
           default:
-            throw new Error("Unrecognized visualization for nvd3" + viz_type);
+            throw new Error('Unrecognized visualization for nvd3' + vizType);
         }
 
-        if ("showLegend" in chart && typeof fd.show_legend !== 'undefined') {
+        if ('showLegend' in chart && typeof fd.show_legend !== 'undefined') {
           chart.showLegend(fd.show_legend);
         }
 
-        var height = slice.height();
-        height -= 15;  // accounting for the staggered xAxis
+        let height = slice.height() - 15;
 
         chart.height(height);
         slice.container.css('height', height + 'px');
 
-        if ((viz_type === "line" || viz_type === "area") && fd.rich_tooltip) {
+        if ((vizType === 'line' || vizType === 'area') && fd.rich_tooltip) {
           chart.useInteractiveGuideline(true);
         }
         if (fd.y_axis_zero) {
@@ -204,8 +246,8 @@ function nvd3Vis(slice) {
         if (fd.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
-        var xAxisFormatter;
-        if (viz_type === 'bubble') {
+        let xAxisFormatter;
+        if (vizType === 'bubble') {
           xAxisFormatter = d3.format('.3s');
         } else if (fd.x_axis_format === 'smart_date') {
           xAxisFormatter = formatDate;
@@ -215,12 +257,12 @@ function nvd3Vis(slice) {
           chart.xAxis.tickFormat(xAxisFormatter);
         }
 
-        if (chart.hasOwnProperty("x2Axis")) {
+        if (chart.hasOwnProperty('x2Axis')) {
           chart.x2Axis.tickFormat(xAxisFormatter);
           height += 30;
         }
 
-        if (viz_type === 'bubble') {
+        if (vizType === 'bubble') {
           chart.xAxis.tickFormat(d3.format('.3s'));
         } else if (fd.x_axis_format === 'smart_date') {
           chart.xAxis.tickFormat(formatDate);
@@ -233,17 +275,14 @@ function nvd3Vis(slice) {
 
         if (fd.y_axis_format) {
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
-
           if (chart.y2Axis !== undefined) {
             chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
           }
         }
-        chart.color(function (d, i) {
-          return category21(d[colorKey]);
-        });
+        chart.color((d) => category21(d[colorKey]));
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
-          var distance = 0;
+          let distance = 0;
           if (fd.bottom_margin) {
             distance = fd.bottom_margin - 50;
           }
@@ -258,9 +297,9 @@ function nvd3Vis(slice) {
         if (fd.bottom_margin) {
           chart.margin({ bottom: fd.bottom_margin });
         }
-        var svg = d3.select(slice.selector).select("svg");
+        let svg = d3.select(slice.selector).select('svg');
         if (svg.empty()) {
-          svg = d3.select(slice.selector).append("svg");
+          svg = d3.select(slice.selector).append('svg');
         }
 
         svg
@@ -277,57 +316,15 @@ function nvd3Vis(slice) {
     });
   };
 
-  var update = function () {
+  const update = function () {
     if (chart && chart.update) {
       chart.update();
     }
   };
 
-  var addTotalBarValues = function (chart, data, stacked) {
-    var svg = d3.select("svg"),
-      rectsToBeLabeled,
-      format = d3.format('.3s'),
-      countSeriesDisplayed = data.length;
-
-    var totalStackedValues = stacked && data.length !== 0 ?
-      data[0].values.map(function (bar, iBar) {
-        var bars = data.map(function (series) {
-          return series.values[iBar];
-        });
-        return d3.sum(bars, function (d) {
-          return d.y;
-        });
-      }) : [];
-
-    rectsToBeLabeled = svg.selectAll("g.nv-group").filter(
-      function (d, i) {
-        if (!stacked) {
-          return true;
-        }
-        return i === countSeriesDisplayed - 1;
-      }).selectAll("rect.positive");
-
-    var groupLabels = svg.select("g.nv-barsWrap").append("g");
-    rectsToBeLabeled.each(
-      function (d, index) {
-        var rectObj = d3.select(this);
-        var transformAttr = rectObj.attr("transform");
-        var yPos = parseFloat(rectObj.attr("y"));
-        var xPos = parseFloat(rectObj.attr("x"));
-        var rectWidth = parseFloat(rectObj.attr("width"));
-        var t = groupLabels.append("text")
-          .attr("x", xPos) // rough position first, fine tune later
-          .attr("y", yPos - 5)
-          .text(format(stacked ? totalStackedValues[index] : d.y))
-          .attr("transform", transformAttr)
-          .attr("class", "bar-chart-label");
-        var labelWidth = t.node().getBBox().width;
-        t.attr("x", xPos + rectWidth / 2 - labelWidth / 2); // fine tune
-      });
-  };
 
   return {
-    render: render,
+    render,
     resize: update,
   };
 }

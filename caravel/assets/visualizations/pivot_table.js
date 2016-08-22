@@ -1,30 +1,29 @@
-var $ = window.$ = require('jquery');
-var jQuery = window.jQuery = $;
+import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
+const $ = require('jquery');
 
 require('datatables.net-bs');
 require('./pivot_table.css');
-require('../node_modules/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
-var utils = require('../javascripts/modules/utils');
+require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 
 module.exports = function (slice) {
-  var container = slice.container;
+  const container = slice.container;
 
   function refresh() {
     $.getJSON(slice.jsonEndpoint(), function (json) {
-      var form_data = json.form_data;
+      const fd = json.form_data;
       container.html(json.data);
-      if (form_data.groupby.length === 1) {
-        var height = container.height();
-        var table = container.find('table').DataTable({
+      if (fd.groupby.length === 1) {
+        const height = container.height();
+        const table = container.find('table').DataTable({
           paging: false,
           searching: false,
           bInfo: false,
-          scrollY: height + "px",
+          scrollY: height + 'px',
           scrollCollapse: true,
           scrollX: true,
         });
         table.column('-1').order('desc').draw();
-        utils.fixDataTableBodyHeight(
+        fixDataTableBodyHeight(
             container.find('.dataTables_wrapper'), height);
       }
       slice.done(json);

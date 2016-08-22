@@ -1,5 +1,5 @@
+/* eslint-disable global-require */
 const vizMap = {
-  filter_box: require('./filter_box.jsx'),
   area: require('./nvd3_vis.js'),
   bar: require('./nvd3_vis.js'),
   big_number: require('./big_number.js'),
@@ -10,6 +10,7 @@ const vizMap = {
   compare: require('./nvd3_vis.js'),
   directed_force: require('./directed_force.js'),
   dist_bar: require('./nvd3_vis.js'),
+  filter_box: require('./filter_box.jsx'),
   heatmap: require('./heatmap.js'),
   histogram: require('./histogram.js'),
   horizon: require('./horizon.js'),

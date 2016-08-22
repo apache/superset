@@ -1,6 +1,5 @@
 node_modules/*
 vendor/*
 javascripts/dist/*
-visualizations/*
 stylesheets/*
 spec/*
