@@ -11,6 +11,7 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
+// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
   queries: {},
@@ -55,6 +56,21 @@ function alterInArr(state, arrKey, obj, alterations) {
   state[arrKey].forEach((arrItem) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push(Object.assign({}, arrItem, alterations));
+    } else {
+      newArr.push(arrItem);
+    }
+  });
+  return Object.assign({}, state, { [arrKey]: newArr });
+}
+
+function replaceInArr(state, arrKey, obj) {
+  // Finds an item in an array in the state and replaces it with a
+  // new object with an altered property
+  const idKey = 'id';
+  const newArr = [];
+  state[arrKey].forEach((arrItem) => {
+    if (obj[idKey] === arrItem[idKey]) {
+      newArr.push(Object.assign({}, obj[idKey]));
     } else {
       newArr.push(arrItem);
     }
@@ -175,7 +191,8 @@ export const sqlLabReducer = function (state, action) {
       return removeFromArr(state, 'alerts', action.alert);
     },
     [actions.REFRESH_QUERIES]() {
-      return state;
+      queries = action.queries
+      return alterInArr(state, 'queries', queries, { state: 'stopped' });
     },
   };
   if (action.type in actionHandlers) {

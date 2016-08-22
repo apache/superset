@@ -24,10 +24,16 @@ class QueryAutoRefresh extends React.Component {
     this.timer = null;
   }
   stopwatch() {
-    // TODO $.get((data) => {
-    //  
-    //  this.props.actions.refreshQueries(data);
-    // });
+    const url = '/caravel/queries/0';
+    $.getJSON(
+      url,
+      (data, status, xhr) => {
+        if (status == 200) {
+          console.log("Fetched queries")
+          console.log(data)
+          this.props.actions.refreshQueries(data);
+        }
+    });
     console.log(new Date());
   }
   render() {
