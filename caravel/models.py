@@ -336,7 +336,7 @@ class Queryable(object):
 
     @property
     def main_dttm_col(self):
-        return "timestamp"
+        return "time_serial"
 
     @property
     def groupby_column_names(self):
@@ -697,7 +697,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
         if granularity:
             dttm_col = cols[granularity]
-            dttm_expr = dttm_col.sqla_col.label('timestamp')
+            dttm_expr = dttm_col.sqla_col.label('time_serial')
             timestamp = dttm_expr
 
             # Transforming time grain into an expression based on configuration
@@ -705,7 +705,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             if time_grain_sqla:
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr)).label('timestamp')
+                    udf.function.format(col=dttm_expr)).label('time_serial')
             else:
                 timestamp_grain = timestamp
 
@@ -1403,13 +1403,13 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if (
                 not is_timeseries and
                 granularity == "all" and
-                'timestamp' in df.columns):
-            del df['timestamp']
+                'time_serial' in df.columns):
+            del df['time_serial']
 
         # Reordering columns
         cols = []
-        if 'timestamp' in df.columns:
-            cols += ['timestamp']
+        if 'time_serial' in df.columns:
+            cols += ['time_serial']
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
         df = df[cols]
