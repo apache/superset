@@ -9,7 +9,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs through Github
+Report bugs through GitHub
 
 If you are reporting a bug, please include:
 
@@ -37,7 +37,7 @@ articles.
 
 ### Submit Feedback
 
-The best way to send feedback is to file an issue on Github.
+The best way to send feedback is to file an issue on GitHub.
 
 If you are proposing a feature:
 
@@ -55,7 +55,7 @@ Latest documentation and tutorial are available [here](http://airbnb.io/caravel)
 
 Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-dependencies) before follows these steps.
 
-    # fork the repo on github and then clone it
+    # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
     # git clone git@github.com:airbnb/caravel.git

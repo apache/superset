@@ -14,13 +14,14 @@ function modelViewTable(selector, modelView, orderCol, order) {
   url += '?_oc_' + modelView + '=' + orderCol;
   url += '&_od_' + modelView + '=' + order;
   $.getJSON(url, function (data) {
+    const columns = ['dashboard_link', 'creator', 'modified'];
     const tableData = $.map(data.result, function (el) {
-      const row = $.map(data.list_columns, function (col) {
+      const row = $.map(columns, function (col) {
         return el[col];
       });
       return [row];
     });
-    const cols = $.map(data.list_columns, function (col) {
+    const cols = $.map(columns, function (col) {
       return { sTitle: data.label_columns[col] };
     });
     const panel = $(selector).parents('.panel');

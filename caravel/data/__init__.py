@@ -694,7 +694,7 @@ def load_birth_names():
         The source dataset came from
         <a href="https://github.com/hadley/babynames">[here]</a>
     </p>
-    <img src="http://monblog.system-linux.net/image/tux/baby-tux_overlord59-tux.png">
+    <img src="/static/assets/images/babytux.jpg">
 </div>
 """)),
         Slice(

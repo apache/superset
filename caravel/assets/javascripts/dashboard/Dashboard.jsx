@@ -1,5 +1,5 @@
 const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = $;
+const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 const px = require('../modules/caravel.js');
 const d3 = require('d3');
 const urlLib = require('url');
@@ -154,7 +154,7 @@ function dashboardContainer(dashboardData) {
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
       this.slices.forEach(function (slice) {
-        if (slice.data.sliceId !== sliceId && immune.indexOf(slice.data.sliceId) === -1) {
+        if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.sliceId) === -1) {
           slice.render();
         }
       });

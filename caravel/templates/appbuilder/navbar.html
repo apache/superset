@@ -10,7 +10,7 @@
         <span class="icon-bar"></span>
       </button>
       <a class="navbar-brand" href="{{appbuilder.get_url_for_index}}">
-        <img width="75" src="/static/assets/images/caravel.png" style="padding-top: 6px;" alt="">
+        <img width="75" src="/static/assets/images/caravel.png" style="padding-top: 2px;" alt="Caravel">
       </a>
     </div>
     <div class="navbar-collapse collapse">
@@ -29,3 +29,12 @@
     </div>
   </div>
 </div>
+
+{% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
+{% if WARNING_MSG %}
+  <div class="container">
+    <div class="alert alert-danger">
+      {{ WARNING_MSG | safe }}
+    </div>
+  </div>
+{% endif %}

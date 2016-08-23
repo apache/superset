@@ -3,7 +3,7 @@ import React, { PropTypes } from 'react';
 import update from 'immutability-helper';
 import { BootstrapTable, TableHeaderColumn } from 'react-bootstrap-table';
 import Modal from './Modal.jsx';
-require('../../../node_modules/react-bootstrap-table/css/react-bootstrap-table.css');
+require('react-bootstrap-table/css/react-bootstrap-table.css');
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
@@ -129,7 +129,8 @@ class SliceAdder extends React.Component {
 
   render() {
     const hideLoad = this.slicesLoaded || this.errored;
-    const enableAddSlice = this.state.selectionMap && Object.keys(this.state.selectionMap).some(function (key) {
+    let enableAddSlice = this.state.selectionMap && Object.keys(this.state.selectionMap);
+    enableAddSlice = enableAddSlice.some(function (key) {
       return this.state.selectionMap[key];
     }, this);
     const modalContent = (
