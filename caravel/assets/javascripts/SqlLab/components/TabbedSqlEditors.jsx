@@ -47,11 +47,11 @@ class QueryEditors extends React.Component {
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
       let latestQuery;
-      this.props.queries.forEach((q) => {
-        if (q.id === qe.latestQueryId) {
-          latestQuery = q;
+      for (var key in this.props.queries) {
+        if (key === qe.latestQueryId) {
+          latestQuery = this.props.queries[key];
         }
-      });
+      }
       const state = (latestQuery) ? latestQuery.state : '';
       const tabTitle = (
         <div>
@@ -99,7 +99,7 @@ class QueryEditors extends React.Component {
 }
 QueryEditors.propTypes = {
   actions: React.PropTypes.object,
-  queries: React.PropTypes.array,
+  queries: React.PropTypes.object,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
 };
