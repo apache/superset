@@ -9,12 +9,17 @@ import { Alert } from 'react-bootstrap';
 
 const QueryHistory = (props) => {
   const activeQeId = props.tabHistory[props.tabHistory.length - 1];
-  const queries = props.queries.filter((q) => (q.sqlEditorId === activeQeId));
-  if (queries.length > 0) {
+  const queriesArray = []
+  for (var query_id in props.queries) {
+      if (props.queries[query_id].sqlEditorId === activeQeId) {
+        queriesArray.push(props.queries[query_id])
+      }
+  }
+  if (queriesArray.length > 0) {
     return (
       <QueryTable
         columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
-        queries={queries}
+        queries={queriesArray}
       />
     );
   }
@@ -30,7 +35,7 @@ QueryHistory.defaultProps = {
 };
 
 QueryHistory.propTypes = {
-  queries: React.PropTypes.array,
+  queries: React.PropTypes.object,
   tabHistory: React.PropTypes.array,
   actions: React.PropTypes.object,
 };
