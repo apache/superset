@@ -26,6 +26,7 @@ const px = function () {
     }
     $('.favstar')
       .attr('title', 'Click to favorite/unfavorite')
+      .css('cursor', 'pointer')
       .each(show)
       .each(function () {
         let url = baseUrl + $(this).attr('class_name');
@@ -203,9 +204,9 @@ const px = function () {
       height() {
         let others = 0;
         const widget = container.parents('.widget');
-        const sliceDescription = widget.find('.sliceDescription');
+        const sliceDescription = widget.find('.slice_description');
         if (sliceDescription.is(':visible')) {
-          others += widget.find('.sliceDescription').height() + 25;
+          others += widget.find('.slice_description').height() + 25;
         }
         others += widget.find('.chart-header').height();
         return widget.height() - others - 10;
