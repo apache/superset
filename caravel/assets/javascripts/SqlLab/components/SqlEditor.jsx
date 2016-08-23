@@ -3,6 +3,10 @@ import React from 'react';
 import {
   Button,
   ButtonGroup,
+  FormGroup,
+  InputGroup,
+  Form,
+  FormControl,
   DropdownButton,
   Label,
   MenuItem,
@@ -34,6 +38,7 @@ class SqlEditor extends React.Component {
     this.state = {
       autorun: props.queryEditor.autorun,
       sql: props.queryEditor.sql,
+      ctas: '',
     };
   }
   componentDidMount() {
@@ -46,7 +51,10 @@ class SqlEditor extends React.Component {
       this.startQuery();
     }
   }
-  startQuery() {
+  runQuery() {
+    this.startQuery();
+  }
+  startQuery(runAsync = false, ctas = false) {
     const that = this;
     const query = {
       id: shortid.generate(),
@@ -63,6 +71,8 @@ class SqlEditor extends React.Component {
       database_id: this.props.queryEditor.dbId,
       schema: this.props.queryEditor.schema,
       json: true,
+      async: runAsync,
+      select_as_cta: ctas,
     };
     this.props.actions.startQuery(query);
     $.ajax({
@@ -71,10 +81,10 @@ class SqlEditor extends React.Component {
       url,
       data,
       success(results) {
-        try {
+        if (runAsync) {
+          // TODO nothing?
+        } else {
           that.props.actions.querySuccess(query, results);
-        } catch (e) {
-          that.props.actions.queryFailed(query, e);
         }
       },
       error(err) {
@@ -91,6 +101,9 @@ class SqlEditor extends React.Component {
   stopQuery() {
     this.props.actions.stopQuery(this.props.latestQuery);
   }
+  createTableAs() {
+    this.startQuery(true, true);
+  }
   textChange(text) {
     this.setState({ sql: text });
     this.props.actions.queryEditorSetSql(this.props.queryEditor, text);
@@ -106,10 +119,13 @@ class SqlEditor extends React.Component {
   }
   ctasChange() {}
   visualize() {}
+  ctasChanged(event) {
+    this.setState({ ctas: event.target.value });
+  }
   render() {
     let runButtons = (
       <ButtonGroup className="inline m-r-5 pull-left">
-        <Button onClick={this.startQuery.bind(this)} disabled={!(this.props.queryEditor.dbId)}>
+        <Button onClick={this.runQuery.bind(this)} disabled={!(this.props.queryEditor.dbId)}>
           <i className="fa fa-table" /> Run Query
         </Button>
       </ButtonGroup>
@@ -162,26 +178,33 @@ class SqlEditor extends React.Component {
       );
     }
     const editorBottomBar = (
-      <div className="sql-toolbar">
-        <div className="row">
-          <div className="col-md-8">
+      <div className="sql-toolbar clearfix">
+        <div className="pull-left">
+          <Form inline>
             {runButtons}
-            <div className="pull-left">
-              <div className="input-group">
-                <input type="text" className="form-control" placeholder="new table name" />
-                <span className="input-group-btn">
-                  <button className="btn btn-default" type="button">Save results as table</button>
-                </span>
-              </div>
-            </div>
-          </div>
-          <div className="col-md-4">
-            <div className="pull-right">
-              {limitWarning}
-              <Timer query={this.props.latestQuery} />
-              {rightButtons}
-            </div>
-          </div>
+            <FormGroup>
+              <InputGroup>
+                <FormControl
+                  type="text"
+                  placeholder="new table name"
+                  onChange={this.ctasChanged.bind(this)}
+                />
+                <InputGroup.Button>
+                  <Button
+                    disabled={this.state.ctas.length === 0}
+                    onClick={this.createTableAs.bind(this)}
+                  >
+                    <i className="fa fa-table" /> CTAS
+                  </Button>
+                </InputGroup.Button>
+              </InputGroup>
+            </FormGroup>
+          </Form>
+        </div>
+        <div className="pull-right">
+          {limitWarning}
+          <Timer query={this.props.latestQuery} />
+          {rightButtons}
         </div>
       </div>
     );

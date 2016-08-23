@@ -1453,9 +1453,11 @@ class Caravel(BaseCaravelView):
         schema = request.form.get('schema')
         tab_name = request.form.get('tab_name')
 
-        async = request.form.get('async') == 'True'
+        async = request.form.get('async') == 'true'
         tmp_table_name = request.form.get('tmp_table_name', None)
         select_as_cta = request.form.get('select_as_cta') == 'True'
+        print(request.form.get('async'))
+        print(type(request.form.get('async')))
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()

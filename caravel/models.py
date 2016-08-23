@@ -35,7 +35,6 @@ from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
     create_engine, MetaData, desc, asc, select, and_, func
 )
-from sqlalchemy.engine import reflection
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
