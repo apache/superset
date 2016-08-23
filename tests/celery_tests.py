@@ -196,8 +196,8 @@ class CeleryTestCase(unittest.TestCase):
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
 
-    def run_sql(self, dbid, sql, cta='False', tmp_table='tmp',
-                async='False'):
+    def run_sql(self, dbid, sql, cta='false', tmp_table='tmp',
+                async='false'):
         self.login()
         resp = self.client.post(
             '/caravel/sql_json/',
@@ -295,7 +295,7 @@ class CeleryTestCase(unittest.TestCase):
         # Case 1.
         # DB #0 doesn't exist.
         sql_dont_exist = 'SELECT * FROM dontexist'
-        result1 = self.run_sql(0, sql_dont_exist, cta='True')
+        result1 = self.run_sql(0, sql_dont_exist, cta='true')
         self.assertEqual(models.QueryStatus.FAILED, result1[u'status'])
         self.assertFalse(u'query_id' in result1)
         self.assertEqual('Database with id 0 is missing.', result1['error'])
@@ -303,7 +303,7 @@ class CeleryTestCase(unittest.TestCase):
 
         # Case 2.
         # Table doesn't exist.
-        result2 = self.run_sql(1, sql_dont_exist, cta='True', )
+        result2 = self.run_sql(1, sql_dont_exist, cta='true', )
         self.assertTrue('error' in result2)
         self.assertEqual(models.QueryStatus.FAILED, result1[u'status'])
         query2 = self.get_query_by_id(result2[u'query_id'])
@@ -313,7 +313,7 @@ class CeleryTestCase(unittest.TestCase):
         # Table and DB exists, CTA call to the backend.
         sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
         result3 = self.run_sql(
-            1, sql_where, tmp_table='tmp_table_3', cta='True')
+            1, sql_where, tmp_table='tmp_table_3', cta='true')
         self.assertEqual(models.QueryStatus.FINISHED, result3[u'status'])
         self.assertIsNone(result3[u'data'])
         self.assertIsNone(result3[u'columns'])
@@ -328,7 +328,7 @@ class CeleryTestCase(unittest.TestCase):
         # Table and DB exists, CTA call to the backend, no data.
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result4 = self.run_sql(
-            1, sql_empty_result, tmp_table='tmp_table_4', cta='True',)
+            1, sql_empty_result, tmp_table='tmp_table_4', cta='true',)
         self.assertEqual(models.QueryStatus.FINISHED, result4[u'status'])
         self.assertIsNone(result4[u'data'])
         self.assertIsNone(result4[u'columns'])
@@ -380,13 +380,13 @@ class CeleryTestCase(unittest.TestCase):
         # Table and DB exists, async CTA call to the backend.
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
-            1, sql_where, async='True', tmp_table='tmp_async_1', cta='True')
+            1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
         self.assertEqual(models.QueryStatus.SCHEDULED, result1[u'status'])
 
         # Case 2.
         # Table and DB exists, async insert query, no CTAs.
         insert_query = "INSERT INTO ab_role VALUES (9, 'fake_role')"
-        result2 = self.run_sql(1, insert_query, async='True')
+        result2 = self.run_sql(1, insert_query, async='true')
         self.assertEqual(models.QueryStatus.SCHEDULED, result2[u'status'])
 
         time.sleep(2)

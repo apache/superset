@@ -74,6 +74,12 @@ class CaravelTestCase(unittest.TestCase):
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
 
+    def get_query_by_sql(self, sql):
+        session = db.create_scoped_session()
+        query = session.query(models.Query).filter_by(sql=sql).first()
+        session.close()
+        return query
+
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
 
@@ -356,7 +362,7 @@ class CoreTests(CaravelTestCase):
         )
         astronaut = sm.add_role("Astronaut")
         sm.add_permission_role(astronaut, main_db_permission_view)
-        # Astronaut role is Gamme + main db permissions
+        # Astronaut role is Gamma + main db permissions
         for gamma_perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(astronaut, gamma_perm)
 
@@ -372,20 +378,21 @@ class CoreTests(CaravelTestCase):
         assert len(data['data']) > 0
 
     def test_csv_endpoint(self):
-        self.run_sql("SELECT first_name, last_name FROM ab_user "
-                     "where first_name='admin'", 'admin')
+        sql = "SELECT first_name, last_name FROM ab_user " \
+              "where first_name='admin'"
+        self.run_sql(sql, 'admin')
 
         # No access if the user is not logged in.
+        query1_id = self.get_query_by_sql(sql).id
         self.assertRaises(
-            utils.CaravelSecurityException,  self.client.get, '/caravel/csv/1')
+            utils.CaravelSecurityException, self.client.get,
+            '/caravel/csv/{}'.format(query1_id))
 
         self.login('admin')
-        resp = self.client.get('/caravel/csv/1')
-        data = csv.reader(resp.data.split('\n'))
-
-        csv_stream = StringIO.StringIO()
-        csv_stream.write(["first_name,last_name", "admin, user", ""])
-        expected_data = csv.reader(csv_stream)
+        resp = self.client.get('/caravel/csv/{}'.format(query1_id))
+        data = csv.reader(io.StringIO(resp.data.decode('utf-8')))
+        expected_data = csv.reader(io.StringIO(
+            "first_name,last_name\nadmin, user\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()

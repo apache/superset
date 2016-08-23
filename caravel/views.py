@@ -1455,7 +1455,7 @@ class Caravel(BaseCaravelView):
 
         async = request.form.get('async') == 'true'
         tmp_table_name = request.form.get('tmp_table_name', None)
-        select_as_cta = request.form.get('select_as_cta') == 'True'
+        select_as_cta = request.form.get('select_as_cta') == 'true'
         print(request.form.get('async'))
         print(type(request.form.get('async')))
 
