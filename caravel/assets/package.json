@@ -61,7 +61,7 @@
     "nvd3": "1.8.4",
     "react": "^15.2.1",
     "react-ace": "^3.4.1",
-    "react-bootstrap": "^0.30.1",
+    "react-bootstrap": "^0.30.3",
     "react-bootstrap-table": "^2.3.8",
     "react-dom": "^0.14.8",
     "react-draggable": "^2.1.2",
