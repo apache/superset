@@ -192,8 +192,15 @@
                 </div>
                 <div class="col-md-6">
                   <div class="slice-meta-controls pull-right">
-                    <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
+                    <span id="is_cached" class="label label-default m-r-3" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
                       cached
+                    </span>
+                    <span
+                      class="label label-warning m-r-3"
+                      id="timer"
+                      title="{{ _("Query timer") }}"
+                      data-toggle="tooltip">
+                      {{ _("0 sec") }}
                     </span>
                     <div class="btn-group results" role="group">
                       <a role="button" tabindex="0" class="btn btn-default btn-sm" id="shortner" data-toggle="popover" data-trigger="focus">

@@ -153,8 +153,8 @@ const px = function () {
         if (data !== undefined) {
           $('#query_container').html(data.query);
         }
-        $('#timer').removeClass('btn-warning');
-        $('#timer').addClass('btn-success');
+        $('#timer').removeClass('label-warning label-danger');
+        $('#timer').addClass('label-success');
         $('span.view_query').removeClass('disabled');
         $('#json').click(function () {
           window.location = data.json_endpoint;
@@ -231,8 +231,8 @@ const px = function () {
         container.css('height', this.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
-        $('#timer').removeClass('btn-danger btn-success');
-        $('#timer').addClass('btn-warning');
+        $('#timer').removeClass('label-danger label-success');
+        $('#timer').addClass('label-warning');
         this.viz.render();
       },
       resize() {

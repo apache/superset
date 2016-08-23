@@ -28,8 +28,8 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('renders buttons with correct text', () => {
-      expect(wrapper.find('button').contains('Query')).to.eql(true);
-      expect(wrapper.find('button').contains('Save as')).to.eql(true);
+      expect(wrapper.find('button').contains(' Query')).to.eql(true);
+      expect(wrapper.find('button').contains(' Save as')).to.eql(true);
     });
   });
 });
