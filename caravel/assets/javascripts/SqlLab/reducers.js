@@ -146,7 +146,6 @@ export const sqlLabReducer = function (state, action) {
         state: 'success',
         results: action.results,
         rows: action.results.data.length,
-        endDttm: moment(),
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
@@ -191,8 +190,10 @@ export const sqlLabReducer = function (state, action) {
       return removeFromArr(state, 'alerts', action.alert);
     },
     [actions.REFRESH_QUERIES]() {
-      queries = action.queries
-      return alterInArr(state, 'queries', queries, { state: 'stopped' });
+      const newQueries = Object.assign({}, state['queries'],
+          action.alteredQueries);
+      console.log(newQueries)
+      return Object.assign({}, state, { ['queries']: newQueries });
     },
   };
   if (action.type in actionHandlers) {

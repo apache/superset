@@ -20,6 +20,7 @@ def upgrade():
         sa.Column('database_id', sa.Integer(), nullable=False),
         sa.Column('tmp_table_name', sa.String(length=256), nullable=True),
         sa.Column('tab_name', sa.String(length=256),nullable=True),
+        sa.Column('sql_editor_id', sa.String(length=256), nullable=True),
         sa.Column('user_id', sa.Integer(), nullable=True),
         sa.Column('status', sa.String(length=16), nullable=True),
         sa.Column('name', sa.String(length=256), nullable=True),
