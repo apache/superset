@@ -56,12 +56,6 @@ class SqlEditor extends React.Component {
   }
   startQuery(runAsync = false, ctas = false) {
     const that = this;
-    let query = {
-      sqlEditorId: this.props.queryEditor.id,
-      sql: this.props.queryEditor.sql,
-      tab: this.props.queryEditor.title,
-      dbId: this.props.queryEditor.dbId,
-    };
     const createQueryRequest = {
       sql: this.props.queryEditor.sql,
       database_id: this.props.queryEditor.dbId,
@@ -78,8 +72,7 @@ class SqlEditor extends React.Component {
       url: createQueryUrl,
       data: createQueryRequest,
       success(results) {
-        query = Object.assign({}, query, results['query'])
-
+        const query = Object.assign({}, results['query'])
         // Execute the Query
         that.props.actions.startQuery(query);
 
@@ -98,7 +91,6 @@ class SqlEditor extends React.Component {
             if (runAsync) {
               // TODO nothing?
             } else {
-              query = Object.assign({}, query, results['query'])
               that.props.actions.querySuccess(query, results);
             }
           },
@@ -109,7 +101,6 @@ class SqlEditor extends React.Component {
             } catch (e) {
               msg = (err.responseText) ? err.responseText : e;
             }
-            query = Object.assign({}, query, results['query'])
             that.props.actions.queryFailed(query, msg);
           },
         });
