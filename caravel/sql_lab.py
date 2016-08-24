@@ -115,8 +115,6 @@ class QueryRunner:
         cursor = result_proxy.cursor
         if hasattr(cursor, "poll"):
             query_stats = cursor.poll()
-            self._query.status = models.QueryStatus.IN_PROGRESS
-            self._session.commit()
             # poll returns dict -- JSON status information or ``None``
             # if the query is done
             # https://github.com/dropbox/PyHive/blob/
