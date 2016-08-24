@@ -1455,7 +1455,7 @@ class Caravel(BaseCaravelView):
 
         async = request.form.get('async') == 'true'
         tmp_table_name = request.form.get('tmp_table_name', None)
-        select_as_cta = request.form.get('select_as_cta') == 'True'
+        select_as_cta = request.form.get('select_as_cta') == 'true'
         print(request.form.get('async'))
         print(type(request.form.get('async')))
 
@@ -1465,7 +1465,8 @@ class Caravel(BaseCaravelView):
         if not mydb:
             return Response(
                 json.dumps({
-                    'error': 'Database with id 0 is missing.',
+                    'error': 'Database with id {} is missing.'.format(
+                        database_id),
                     'status': models.QueryStatus.FAILED,
                 }),
                 status=500,
@@ -1527,6 +1528,43 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
+    @expose("/csv/<query_id>")
+    @log_this
+    def csv(self, query_id):
+        """Get the updated queries."""
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=int(query_id)).first()
+        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
+
+        if not mydb:
+            return Response(
+                json.dumps({
+                    'error': 'Database with id {} is missing.'.format(
+                        query.database_id),
+                    'status': models.QueryStatus.FAILED,
+                }),
+                status=500,
+                mimetype="application/json")
+
+        if not (self.can_access(
+                'all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            raise utils.CaravelSecurityException(_(
+                "SQL Lab requires the `all_datasource_access` or "
+                "specific DB permission"))
+
+        sql = query.sql
+        if query.select_sql:
+            sql = query.select_sql
+        df = mydb.get_df(sql, query.schema)
+        # TODO(bkyryliuk): add compression=gzip for big files.
+        csv = df.to_csv(index=False)
+        response = Response(csv, mimetype='text/csv')
+        response.headers['Content-Disposition'] = (
+            'attachment; filename={}.csv'.format(query.name))
+        return response
+
+    @has_access
     @expose("/queries/<last_updated_ms>")
     @log_this
     def queries(self, last_updated_ms):
@@ -1567,52 +1605,6 @@ class Caravel(BaseCaravelView):
             }),
             status=404,
             mimetype="application/json")
-
-    @has_access
-    @expose("/cta_query_results/", methods=['GET'])
-    @log_this
-    def cta_query_results(self):
-        """Runs arbitrary sql and returns and json"""
-        query_id = request.form.get('query_id')
-        s = db.session()
-        query = s.query(models.Query).filter_by(id=query_id).first()
-        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
-
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
-
-        if not query:
-            return Response(
-                json.dumps({
-                    'error': "Query with id {} wasn't found".format(query_id),
-                }),
-                status=404,
-                mimetype="application/json")
-
-        if query.status != models.QueryStatus.FINISHED:
-            return Response(
-                json.dumps({
-                    'error': "Query with id {} not finished yet".format(
-                        query_id),
-                }),
-                status=400,
-                mimetype="application/json")
-        try:
-            data = mydb.get_df(query.select_sql, query.schema)
-            return Response(
-                json.dumps(
-                    data, default=utils.json_int_dttm_ser, allow_nan=False),
-                status=200,
-                mimetype="application/json")
-        except Exception as e:
-            return Response(
-                json.dumps('error', utils.error_msg_from_exception(e)),
-                status=500,
-                mimetype="application/json")
 
     @has_access
     @expose("/refresh_datasources/")

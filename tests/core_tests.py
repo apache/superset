@@ -5,10 +5,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
+import csv
 import doctest
 import json
 import imp
 import os
+import io
 import unittest
 
 from mock import Mock, patch
@@ -72,6 +74,12 @@ class CaravelTestCase(unittest.TestCase):
             follow_redirects=True)
         assert 'Welcome' in resp.data.decode('utf-8')
 
+    def get_query_by_sql(self, sql):
+        session = db.create_scoped_session()
+        query = session.query(models.Query).filter_by(sql=sql).first()
+        session.close()
+        return query
+
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
 
@@ -115,7 +123,8 @@ class CoreTests(CaravelTestCase):
         )}
 
     def setUp(self):
-        pass
+        db.session.query(models.Query).delete()
+
 
     def tearDown(self):
         pass
@@ -331,6 +340,13 @@ class CoreTests(CaravelTestCase):
             utils.CaravelSecurityException,
             self.run_sql, "SELECT * FROM ab_user", 'gamma')
 
+    def test_sql_json(self):
+        data = self.run_sql("SELECT * FROM ab_user", 'admin')
+        assert len(data['data']) > 0
+
+        data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
+        assert len(data['error']) > 0
+
     def test_sql_json_has_access(self):
         main_db = (
             db.session.query(models.Database).filter_by(database_name="main")
@@ -346,7 +362,7 @@ class CoreTests(CaravelTestCase):
         )
         astronaut = sm.add_role("Astronaut")
         sm.add_permission_role(astronaut, main_db_permission_view)
-        # Astronaut role is Gamme + main db permissions
+        # Astronaut role is Gamma + main db permissions
         for gamma_perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(astronaut, gamma_perm)
 
@@ -361,8 +377,27 @@ class CoreTests(CaravelTestCase):
         db.session.commit()
         assert len(data['data']) > 0
 
+    def test_csv_endpoint(self):
+        sql = "SELECT first_name, last_name FROM ab_user " \
+              "where first_name='admin'"
+        self.run_sql(sql, 'admin')
+
+        # No access if the user is not logged in.
+        query1_id = self.get_query_by_sql(sql).id
+        self.assertRaises(
+            utils.CaravelSecurityException, self.client.get,
+            '/caravel/csv/{}'.format(query1_id))
+
+        self.login('admin')
+        resp = self.client.get('/caravel/csv/{}'.format(query1_id))
+        data = csv.reader(io.StringIO(resp.data.decode('utf-8')))
+        expected_data = csv.reader(io.StringIO(
+            "first_name,last_name\nadmin, user\n"))
+
+        self.assertEqual(list(expected_data), list(data))
+        self.logout()
+
     def test_queries_endpoint(self):
-        db.session.query(models.Query).delete()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
@@ -391,15 +426,6 @@ class CoreTests(CaravelTestCase):
         self.logout()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
-
-        db.session.query(models.Query).delete()
-
-    def test_sql_json(self):
-        data = self.run_sql("SELECT * FROM ab_user", 'admin')
-        assert len(data['data']) > 0
-
-        data = self.run_sql("SELECT * FROM unexistant_table", 'admin')
-        assert len(data['error']) > 0
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
