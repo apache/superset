@@ -56,36 +56,63 @@ class SqlEditor extends React.Component {
   }
   startQuery(runAsync = false, ctas = false) {
     const that = this;
-    const query = {
-      id: shortid.generate(),
+    let query = {
       sqlEditorId: this.props.queryEditor.id,
       sql: this.props.queryEditor.sql,
-      state: 'running',
       tab: this.props.queryEditor.title,
       dbId: this.props.queryEditor.dbId,
-      startDttm: new Date(),
     };
-    const url = '/caravel/sql_json/';
-    const data = {
+    const createQueryRequest = {
       sql: this.props.queryEditor.sql,
       database_id: this.props.queryEditor.dbId,
+      sql_editor_id: this.props.queryEditor.id,
       schema: this.props.queryEditor.schema,
+      tab: this.props.queryEditor.title,
       json: true,
-      async: runAsync,
       select_as_cta: ctas,
     };
-    this.props.actions.startQuery(query);
+    const createQueryUrl = '/caravel/create_query/';
     $.ajax({
       type: 'POST',
       dataType: 'json',
-      url,
-      data,
+      url: createQueryUrl,
+      data: createQueryRequest,
       success(results) {
-        if (runAsync) {
-          // TODO nothing?
-        } else {
-          that.props.actions.querySuccess(query, results);
-        }
+        query = Object.assign({}, query, results['query'])
+
+        // Execute the Query
+        that.props.actions.startQuery(query);
+
+        const sqlJsonUrl = '/caravel/sql_json/';
+        const sqlJsonRequest = {
+          query_id: query.id,
+          json: true,
+          async: runAsync,
+        };
+        $.ajax({
+          type: 'POST',
+          dataType: 'json',
+          url: sqlJsonUrl,
+          data: sqlJsonRequest,
+          success(results) {
+            if (runAsync) {
+              // TODO nothing?
+            } else {
+              query = Object.assign({}, query, results['query'])
+              that.props.actions.querySuccess(query, results);
+            }
+          },
+          error(err) {
+            let msg = '';
+            try {
+              msg = err.responseJSON.error;
+            } catch (e) {
+              msg = (err.responseText) ? err.responseText : e;
+            }
+            query = Object.assign({}, query, results['query'])
+            that.props.actions.queryFailed(query, msg);
+          },
+        });
       },
       error(err) {
         let msg = '';
