@@ -14,7 +14,7 @@ def create_scoped_session():
     engine = create_engine(
         app.config.get('SQLALCHEMY_DATABASE_URI'), convert_unicode=True)
     return scoped_session(sessionmaker(
-        autocommit=True, autoflush=False, bind=engine))
+        autocommit=False, autoflush=False, bind=engine))
 
 
 def fetch_response_from_cursor(result_proxy):
