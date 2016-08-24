@@ -235,6 +235,13 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'show_markers': (BetterBooleanField, {
+                "label": _("Show Markers"),
+                "default": False,
+                "description": (
+                    "Show data points as circle markers on top of the lines "
+                    "in the chart")
+            }),
             'show_bar_value': (BetterBooleanField, {
                 "label": _("Bar Values"),
                 "default": False,

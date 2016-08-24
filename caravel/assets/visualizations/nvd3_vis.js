@@ -309,6 +309,12 @@ function nvd3Vis(slice) {
         .attr('width', width)
         .call(chart);
 
+        if (fd.show_markers) {
+          svg.selectAll('.nv-point')
+          .style('stroke-opacity', 1)
+          .style('fill-opacity', 1);
+        }
+
         return chart;
       });
 
