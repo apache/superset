@@ -83,25 +83,25 @@
       </div>
       <div class="col-md-4">
         <div class="btn-group pull-right" role="group" >
-          <button type="button" id="refresh_dash" class="btn btn-default" data-toggle="tooltip" title="Force refresh the whole dashboard">
+          <button type="button" id="refresh_dash" class="btn btn-default btn-sm" data-toggle="tooltip" title="Force refresh the whole dashboard">
             <i class="fa fa-refresh"></i>
           </button>
-          <button type="button" id="add-slice" class="btn btn-default {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="modal" data-target="#add_slice_modal">
+          <button type="button" id="add-slice" class="btn btn-default btn-sm {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="modal" data-target="#add_slice_modal">
               <i class="fa fa-plus" data-toggle="tooltip" title="Add a new slice to the dashboard"></i>
           </button>
-          <button type="button" id="refresh_dash_periodic" class="btn btn-default" data-toggle="modal" data-target="#refresh_modal">
+          <button type="button" id="refresh_dash_periodic" class="btn btn-default btn-sm" data-toggle="modal" data-target="#refresh_modal">
               <i class="fa fa-clock-o" data-toggle="tooltip" title="Decide how frequent should the dashboard refresh"></i>
           </button>
-          <button type="button" id="filters" class="btn btn-default" data-toggle="tooltip" title="View the list of active filters">
+          <button type="button" id="filters" class="btn btn-default btn-sm" data-toggle="tooltip" title="View the list of active filters">
             <i class="fa fa-filter"></i>
           </button>
-          <button type="button" id="css" class="btn btn-default {{ "disabled disabledButton" if not dash_edit_perm }} " data-toggle="modal" data-target="#css_modal">
+          <button type="button" id="css" class="btn btn-default  btn-sm{{ "disabled disabledButton" if not dash_edit_perm }} " data-toggle="modal" data-target="#css_modal">
             <i class="fa fa-css3" data-toggle="tooltip" title="Edit the dashboard's CSS"></i>
           </button>
-          <a id="editdash" class="btn btn-default {{ "disabled disabledButton" if not dash_edit_perm }} " href="/dashboardmodelview/edit/{{ dashboard.id }}" title="Edit this dashboard's property" data-toggle="tooltip" >
+          <a id="editdash" class="btn btn-default  btn-sm{{ "disabled disabledButton" if not dash_edit_perm }} " href="/dashboardmodelview/edit/{{ dashboard.id }}" title="Edit this dashboard's property" data-toggle="tooltip" >
               <i class="fa fa-edit"></i>
           </a>
-          <button type="button" id="savedash" class="btn btn-default {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="tooltip" title="Save the current positioning and CSS">
+          <button type="button" id="savedash" class="btn btn-default btn-sm {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="tooltip" title="Save the current positioning and CSS">
             <i class="fa fa-save"></i>
           </button>
         </div>

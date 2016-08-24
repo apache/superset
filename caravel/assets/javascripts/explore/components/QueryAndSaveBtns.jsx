@@ -7,7 +7,7 @@ const propTypes = {
 };
 
 export default function QueryAndSaveBtns({ canAdd, onQuery }) {
-  const saveClasses = classnames('btn btn-primary btn-sm', {
+  const saveClasses = classnames('btn btn-default btn-sm', {
     'disabled disabledButton': canAdd !== 'True',
   });
 
