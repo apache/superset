@@ -192,8 +192,7 @@ export const sqlLabReducer = function (state, action) {
     [actions.REFRESH_QUERIES]() {
       const newQueries = Object.assign({}, state['queries'],
           action.alteredQueries);
-      console.log(newQueries)
-      return Object.assign({}, state, { ['queries']: newQueries });
+      return Object.assign({}, state, { queries: newQueries });
     },
   };
   if (action.type in actionHandlers) {
