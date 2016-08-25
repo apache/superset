@@ -49,6 +49,9 @@ DEBUG = False
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
 
+# URL scheme to be used for URL generation if no URL scheme is available
+PREFERRED_URL_SCHEME = 'https'
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
