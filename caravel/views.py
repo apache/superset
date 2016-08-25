@@ -1429,12 +1429,29 @@ class Caravel(BaseCaravelView):
         query = models.Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
-            sql=sql,
-            schema=request.form.get('schema'),
-            # TODO(bkyryliuk): consider it being DB property.
-            select_as_cta=request.form.get('select_as_cta') == 'true',
-            start_time=datetime.now(),
-            status=models.QueryStatus.IN_PROGRESS,
+
+        s = db.session()
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if not mydb:
+            return Response(json.dumps({
+                'error': 'Database with id {} is missing.'.format(database_id),
+                'status': models.QueryStatus.FAILED,
+            }),
+                status=500,
+                mimetype="application/json"
+            )
+
+        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            raise utils.CaravelSecurityException(_(
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+
+        query = models.Query(
+            database_id=int(database_id),
+            limit=int(app.config.get('SQL_MAX_ROW', None)),
+            name=query_name,
             tab_name=request.form.get('tab'),
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=request.form.get('tmp_table_name'),
@@ -1458,23 +1475,19 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Sync request.
-        data = {}
-        try:
-            data = sql_lab.get_sql_results(query_id)
-        except Exception as e:
-            logging.exception(e)
-            return Response(
-                json.dumps({'error': "{}".format(e)}),
-                status=500,
-                mimetype="application/json"
-            )
+        data = sql_lab.get_sql_results(query.id)
 
+        s.close()
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=query.id).first()
         data['query'] = query.to_dict()
 
-        return Response(
-            json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
-            status=200,
-            mimetype="application/json")
+        if data['status'] == models.QueryStatus.FAILED:
+                return Response(
+                    json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
+                    status=500,
+                    mimetype="application/json"
+                )
 
     @has_access
     @expose("/csv/<query_id>")
