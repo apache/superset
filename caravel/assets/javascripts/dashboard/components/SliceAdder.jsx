@@ -130,9 +130,11 @@ class SliceAdder extends React.Component {
   render() {
     const hideLoad = this.slicesLoaded || this.errored;
     let enableAddSlice = this.state.selectionMap && Object.keys(this.state.selectionMap);
-    enableAddSlice = enableAddSlice.some(function (key) {
-      return this.state.selectionMap[key];
-    }, this);
+    if (enableAddSlice) {
+      enableAddSlice = enableAddSlice.some(function (key) {
+        return this.state.selectionMap[key];
+      }, this);
+    }
     const modalContent = (
       <div>
         <img
