@@ -188,36 +188,7 @@
             <div class="panel-title">
               <div class="row">
                 <div class="col-md-6">
-                  {% if slice %}
-                    {% if slice.slice_name %}
-                      <h2>
-                        {{ slice.slice_name }}
-                        <small class="star-edit-icons">
-                          <span class="favstar" obj_id="{{ slice.id }}"></span>
-                          <span>
-                            <a
-                              href="/slicemodelview/edit/{{ slice.id }}"
-                              data-toggle="tooltip"
-                              title="Edit Description"
-                              class="edit-slice-description-icon"
-                            >
-                              {% if slice.description %}
-                                <i
-                                  class="fa fa-question-circle-o"
-                                  data-toggle="tooltip"
-                                  data-placement="bottom"
-                                  title="{{ slice.description }}">
-                                </i>
-                              {% endif %}
-                              <i class="fa fa-edit"></i>
-                            </a>
-                          </span>
-                        </small>
-                      </h2>
-                    {% else %}
-                      <h2>untitled</h2>
-                    {% endif %}
-                  {% endif %}
+                  {% include 'caravel/partials/_explore_title.html' %}
                 </div>
                 <div class="col-md-6">
                   <div class="slice-meta-controls pull-right">
