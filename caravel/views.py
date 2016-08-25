@@ -1444,15 +1444,17 @@ class Caravel(BaseCaravelView):
         return self.render_template('caravel/theme.html')
 
     @has_access
-    @expose("/create_query/", methods=['POST', 'GET'])
+    @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
-    def create_query(self):
+    def sql_json(self):
+        """Runs arbitrary sql and returns and json"""
+        async = request.form.get('async') == 'true'
+        client_id = request.form.get('client_id')
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema')
         tab_name = request.form.get('tab')
         sql_editor_id = request.form.get('sql_editor_id')
-
         tmp_table_name = request.form.get('tmp_table_name', None)
         select_as_cta = request.form.get('select_as_cta') == 'true'
 
@@ -1461,9 +1463,26 @@ class Caravel(BaseCaravelView):
             g.user.get_id(), tab_name, start_time.strftime('%M:%S:%f'))
 
         s = db.session()
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if not mydb:
+            return Response(json.dumps({
+                'error': 'Database with id {} is missing.'.format(database_id),
+                'status': models.QueryStatus.FAILED,
+            }),
+                status=500,
+                mimetype="application/json"
+            )
+
+        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            raise utils.CaravelSecurityException(_(
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+
         query = models.Query(
-            database_id=database_id,
-            limit=app.config.get('SQL_MAX_ROW', None),
+            database_id=int(database_id),
+            limit=int(app.config.get('SQL_MAX_ROW', None)),
             name=query_name,
             sql=sql,
             schema=schema,
@@ -1474,29 +1493,14 @@ class Caravel(BaseCaravelView):
             tab_name=tab_name,
             sql_editor_id=sql_editor_id,
             tmp_table_name=tmp_table_name,
-            user_id=g.user.get_id(),
+            user_id=int(g.user.get_id()),
+            client_id=client_id,
         )
         s.add(query)
         s.commit()
-        return Response(
-            json.dumps({'query': query.to_dict()},
-                       default=utils.json_int_dttm_ser,
-                       allow_nan=False),
-            status=200,
-            mimetype="application/json")
-
-
-
-    @has_access
-    @expose("/sql_json/", methods=['POST', 'GET'])
-    @log_this
-    def sql_json(self):
-        """Runs arbitrary sql and returns and json"""
-        query_id = json.loads(request.form.get('query_id'))
-        async = request.form.get('async') == 'true'
 
         s = db.session()
-        query = s.query(models.Query).filter_by(id=int(query_id)).first()
+        query = s.query(models.Query).filter_by(id=int(query.id)).first()
         mydb = s.query(models.Database).filter_by(id=query.database_id).first()
 
         if not mydb:
@@ -1513,8 +1517,7 @@ class Caravel(BaseCaravelView):
                 'all_datasource_access', 'all_datasource_access') or
                 self.can_access('database_access', mydb.perm)):
             raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
 
         # Async request.
         if async:
@@ -1529,16 +1532,18 @@ class Caravel(BaseCaravelView):
 
         # Sync request.
         data = sql_lab.get_sql_results(query.id)
+
         s.close()
         s = db.session()
         query = s.query(models.Query).filter_by(id=query.id).first()
         data['query'] = query.to_dict()
+
         if data['status'] == models.QueryStatus.FAILED:
                 return Response(
-                    json.dumps(data, default=utils.json_int_dttm_ser,
-                               allow_nan=False),
+                    json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
                     status=500,
-                    mimetype="application/json")
+                    mimetype="application/json"
+                )
         return Response(
             json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
             status=200,
@@ -1563,12 +1568,10 @@ class Caravel(BaseCaravelView):
                 status=500,
                 mimetype="application/json")
 
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
+        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
                 self.can_access('database_access', mydb.perm)):
             raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
 
         sql = query.sql
         if query.select_sql:
@@ -1609,7 +1612,7 @@ class Caravel(BaseCaravelView):
             models.Query.changed_on >= last_updated_dt)
 
         if sql_queries:
-            dict_queries = {q.id: q.to_dict() for q in sql_queries}
+            dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
             return Response(
                 json.dumps(dict_queries, default=utils.json_int_dttm_ser),
                 status=200,
