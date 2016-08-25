@@ -8,11 +8,11 @@
 //## Gray and brand colors for use across Bootstrap.
 
 @gray-base:              #000;
-@gray-darker:            lighten(@gray-base, 13.5%); // #222
-@gray-dark:              lighten(@gray-base, 20%);   // #333
-@gray:                   lighten(@gray-base, 33.5%); // #555
-@gray-light:             lighten(@gray-base, 70%);   //
-@gray-lighter:           lighten(@gray-base, 90%); // #eee
+@gray-darker:            lighten(@gray-base, 13.5%);
+@gray-dark:              lighten(@gray-base, 20%);
+@gray:                   lighten(@gray-base, 33.5%);
+@gray-light:             lighten(@gray-base, 70%);
+@gray-lighter:           lighten(@gray-base, 95%);
 
 @brand-primary:         #45A5FF;
 @brand-success:         #4AC15F;
@@ -25,7 +25,7 @@
 //## Settings for some of the most global styles.
 
 //** Background color for `<body>`.
-@body-bg:               #EDEDED;
+@body-bg:               #f5f5f5;
 //** Global text color on `<body>`.
 @text-color:            @gray-dark;
 
@@ -148,9 +148,9 @@
 @btn-primary-bg:                 @brand-primary;
 @btn-primary-border:             @brand-primary;
 
-@btn-default-color:              #fff;
-@btn-default-bg:                 @gray-dark;
-@btn-default-border:             @gray-dark;
+@btn-default-color:              @gray;
+@btn-default-bg:                 #fff;
+@btn-default-border:             @gray-light;
 
 @btn-success-color:              @btn-primary-color;
 @btn-success-bg:                 @brand-success;
