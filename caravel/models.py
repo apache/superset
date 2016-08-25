@@ -1762,6 +1762,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
+    client_id = Column(String(11))
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1804,7 +1805,8 @@ class Query(Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
+            'serverId': self.id,
+            'id': self.client_id,
             'dbId': self.database_id,
             'tab': self.tab_name,
             'sqlEditorId': self.sql_editor_id,
