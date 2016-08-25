@@ -32,7 +32,7 @@ function histogram(slice) {
     const yAxis = d3.svg.axis()
     .scale(y)
     .orient('left')
-    .ticks(numBins * 3);
+    .ticks(numBins);
     // Calculate bins for the data
     const bins = d3.layout.histogram().bins(numBins)(data);
 
