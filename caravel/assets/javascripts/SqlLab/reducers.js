@@ -138,6 +138,7 @@ export const sqlLabReducer = function (state, action) {
         state: 'success',
         results: action.results,
         rows: action.results.data.length,
+        endDttm: moment(),
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
@@ -184,9 +185,9 @@ export const sqlLabReducer = function (state, action) {
     [actions.REFRESH_QUERIES]() {
       const newQueries = Object.assign({}, state['queries']);
       // Fetch the updates to the queries present in the store.
-      for (var query_id in state['queries']) {
-        newQueries[query_id] = Object.assign(newQueries[query_id],
-            action.alteredQueries[query_id])
+      for (var queryId in state['queries']) {
+        newQueries[queryId] = Object.assign(newQueries[queryId],
+            action.alteredQueries[queryId])
       }
       return Object.assign({}, state, { queries: newQueries });
     },
