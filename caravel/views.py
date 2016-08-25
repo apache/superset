@@ -1181,7 +1181,7 @@ class Caravel(BaseCaravelView):
         if slc:
             url = '{slc.slice_url}&standalone={standalone}'.format(
                 slc=slc, standalone=request.args.get('standalone', 'false'))
-            return redirect('https://caravel.d.musta.ch{url}'.format(url=url))
+            return redirect(url)
         else:
             flash("The specified slice could not be found", "danger")
             return redirect('/slicemodelview/list/')
@@ -1480,4 +1480,13 @@ def panoramix(url):  # noqa
 @app.route('/<regex("dashed\/.*"):url>')
 def dashed(url):  # noqa
     return redirect(request.full_path.replace('dashed', 'caravel'))
+
+
 # ---------------------------------------------------------------------
+# Force https when using this decorator
+@app.before_request
+def force_https():
+    if not config.get("DEBUG") and request.url.startswith('http://'):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
