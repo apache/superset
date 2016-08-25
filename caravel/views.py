@@ -1181,7 +1181,7 @@ class Caravel(BaseCaravelView):
         if slc:
             url = '{slc.slice_url}&standalone={standalone}'.format(
                 slc=slc, standalone=request.args.get('standalone', 'false'))
-            return redirect('https://caravel.d.musta.ch{url}'.format(url))
+            return redirect('https://caravel.d.musta.ch{url}'.format(url=url))
         else:
             flash("The specified slice could not be found", "danger")
             return redirect('/slicemodelview/list/')
