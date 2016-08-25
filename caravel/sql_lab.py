@@ -53,7 +53,7 @@ class QueryRunner:
 
         if self._query.error_message:
             self._query.status = models.QueryStatus.FAILED
-            self._session.flush()
+            self._session.commit()
             return False
         return True
 
@@ -98,7 +98,9 @@ class QueryRunner:
         self._get_sql_results(engine)
 
         self._query.end_time = datetime.now()
-        self._session.flush()
+        self._session.commit()
+
+        query = self._session.query(models.Query).filter_by(id=self._query.id).first()
         return self._query.status
 
     def _get_sql_results(self, engine):
@@ -113,8 +115,6 @@ class QueryRunner:
         cursor = result_proxy.cursor
         if hasattr(cursor, "poll"):
             query_stats = cursor.poll()
-            self._query.status = models.QueryStatus.IN_PROGRESS
-            self._session.flush()
             # poll returns dict -- JSON status information or ``None``
             # if the query is done
             # https://github.com/dropbox/PyHive/blob/
@@ -128,7 +128,7 @@ class QueryRunner:
                 if progress > self._query.progress:
                     self._query.progress = progress
 
-                self._session.flush()
+                self._session.commit()
                 query_stats = cursor.poll()
                 # TODO(b.kyryliuk): check for the kill signal.
 

@@ -21,16 +21,6 @@ export const initialState = {
   workspaceQueries: [],
 };
 
-function removeFromObject(state, arrKey, obj, idKey = 'id') {
-  const newObject = {};
-  for (const key in state[arrKey]) {
-    if (!(key === obj[idKey])) {
-      newObject[idKey] = state[arrKey][idKey];
-    }
-  }
-  return Object.assign({}, state, { [arrKey]: newObject });
-}
-
 function addToObject(state, arrKey, obj) {
   const newObject = Object.assign({}, state[arrKey]);
   const copiedObject = Object.assign({}, obj);
@@ -116,7 +106,9 @@ export const sqlLabReducer = function (state, action) {
       return newState;
     },
     [actions.REMOVE_QUERY]() {
-      return removeFromObject(state, 'queries', action.query);
+      const newQueries = Object.assign({}, state['queries']);
+      delete newQueries[action.query.id]
+      return Object.assign({}, state, { queries: newQueries });
     },
     [actions.RESET_STATE]() {
       return Object.assign({}, initialState);
@@ -191,8 +183,13 @@ export const sqlLabReducer = function (state, action) {
       return removeFromArr(state, 'alerts', action.alert);
     },
     [actions.REFRESH_QUERIES]() {
-      queries = action.queries
-      return alterInArr(state, 'queries', queries, { state: 'stopped' });
+      const newQueries = Object.assign({}, state['queries']);
+      // Fetch the updates to the queries present in the store.
+      for (var queryId in state['queries']) {
+        newQueries[queryId] = Object.assign(newQueries[queryId],
+            action.alteredQueries[queryId])
+      }
+      return Object.assign({}, state, { queries: newQueries });
     },
   };
   if (action.type in actionHandlers) {

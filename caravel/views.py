@@ -1273,7 +1273,7 @@ class Caravel(BaseCaravelView):
             table = models.SqlaTable(
                 table_name=table_name,
             )
-        table.database_id = data.get('dbId')
+        table.database_id = data.get('databaseId')
         table.sql = data.get('sql')
         db.session.add(table)
         cols = []
@@ -1448,19 +1448,58 @@ class Caravel(BaseCaravelView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
+        async = request.form.get('async') == 'true'
+        client_id = request.form.get('client_id')
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
         schema = request.form.get('schema')
-        tab_name = request.form.get('tab_name')
-
-        async = request.form.get('async') == 'true'
+        tab_name = request.form.get('tab')
+        sql_editor_id = request.form.get('sql_editor_id')
         tmp_table_name = request.form.get('tmp_table_name', None)
         select_as_cta = request.form.get('select_as_cta') == 'true'
-        print(request.form.get('async'))
-        print(type(request.form.get('async')))
 
+        start_time = datetime.now()
+        query_name = '{}_{}_{}'.format(
+            g.user.get_id(), tab_name, start_time.strftime('%M:%S:%f'))
+
+        s = db.session()
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
+        if not mydb:
+            return Response(json.dumps({
+                'error': 'Database with id {} is missing.'.format(database_id),
+                'status': models.QueryStatus.FAILED,
+            }),
+                status=500,
+                mimetype="application/json"
+            )
+            if not (self.can_access('all_datasource_access', 'all_datasource_access') or
+                    self.can_access('database_access', mydb.perm)):
+                raise utils.CaravelSecurityException(_(
+                    "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+
+        query = models.Query(
+            database_id=database_id,
+            limit=app.config.get('SQL_MAX_ROW', None),
+            name=query_name,
+            sql=sql,
+            schema=schema,
+            # TODO(bkyryliuk): consider it being DB property.
+            select_as_cta=select_as_cta,
+            start_time=start_time,
+            status=models.QueryStatus.IN_PROGRESS,
+            tab_name=tab_name,
+            sql_editor_id=sql_editor_id,
+            tmp_table_name=tmp_table_name,
+            user_id=g.user.get_id(),
+            client_id=client_id,
+        )
+        s.add(query)
+        s.commit()
+
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=int(query.id)).first()
+        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
 
         if not mydb:
             return Response(
@@ -1476,54 +1515,33 @@ class Caravel(BaseCaravelView):
                 'all_datasource_access', 'all_datasource_access') or
                 self.can_access('database_access', mydb.perm)):
             raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
-
-        start_time = datetime.now()
-        query_name = '{}_{}_{}'.format(
-            g.user.get_id(), tab_name, start_time.strftime('%M:%S:%f'))
-
-        query = models.Query(
-            database_id=database_id,
-            limit=app.config.get('SQL_MAX_ROW', None),
-            name=query_name,
-            sql=sql,
-            schema=schema,
-            # TODO(bkyryliuk): consider it being DB property.
-            select_as_cta=select_as_cta,
-            start_time=start_time,
-            status=models.QueryStatus.SCHEDULED,
-            tab_name=tab_name,
-            tmp_table_name=tmp_table_name,
-            user_id=g.user.get_id(),
-        )
-        session.add(query)
-        session.commit()
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
 
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
             sql_lab.get_sql_results.delay(query.id)
-            return Response(json.dumps(
-                {
-                    'query_id': query.id,
-                    'status': query.status,
-                },
-                default=utils.json_int_dttm_ser, allow_nan=False),
+            return Response(
+                json.dumps({'query': query.to_dict()},
+                           default=utils.json_int_dttm_ser,
+                           allow_nan=False),
                 status=202,  # Accepted
                 mimetype="application/json")
 
         # Sync request.
         data = sql_lab.get_sql_results(query.id)
+        s.close()
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=query.id).first()
+        data['query'] = query.to_dict()
         if data['status'] == models.QueryStatus.FAILED:
                 return Response(
-                    json.dumps(
-                        data, default=utils.json_int_dttm_ser, allow_nan=False),
+                    json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
                     status=500,
-                    mimetype="application/json")
+                    mimetype="application/json"
+                )
         return Response(
-            json.dumps(
-                data, default=utils.json_int_dttm_ser, allow_nan=False),
+            json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
             status=200,
             mimetype="application/json")
 
@@ -1569,7 +1587,6 @@ class Caravel(BaseCaravelView):
     @log_this
     def queries(self, last_updated_ms):
         """Get the updated queries."""
-
         if not g.user.get_id():
             return Response(
                 json.dumps({'error': "Please login to access the queries."}),
@@ -1593,7 +1610,7 @@ class Caravel(BaseCaravelView):
             models.Query.changed_on >= last_updated_dt)
 
         if sql_queries:
-            dict_queries = [q.to_dict() for q in sql_queries]
+            dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
             return Response(
                 json.dumps(dict_queries, default=utils.json_int_dttm_ser),
                 status=200,

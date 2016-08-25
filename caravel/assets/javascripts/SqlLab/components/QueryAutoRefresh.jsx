@@ -16,7 +16,7 @@ class QueryAutoRefresh extends React.Component {
   }
   startTimer() {
     if (!(this.timer)) {
-      this.timer = setInterval(this.stopwatch.bind(this), 2000);
+      this.timer = setInterval(this.stopwatch.bind(this), 1000);
     }
   }
   stopTimer() {
@@ -25,26 +25,24 @@ class QueryAutoRefresh extends React.Component {
   }
   stopwatch() {
     const url = '/caravel/queries/0';
+    // No updates in case of failure.
     $.getJSON(
       url,
       (data, status, xhr) => {
-        if (status == 200) {
-          console.log("Fetched queries")
-          console.log(data)
+        if (status === "success") {
           this.props.actions.refreshQueries(data);
         }
     });
-    console.log(new Date());
   }
   render() {
     return null;
   }
 }
 QueryAutoRefresh.propTypes = {
-  query: React.PropTypes.object,
+  // queries: React.PropTypes.object,
 };
 QueryAutoRefresh.defaultProps = {
-  query: null,
+  // queries: null,
 };
 
 function mapStateToProps() {

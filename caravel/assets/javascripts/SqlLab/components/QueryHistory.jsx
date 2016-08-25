@@ -18,7 +18,7 @@ const QueryHistory = (props) => {
   if (queriesArray.length > 0) {
     return (
       <QueryTable
-        columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
+        columns={['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions']}
         queries={queriesArray}
       />
     );
@@ -31,7 +31,7 @@ const QueryHistory = (props) => {
 };
 
 QueryHistory.defaultProps = {
-  queries: [],
+  queries: {},
 };
 
 QueryHistory.propTypes = {
