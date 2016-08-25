@@ -225,33 +225,33 @@
                       cached
                     </span>
                     <div class="btn-group results" role="group">
-                      <a role="button" tabindex="0" class="btn btn-default" id="shortner" data-toggle="popover" data-trigger="focus">
+                      <a role="button" tabindex="0" class="btn btn-default btn-sm" id="shortner" data-toggle="popover" data-trigger="focus">
                         <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
                       </a>
-                      <span class="btn btn-default" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
+                      <span class="btn btn-default btn-sm" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
                         <i class="fa fa-code"></i>&nbsp;
                       </span>
-                      <span class="btn btn-default " id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
+                      <span class="btn btn-default btn-sm" id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
                         <i class="fa fa-file-code-o"></i>
                         .json
                       </span>
-                      <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
+                      <span class="btn btn-default btn-sm {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
                         <i class="fa fa-file-text-o"></i>.csv
                       </span>
                       <span
-                        class="btn btn-warning notbtn"
-                        id="timer"
-                        title="{{ _("Query timer") }}"
-                        data-toggle="tooltip">
-                        {{ _("0 sec") }}
-                      </span>
-                      <span
-                        class="btn btn-info disabled view_query"
+                        class="btn btn-default btn-sm disabled view_query"
                         data-toggle="modal"
                         data-target="#query_modal">
                         <span data-toggle="tooltip" title="{{ _("View database query") }}">
                           {{ _("query") }}
                         </span>
+                      </span>
+                      <span
+                        class="btn btn-warning btn-sm notbtn"
+                        id="timer"
+                        title="{{ _("Query timer") }}"
+                        data-toggle="tooltip">
+                        {{ _("0 sec") }}
                       </span>
                     </div>
                   </div>

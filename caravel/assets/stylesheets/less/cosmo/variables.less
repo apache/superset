@@ -14,9 +14,9 @@
 @gray-light:             lighten(@gray-base, 70%);   //
 @gray-lighter:           lighten(@gray-base, 90%); // #eee
 
-@brand-primary:         #515152;
+@brand-primary:         #45A5FF;
 @brand-success:         #4AC15F;
-@brand-info:            #2AB7CA;
+@brand-info:            lighten(#2AB7CA, 15%);
 @brand-warning:         #FED766;
 @brand-danger:          #FE4A49;
 
@@ -102,9 +102,9 @@
 @line-height-large:         1.3333333; // extra decimals for Win 8.1 Chrome
 @line-height-small:         1.5;
 
-@border-radius-base:        0;
-@border-radius-large:       0;
-@border-radius-small:       0;
+@border-radius-base:        2px;
+@border-radius-large:       2px;
+@border-radius-small:       2px;
 
 //** Global color for active items (e.g., navs or dropdowns).
 @component-active-color:    #fff;
@@ -146,11 +146,11 @@
 
 @btn-primary-color:              #fff;
 @btn-primary-bg:                 @brand-primary;
-@btn-primary-border:             @btn-primary-bg;
+@btn-primary-border:             @brand-primary;
 
-@btn-default-color:              @gray-dark;
-@btn-default-bg:                 #fff;
-@btn-default-border:             @gray-light;
+@btn-default-color:              #fff;
+@btn-default-bg:                 @gray-dark;
+@btn-default-border:             @gray-dark;
 
 @btn-success-color:              @btn-primary-color;
 @btn-success-bg:                 @brand-success;
@@ -501,7 +501,7 @@
 @state-success-border:           darken(spin(@state-success-bg, -10), 5%);
 
 @state-info-text:                darken(@brand-info, 22%);
-@state-info-bg:                  lighten(@brand-info, 40%);
+@state-info-bg:                  lighten(@brand-info, 20%);
 @state-info-border:              darken(spin(@state-info-bg, -10), 7%);
 
 @state-warning-text:             darken(@brand-warning, 30%);

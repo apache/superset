@@ -7,13 +7,13 @@ const propTypes = {
 };
 
 export default function QueryAndSaveBtns({ canAdd, onQuery }) {
-  const saveClasses = classnames('btn btn-default', {
+  const saveClasses = classnames('btn btn-default btn-sm', {
     'disabled disabledButton': canAdd !== 'True',
   });
 
   return (
     <div className="btn-group query-and-save">
-      <button type="button" className="btn btn-default" onClick={onQuery}>
+      <button type="button" className="btn btn-primary btn-sm" onClick={onQuery}>
         <i className="fa fa-bolt"></i>Query
       </button>
       <button
