@@ -39,10 +39,10 @@ class QueryAutoRefresh extends React.Component {
   }
 }
 QueryAutoRefresh.propTypes = {
-  queries: React.PropTypes.array,
+  // queries: React.PropTypes.object,
 };
 QueryAutoRefresh.defaultProps = {
-  queries: null,
+  // queries: null,
 };
 
 function mapStateToProps() {

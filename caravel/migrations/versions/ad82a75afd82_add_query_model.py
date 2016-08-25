@@ -17,6 +17,7 @@ import sqlalchemy as sa
 def upgrade():
     op.create_table('query',
         sa.Column('id', sa.Integer(), nullable=False),
+        sa.Column('client_id',  sa.String(length=11), nullable=False),
         sa.Column('database_id', sa.Integer(), nullable=False),
         sa.Column('tmp_table_name', sa.String(length=256), nullable=True),
         sa.Column('tab_name', sa.String(length=256),nullable=True),

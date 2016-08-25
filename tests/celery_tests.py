@@ -207,6 +207,7 @@ class CeleryTestCase(unittest.TestCase):
                 async=async,
                 select_as_cta=cta,
                 tmp_table_name=tmp_table,
+                client_id="not_used",
             ),
         )
         self.logout()
@@ -296,8 +297,8 @@ class CeleryTestCase(unittest.TestCase):
         # DB #0 doesn't exist.
         sql_dont_exist = 'SELECT * FROM dontexist'
         result1 = self.run_sql(0, sql_dont_exist, cta='true')
-        self.assertEqual(models.QueryStatus.FAILED, result1[u'status'])
-        self.assertFalse(u'query_id' in result1)
+        self.assertEqual(models.QueryStatus.FAILED, result1[u'state'])
+        self.assertFalse(u'query' in result1)
         self.assertEqual('Database with id 0 is missing.', result1['error'])
         self.assertIsNone(self.get_query_by_name(sql_dont_exist))
 
@@ -305,8 +306,8 @@ class CeleryTestCase(unittest.TestCase):
         # Table doesn't exist.
         result2 = self.run_sql(1, sql_dont_exist, cta='true', )
         self.assertTrue('error' in result2)
-        self.assertEqual(models.QueryStatus.FAILED, result1[u'status'])
-        query2 = self.get_query_by_id(result2[u'query_id'])
+        self.assertEqual(models.QueryStatus.FAILED.lower(), result2[u'query'][u'state'])
+        query2 = self.get_query_by_id(result2[u'query'][u'serverId'])
         self.assertEqual(models.QueryStatus.FAILED, query2.status)
 
         # Case 3.
@@ -314,10 +315,10 @@ class CeleryTestCase(unittest.TestCase):
         sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
         result3 = self.run_sql(
             1, sql_where, tmp_table='tmp_table_3', cta='true')
-        self.assertEqual(models.QueryStatus.FINISHED, result3[u'status'])
+        self.assertEqual(models.QueryStatus.FINISHED.lower(), result3[u'query'][u'state'])
         self.assertIsNone(result3[u'data'])
         self.assertIsNone(result3[u'columns'])
-        query3 = self.get_query_by_id(result3[u'query_id'])
+        query3 = self.get_query_by_id(result3[u'query'][u'serverId'])
 
         # Check the data in the tmp table.
         df3 = pd.read_sql_query(sql=query3.select_sql, con=eng)
@@ -329,11 +330,11 @@ class CeleryTestCase(unittest.TestCase):
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result4 = self.run_sql(
             1, sql_empty_result, tmp_table='tmp_table_4', cta='true',)
-        self.assertEqual(models.QueryStatus.FINISHED, result4[u'status'])
+        self.assertEqual(models.QueryStatus.FINISHED.lower(), result4[u'query'][u'state'])
         self.assertIsNone(result4[u'data'])
         self.assertIsNone(result4[u'columns'])
 
-        query4 = self.get_query_by_id(result4[u'query_id'])
+        query4 = self.get_query_by_id(result4[u'query'][u'serverId'])
         self.assertEqual(models.QueryStatus.FINISHED, query4.status)
         self.assertTrue("SELECT * \nFROM tmp_table_4" in query4.select_sql)
         self.assertTrue("LIMIT 666" in query4.select_sql)
@@ -356,7 +357,7 @@ class CeleryTestCase(unittest.TestCase):
         # Case 5.
         # Table and DB exists, select without CTA.
         result5 = self.run_sql(1, sql_where, tmp_table='tmp_table_5')
-        self.assertEqual(models.QueryStatus.FINISHED, result5[u'status'])
+        self.assertEqual(models.QueryStatus.FINISHED.lower(), result5[u'query'][u'state'])
         self.assertEqual([u'name'], result5[u'columns'])
         self.assertEqual([{u'name': u'can_sql'}], result5[u'data'])
 
@@ -381,18 +382,18 @@ class CeleryTestCase(unittest.TestCase):
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
             1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
-        self.assertEqual(models.QueryStatus.SCHEDULED, result1[u'status'])
+        self.assertEqual(models.QueryStatus.IN_PROGRESS.lower(), result1[u'query'][u'state'])
 
         # Case 2.
         # Table and DB exists, async insert query, no CTAs.
         insert_query = "INSERT INTO ab_role VALUES (9, 'fake_role')"
         result2 = self.run_sql(1, insert_query, async='true')
-        self.assertEqual(models.QueryStatus.SCHEDULED, result2[u'status'])
+        self.assertEqual(models.QueryStatus.IN_PROGRESS.lower(), result2[u'query'][u'state'])
 
         time.sleep(2)
 
         # Case 1.
-        query1 = self.get_query_by_id(result1[u'query_id'])
+        query1 = self.get_query_by_id(result1[u'query'][u'serverId'])
         df1 = pd.read_sql_query(query1.select_sql, con=eng)
         self.assertEqual(models.QueryStatus.FINISHED, query1.status)
         self.assertEqual([{'name': 'Admin'}], df1.to_dict(orient='records'))
@@ -411,7 +412,7 @@ class CeleryTestCase(unittest.TestCase):
         self.assertEqual(True, query1.select_as_cta_used)
 
         # Case 2.
-        query2 = self.get_query_by_id(result2[u'query_id'])
+        query2 = self.get_query_by_id(result2[u'query'][u'serverId'])
         self.assertEqual(models.QueryStatus.FINISHED, query2.status)
         self.assertIsNone(query2.select_sql)
         self.assertEqual(insert_query, query2.executed_sql)
