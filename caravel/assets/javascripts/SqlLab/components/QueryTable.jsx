@@ -36,13 +36,13 @@ class QueryTable extends React.Component {
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
-      const since = (q.endDttm) ? q.endDttm : new Date();
-      let duration = since.valueOf() - q.startDttm.valueOf();
-      duration = moment.utc(duration);
+      // TODO(bkyryliuk): rename ...Dttm into the ...Timestamp.
+      const since = (q.endDttm) ? q.endDttm : new Date().getTime();
+      const duration = moment.utc(since - q.startDttm);
       if (q.endDttm) {
         q.duration = duration.format('HH:mm:ss.SS');
       }
-      q.started = moment(q.startDttm).format('HH:mm:ss');
+      q.started = moment.utc(q.startDttm).format('HH:mm:ss');
       q.sql = <SyntaxHighlighter language="sql" style={github}>{q.sql}</SyntaxHighlighter>;
       q.state = (
         <span
@@ -92,7 +92,7 @@ class QueryTable extends React.Component {
           onHide={this.hideVisualizeModal.bind(this)}
         />
         <Table
-          columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
+          columns={['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions']}
           className="table table-condensed"
           data={data}
         />
@@ -103,10 +103,10 @@ class QueryTable extends React.Component {
 QueryTable.propTypes = {
   columns: React.PropTypes.array,
   actions: React.PropTypes.object,
-  queries: React.PropTypes.object,
+  queries: React.PropTypes.array,
 };
 QueryTable.defaultProps = {
-  columns: ['state', 'started', 'duration', 'rows', 'sql', 'actions'],
+  columns: ['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions'],
   queries: [],
 };
 

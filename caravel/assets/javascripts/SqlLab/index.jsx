@@ -9,6 +9,7 @@ import * as Actions from './actions';
 import { Label, Tab, Tabs } from 'react-bootstrap';
 import LeftPane from './components/LeftPane';
 import TabbedSqlEditors from './components/TabbedSqlEditors';
+import QueryAutoRefresh from './components/QueryAutoRefresh';
 import Alerts from './components/Alerts';
 
 import { bindActionCreators, compose, createStore } from 'redux';
@@ -16,6 +17,7 @@ import { connect, Provider } from 'react-redux';
 
 import { initialState, sqlLabReducer } from './reducers';
 import persistState from 'redux-localstorage';
+
 
 require('./main.css');
 
@@ -29,6 +31,7 @@ class App extends React.Component {
     return (
       <div className="App SqlLab">
         <div className="container-fluid">
+          <QueryAutoRefresh />
           <Alerts alerts={this.props.alerts} />
           <div className="row">
             <div className="col-md-9">

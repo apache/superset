@@ -36,6 +36,7 @@ app.config['WTF_CSRF_ENABLED'] = False
 BASE_DIR = app.config.get("BASE_DIR")
 cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
+
 class CaravelTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
@@ -321,7 +322,7 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
-    def run_sql(self, sql, user_name):
+    def run_sql(self, sql, user_name, client_id="not_used"):
         self.login(username=user_name)
         dbid = (
             db.session.query(models.Database)
@@ -330,7 +331,7 @@ class CoreTests(CaravelTestCase):
         )
         resp = self.client.post(
             '/caravel/sql_json/',
-            data=dict(database_id=dbid, sql=sql, select_as_create_as=False),
+            data=dict(database_id=dbid, sql=sql, select_as_create_as=False, client_id=client_id),
         )
         self.logout()
         return json.loads(resp.data.decode('utf-8'))
@@ -407,8 +408,8 @@ class CoreTests(CaravelTestCase):
         self.assertEquals(0, len(data))
         self.logout()
 
-        self.run_sql("SELECT * FROM ab_user", 'admin')
-        self.run_sql("SELECT * FROM ab_user1", 'admin')
+        self.run_sql("SELECT * FROM ab_user", 'admin', 'client_id_1')
+        self.run_sql("SELECT * FROM ab_user1", 'admin', 'client_id_2')
         self.login('admin')
         resp = self.client.get('/caravel/queries/{}'.format(0))
         data = json.loads(resp.data.decode('utf-8'))

@@ -1750,8 +1750,8 @@ class QueryStatus:
 
     SCHEDULED = 'SCHEDULED'
     CANCELLED = 'CANCELLED'
-    IN_PROGRESS = 'IN_PROGRESS'
-    FINISHED = 'FINISHED'
+    IN_PROGRESS = 'RUNNING'
+    FINISHED = 'SUCCESS'
     TIMED_OUT = 'TIMED_OUT'
     FAILED = 'FAILED'
 
@@ -1762,6 +1762,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
+    client_id = Column(String(11))
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1775,6 +1776,7 @@ class Query(Model):
 
     name = Column(String(256))
     tab_name = Column(String(256))
+    sql_editor_id = Column(String(256))
     schema = Column(String(256))
     sql = Column(Text)
     # Query to retrieve the results,
@@ -1803,17 +1805,21 @@ class Query(Model):
 
     def to_dict(self):
         return {
-            'id': self.id,
-            'database_id': self.database_id,
-            'tab_name': self.tab_name,
-            'user_id': self.user_id,
-            'status': self.status,
+            'serverId': self.id,
+            'id': self.client_id,
+            'dbId': self.database_id,
+            'tab': self.tab_name,
+            'sqlEditorId': self.sql_editor_id,
+            'userId': self.user_id,
+            'state': self.status.lower(),
             'schema': self.schema,
             'sql': self.sql,
             'limit': self.limit,
             'progress': self.progress,
-            'error_message': self.error_message,
-            'start_time': self.start_time,
-            'end_time': self.end_time,
-            'changed_on': self.end_time
+            'errorMessage': self.error_message,
+            'startDttm': self.start_time,
+            'endDttm': self.end_time,
+            'changedOn': self.changed_on,
+            'rows': self.rows,
+
         }

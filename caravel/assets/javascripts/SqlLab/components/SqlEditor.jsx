@@ -56,6 +56,7 @@ class SqlEditor extends React.Component {
   }
   startQuery(runAsync = false, ctas = false) {
     const that = this;
+
     const query = {
       id: shortid.generate(),
       sqlEditorId: this.props.queryEditor.id,
@@ -63,23 +64,30 @@ class SqlEditor extends React.Component {
       state: 'running',
       tab: this.props.queryEditor.title,
       dbId: this.props.queryEditor.dbId,
-      startDttm: new Date(),
+      startDttm: new Date().getTime(),
     };
-    const url = '/caravel/sql_json/';
-    const data = {
+
+    // Execute the Query
+    that.props.actions.startQuery(query);
+
+    const sqlJsonUrl = '/caravel/sql_json/';
+    const sqlJsonRequest = {
+      json: true,
+      client_id: query.id,
+      async: runAsync,
       sql: this.props.queryEditor.sql,
       database_id: this.props.queryEditor.dbId,
+      sql_editor_id: this.props.queryEditor.id,
       schema: this.props.queryEditor.schema,
+      tab: this.props.queryEditor.title,
       json: true,
-      async: runAsync,
       select_as_cta: ctas,
     };
-    this.props.actions.startQuery(query);
     $.ajax({
       type: 'POST',
       dataType: 'json',
-      url,
-      data,
+      url: sqlJsonUrl,
+      data: sqlJsonRequest,
       success(results) {
         if (runAsync) {
           // TODO nothing?

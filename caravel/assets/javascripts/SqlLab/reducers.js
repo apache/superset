@@ -11,6 +11,7 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
+// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
   queries: {},
@@ -19,16 +20,6 @@ export const initialState = {
   tables: [],
   workspaceQueries: [],
 };
-
-function removeFromObject(state, arrKey, obj, idKey = 'id') {
-  const newObject = {};
-  for (const key in state[arrKey]) {
-    if (!(key === obj[idKey])) {
-      newObject[idKey] = state[arrKey][idKey];
-    }
-  }
-  return Object.assign({}, state, { [arrKey]: newObject });
-}
 
 function addToObject(state, arrKey, obj) {
   const newObject = Object.assign({}, state[arrKey]);
@@ -55,6 +46,21 @@ function alterInArr(state, arrKey, obj, alterations) {
   state[arrKey].forEach((arrItem) => {
     if (obj[idKey] === arrItem[idKey]) {
       newArr.push(Object.assign({}, arrItem, alterations));
+    } else {
+      newArr.push(arrItem);
+    }
+  });
+  return Object.assign({}, state, { [arrKey]: newArr });
+}
+
+function replaceInArr(state, arrKey, obj) {
+  // Finds an item in an array in the state and replaces it with a
+  // new object with an altered property
+  const idKey = 'id';
+  const newArr = [];
+  state[arrKey].forEach((arrItem) => {
+    if (obj[idKey] === arrItem[idKey]) {
+      newArr.push(Object.assign({}, obj[idKey]));
     } else {
       newArr.push(arrItem);
     }
@@ -100,7 +106,9 @@ export const sqlLabReducer = function (state, action) {
       return newState;
     },
     [actions.REMOVE_QUERY]() {
-      return removeFromObject(state, 'queries', action.query);
+      const newQueries = Object.assign({}, state['queries']);
+      delete newQueries[action.query.id]
+      return Object.assign({}, state, { queries: newQueries });
     },
     [actions.RESET_STATE]() {
       return Object.assign({}, initialState);
@@ -173,6 +181,15 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
+    },
+    [actions.REFRESH_QUERIES]() {
+      const newQueries = Object.assign({}, state['queries']);
+      // Fetch the updates to the queries present in the store.
+      for (var queryId in state['queries']) {
+        newQueries[queryId] = Object.assign(newQueries[queryId],
+            action.alteredQueries[queryId])
+      }
+      return Object.assign({}, state, { queries: newQueries });
     },
   };
   if (action.type in actionHandlers) {
