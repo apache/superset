@@ -82,6 +82,7 @@ class SqlEditor extends React.Component {
       tab: this.props.queryEditor.title,
       json: true,
       select_as_cta: ctas,
+      tmp_table_name: this.state.ctas,
     };
     $.ajax({
       type: 'POST',
