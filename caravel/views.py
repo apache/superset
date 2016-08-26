@@ -1390,55 +1390,6 @@ class Caravel(BaseCaravelView):
             content=s
         )
 
-    @has_access
-    @expose("/runsql/", methods=['POST', 'GET'])
-    @log_this
-    def runsql(self):
-        """Runs arbitrary sql and returns and html table"""
-        # TODO deprecate in favor on `sql_json`
-        session = db.session()
-        limit = 1000
-        data = json.loads(request.form.get('data'))
-        sql = data.get('sql')
-        database_id = data.get('database_id')
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific db permission"))
-
-        content = ""
-        if mydb:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*'])
-                                 .alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = '{}'.format(qry.compile(
-                    eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = pd.read_sql_query(sql=sql, con=eng)
-                content = df.to_html(
-                    index=False,
-                    na_rep='',
-                    classes=(
-                        "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results").split(' '))
-            except Exception as e:
-                content = (
-                    '<div class="alert alert-danger">'
-                    "{}</div>"
-                ).format(utils.error_msg_from_exception(e))
-        session.commit()
-        return content
-
     @expose("/theme/")
     def theme(self):
         return self.render_template('caravel/theme.html')
@@ -1449,80 +1400,56 @@ class Caravel(BaseCaravelView):
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
         async = request.form.get('async') == 'true'
-        client_id = request.form.get('client_id')
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
-        schema = request.form.get('schema')
-        tab_name = request.form.get('tab')
-        sql_editor_id = request.form.get('sql_editor_id')
-        tmp_table_name = request.form.get('tmp_table_name', None)
-        select_as_cta = request.form.get('select_as_cta') == 'true'
 
-        start_time = datetime.now()
-        query_name = '{}_{}_{}'.format(
-            g.user.get_id(), tab_name, start_time.strftime('%M:%S:%f'))
-
-        s = db.session()
-        session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
-        if not mydb:
+        def json_error_response(msg, status=None):
             return Response(json.dumps({
-                'error': 'Database with id {} is missing.'.format(database_id),
-                'status': models.QueryStatus.FAILED,
+                'error': msg,
+                'status': status,
             }),
                 status=500,
                 mimetype="application/json"
             )
 
+        session = db.session()
+        mydb = session.query(models.Database).filter_by(id=database_id).first()
+
+        if not mydb:
+            json_error_response(
+                'Database with id {} is missing.'.format(database_id),
+                models.QueryStatus.FAILED)
+
         if not (self.can_access('all_datasource_access', 'all_datasource_access') or
                 self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
+            json_error_response(__(
                 "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+        session.commit()
 
         query = models.Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
-            name=query_name,
             sql=sql,
-            schema=schema,
+            schema=request.form.get('schema'),
             # TODO(bkyryliuk): consider it being DB property.
-            select_as_cta=select_as_cta,
-            start_time=start_time,
+            select_as_cta=request.form.get('select_as_cta') == 'true',
+            start_time=datetime.now(),
             status=models.QueryStatus.IN_PROGRESS,
-            tab_name=tab_name,
-            sql_editor_id=sql_editor_id,
-            tmp_table_name=tmp_table_name,
+            tab_name=request.form.get('tab'),
+            sql_editor_id=request.form.get('sql_editor_id'),
+            tmp_table_name=request.form.get('tmp_table_name'),
             user_id=int(g.user.get_id()),
-            client_id=client_id,
+            client_id=request.form.get('client_id'),
         )
-        s.add(query)
-        s.commit()
-
-        s = db.session()
-        query = s.query(models.Query).filter_by(id=int(query.id)).first()
-        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
-
-        if not mydb:
-            return Response(
-                json.dumps({
-                    'error': 'Database with id {} is missing.'.format(
-                        database_id),
-                    'status': models.QueryStatus.FAILED,
-                }),
-                status=500,
-                mimetype="application/json")
-
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+        session.add(query)
+        session.commit()
+        session.flush()
+        query_id = query.id
 
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            sql_lab.get_sql_results.delay(query.id)
+            sql_lab.get_sql_results.delay(query_id)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,
@@ -1531,19 +1458,19 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Sync request.
-        data = sql_lab.get_sql_results(query.id)
+        data = {}
+        try:
+            data = sql_lab.get_sql_results(query_id)
+        except Exception as e:
+            logging.exception(e)
+            return Response(
+                json.dumps({'error': "{}".format(e)}),
+                status=500,
+                mimetype="application/json"
+            )
 
-        s.close()
-        s = db.session()
-        query = s.query(models.Query).filter_by(id=query.id).first()
         data['query'] = query.to_dict()
 
-        if data['status'] == models.QueryStatus.FAILED:
-                return Response(
-                    json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
-                    status=500,
-                    mimetype="application/json"
-                )
         return Response(
             json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
             status=200,
@@ -1556,27 +1483,16 @@ class Caravel(BaseCaravelView):
         """Get the updated queries."""
         s = db.session()
         query = s.query(models.Query).filter_by(id=int(query_id)).first()
-        mydb = s.query(models.Database).filter_by(id=query.database_id).first()
-
-        if not mydb:
-            return Response(
-                json.dumps({
-                    'error': 'Database with id {} is missing.'.format(
-                        query.database_id),
-                    'status': models.QueryStatus.FAILED,
-                }),
-                status=500,
-                mimetype="application/json")
 
         if not (self.can_access('all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+                self.can_access('database_access', query.database.perm)):
+            flash(_(
+                "SQL Lab requires the `all_datasource_access` "
+                "or specific DB permission"))
+            redirect('/')
 
-        sql = query.sql
-        if query.select_sql:
-            sql = query.select_sql
-        df = mydb.get_df(sql, query.schema)
+        sql = query.select_sql or query.sql
+        df = query.database.get_df(sql, query.schema)
         # TODO(bkyryliuk): add compression=gzip for big files.
         csv = df.to_csv(index=False)
         response = Response(csv, mimetype='text/csv')
@@ -1596,8 +1512,7 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Unix time, milliseconds.
-        if not last_updated_ms:
-            last_updated_ms = 0
+        last_updated_ms = last_updated_ms or 0
 
         # Local date time, DO NOT USE IT.
         # last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
@@ -1606,23 +1521,18 @@ class Caravel(BaseCaravelView):
         last_updated_dt = utils.EPOCH + timedelta(
             seconds=int(last_updated_ms) / 1000)
 
-        s = db.session()
-        sql_queries = s.query(models.Query).filter(
-            models.Query.user_id == g.user.get_id() or
-            models.Query.changed_on >= last_updated_dt)
-
-        if sql_queries:
-            dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-            return Response(
-                json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-                status=200,
-                mimetype="application/json")
-
+        sql_queries = (
+            db.session.query(models.Query)
+            .filter(
+                models.Query.user_id == g.user.get_id() and
+                models.Query.changed_on >= last_updated_dt
+            )
+            .all()
+        )
+        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
         return Response(
-            json.dumps({
-                'error': "No updates for the user {}".format(g.user.get_id()),
-            }),
-            status=404,
+            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
+            status=200,
             mimetype="application/json")
 
     @has_access

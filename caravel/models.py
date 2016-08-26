@@ -31,6 +31,7 @@ from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
 from six import string_types
+
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
     create_engine, MetaData, desc, asc, select, and_, func
@@ -38,6 +39,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
 import caravel
@@ -409,6 +411,26 @@ class Database(Model, AuditMixinNullable):
         cols = [col[0] for col in cur.cursor.description]
         df = pd.DataFrame(cur.fetchall(), columns=cols)
         return df
+
+    def compile_sqla_query(self, qry, schema=None):
+        eng = self.get_sqla_engine(schema=schema)
+        compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
+        return '{}'.format(compiled)
+
+    def select_star(self, table_name, schema=None, limit=1000):
+        """Generates a ``select *`` statement in the proper dialect"""
+        qry = select('*').select_from(table_name)
+        if limit:
+            qry = qry.limit(limit)
+        return self.compile_sqla_query(qry)
+
+    def wrap_sql_limit(self, sql, limit=1000):
+        qry = (
+            select('*')
+            .select_from(TextAsFrom(text(sql), ['*'])
+            .alias('inner_qry')).limit(limit)
+        )
+        return self.compile_sqla_query(qry)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
@@ -1738,16 +1760,6 @@ class FavStar(Model):
 
 
 class QueryStatus:
-    def from_presto_states(self, presto_status):
-        if presto_status.lower() == 'running':
-            return QueryStatus.IN_PROGRESS
-        if presto_status.lower() == 'running':
-            return QueryStatus.IN_PROGRESS
-        if presto_status.lower() == 'running':
-            return QueryStatus.IN_PROGRESS
-        if presto_status.lower() == 'running':
-            return QueryStatus.IN_PROGRESS
-
     SCHEDULED = 'SCHEDULED'
     CANCELLED = 'CANCELLED'
     IN_PROGRESS = 'RUNNING'
@@ -1771,8 +1783,7 @@ class Query(Model):
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
 
-    # models.QueryStatus
-    status = Column(String(16))
+    status = Column(String(16)) # models.QueryStatus
 
     name = Column(String(256))
     tab_name = Column(String(256))
@@ -1790,7 +1801,7 @@ class Query(Model):
     select_as_cta_used = Column(Boolean)
 
     # 1..100
-    progress = Column(Integer)
+    progress = Column(Integer)  # TODO should be float
     # # of rows in the result set or rows modified.
     rows = Column(Integer)
     error_message = Column(Text)
@@ -1798,6 +1809,9 @@ class Query(Model):
     end_time = Column(DateTime)
     changed_on = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    database = relationship(
+        'Database', foreign_keys=[database_id], backref='queries')
 
     __table_args__ = (
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
@@ -1821,5 +1835,4 @@ class Query(Model):
             'endDttm': self.end_time,
             'changedOn': self.changed_on,
             'rows': self.rows,
-
         }

@@ -200,7 +200,9 @@ def init(caravel):
 
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
-        if perm.permission.name in ('datasource_access', 'database_access'):
+        if (
+                perm.permission and
+                perm.permission.name in ('datasource_access', 'database_access')):
             continue
         if perm.view_menu and perm.view_menu.name not in (
                 'ResetPasswordView',
@@ -222,6 +224,7 @@ def init(caravel):
                     'UserDBModelView',
                     'SQL Lab',
                     'Security') and
+                perm.permission and
                 perm.permission.name not in (
                     'all_datasource_access',
                     'can_add',
