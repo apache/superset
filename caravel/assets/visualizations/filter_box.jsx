@@ -86,9 +86,15 @@ function filterBox(slice) {
     // filter box should ignore the dashboard's filters
     const url = slice.jsonEndpoint({ extraFilters: false });
     $.getJSON(url, (payload) => {
+      const filtersChoices = {};
+      // Making sure the ordering of the fields matches the setting in the
+      // dropdown as it may have been shuffled while serialized to json
+      payload.form_data.groupby.forEach((f) => {
+        filtersChoices[f] = payload.data[f];
+      });
       ReactDOM.render(
         <FilterBox
-          filtersChoices={payload.data}
+          filtersChoices={filtersChoices}
           onChange={slice.setFilter}
           origSelectedValues={slice.getFilters() || {}}
         />,
