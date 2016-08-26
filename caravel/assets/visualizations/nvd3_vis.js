@@ -67,8 +67,24 @@ function nvd3Vis(slice) {
         return;
       }
 
+      // Calculates the longest label size for stretching bottom margin
+      function calculateStretchMargins(payloadData) {
+        const axisLabels = payloadData.data[0].values;
+        let stretchMargin = 0;
+        const pixelsPerCharX = 4.5; // approx, depends on font size
+        let maxLabelSize = 0;
+        for (let i = 0; i < axisLabels.length; i++) {
+          maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+        }
+        stretchMargin = Math.ceil(Math.max(stretchMargin, pixelsPerCharX * maxLabelSize));
+        return stretchMargin;
+      }
+
       let width = slice.width();
       const fd = payload.form_data;
+
+      const stretchMargin = calculateStretchMargins(payload);
+
       const barchartWidth = function () {
         let bars;
         if (fd.bar_stacked) {
@@ -81,6 +97,7 @@ function nvd3Vis(slice) {
         }
         return width;
       };
+
       const vizType = fd.viz_type;
       const f = d3.format('.3s');
       const reduceXTicks = fd.reduce_x_ticks || false;
@@ -295,8 +312,9 @@ function nvd3Vis(slice) {
         }
 
         if (fd.bottom_margin) {
-          chart.margin({ bottom: fd.bottom_margin });
+          chart.margin({ bottom: Math.max(fd.bottom_margin, stretchMargin) });
         }
+
         let svg = d3.select(slice.selector).select('svg');
         if (svg.empty()) {
           svg = d3.select(slice.selector).append('svg');
