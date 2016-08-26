@@ -1,10 +1,8 @@
 import celery
-from caravel import models, app, utils
 from datetime import datetime
 import pandas as pd
 import logging
-import sqlparse
-from caravel import db, models, config
+from caravel import  app, db, models, utils
 
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
