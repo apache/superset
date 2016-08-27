@@ -1,5 +1,4 @@
 import React from 'react';
-import { ButtonGroup } from 'react-bootstrap';
 import Link from './Link';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -23,8 +22,8 @@ class QueryLink extends React.Component {
   render() {
     return (
       <div>
-        <div className="row">
-          <div className="col-md-10">
+        <div className="clearfix">
+          <div className="pull-left">
             <a
               href="#"
               tooltip="Pop this query in a new tab"
@@ -33,7 +32,7 @@ class QueryLink extends React.Component {
               {this.props.query.title}
             </a>
           </div>
-          <div className="col-md-2">
+          <div className="pull-right">
             <Link
               onClick={this.props.actions.removeWorkspaceQuery.bind(this, this.props.query)}
               tooltip="Remove query from workspace"

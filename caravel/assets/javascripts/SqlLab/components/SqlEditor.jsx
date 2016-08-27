@@ -1,4 +1,5 @@
-const $ = window.$ = require('jquery');
+const $ = require('jquery');
+import { now } from '../../modules/dates';
 import React from 'react';
 import {
   Button,
@@ -22,6 +23,7 @@ import 'brace/ext/language_tools';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
+
 import shortid from 'shortid';
 import ButtonWithTooltip from './ButtonWithTooltip';
 import SouthPane from './SouthPane';
@@ -56,32 +58,34 @@ class SqlEditor extends React.Component {
   }
   startQuery(runAsync = false, ctas = false) {
     const that = this;
-
     const query = {
+      dbId: this.props.queryEditor.dbId,
       id: shortid.generate(),
-      sqlEditorId: this.props.queryEditor.id,
+      progress: 0,
       sql: this.props.queryEditor.sql,
+      sqlEditorId: this.props.queryEditor.id,
+      startDttm: now(),
       state: 'running',
       tab: this.props.queryEditor.title,
-      dbId: this.props.queryEditor.dbId,
-      startDttm: new Date(),
     };
+    if (runAsync) {
+      query.state = 'pending';
+    }
 
     // Execute the Query
     that.props.actions.startQuery(query);
 
     const sqlJsonUrl = '/caravel/sql_json/';
     const sqlJsonRequest = {
-      json: true,
-      client_id: query.id,
       async: runAsync,
-      sql: this.props.queryEditor.sql,
+      client_id: query.id,
       database_id: this.props.queryEditor.dbId,
-      sql_editor_id: this.props.queryEditor.id,
-      schema: this.props.queryEditor.schema,
-      tab: this.props.queryEditor.title,
       json: true,
+      schema: this.props.queryEditor.schema,
       select_as_cta: ctas,
+      sql: this.props.queryEditor.sql,
+      sql_editor_id: this.props.queryEditor.id,
+      tab: this.props.queryEditor.title,
       tmp_table_name: this.state.ctas,
     };
     $.ajax({
@@ -90,9 +94,7 @@ class SqlEditor extends React.Component {
       url: sqlJsonUrl,
       data: sqlJsonRequest,
       success(results) {
-        if (runAsync) {
-          // TODO nothing?
-        } else {
+        if (!runAsync) {
           that.props.actions.querySuccess(query, results);
         }
       },
@@ -133,18 +135,27 @@ class SqlEditor extends React.Component {
   }
   render() {
     let runButtons = (
-      <ButtonGroup className="inline m-r-5 pull-left">
-        <Button onClick={this.runQuery.bind(this)} disabled={!(this.props.queryEditor.dbId)}>
+      <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
+        <Button
+          bsSize="small"
+          bsStyle="primary"
+          style={{ width: '100px' }}
+          onClick={this.runQuery.bind(this)}
+          disabled={!(this.props.queryEditor.dbId)}
+        >
           <i className="fa fa-table" /> Run Query
         </Button>
       </ButtonGroup>
     );
-    console.log("this.props.latestQuery")
-    console.log(this.props.latestQuery)
     if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
       runButtons = (
-        <ButtonGroup className="inline m-r-5 pull-left">
-          <Button onClick={this.stopQuery.bind(this)}>
+        <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
+          <Button
+            bsStyle="primary"
+            bsSize="small"
+            style={{ width: '100px' }}
+            onClick={this.stopQuery.bind(this)}
+          >
             <a className="fa fa-stop" /> Stop
           </Button>
         </ButtonGroup>
@@ -155,11 +166,17 @@ class SqlEditor extends React.Component {
         <ButtonWithTooltip
           tooltip="Save this query in your workspace"
           placement="left"
+          bsSize="small"
           onClick={this.addWorkspaceQuery.bind(this)}
         >
           <i className="fa fa-save" />&nbsp;
         </ButtonWithTooltip>
-        <DropdownButton id="ddbtn-export" pullRight title={<i className="fa fa-file-o" />}>
+        <DropdownButton
+          id="ddbtn-export"
+          pullRight
+          bsSize="small"
+          title={<i className="fa fa-file-o" />}
+        >
           <MenuItem
             onClick={this.notImplemented}
           >
@@ -197,11 +214,14 @@ class SqlEditor extends React.Component {
               <InputGroup>
                 <FormControl
                   type="text"
+                  bsSize="small"
+                  className="input-sm"
                   placeholder="new table name"
                   onChange={this.ctasChanged.bind(this)}
                 />
                 <InputGroup.Button>
                   <Button
+                    bsSize="small"
                     disabled={this.state.ctas.length === 0}
                     onClick={this.createTableAs.bind(this)}
                   >
@@ -226,7 +246,7 @@ class SqlEditor extends React.Component {
             <SqlEditorTopToolbar queryEditor={this.props.queryEditor} />
             <AceEditor
               mode="sql"
-              name={this.props.queryEditor.title}
+              name={this.props.queryEditor.id}
               theme="github"
               minLines={5}
               maxLines={30}

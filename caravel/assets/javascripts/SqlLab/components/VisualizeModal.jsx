@@ -9,8 +9,6 @@ import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 
-const $ = require('jquery');
-
 class VisualizeModal extends React.Component {
   constructor(props) {
     super(props);

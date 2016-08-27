@@ -185,11 +185,11 @@ class SqlEditorTopToolbar extends React.Component {
       return (
         <Label className="m-r-5 table-label" style={{ fontSize: '100%' }}>
           <OverlayTrigger
-              trigger="click"
-              placement="bottom"
-              overlay={popover}
-              ref={popoverId}
-            >
+            trigger="click"
+            placement="bottom"
+            overlay={popover}
+            ref={popoverId}
+          >
             <span className="m-r-5" style={{ cursor: 'pointer' }}>
               {table.name}
             </span>

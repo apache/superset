@@ -17,6 +17,7 @@ const ButtonWithTooltip = (props) => {
       <Button
         onClick={props.onClick}
         bsStyle={props.bsStyle}
+        bsSize={props.bsSize}
         disabled={props.disabled}
         className={props.className}
       >
@@ -34,6 +35,7 @@ ButtonWithTooltip.defaultProps = {
 };
 
 ButtonWithTooltip.propTypes = {
+  bsSize: React.PropTypes.string,
   bsStyle: React.PropTypes.string,
   children: React.PropTypes.element,
   className: React.PropTypes.string,

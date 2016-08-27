@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Button, Label } from 'react-bootstrap';
+import { Alert, Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
@@ -25,9 +25,6 @@ const LeftPane = (props) => {
         <div className="panel-heading">
           <div className="panel-title">
             Saved Queries
-            <div className="pull-right">
-              <Label bsStyle="danger">ALPHA</Label>
-            </div>
           </div>
         </div>
         <div className="panel-body">

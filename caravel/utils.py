@@ -10,6 +10,7 @@ import functools
 import json
 import logging
 import numpy
+import time
 import uuid
 
 import parsedatetime
@@ -320,13 +321,21 @@ def json_iso_dttm_ser(obj):
     return obj
 
 
+def datetime_to_epoch(dttm):
+    return time.mktime(dttm.timetuple()) + dttm.microsecond/1000000.0
+
+
+def now_as_float():
+    return datetime_to_epoch(datetime.now())
+
+
 def json_int_dttm_ser(obj):
     """json serializer that deals with dates"""
     val = base_json_conv(obj)
     if val is not None:
         return val
     if isinstance(obj, datetime):
-        obj = (obj - EPOCH).total_seconds() * 1000
+        obj = datetime_to_epoch(obj)
     elif isinstance(obj, date):
         obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:

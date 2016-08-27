@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Button } from 'react-bootstrap';
+import { Alert, Button, ButtonGroup } from 'react-bootstrap';
 import { Table } from 'reactable';
 
 import VisualizeModal from './VisualizeModal';
@@ -36,16 +36,23 @@ class ResultSet extends React.Component {
         <div className="ResultSetControls">
           <div className="clearfix">
             <div className="pull-left">
-              <Button className="m-r-5" onClick={this.showModal.bind(this)}>
-                <i className="fa fa-line-chart m-l-1" /> Visualize
-              </Button>
-              <Button className="m-r-5"><i className="fa fa-file-text-o" /> .CSV</Button>
+              <ButtonGroup>
+                <Button
+                  bsSize="small"
+                  onClick={this.showModal.bind(this)}
+                >
+                  <i className="fa fa-line-chart m-l-1" /> Visualize
+                </Button>
+                <Button bsSize="small">
+                  <i className="fa fa-file-text-o" /> .CSV
+                </Button>
+              </ButtonGroup>
             </div>
             <div className="pull-right">
               <input
                 type="text"
                 onChange={this.changeSearch.bind(this)}
-                className="form-control"
+                className="form-control input-sm"
                 placeholder="Search Results"
               />
             </div>

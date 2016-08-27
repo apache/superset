@@ -44,6 +44,7 @@ def runserver(debug, address, port, timeout, workers):
         app.run(
             host='0.0.0.0',
             port=int(port),
+            threaded=True,
             debug=True)
     else:
         cmd = (

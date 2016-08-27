@@ -33,7 +33,8 @@ from pydruid.utils.having import Aggregation
 from six import string_types
 
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date, Table,
+    Column, Integer, String, ForeignKey, Text, Boolean,
+    DateTime, Date, Table, Numeric,
     create_engine, MetaData, desc, asc, select, and_, func
 )
 from sqlalchemy.ext.declarative import declared_attr
@@ -419,7 +420,7 @@ class Database(Model, AuditMixinNullable):
 
     def select_star(self, table_name, schema=None, limit=1000):
         """Generates a ``select *`` statement in the proper dialect"""
-        qry = select('*').select_from(table_name)
+        qry = select('*').select_from(text(table_name))
         if limit:
             qry = qry.limit(limit)
         return self.compile_sqla_query(qry)
@@ -586,10 +587,6 @@ class Database(Model, AuditMixinNullable):
         return '/caravel/sql/{}/'.format(self.id)
 
     @property
-    def sql_link(self):
-        return '<a href="{}">SQL</a>'.format(self.sql_url)
-
-    @property
     def perm(self):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
@@ -694,10 +691,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
-
-    @property
-    def sql_link(self):
-        return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def get_col(self, col_name):
         columns = self.table_columns
@@ -1760,12 +1753,13 @@ class FavStar(Model):
 
 
 class QueryStatus:
-    SCHEDULED = 'SCHEDULED'
-    CANCELLED = 'CANCELLED'
-    IN_PROGRESS = 'RUNNING'
-    FINISHED = 'SUCCESS'
-    TIMED_OUT = 'TIMED_OUT'
-    FAILED = 'FAILED'
+    CANCELLED = 'cancelled'
+    FAILED = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    SCHEDULED = 'scheduled'
+    SUCCESS = 'success'
+    TIMED_OUT = 'timed_out'
 
 
 class Query(Model):
@@ -1782,9 +1776,7 @@ class Query(Model):
     tmp_table_name = Column(String(256))
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
-
-    status = Column(String(16)) # models.QueryStatus
-
+    status = Column(String(16), default=QueryStatus.PENDING)
     name = Column(String(256))
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
@@ -1800,13 +1792,15 @@ class Query(Model):
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
 
-    # 1..100
-    progress = Column(Integer)  # TODO should be float
+    progress = Column(Integer, default=0)  # 1..100
     # # of rows in the result set or rows modified.
     rows = Column(Integer)
     error_message = Column(Text)
-    start_time = Column(DateTime)
-    end_time = Column(DateTime)
+
+    # Using Numeric in place of DateTime for sub-second precision
+    # stored as seconds since epoch, allowing for milliseconds
+    start_time = Column(Numeric(precision=3))
+    end_time = Column(Numeric(precision=3))
     changed_on = Column(
         DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
 
@@ -1819,20 +1813,23 @@ class Query(Model):
 
     def to_dict(self):
         return {
-            'serverId': self.id,
-            'id': self.client_id,
+            'changedOn': self.changed_on,
             'dbId': self.database_id,
-            'tab': self.tab_name,
-            'sqlEditorId': self.sql_editor_id,
-            'userId': self.user_id,
-            'state': self.status.lower(),
-            'schema': self.schema,
-            'sql': self.sql,
+            'endDttm': self.end_time,
+            'errorMessage': self.error_message,
+            'executedSql': self.executed_sql,
+            'id': self.client_id,
             'limit': self.limit,
             'progress': self.progress,
-            'errorMessage': self.error_message,
-            'startDttm': self.start_time,
-            'endDttm': self.end_time,
-            'changedOn': self.changed_on,
             'rows': self.rows,
+            'schema': self.schema,
+            'ctas': self.select_as_cta,
+            'serverId': self.id,
+            'sql': self.sql,
+            'sqlEditorId': self.sql_editor_id,
+            'startDttm': self.start_time,
+            'state': self.status.lower(),
+            'tab': self.tab_name,
+            'tempTable': self.tmp_table_name,
+            'userId': self.user_id,
         }

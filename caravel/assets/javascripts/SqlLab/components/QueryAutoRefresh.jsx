@@ -1,10 +1,9 @@
 import React from 'react';
-import moment from 'moment';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
 
-$ = require('jquery');
+const $ = require('jquery');
 
 
 class QueryAutoRefresh extends React.Component {
@@ -26,12 +25,10 @@ class QueryAutoRefresh extends React.Component {
   stopwatch() {
     const url = '/caravel/queries/0';
     // No updates in case of failure.
-    $.getJSON(
-      url,
-      (data, status, xhr) => {
-        if (status === "success") {
-          this.props.actions.refreshQueries(data);
-        }
+    $.getJSON(url, (data, status) => {
+      if (status === 'success') {
+        this.props.actions.refreshQueries(data);
+      }
     });
   }
   render() {
@@ -39,7 +36,7 @@ class QueryAutoRefresh extends React.Component {
   }
 }
 QueryAutoRefresh.propTypes = {
-  // queries: React.PropTypes.object,
+  actions: React.PropTypes.object,
 };
 QueryAutoRefresh.defaultProps = {
   // queries: null,

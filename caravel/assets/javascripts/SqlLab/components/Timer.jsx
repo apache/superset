@@ -1,5 +1,5 @@
 import React from 'react';
-import moment from 'moment';
+import { now, fDuration } from '../../modules/dates';
 
 import { STATE_BSSTYLE_MAP } from '../common.js';
 
@@ -27,10 +27,8 @@ class Timer extends React.Component {
   }
   stopwatch() {
     if (this.props && this.props.query) {
-      let fromDttm = (this.props.query.endDttm) ? this.props.query.endDttm : new Date().getTime();
-      const since = (this.props.query.endDttm) ? this.props.query.endDttm : new Date().getTime();
-      const duration = moment.utc(since - this.props.query.startDttm);
-      const clockStr = duration.format('HH:mm:ss.SS');
+      const since = (this.props.query.endDttm) ? this.props.query.endDttm : now();
+      const clockStr = fDuration(this.props.query.startDttm, since);
       this.setState({ clockStr });
       if (this.props.query.state !== 'running') {
         this.stopTimer();
@@ -43,8 +41,9 @@ class Timer extends React.Component {
     }
     let timerSpan = null;
     if (this.props && this.props.query) {
+      const bsStyle = STATE_BSSTYLE_MAP[this.props.query.state];
       timerSpan = (
-        <span className={'inlineBlock m-r-5 label label-' + STATE_BSSTYLE_MAP[this.props.query.state]}>
+        <span className={'inlineBlock m-r-5 label label-' + bsStyle}>
           {this.state.clockStr}
         </span>
       );

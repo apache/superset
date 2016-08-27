@@ -1,12 +1,11 @@
 const $ = window.$ = require('jquery');
-const jQuery = window.jQuery = $;
+const jQuery = window.jQuery = $; // eslint-disable-line
 require('bootstrap');
 
 import React from 'react';
 import { render } from 'react-dom';
 import * as Actions from './actions';
 
-import { Label, Tab, Tabs } from 'react-bootstrap';
 import LeftPane from './components/LeftPane';
 import TabbedSqlEditors from './components/TabbedSqlEditors';
 import QueryAutoRefresh from './components/QueryAutoRefresh';
@@ -18,39 +17,41 @@ import { connect, Provider } from 'react-redux';
 import { initialState, sqlLabReducer } from './reducers';
 import persistState from 'redux-localstorage';
 
-
 require('./main.css');
 
-let store = createStore(sqlLabReducer, initialState, compose(persistState(), window.devToolsExtension && window.devToolsExtension()));
+let enhancer = compose(persistState());
+if (process.env.NODE_ENV === 'dev') {
+  enhancer = compose(
+    persistState(), window.devToolsExtension && window.devToolsExtension()
+  );
+}
+let store = createStore(sqlLabReducer, initialState, enhancer);
 
 // jquery hack to highlight the navbar menu
 $('a[href="/caravel/sqllab"]').parent().addClass('active');
 
-class App extends React.Component {
-  render() {
-    return (
-      <div className="App SqlLab">
-        <div className="container-fluid">
-          <QueryAutoRefresh />
-          <Alerts alerts={this.props.alerts} />
-          <div className="row">
-            <div className="col-md-9">
-              <TabbedSqlEditors />
-            </div>
-            <div className="col-md-3">
-              <LeftPane />
-            </div>
+const App = function (props) {
+  return (
+    <div className="App SqlLab">
+      <div className="container-fluid">
+        <QueryAutoRefresh />
+        <Alerts alerts={props.alerts} />
+        <div className="row">
+          <div className="col-md-9">
+            <TabbedSqlEditors />
+          </div>
+          <div className="col-md-3">
+            <LeftPane />
           </div>
         </div>
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 App.propTypes = {
   alerts: React.PropTypes.array,
 };
-
 
 function mapStateToProps(state) {
   return {
@@ -71,4 +72,3 @@ render(
   </Provider>,
   document.getElementById('app')
 );
-

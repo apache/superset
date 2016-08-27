@@ -36,9 +36,9 @@ def upgrade():
         sa.Column('progress', sa.Integer(), nullable=True),
         sa.Column('rows', sa.Integer(), nullable=True),
         sa.Column('error_message', sa.Text(), nullable=True),
-        sa.Column('start_time', sa.DateTime(), nullable=True),
+        sa.Column('start_time', sa.Numeric(precision=16, scale=6), nullable=True),
         sa.Column('changed_on', sa.DateTime(), nullable=True),
-        sa.Column('end_time', sa.DateTime(), nullable=True),
+        sa.Column('end_time', sa.Numeric(precision=16, scale=6), nullable=True),
         sa.ForeignKeyConstraint(['database_id'], [u'dbs.id'], ),
         sa.ForeignKeyConstraint(['user_id'], [u'ab_user.id'], ),
         sa.PrimaryKeyConstraint('id')
@@ -51,8 +51,6 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_index(op.f('ix_query_user_id'), table_name='query')
-    op.drop_index(op.f('ix_query_changed_on'), table_name='query')
     op.drop_table('query')
     op.drop_column('dbs', 'select_as_create_table_as')
 

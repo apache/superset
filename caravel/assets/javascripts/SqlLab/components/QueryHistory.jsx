@@ -9,16 +9,19 @@ import { Alert } from 'react-bootstrap';
 
 const QueryHistory = (props) => {
   const activeQeId = props.tabHistory[props.tabHistory.length - 1];
-  const queriesArray = []
-  for (var query_id in props.queries) {
-      if (props.queries[query_id].sqlEditorId === activeQeId) {
-        queriesArray.push(props.queries[query_id])
-      }
+  const queriesArray = [];
+  for (const id in props.queries) {
+    if (props.queries[id].sqlEditorId === activeQeId) {
+      queriesArray.push(props.queries[id]);
+    }
   }
   if (queriesArray.length > 0) {
     return (
       <QueryTable
-        columns={['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions']}
+        columns={[
+          'state', 'started', 'duration', 'progress',
+          'rows', 'sql', 'output', 'actions',
+        ]}
         queries={queriesArray}
       />
     );

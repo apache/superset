@@ -27,7 +27,8 @@
 }
 
 .navbar-inverse .navbar-nav > li > a:hover,
-.navbar-inverse .navbar-nav > li > a:focus {
+.navbar-inverse .navbar-nav > li > a:focus,
+.navbar-inverse .navbar-nav > li.active > a {
   background: transparent;
   border-bottom: 3px solid @brand-primary;
   margin-bottom: -3px;
@@ -228,7 +229,7 @@ table,
 .nav-pills {
 
   & > li > a {
-    border-radius: 0;
+    border-radius: 2px;
   }
 }
 
@@ -274,7 +275,7 @@ table,
 }
 
 .label {
-  border-radius: 0;
+  border-radius: 2px;
 }
 label {
   font-weight: normal;
@@ -283,11 +284,12 @@ label {
 // Progress bars ==============================================================
 
 .progress {
-  height: 8px;
+  height: 14px;
   .box-shadow(none);
   .progress-bar {
-    font-size: 8px;
-    line-height: 8px;
+    font-size: 12px;
+    line-height: 12px;
+    padding-top: 1px;
   }
 }
 
@@ -373,10 +375,7 @@ a.list-group-item {
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
   background-color: #fff;
   font-weight: bold;
-}
-
-.tab-content {
-  padding-top: 20px;
+  border-top: 3px solid @brand-primary;
 }
 
 // Tables ==============================================================

@@ -5,7 +5,7 @@ const path = require('path');
 const APP_DIR = path.resolve(__dirname, './');
 
 // output dir
-const BUILD_DIR = path.resolve(__dirname, './javascripts/dist');
+const BUILD_DIR = path.resolve(__dirname, './dist');
 
 const config = {
   entry: {

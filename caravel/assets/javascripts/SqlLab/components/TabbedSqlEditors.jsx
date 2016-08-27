@@ -1,5 +1,5 @@
 import React from 'react';
-import { DropdownButton, MenuItem, Panel, Tab, Tabs } from 'react-bootstrap';
+import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
@@ -23,6 +23,7 @@ class QueryEditors extends React.Component {
         return qe;
       }
     }
+    return null;
   }
   newQueryEditor() {
     queryCount++;
@@ -46,7 +47,7 @@ class QueryEditors extends React.Component {
   }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      let latestQuery = this.props.queries[qe.latestQueryId]
+      let latestQuery = this.props.queries[qe.latestQueryId];
       const state = (latestQuery) ? latestQuery.state : '';
       const tabTitle = (
         <div>
@@ -70,25 +71,25 @@ class QueryEditors extends React.Component {
           title={tabTitle}
           eventKey={qe.id}
         >
-          <SqlEditor
-            queryEditor={qe}
-            latestQuery={latestQuery}
-          />
+          <div className="panel panel-default">
+            <div className="panel-body">
+              <SqlEditor
+                queryEditor={qe}
+                latestQuery={latestQuery}
+              />
+            </div>
+          </div>
         </Tab>);
     });
     return (
-      <div className="panel panel-default">
-        <div className="panel-body">
-          <Tabs
-            bsStyle="tabs"
-            activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
-            onSelect={this.handleSelect.bind(this)}
-          >
-            {editors}
-            <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
-          </Tabs>
-        </div>
-      </div>
+      <Tabs
+        bsStyle="tabs"
+        activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
+        onSelect={this.handleSelect.bind(this)}
+      >
+        {editors}
+        <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
+      </Tabs>
     );
   }
 }

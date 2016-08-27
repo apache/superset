@@ -13,7 +13,6 @@ import traceback
 from datetime import datetime, timedelta
 
 import functools
-import pandas as pd
 import sqlalchemy as sqla
 
 from flask import (
@@ -389,7 +388,7 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'creator', 'changed_on_']
+    list_columns = ['database_name', 'creator', 'changed_on_']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
@@ -425,7 +424,6 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     }
     label_columns = {
         'database_name': _("Database"),
-        'sql_link': _("SQL link"),
         'creator': _("Creator"),
         'changed_on_': _("Last Changed"),
         'sqlalchemy_uri': _("SQLAlchemy URI"),
@@ -469,10 +467,10 @@ appbuilder.add_view_no_menu(DatabaseTablesAsync)
 class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
-        'table_link', 'database', 'sql_link', 'is_featured',
+        'table_link', 'database', 'is_featured',
         'changed_by_', 'changed_on_']
     order_columns = [
-        'table_link', 'database', 'sql_link', 'is_featured', 'changed_on_']
+        'table_link', 'database', 'is_featured', 'changed_on_']
     add_columns = [
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
@@ -501,7 +499,6 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'changed_by_': _("Changed By"),
         'database': _("Database"),
         'changed_on_': _("Last Changed"),
-        'sql_link': _("SQL Editor"),
         'is_featured': _("Is Featured"),
         'schema': _("Schema"),
         'default_endpoint': _("Default Endpoint"),
@@ -1432,8 +1429,7 @@ class Caravel(BaseCaravelView):
             sql=sql,
             schema=request.form.get('schema'),
             select_as_cta=request.form.get('select_as_cta') == 'true',
-            start_time=datetime.now(),
-            status=models.QueryStatus.IN_PROGRESS,
+            start_time=utils.now_as_float(),
             tab_name=request.form.get('tab'),
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=request.form.get('tmp_table_name'),
@@ -1442,7 +1438,6 @@ class Caravel(BaseCaravelView):
         )
         session.add(query)
         session.commit()
-        session.flush()
         query_id = query.id
 
         # Async request.
@@ -1460,12 +1455,14 @@ class Caravel(BaseCaravelView):
         try:
             data = sql_lab.get_sql_results(query_id)
         except Exception as e:
-            return Response(json.dumps({'error': "{}".format(e)}),
-                            status=500,
-                            mimetype = "application/json")
+            logging.exception(e)
+            return Response(
+                json.dumps({'error': "{}".format(e)}),
+                status=500,
+                mimetype = "application/json")
         data['query'] = query.to_dict()
         return Response(
-            json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
+            json.dumps(data, default=utils.json_iso_dttm_ser, allow_nan=False),
             status=200,
             mimetype = "application/json")
 
