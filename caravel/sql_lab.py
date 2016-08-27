@@ -1,10 +1,8 @@
 import celery
-from caravel import models, app, utils
 from datetime import datetime
 import pandas as pd
 import logging
-import sqlparse
-from caravel import db, models, config
+from caravel import  app, db, models, utils
 
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -55,8 +53,10 @@ def get_sql_results(query_id):
                     query.user_id,
                     query.start_time.strftime('%Y_%m_%d_%H_%M_%S'))
             executed_sql = create_table_as(executed_sql, query.tmp_table_name)
+            query.select_as_cta_used = True
         elif query.limit:
             executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
+            query.limit_used = True
         engine = database.get_sqla_engine(schema=query.schema)
         try:
             query.executed_sql = executed_sql
@@ -66,6 +66,7 @@ def get_sql_results(query_id):
             query.error_message = utils.error_msg_from_exception(e)
             query.status = models.QueryStatus.FAILED
             query.tmp_table_name = None
+            db.session.commit()
             raise Exception(query.error_message)
 
         cursor = result_proxy.cursor
@@ -106,7 +107,8 @@ def get_sql_results(query_id):
 
         # CTAs queries result in 1 cell having the # of the added rows.
         if query.select_as_cta:
-            query.select_sql = database.select_star(query.tmp_table_name, query.limit)
+            query.select_sql = '{}'.format(database.select_star(
+                query.tmp_table_name, limit=query.limit))
 
         query.end_time = datetime.now()
         db.session.commit()
@@ -119,5 +121,5 @@ def get_sql_results(query_id):
         payload['data'] = data
         payload['columns'] = columns
     else:
-        payload['error'] =  query.error_message
+        payload['error'] = query.error_message
     return payload

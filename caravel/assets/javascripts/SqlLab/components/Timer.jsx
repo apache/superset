@@ -27,10 +27,9 @@ class Timer extends React.Component {
   }
   stopwatch() {
     if (this.props && this.props.query) {
-      let fromDttm = this.props.query.endDttm || new Date();
-      fromDttm = moment(fromDttm);
-      let duration = fromDttm - moment(this.props.query.startDttm).valueOf();
-      duration = moment.utc(duration);
+      let fromDttm = (this.props.query.endDttm) ? this.props.query.endDttm : new Date().getTime();
+      const since = (this.props.query.endDttm) ? this.props.query.endDttm : new Date().getTime();
+      const duration = moment.utc(since - this.props.query.startDttm);
       const clockStr = duration.format('HH:mm:ss.SS');
       this.setState({ clockStr });
       if (this.props.query.state !== 'running') {
