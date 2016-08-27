@@ -1796,9 +1796,9 @@ class Query(Model):
     executed_sql = Column(Text)
     # Could be configured in the caravel config.
     limit = Column(Integer)
-    limit_used = Column(Boolean)
+    limit_used = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
-    select_as_cta_used = Column(Boolean)
+    select_as_cta_used = Column(Boolean, default=False)
 
     # 1..100
     progress = Column(Integer)  # TODO should be float

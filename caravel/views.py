@@ -1457,18 +1457,17 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Sync request.
-        data = sql_lab.get_sql_results(query.id)
-        session.close()
-        session = db.session()
-        query = session.query(models.Query).filter_by(id=query.id).first()
+        try:
+            data = sql_lab.get_sql_results(query_id)
+        except Exception as e:
+            return Response(json.dumps({'error': "{}".format(e)}),
+                            status=500,
+                            mimetype = "application/json")
         data['query'] = query.to_dict()
-
-        if data['status'] == models.QueryStatus.FAILED:
-                return Response(
-                    json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
-                    status=500,
-                    mimetype="application/json"
-                )
+        return Response(
+            json.dumps(data, default=utils.json_int_dttm_ser, allow_nan=False),
+            status=200,
+            mimetype = "application/json")
 
     @has_access
     @expose("/csv/<query_id>")
