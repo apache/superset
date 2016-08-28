@@ -653,7 +653,7 @@ class FormFactory(object):
                 "default": '.3s',
                 "choices": [
                     ('.3s', '".3s" | 12.3k'),
-                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.1%', '".1%" | 1234543.2%'),
                     ('.4r', '".4r" | 12350'),
                     ('.3f', '".3f" | 12345.432'),
                     ('+,', '"+," | +12,345.4321'),
@@ -663,6 +663,22 @@ class FormFactory(object):
                             "https: //github.com/mbostock/\n"
                             "d3/wiki/Formatting")
             }),
+            'x_axis_formats': (FreeFormSelectField, {
+                "label": _("X axis format"),
+                "default": '.3s',
+                "choices": [
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.1%', '".1%" | 1234543.2%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                "description": _("D3 format syntax for x axis "
+                            "https: //github.com/mbostock/\n"
+                            "d3/wiki/Formatting")
+            }),
+            
             'markup_type': (SelectField, {
                 "label": _("Markup Type"),
                 "choices": (
