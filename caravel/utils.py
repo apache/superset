@@ -322,7 +322,7 @@ def json_iso_dttm_ser(obj):
 
 
 def datetime_to_epoch(dttm):
-    return time.mktime(dttm.timetuple()) + dttm.microsecond/1000000.0
+    return (dttm - EPOCH).total_seconds() * 1000
 
 
 def now_as_float():

@@ -1,22 +1,22 @@
-import { Panel, Tab, Tabs } from 'react-bootstrap';
+import { Alert, Panel, Tab, Tabs } from 'react-bootstrap';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import React from 'react';
 
-const SouthPane = (props) => {
-  let results;
+const SouthPane = function (props) {
+  let results = <div />;
   if (props.latestQuery) {
     if (props.latestQuery.state === 'running') {
       results = (
         <img className="loading" alt="Loading.." src="/static/assets/images/loading.gif" />
       );
     } else if (props.latestQuery.state === 'failed') {
-      results = <div className="alert alert-danger">{props.latestQuery.msg}</div>;
+      results = <Alert bsStyle="danger">{props.latestQuery.msg}</Alert>;
     } else if (props.latestQuery.state === 'success') {
       results = <ResultSet showControls query={props.latestQuery} />;
     }
   } else {
-    results = <div className="alert alert-info">Run a query to display results here</div>;
+    results = <Alert bsStyle="info">Run a query to display results here</Alert>;
   }
   return (
     <Tabs bsStyle="tabs">

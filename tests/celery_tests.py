@@ -18,6 +18,7 @@ import unittest
 import caravel
 from caravel import app, appbuilder, db, models, sql_lab, utils
 
+QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
 cli = imp.load_source('cli', BASE_DIR + '/bin/caravel')
@@ -45,21 +46,21 @@ class UtilityFunctionTests(unittest.TestCase):
         updated_select_query = sql_lab.create_table_as(
             select_query, "tmp")
         self.assertEqual(
-            "CREATE TABLE tmp AS SELECT * FROM outer_space;",
+            "CREATE TABLE tmp AS \nSELECT * FROM outer_space;",
             updated_select_query)
 
         updated_select_query_with_drop = sql_lab.create_table_as(
             select_query, "tmp", override=True)
         self.assertEqual(
             "DROP TABLE IF EXISTS tmp;\n"
-            "CREATE TABLE tmp AS SELECT * FROM outer_space;",
+            "CREATE TABLE tmp AS \nSELECT * FROM outer_space;",
             updated_select_query_with_drop)
 
         select_query_no_semicolon = "SELECT * FROM outer_space"
         updated_select_query_no_semicolon = sql_lab.create_table_as(
             select_query_no_semicolon, "tmp")
         self.assertEqual(
-            "CREATE TABLE tmp AS SELECT * FROM outer_space",
+            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
             updated_select_query_no_semicolon)
 
         # incorrect_query = "SMTH WRONG SELECT * FROM outer_space"
@@ -78,7 +79,7 @@ class UtilityFunctionTests(unittest.TestCase):
         updated_multi_line_query = sql_lab.create_table_as(
             multi_line_query, "tmp")
         expected_updated_multi_line_query = (
-            "CREATE TABLE tmp AS SELECT * FROM planets WHERE\n"
+            "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n"
             "Luke_Father = 'Darth Vader';")
         self.assertEqual(
             expected_updated_multi_line_query,
@@ -88,7 +89,7 @@ class UtilityFunctionTests(unittest.TestCase):
         #     multi_line_query, "tmp", override=True)
         # expected_updated_multi_line_query_with_drop = (
         #     "DROP TABLE IF EXISTS tmp;\n"
-        #     "CREATE TABLE tmp AS SELECT * FROM planets WHERE\n"
+        #     "CREATE TABLE tmp \nAS SELECT * FROM planets WHERE\n"
         #     "Luke_Father = 'Darth Vader';")
         # self.assertEqual(
         #     expected_updated_multi_line_query_with_drop,
@@ -99,7 +100,7 @@ class UtilityFunctionTests(unittest.TestCase):
         # self.assertEqual(delete_query, updated_delete_query)
         #
         # create_table_as = (
-        #     "CREATE TABLE pleasure AS SELECT chocolate FROM lindt_store;\n")
+        #     "CREATE TABLE pleasure AS \nSELECT chocolate FROM lindt_store;\n")
         # updated_create_table_as = sql_lab.create_table_as(
         #     create_table_as, "tmp")
         # self.assertEqual(create_table_as, updated_create_table_as)
@@ -138,13 +139,13 @@ class CeleryTestCase(unittest.TestCase):
         self.client = app.test_client()
 
     def get_query_by_name(self, sql):
-        session = db.create_scoped_session()
+        session = db.session
         query = session.query(models.Query).filter_by(sql=sql).first()
         session.close()
         return query
 
     def get_query_by_id(self, id):
-        session = db.create_scoped_session()
+        session = db.session
         query = session.query(models.Query).filter_by(id=id).first()
         session.close()
         return query
@@ -174,7 +175,6 @@ class CeleryTestCase(unittest.TestCase):
                 password='general')
         cli.load_examples(load_test_data=True)
 
-
     @classmethod
     def tearDownClass(cls):
         subprocess.call(
@@ -198,6 +198,7 @@ class CeleryTestCase(unittest.TestCase):
             '/login/',
             data=dict(username=username, password=password),
             follow_redirects=True)
+        print(resp.data.decode('utf-8'))
         assert 'Welcome' in resp.data.decode('utf-8')
 
     def logout(self):
@@ -221,7 +222,7 @@ class CeleryTestCase(unittest.TestCase):
         return json.loads(resp.data.decode('utf-8'))
 
     def test_add_limit_to_the_query(self):
-        query_session = models.Database.create_scoped_session()
+        query_session = models.Database.session
         db_to_query = query_session.query(models.Database).filter_by(
             id=1).first()
         eng = db_to_query.get_sqla_engine()
@@ -268,7 +269,7 @@ class CeleryTestCase(unittest.TestCase):
         # self.assertEqual(delete_query, updated_delete_query)
 
         # create_table_as = (
-        #     "CREATE TABLE pleasure AS SELECT chocolate FROM lindt_store;\n")
+        #     "CREATE TABLE pleasure AS\nSELECT chocolate FROM lindt_store;\n")
         # updated_create_table_as = db_to_query.wrap_sql_limit(create_table_as, 100, eng)
         # self.assertEqual(create_table_as, updated_create_table_as)
 
@@ -304,7 +305,7 @@ class CeleryTestCase(unittest.TestCase):
         sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
         result2 = self.run_sql(
             1, sql_where, tmp_table='tmp_table_2', cta='true')
-        self.assertEqual(models.QueryStatus.FINISHED.lower(), result2['query']['state'])
+        self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertIsNone(result2['data'])
         self.assertIsNone(result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
@@ -319,16 +320,16 @@ class CeleryTestCase(unittest.TestCase):
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
             1, sql_empty_result, tmp_table='tmp_table_3', cta='true',)
-        self.assertEqual(models.QueryStatus.FINISHED.lower(), result3['query']['state'])
+        self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertIsNone(result3['data'])
         self.assertIsNone(result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
-        self.assertEqual(models.QueryStatus.FINISHED, query3.status)
-        self.assertTrue("SELECT * \nFROM tmp_table_4" in query3.select_sql)
+        self.assertEqual(QueryStatus.SUCCESS, query3.status)
+        self.assertTrue("tmp_table_4" in query3.select_sql)
         self.assertTrue("LIMIT 666" in query3.select_sql)
         self.assertEqual(
-            "CREATE TABLE tmp_table_3 AS SELECT * FROM ab_user WHERE id=666",
+            "CREATE TABLE tmp_table_3 AS \nSELECT * FROM ab_user WHERE id=666",
             query3.executed_sql)
         self.assertEqual("SELECT * FROM ab_user WHERE id=666", query3.sql)
         if eng.name != 'sqlite':
@@ -346,7 +347,7 @@ class CeleryTestCase(unittest.TestCase):
         # Case 4.
         # Table and DB exists, select without CTA.
         result4 = self.run_sql(1, sql_where, tmp_table='tmp_table_4')
-        self.assertEqual(models.QueryStatus.FINISHED.lower(), result4['query']['state'])
+        self.assertEqual(QueryStatus.SUCCESS, result4['query']['state'])
         self.assertEqual(['name'], result4['columns'])
         self.assertEqual([{'name': 'can_sql'}], result4['data'])
 
@@ -371,27 +372,27 @@ class CeleryTestCase(unittest.TestCase):
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
             1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
-        self.assertEqual(models.QueryStatus.IN_PROGRESS.lower(), result1['query']['state'])
+        self.assertEqual(QueryStatus.PENDING, result1['query']['state'])
 
         # Case 2.
         # TODO: add insert query support.
         # Table and DB exists, async insert query, no CTAs.
         # insert_query = "INSERT INTO ab_role VALUES (9, 'fake_role')"
         # result2 = self.run_sql(1, insert_query, async='true')
-        # self.assertEqual(models.QueryStatus.IN_PROGRESS.lower(), result2['query']['state'])
+        # self.assertEqual(QueryStatus.IN_PROGRESS, result2['query']['state'])
 
         time.sleep(1)
 
         # Case 1.
         query1 = self.get_query_by_id(result1['query']['serverId'])
         df1 = pd.read_sql_query(query1.select_sql, con=eng)
-        self.assertEqual(models.QueryStatus.FINISHED, query1.status)
+        self.assertEqual(QueryStatus.SUCCESS, query1.status)
         self.assertEqual([{'name': 'Admin'}], df1.to_dict(orient='records'))
-        self.assertEqual(models.QueryStatus.FINISHED, query1.status)
+        self.assertEqual(QueryStatus.SUCCESS, query1.status)
         self.assertTrue("SELECT * \nFROM tmp_async_1" in query1.select_sql)
         self.assertTrue("LIMIT 666" in query1.select_sql)
         self.assertEqual(
-            "CREATE TABLE tmp_async_1 AS SELECT name FROM ab_role "
+            "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
             "WHERE name='Admin'", query1.executed_sql)
         self.assertEqual(sql_where, query1.sql)
         if eng.name != 'sqlite':
@@ -403,7 +404,7 @@ class CeleryTestCase(unittest.TestCase):
 
         # Case 2.
         # query2 = self.get_query_by_id(result2['query']['serverId'])
-        # self.assertEqual(models.QueryStatus.FINISHED, query2.status)
+        # self.assertEqual(QueryStatus.SUCCESS, query2.status)
         # self.assertIsNone(query2.select_sql)
         # self.assertEqual(insert_query, query2.executed_sql)
         # self.assertEqual(insert_query, query2.sql)

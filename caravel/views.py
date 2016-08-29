@@ -1598,7 +1598,7 @@ appbuilder.add_view(
     category_icon='')
 
 appbuilder.add_link(
-    "SQL Lab",
+    'SQL Lab <span class="label label-danger">alpha</span>',
     href='/caravel/sqllab',
     icon="fa-flask")
 

@@ -36,9 +36,9 @@ def upgrade():
         sa.Column('progress', sa.Integer(), nullable=True),
         sa.Column('rows', sa.Integer(), nullable=True),
         sa.Column('error_message', sa.Text(), nullable=True),
-        sa.Column('start_time', sa.Numeric(precision=16, scale=6), nullable=True),
+        sa.Column('start_time', sa.Numeric(precision=20, scale=6), nullable=True),
         sa.Column('changed_on', sa.DateTime(), nullable=True),
-        sa.Column('end_time', sa.Numeric(precision=16, scale=6), nullable=True),
+        sa.Column('end_time', sa.Numeric(precision=20, scale=6), nullable=True),
         sa.ForeignKeyConstraint(['database_id'], [u'dbs.id'], ),
         sa.ForeignKeyConstraint(['user_id'], [u'ab_user.id'], ),
         sa.PrimaryKeyConstraint('id')

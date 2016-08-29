@@ -99,11 +99,14 @@ class SqlEditor extends React.Component {
         }
       },
       error(err) {
-        let msg = '';
+        let msg;
         try {
           msg = err.responseJSON.error;
         } catch (e) {
           msg = (err.responseText) ? err.responseText : e;
+        }
+        if (typeof(msg) !== 'string') {
+          msg = JSON.stringify(msg);
         }
         that.props.actions.queryFailed(query, msg);
       },
