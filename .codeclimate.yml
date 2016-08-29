@@ -1,6 +1,10 @@
 engines:
   csslint:
     enabled: false
+  eslint:
+    enabled: true
+    config:
+      config: caravel/assets/.eslintrc
   duplication:
     enabled: true
     config:
