@@ -3,3 +3,4 @@ vendor/*
 javascripts/dist/*
 stylesheets/*
 spec/*
+**/*{.,-}min.js
