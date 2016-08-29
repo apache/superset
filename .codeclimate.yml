@@ -1,4 +1,3 @@
----
 engines:
   csslint:
     enabled: false
@@ -8,10 +7,6 @@ engines:
       languages:
       - javascript
       - python
-  eslint:
-    enabled: true
-    config:
-      config: caravel/assets/.eslintrc
   pep8:
     enabled: true
   fixme:
