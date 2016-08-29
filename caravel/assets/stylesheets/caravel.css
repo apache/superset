@@ -52,14 +52,6 @@ input.form-control[type=text], input.form-control[type=search] {
     margin-left: 365px;
 }
 
-.favstar {
-    margin-right: 10px;
-    opacity: 0.5;
-    cursor: pointer;
-    float: left;
-    margin-top: 13px;
-}
-
 .slice_description{
     padding: 8px;
     margin: 5px;
@@ -197,10 +189,6 @@ div.widget .chart-header a {
 
 div.widget .slice_container {
   overflow: auto;
-}
-
-.alert a:not(.close) {
-  color: gray !important;
 }
 
 .navbar .alert {

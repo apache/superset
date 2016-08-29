@@ -127,6 +127,19 @@ class CaravelFilter(BaseFilter):
         return perms
 
 
+class TableSlice(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        perms = self.get_perms()
+        tables = []
+        for perm in perms:
+            match = re.search(r'\(id:(\d+)\)', perm)
+            tables.append(match.group(1))
+        qry = query.filter(self.model.id.in_(tables))
+        return qry
+
+
 class FilterSlice(CaravelFilter):
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
@@ -155,6 +168,22 @@ class FilterDashboard(CaravelFilter):
             )
         )
         return query
+
+
+class FilterDashboardSlices(CaravelFilter):
+    def apply(self, query, value):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        qry = query.filter(self.model.perm.in_(self.get_perms()))
+        return qry
+
+
+class FilterDashboardOwners(CaravelFilter):
+    def apply(self, query, value):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        qry = query.filter_by(id=g.user.id)
+        return qry
 
 
 def validate_json(form, field):  # noqa
@@ -448,6 +477,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
     }
+    base_filters = [['id', TableSlice, lambda: []]]
     label_columns = {
         'table_link': _("Table"),
         'changed_by_': _("Changed By"),
@@ -652,6 +682,14 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         'owners': _("Owners is a list of users who can alter the dashboard."),
     }
     base_filters = [['slice', FilterDashboard, lambda: []]]
+    add_form_query_rel_fields = {
+        'slices': [['slices', FilterDashboardSlices, None]],
+        'owners': [['owners', FilterDashboardOwners, None]],
+    }
+    edit_form_query_rel_fields = {
+        'slices': [['slices', FilterDashboardSlices, None]],
+        'owners': [['owners', FilterDashboardOwners, None]],
+    }
     label_columns = {
         'dashboard_link': _("Dashboard"),
         'dashboard_title': _("Title"),

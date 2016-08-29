@@ -1,19 +1,16 @@
-// JS
-var $ = window.$ || require('jquery');
-var d3 = require('d3');
-import { colorScalerFactory  } from '../javascripts/modules/colors'
+import d3 from 'd3';
+import { colorScalerFactory } from '../javascripts/modules/colors';
 
-d3.tip = require('d3-tip'); //using window.d3 doesn't capture events properly bc of multiple instances
+const $ = require('jquery');
+d3.tip = require('d3-tip');
 
-// CSS
 require('./heatmap.css');
 
 // Inspired from http://bl.ocks.org/mbostock/3074470
 // https://jsfiddle.net/cyril123/h0reyumq/
 function heatmapVis(slice) {
-
   function refresh() {
-    var margin = {
+    const margin = {
       top: 10,
       right: 10,
       bottom: 35,
@@ -21,38 +18,27 @@ function heatmapVis(slice) {
     };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
-      slice.container.html('');
-      var matrix = {};
-      if (error) {
-        slice.error(error.responseText, error);
-        return '';
-      }
-      var fd = payload.form_data;
-      var data = payload.data;
-
+      const data = payload.data;
       // Dynamically adjusts  based on max x / y category lengths
-      function adjustMargins(data, margins) {
-        var pixelsPerCharX = 4.5; // approx, depends on font size
-        var pixelsPerCharY = 6.8; // approx, depends on font size
-        var longestX = 1;
-        var longestY = 1;
-        var datum;
+      function adjustMargins() {
+        const pixelsPerCharX = 4.5; // approx, depends on font size
+        const pixelsPerCharY = 6.8; // approx, depends on font size
+        let longestX = 1;
+        let longestY = 1;
+        let datum;
 
-        for (var i = 0; i < data.length; i++) {
+        for (let i = 0; i < data.length; i++) {
           datum = data[i];
           longestX = Math.max(longestX, datum.x.length || 1);
           longestY = Math.max(longestY, datum.y.length || 1);
         }
 
-        margins.left = Math.ceil(Math.max(margins.left, pixelsPerCharY * longestY));
-        margins.bottom = Math.ceil(Math.max(margins.bottom, pixelsPerCharX * longestX));
+        margin.left = Math.ceil(Math.max(margin.left, pixelsPerCharY * longestY));
+        margin.bottom = Math.ceil(Math.max(margin.bottom, pixelsPerCharX * longestX));
       }
 
-      function ordScale(k, rangeBands, reverse) {
-        if (reverse === undefined) {
-          reverse = false;
-        }
-        var domain = {};
+      function ordScale(k, rangeBands, reverse = false) {
+        let domain = {};
         $.each(data, function (i, d) {
           domain[d[k]] = true;
         });
@@ -64,29 +50,37 @@ function heatmapVis(slice) {
         }
         if (rangeBands === undefined) {
           return d3.scale.ordinal().domain(domain).range(d3.range(domain.length));
-        } else {
-          return d3.scale.ordinal().domain(domain).rangeBands(rangeBands);
         }
+        return d3.scale.ordinal().domain(domain).rangeBands(rangeBands);
       }
-      adjustMargins(data, margin);
 
-      var width = slice.width();
-      var height = slice.height();
-      var hmWidth = width - (margin.left + margin.right);
-      var hmHeight = height - (margin.bottom + margin.top);
-      var fp = d3.format('.3p');
+      slice.container.html('');
+      const matrix = {};
+      if (error) {
+        slice.error(error.responseText, error);
+        return;
+      }
+      const fd = payload.form_data;
 
-      var xScale = ordScale('x');
-      var yScale = ordScale('y', undefined, true);
-      var xRbScale = ordScale('x', [0, hmWidth]);
-      var yRbScale = ordScale('y', [hmHeight, 0]);
-      var X = 0,
-          Y = 1;
-      var heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
+      adjustMargins();
 
-      var color = colorScalerFactory(fd.linear_color_scheme);
+      const width = slice.width();
+      const height = slice.height();
+      const hmWidth = width - (margin.left + margin.right);
+      const hmHeight = height - (margin.bottom + margin.top);
+      const fp = d3.format('.3p');
 
-      var scale = [
+      const xScale = ordScale('x');
+      const yScale = ordScale('y', undefined, true);
+      const xRbScale = ordScale('x', [0, hmWidth]);
+      const yRbScale = ordScale('y', [hmHeight, 0]);
+      const X = 0;
+      const Y = 1;
+      const heatmapDim = [xRbScale.domain().length, yRbScale.domain().length];
+
+      const color = colorScalerFactory(fd.linear_color_scheme);
+
+      const scale = [
         d3.scale.linear()
         .domain([0, heatmapDim[X]])
         .range([0, hmWidth]),
@@ -95,107 +89,106 @@ function heatmapVis(slice) {
         .range([0, hmHeight]),
       ];
 
-      var container = d3.select(slice.selector);
+      const container = d3.select(slice.selector);
 
-      var canvas = container.append("canvas")
-        .attr("width", heatmapDim[X])
-        .attr("height", heatmapDim[Y])
-        .style("width", hmWidth + "px")
-        .style("height", hmHeight + "px")
-        .style("image-rendering", fd.canvas_image_rendering)
-        .style("left", margin.left + "px")
-        .style("top", margin.top + "px")
-        .style("position", "absolute");
+      const canvas = container.append('canvas')
+        .attr('width', heatmapDim[X])
+        .attr('height', heatmapDim[Y])
+        .style('width', hmWidth + 'px')
+        .style('height', hmHeight + 'px')
+        .style('image-rendering', fd.canvas_image_rendering)
+        .style('left', margin.left + 'px')
+        .style('top', margin.top + 'px')
+        .style('position', 'absolute');
 
-      var svg = container.append("svg")
-        .attr("width", width)
-        .attr("height", height)
-        .style("left", "0px")
-        .style("top", "0px")
-        .style("position", "absolute");
+      const svg = container.append('svg')
+        .attr('width', width)
+        .attr('height', height)
+        .style('left', '0px')
+        .style('top', '0px')
+        .style('position', 'absolute');
 
-      var rect = svg.append('g')
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      const rect = svg.append('g')
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
         .append('rect')
         .style('fill-opacity', 0)
         .attr('stroke', 'black')
-        .attr("width", hmWidth)
-        .attr("height", hmHeight);
+        .attr('width', hmWidth)
+        .attr('height', hmHeight);
 
-      var tip = d3.tip()
+      const tip = d3.tip()
         .attr('class', 'd3-tip')
         .offset(function () {
-          var k = d3.mouse(this);
-          var x = k[0] - (hmWidth / 2);
+          const k = d3.mouse(this);
+          const x = k[0] - (hmWidth / 2);
           return [k[1] - 20, x];
         })
-        .html(function (d) {
-          var s = "";
-          var k = d3.mouse(this);
-          var m = Math.floor(scale[0].invert(k[0]));
-          var n = Math.floor(scale[1].invert(k[1]));
+        .html(function () {
+          let s = '';
+          const k = d3.mouse(this);
+          const m = Math.floor(scale[0].invert(k[0]));
+          const n = Math.floor(scale[1].invert(k[1]));
           if (m in matrix && n in matrix[m]) {
-            var obj = matrix[m][n];
-            s += "<div><b>" + fd.all_columns_x + ": </b>" + obj.x + "<div>";
-            s += "<div><b>" + fd.all_columns_y + ": </b>" + obj.y + "<div>";
-            s += "<div><b>" + fd.metric + ": </b>" + obj.v + "<div>";
-            s += "<div><b>%: </b>" + fp(obj.perc) + "<div>";
-            tip.style("display", null);
+            const obj = matrix[m][n];
+            s += '<div><b>' + fd.all_columns_x + ': </b>' + obj.x + '<div>';
+            s += '<div><b>' + fd.all_columns_y + ': </b>' + obj.y + '<div>';
+            s += '<div><b>' + fd.metric + ': </b>' + obj.v + '<div>';
+            s += '<div><b>%: </b>' + fp(obj.perc) + '<div>';
+            tip.style('display', null);
           } else {
             // this is a hack to hide the tooltip because we have map it to a single <rect>
             // d3-tip toggles opacity and calling hide here is undone by the lib after this call
-            tip.style("display", "none");
+            tip.style('display', 'none');
           }
           return s;
         });
 
       rect.call(tip);
 
-      var xAxis = d3.svg.axis()
+      const xAxis = d3.svg.axis()
         .scale(xRbScale)
         .tickValues(xRbScale.domain().filter(
           function (d, i) {
             return !(i % (parseInt(fd.xscale_interval, 10)));
           }))
-        .orient("bottom");
+        .orient('bottom');
 
-      var yAxis = d3.svg.axis()
+      const yAxis = d3.svg.axis()
         .scale(yRbScale)
         .tickValues(yRbScale.domain().filter(
           function (d, i) {
             return !(i % (parseInt(fd.yscale_interval, 10)));
           }))
-        .orient("left");
+        .orient('left');
 
-      svg.append("g")
-        .attr("class", "x axis")
-        .attr("transform", "translate(" + margin.left + "," + (margin.top + hmHeight) + ")")
+      svg.append('g')
+        .attr('class', 'x axis')
+        .attr('transform', 'translate(' + margin.left + ',' + (margin.top + hmHeight) + ')')
         .call(xAxis)
-        .selectAll("text")
-        .style("text-anchor", "end")
-        .attr("transform", "rotate(-45)");
+        .selectAll('text')
+        .style('text-anchor', 'end')
+        .attr('transform', 'rotate(-45)');
 
-      svg.append("g")
-        .attr("class", "y axis")
-        .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+      svg.append('g')
+        .attr('class', 'y axis')
+        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
         .call(yAxis);
 
       rect.on('mousemove', tip.show);
       rect.on('mouseout', tip.hide);
 
-      var context = canvas.node().getContext("2d");
+      const context = canvas.node().getContext('2d');
       context.imageSmoothingEnabled = false;
-      createImageObj();
 
       // Compute the pixel colors; scaled by CSS.
       function createImageObj() {
-        var imageObj = new Image();
-        var image = context.createImageData(heatmapDim[0], heatmapDim[1]);
-        var pixs = {};
+        const imageObj = new Image();
+        const image = context.createImageData(heatmapDim[0], heatmapDim[1]);
+        const pixs = {};
         $.each(data, function (i, d) {
-          var c = d3.rgb(color(d.perc));
-          var x = xScale(d.x);
-          var y = yScale(d.y);
+          const c = d3.rgb(color(d.perc));
+          const x = xScale(d.x);
+          const y = yScale(d.y);
           pixs[x + (y * xScale.domain().length)] = c;
           if (matrix[x] === undefined) {
             matrix[x] = {};
@@ -205,10 +198,10 @@ function heatmapVis(slice) {
           }
         });
 
-        var p = -1;
-        for (var i = 0; i < heatmapDim[0] * heatmapDim[1]; i++) {
-          var c = pixs[i];
-          var alpha = 255;
+        let p = -1;
+        for (let i = 0; i < heatmapDim[0] * heatmapDim[1]; i++) {
+          let c = pixs[i];
+          let alpha = 255;
           if (c === undefined) {
             c = d3.rgb('#F00');
             alpha = 0;
@@ -222,8 +215,9 @@ function heatmapVis(slice) {
         imageObj.src = canvas.node().toDataURL();
       }
 
-      slice.done(payload);
+      createImageObj();
 
+      slice.done(payload);
     });
   }
   return {

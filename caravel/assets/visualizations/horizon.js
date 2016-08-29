@@ -1,29 +1,36 @@
+/* eslint-disable prefer-rest-params, no-param-reassign */
 // Copied and modified from
 // https://github.com/kmandov/d3-horizon-chart
-var d3 = require('d3');
+import d3 from 'd3';
 require('./horizon.css');
 
-var horizonChart = function () {
-  var colors = ["#313695", "#4575b4", "#74add1", "#abd9e9", "#fee090", "#fdae61", "#f46d43", "#d73027"];
-  var bands = colors.length >> 1;  // number of bands in each direction (positive / negative)
-  var width = 1000;
-  var height = 30;
-  var offsetX = 0;
-  var spacing = 0;
-  var mode = 'offset';
-  var axis = null;
-  var title = null;
-  var extent = null; // the extent is derived from the data, unless explicitly set via .extent([min, max])
-  var x = null;
-  var y = d3.scale.linear().range([0, height]);
-  var canvas = null;
-
-  var b;
+const horizonChart = function () {
+  let colors = [
+    '#313695',
+    '#4575b4',
+    '#74add1',
+    '#abd9e9',
+    '#fee090',
+    '#fdae61',
+    '#f46d43',
+    '#d73027',
+  ];
+  let height = 30;
+  const y = d3.scale.linear().range([0, height]);
+  let bands = colors.length >> 1;  // number of bands in each direction (positive / negative)
+  let width = 1000;
+  let offsetX = 0;
+  let spacing = 0;
+  let mode = 'offset';
+  let axis;
+  let title;
+  let extent; // the extent is derived from the data, unless explicitly set via .extent([min, max])
+  let x;
+  let canvas;
 
   function my(data) {
-
-    var horizon = d3.select(this);
-    var step = width / data.length;
+    const horizon = d3.select(this);
+    const step = width / data.length;
 
     horizon.append('span')
     .attr('class', 'title')
@@ -38,24 +45,24 @@ var horizonChart = function () {
     .attr('width', width)
     .attr('height', height);
 
-    var context = canvas.node().getContext('2d');
+    const context = canvas.node().getContext('2d');
     context.imageSmoothingEnabled = false;
 
     // update the y scale, based on the data extents
-    var _extent = extent || d3.extent(data, function (d) { return d.y; });
+    const ext = extent || d3.extent(data, (d) => d.y);
 
-    var max = Math.max(-_extent[0], _extent[1]);
+    const max = Math.max(-ext[0], ext[1]);
     y.domain([0, max]);
 
-    //x = d3.scaleTime().domain[];
+    // x = d3.scaleTime().domain[];
     axis = d3.svg.axis(x).ticks(5);
 
     context.clearRect(0, 0, width, height);
-    //context.translate(0.5, 0.5);
+    // context.translate(0.5, 0.5);
 
     // the data frame currently being shown:
-    var startIndex = ~~ Math.max(0, -(offsetX / step));
-    var endIndex = ~~ Math.min(data.length, startIndex + width / step);
+    const startIndex = ~~ Math.max(0, -(offsetX / step));
+    const endIndex = ~~ Math.min(data.length, startIndex + width / step);
 
     // skip drawing if there's no data to be drawn
     if (startIndex > data.length) {
@@ -64,10 +71,11 @@ var horizonChart = function () {
 
     // we are drawing positive & negative bands separately to avoid mutating canvas state
     // http://www.html5rocks.com/en/tutorials/canvas/performance/
-    var negative = false;
+    let negative = false;
     // draw positive bands
-    var i, value, bExtents;
-    for (b = 0; b < bands; b++) {
+    let value;
+    let bExtents;
+    for (let b = 0; b < bands; b++) {
       context.fillStyle = colors[bands + b];
 
       // Adjust the range based on the current band index.
@@ -75,7 +83,7 @@ var horizonChart = function () {
       y.range([bands * height + bExtents, bExtents]);
 
       // only the current data frame is being drawn i.e. what's visible:
-      for (i = startIndex; i < endIndex; i++) {
+      for (let i = startIndex; i < endIndex; i++) {
         value = data[i].y;
         if (value <= 0) { negative = true; continue; }
         if (value === undefined) {
@@ -87,14 +95,13 @@ var horizonChart = function () {
 
     // draw negative bands
     if (negative) {
-
       // mirror the negative bands, by flipping the canvas
       if (mode === 'offset') {
         context.translate(0, height);
         context.scale(1, -1);
       }
 
-      for (b = 0; b < bands; b++) {
+      for (let b = 0; b < bands; b++) {
         context.fillStyle = colors[bands - b - 1];
 
         // Adjust the range based on the current band index.
@@ -102,7 +109,7 @@ var horizonChart = function () {
         y.range([bands * height + bExtents, bExtents]);
 
         // only the current data frame is being drawn i.e. what's visible:
-        for (var ii = startIndex; ii < endIndex; ii++) {
+        for (let ii = startIndex; ii < endIndex; ii++) {
           value = data[ii].y;
           if (value >= 0) {
             continue;
@@ -140,7 +147,6 @@ var horizonChart = function () {
 
     // update the number of bands
     bands = colors.length >> 1;
-
     return my;
   };
 
@@ -185,33 +191,32 @@ var horizonChart = function () {
 };
 
 function horizonViz(slice) {
-
   function refresh() {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
-      var fd = payload.form_data;
+      const fd = payload.form_data;
       if (error) {
         slice.error(error.responseText, error);
-        return '';
+        return;
       }
 
-      var div = d3.select(slice.selector);
+      const div = d3.select(slice.selector);
       div.selectAll('*').remove();
-      var extent = null;
+      let extent;
       if (fd.horizon_color_scale === 'overall') {
-        var allValues = [];
+        let allValues = [];
         payload.data.forEach(function (d) {
           allValues = allValues.concat(d.values);
         });
-        extent = d3.extent(allValues, function (d) { return d.y; });
+        extent = d3.extent(allValues, (d) => d.y);
       } else if (fd.horizon_color_scale === 'change') {
         payload.data.forEach(function (series) {
-          var t0y = series.values[0].y;  // value at time 0
-          series.values.forEach(function (d, i) {
-            d.y = d.y - t0y;
-          });
+          const t0y = series.values[0].y;  // value at time 0
+          series.values = series.values.map((d) =>
+            Object.assign({}, d, { y: d.y - t0y })
+          );
         });
       }
-      div.selectAll(".horizon")
+      div.selectAll('.horizon')
       .data(payload.data)
       .enter()
       .append('div')

@@ -1,4 +1,5 @@
 const $ = window.$ = require('jquery');
+const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 const showModal = require('./modules/utils.js').showModal;
 require('./caravel-select2.js');
 require('datatables.net-bs');
@@ -17,7 +18,7 @@ $(document).ready(function () {
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
   }
   function initSqlEditorView() {
-    const databaseId = $('#databaseId').val();
+    const databaseId = $('#database_id').val();
     const editor = ace.edit('sql');
     editor.$blockScrolling = Infinity;
     editor.getSession().setUseWrapMode(true);
@@ -67,7 +68,7 @@ $(document).ready(function () {
         url: '/caravel/runsql/',
         data: {
           data: JSON.stringify({
-            databaseId: $('#databaseId').val(),
+            database_id: $('#database_id').val(),
             sql: editor.getSession().getValue(),
           }),
         },

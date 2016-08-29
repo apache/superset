@@ -224,8 +224,9 @@ class BaseViz(object):
             form_data.get("row_limit", config.get("ROW_LIMIT")))
         since = form_data.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
-        if from_dttm > datetime.now():
-            from_dttm = datetime.now() - (from_dttm-datetime.now())
+        now = datetime.now()
+        if from_dttm > now:
+            from_dttm = now - (from_dttm - now)
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
@@ -984,7 +985,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('line_interpolation', 'x_axis_showminmax'),
+            ('show_markers', 'x_axis_showminmax'),
+            ('line_interpolation', None),
             ('x_axis_format', 'y_axis_format'),
             ('x_axis_label', 'y_axis_label'),
         ),
@@ -997,7 +999,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'fields': (
             ('rolling_type', 'rolling_periods'),
             'time_compare',
-            'num_period_compare',
+            ('num_period_compare', 'period_ratio_type'),
             None,
             ('resample_how', 'resample_rule',), 'resample_fillmethod'
         ),
@@ -1038,7 +1040,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
         num_period_compare = form_data.get("num_period_compare")
         if num_period_compare:
             num_period_compare = int(num_period_compare)
-            df = (df / df.shift(num_period_compare)) - 1
+            prt = form_data.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
             df = df[num_period_compare:]
 
         rolling_periods = form_data.get("rolling_periods")
