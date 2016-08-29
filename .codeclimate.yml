@@ -4,7 +4,7 @@ engines:
   eslint:
     enabled: true
     config:
-      config: caravel/assets/.eslintrc.js
+      config: caravel/assets/.eslintrc
   duplication:
     enabled: true
     config:
