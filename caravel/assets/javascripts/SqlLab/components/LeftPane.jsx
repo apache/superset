@@ -5,8 +5,6 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import QueryLink from './QueryLink';
 
-import 'react-select/dist/react-select.css';
-
 const LeftPane = (props) => {
   let queryElements;
   if (props.workspaceQueries.length > 0) {

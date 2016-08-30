@@ -72,8 +72,17 @@ div.Workspace {
 .m-l-1 {
     margin-left: 1px;
 }
+.m-l-2 {
+    margin-left: 2px;
+}
 .m-r-10 {
     margin-right: 10px;
+}
+.m-l-10 {
+    margin-left: 10px;
+}
+.m-l-5 {
+    margin-left: 5px;
 }
 .m-b-10 {
     margin-bottom: 10px;
@@ -132,7 +141,9 @@ div.Workspace {
     max-height: 600px;
     box-shadow: rgba(0, 0, 0, 0.8) 5px 5px 25px
 }
-
+.SqlLab {
+    font-size: 12px;
+}
 .SqlLab pre {
     padding: 0px !important;
     margin: 0px;
@@ -217,7 +228,7 @@ div.tablePopover:hover {
 
 .ace_editor {
   border: 1px solid #ccc;
-  margin: 10px 0;
+  margin: 0px 0px 10px 0px;
 }
 
 .Select-menu-outer {
@@ -226,4 +237,12 @@ div.tablePopover:hover {
 }
 .ace_content {
     background-color: #f4f4f4;
+}
+.ws-el > .ws-el-controls {
+    opacity: 0;
+    transition: visibility 0s, opacity 0.3s linear;
+}
+.ws-el:hover > .ws-el-controls {
+    opacity: 1;
+    transition: visibility 0s, opacity 0.3s linear;
 }

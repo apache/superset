@@ -5,9 +5,6 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
 
-// CSS
-import 'react-select/dist/react-select.css';
-
 class QueryLink extends React.Component {
   popTab() {
     const qe = {

@@ -4,6 +4,7 @@ import React from 'react';
 import {
   Button,
   ButtonGroup,
+  Col,
   FormGroup,
   InputGroup,
   Form,
@@ -12,6 +13,7 @@ import {
   Label,
   MenuItem,
   OverlayTrigger,
+  Row,
   Tooltip,
 } from 'react-bootstrap';
 
@@ -29,10 +31,7 @@ import ButtonWithTooltip from './ButtonWithTooltip';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 
-import SqlEditorTopToolbar from './SqlEditorTopToolbar';
-
-// CSS
-import 'react-select/dist/react-select.css';
+import SqlEditorLeft from './SqlEditorLeft';
 
 class SqlEditor extends React.Component {
   constructor(props) {
@@ -246,23 +245,29 @@ class SqlEditor extends React.Component {
       <div className="SqlEditor">
         <div>
           <div>
-            <SqlEditorTopToolbar queryEditor={this.props.queryEditor} />
-            <AceEditor
-              mode="sql"
-              name={this.props.queryEditor.id}
-              theme="github"
-              minLines={5}
-              maxLines={30}
-              onChange={this.textChange.bind(this)}
-              height="200px"
-              width="100%"
-              editorProps={{ $blockScrolling: true }}
-              enableBasicAutocompletion
-              value={this.props.queryEditor.sql}
-            />
-            {editorBottomBar}
-            <br />
-            <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
+            <Row>
+              <Col md={3}>
+                <SqlEditorLeft queryEditor={this.props.queryEditor} />
+              </Col>
+              <Col md={9}>
+                <AceEditor
+                  mode="sql"
+                  name={this.props.queryEditor.id}
+                  theme="github"
+                  minLines={5}
+                  maxLines={30}
+                  onChange={this.textChange.bind(this)}
+                  height="200px"
+                  width="100%"
+                  editorProps={{ $blockScrolling: true }}
+                  enableBasicAutocompletion
+                  value={this.props.queryEditor.sql}
+                />
+                {editorBottomBar}
+                <br />
+                <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
+              </Col>
+            </Row>
           </div>
         </div>
       </div>

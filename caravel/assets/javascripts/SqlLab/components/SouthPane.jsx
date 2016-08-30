@@ -1,4 +1,4 @@
-import { Alert, Panel, Tab, Tabs } from 'react-bootstrap';
+import { Alert, Tab, Tabs } from 'react-bootstrap';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import React from 'react';
@@ -21,16 +21,12 @@ const SouthPane = function (props) {
   return (
     <Tabs bsStyle="tabs">
       <Tab title="Results" eventKey={1}>
-        <Panel>
-          <div style={{ overflow: 'auto' }}>
-            {results}
-          </div>
-        </Panel>
+        <div style={{ overflow: 'auto' }}>
+          {results}
+        </div>
       </Tab>
       <Tab title="Query History" eventKey={2}>
-        <Panel>
-          <QueryHistory />
-        </Panel>
+        <QueryHistory />
       </Tab>
     </Tabs>
   );

@@ -1,16 +1,13 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import { Label, OverlayTrigger, Popover } from 'react-bootstrap';
 
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
 import Select from 'react-select';
-import Link from './Link';
+import TableElement from './TableElement';
 
-// CSS
-import 'react-select/dist/react-select.css';
 
 class SqlEditorTopToolbar extends React.Component {
   constructor(props) {
@@ -123,7 +120,6 @@ class SqlEditorTopToolbar extends React.Component {
         schema: qe.schema,
         columns: data.columns,
         expanded: true,
-        showPopup: true,
       });
     })
     .fail(() => {
@@ -135,76 +131,9 @@ class SqlEditorTopToolbar extends React.Component {
   }
   render() {
     const tables = this.props.tables.filter((t) => (t.queryEditorId === this.props.queryEditor.id));
-    const tablesEls = tables.map((table) => {
-      let cols = [];
-      if (table.columns) {
-        cols = table.columns.map((col) => (
-          <div className="clearfix">
-            <div className="pull-left m-r-10">{col.name}</div>
-            <div className="pull-right text-muted"> {col.type}</div>
-          </div>
-        ));
-      }
-      const popoverId = 'tblPopover_' + table.name;
-      const popoverTop = (
-        <div className="clearfix">
-          <div className="pull-left">
-            <Link
-              className="fa fa-pencil"
-              onClick={this.selectStar.bind(this, table)}
-              tooltip="Overwrite text in editor with a query on this table"
-              placement="left"
-              href="#"
-            />
-            <Link
-              className="fa fa-plus-circle"
-              onClick={this.popTab.bind(this, table)}
-              tooltip="Run query in a new tab"
-              placement="left"
-              href="#"
-            />
-          </div>
-          <div className="pull-right">
-            <Link
-              className="fa fa-close"
-              onClick={this.closePopover.bind(this, popoverId)}
-              href="#"
-            />
-          </div>
-        </div>
-      );
-      const popover = (
-        <Popover
-          id={popoverId}
-          className="tablePopover"
-          title={popoverTop}
-        >
-          {cols}
-        </Popover>
-      );
-      return (
-        <Label className="m-r-5 table-label" style={{ fontSize: '100%' }}>
-          <OverlayTrigger
-            trigger="click"
-            placement="bottom"
-            overlay={popover}
-            ref={popoverId}
-          >
-            <span className="m-r-5" style={{ cursor: 'pointer' }}>
-              {table.name}
-            </span>
-          </OverlayTrigger>
-          <i
-            className="fa fa-close"
-            style={{ cursor: 'pointer' }}
-            onClick={this.props.actions.removeTable.bind(this, table)}
-          />
-        </Label>
-      );
-    });
     return (
       <div className="clearfix sql-toolbar">
-        <div className="pull-left m-r-5">
+        <div>
           <Select
             name="select-db"
             placeholder="[Database]"
@@ -215,7 +144,7 @@ class SqlEditorTopToolbar extends React.Component {
             onChange={this.changeDb.bind(this)}
           />
         </div>
-        <div className="pull-left m-r-5">
+        <div className="m-t-5">
           <Select
             name="select-schema"
             placeholder="[Schema]"
@@ -226,7 +155,7 @@ class SqlEditorTopToolbar extends React.Component {
             onChange={this.changeSchema.bind(this)}
           />
         </div>
-        <div className="pull-left m-r-5">
+        <div className="m-t-5">
           <Select
             name="select-table"
             ref="selectTable"
@@ -238,8 +167,9 @@ class SqlEditorTopToolbar extends React.Component {
             options={this.state.tableOptions}
           />
         </div>
-        <div className="pull-left m-r-5">
-          {tablesEls}
+        <hr />
+        <div className="m-t-5">
+          {tables.map((table) => <TableElement table={table} />)}
         </div>
       </div>
     );
