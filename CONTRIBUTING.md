@@ -160,6 +160,28 @@ Lint the project with:
     # for javascript
     npm run lint
 
+## Linting with codeclimate
+*Install the codeclimate cli tool*
+```
+curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine 
+brew install docker
+docker-machine create --driver virtual box default
+docker-machine env default
+eval "$(docker-machine env default)”
+docker pull codeclimate/codeclimate
+brew tap codeclimate/formulae
+brew install codeclimate
+```
+
+*Run the lint command:*
+```
+docker-machine start
+eval "$(docker-machine env default)”
+codeclimate analyze
+```
+More info can be found here: https://docs.codeclimate.com/docs/open-source-free
+
+
 ## API documentation
 
 Generate the documentation with:
