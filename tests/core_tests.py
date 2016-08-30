@@ -90,46 +90,11 @@ class CoreTests(CaravelTestCase):
                  format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
+                (slc.slice_name, 'slice_id_url', "/caravel/slice/{slc.id}/".format(slc=slc)),
             ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
-
-    def test_slice_id_redirects(self, username='admin'):
-        def make_assertions(resp, standalone):
-            decoded = resp.data.decode('utf-8')
-            if standalone:
-                assert "Query" not in decoded
-                assert 'data-standalone="true"' in decoded
-
-            else:
-                assert "Query" in decoded
-                assert 'data-standalone="true"' not in decoded
-
-        self.login(username=username)
-        slc = db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
-        get = self.client.get
-
-        # Standard redirect
-        slc_url = slc.slice_url
-        id_url = '/caravel/slice/{slc.id}'.format(slc=slc)
-
-        make_assertions(get(slc_url, follow_redirects=True), False)
-        make_assertions(get(id_url, follow_redirects=True), False)
-
-        # Explicit standalone
-        slc_url_standalone = '{slc_url}&standalone=true'.format(slc_url=slc_url)
-        id_url_standalone = '{id_url}?standalone=true'.format(id_url=id_url)
-
-        make_assertions(get(slc_url_standalone, follow_redirects=True), True)
-        make_assertions(get(id_url_standalone, follow_redirects=True), True)
-
-        # Explicit not-standalone
-        slc_url_notstandalone = '{slc_url}&standalone=false'.format(slc_url=slc_url)
-        id_url_notstandalone = '{id_url}?standalone=false'.format(id_url=id_url)
-
-        make_assertions(get(slc_url_notstandalone, follow_redirects=True), False)
-        make_assertions(get(id_url_notstandalone, follow_redirects=True), False)
 
     def test_dashboard(self):
         self.login(username='admin')
