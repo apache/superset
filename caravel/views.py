@@ -1256,19 +1256,6 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/slice/<slice_id>/")
-    def slice(self, slice_id):
-        """Convenience method for viewing a slice from its id alone"""
-        session = db.session()
-        qry = session.query(models.Slice).filter_by(id=int(slice_id))
-        slc = qry.first()
-        if slc:
-            return self.explore(slc.datasource_type, slc.datasource_id, slice_id=slice_id)
-        else:
-            flash("The specified slice could not be found", "danger")
-            return redirect('/slicemodelview/list/')
-
-    @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
         """Server side rendering for a dashboard"""
