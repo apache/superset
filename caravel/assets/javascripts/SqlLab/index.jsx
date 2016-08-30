@@ -6,7 +6,6 @@ import React from 'react';
 import { render } from 'react-dom';
 import * as Actions from './actions';
 
-import LeftPane from './components/LeftPane';
 import TabbedSqlEditors from './components/TabbedSqlEditors';
 import QueryAutoRefresh from './components/QueryAutoRefresh';
 import Alerts from './components/Alerts';
@@ -37,11 +36,8 @@ const App = function (props) {
         <QueryAutoRefresh />
         <Alerts alerts={props.alerts} />
         <div className="row">
-          <div className="col-md-9">
+          <div className="col-md-12">
             <TabbedSqlEditors />
-          </div>
-          <div className="col-md-3">
-            <LeftPane />
           </div>
         </div>
       </div>

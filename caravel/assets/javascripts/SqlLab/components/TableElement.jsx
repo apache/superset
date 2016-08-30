@@ -6,10 +6,7 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
 
-// CSS
-import 'react-select/dist/react-select.css';
-
-class TableWorkspaceElement extends React.Component {
+class TableElement extends React.Component {
   selectStar() {
     let cols = '';
     this.props.table.columns.forEach((col, i) => {
@@ -31,35 +28,37 @@ class TableWorkspaceElement extends React.Component {
   render() {
     let metadata = null;
     let buttonToggle;
-    if (!this.props.table.expanded) {
-      buttonToggle = (
-        <Link
-          href="#"
-          onClick={this.props.actions.expandTable.bind(this, this.props.table)}
-          placement="right"
-          tooltip="Collapse the table's structure information"
-        >
-          <i className="fa fa-minus" /> {this.props.table.name}
-        </Link>
-      );
-      metadata = this.props.table.columns.map((col) =>
-        <div className="clearfix">
-          <span className="pull-left">{col.name}</span>
-          <span className="pull-right">{col.type}</span>
-        </div>
-      );
-      metadata = (
-        <div style={{ 'margin-bottom': '5px' }}>{metadata}</div>
-      );
-    } else {
+    if (this.props.table.expanded) {
       buttonToggle = (
         <Link
           href="#"
           onClick={this.props.actions.collapseTable.bind(this, this.props.table)}
           placement="right"
+          tooltip="Collapse the table's structure information"
+        >
+          {this.props.table.name} <i className="fa fa-caret-up" />
+        </Link>
+      );
+      metadata = (
+        <div>
+          {this.props.table.columns.map((col) => (
+            <div className="clearfix">
+              <span className="pull-left m-l-5">{col.name}</span>
+              <span className="pull-right">{col.type}</span>
+            </div>
+          ))}
+          <hr />
+        </div>
+      );
+    } else {
+      buttonToggle = (
+        <Link
+          href="#"
+          onClick={this.props.actions.expandTable.bind(this, this.props.table)}
+          placement="right"
           tooltip="Expand the table's structure information"
         >
-          <i className="fa fa-plus" /> {this.props.table.name}
+          {this.props.table.name} <i className="fa fa-caret-down" />
         </Link>
       );
     }
@@ -68,13 +67,19 @@ class TableWorkspaceElement extends React.Component {
         {buttonToggle}
         <ButtonGroup className="ws-el-controls pull-right">
           <Link
-            className="fa fa-play"
+            className="fa fa-pencil m-l-2"
             onClick={this.selectStar.bind(this)}
             tooltip="Run query in a new tab"
             href="#"
           />
           <Link
-            className="fa fa-trash"
+            className="fa fa-plus-circle m-l-2"
+            onClick={this.selectStar.bind(this)}
+            tooltip="Run query in a new tab"
+            href="#"
+          />
+          <Link
+            className="fa fa-trash m-l-2"
             onClick={this.props.actions.removeTable.bind(this, this.props.table)}
             tooltip="Remove from workspace"
             href="#"
@@ -85,11 +90,11 @@ class TableWorkspaceElement extends React.Component {
     );
   }
 }
-TableWorkspaceElement.propTypes = {
+TableElement.propTypes = {
   table: React.PropTypes.object,
   actions: React.PropTypes.object,
 };
-TableWorkspaceElement.defaultProps = {
+TableElement.defaultProps = {
   table: null,
 };
 
@@ -98,5 +103,4 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
-export default connect(null, mapDispatchToProps)(TableWorkspaceElement);
-
+export default connect(null, mapDispatchToProps)(TableElement);
