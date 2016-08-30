@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 echo $DB
-rm ~/.caravel/caravel_unittests.db
+rm ~/.caravel/unittests.db
+rm ~/.caravel/celerydb.sqlite
+rm ~/.caravel/celery_results.sqlite
 rm -f .coverage
 export CARAVEL_CONFIG=tests.caravel_test_config
 set -e

@@ -10,10 +10,9 @@ import re
 import sys
 import time
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import functools
-import pandas as pd
 import sqlalchemy as sqla
 
 from flask import (
@@ -32,7 +31,9 @@ from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import caravel
-from caravel import appbuilder, db, models, viz, utils, app, sm, ascii_art
+from caravel import (
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab
+)
 
 config = app.config
 log_this = models.Log.log_this
@@ -387,7 +388,7 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'sql_link', 'creator', 'changed_on_']
+    list_columns = ['database_name', 'creator', 'changed_on_']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
     search_exclude_columns = ('password',)
@@ -423,7 +424,6 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     }
     label_columns = {
         'database_name': _("Database"),
-        'sql_link': _("SQL link"),
         'creator': _("Creator"),
         'changed_on_': _("Last Changed"),
         'sqlalchemy_uri': _("SQLAlchemy URI"),
@@ -452,18 +452,30 @@ appbuilder.add_view(
     category_icon='fa-database',)
 
 
+class DatabaseAsync(DatabaseView):
+    list_columns = ['id', 'database_name']
+
+appbuilder.add_view_no_menu(DatabaseAsync)
+
+
+class DatabaseTablesAsync(DatabaseView):
+    list_columns = ['id', 'all_table_names', 'all_schema_names']
+
+appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
+
 class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
-        'table_link', 'database', 'sql_link', 'is_featured',
+        'table_link', 'database', 'is_featured',
         'changed_by_', 'changed_on_']
     order_columns = [
-        'table_link', 'database', 'sql_link', 'is_featured', 'changed_on_']
+        'table_link', 'database', 'is_featured', 'changed_on_']
     add_columns = [
         'table_name', 'database', 'schema',
         'default_endpoint', 'offset', 'cache_timeout']
     edit_columns = [
-        'table_name', 'is_featured', 'database', 'schema',
+        'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
@@ -476,6 +488,10 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
+        'sql': (
+            "This fields acts a Caravel view, meaning that Caravel will "
+            "run a query against this string as a subquery."
+        ),
     }
     base_filters = [['id', TableSlice, lambda: []]]
     label_columns = {
@@ -483,7 +499,6 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'changed_by_': _("Changed By"),
         'database': _("Database"),
         'changed_on_': _("Last Changed"),
-        'sql_link': _("SQL Editor"),
         'is_featured': _("Is Featured"),
         'schema': _("Schema"),
         'default_endpoint': _("Default Endpoint"),
@@ -610,7 +625,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             url = "/druiddatasourcemodelview/list/"
             msg = _(
                 "Click on a datasource link to create a Slice, "
-                "or click on a table link <a href='/tablemodelview/list/'>here</a> "
+                "or click on a table link "
+                "<a href='/tablemodelview/list/'>here</a> "
                 "to create a Slice for a table"
             )
         else:
@@ -892,7 +908,8 @@ class Caravel(BaseCaravelView):
         datasource_access = self.can_access(
             'datasource_access', datasource.perm)
         if not (all_datasource_access or datasource_access):
-            flash(__("You don't seem to have access to this datasource"), "danger")
+            flash(__("You don't seem to have access to this datasource"),
+                  "danger")
             return redirect(error_redirect)
 
         action = request.args.get('action')
@@ -911,7 +928,7 @@ class Caravel(BaseCaravelView):
                 form_data=request.args,
                 slice_=slc)
         except Exception as e:
-            flash(str(e), "danger")
+            flash(utils.error_msg_from_exception(e), "danger")
             return redirect(error_redirect)
         if request.args.get("json") == "true":
             status = 200
@@ -923,7 +940,7 @@ class Caravel(BaseCaravelView):
                     payload = obj.get_json()
                 except Exception as e:
                     logging.exception(e)
-                    payload = str(e)
+                    payload = utils.error_msg_from_exception(e)
                     status = 500
             resp = Response(
                 payload,
@@ -953,7 +970,7 @@ class Caravel(BaseCaravelView):
                 if config.get("DEBUG"):
                     raise(e)
                 return Response(
-                    str(e),
+                    utils.error_msg_from_exception(e),
                     status=500,
                     mimetype="application/json")
             return resp
@@ -969,7 +986,8 @@ class Caravel(BaseCaravelView):
         del d['action']
         del d['previous_viz_type']
 
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns', 'mapbox_label', 'order_by_cols')
+        as_list = ('metrics', 'groupby', 'columns', 'all_columns',
+                   'mapbox_label', 'order_by_cols')
         for k in d:
             v = d.get(k)
             if k in as_list and not isinstance(v, list):
@@ -1080,8 +1098,28 @@ class Caravel(BaseCaravelView):
             .group_by(Log.dt)
             .all()
         )
-        payload = {str(time.mktime(dt.timetuple())): ccount for dt, ccount in qry if dt}
+        payload = {str(time.mktime(dt.timetuple())):
+                   ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/tables/<db_id>/<schema>")
+    def tables(self, db_id, schema):
+        """endpoint to power the calendar heatmap on the welcome page"""
+        schema = None if schema in ('null', 'undefined') else schema
+        database = (
+            db.session
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
+        payload = {
+            'tables': database.all_table_names(schema),
+            'views': database.all_view_names(schema),
+        }
+        return Response(
+            json.dumps(payload), mimetype="application/json")
 
     @api
     @has_access_api
@@ -1117,9 +1155,11 @@ class Caravel(BaseCaravelView):
         data = json.loads(request.form.get('data'))
         session = db.session()
         Slice = models.Slice # noqa
-        dash = session.query(models.Dashboard).filter_by(id=dashboard_id).first()
+        dash = (
+            session.query(models.Dashboard).filter_by(id=dashboard_id).first())
         check_ownership(dash, raise_if_false=True)
-        new_slices = session.query(Slice).filter(Slice.id.in_(data['slice_ids']))
+        new_slices = session.query(Slice).filter(
+            Slice.id.in_(data['slice_ids']))
         dash.slices += new_slices
         session.merge(dash)
         session.commit()
@@ -1153,13 +1193,18 @@ class Caravel(BaseCaravelView):
         FavStar = models.FavStar  # noqa
         count = 0
         favs = session.query(FavStar).filter_by(
-            class_name=class_name, obj_id=obj_id, user_id=g.user.get_id()).all()
+            class_name=class_name, obj_id=obj_id,
+            user_id=g.user.get_id()).all()
         if action == 'select':
             if not favs:
                 session.add(
                     FavStar(
-                        class_name=class_name, obj_id=obj_id, user_id=g.user.get_id(),
-                        dttm=datetime.now()))
+                        class_name=class_name,
+                        obj_id=obj_id,
+                        user_id=g.user.get_id(),
+                        dttm=datetime.now()
+                    )
+                )
             count = 1
         elif action == 'unselect':
             for fav in favs:
@@ -1215,9 +1260,54 @@ class Caravel(BaseCaravelView):
             dash_edit_perm=dash_edit_perm)
 
     @has_access
+    @expose("/sqllab_viz/")
+    @log_this
+    def sqllab_viz(self):
+        data = json.loads(request.args.get('data'))
+        table_name = data.get('datasourceName')
+        table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
+        if not table:
+            table = models.SqlaTable(
+                table_name=table_name,
+            )
+        table.database_id = data.get('databaseId')
+        table.sql = data.get('sql')
+        db.session.add(table)
+        cols = []
+        metrics = []
+        for column_name, config in data.get('columns').items():
+            is_dim = config.get('is_dim', False)
+            cols.append(models.TableColumn(
+                column_name=column_name,
+                filterable=is_dim,
+                groupby=is_dim,
+            ))
+            agg = config.get('agg')
+            if agg:
+                metrics.append(models.SqlMetric(
+                    metric_name="{agg}__{column_name}".format(**locals()),
+                    expression="{agg}({column_name})".format(**locals()),
+                ))
+        metrics.append(models.SqlMetric(
+            metric_name="count".format(**locals()),
+            expression="count(*)".format(**locals()),
+        ))
+        table.columns = cols
+        table.metrics = metrics
+        db.session.commit()
+        return redirect('/caravel/explore/table/{table.id}/'.format(**locals()))
+
+    @has_access
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
+        if (
+                not self.can_access(
+                    'all_datasource_access', 'all_datasource_access')):
+            flash(
+                "SQL Lab requires the `all_datasource_access` "
+                "permission", "danger")
+            return redirect("/tablemodelview/list/")
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
 
@@ -1240,23 +1330,35 @@ class Caravel(BaseCaravelView):
             db=mydb)
 
     @has_access
-    @expose("/table/<database_id>/<table_name>/")
+    @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
-    def table(self, database_id, table_name):
-        mydb = db.session.query(
-            models.Database).filter_by(id=database_id).first()
-        cols = mydb.get_columns(table_name)
-        df = pd.DataFrame([(c['name'], c['type']) for c in cols])
-        df.columns = ['col', 'type']
-        tbl_cls = (
-            "dataframe table table-striped table-bordered "
-            "table-condensed sql_results").split(' ')
-        return self.render_template(
-            "caravel/ajah.html",
-            content=df.to_html(
-                index=False,
-                na_rep='',
-                classes=tbl_cls))
+    def table(self, database_id, table_name, schema):
+        schema = None if schema in ('null', 'undefined') else schema
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        cols = []
+        t = mydb.get_columns(table_name, schema)
+        try:
+            t = mydb.get_columns(table_name, schema)
+        except Exception as e:
+            return Response(
+                json.dumps({'error': utils.error_msg_from_exception(e)}),
+                mimetype="application/json")
+        for col in t:
+            dtype = ""
+            try:
+                dtype = '{}'.format(col['type'])
+            except:
+                pass
+            cols.append({
+                'name': col['name'],
+                'type': dtype.split('(')[0] if '(' in dtype else dtype,
+                'longType': dtype,
+            })
+        tbl = {
+            'name': table_name,
+            'columns': cols,
+        }
+        return Response(json.dumps(tbl), mimetype="application/json")
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -1285,55 +1387,6 @@ class Caravel(BaseCaravelView):
             content=s
         )
 
-    @has_access
-    @expose("/runsql/", methods=['POST', 'GET'])
-    @log_this
-    def runsql(self):
-        """Runs arbitrary sql and returns and html table"""
-        # TODO deprecate in favor on `sql_json`
-        session = db.session()
-        limit = 1000
-        data = json.loads(request.form.get('data'))
-        sql = data.get('sql')
-        database_id = data.get('database_id')
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
-
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific db permission"))
-
-        content = ""
-        if mydb:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*'])
-                                 .alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = '{}'.format(qry.compile(
-                    eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = pd.read_sql_query(sql=sql, con=eng)
-                content = df.to_html(
-                    index=False,
-                    na_rep='',
-                    classes=(
-                        "dataframe table table-striped table-bordered "
-                        "table-condensed sql_results").split(' '))
-            except Exception as e:
-                content = (
-                    '<div class="alert alert-danger">'
-                    "{}</div>"
-                ).format(e.message)
-        session.commit()
-        return content
-
     @expose("/theme/")
     def theme(self):
         return self.render_template('caravel/theme.html')
@@ -1343,56 +1396,133 @@ class Caravel(BaseCaravelView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        session = db.session()
-        limit = 1000
+        async = request.form.get('async') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
+
+        def json_error_response(msg, status=None):
+            return Response(json.dumps({
+                'error': msg,
+                'status': status,
+            }),
+                status=500,
+                mimetype="application/json"
+            )
+
+        session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            raise utils.CaravelSecurityException(_(
-                "SQL Lab requires the `all_datasource_access` or "
-                "specific DB permission"))
-
-        error_msg = ""
         if not mydb:
-            error_msg = "The database selected doesn't seem to exist"
-        else:
-            eng = mydb.get_sqla_engine()
-            if limit:
-                sql = sql.strip().strip(';')
-                qry = (
-                    select('*')
-                    .select_from(TextAsFrom(text(sql), ['*'])
-                                 .alias('inner_qry'))
-                    .limit(limit)
-                )
-                sql = '{}'.format(qry.compile(
-                    eng, compile_kwargs={"literal_binds": True}))
-            try:
-                df = pd.read_sql_query(sql=sql, con=eng)
-                df = df.fillna(0)  # TODO make sure NULL
-            except Exception as e:
-                logging.exception(e)
-                error_msg = utils.error_msg_from_exception(e)
+            json_error_response(
+                'Database with id {} is missing.'.format(database_id),
+                models.QueryStatus.FAILED)
 
+        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', mydb.perm)):
+            json_error_response(__(
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
         session.commit()
-        if error_msg:
+
+        query = models.Query(
+            database_id=int(database_id),
+            limit=int(app.config.get('SQL_MAX_ROW', None)),
+            sql=sql,
+            schema=request.form.get('schema'),
+            select_as_cta=request.form.get('select_as_cta') == 'true',
+            start_time=utils.now_as_float(),
+            tab_name=request.form.get('tab'),
+            sql_editor_id=request.form.get('sql_editor_id'),
+            tmp_table_name=request.form.get('tmp_table_name'),
+            user_id=int(g.user.get_id()),
+            client_id=request.form.get('client_id'),
+        )
+        session.add(query)
+        session.commit()
+        query_id = query.id
+
+        # Async request.
+        if async:
+            # Ignore the celery future object and the request may time out.
+            sql_lab.get_sql_results.delay(query_id)
             return Response(
-                json.dumps({
-                    'error': error_msg,
-                }),
-                status=500,
+                json.dumps({'query': query.to_dict()},
+                           default=utils.json_int_dttm_ser,
+                           allow_nan=False),
+                status=202,  # Accepted
                 mimetype="application/json")
-        else:
-            data = {
-                'columns': [c for c in df.columns],
-                'data': df.to_dict(orient='records'),
-            }
-            return json.dumps(
-                data, default=utils.json_int_dttm_ser, allow_nan=False)
+
+        # Sync request.
+        try:
+            data = sql_lab.get_sql_results(query_id)
+        except Exception as e:
+            logging.exception(e)
+            return Response(
+                json.dumps({'error': "{}".format(e)}),
+                status=500,
+                mimetype = "application/json")
+        data['query'] = query.to_dict()
+        return Response(
+            json.dumps(data, default=utils.json_iso_dttm_ser, allow_nan=False),
+            status=200,
+            mimetype = "application/json")
+
+    @has_access
+    @expose("/csv/<query_id>")
+    @log_this
+    def csv(self, query_id):
+        """Download the query results as csv."""
+        s = db.session()
+        query = s.query(models.Query).filter_by(id=int(query_id)).first()
+
+        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
+                self.can_access('database_access', query.database.perm)):
+            flash(_(
+                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+            redirect('/')
+
+        sql = query.select_sql or query.sql
+        df = query.database.get_df(sql, query.schema)
+        # TODO(bkyryliuk): add compression=gzip for big files.
+        csv = df.to_csv(index=False)
+        response = Response(csv, mimetype='text/csv')
+        response.headers['Content-Disposition'] = (
+            'attachment; filename={}.csv'.format(query.name))
+        return response
+
+    @has_access
+    @expose("/queries/<last_updated_ms>")
+    @log_this
+    def queries(self, last_updated_ms):
+        """Get the updated queries."""
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
+
+        # Unix time, milliseconds.
+        last_updated_ms_int = int(last_updated_ms) if last_updated_ms else 0
+
+        # Local date time, DO NOT USE IT.
+        # last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
+
+        # UTC date time, same that is stored in the DB.
+        last_updated_dt = utils.EPOCH + timedelta(
+            seconds=last_updated_ms_int / 1000)
+
+        sql_queries = (
+            db.session.query(models.Query)
+            .filter(
+                models.Query.user_id == g.user.get_id() or
+                models.Query.changed_on >= last_updated_dt
+            )
+            .all()
+        )
+        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+        return Response(
+            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
+            status=200,
+            mimetype="application/json")
 
     @has_access
     @expose("/refresh_datasources/")
@@ -1433,6 +1563,11 @@ class Caravel(BaseCaravelView):
         """Personalized welcome page"""
         return self.render_template('caravel/welcome.html', utils=utils)
 
+    @has_access
+    @expose("/sqllab")
+    def sqlanvil(self):
+        """SQL Editor"""
+        return self.render_template('caravel/sqllab.html')
 
 appbuilder.add_view_no_menu(Caravel)
 
@@ -1461,6 +1596,11 @@ appbuilder.add_view(
     category="Sources",
     category_label=__("Sources"),
     category_icon='')
+
+appbuilder.add_link(
+    'SQL Lab <span class="label label-danger">alpha</span>',
+    href='/caravel/sqllab',
+    icon="fa-flask")
 
 
 # ---------------------------------------------------------------------

@@ -1,5 +1,5 @@
 node_modules/*
 vendor/*
-javascripts/dist/*
+dist/*
 stylesheets/*
 spec/*

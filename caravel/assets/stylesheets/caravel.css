@@ -28,12 +28,6 @@ body {
 input.form-control {
     background-color: white;
 }
-input.form-control[type=text], input.form-control[type=search] {
-  border: 1px solid #ccc!important;
-  box-shadow: none!important;
-  padding: 2px;
-  border-radius: 2px;
-}
 
 .chart-header a.danger {
     color: red;
@@ -193,5 +187,10 @@ div.widget .slice_container {
 
 .navbar .alert {
     padding: 5px 10px;
-    margin-top: 15px;
+    margin-top: 8px;
+    margin-bottom: 0px
+}
+
+.table-condensed {
+    font-size: 12px;
 }

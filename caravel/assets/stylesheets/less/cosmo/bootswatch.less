@@ -27,7 +27,8 @@
 }
 
 .navbar-inverse .navbar-nav > li > a:hover,
-.navbar-inverse .navbar-nav > li > a:focus {
+.navbar-inverse .navbar-nav > li > a:focus,
+.navbar-inverse .navbar-nav > li.active > a {
   background: transparent;
   border-bottom: 3px solid @brand-primary;
   margin-bottom: -3px;
@@ -45,6 +46,58 @@
   color: #555;
   background-color: #efefef;
 }
+
+.nav-tabs {
+  .dropdown-toggle.btn,
+  .dropdown-toggle.btn:hover,
+  .dropdown-toggle.btn:active,
+  .dropdown-toggle.btn:focus,
+  .btn-group.open .dropdown-toggle.btn,
+  .btn-group.open .dropdown-toggle.btn:hover,
+  .btn-group.open .dropdown-toggle.btn:active,
+  .btn-group.open .dropdown-toggle.btn:focus {
+    border-color: transparent;
+    background-color: transparent;
+    box-shadow: none;
+  }
+}
+
+.caret {
+  border: none;
+  color: @gray;
+}
+
+.caret:before {
+  font-family: "FontAwesome";
+  font-size: 10px;
+  content: "\f078";
+}
+
+.caret:hover {
+  color: @gray-darker;
+}
+
+.dropdown-toggle.btn .caret {
+  margin-left: 6px;
+  margin-top: -21px;
+  margin-right: 6px;
+}
+
+.nav-tabs .dropdown-toggle.btn .caret,  {
+  margin-left: -12px;
+  margin-top: -10px;
+}
+
+.navbar-nav .caret,
+.panel-title .caret {
+  margin-left: 6px;
+  margin-top: -24px;
+  margin-right: 6px;
+}
+
+
+
+
 
 // Typography =================================================================
 
@@ -176,7 +229,7 @@ table,
 .nav-pills {
 
   & > li > a {
-    border-radius: 0;
+    border-radius: 2px;
   }
 }
 
@@ -222,7 +275,7 @@ table,
 }
 
 .label {
-  border-radius: 0;
+  border-radius: 2px;
 }
 label {
   font-weight: normal;
@@ -231,11 +284,12 @@ label {
 // Progress bars ==============================================================
 
 .progress {
-  height: 8px;
+  height: 14px;
   .box-shadow(none);
   .progress-bar {
-    font-size: 8px;
-    line-height: 8px;
+    font-size: 12px;
+    line-height: 12px;
+    padding-top: 1px;
   }
 }
 
@@ -321,10 +375,7 @@ a.list-group-item {
 .nav-tabs > li.active > a, .nav-tabs > li.active > a:hover, .nav-tabs > li.active > a:focus {
   background-color: #fff;
   font-weight: bold;
-}
-
-.tab-content {
-  padding-top: 20px;
+  border-top: 3px solid @brand-primary;
 }
 
 // Tables ==============================================================
@@ -342,4 +393,9 @@ a.list-group-item {
   .success {
     color: @state-success-text;
   }
+}
+
+// Utils ==============================================================
+hr {
+  margin: 10px 0;
 }

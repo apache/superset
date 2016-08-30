@@ -179,11 +179,32 @@ BACKUP_COUNT = 30
 # Set this API key to enable Mapbox visualizations
 MAPBOX_API_KEY = ""
 
+# Maximum number of rows returned in the SQL editor
+SQL_MAX_ROW = 1000
+
 # If defined, shows this text in an alert-warning box in the navbar
 # one example use case may be "STAGING" to make it clear that this is
 # not the production version of the site.
 WARNING_MSG = None
 
+# Default celery config is to use SQLA as a broker, in a production setting
+# you'll want to use a proper broker as specified here:
+# http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+"""
+# Example:
+class CeleryConfig(object):
+  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+  CELERY_IMPORTS = ('caravel.tasks', )
+  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+CELERY_CONFIG = CeleryConfig
+"""
+CELERY_CONFIG = None
+SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
+SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
+
+# The db id here results in selecting this one as a default in SQL Lab
+DEFAULT_DB_ID = None
 
 try:
     from caravel_config import *  # noqa

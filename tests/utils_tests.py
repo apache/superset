@@ -5,15 +5,14 @@ import unittest
 
 class UtilsTestCase(unittest.TestCase):
     def test_json_int_dttm_ser(self):
-        today = date.today()
-        now = datetime.now()
-        ms = utils.json_int_dttm_ser(today)
-        deser = (utils.EPOCH + timedelta(milliseconds=ms)).date()
-        assert today == deser, "Serialization error: %s is not %s" % (str(today), str(deser))
-        ms = utils.json_int_dttm_ser(now)
-        deser = (utils.EPOCH + timedelta(milliseconds=ms))
-        assert now == deser, "Serialization error: %s is not %s" % (str(now), str(deser))
+        dttm = datetime(2020, 1, 1)
+        ts = 1577836800000.0
+        json_int_dttm_ser = utils.json_int_dttm_ser
+        assert json_int_dttm_ser(dttm) == ts
+        assert json_int_dttm_ser(date(2020, 1, 1)) == ts
+        assert json_int_dttm_ser(datetime(1970, 1, 1)) == 0
+        assert json_int_dttm_ser(date(1970, 1, 1)) == 0
+        assert json_int_dttm_ser(dttm + timedelta(milliseconds=1)) == (ts + 1)
 
         with self.assertRaises(TypeError):
             utils.json_int_dttm_ser("this is not a date")
-
