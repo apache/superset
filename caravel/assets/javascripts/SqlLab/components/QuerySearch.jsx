@@ -1,5 +1,4 @@
 import React from 'react';
-import SplitPane from 'react-split-pane';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 
@@ -21,7 +20,7 @@ class QuerySearch extends React.Component {
   render() {
     const queries = this.props.queries;
     return (
-      <SplitPane split="vertical" minSize={200} defaultSize={300}>
+      <div>
         <div className="pane-cell pane-west m-t-5">
           <div className="panel panel-default Workspace">
             <div className="panel-heading">
@@ -49,7 +48,7 @@ class QuerySearch extends React.Component {
           />
         </div>
         <Button>Search!</Button>
-      </SplitPane>
+      </div>
     );
   }
 }

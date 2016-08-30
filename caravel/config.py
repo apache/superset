@@ -200,8 +200,8 @@ class CeleryConfig(object):
 CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
-SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery.db')
-SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery.db')
+SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
+SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None

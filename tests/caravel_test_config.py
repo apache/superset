@@ -15,6 +15,12 @@ SQL_CELERY_RESULTS_DB_FILE_PATH =  os.path.join(DATA_DIR, 'celery_results.sqlite
 SQL_SELECT_AS_CTA = True
 SQL_MAX_ROW = 666
 
+TESTING = True
+CSRF_ENABLED = False
+SECRET_KEY = 'thisismyscretkey'
+WTF_CSRF_ENABLED = False
+PUBLIC_ROLE_LIKE_GAMMA = True
+
 
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + SQL_CELERY_DB_FILE_PATH
