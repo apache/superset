@@ -904,7 +904,7 @@ class Caravel(BaseCaravelView):
             return redirect(error_redirect)
 
         # handle slc / viz obj
-        slice_id = slice_id if slice_id != None else request.args.get("slice_id")
+        slice_id = slice_id or request.args.get("slice_id")
         viz_type = None
         slc = None
 
@@ -916,16 +916,19 @@ class Caravel(BaseCaravelView):
                 .filter_by(id=slice_id)
                 .first()
             )
-            try:  # override slice params with anything passed in url
+            try:
                 param_dict = json.loads(slc.params)
-                param_dict["json"] = "false"
-                # some overwritten slices have been saved with original slice_ids
-                param_dict["slice_id"] = slice_id
-                param_dict.update(request.args.to_dict(flat=False))
-                slice_params = ImmutableMultiDict(param_dict)
 
             except Exception as e:
                 logging.exception(e)
+                param_dict = {}
+
+            # override slice params with anything passed in url
+            # some overwritten slices have been saved with original slice_ids
+            param_dict["slice_id"] = slice_id
+            param_dict["json"] = "false"
+            param_dict.update(request.args.to_dict(flat=False))
+            slice_params = ImmutableMultiDict(param_dict)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
@@ -936,7 +939,6 @@ class Caravel(BaseCaravelView):
         action = slice_params.get('action')
 
         if action in ('saveas', 'overwrite'):
-
             return self.save_or_overwrite_slice(
                 slice_params, slc, slice_add_perm, slice_edit_perm)
 
