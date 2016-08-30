@@ -65,7 +65,7 @@ class BaseViz(object):
         form_class = ff.get_form()
         defaults = form_class().data.copy()
         previous_viz_type = form_data.get('previous_viz_type')
-        if isinstance(form_data, ImmutableMultiDict):
+        if isinstance(form_data, ImmutableMultiDict) or isinstance(form_data, MultiDict):
             form = form_class(form_data)
         else:
             form = form_class(**form_data)
@@ -120,17 +120,21 @@ class BaseViz(object):
         # Remove unchecked checkboxes because HTML is weird like that
         od = MultiDict()
         for key in sorted(d.keys()):
-            if d[key] is False:
-                del d[key]
-            else:
-                if isinstance(d, MultiDict):
-                    v = d.getlist(key)
+            try:
+                if d[key] is False:
+                    del d[key]
                 else:
-                    v = d.get(key)
-                if not isinstance(v, list):
-                    v = [v]
-                for item in v:
-                    od.add(key, item)
+                    if isinstance(d, MultiDict) or isinstance(d, ImmutableMultiDict):
+                        v = d.getlist(key)
+                    else:
+                        v = d.get(key)
+                    if not isinstance(v, list):
+                        v = [v]
+                    for item in v:
+                        od.add(key, item)
+            except IndexError:
+                # If a MultiDict was initialized with MD({key:[]}), accessing key throws
+                pass
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))

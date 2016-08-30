@@ -870,10 +870,11 @@ class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
 
     @has_access
+    @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
     @expose("/explore/<datasource_type>/<datasource_id>/")
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
-    def explore(self, datasource_type, datasource_id, slice_params=None):
+    def explore(self, datasource_type, datasource_id, slice_id=None):
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
@@ -903,10 +904,11 @@ class Caravel(BaseCaravelView):
             return redirect(error_redirect)
 
         # handle slc / viz obj
-        slice_params = slice_params or request.args
-        slice_id = slice_params.get("slice_id")
+        slice_id = slice_id if slice_id != None else request.args.get("slice_id")
         viz_type = None
         slc = None
+
+        slice_params = request.args
 
         if slice_id:
             slc = (
@@ -914,6 +916,16 @@ class Caravel(BaseCaravelView):
                 .filter_by(id=slice_id)
                 .first()
             )
+            try:  # override slice params with anything passed in url
+                param_dict = json.loads(slc.params)
+                param_dict["json"] = "false"
+                # some overwritten slices have been saved with original slice_ids
+                param_dict["slice_id"] = slice_id
+                param_dict.update(request.args.to_dict(flat=False))
+                slice_params = ImmutableMultiDict(param_dict)
+
+            except Exception as e:
+                logging.exception(e)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
@@ -1244,22 +1256,12 @@ class Caravel(BaseCaravelView):
     @has_access
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
-        """Redirects a request for a slice id to its corresponding URL"""
+        """Convenience method for viewing a slice from its id alone"""
         session = db.session()
         qry = session.query(models.Slice).filter_by(id=int(slice_id))
         slc = qry.first()
         if slc:
-            try:  # override slice params with anything passed in url
-                slice_params = json.loads(slc.params)
-                slice_params["json"] = "false"
-                slice_params["slice_id"] = slice_id  # some slices saved with improper slice_ids
-                slice_params.update(request.args.to_dict(flat=False))
-            except Exception as e:
-                logging.exception(e)
-                slice_params = {}
-
-            slice_params = ImmutableMultiDict(slice_params)
-            return self.explore(slc.datasource_type, slc.datasource_id, slice_params=slice_params)
+            return self.explore(slc.datasource_type, slc.datasource_id, slice_id=slice_id)
         else:
             flash("The specified slice could not be found", "danger")
             return redirect('/slicemodelview/list/')
