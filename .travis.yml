@@ -1,18 +1,20 @@
+
 language: python
 addons:
+  code_climate:
+    repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
   apt:
     sources:
       - deadsnakes
     packages:
       - python3.5
-  code_climate:
-    repo_token: 5f3a06c425eef7be4b43627d7d07a3e46c45bdc07155217825ff7c49cb6a470c
 cache:
   directories:
     - $HOME/.wheelhouse/
 env:
   global:
     - TRAVIS_CACHE=$HOME/.travis_cache/
+    - TRAVIS_NODE_VERSION="5.11"
   matrix:
     #- TOX_ENV=py27-mysql
     - TOX_ENV=py27-sqlite
@@ -22,7 +24,7 @@ env:
     - TOX_ENV=py34-postgres
     - TOX_ENV=javascript
 before_install:
-  - npm install -g npm@'>=2.7.1'
+  - npm install -g npm@'>=3.9.5'
 before_script:
   - mysql -e 'drop database if exists caravel; create database caravel DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
   - psql -c 'create database caravel;' -U postgres
@@ -30,4 +32,6 @@ before_script:
 install:
   - pip install --upgrade pip
   - pip install tox tox-travis
+  - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
+  - npm install
 script: tox -e $TOX_ENV

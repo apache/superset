@@ -3,3 +3,4 @@ vendor/*
 dist/*
 stylesheets/*
 spec/*
+coverage/**
