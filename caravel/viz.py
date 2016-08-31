@@ -23,7 +23,7 @@ from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
-from six import string_types
+from six import string_types, PY3
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -224,8 +224,9 @@ class BaseViz(object):
             form_data.get("row_limit", config.get("ROW_LIMIT")))
         since = form_data.get("since", "1 year ago")
         from_dttm = utils.parse_human_datetime(since)
-        if from_dttm > datetime.now():
-            from_dttm = datetime.now() - (from_dttm-datetime.now())
+        now = datetime.now()
+        if from_dttm > now:
+            from_dttm = now - (from_dttm - now)
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
@@ -279,9 +280,13 @@ class BaseViz(object):
         if payload:
             is_cached = True
             try:
-                payload = json.loads(zlib.decompress(payload))
+                cached_data = zlib.decompress(payload)
+                if PY3:
+                    cached_data = cached_data.decode('utf-8')
+                payload = json.loads(cached_data)
             except Exception as e:
-                logging.error("Error reading cache")
+                logging.error("Error reading cache: " +
+                              utils.error_msg_from_exception(e))
                 payload = None
             logging.info("Serving from cache")
 
@@ -302,14 +307,18 @@ class BaseViz(object):
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
             try:
+                data = self.json_dumps(payload)
+                if PY3:
+                    data = bytes(data, 'utf-8')
                 cache.set(
                     cache_key,
-                    zlib.compress(self.json_dumps(payload)),
+                    zlib.compress(data),
                     timeout=cache_timeout)
             except Exception as e:
                 # cache.set call can fail if the backend is down or if
                 # the key is too large or whatever other reasons
                 logging.warning("Could not cache key {}".format(cache_key))
+                logging.exception(e)
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return self.json_dumps(payload)
@@ -320,6 +329,7 @@ class BaseViz(object):
 
     @property
     def data(self):
+        """This is the data object serialized to the js layer"""
         content = {
             'csv_endpoint': self.csv_endpoint,
             'form_data': self.form_data,
@@ -327,6 +337,11 @@ class BaseViz(object):
             'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
+            'column_formats': {
+                m.metric_name: m.d3format
+                for m in self.datasource.metrics
+                if m.d3format
+            },
         }
         return content
 
@@ -508,6 +523,25 @@ class MarkupViz(BaseViz):
         return dict(html=self.rendered())
 
 
+class SeparatorViz(MarkupViz):
+
+    """Use to create section headers in a dashboard, similar to `Markup`"""
+
+    viz_type = "separator"
+    verbose_name = _("Separator")
+    form_overrides = {
+        'code': {
+            'default': (
+                "####Section Title\n"
+                "A paragraph describing the section"
+                "of the dashboard, right before the separator line "
+                "\n\n"
+                "---------------"
+            ),
+        }
+    }
+
+
 class WordCloudViz(BaseViz):
 
     """Build a colorful word cloud
@@ -666,7 +700,7 @@ class BoxPlotViz(NVD3Viz):
     viz_type = "box_plot"
     verbose_name = _("Box Plot")
     sort_series = False
-    is_timeseries = True
+    is_timeseries = False
     fieldsets = ({
         'label': None,
         'fields': (
@@ -951,7 +985,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ('show_brush', 'show_legend'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
-            ('line_interpolation', 'x_axis_showminmax'),
+            ('show_markers', 'x_axis_showminmax'),
+            ('line_interpolation', None),
             ('x_axis_format', 'y_axis_format'),
             ('x_axis_label', 'y_axis_label'),
         ),
@@ -964,7 +999,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'fields': (
             ('rolling_type', 'rolling_periods'),
             'time_compare',
-            'num_period_compare',
+            ('num_period_compare', 'period_ratio_type'),
             None,
             ('resample_how', 'resample_rule',), 'resample_fillmethod'
         ),
@@ -995,7 +1030,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
         if self.sort_series:
             dfs = df.sum()
-            dfs.sort(ascending=False)
+            dfs.sort_values(ascending=False, inplace=True)
             df = df[dfs.index]
 
         if form_data.get("contribution"):
@@ -1005,7 +1040,14 @@ class NVD3TimeSeriesViz(NVD3Viz):
         num_period_compare = form_data.get("num_period_compare")
         if num_period_compare:
             num_period_compare = int(num_period_compare)
-            df = (df / df.shift(num_period_compare)) - 1
+            prt = form_data.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
             df = df[num_period_compare:]
 
         rolling_periods = form_data.get("rolling_periods")
@@ -1093,7 +1135,7 @@ class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
     fieldsets = [NVD3TimeSeriesViz.fieldsets[0]] + [{
         'label': _('Chart Options'),
         'fields': (
-            ('show_brush', 'show_legend'),
+            ('show_brush', 'show_legend', 'show_bar_value'),
             ('rich_tooltip', 'y_axis_zero'),
             ('y_log_scale', 'contribution'),
             ('x_axis_format', 'y_axis_format'),
@@ -1143,7 +1185,9 @@ class DistributionPieViz(NVD3Viz):
         'fields': (
             'metrics', 'groupby',
             'limit',
+            'pie_label_type',
             ('donut', 'show_legend'),
+            'labels_outside',
         )
     },)
 
@@ -1167,6 +1211,74 @@ class DistributionPieViz(NVD3Viz):
         return df.to_dict(orient="records")
 
 
+class HistogramViz(BaseViz):
+
+    """Histogram"""
+
+    viz_type = "histogram"
+    verbose_name = _("Histogram")
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            ('all_columns_x',),
+            'row_limit',
+        )
+    }, {
+        'label': _("Histogram Options"),
+        'fields': (
+            'link_length',
+        )
+    },)
+
+    form_overrides = {
+        'all_columns_x': {
+            'label': _('Numeric Column'),
+            'description': _("Select the numeric column to draw the histogram"),
+        },
+        'link_length': {
+            'label': _("No of Bins"),
+            'description': _("Select number of bins for the histogram"),
+            'default': 5
+        }
+    }
+
+
+    def query_obj(self):
+        """Returns the query object for this visualization"""
+        d = super(HistogramViz, self).query_obj()
+        d['row_limit'] = self.form_data.get('row_limit', int(config.get('ROW_LIMIT')))
+        numeric_column = self.form_data.get('all_columns_x')
+        if numeric_column is None:
+            raise Exception("Must have one numeric column specified")
+        d['columns'] = [numeric_column]
+        return d
+
+
+    def get_df(self, query_obj=None):
+        """Returns a pandas dataframe based on the query object"""
+        if not query_obj:
+            query_obj = self.query_obj()
+
+        self.results = self.datasource.query(**query_obj)
+        self.query = self.results.query
+        df = self.results.df
+
+        if df is None or df.empty:
+            raise Exception("No data, to build histogram")
+
+        df.replace([np.inf, -np.inf], np.nan)
+        df = df.fillna(0)
+        return df
+
+
+    def get_data(self):
+        """Returns the chart data"""
+        df = self.get_df()
+        chart_data = df[df.columns[0]].values.tolist()
+        return chart_data
+
+
 class DistributionBarViz(DistributionPieViz):
 
     """A good old bar chart"""
@@ -1181,7 +1293,7 @@ class DistributionBarViz(DistributionPieViz):
             'columns',
             'metrics',
             'row_limit',
-            ('show_legend', 'bar_stacked'),
+            ('show_legend', 'show_bar_value', 'bar_stacked'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
@@ -1218,7 +1330,7 @@ class DistributionBarViz(DistributionPieViz):
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
-        row.sort(ascending=False)
+        row.sort_values(ascending=False, inplace=True)
         columns = fd.get('columns') or []
         pt = df.pivot_table(
             index=self.groupby,
@@ -1304,9 +1416,8 @@ class SunburstViz(BaseViz):
         metric = self.form_data.get('metric')
         secondary_metric = self.form_data.get('secondary_metric')
         if metric == secondary_metric:
-            ndf = df[cols]
-            ndf['m1'] = df[metric]
-            ndf['m2'] = df[metric]
+            ndf = df
+            ndf.columns = [cols + ['m1', 'm2']]
         else:
             cols += [
                 self.form_data['metric'], self.form_data['secondary_metric']]
@@ -1479,8 +1590,10 @@ class WorldMapViz(BaseViz):
         secondary_metric = self.form_data.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df[cols]
-            ndf['m1'] = df[metric]
-            ndf['m2'] = df[metric]
+            # df[metric] will be a DataFrame
+            # because there are duplicate column names
+            ndf['m1'] = df[metric].iloc[:, 0]
+            ndf['m2'] = ndf['m1']
         else:
             cols += [metric, secondary_metric]
             ndf = df[cols]
@@ -1488,8 +1601,11 @@ class WorldMapViz(BaseViz):
         df.columns = ['country', 'm1', 'm2']
         d = df.to_dict(orient='records')
         for row in d:
-            country = countries.get(
-                self.form_data.get('country_fieldtype'), row['country'])
+            country = None
+            if isinstance(row['country'], string_types):
+                country = countries.get(
+                    self.form_data.get('country_fieldtype'), row['country'])
+
             if country:
                 row['country'] = country['cca3']
                 row['latitude'] = country['lat']
@@ -1883,6 +1999,8 @@ viz_types_list = [
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,
+    HistogramViz,
+    SeparatorViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

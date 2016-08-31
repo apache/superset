@@ -16,6 +16,7 @@ import humanize
 import pandas as pd
 import requests
 import sqlalchemy as sqla
+from sqlalchemy.engine.url import make_url
 import sqlparse
 from dateutil.parser import parse
 
@@ -30,13 +31,16 @@ from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
 from six import string_types
+
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, Text, Boolean, DateTime, Date,
-    Table, create_engine, MetaData, desc, asc, select, and_, func)
-from sqlalchemy.engine import reflection
+    Column, Integer, String, ForeignKey, Text, Boolean,
+    DateTime, Date, Table, Numeric,
+    create_engine, MetaData, desc, asc, select, and_, func
+)
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
+from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
 import caravel
@@ -310,6 +314,11 @@ class Dashboard(Model, AuditMixinNullable):
         else:
             return {}
 
+    @property
+    def sqla_metadata(self):
+        metadata = MetaData(bind=self.get_sqla_engine())
+        return metadata.reflect()
+
     def dashboard_link(self):
         return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
 
@@ -362,7 +371,6 @@ class Queryable(object):
             return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
 
 
-
 class Database(Model, AuditMixinNullable):
 
     """An ORM object that stores Database related information"""
@@ -373,6 +381,7 @@ class Database(Model, AuditMixinNullable):
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
+    select_as_create_table_as = Column(Boolean, default=False)
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -383,13 +392,68 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
-    def get_sqla_engine(self):
+    def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
         params = extra.get('engine_params', {})
-        return create_engine(self.sqlalchemy_uri_decrypted, **params)
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        backend = url.get_backend_name()
+        if backend == 'presto' and schema:
+            if '/' in url.database:
+                url.database = url.database.split('/')[0] + '/' + schema
+            else:
+                url.database += '/' + schema
+        elif schema:
+            url.database = schema
+        return create_engine(url, **params)
+
+    def get_df(self, sql, schema):
+        eng = self.get_sqla_engine(schema=schema)
+        cur = eng.execute(sql, schema=schema)
+        cols = [col[0] for col in cur.cursor.description]
+        df = pd.DataFrame(cur.fetchall(), columns=cols)
+        return df
+
+    def compile_sqla_query(self, qry, schema=None):
+        eng = self.get_sqla_engine(schema=schema)
+        compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
+        return '{}'.format(compiled)
+
+    def select_star(self, table_name, schema=None, limit=1000):
+        """Generates a ``select *`` statement in the proper dialect"""
+        qry = select('*').select_from(text(table_name))
+        if limit:
+            qry = qry.limit(limit)
+        return self.compile_sqla_query(qry)
+
+    def wrap_sql_limit(self, sql, limit=1000):
+        qry = (
+            select('*')
+            .select_from(TextAsFrom(text(sql), ['*'])
+            .alias('inner_qry')).limit(limit)
+        )
+        return self.compile_sqla_query(qry)
 
     def safe_sqlalchemy_uri(self):
         return self.sqlalchemy_uri
+
+    @property
+    def inspector(self):
+        engine = self.get_sqla_engine()
+        return sqla.inspect(engine)
+
+    def all_table_names(self, schema=None):
+        return sorted(self.inspector.get_table_names(schema))
+
+    def all_view_names(self, schema=None):
+        views = []
+        try:
+            views = self.inspector.get_view_names(schema)
+        except Exception as e:
+            pass
+        return views
+
+    def all_schema_names(self):
+        return sorted(self.inspector.get_schema_names())
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -404,16 +468,34 @@ class Database(Model, AuditMixinNullable):
         db_time_grains = {
             'presto': (
                 Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('week', _('week'), "date_trunc('week', CAST({col} AS DATE))"),
-                Grain('month', _('month'), "date_trunc('month', CAST({col} AS DATE))"),
-                Grain('quarter', _('quarter'), "date_trunc('quarter', CAST({col} AS DATE))"),
-                Grain("week_ending_saturday", _('week_ending_saturday'), "date_add('day', 5, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))"),
-                Grain("week_start_sunday", _('week_start_sunday'), "date_add('day', -1, "
-                      "date_trunc('week', date_add('day', 1, CAST({col} AS DATE))))")
+                Grain('second', _('second'),
+                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
+                Grain('minute', _('minute'),
+                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
+                Grain('hour', _('hour'),
+                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
+                Grain('day', _('day'),
+                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
+                Grain('week', _('week'),
+                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
+                Grain('month', _('month'),
+                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
+                Grain('quarter', _('quarter'),
+                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
+                Grain("week_ending_saturday", _('week_ending_saturday'),
+                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
+                      "CAST({col} AS TIMESTAMP))))"),
+                Grain("week_start_sunday", _('week_start_sunday'),
+                      "date_add('day', -1, date_trunc('week', "
+                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
             ),
             'mysql': (
                 Grain('Time Column', _('Time Column'), '{col}'),
+                Grain("second", _('second'), "DATE_ADD(DATE({col}), "
+                      "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
+                      " + SECOND({col})) SECOND)"),
+                Grain("minute", _('minute'), "DATE_ADD(DATE({col}), "
+                      "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)"),
                 Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
                       "INTERVAL HOUR({col}) HOUR)"),
                 Grain('day', _('day'), 'DATE({col})'),
@@ -425,8 +507,10 @@ class Database(Model, AuditMixinNullable):
             'sqlite': (
                 Grain('Time Column', _('Time Column'), '{col}'),
                 Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'), "DATE({col}, -strftime('%d', {col}) || ' days')"),
+                Grain("week", _('week'),
+                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
+                Grain("month", _('month'),
+                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
             ),
             'postgresql': (
                 Grain("Time Column", _('Time Column'), "{col}"),
@@ -437,6 +521,29 @@ class Database(Model, AuditMixinNullable):
                 Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
                 Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
                 Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
+            ),
+            'mssql': (
+                Grain("Time Column", _('Time Column'), "{col}"),
+                Grain("second", _('second'), "DATEADD(second, "
+                      "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
+                Grain("minute", _('minute'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}), 0)"),
+                Grain("5 minute", _('5 minute'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}) / 5 * 5, 0)"),
+                Grain("half hour", _('half hour'), "DATEADD(minute, "
+                      "DATEDIFF(minute, 0, {col}) / 30 * 30, 0)"),
+                Grain("hour", _('hour'), "DATEADD(hour, "
+                      "DATEDIFF(hour, 0, {col}), 0)"),
+                Grain("day", _('day'), "DATEADD(day, "
+                      "DATEDIFF(day, 0, {col}), 0)"),
+                Grain("week", _('week'), "DATEADD(week, "
+                      "DATEDIFF(week, 0, {col}), 0)"),
+                Grain("month", _('month'), "DATEADD(month, "
+                      "DATEDIFF(month, 0, {col}), 0)"),
+                Grain("quarter", _('quarter'), "DATEADD(quarter, "
+                      "DATEDIFF(quarter, 0, {col}), 0)"),
+                Grain("year", _('year'), "DATEADD(year, "
+                      "DATEDIFF(year, 0, {col}), 0)"),
             ),
         }
         db_time_grains['redshift'] = db_time_grains['postgresql']
@@ -466,10 +573,8 @@ class Database(Model, AuditMixinNullable):
             autoload=True,
             autoload_with=self.get_sqla_engine())
 
-    def get_columns(self, table_name):
-        engine = self.get_sqla_engine()
-        insp = reflection.Inspector.from_engine(engine)
-        return insp.get_columns(table_name)
+    def get_columns(self, table_name, schema=None):
+        return self.inspector.get_columns(table_name, schema)
 
     @property
     def sqlalchemy_uri_decrypted(self):
@@ -482,8 +587,9 @@ class Database(Model, AuditMixinNullable):
         return '/caravel/sql/{}/'.format(self.id)
 
     @property
-    def sql_link(self):
-        return '<a href="{}">SQL</a>'.format(self.sql_url)
+    def perm(self):
+        return (
+            "[{obj.database_name}].(id:{obj.id})").format(obj=self)
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable):
@@ -507,6 +613,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
+    sql = Column(Text)
     table_columns = relationship("TableColumn", back_populates="table")
 
     baselink = "tablemodelview"
@@ -515,7 +622,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         sqla.UniqueConstraint(
             'database_id', 'schema', 'table_name',
             name='_customer_location_uc'),)
-
 
     def __repr__(self):
         return self.table_name
@@ -585,10 +691,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
-
-    @property
-    def sql_link(self):
-        return '<a href="{}">SQL</a>'.format(self.sql_url)
 
     def get_col(self, col_name):
         columns = self.table_columns
@@ -691,6 +793,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if self.schema:
             tbl.schema = self.schema
 
+        # Supporting arbitrary SQL statements in place of tables
+        if self.sql:
+            tbl = text('(' + self.sql + ') as expr_qry ')
+
         if not columns:
             qry = qry.group_by(*groupby_exprs)
 
@@ -723,6 +829,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         qry = qry.limit(row_limit)
 
         if timeseries_limit and groupby:
+            # some sql dialects require for order by expressions
+            # to also be in the select clause
+            inner_select_exprs += [main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
@@ -742,7 +851,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         sql = "{}".format(
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
-            )
+        )
         df = pd.read_sql_query(
             sql=sql,
             con=engine
@@ -865,6 +974,7 @@ class SqlMetric(Model, AuditMixinNullable):
     expression = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def sqla_col(self):
@@ -935,11 +1045,11 @@ class TableColumn(Model, AuditMixinNullable):
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to string
 
-        If datebase_expression is empty, the internal dttm
+        If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
-        user input (python_date_format)
+        the user inputted (python_date_format)
         If database_expression is not empty, the internal dttm
-        will be parsed as the sql sentence for datebase to convert
+        will be parsed as the sql sentence for the database to convert
         """
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
@@ -1101,7 +1211,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         def int_or_0(v):
             try:
                 v = int(v)
-            except Exception as e:
+            except (TypeError, ValueError):
                 v = 0
             return v
         v1nums = [int_or_0(n) for n in v1.split('.')]
@@ -1190,7 +1300,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
             extras=None,  # noqa
-            select=None,):  # noqa
+            select=None,  # noqa
+            columns=None, ):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
@@ -1257,7 +1368,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         if rejected_metrics:
             raise MetricPermException(
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
-        )
+            )
 
         granularity = granularity or "all"
         if granularity != "all":
@@ -1485,7 +1596,7 @@ class DruidMetric(Model, AuditMixinNullable):
     verbose_name = Column(String(1024))
     metric_type = Column(String(32))
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='metrics',
@@ -1493,6 +1604,7 @@ class DruidMetric(Model, AuditMixinNullable):
     json = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
+    d3format = Column(String(128))
 
     @property
     def json_obj(self):
@@ -1518,7 +1630,7 @@ class DruidColumn(Model, AuditMixinNullable):
     __tablename__ = 'columns'
     id = Column(Integer, primary_key=True)
     datasource_name = Column(
-        String(250),
+        String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
     datasource = relationship('DruidDatasource', backref='columns',
@@ -1638,3 +1750,86 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
+
+
+class QueryStatus:
+    CANCELLED = 'cancelled'
+    FAILED = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    SCHEDULED = 'scheduled'
+    SUCCESS = 'success'
+    TIMED_OUT = 'timed_out'
+
+
+class Query(Model):
+
+    """ORM model for SQL query"""
+
+    __tablename__ = 'query'
+    id = Column(Integer, primary_key=True)
+    client_id = Column(String(11))
+
+    database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
+
+    # Store the tmp table into the DB only if the user asks for it.
+    tmp_table_name = Column(String(256))
+    user_id = Column(
+        Integer, ForeignKey('ab_user.id'), nullable=True)
+    status = Column(String(16), default=QueryStatus.PENDING)
+    name = Column(String(256))
+    tab_name = Column(String(256))
+    sql_editor_id = Column(String(256))
+    schema = Column(String(256))
+    sql = Column(Text)
+    # Query to retrieve the results,
+    # used only in case of select_as_cta_used is true.
+    select_sql = Column(Text)
+    executed_sql = Column(Text)
+    # Could be configured in the caravel config.
+    limit = Column(Integer)
+    limit_used = Column(Boolean, default=False)
+    select_as_cta = Column(Boolean)
+    select_as_cta_used = Column(Boolean, default=False)
+
+    progress = Column(Integer, default=0)  # 1..100
+    # # of rows in the result set or rows modified.
+    rows = Column(Integer)
+    error_message = Column(Text)
+
+    # Using Numeric in place of DateTime for sub-second precision
+    # stored as seconds since epoch, allowing for milliseconds
+    start_time = Column(Numeric(precision=3))
+    end_time = Column(Numeric(precision=3))
+    changed_on = Column(
+        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+
+    database = relationship(
+        'Database', foreign_keys=[database_id], backref='queries')
+
+    __table_args__ = (
+        sqla.Index('ti_user_id_changed_on', user_id, changed_on),
+    )
+
+    def to_dict(self):
+        return {
+            'changedOn': self.changed_on,
+            'dbId': self.database_id,
+            'endDttm': self.end_time,
+            'errorMessage': self.error_message,
+            'executedSql': self.executed_sql,
+            'id': self.client_id,
+            'limit': self.limit,
+            'progress': self.progress,
+            'rows': self.rows,
+            'schema': self.schema,
+            'ctas': self.select_as_cta,
+            'serverId': self.id,
+            'sql': self.sql,
+            'sqlEditorId': self.sql_editor_id,
+            'startDttm': self.start_time,
+            'state': self.status.lower(),
+            'tab': self.tab_name,
+            'tempTable': self.tmp_table_name,
+            'userId': self.user_id,
+        }

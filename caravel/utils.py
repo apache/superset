@@ -4,13 +4,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
+from datetime import date, datetime
 import decimal
 import functools
 import json
 import logging
 import numpy
 import time
+import uuid
 
 import parsedatetime
 import sqlalchemy as sa
@@ -20,6 +21,8 @@ from flask_appbuilder.security.sqla import models as ab_models
 from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 from pydruid.utils.having import Having
+
+EPOCH = datetime(1970, 1, 1)
 
 
 class CaravelException(Exception):
@@ -198,11 +201,17 @@ def init(caravel):
 
     perms = db.session.query(ab_models.PermissionView).all()
     for perm in perms:
-        if perm.permission.name == 'datasource_access':
+        if (
+                perm.permission and
+                perm.permission.name in ('datasource_access', 'database_access')):
             continue
         if perm.view_menu and perm.view_menu.name not in (
-                'UserDBModelView', 'RoleModelView', 'ResetPasswordView',
-                'Security'):
+                'ResetPasswordView',
+                'RoleModelView',
+                'Security',
+                'UserDBModelView',
+                'SQL Lab'):
+
             sm.add_permission_role(alpha, perm)
         sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")
@@ -215,7 +224,9 @@ def init(caravel):
                     'ResetPasswordView',
                     'RoleModelView',
                     'UserDBModelView',
+                    'SQL Lab',
                     'Security') and
+                perm.permission and
                 perm.permission.name not in (
                     'all_datasource_access',
                     'can_add',
@@ -224,6 +235,7 @@ def init(caravel):
                     'can_edit',
                     'can_save',
                     'datasource_access',
+                    'database_access',
                     'muldelete',
                 )):
             sm.add_permission_role(gamma, perm)
@@ -237,6 +249,9 @@ def init(caravel):
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
 
+    db_perms = [db.perm for db in session.query(models.Database).all()]
+    for db_perm in db_perms:
+        merge_perm(sm, 'database_access', db_perm)
     init_metrics_perm(caravel)
 
 
@@ -281,6 +296,8 @@ def base_json_conv(obj):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
         return float(obj)
+    elif isinstance(obj, uuid.UUID):
+        return str(obj)
 
 
 def json_iso_dttm_ser(obj):
@@ -296,11 +313,21 @@ def json_iso_dttm_ser(obj):
         return val
     if isinstance(obj, datetime):
         obj = obj.isoformat()
+    elif isinstance(obj, date):
+        obj = obj.isoformat()
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
+
+
+def datetime_to_epoch(dttm):
+    return (dttm - EPOCH).total_seconds() * 1000
+
+
+def now_as_float():
+    return datetime_to_epoch(datetime.now())
 
 
 def json_int_dttm_ser(obj):
@@ -309,12 +336,37 @@ def json_int_dttm_ser(obj):
     if val is not None:
         return val
     if isinstance(obj, datetime):
-        obj = int(time.mktime(obj.timetuple())) * 1000
+        obj = datetime_to_epoch(obj)
+    elif isinstance(obj, date):
+        obj = (obj - EPOCH.date()).total_seconds() * 1000
     else:
         raise TypeError(
-             "Unserializable object {} of type {}".format(obj, type(obj))
+            "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
+
+
+def error_msg_from_exception(e):
+    """Translate exception into error message
+
+    Database have different ways to handle exception. This function attempts
+    to make sense of the exception object and construct a human readable
+    sentence.
+
+    TODO(bkyryliuk): parse the Presto error message from the connection
+                     created via create_engine.
+    engine = create_engine('presto://localhost:3506/silver') -
+      gives an e.message as the str(dict)
+    presto.connect("localhost", port=3506, catalog='silver') - as a dict.
+    The latter version is parsed correctly by this function.
+    """
+    msg = ''
+    if hasattr(e, 'message'):
+        if type(e.message) is dict:
+            msg = e.message.get('message')
+        elif e.message:
+            msg = "{}".format(e.message)
+    return msg or '{}'.format(e)
 
 
 def markdown(s, markup_wrap=False):

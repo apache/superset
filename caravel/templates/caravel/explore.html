@@ -18,7 +18,7 @@
       <div>
         {{ field.label }}
         {% if field.description %}
-        <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="right"
+        <i class="fa fa-question-circle-o" data-toggle="tooltip" data-placement="right"
           title="{{ field.description }}"></i>
         {% endif %}
         {{ field(class_=form.field_css_classes(field.name)) }}
@@ -28,117 +28,88 @@
 
   <div class="datasource container-fluid">
     <form id="query" method="GET" style="display: none;">
-      <div class="header">
-          <span id="js-query-and-save-btns"
-               data-can-add="{{ can_add }}"
-          ></span>
+      <div id="form_container" class="row">
+        <div class="col-md-3">
+          <div
+            id="js-query-and-save-btns"
+            class="query-and-save-btns-container"
+            data-can-add="{{ can_add }}"
+          >
+          </div>
 
-          <span title="Data Source" data-toggle="tooltip">
-            <select id="datasource_id" class="select2">
-              {% for ds in datasources %}
-                <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
-              {% endfor %}
-            </select>
-          </span>
-          <a href="{{ datasource.url }}" class="btn btn-default-outline" data-toggle="tooltip" title="Edit/configure datasource">
-            <i class="fa fa-edit"></i>&nbsp;
-          </a>
-          <span title="Visualization Type" data-toggle="tooltip">
-            {{ form.get_field("viz_type")(class_="select2-with-images") }}
-          </span>
-          {% if slice %}
-            <span class="btn btn-default notbtn" title="Slice" data-toggle="tooltip" data-placement="bottom">
-                <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
-                {{ slice.slice_name }}
-                <a class="" href="/slicemodelview/edit/{{ slice.id }}" data-toggle="tooltip" title="Edit">
-                  {% if slice.description %}
-                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom" title="{{ slice.description }}"></i>
-                  {% endif %}
-                  <i class="fa fa-edit"></i>
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <div class="panel-title">
+                Datasource & Chart Type
+              </div>
+            </div>
+            <div class="panel-body">
+              <div>
+                <!-- DATASOURCE -->
+                <span title="Data Source" data-toggle="tooltip">
+                  <select id="datasource_id" class="select2">
+                    {% for ds in datasources %}
+                      <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
+                    {% endfor %}
+                  </select>
+                </span>
+                <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
+                  <i class="fa fa-edit m-l-3"></i>
                 </a>
-            </span>
-          {% endif %}
-          <div class="pull-right">
-            <span id="is_cached" class="label label-default" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
-              cached
-            </span>
-            <div class="btn-group results" role="group">
-              <a role="button" tabindex="0" class="btn btn-default" id="shortner" data-toggle="popover" data-trigger="focus">
-                <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
-              </a>
-              <span class="btn btn-default" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
-                <i class="fa fa-code"></i>&nbsp;
-              </span>
-              <span class="btn btn-default " id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
-                <i class="fa fa-file-code-o"></i>
-                .json
-              </span>
-              <span class="btn btn-default {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
-                <i class="fa fa-file-text-o"></i>.csv
-              </span>
-              <span
-                  class="btn btn-warning notbtn"
-                  id="timer"
-                  title="{{ _("Query timer") }}"
-                  data-toggle="tooltip">
-                {{ _("0 sec") }}
-              </span>
-              <span
-                  class="btn btn-info disabled view_query"
-                  data-toggle="modal"
-                  data-target="#query_modal">
-                  <span data-toggle="tooltip" title="{{ _("View database query") }}">
-                    {{ _("query") }}
-                  </span>
-              </span>
+              </div>
+              <br/>
+              <!-- CHART TYPE -->
+              <div title="Visualization Type" data-toggle="tooltip">
+                {{ form.get_field("viz_type")(class_="select2-with-images") }}
+              </div>
             </div>
           </div>
-        <hr/>
-      </div>
-        <div id="form_container" class="col-left-fixed">
           {% for fieldset in form.fieldsets %}
               <div class="panel panel-default">
                 {% if fieldset.label %}
                   <div class="panel-heading">
-                    <span class="legend_label">{{ fieldset.label }}</span>
-                    {% if fieldset.description %}
-                      <i    class="fa fa-info-circle" data-toggle="tooltip"
-                            data-placement="bottom"
-                            title="{{ fieldset.description }}"></i>
-                    {% endif %}
-                    <span class="collapser"> [-]</span>
+                    <div class="panel-title">
+                      {{ fieldset.label }}
+                      {% if fieldset.description %}
+                        <i class="fa fa-question-circle-o" data-toggle="tooltip"
+                              data-placement="bottom"
+                              title="{{ fieldset.description }}"></i>
+                      {% endif %}
+                    </div>
                   </div>
                 {% endif %}
                 <div class="panel-body">
-                {% for fieldname in fieldset.fields %}
-                  {% if not fieldname %}
-                    <hr/>
-                  {% elif fieldname is string %}
-                    {{ panofield(fieldname) }}
-                  {% else %}
-                  <div class="row">
-                    <div class="form-group">
-                      {% for name in fieldname %}
-                      <div class="col-xs-{{ (12 / fieldname|length) | int }}">
-                        {% if name %}
-                          {{ panofield(name) }}
-                        {% endif %}
+                  {% for fieldname in fieldset.fields %}
+                    {% if not fieldname %}
+                      <hr/>
+                    {% elif fieldname is string %}
+                      {{ panofield(fieldname) }}
+                    {% else %}
+                      <div class="row">
+                        <div class="form-group">
+                          {% for name in fieldname %}
+                          <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                            {% if name %}
+                              {{ panofield(name) }}
+                            {% endif %}
+                          </div>
+                          {% endfor %}
+                        </div>
                       </div>
-                      {% endfor %}
-                    </div>
-                  </div>
-                  {% endif %}
-                {% endfor %}
+                    {% endif %}
+                  {% endfor %}
                 </div>
               </div>
             {% endfor %}
             <div id="filter_panel" class="panel panel-default">
               <div class="panel-heading">
-                <span class="legend_label">{{ _("Filters") }}</span>
-                <i  class="fa fa-info-circle" data-toggle="tooltip"
-                    data-placement="bottom"
-                    title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-                <span class="collapser"> [-]</span>
+                <div class="panel-title">
+                  {{ _("Filters") }}
+                  <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                  </i>
+                </div>
               </div>
               <div class="panel-body">
                 <div id="flt0" style="display: none;">
@@ -164,11 +135,15 @@
             {% if form.having_col_0 %}
               <div id="having_panel" class="panel panel-default">
                 <div class="panel-heading">
-                  <span class="legend_label">Result Filters ("having" filters)</span>
-                  <i class="fa fa-info-circle" data-toggle="tooltip"
-                     data-placement="bottom"
-                     title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}"></i>
-                  <span class="collapser"> [-]</span>
+                  <div class="panel-title">
+                    Result Filters ("having" filters)
+                    <i
+                      class="fa fa-info-circle"
+                      data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                    </i>
+                  </div>
                 </div>
                 <div class="panel-body">
                   <div id="having0" style="display: none;">
@@ -194,31 +169,86 @@
                 </div>
               </div>
             {% endif %}
-            {{ form.slice_id() }}
-            {{ form.slice_name() }}
-            {{ form.collapsed_fieldsets() }}
-            <input type="hidden" name="action" id="action" value="">
-            <input type="hidden" name="userid" id="userid" value="{{ userid }}">
-            <input type="hidden" name="goto_dash" id="goto_dash" value="false">
-            <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
-            <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
-            <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
-            <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
-        </div>
-
-        <div class="col-offset">
-          {% block messages %}{% endblock %}
-          {% include 'appbuilder/flash.html' %}
-          <div
-            id="{{ viz.token }}"
-            class="widget viz slice {{ viz.viz_type }}"
-            data-slice="{{ viz.json_data }}"
-            style="height: 700px;">
-            <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
-            <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+          {{ form.slice_id() }}
+          {{ form.slice_name() }}
+          {{ form.collapsed_fieldsets() }}
+          <input type="hidden" name="action" id="action" value="">
+          <input type="hidden" name="userid" id="userid" value="{{ userid }}">
+          <input type="hidden" name="goto_dash" id="goto_dash" value="false">
+          <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
+          <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
+          <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
+          <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
+      </div>
+      <div class="col-md-9">
+        {% block messages %}{% endblock %}
+        {% include 'appbuilder/flash.html' %}
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <div class="panel-title">
+              <div class="row">
+                <div class="col-md-6">
+                  {% include 'caravel/partials/_explore_title.html' %}
+                </div>
+                <div class="col-md-6">
+                  <div class="slice-meta-controls pull-right">
+                    <span id="is_cached" class="label label-default m-r-3" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
+                      cached
+                    </span>
+                    <span
+                      class="label label-warning m-r-3"
+                      id="timer"
+                      title="{{ _("Query timer") }}"
+                      data-toggle="tooltip">
+                      {{ _("0 sec") }}
+                    </span>
+                    <div class="btn-group results" role="group">
+                      <a role="button" tabindex="0" class="btn btn-default btn-sm" id="shortner" data-toggle="popover" data-trigger="focus">
+                        <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
+                      </a>
+                      <span class="btn btn-default btn-sm" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
+                        <i class="fa fa-code"></i>&nbsp;
+                      </span>
+                      <span class="btn btn-default btn-sm" id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
+                        <i class="fa fa-file-code-o"></i>
+                        .json
+                      </span>
+                      <span class="btn btn-default btn-sm {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
+                        <i class="fa fa-file-text-o"></i>.csv
+                      </span>
+                      <span
+                        class="btn btn-default btn-sm disabled view_query"
+                        data-toggle="modal"
+                        data-target="#query_modal">
+                        <span data-toggle="tooltip" title="{{ _("View database query") }}">
+                          {{ _("query") }}
+                        </span>
+                      </span>
+                      <span
+                        class="btn btn-warning btn-sm notbtn"
+                        id="timer"
+                        title="{{ _("Query timer") }}"
+                        data-toggle="tooltip">
+                        {{ _("0 sec") }}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="credits pull-right">{{ "credits: " + viz.credits |safe if viz. credits else "" }}</div>
+          <div class="panel-body">
+            <div
+              id="{{ viz.token }}"
+              class="widget viz slice {{ viz.viz_type }}"
+              data-slice="{{ viz.json_data }}"
+              style="height: 700px;">
+              <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
+              <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+            </div>
+          </div>
         </div>
+      </div>
       <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog" role="document">
           <div class="modal-content">
@@ -290,7 +320,7 @@
               <input type="text" name="new_dashboard_name" placeholder="[dashboard name]">  <br><br>
             </div>
             <div class="modal-footer">
-              <button type="button" id="btn_modal_save" class="btn btn-primary pull-left">
+              <button type="button" id="btn_modal_save" class="btn pull-left">
                 {{ _("Save") }}
               </button>
               <button type="button" id="btn_modal_save_goto_dash" class="btn btn-primary pull-left gotodash" disabled>
@@ -309,5 +339,5 @@
 
 {% block tail_js %}
   {{ super() }}
-  <script src="/static/assets/javascripts/dist/explore.entry.jsx"></script>
+  <script src="/static/assets/dist/explore.entry.js"></script>
 {% endblock %}

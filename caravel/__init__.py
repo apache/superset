@@ -24,9 +24,9 @@ CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 if not app.debug:
-  # In production mode, add log handler to sys.stderr.
-  app.logger.addHandler(logging.StreamHandler())
-  app.logger.setLevel(logging.INFO)
+    # In production mode, add log handler to sys.stderr.
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.INFO)
 
 db = SQLA(app)
 

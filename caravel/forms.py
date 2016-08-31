@@ -235,6 +235,18 @@ class FormFactory(object):
                 "default": False,
                 "description": ""
             }),
+            'show_markers': (BetterBooleanField, {
+                "label": _("Show Markers"),
+                "default": False,
+                "description": (
+                    "Show data points as circle markers on top of the lines "
+                    "in the chart")
+            }),
+            'show_bar_value': (BetterBooleanField, {
+                "label": _("Bar Values"),
+                "default": False,
+                "description": "Show the value on top of the bars or not"
+            }),
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,
@@ -295,15 +307,17 @@ class FormFactory(object):
             'all_columns_x': (SelectField, {
                 "label": _("X"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'all_columns_y': (SelectField, {
                 "label": _("Y"),
                 "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
             'druid_time_origin': (FreeFormSelectField, {
-                "label": _( "Origin"),
+                "label": _("Origin"),
                 "choices": (
                     ('', _('default')),
                     ('now', _('now')),
@@ -407,7 +421,7 @@ class FormFactory(object):
                     "The time column for the visualization. Note that you "
                     "can define arbitrary expression that return a DATETIME "
                     "column in the table editor. Also note that the "
-                    "filter bellow is applied against this column or "
+                    "filter below is applied against this column or "
                     "expression")
             }),
             'resample_rule': (FreeFormSelectField, {
@@ -551,7 +565,7 @@ class FormFactory(object):
                 "default": default_groupby,
                 "description": _(
                     "Defines the grouping of entities. "
-                    "Each serie is shown as a specific color on the chart and "
+                    "Each series is shown as a specific color on the chart and "
                     "has a legend toggle")
             }),
             'entity': (SelectField, {
@@ -688,6 +702,16 @@ class FormFactory(object):
                 "default": 'linear',
                 "description": _("Line interpolation as defined by d3.js")
             }),
+            'pie_label_type': (SelectField, {
+                "label": _("Label Type"),
+                "default": 'key',
+                "choices": (
+                    ('key', _("Category Name")),
+                    ('value', _("Value")),
+                    ('percent', _("Percentage")),
+                ),
+                "description": _("What should be shown on the label?")
+            }),
             'code': (TextAreaField, {
                 "label": _("Code"),
                 "description": _("Put your code here"),
@@ -782,6 +806,11 @@ class FormFactory(object):
                 "default": False,
                 "description": _("Do you want a donut or a pie?")
             }),
+            'labels_outside': (BetterBooleanField, {
+                "label": _("Put labels outside"),
+                "default": True,
+                "description": _("Put the labels outside the pie?")
+            }),
             'contribution': (BetterBooleanField, {
                 "label": _("Contribution"),
                 "default": False,
@@ -794,6 +823,18 @@ class FormFactory(object):
                 "description": _(
                     "[integer] Number of period to compare against, "
                     "this is relative to the granularity selected")
+            }),
+            'period_ratio_type': (SelectField, {
+                "label": _("Period Ratio Type"),
+                "default": 'growth',
+                "choices": (
+                    ('factor', _('factor')),
+                    ('growth', _('growth')),
+                    ('value', _('value')),
+                ),
+                "description": _(
+                    "`factor` means (new/previous), `growth` is "
+                    "((new/previous) - 1), `value` is (new-previous)")
             }),
             'time_compare': (TextField, {
                 "label": _("Time Shift"),
@@ -829,6 +870,7 @@ class FormFactory(object):
                     ("mapbox://styles/mapbox/satellite-v9", "Satellite"),
                     ("mapbox://styles/mapbox/outdoors-v9", "Outdoors"),
                 ],
+                "default": "mapbox://styles/mapbox/streets-v9",
                 "description": _("Base layer map style")
             }),
             'clustering_radius': (FreeFormSelectField, {

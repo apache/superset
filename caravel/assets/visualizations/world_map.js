@@ -1,60 +1,60 @@
 // JS
-var d3 = window.d3 || require('d3');
-//var Datamap = require('../vendor/datamaps/datamaps.all.js');
-var Datamap = require('datamaps');
+const d3 = require('d3');
+const Datamap = require('datamaps');
 
 // CSS
 require('./world_map.css');
 
 function worldMapChart(slice) {
-  var render = function () {
-    var container = slice.container;
-    var div = d3.select(slice.selector);
+  const render = function () {
+    const container = slice.container;
+    const div = d3.select(slice.selector);
 
     container.css('height', slice.height());
 
     d3.json(slice.jsonEndpoint(), function (error, json) {
-      div.selectAll("*").remove();
-      var fd = json.form_data;
-
+      div.selectAll('*').remove();
       if (error !== null) {
         slice.error(error.responseText, error);
-        return '';
+        return;
       }
-      var ext = d3.extent(json.data, function (d) {
+      const fd = json.form_data;
+      // Ignore XXX's to get better normalization
+      let data = json.data.filter((d) => (d.country && d.country !== 'XXX'));
+
+      const ext = d3.extent(data, function (d) {
         return d.m1;
       });
-      var extRadius = d3.extent(json.data, function (d) {
+      const extRadius = d3.extent(data, function (d) {
         return d.m2;
       });
-      var radiusScale = d3.scale.linear()
+      const radiusScale = d3.scale.linear()
         .domain([extRadius[0], extRadius[1]])
         .range([1, fd.max_bubble_size]);
 
-      json.data.forEach(function (d) {
-        d.radius = radiusScale(d.m2);
+      const colorScale = d3.scale.linear()
+        .domain([ext[0], ext[1]])
+        .range(['#FFF', 'black']);
+
+      data = data.map((d) => Object.assign({}, d, {
+        radius: radiusScale(d.m2),
+        fillColor: colorScale(d.m1),
+      }));
+
+      const mapData = {};
+      data.forEach((d) => {
+        mapData[d.country] = d;
       });
 
-      var colorScale = d3.scale.linear()
-        .domain([ext[0], ext[1]])
-        .range(["#FFF", "black"]);
-
-      var d = {};
-      for (var i = 0; i < json.data.length; i++) {
-        var country = json.data[i];
-        country.fillColor = colorScale(country.m1);
-        d[country.country] = country;
-      }
-
-      var f = d3.format('.3s');
+      const f = d3.format('.3s');
 
       container.show();
 
-      var map = new Datamap({
+      const map = new Datamap({
         element: slice.container.get(0),
-        data: json.data,
+        data,
         fills: {
-          defaultFill: '#ddd'
+          defaultFill: '#ddd',
         },
         geographyConfig: {
           popupOnHover: true,
@@ -64,9 +64,9 @@ function worldMapChart(slice) {
           highlightBorderColor: '#fff',
           highlightFillColor: '#005a63',
           highlightBorderWidth: 1,
-          popupTemplate: function (geo, data) {
-            return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>' + f(data.m1) + '</div>';
-          }
+          popupTemplate: (geo, d) => (
+            `<div class="hoverinfo"><strong>${d.name}</strong><br>${f(d.m1)}</div>`
+          ),
         },
         bubblesConfig: {
           borderWidth: 1,
@@ -74,9 +74,9 @@ function worldMapChart(slice) {
           borderColor: '#005a63',
           popupOnHover: true,
           radius: null,
-          popupTemplate: function (geo, data) {
-            return '<div class="hoverinfo"><strong>' + data.name + '</strong><br>' + f(data.m2) + '</div>';
-          },
+          popupTemplate: (geo, d) => (
+            `<div class="hoverinfo"><strong>${d.name}</strong><br>${f(d.m2)}</div>`
+          ),
           fillOpacity: 0.5,
           animate: true,
           highlightOnHover: true,
@@ -86,26 +86,21 @@ function worldMapChart(slice) {
           highlightBorderOpacity: 1,
           highlightFillOpacity: 0.85,
           exitDelay: 100,
-          key: JSON.stringify
-        }
+          key: JSON.stringify,
+        },
       });
 
-      map.updateChoropleth(d);
+      map.updateChoropleth(mapData);
 
       if (fd.show_bubbles) {
-        map.bubbles(json.data);
-        div.selectAll("circle.datamaps-bubble").style('fill', '#005a63');
+        map.bubbles(data);
+        div.selectAll('circle.datamaps-bubble').style('fill', '#005a63');
       }
-
       slice.done(json);
-
     });
   };
 
-  return {
-    render: render,
-    resize: render
-  };
+  return { render, resize: render };
 }
 
 module.exports = worldMapChart;

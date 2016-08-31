@@ -6,13 +6,18 @@
     position: absolute;
     left: 0;
     top: 0;
-}
-
-.header hr {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    background-color: #fff;
 }
 
 .navbar {
-    margin-bottom: 10px;
+  margin-bottom: 22px;
+}
+
+.query-and-save-btns-container {
+  margin-bottom: 22px;
+}
+
+.star-edit-icons {
+  padding-left: 10px;
+  font-size: 50%;
 }

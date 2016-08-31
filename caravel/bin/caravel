@@ -5,9 +5,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import celery
+from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
-import textwrap
 
 from flask_migrate import MigrateCommand
 from flask_script import Manager
@@ -25,6 +26,9 @@ manager.add_command('db', MigrateCommand)
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
+    '-a', '--address', default=config.get("CARAVEL_WEBSERVER_ADDRESS"),
+    help="Specify the address to which to bind the web server")
+@manager.option(
     '-p', '--port', default=config.get("CARAVEL_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 @manager.option(
@@ -33,20 +37,21 @@ manager.add_command('db', MigrateCommand)
 @manager.option(
     '-t', '--timeout', default=config.get("CARAVEL_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, port, timeout, workers):
+def runserver(debug, address, port, timeout, workers):
     """Starts a Caravel web server"""
     debug = debug or config.get("DEBUG")
     if debug:
         app.run(
             host='0.0.0.0',
             port=int(port),
+            threaded=True,
             debug=True)
     else:
         cmd = (
             "gunicorn "
             "-w {workers} "
             "--timeout {timeout} "
-            "-b 0.0.0.0:{port} "
+            "-b {address}:{port} "
             "--limit-request-line 0 "
             "--limit-request-field_size 0 "
             "caravel:app").format(**locals())
@@ -122,6 +127,25 @@ def refresh_druid():
             "Refreshed metadata from cluster "
             "[" + cluster.cluster_name + "]")
     session.commit()
+
+
+@manager.command
+def worker():
+    """Starts a Caravel worker for async SQL query execution."""
+    # celery -A tasks worker --loglevel=info
+    print("Starting SQL Celery worker.")
+    if config.get('CELERY_CONFIG'):
+        print("Celery broker url: ")
+        print(config.get('CELERY_CONFIG').BROKER_URL)
+
+    application = celery.current_app._get_current_object()
+    c_worker = celery_worker.worker(app=application)
+    options = {
+        'broker': config.get('CELERY_CONFIG').BROKER_URL,
+        'loglevel': 'INFO',
+        'traceback': True,
+    }
+    c_worker.run(**options)
 
 
 if __name__ == "__main__":

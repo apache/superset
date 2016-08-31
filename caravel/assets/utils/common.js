@@ -1,3 +1,4 @@
+/* eslint global-require: 0 */
 const d3 = window.d3 || require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
@@ -23,5 +24,5 @@ export function isNumeric(num) {
 
 export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance
-  return LUMINANCE_RED_WEIGHT*r + LUMINANCE_GREEN_WEIGHT*g + LUMINANCE_BLUE_WEIGHT*b;
+  return (LUMINANCE_RED_WEIGHT * r) + (LUMINANCE_GREEN_WEIGHT * g) + (LUMINANCE_BLUE_WEIGHT * b);
 }

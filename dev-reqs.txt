@@ -1,3 +1,4 @@
+codeclimate-test-reporter
 coveralls
 mock
 mysqlclient
