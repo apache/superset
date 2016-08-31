@@ -100,10 +100,11 @@ def get_sql_results(query_id, return_results=True):
         columns = None
         data = None
         if result_proxy.cursor:
-            cols = [col[0] for col in result_proxy.cursor.description]
+            columns = [col[0] for col in result_proxy.cursor.description]
             data = result_proxy.fetchall()
-            df = pd.DataFrame(data, columns=cols)
-            columns = [c for c in df.columns]
+            df = pd.DataFrame(data, columns=columns)
+            df = df.where((pd.notnull(df)), None)
+            # data = df.values.tolist()
             data = df.to_dict(orient='records')
 
         query.rows = result_proxy.rowcount

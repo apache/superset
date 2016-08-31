@@ -391,7 +391,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'creator', 'changed_on_']
     add_columns = [
-        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra']
+        'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
+        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     show_columns = [
@@ -413,6 +414,11 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "Refer to the SqlAlchemy docs for more information on how "
             "to structure your URI here: "
             "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
+        'expose_in_sqllab': _("Expose this DB in SQL Lab"),
+        'allow_ctas': _("Allow CREATE TABLE AS option in SQL Lab"),
+        'force_ctas_schema': _(
+            "When allowing CREATE TABLE AS option in SQL Lab, "
+            "this option forces the table to be created in this schema"),
         'extra': utils.markdown(
             "JSON string containing extra configuration elements. "
             "The ``engine_params`` object gets unpacked into the "
@@ -424,6 +430,9 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "#sqlalchemy.schema.MetaData) call. ", True),
     }
     label_columns = {
+        'expose_in_sqllab': _("Expose in SQL Lab"),
+        'allow_ctas': _("Allow CREATE TABLE AS"),
+        'force_ctas_schema': _("CTAS Schema"),
         'database_name': _("Database"),
         'creator': _("Creator"),
         'changed_on_': _("Last Changed"),
@@ -454,7 +463,10 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
-    list_columns = ['id', 'database_name']
+    list_columns = [
+        'id', 'database_name',
+        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema'
+    ]
 
 appbuilder.add_view_no_menu(DatabaseAsync)
 
@@ -1487,7 +1499,7 @@ class Caravel(BaseCaravelView):
                 mimetype = "application/json")
         data['query'] = query.to_dict()
         return Response(
-            json.dumps(data, default=utils.json_iso_dttm_ser, allow_nan=False),
+            json.dumps(data, default=utils.json_iso_dttm_ser),
             status=200,
             mimetype = "application/json")
 

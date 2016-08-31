@@ -1,6 +1,8 @@
 engines:
   csslint:
     enabled: false
+  duplication:
+    enabled: false
   eslint:
     enabled: true
     config:

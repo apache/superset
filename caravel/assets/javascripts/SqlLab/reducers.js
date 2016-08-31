@@ -15,6 +15,7 @@ const defaultQueryEditor = {
 export const initialState = {
   alerts: [],
   queries: {},
+  databases: {},
   queryEditors: [defaultQueryEditor],
   tabHistory: [defaultQueryEditor.id],
   tables: [],
@@ -165,6 +166,13 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.ADD_ALERT]() {
       return addToArr(state, 'alerts', action.alert);
+    },
+    [actions.SET_DATABASES]() {
+      const databases = {};
+      action.databases.forEach((db) => {
+        databases[db.id] = db;
+      });
+      return Object.assign({}, state, { databases });
     },
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
