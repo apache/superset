@@ -120,7 +120,8 @@ class BaseViz(object):
         # Remove unchecked checkboxes because HTML is weird like that
         od = MultiDict()
         for key in sorted(d.keys()):
-            # If a MultiDict was initialized with MD({key:[]}), accessing key throws
+            # if MultiDict is initialized with MD({key:[emptyarray]}),
+            # key is included in d.keys() but accessing it throws
             try:
                 if d[key] is False:
                     del d[key]
