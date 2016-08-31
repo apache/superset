@@ -135,10 +135,6 @@ body {
 table,
 .table {
 
-  a:not(.btn) {
-    text-decoration: underline;
-  }
-
   .dropdown-menu a {
     text-decoration: none;
   }
@@ -306,10 +302,10 @@ label {
   &-default {
     .panel-heading {
       padding: 15px 15px 0 15px;
+      background-color: transparent;
     }
     .panel-title {
-      font-size: 14px;
-      font-weight: bold;
+      color: @text-color;
       padding-bottom: 5px;
       border-bottom: 1px solid @gray-light;
       h1, h2, h3, h4, h5, h6 {
@@ -317,7 +313,24 @@ label {
         font-weight: bold;
       }
     }
-
+    .close {
+      color: @text-color;
+    }
+  }
+  &-primary{
+    .panel-heading {
+      padding: 15px 15px 0 15px;
+      background-color: transparent;
+    }
+    .panel-title {
+      color: @text-color;
+      padding-bottom: 5px;
+      border-bottom: 1px solid @gray-light;
+      h1, h2, h3, h4, h5, h6 {
+        margin: 10px 0 0 0;
+        font-weight: bold;
+      }
+    }
     .close {
       color: @text-color;
     }
