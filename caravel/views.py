@@ -26,6 +26,7 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
+from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -866,14 +867,14 @@ appbuilder.add_view_no_menu(R)
 
 
 class Caravel(BaseCaravelView):
-
     """The base views for Caravel!"""
 
     @has_access
+    @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
     @expose("/explore/<datasource_type>/<datasource_id>/")
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
-    def explore(self, datasource_type, datasource_id):
+    def explore(self, datasource_type, datasource_id, slice_id=None):
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
@@ -886,8 +887,28 @@ class Caravel(BaseCaravelView):
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
         datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
         datasource = datasource[0] if datasource else None
-        slice_id = request.args.get("slice_id")
+
+        if not datasource:
+            flash(__("The datasource seems to have been deleted"), "alert")
+            return redirect(error_redirect)
+
+        all_datasource_access = self.can_access(
+            'all_datasource_access', 'all_datasource_access')
+
+        datasource_access = self.can_access(
+            'datasource_access', datasource.perm)
+
+        if not (all_datasource_access or datasource_access):
+            flash(__("You don't seem to have access to this datasource"),
+                  "danger")
+            return redirect(error_redirect)
+
+        # handle slc / viz obj
+        slice_id = slice_id or request.args.get("slice_id")
+        viz_type = None
         slc = None
+
+        slice_params = request.args
 
         if slice_id:
             slc = (
@@ -895,42 +916,55 @@ class Caravel(BaseCaravelView):
                 .filter_by(id=slice_id)
                 .first()
             )
-        if not datasource:
-            flash(__("The datasource seems to have been deleted"), "alert")
-            return redirect(error_redirect)
+            try:
+                param_dict = json.loads(slc.params)
 
+            except Exception as e:
+                logging.exception(e)
+                param_dict = {}
+
+            # override slice params with anything passed in url
+            # some overwritten slices have been saved with original slice_ids
+            param_dict["slice_id"] = slice_id
+            param_dict["json"] = "false"
+            param_dict.update(request.args.to_dict(flat=False))
+            slice_params = ImmutableMultiDict(param_dict)
+
+        # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
         slice_edit_perm = check_ownership(slc, raise_if_false=False)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
-        all_datasource_access = self.can_access(
-            'all_datasource_access', 'all_datasource_access')
-        datasource_access = self.can_access(
-            'datasource_access', datasource.perm)
-        if not (all_datasource_access or datasource_access):
-            flash(__("You don't seem to have access to this datasource"),
-                  "danger")
-            return redirect(error_redirect)
+        # handle save or overwrite
+        action = slice_params.get('action')
 
-        action = request.args.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                request.args, slc, slice_add_perm, slice_edit_perm)
+                slice_params, slc, slice_add_perm, slice_edit_perm)
 
-        viz_type = request.args.get("viz_type")
+        # look for viz type
+        viz_type = slice_params.get("viz_type", slc.viz_type if slc else None)
+
+        # go to default endpoint if no viz_type
         if not viz_type and datasource.default_endpoint:
             return redirect(datasource.default_endpoint)
+
+        # default to table if no default endpoint and no viz_type
         if not viz_type:
             viz_type = "table"
+
+        # validate viz params
         try:
             obj = viz.viz_types[viz_type](
                 datasource,
-                form_data=request.args,
+                form_data=slice_params,
                 slice_=slc)
         except Exception as e:
             flash(utils.error_msg_from_exception(e), "danger")
             return redirect(error_redirect)
-        if request.args.get("json") == "true":
+
+        # handle different endpoints
+        if slice_params.get("json") == "true":
             status = 200
             if config.get("DEBUG"):
                 # Allows for nice debugger stack traces in debug mode
@@ -947,7 +981,8 @@ class Caravel(BaseCaravelView):
                 status=status,
                 mimetype="application/json")
             return resp
-        elif request.args.get("csv") == "true":
+
+        elif slice_params.get("csv") == "true":
             payload = obj.get_csv()
             return Response(
                 payload,
@@ -955,15 +990,17 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
-            if request.args.get("standalone") == "true":
+            if slice_params.get("standalone") == "true":
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
+
             resp = self.render_template(
                 template, viz=obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
                 can_download=slice_download_perm,
                 userid=g.user.get_id() if g.user else '')
+
             try:
                 pass
             except Exception as e:
@@ -973,6 +1010,7 @@ class Caravel(BaseCaravelView):
                     utils.error_msg_from_exception(e),
                     status=500,
                     mimetype="application/json")
+
             return resp
 
     def save_or_overwrite_slice(
@@ -1003,6 +1041,7 @@ class Caravel(BaseCaravelView):
             table_id = args.get('datasource_id')
 
         if action in ('saveas'):
+            d.pop('slice_id') # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
@@ -1215,21 +1254,6 @@ class Caravel(BaseCaravelView):
         return Response(
             json.dumps({'count': count}),
             mimetype="application/json")
-
-    @has_access
-    @expose("/slice/<slice_id>/")
-    def slice(self, slice_id):
-        """Redirects a request for a slice id to its corresponding URL"""
-        session = db.session()
-        qry = session.query(models.Slice).filter_by(id=int(slice_id))
-        slc = qry.first()
-        if slc:
-            url = '{slc.slice_url}&standalone={standalone}'.format(
-                slc=slc, standalone=request.args.get('standalone', 'false'))
-            return redirect(url)
-        else:
-            flash("The specified slice could not be found", "danger")
-            return redirect('/slicemodelview/list/')
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
