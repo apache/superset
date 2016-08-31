@@ -7,7 +7,8 @@
     "test": "spec"
   },
   "scripts": {
-    "test": "npm run lint && mocha --compilers js:babel-core/register --required spec/helpers/browser.js spec/**/*_spec.*",
+    "test": "npm run lint && mocha --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
+    "cover": "babel-node ./node_modules/.bin/istanbul cover _mocha -- --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "dev": "NODE_ENV=dev webpack -d --watch --colors --progress",
     "prod": "NODE_ENV=production webpack -p --colors --progress",
     "lint": "npm run --silent lint:js",
@@ -36,6 +37,7 @@
   "homepage": "https://github.com/airbnb/caravel#readme",
   "dependencies": {
     "autobind-decorator": "^1.3.3",
+    "babel-cli": "^6.14.0",
     "bootstrap": "^3.3.6",
     "bootstrap-datepicker": "^1.6.0",
     "brace": "^0.7.0",
@@ -90,6 +92,7 @@
     "babel-preset-es2015": "^6.9.0",
     "babel-preset-react": "^6.11.1",
     "chai": "^3.5.0",
+    "codeclimate-test-reporter": "^0.3.3",
     "css-loader": "^0.23.1",
     "enzyme": "^2.0.0",
     "eslint": "^2.13.1",
@@ -98,6 +101,7 @@
     "eslint-plugin-jsx-a11y": "^2.0.1",
     "eslint-plugin-react": "^5.2.2",
     "exports-loader": "^0.6.3",
+    "istanbul": "^1.0.0-alpha",
     "file-loader": "^0.8.5",
     "imports-loader": "^0.6.5",
     "jsdom": "^8.0.1",
