@@ -25,8 +25,7 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
-from sqlalchemy import create_engine, select, text
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -38,6 +37,7 @@ from caravel import (
 config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
+QueryStatus = models.QueryStatus
 
 
 class BaseCaravelView(BaseView):
@@ -1415,7 +1415,7 @@ class Caravel(BaseCaravelView):
         if not mydb:
             json_error_response(
                 'Database with id {} is missing.'.format(database_id),
-                models.QueryStatus.FAILED)
+                QueryStatus.FAILED)
 
         if not (self.can_access('all_datasource_access', 'all_datasource_access') or
                 self.can_access('database_access', mydb.perm)):
@@ -1431,6 +1431,7 @@ class Caravel(BaseCaravelView):
             select_as_cta=request.form.get('select_as_cta') == 'true',
             start_time=utils.now_as_float(),
             tab_name=request.form.get('tab'),
+            status=QueryStatus.PENDING if async else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
             tmp_table_name=request.form.get('tmp_table_name'),
             user_id=int(g.user.get_id()),
