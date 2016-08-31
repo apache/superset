@@ -211,6 +211,7 @@ def init(caravel):
                 'Security',
                 'UserDBModelView',
                 'SQL Lab'):
+
             sm.add_permission_role(alpha, perm)
         sm.add_permission_role(admin, perm)
     gamma = sm.add_role("Gamma")

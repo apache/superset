@@ -70,7 +70,7 @@
     "react-redux": "^4.4.5",
     "react-resizable": "^1.3.3",
     "react-select": "^1.0.0-beta14",
-    "react-syntax-highlighter": "^2.1.1",
+    "react-syntax-highlighter": "^2.3.0",
     "reactable": "^0.13.2",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",

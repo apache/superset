@@ -36,9 +36,6 @@ class SqlEditorTopToolbar extends React.Component {
     });
     return `SELECT ${cols}\nFROM ${table.name}`;
   }
-  selectStar(table) {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, this.getSql(table));
-  }
   popTab(table) {
     const qe = {
       id: shortid.generate(),
@@ -169,7 +166,7 @@ class SqlEditorTopToolbar extends React.Component {
         </div>
         <hr />
         <div className="m-t-5">
-          {tables.map((table) => <TableElement table={table} />)}
+          {tables.map((table) => <TableElement table={table} queryEditor={this.props.queryEditor} />)}
         </div>
       </div>
     );

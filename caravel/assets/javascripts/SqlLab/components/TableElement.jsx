@@ -15,13 +15,18 @@ class TableElement extends React.Component {
         cols += ', ';
       }
     });
-    const sql = `SELECT ${cols}\nFROM ${this.props.table.name}`;
+    return `SELECT ${cols}\nFROM ${this.props.table.name}`;
+  }
+  setSelectStar () {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
+  }
+  popSelectStar() {
     const qe = {
       id: shortid.generate(),
       title: this.props.table.name,
       dbId: this.props.table.dbId,
       autorun: true,
-      sql,
+      sql: this.selectStar(),
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -68,13 +73,13 @@ class TableElement extends React.Component {
         <ButtonGroup className="ws-el-controls pull-right">
           <Link
             className="fa fa-pencil m-l-2"
-            onClick={this.selectStar.bind(this)}
+            onClick={this.setSelectStar.bind(this)}
             tooltip="Run query in a new tab"
             href="#"
           />
           <Link
             className="fa fa-plus-circle m-l-2"
-            onClick={this.selectStar.bind(this)}
+            onClick={this.popSelectStar.bind(this)}
             tooltip="Run query in a new tab"
             href="#"
           />
@@ -92,6 +97,7 @@ class TableElement extends React.Component {
 }
 TableElement.propTypes = {
   table: React.PropTypes.object,
+  queryEditor: React.PropTypes.object,
   actions: React.PropTypes.object,
 };
 TableElement.defaultProps = {

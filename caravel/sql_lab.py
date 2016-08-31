@@ -94,10 +94,8 @@ def get_sql_results(query_id, return_results=True):
                         if progress > query.progress:
                             query.progress = progress
                         db.session.commit()
-                time.sleep(200)
-
+                time.sleep(1)
                 polled = cursor.poll()
-                # TODO(b.kyryliuk): check for the kill signal.
 
         columns = None
         data = None
