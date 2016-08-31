@@ -35,3 +35,5 @@ install:
   - rm -rf ~/.nvm && git clone https://github.com/creationix/nvm.git ~/.nvm && (cd ~/.nvm && git checkout `git describe --abbrev=0 --tags`) && source ~/.nvm/nvm.sh && nvm install $TRAVIS_NODE_VERSION
   - npm install
 script: tox -e $TOX_ENV
+after_script:
+  - codeclimate-test-reporter < lcov.info
