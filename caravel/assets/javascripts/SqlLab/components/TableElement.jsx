@@ -7,6 +7,9 @@ import * as Actions from '../actions';
 import shortid from 'shortid';
 
 class TableElement extends React.Component {
+  setSelectStar() {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
+  }
   selectStar() {
     let cols = '';
     this.props.table.columns.forEach((col, i) => {
@@ -16,9 +19,6 @@ class TableElement extends React.Component {
       }
     });
     return `SELECT ${cols}\nFROM ${this.props.table.name}`;
-  }
-  setSelectStar () {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
   }
   popSelectStar() {
     const qe = {

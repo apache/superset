@@ -26,27 +26,6 @@ class SqlEditorTopToolbar extends React.Component {
     this.fetchSchemas();
     this.fetchTables();
   }
-  getSql(table) {
-    let cols = '';
-    table.columns.forEach(function (col, i) {
-      cols += col.name;
-      if (i < table.columns.length - 1) {
-        cols += ', ';
-      }
-    });
-    return `SELECT ${cols}\nFROM ${table.name}`;
-  }
-  popTab(table) {
-    const qe = {
-      id: shortid.generate(),
-      title: table.name,
-      dbId: table.dbId,
-      schema: table.schema,
-      autorun: true,
-      sql: this.getSql(table),
-    };
-    this.props.actions.addQueryEditor(qe);
-  }
   fetchTables(dbId, schema) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
     if (actualDbId) {
@@ -166,7 +145,9 @@ class SqlEditorTopToolbar extends React.Component {
         </div>
         <hr />
         <div className="m-t-5">
-          {tables.map((table) => <TableElement table={table} queryEditor={this.props.queryEditor} />)}
+          {tables.map((table) => (
+            <TableElement table={table} queryEditor={this.props.queryEditor} />
+          ))}
         </div>
       </div>
     );
