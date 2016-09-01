@@ -1,6 +1,8 @@
 engines:
   csslint:
     enabled: false
+  duplication:
+    enabled: false
   eslint:
     enabled: true
     config:
@@ -8,7 +10,7 @@ engines:
   pep8:
     enabled: true
   fixme:
-    enabled: true
+    enabled: false
   radon:
     enabled: true
 ratings:

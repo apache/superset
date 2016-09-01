@@ -246,3 +246,7 @@ div.tablePopover:hover {
     opacity: 1;
     transition: visibility 0s, opacity 0.3s linear;
 }
+
+.SouthPane .tab-content {
+    padding-top: 10px;
+}
