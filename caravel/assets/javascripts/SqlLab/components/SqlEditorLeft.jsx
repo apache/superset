@@ -6,6 +6,7 @@ import { connect } from 'react-redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
 import Select from 'react-select';
+import { Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 
 
@@ -25,6 +26,9 @@ class SqlEditorTopToolbar extends React.Component {
     this.fetchDatabaseOptions();
     this.fetchSchemas();
     this.fetchTables();
+  }
+  resetState() {
+    this.props.actions.resetState();
   }
   fetchTables(dbId, schema) {
     const actualDbId = dbId || this.props.queryEditor.dbId;
@@ -73,11 +77,17 @@ class SqlEditorTopToolbar extends React.Component {
   }
   fetchDatabaseOptions() {
     this.setState({ databaseLoading: true });
-    const url = '/databaseasync/api/read';
+    const url = '/databaseasync/api/read?_flt_0_expose_in_sqllab=1';
     $.get(url, (data) => {
       const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
+      this.props.actions.setDatabases(data.result);
       this.setState({ databaseOptions: options });
       this.setState({ databaseLoading: false });
+
+      // Auto select if only one option
+      if (options.length === 1) {
+        this.changeDb(options[0]);
+      }
     });
   }
   closePopover(ref) {
@@ -112,7 +122,7 @@ class SqlEditorTopToolbar extends React.Component {
         <div>
           <Select
             name="select-db"
-            placeholder="[Database]"
+            placeholder={`Select a database (${this.state.databaseOptions.length})`}
             options={this.state.databaseOptions}
             value={this.props.queryEditor.dbId}
             isLoading={this.state.databaseLoading}
@@ -123,7 +133,7 @@ class SqlEditorTopToolbar extends React.Component {
         <div className="m-t-5">
           <Select
             name="select-schema"
-            placeholder="[Schema]"
+            placeholder={`Select a schema (${this.state.schemaOptions.length})`}
             options={this.state.schemaOptions}
             value={this.props.queryEditor.schema}
             isLoading={this.state.schemaLoading}
@@ -136,7 +146,7 @@ class SqlEditorTopToolbar extends React.Component {
             name="select-table"
             ref="selectTable"
             isLoading={this.state.tableLoading}
-            placeholder="Add a table"
+            placeholder={`Add a table (${this.state.tableOptions.length})`}
             autosize={false}
             value={this.state.tableName}
             onChange={this.changeTable.bind(this)}
@@ -149,6 +159,9 @@ class SqlEditorTopToolbar extends React.Component {
             <TableElement table={table} queryEditor={this.props.queryEditor} />
           ))}
         </div>
+        <Button bsSize="small" bsStyle="danger" onClick={this.resetState.bind(this)}>
+          <i className="fa fa-bomb" /> Reset State
+        </Button>
       </div>
     );
   }

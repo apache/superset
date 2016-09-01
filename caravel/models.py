@@ -382,6 +382,9 @@ class Database(Model, AuditMixinNullable):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
+    expose_in_sqllab = Column(Boolean, default=False)
+    allow_ctas = Column(Boolean, default=False)
+    force_ctas_schema = Column(String(250))
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -1574,9 +1577,14 @@ class Log(Model):
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
             slice_id = int(slice_id) if slice_id else 0
+            params = ""
+            try:
+                params = json.dumps(d)
+            except:
+                pass
             log = cls(
                 action=f.__name__,
-                json=json.dumps(d),
+                json=params,
                 dashboard_id=d.get('dashboard_id') or None,
                 slice_id=slice_id,
                 user_id=user_id)

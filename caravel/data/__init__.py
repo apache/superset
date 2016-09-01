@@ -14,6 +14,7 @@ import random
 import pandas as pd
 from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
+import caravel
 from caravel import app, db, models, utils
 
 # Shortcuts
@@ -25,18 +26,6 @@ Dash = models.Dashboard
 config = app.config
 
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
-
-
-def get_or_create_db(session):
-    print("Creating database reference")
-    dbobj = session.query(DB).filter_by(database_name='main').first()
-    if not dbobj:
-        dbobj = DB(database_name="main")
-    print(config.get("SQLALCHEMY_DATABASE_URI"))
-    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
-    session.add(dbobj)
-    session.commit()
-    return dbobj
 
 
 def merge_slice(slc):
@@ -76,7 +65,7 @@ def load_energy():
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.is_featured = True
-    tbl.database = get_or_create_db(db.session)
+    tbl.database = utils.get_or_create_main_db(caravel)
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -202,7 +191,7 @@ def load_world_bank_health_n_pop():
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
     tbl.is_featured = True
-    tbl.database = get_or_create_db(db.session)
+    tbl.database = utils.get_or_create_main_db(caravel)
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -593,7 +582,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_db(db.session)
+    obj.database = utils.get_or_create_main_db(caravel)
     obj.is_featured = True
     db.session.merge(obj)
     db.session.commit()
@@ -841,7 +830,7 @@ def load_unicode_test_data():
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'date'
-    obj.database = get_or_create_db(db.session)
+    obj.database = utils.get_or_create_main_db(caravel)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -920,7 +909,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_db(db.session)
+    obj.database = utils.get_or_create_main_db(caravel)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -988,7 +977,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'date'
-    obj.database = get_or_create_db(db.session)
+    obj.database = utils.get_or_create_main_db(caravel)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -1052,7 +1041,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = get_or_create_db(db.session)
+    obj.database = utils.get_or_create_main_db(caravel)
     obj.is_featured = False
     dttm_and_expr_dict = {
         'ds': [None, None],

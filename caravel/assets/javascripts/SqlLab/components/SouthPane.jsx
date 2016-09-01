@@ -19,16 +19,18 @@ const SouthPane = function (props) {
     results = <Alert bsStyle="info">Run a query to display results here</Alert>;
   }
   return (
-    <Tabs bsStyle="tabs">
-      <Tab title="Results" eventKey={1}>
-        <div style={{ overflow: 'auto' }}>
-          {results}
-        </div>
-      </Tab>
-      <Tab title="Query History" eventKey={2}>
-        <QueryHistory />
-      </Tab>
-    </Tabs>
+    <div className="SouthPane">
+      <Tabs bsStyle="tabs">
+        <Tab title="Results" eventKey={1}>
+          <div style={{ overflow: 'auto' }}>
+            {results}
+          </div>
+        </Tab>
+        <Tab title="Query History" eventKey={2}>
+          <QueryHistory />
+        </Tab>
+      </Tabs>
+    </div>
   );
 };
 
