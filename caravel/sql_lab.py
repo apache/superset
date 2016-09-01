@@ -104,6 +104,9 @@ def get_sql_results(query_id, return_results=True):
             data = result_proxy.fetchall()
             df = pd.DataFrame(data, columns=columns)
             df = df.where((pd.notnull(df)), None)
+            # TODO consider generating tuples instead of dicts to send
+            # less data through the wire. The command bellow does that,
+            # but we'd need to align on the client side.
             # data = df.values.tolist()
             data = df.to_dict(orient='records')
 
