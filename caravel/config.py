@@ -8,7 +8,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+from caravel import app
 
+import json
 import os
 
 from dateutil import tz
@@ -22,6 +24,9 @@ if not os.path.exists(DATA_DIR):
 # ---------------------------------------------------------
 # Caravel specific config
 # ---------------------------------------------------------
+with open(os.path.join(os.path.dirname(__file__), 'static/assets/package.json')) as package_file:
+    VERSION_STRING= json.load(package_file)['version']
+
 ROW_LIMIT = 50000
 CARAVEL_WORKERS = 16
 

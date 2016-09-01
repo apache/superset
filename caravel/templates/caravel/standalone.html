@@ -23,7 +23,8 @@
       <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
     </div>
   </body>
-  <script src="/static/assets/dist/css-theme.entry.js"></script>
-  <script src="/static/assets/dist/standalone.entry.js"></script>
+  {% set VERSION_STRING = appbuilder.get_app.config.get("VERSION_STRING") %}
+  <script src="/static/assets/dist/css-theme.{{VERSION_STRING}}.entry.js"></script>
+  <script src="/static/assets/dist/standalone.{{VERSION_STRING}}.entry.js"></script>
 </html>
 

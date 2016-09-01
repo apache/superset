@@ -7,6 +7,11 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
+const fs = require('fs');
+const contents = fs.readFileSync('package.json');
+const JSONObject = JSON.parse(contents);
+const VERSION_STRING = JSONObject.version;
+
 const config = {
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
@@ -19,7 +24,7 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: '[name].entry.js',
+    filename: '[name].' + VERSION_STRING + '.entry.js',
   },
   resolve: {
     extensions: [

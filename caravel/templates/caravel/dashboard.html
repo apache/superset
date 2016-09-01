@@ -2,7 +2,8 @@
 
 {% block head_js %}
   {{ super() }}
-  <script src="/static/assets/dist/dashboard.entry.js"></script>
+  {% set VERSION_STRING = appbuilder.get_app.config.get("VERSION_STRING") %}
+  <script src="/static/assets/dist/dashboard.{{VERSION_STRING}}.entry.js"></script>
 {% endblock %}
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}
