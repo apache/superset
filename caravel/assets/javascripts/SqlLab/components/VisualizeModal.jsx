@@ -16,7 +16,21 @@ class VisualizeModal extends React.Component {
       chartType: 'line',
       datasourceName: shortid.generate(),
       columns: {},
+      hints: [],
     };
+  }
+  validate() {
+    const hints = [];
+
+    const re = /^\w+$/;
+    console.log(this.state.columns);
+    Object.keys(this.state.columns).forEach((colName) => {
+      const col = this.state.columns[colName];
+      if (!re.test(colName)) {
+        hints.push(`[${colName}] isn't right, alias is with only alphanumber and underscores`);
+      }
+    });
+    this.setState({ hints });
   }
   changeChartType(option) {
     this.setState({ chartType: (option) ? option.value : null });
@@ -30,6 +44,7 @@ class VisualizeModal extends React.Component {
         }
       });
     }
+    this.validate();
     return columns;
   }
   visualize() {
@@ -94,6 +109,7 @@ class VisualizeModal extends React.Component {
         />
       ),
     }));
+    const alerts = ''; 
     const modal = (
       <div className="VisualizeModal">
         <Modal show={this.props.show} onHide={this.props.onHide}>
@@ -103,6 +119,7 @@ class VisualizeModal extends React.Component {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
+            {alerts}
             <div className="row">
               <Col md={6}>
                 Chart Type
@@ -124,7 +141,7 @@ class VisualizeModal extends React.Component {
                 Datasource Name
                 <input
                   type="text"
-                  className="form-control"
+                  className="form-control input-sm"
                   placeholder="datasource name"
                   onChange={this.changeDatasourceName.bind(this)}
                   value={this.state.datasourceName}
@@ -140,6 +157,7 @@ class VisualizeModal extends React.Component {
             <Button
               onClick={this.visualize.bind(this)}
               bsStyle="primary"
+              disabled={(this.state.hints.length > 0)}
             >
               Visualize
             </Button>
