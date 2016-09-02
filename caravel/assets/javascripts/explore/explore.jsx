@@ -23,38 +23,11 @@ require('../../vendor/pygments.css');
 require('../../stylesheets/explore.css');
 
 let slice;
+let filterCount = 1;
 
 const getPanelClass = function (fieldPrefix) {
   return (fieldPrefix === 'flt' ? 'filter' : 'having') + '_panel';
 };
-
-function prepForm() {
-  // Assigning the right id to form elements in filters
-  const fixId = function ($filter, fieldPrefix, i) {
-    $filter.attr('id', function () {
-      return fieldPrefix + '_' + i;
-    });
-
-    ['col', 'op', 'eq'].forEach(function (fieldMiddle) {
-      const fieldName = fieldPrefix + '_' + fieldMiddle;
-      $filter.find('[id^=' + fieldName + '_]')
-          .attr('id', function () {
-            return fieldName + '_' + i;
-          })
-          .attr('name', function () {
-            return fieldName + '_' + i;
-          });
-    });
-  };
-
-  ['flt', 'having'].forEach(function (fieldPrefix) {
-    let i = 1;
-    $('#' + getPanelClass(fieldPrefix) + ' #filters > div').each(function () {
-      fixId($(this), fieldPrefix, i);
-      i++;
-    });
-  });
-}
 
 function query(forceUpdate, pushState) {
   let force = forceUpdate;
@@ -67,10 +40,8 @@ function query(forceUpdate, pushState) {
     $('div.alert').remove();
   }
   $('#is_cached').hide();
-  prepForm();
 
   if (pushState !== false) {
-    // update the url after prepForm() fix the field ids
     history.pushState({}, document.title, slice.querystring());
   }
   slice.render(force);
@@ -104,7 +75,6 @@ function saveSlice() {
     return;
   }
   $('#action').val(action);
-  prepForm();
   $('#query').submit();
 }
 
@@ -341,15 +311,120 @@ function initExploreView() {
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
   $('.ui-helper-hidden-accessible').remove(); // jQuery-ui 1.11+ creates a div for every tooltip
 
+  function createChoices(term, data) {
+    const filtered = $(data).filter(function () {
+      return this.text.localeCompare(term) === 0;
+    });
+    if (filtered.length === 0) {
+      return {
+        id: term,
+        text: term,
+      };
+    }
+    return {};
+  }
+
+  function initSelectionToValue(element, callback) {
+    callback({
+      id: element.val(),
+      text: element.val(),
+    });
+  }
+
+  function convertSelect(selectId) {
+    const parent = $(selectId).parent();
+    const name = $(selectId).attr('name');
+    const l = [];
+    let selected = '';
+    const options = $(selectId + ' option');
+    const classes = $(selectId).attr('class');
+    for (let i = 0; i < options.length; i++) {
+      l.push({
+        id: options[i].value,
+        text: options[i].text,
+      });
+      if (options[i].selected) {
+        selected = options[i].value;
+      }
+    }
+    $(selectId).remove();
+    parent.append(
+      '<input class="' + classes + '" id="' + selectId.substring(1) +
+      '" name="' + name + '" type="text" value="' + selected + '">'
+    );
+    $(`input[name='${name}']`).select2({
+      createSearchChoice: createChoices,
+      initSelection: initSelectionToValue,
+      dropdownAutoWidth: true,
+      multiple: false,
+      data: l,
+      sortResults(data) {
+        return data.sort(function (a, b) {
+          if (a.text > b.text) {
+            return 1;
+          } else if (a.text < b.text) {
+            return -1;
+          }
+          return 0;
+        });
+      },
+    });
+  }
+
+  function insertFilterChoices(i, fieldPrefix) {
+    const column = $('#' + fieldPrefix + '_col_' + i).val();
+    const eq = '#' + fieldPrefix + '_eq_' + i;
+    $(eq).empty();
+
+    $.getJSON(slice.filterEndpoint(column), function (data) {
+      $.each(data, function (key, value) {
+        $(eq).append($('<option></option>').attr('value', value).text(value));
+      });
+      $(eq).select2('destroy');
+      convertSelect(eq);
+    });
+  }
+
   function addFilter(i, fieldPrefix) {
+    const isHaving = fieldPrefix === 'having';
     const cp = $('#' + fieldPrefix + '0').clone();
     $(cp).appendTo('#' + getPanelClass(fieldPrefix) + ' #filters');
+    $(cp).attr('id', fieldPrefix + filterCount);
     $(cp).show();
+
+    const eqId = fieldPrefix + '_eq_' + filterCount;
+    const $eq = $(cp).find('#' + fieldPrefix + '_eq_0');
+    $eq.attr('id', eqId).attr('name', eqId);
+
+    const opId = fieldPrefix + '_op_' + filterCount;
+    const $op = $(cp).find('#' + fieldPrefix + '_op_0');
+    $op.attr('id', opId).attr('name', opId);
+
+    const colId = fieldPrefix + '_col_' + filterCount;
+    const $col = $(cp).find('#' + fieldPrefix + '_col_0');
+    $col.attr('id', colId).attr('name', colId);
+
+    // Set existing values
     if (i !== undefined) {
-      $(cp).find('#' + fieldPrefix + '_eq_0').val(px.getParam(fieldPrefix + '_eq_' + i));
-      $(cp).find('#' + fieldPrefix + '_op_0').val(px.getParam(fieldPrefix + '_op_' + i));
-      $(cp).find('#' + fieldPrefix + '_col_0').val(px.getParam(fieldPrefix + '_col_' + i));
+      $op.val(px.getParam(fieldPrefix + '_op_' + i));
+      $col.val(px.getParam(fieldPrefix + '_col_' + i));
+
+      if (isHaving || !slice.filterSelectEnabled) {
+        $eq.val(px.getParam(fieldPrefix + '_eq_' + i));
+      } else {
+        insertFilterChoices(filterCount, fieldPrefix);
+        const eqVal = px.getParam(fieldPrefix + '_eq_' + i);
+        $eq.append($('<option selected></option>').attr('value', eqVal).text(eqVal));
+      }
     }
+
+    if (slice.filterSelectEnabled && !isHaving) {
+      const currentFilter = filterCount;
+      $col.change(function () {
+        insertFilterChoices(currentFilter, fieldPrefix);
+      });
+    }
+
     $(cp).find('select').select2();
     $(cp).find('.remove').click(function () {
       $(this)
@@ -357,6 +432,7 @@ function initExploreView() {
       .parent()
       .remove();
     });
+    filterCount++;
   }
 
   function setFilters() {
@@ -395,52 +471,16 @@ function initExploreView() {
     queryAndSaveBtnsEl
   );
 
-  function createChoices(term, data) {
-    const filtered = $(data).filter(function () {
-      return this.text.localeCompare(term) === 0;
-    });
-    if (filtered.length === 0) {
-      return {
-        id: term,
-        text: term,
-      };
-    }
-    return {};
-  }
-
-  function initSelectionToValue(element, callback) {
-    callback({
-      id: element.val(),
-      text: element.val(),
-    });
-  }
+  $(window).bind('popstate', function () {
+    // Browser back button
+    const returnLocation = history.location || document.location;
+    // Could do something more lightweight here, but we're not optimizing
+    // for the use of the back button anyways
+    returnLocation.reload();
+  });
 
   $('.select2_freeform').each(function () {
-    const parent = $(this).parent();
-    const name = $(this).attr('name');
-    const l = [];
-    let selected = '';
-    for (let i = 0; i < this.options.length; i++) {
-      l.push({
-        id: this.options[i].value,
-        text: this.options[i].text,
-      });
-      if (this.options[i].selected) {
-        selected = this.options[i].value;
-      }
-    }
-    parent.append(
-      `<input class="${$(this).attr('class')}" ` +
-      `name="${name}" type="text" value="${selected}">`
-    );
-    $(`input[name='${name}']`).select2({
-      createSearchChoice: createChoices,
-      initSelection: initSelectionToValue,
-      dropdownAutoWidth: true,
-      multiple: false,
-      data: l,
-    });
-    $(this).remove();
+    convertSelect('#' + $(this).attr('id'));
   });
 
   function prepSaveDialog() {
@@ -489,12 +529,10 @@ function initExploreView() {
 
 $(document).ready(function () {
   const data = $('.slice').data('slice');
+  slice = px.Slice(data);
+  $('.slice').data('slice', slice);
 
   initExploreView();
-
-  slice = px.Slice(data);
-
-  $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
   query(false, false);
