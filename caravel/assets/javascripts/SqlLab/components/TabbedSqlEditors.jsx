@@ -1,7 +1,8 @@
 import React from 'react';
-import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
+import { DropdownButton, MenuItem, Tab, Tabs, Popover, OverlayTrigger } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
+import CopyToClipboard from '../../components/CopyToClipboard';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
@@ -9,6 +10,51 @@ import shortid from 'shortid';
 let queryCount = 1;
 
 class QueryEditors extends React.Component {
+  componentWillMount() {
+    const uri = window.location.toString();
+    const cleanUri = uri.substring(0, uri.indexOf('?'));
+    const query = window.location.search.substring(1);
+
+    if (query) {
+      queryCount++;
+      const qe = {
+        id: shortid.generate(),
+        title: this.getQueryVariable(query, 'title'),
+        dbId: this.getQueryVariable(query, 'dbid'),
+        schema: this.getQueryVariable(query, 'schema'),
+        autorun: this.getQueryVariable(query, 'autorun'),
+        sql: this.getQueryVariable(query, 'sql'),
+      };
+
+      this.props.actions.addQueryEditor(qe);
+      // Clean the url in browser history
+      window.history.replaceState({}, document.title, cleanUri);
+    }
+  }
+  getQueryVariable(query, variable) {
+    const vars = query.split('&');
+    for (let i = 0; i < vars.length; i++) {
+      const pair = vars[i].split('=');
+      if (decodeURIComponent(pair[0]) === variable) {
+        return decodeURIComponent(pair[1]);
+      }
+    }
+    console.log('Query variable %s not found', variable);
+    return null;
+  }
+  getQueryLink(qe) {
+    const queryList = [];
+    if (qe.dbId) queryList.push('dbid=' + qe.dbId);
+    if (qe.title) queryList.push('title=' + qe.title);
+    if (qe.schema) queryList.push('schema=' + qe.schema);
+    if (qe.autorun) queryList.push('autorun=' + qe.autorun);
+    if (qe.sql) queryList.push('sql=' + qe.sql);
+
+    const queryString = queryList.join('&');
+    const queryLink = window.location.toString() + '?' + queryString;
+
+    return queryLink;
+  }
   renameTab(qe) {
     /* eslint no-alert: 0 */
     const newTitle = prompt('Enter a new title for the tab');
@@ -51,6 +97,14 @@ class QueryEditors extends React.Component {
       let latestQuery = this.props.queries[qe.latestQueryId];
       const database = this.props.databases[qe.dbId];
       const state = (latestQuery) ? latestQuery.state : '';
+      const popoverRight = (
+        <Popover id="popover-positioned-right" title="Link for current query:" >
+          <CopyToClipboard
+            text={this.getQueryLink(qe)}
+            copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
+          />
+        </Popover>
+      );
       const tabTitle = (
         <div>
           <div className={'circle ' + state} /> {qe.title} {' '}
@@ -64,6 +118,13 @@ class QueryEditors extends React.Component {
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
+            <OverlayTrigger trigger="click" placement="right" overlay={popoverRight}>
+              <MenuItem eventKey="3">
+                <div>
+                  <i className="fa fa-link" /> copy query
+                </div>
+              </MenuItem>
+            </OverlayTrigger>
           </DropdownButton>
         </div>
       );
