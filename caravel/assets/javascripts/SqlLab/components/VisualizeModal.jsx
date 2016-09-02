@@ -23,7 +23,6 @@ class VisualizeModal extends React.Component {
     const hints = [];
 
     const re = /^\w+$/;
-    console.log(this.state.columns);
     Object.keys(this.state.columns).forEach((colName) => {
       const col = this.state.columns[colName];
       if (!re.test(colName)) {
@@ -109,7 +108,9 @@ class VisualizeModal extends React.Component {
         />
       ),
     }));
-    const alerts = ''; 
+    const alerts = this.state.hints.map((hint) => (
+      <Alert bsStyle="warning">{hint}</Alert>
+    ));
     const modal = (
       <div className="VisualizeModal">
         <Modal show={this.props.show} onHide={this.props.onHide}>
