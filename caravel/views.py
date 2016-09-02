@@ -47,34 +47,34 @@ class BaseCaravelView(BaseView):
 
     def all_datasource_access(self):
         return self.can_access(
-            'all_datasource_access', 'all_datasource_access')
+            "all_datasource_access", "all_datasource_access")
 
     def database_access(self, database):
         return (self.all_datasource_access() or
-                self.can_access('database_access', database.perm))
+                self.can_access("database_access", database.perm))
 
     def datasource_access(self, datasource):
-        if hasattr(datasource, 'cluster'):
+        if hasattr(datasource, "cluster"):
             return (self.database_access(datasource.cluster) or
-                    self.can_access('datasource_access', datasource.perm))
+                    self.can_access("datasource_access", datasource.perm))
         else:
             return (self.database_access(datasource.database) or
-                    self.can_access('datasource_access', datasource.perm))
+                    self.can_access("datasource_access", datasource.perm))
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
-    'This endpoint requires the `all_datasource_access` permission')
-DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
+    "This endpoint requires the `all_datasource_access` permission")
+DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
 
 
 def get_database_access_error_msg(database_name):
-    return __('This view requires the database %(name) or '
-              '`all_datasource_access` permission', name=database_name)
+    return __("This view requires the database %(name)s or "
+              "`all_datasource_access` permission", name=database_name)
 
 
 def get_datasource_access_error_msg(datasource):
-    error = ('This endpoint requires the datasource %(name), database or '
-             '`all_datasource_access` permission')
+    error = ("This endpoint requires the datasource %(name)s, database or "
+             "`all_datasource_access` permission")
     if hasattr(datasource, 'table_name'):
         return __(error, name=datasource.table_name)
     else:
@@ -928,7 +928,6 @@ class Caravel(BaseCaravelView):
     @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
-
         error_redirect = '/slicemodelview/list/'
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
@@ -949,32 +948,34 @@ class Caravel(BaseCaravelView):
             flash(__(get_datasource_access_error_msg(datasource)), "danger")
             return redirect(error_redirect)
 
-        # handle slc / viz obj
-        slice_id = slice_id or request.args.get("slice_id")
-        viz_type = None
+        request_args_multi_dict = request.args  # MultiDict
+
+        slice_id = slice_id or request_args_multi_dict.get("slice_id")
         slc = None
-
-        slice_params = request.args
-
+        # build viz_obj and get it's params
         if slice_id:
-            slc = (
-                db.session.query(models.Slice)
-                .filter_by(id=slice_id)
-                .first()
-            )
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             try:
-                param_dict = json.loads(slc.params)
-
+                viz_obj = slc.get_viz(request_args_multi_dict)
             except Exception as e:
                 logging.exception(e)
-                param_dict = {}
-
-            # override slice params with anything passed in url
-            # some overwritten slices have been saved with original slice_ids
-            param_dict["slice_id"] = slice_id
-            param_dict["json"] = "false"
-            param_dict.update(request.args.to_dict(flat=False))
-            slice_params = ImmutableMultiDict(param_dict)
+                flash(utils.error_msg_from_exception(e), "danger")
+                return redirect(error_redirect)
+        else:
+            viz_type = request_args_multi_dict.get("viz_type", None)
+            if not viz_type and datasource.default_endpoint:
+                return redirect(datasource.default_endpoint)
+            # default to table if no default endpoint and no viz_type
+            viz_type = viz_type if viz_type else "table"
+            # validate viz params
+            try:
+                viz_obj = viz.viz_types[viz_type](
+                    datasource, request_args_multi_dict)
+            except Exception as e:
+                logging.exception(e)
+                flash(utils.error_msg_from_exception(e), "danger")
+                return redirect(error_redirect)
+        slice_params_multi_dict = ImmutableMultiDict(viz_obj.orig_form_data)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
@@ -982,82 +983,41 @@ class Caravel(BaseCaravelView):
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         # handle save or overwrite
-        action = slice_params.get('action')
-
+        action = slice_params_multi_dict.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                slice_params, slc, slice_add_perm, slice_edit_perm)
-
-        # look for viz type
-        viz_type = slice_params.get("viz_type", slc.viz_type if slc else None)
-
-        # go to default endpoint if no viz_type
-        if not viz_type and datasource.default_endpoint:
-            return redirect(datasource.default_endpoint)
-
-        # default to table if no default endpoint and no viz_type
-        if not viz_type:
-            viz_type = "table"
-
-        # validate viz params
-        try:
-            obj = viz.viz_types[viz_type](
-                datasource,
-                form_data=slice_params,
-                slice_=slc)
-        except Exception as e:
-            flash(utils.error_msg_from_exception(e), "danger")
-            return redirect(error_redirect)
+                slice_params_multi_dict, slc, slice_add_perm, slice_edit_perm)
 
         # handle different endpoints
-        if slice_params.get("json") == "true":
-            status = 200
+        if slice_params_multi_dict.get("json") == "true":
             if config.get("DEBUG"):
                 # Allows for nice debugger stack traces in debug mode
-                payload = obj.get_json()
-            else:
-                try:
-                    payload = obj.get_json()
-                except Exception as e:
-                    logging.exception(e)
-                    payload = utils.error_msg_from_exception(e)
-                    status = 500
-            resp = Response(
-                payload,
-                status=status,
-                mimetype="application/json")
-            return resp
+                return Response(
+                    viz_obj.get_json(), status=200, mimetype="application/json")
+            try:
+                return Response(
+                    viz_obj.get_json(), status=200, mimetype="application/json")
+            except Exception as e:
+                logging.exception(e)
+                return json_error_response(utils.error_msg_from_exception(e))
 
-        elif slice_params.get("csv") == "true":
-            payload = obj.get_csv()
+        elif slice_params_multi_dict.get("csv") == "true":
+            payload = viz_obj.get_csv()
             return Response(
                 payload,
                 status=200,
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
-            if slice_params.get("standalone") == "true":
+            if slice_params_multi_dict.get("standalone") == "true":
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-
-            resp = self.render_template(
-                template, viz=obj, slice=slc, datasources=datasources,
+            return self.render_template(
+                template, viz=viz_obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
                 can_download=slice_download_perm,
                 userid=g.user.get_id() if g.user else '')
-
-            try:
-                pass
-            except Exception as e:
-                if config.get("DEBUG"):
-                    raise(e)
-                return Response(
-                    utils.error_msg_from_exception(e),
-                    status=500,
-                    mimetype="application/json")
-
-            return resp
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
