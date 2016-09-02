@@ -45,6 +45,41 @@ class BaseCaravelView(BaseView):
     def can_access(self, permission_name, view_name):
         return utils.can_access(appbuilder.sm, permission_name, view_name)
 
+    def all_datasource_access(self):
+        return self.can_access(
+            'all_datasource_access', 'all_datasource_access')
+
+    def database_access(self, database):
+        return (self.all_datasource_access() or
+                self.can_access('database_access', database.perm))
+
+    def datasource_access(self, datasource):
+        if hasattr(datasource, 'cluster'):
+            return (self.database_access(datasource.cluster) or
+                    self.can_access('datasource_access', datasource.perm))
+        else:
+            return (self.database_access(datasource.database) or
+                    self.can_access('datasource_access', datasource.perm))
+
+
+ALL_DATASOURCE_ACCESS_ERR = __(
+    'This endpoint requires the `all_datasource_access` permission')
+DATASOURCE_MISSING_ERR = __('The datasource seems to have been deleted')
+
+
+def get_database_access_error_msg(database_name):
+    return __('This view requires the database %(name) or '
+              '`all_datasource_access` permission', name=database_name)
+
+
+def get_datasource_access_error_msg(datasource):
+    error = ('This endpoint requires the datasource %(name), database or '
+             '`all_datasource_access` permission')
+    if hasattr(datasource, 'table_name'):
+        return __(error, name=datasource.table_name)
+    else:
+        return __(error, name=datasource.datasource_name)
+
 
 def get_error_msg():
     if config.get("SHOW_STACKTRACE"):
@@ -55,6 +90,13 @@ def get_error_msg():
             "Stacktrace is hidden. Change the SHOW_STACKTRACE "
             "configuration setting to enable it")
     return error_msg
+
+
+def json_error_response(msg, status=None):
+    data = {'error': msg}
+    if status:
+        data['status'] = status
+    return Response(json.dumps(data), status=500, mimetype="application/json")
 
 
 def api(f):
@@ -880,7 +922,6 @@ appbuilder.add_view_no_menu(R)
 
 class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
-
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
     @expose("/explore/<datasource_type>/<datasource_id>/")
@@ -901,18 +942,11 @@ class Caravel(BaseCaravelView):
         datasource = datasource[0] if datasource else None
 
         if not datasource:
-            flash(__("The datasource seems to have been deleted"), "alert")
+            flash(DATASOURCE_MISSING_ERR, "alert")
             return redirect(error_redirect)
 
-        all_datasource_access = self.can_access(
-            'all_datasource_access', 'all_datasource_access')
-
-        datasource_access = self.can_access(
-            'datasource_access', datasource.perm)
-
-        if not (all_datasource_access or datasource_access):
-            flash(__("You don't seem to have access to this datasource"),
-                  "danger")
+        if not self.datasource_access(datasource):
+            flash(__(get_datasource_access_error_msg(datasource)), "danger")
             return redirect(error_redirect)
 
         # handle slc / viz obj
@@ -1053,7 +1087,7 @@ class Caravel(BaseCaravelView):
             table_id = args.get('datasource_id')
 
         if action in ('saveas'):
-            d.pop('slice_id') # don't save old slice_id
+            d.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
@@ -1205,7 +1239,7 @@ class Caravel(BaseCaravelView):
         """Add and save slices to a dashboard"""
         data = json.loads(request.form.get('data'))
         session = db.session()
-        Slice = models.Slice # noqa
+        Slice = models.Slice  # noqa
         dash = (
             session.query(models.Dashboard).filter_by(id=dashboard_id).first())
         check_ownership(dash, raise_if_false=True)
@@ -1337,23 +1371,14 @@ class Caravel(BaseCaravelView):
     @expose("/sql/<database_id>/")
     @log_this
     def sql(self, database_id):
-        if (
-                not self.can_access(
-                    'all_datasource_access', 'all_datasource_access')):
-            flash(
-                "SQL Lab requires the `all_datasource_access` "
-                "permission", "danger")
+        if not self.all_datasource_access():
+            flash(ALL_DATASOURCE_ACCESS_ERR, "danger")
             return redirect("/tablemodelview/list/")
+
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
-
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            flash(
-                "This view requires the specific database or "
-                "`all_datasource_access` permission", "danger"
-            )
+        if not self.database_access(mydb.perm):
+            flash(get_database_access_error_msg(mydb.database_name), "danger")
             return redirect("/tablemodelview/list/")
         engine = mydb.get_sqla_engine()
         tables = engine.table_names()
@@ -1405,14 +1430,8 @@ class Caravel(BaseCaravelView):
         t = mydb.get_table(table_name)
 
         # Prevent exposing column fields to users that cannot access DB.
-        if not (self.can_access(
-                'all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm) or
-                self.can_access('datasource_access', t.perm)):
-            flash(
-                "This view requires the specific database, table or "
-                "`all_datasource_access` permission", "danger"
-            )
+        if not self.datasource_access(t.perm):
+            flash(get_datasource_access_error_msg(t), 'danger')
             return redirect("/tablemodelview/list/")
 
         fields = ", ".join(
@@ -1436,15 +1455,6 @@ class Caravel(BaseCaravelView):
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
 
-        def json_error_response(msg, status=None):
-            return Response(json.dumps({
-                'error': msg,
-                'status': status,
-            }),
-                status=500,
-                mimetype="application/json"
-            )
-
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).first()
 
@@ -1453,10 +1463,9 @@ class Caravel(BaseCaravelView):
                 'Database with id {} is missing.'.format(database_id),
                 QueryStatus.FAILED)
 
-        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', mydb.perm)):
-            json_error_response(__(
-                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+        if not self.database_access(mydb):
+            json_error_response(
+                get_database_access_error_msg(mydb.database_name))
         session.commit()
 
         query = models.Query(
@@ -1496,12 +1505,12 @@ class Caravel(BaseCaravelView):
             return Response(
                 json.dumps({'error': "{}".format(e)}),
                 status=500,
-                mimetype = "application/json")
+                mimetype="application/json")
         data['query'] = query.to_dict()
         return Response(
             json.dumps(data, default=utils.json_iso_dttm_ser),
             status=200,
-            mimetype = "application/json")
+            mimetype="application/json")
 
     @has_access
     @expose("/csv/<query_id>")
@@ -1511,10 +1520,8 @@ class Caravel(BaseCaravelView):
         s = db.session()
         query = s.query(models.Query).filter_by(id=int(query_id)).first()
 
-        if not (self.can_access('all_datasource_access', 'all_datasource_access') or
-                self.can_access('database_access', query.database.perm)):
-            flash(_(
-                "SQL Lab requires the `all_datasource_access` or specific DB permission"))
+        if not self.database_access(query.database):
+            flash(get_database_access_error_msg(query.database.database_name))
             redirect('/')
 
         sql = query.select_sql or query.sql
