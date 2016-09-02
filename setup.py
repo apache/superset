@@ -4,7 +4,8 @@ import json
 from setuptools import setup, find_packages
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-with open(os.path.join(BASE_DIR, 'caravel/static/assets/package.json')) as package_file:
+PACKAGE_DIR = os.path.join(BASE_DIR, 'caravel', 'static', 'assets', 'package.json')
+with open(PACKAGE_DIR) as package_file:
     version_string = json.load(package_file)['version']
 
 setup(
