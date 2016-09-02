@@ -1,14 +1,14 @@
 """datasource_table_filter_select
 
 Revision ID: 17fc73813b42
-Revises: f162a1dea4c4
+Revises: 3c3ffe173e4f
 Create Date: 2016-08-12 16:41:25.629004
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '17fc73813b42'
-down_revision = 'f162a1dea4c4'
+down_revision = '3c3ffe173e4f'
 
 from alembic import op
 import sqlalchemy as sa
