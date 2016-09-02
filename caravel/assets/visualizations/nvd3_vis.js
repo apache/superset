@@ -83,8 +83,6 @@ function nvd3Vis(slice) {
       let width = slice.width();
       const fd = payload.form_data;
 
-      const stretchMargin = calculateStretchMargins(payload);
-
       const barchartWidth = function () {
         let bars;
         if (fd.bar_stacked) {
@@ -311,8 +309,11 @@ function nvd3Vis(slice) {
           chart.margin({ left: 90 });
         }
 
-        if (fd.bottom_margin) {
-          chart.margin({ bottom: Math.max(fd.bottom_margin, stretchMargin) });
+        if (fd.bottom_margin === 'default') {
+          const stretchMargin = calculateStretchMargins(payload);
+          chart.margin({ bottom: stretchMargin });
+        } else {
+          chart.margin({ bottom: fd.bottom_margin });
         }
 
         let svg = d3.select(slice.selector).select('svg');
