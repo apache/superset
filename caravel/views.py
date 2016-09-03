@@ -94,9 +94,9 @@ def get_error_msg():
 
 def json_error_response(msg, status=None):
     data = {'error': msg}
-    if status:
-        data['status'] = status
-    return Response(json.dumps(data), status=500, mimetype="application/json")
+    status = status if status else 500
+    return Response(
+        json.dumps(data), status=status, mimetype="application/json")
 
 
 def api(f):
@@ -956,7 +956,8 @@ class Caravel(BaseCaravelView):
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
             try:
-                viz_obj = slc.get_viz(request_args_multi_dict)
+                viz_obj = slc.get_viz(
+                    url_params_multidict=request_args_multi_dict)
             except Exception as e:
                 logging.exception(e)
                 flash(utils.error_msg_from_exception(e), "danger")
@@ -993,10 +994,14 @@ class Caravel(BaseCaravelView):
             if config.get("DEBUG"):
                 # Allows for nice debugger stack traces in debug mode
                 return Response(
-                    viz_obj.get_json(), status=200, mimetype="application/json")
+                    viz_obj.get_json(),
+                    status=200,
+                    mimetype="application/json")
             try:
                 return Response(
-                    viz_obj.get_json(), status=200, mimetype="application/json")
+                    viz_obj.get_json(),
+                    status=200,
+                    mimetype="application/json")
             except Exception as e:
                 logging.exception(e)
                 return json_error_response(utils.error_msg_from_exception(e))
@@ -1231,6 +1236,48 @@ class Caravel(BaseCaravelView):
                 traceback.format_exc(),
                 status=500,
                 mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/warm_up_cache/", methods=['GET', 'POST'])
+    def warm_up_cache(self):
+        """Warms up the cache for the slice or table."""
+        slices = None
+        s = db.session()
+        slice_id = request.args.get('slice_id')
+        table_name = request.args.get('table_name')
+        db_name = request.args.get('db_name')
+
+        if not slice_id and not (table_name and db_name):
+            return json_error_response(__(
+                "Malformed request. slice_id or table_name and db_name "
+                "arguments are expected"), status=400)
+        if slice_id:
+            slices = s.query(models.Slice).filter_by(id=slice_id).all()
+            if not slices:
+                return json_error_response(__(
+                    "Slice %(id)s not found", id=slice_id), status=404)
+        elif table_name and db_name:
+            table = s.query(models.SqlaTable).join(models.Database).filter(
+                models.Database.database_name == db_name or
+                models.SqlaTable.table_name == table_name).first()
+            if not table:
+                json_error_response(__(
+                    "Table %(t)s wasn't found in the database %(d)s",
+                    t=table_name, s=db_name), status=404)
+            slices = table.slices
+
+        for slice in slices:
+            try:
+                obj = slice.get_viz()
+                obj.get_json(force=True)
+            except Exception as e:
+                return json_error_response(utils.error_msg_from_exception(e))
+        return Response(
+            json.dumps([{"slice_id": s.id, "slice_name": s.slice_name}
+                        for s in slices]),
+            status=200,
+            mimetype="application/json")
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):

@@ -252,7 +252,7 @@ class Slice(Model, AuditMixinNullable):
         return '<a href="{url}">{obj.slice_name}</a>'.format(
             url=url, obj=self)
 
-    def get_viz(self, url_params_multidict):
+    def get_viz(self, url_params_multidict=None):
         """Creates BaseViz object from the url_params_multidict.
 
         Parameters
@@ -270,9 +270,9 @@ class Slice(Model, AuditMixinNullable):
         slice_params['slice_id'] = self.id
         slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
-        viz_type = url_params_multidict.get("viz_type", self.viz_type)
-        slice_params['viz_type'] = viz_type if viz_type else "table"
-        slice_params.update(url_params_multidict)
+        slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
+        if url_params_multidict:
+            slice_params.update(url_params_multidict)
         immutable_slice_params = ImmutableMultiDict(slice_params)
         return viz_types[immutable_slice_params.get('viz_type')](
             self.datasource,

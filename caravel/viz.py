@@ -276,12 +276,12 @@ class BaseViz(object):
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
-    def get_json(self):
+    def get_json(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
-
-        if self.form_data.get('force') != 'true':
+        force = force if force else self.form_data.get('force') == 'true'
+        if not force:
             payload = cache.get(cache_key)
 
         if payload:
