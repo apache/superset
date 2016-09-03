@@ -15,7 +15,7 @@ class QueryAutoRefresh extends React.Component {
   }
   startTimer() {
     if (!(this.timer)) {
-      this.timer = setInterval(this.stopwatch.bind(this), 5000);
+      this.timer = setInterval(this.stopwatch.bind(this), 1000);
     }
   }
   stopTimer() {

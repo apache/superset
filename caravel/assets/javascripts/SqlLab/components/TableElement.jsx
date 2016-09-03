@@ -49,7 +49,7 @@ class TableElement extends React.Component {
           {this.props.table.columns.map((col) => (
             <div className="clearfix">
               <span className="pull-left m-l-5">{col.name}</span>
-              <span className="pull-right">{col.type}</span>
+              <span className="pull-right text-muted">{col.type}</span>
             </div>
           ))}
           <hr />

@@ -22,6 +22,7 @@ from markdown import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 from pydruid.utils.having import Having
 
+
 EPOCH = datetime(1970, 1, 1)
 
 
@@ -88,6 +89,22 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+def get_or_create_main_db(caravel):
+    db = caravel.db
+    config = caravel.app.config
+    DB = caravel.models.Database
+    logging.info("Creating database reference")
+    dbobj = db.session.query(DB).filter_by(database_name='main').first()
+    if not dbobj:
+        dbobj = DB(database_name="main")
+    logging.info(config.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.sqlalchemy_uri = config.get("SQLALCHEMY_DATABASE_URI")
+    dbobj.expose_in_sqllab = True
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj
 
 
 class DimSelector(Having):
@@ -192,10 +209,11 @@ def init(caravel):
     """Inits the Caravel application with security roles and such"""
     db = caravel.db
     models = caravel.models
+    config = caravel.app.config
     sm = caravel.appbuilder.sm
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
-    config = caravel.app.config
+    get_or_create_main_db(caravel)
 
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
 

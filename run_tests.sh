@@ -10,3 +10,4 @@ caravel/bin/caravel db upgrade
 caravel/bin/caravel db upgrade  # running twice on purpose as a test
 caravel/bin/caravel version -v
 python setup.py nosetests
+coveralls

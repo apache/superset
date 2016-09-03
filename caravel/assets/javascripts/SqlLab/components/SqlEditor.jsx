@@ -207,31 +207,37 @@ class SqlEditor extends React.Component {
         </OverlayTrigger>
       );
     }
+    let ctasControls;
+    if (this.props.database && this.props.database.allow_ctas) {
+      ctasControls = (
+        <FormGroup>
+          <InputGroup>
+            <FormControl
+              type="text"
+              bsSize="small"
+              className="input-sm"
+              placeholder="new table name"
+              onChange={this.ctasChanged.bind(this)}
+            />
+            <InputGroup.Button>
+              <Button
+                bsSize="small"
+                disabled={this.state.ctas.length === 0}
+                onClick={this.createTableAs.bind(this)}
+              >
+                <i className="fa fa-table" /> CTAS
+              </Button>
+            </InputGroup.Button>
+          </InputGroup>
+        </FormGroup>
+      );
+    }
     const editorBottomBar = (
       <div className="sql-toolbar clearfix">
         <div className="pull-left">
           <Form inline>
             {runButtons}
-            <FormGroup>
-              <InputGroup>
-                <FormControl
-                  type="text"
-                  bsSize="small"
-                  className="input-sm"
-                  placeholder="new table name"
-                  onChange={this.ctasChanged.bind(this)}
-                />
-                <InputGroup.Button>
-                  <Button
-                    bsSize="small"
-                    disabled={this.state.ctas.length === 0}
-                    onClick={this.createTableAs.bind(this)}
-                  >
-                    <i className="fa fa-table" /> CTAS
-                  </Button>
-                </InputGroup.Button>
-              </InputGroup>
-            </FormGroup>
+            {ctasControls}
           </Form>
         </div>
         <div className="pull-right">
@@ -276,9 +282,10 @@ class SqlEditor extends React.Component {
 }
 
 SqlEditor.propTypes = {
-  queryEditor: React.PropTypes.object,
   actions: React.PropTypes.object,
+  database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
+  queryEditor: React.PropTypes.object,
 };
 
 SqlEditor.defaultProps = {

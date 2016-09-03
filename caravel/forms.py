@@ -977,7 +977,7 @@ class FormFactory(object):
         viz = self.viz
         field_css_classes = {}
         for name, obj in self.field_dict.items():
-            field_css_classes[name] = ['form-control']
+            field_css_classes[name] = ['form-control', 'input-sm']
             s = self.fieltype_class.get(obj.field_class)
             if s:
                 field_css_classes[name] += [s]
