@@ -1342,6 +1342,55 @@ class Caravel(BaseCaravelView):
             dash_edit_perm=dash_edit_perm)
 
     @has_access
+    @expose("/sync_druid/", methods=['POST'])
+    @log_this
+    def sync_druid_source(self):
+        """Syncs the druid datasource in main db with the provided config.
+
+        The endpoint takes 3 arguments:
+            user - user name to perform the operation as
+            cluster - name of the druid cluster
+            config - configuration stored in json that contains:
+                name: druid datasource name
+                dimensions: list of the dimensions, they become druid columns
+                    with the type STRING
+                metrics_spec: list of metrics (dictionary). Metric consists of
+                    2 attributes: type and name. Type can be count,
+                    etc. `count` type is stored internally as longSum
+            other fields will be ignored.
+
+            Example: {
+                "name": "test_click",
+                "metrics_spec": [{"type": "count", "name": "count"}],
+                "dimensions": ["affiliate_id", "campaign", "first_seen"]
+            }
+        """
+        druid_config = json.loads(request.form.get('config'))
+        user_name = request.form.get('user')
+        cluster_name = request.form.get('cluster')
+
+        user = sm.find_user(username=user_name)
+        if not user:
+            err_msg = __("Can't find User '%(name)s', please ask your admin "
+                         "to create one.", name=user_name)
+            logging.error(err_msg)
+            return json_error_response(err_msg)
+        cluster = db.session.query(models.DruidCluster).filter_by(
+            cluster_name=cluster_name).first()
+        if not cluster:
+            err_msg = __("Can't find DruidCluster with cluster_name = "
+                         "'%(name)s'", name=cluster_name)
+            logging.error(err_msg)
+            return json_error_response(err_msg)
+        try:
+            models.DruidDatasource.sync_to_db_from_config(
+                druid_config, user, cluster)
+        except Exception as e:
+            logging.exception(utils.error_msg_from_exception(e))
+            return json_error_response(utils.error_msg_from_exception(e))
+        return Response(status=201)
+
+    @has_access
     @expose("/sqllab_viz/")
     @log_this
     def sqllab_viz(self):
@@ -1472,8 +1521,7 @@ class Caravel(BaseCaravelView):
 
         if not mydb:
             json_error_response(
-                'Database with id {} is missing.'.format(database_id),
-                QueryStatus.FAILED)
+                'Database with id {} is missing.'.format(database_id))
 
         if not self.database_access(mydb):
             json_error_response(
