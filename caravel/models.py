@@ -43,6 +43,8 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
+from werkzeug.datastructures import ImmutableMultiDict
+
 import caravel
 from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
@@ -249,6 +251,34 @@ class Slice(Model, AuditMixinNullable):
         url = self.slice_url
         return '<a href="{url}">{obj.slice_name}</a>'.format(
             url=url, obj=self)
+
+    def get_viz(self, url_params_multidict):
+        """Creates BaseViz object from the url_params_multidict.
+
+        Parameters
+        ----------
+        url_params_multidict: MultiDict, contains the visualization params,
+                              they override the self.params stored in the
+                              database
+        Returns
+        -------
+        BaseViz object of the 'viz_type' type that is taken from the
+        url_params_multidict or self.params.
+
+        """
+        slice_params = json.loads(self.params)  # {}
+        slice_params['slice_id'] = self.id
+        slice_params['json'] = "false"
+        slice_params['slice_name'] = self.slice_name
+        viz_type = url_params_multidict.get("viz_type", self.viz_type)
+        slice_params['viz_type'] = viz_type if viz_type else "table"
+        slice_params.update(url_params_multidict)
+        immutable_slice_params = ImmutableMultiDict(slice_params)
+        return viz_types[immutable_slice_params.get('viz_type')](
+            self.datasource,
+            form_data=immutable_slice_params,
+            slice_=self
+        )
 
 
 def set_perm(mapper, connection, target):  # noqa
