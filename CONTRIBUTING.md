@@ -160,6 +160,30 @@ Lint the project with:
     # for javascript
     npm run lint
 
+## Linting with codeclimate
+Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Caravel fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
+
+*Install the codeclimate cli tool*
+```
+curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine 
+brew install docker
+docker-machine create --driver virtual box default
+docker-machine env default
+eval "$(docker-machine env default)"
+docker pull codeclimate/codeclimate
+brew tap codeclimate/formulae
+brew install codeclimate
+```
+
+*Run the lint command:*
+```
+docker-machine start
+eval "$(docker-machine env default)”
+codeclimate analyze
+```
+More info can be found here: https://docs.codeclimate.com/docs/open-source-free
+
+
 ## API documentation
 
 Generate the documentation with:

@@ -13,6 +13,9 @@ engines:
     enabled: false
   radon:
     enabled: true
+    checks:
+      Complexity:
+        enabled: false
 ratings:
   paths:
   - "**.py"
