@@ -253,18 +253,14 @@ class Slice(Model, AuditMixinNullable):
             url=url, obj=self)
 
     def get_viz(self, url_params_multidict=None):
-        """Creates BaseViz object from the url_params_multidict.
+        """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
-        Parameters
-        ----------
-        url_params_multidict: MultiDict, contains the visualization params,
-                              they override the self.params stored in the
-                              database
-        Returns
-        -------
-        BaseViz object of the 'viz_type' type that is taken from the
-        url_params_multidict or self.params.
-
+        :param werkzeug.datastructures.MultiDict url_params_multidict:
+            Contains the visualization params, they override the self.params
+            stored in the database
+        :return: object of the 'viz_type' type that is taken from the
+            url_params_multidict or self.params.
+        :rtype: :py:class:viz.BaseViz
         """
         slice_params = json.loads(self.params)  # {}
         slice_params['slice_id'] = self.id

@@ -963,11 +963,11 @@ class Caravel(BaseCaravelView):
                 flash(utils.error_msg_from_exception(e), "danger")
                 return redirect(error_redirect)
         else:
-            viz_type = request_args_multi_dict.get("viz_type", None)
+            viz_type = request_args_multi_dict.get("viz_type")
             if not viz_type and datasource.default_endpoint:
                 return redirect(datasource.default_endpoint)
             # default to table if no default endpoint and no viz_type
-            viz_type = viz_type if viz_type else "table"
+            viz_type = viz_type or "table"
             # validate viz params
             try:
                 viz_obj = viz.viz_types[viz_type](
@@ -1239,11 +1239,11 @@ class Caravel(BaseCaravelView):
 
     @api
     @has_access_api
-    @expose("/warm_up_cache/", methods=['GET', 'POST'])
+    @expose("/warm_up_cache/", methods=['GET'])
     def warm_up_cache(self):
         """Warms up the cache for the slice or table."""
         slices = None
-        s = db.session()
+        session = db.session()
         slice_id = request.args.get('slice_id')
         table_name = request.args.get('table_name')
         db_name = request.args.get('db_name')
@@ -1253,14 +1253,18 @@ class Caravel(BaseCaravelView):
                 "Malformed request. slice_id or table_name and db_name "
                 "arguments are expected"), status=400)
         if slice_id:
-            slices = s.query(models.Slice).filter_by(id=slice_id).all()
+            slices = session.query(models.Slice).filter_by(id=slice_id).all()
             if not slices:
                 return json_error_response(__(
                     "Slice %(id)s not found", id=slice_id), status=404)
         elif table_name and db_name:
-            table = s.query(models.SqlaTable).join(models.Database).filter(
-                models.Database.database_name == db_name or
-                models.SqlaTable.table_name == table_name).first()
+            table = (
+                session.query(models.SqlaTable)
+                .join(models.Database)
+                .filter(
+                    models.Database.database_name == db_name or
+                    models.SqlaTable.table_name == table_name)
+            ).first()
             if not table:
                 json_error_response(__(
                     "Table %(t)s wasn't found in the database %(d)s",
@@ -1274,8 +1278,9 @@ class Caravel(BaseCaravelView):
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
         return Response(
-            json.dumps([{"slice_id": s.id, "slice_name": s.slice_name}
-                        for s in slices]),
+            json.dumps(
+                [{"slice_id": session.id, "slice_name": session.slice_name}
+                 for session in slices]),
             status=200,
             mimetype="application/json")
 
