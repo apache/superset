@@ -114,6 +114,20 @@ class CoreTests(CaravelTestCase):
         assert self.client.get('/health').data.decode('utf-8') == "OK"
         assert self.client.get('/ping').data.decode('utf-8') == "OK"
 
+    def test_warm_up_cache(self):
+        slice = db.session.query(models.Slice).first()
+        resp = self.client.get(
+            '/caravel/warm_up_cache?slice_id={}'.format(slice.id),
+            follow_redirects=True)
+        data = json.loads(resp.data.decode('utf-8'))
+        assert data == [{'slice_id': slice.id, 'slice_name': slice.slice_name}]
+
+        resp = self.client.get(
+            '/caravel/warm_up_cache?table_name=energy_usage&db_name=main',
+            follow_redirects=True)
+        data = json.loads(resp.data.decode('utf-8'))
+        assert len(data) == 3
+
     def test_shortner(self):
         self.login(username='admin')
         data = (
