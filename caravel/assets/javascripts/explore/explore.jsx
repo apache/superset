@@ -11,6 +11,7 @@ const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 import React from 'react';
 import ReactDOM from 'react-dom';
 import QueryAndSaveBtns from './components/QueryAndSaveBtns.jsx';
+import ExploreActionButtons from './components/ExploreActionButtons.jsx';
 
 require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
@@ -62,7 +63,6 @@ function query(forceUpdate, pushState) {
     force = false;
   }
   $('.query-and-save button').attr('disabled', 'disabled');
-  $('.btn-group.results span,a').attr('disabled', 'disabled');
   if (force) {  // Don't hide the alert message when the page is just loaded
     $('div.alert').remove();
   }
@@ -160,148 +160,6 @@ function initExploreView() {
 
   px.initFavStars();
 
-  function copyURLToClipboard(url) {
-    const textArea = document.createElement('textarea');
-    textArea.style.position = 'fixed';
-    textArea.style.left = '-1000px';
-    textArea.value = url;
-
-    document.body.appendChild(textArea);
-    textArea.select();
-    let successful;
-    try {
-      successful = document.execCommand('copy');
-      if (!successful) {
-        throw new Error('Not successful');
-      }
-    } catch (err) {
-      window.alert('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'); // eslint-disable-line
-    }
-    document.body.removeChild(textArea);
-    return successful;
-  }
-
-  $('#shortner').click(function () {
-    $.ajax({
-      type: 'POST',
-      url: '/r/shortner/',
-      data: {
-        data: '/' + window.location.pathname + slice.querystring(),
-      },
-      success(data) {
-        const close = (
-          '<a style="cursor: pointer;">' +
-            '<i class="fa fa-close" id="close_shortner"></i>' +
-          '</a>'
-        );
-        const copy = (
-          '<a style="cursor: pointer;">' +
-            '<i class="fa fa-clipboard" title="Copy to clipboard" id="copy_url"></i>' +
-          '</a>'
-        );
-        const spaces = '&nbsp;&nbsp;&nbsp;';
-        const popover = data + spaces + copy + spaces + close;
-
-        const $shortner = $('#shortner')
-          .popover({
-            content: popover,
-            placement: 'left',
-            html: true,
-            trigger: 'manual',
-          })
-          .popover('show');
-        function destroyPopover() {
-          $shortner.popover('destroy');
-        }
-
-        $('#copy_url')
-        .tooltip()
-        .click(function () {
-          const success = copyURLToClipboard(data);
-          if (success) {
-            $(this).attr('data-original-title', 'Copied!')
-            .tooltip('fixTitle')
-            .tooltip('show');
-            window.setTimeout(destroyPopover, 1200);
-          }
-        });
-        $('#close_shortner').click(destroyPopover);
-      },
-      error(error) {
-        showModal({
-          title: 'Error',
-          body: 'Sorry, an error occurred during this operation:<br/>' + error,
-        });
-      },
-    });
-  });
-
-  $('#standalone').click(function () {
-    const srcLink = window.location.origin + slice.data.standalone_endpoint;
-    const close = (
-      '<a style="cursor: pointer;">' +
-        '<i class="fa fa-close" id="close_standalone"></i>' +
-      '</a>'
-    );
-    const copy = (
-      '<a style="cursor: pointer;">' +
-        '<i class="fa fa-clipboard" title="Copy to clipboard" id="copy_embed"></i>' +
-      '</a>'
-    );
-    const spaces = '&nbsp;&nbsp;&nbsp;';
-    const widthInput = '<input type="number" id="standalone_width" placeholder="width">';
-    const heightInput = '<input type="number" id="standalone_height" placeholder="height">';
-    let popover = "<input id='standalone_text' value='' disabled></input>";
-    popover = popover + spaces + copy + spaces + close + spaces + widthInput + spaces + heightInput;
-    let dataToCopy = '';
-
-    const $standalone = $(this);
-
-    function destroyPopover() {
-      $standalone.popover('destroy');
-    }
-
-    $standalone.popover({
-      content: popover,
-      title: 'embed html',
-      placement: 'left',
-      html: true,
-      trigger: 'manual',
-    })
-    .popover('show');
-    $('#copy_embed').tooltip().click(function () {
-      const success = copyURLToClipboard(dataToCopy);
-      if (success) {
-        $(this).attr('data-original-title', 'Copied!')
-        .tooltip('fixTitle')
-        .tooltip('show');
-        window.setTimeout(destroyPopover, 1200);
-      }
-    });
-
-    $('#close_standalone').click(destroyPopover);
-
-    const $standaloneWidth = $('#standalone_width');
-    const $standaloneHeight = $('#standalone_height');
-    const $standaloneText = $('#standalone_text');
-
-    function generateEmbedHTML() {
-      const width = $standaloneWidth.val();
-      const height = $standaloneHeight.val();
-      dataToCopy = `<iframe src="${srcLink}" width="${width}" height="${height}"`;
-      dataToCopy = dataToCopy + ' seamless frameBorder="0" scrolling="no"></iframe>';
-      $standaloneText.val(dataToCopy);
-    }
-
-    $standaloneHeight.change(function () {
-      generateEmbedHTML();
-    });
-    $standaloneWidth.change(function () {
-      generateEmbedHTML();
-    });
-    generateEmbedHTML();
-  });
-
   $('#viz_type').change(function () {
     $('#query').submit();
   });
@@ -385,15 +243,6 @@ function initExploreView() {
   $('#having_panel #plus').click(function () {
     addFilter(undefined, 'having');
   });
-
-  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
-  ReactDOM.render(
-    <QueryAndSaveBtns
-      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
-      onQuery={() => query(true)}
-    />,
-    queryAndSaveBtnsEl
-  );
 
   function createChoices(term, data) {
     const filtered = $(data).filter(function () {
@@ -487,6 +336,26 @@ function initExploreView() {
   prepSaveDialog();
 }
 
+function initComponents() {
+  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
+  ReactDOM.render(
+    <QueryAndSaveBtns
+      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
+      onQuery={() => query(true)}
+    />,
+    queryAndSaveBtnsEl
+  );
+
+  const exploreActionsEl = document.getElementById('js-explore-actions');
+  ReactDOM.render(
+    <ExploreActionButtons
+      canDownload={exploreActionsEl.getAttribute('data-can-download')}
+      slice={slice}
+    />,
+    exploreActionsEl
+  );
+}
+
 $(document).ready(function () {
   const data = $('.slice').data('slice');
 
@@ -497,7 +366,10 @@ $(document).ready(function () {
   $('.slice').data('slice', slice);
 
   // call vis render method, which issues ajax
+  // calls render on the slice for the first time
   query(false, false);
 
   slice.bindResizeToWindowResize();
+
+  initComponents();
 });
