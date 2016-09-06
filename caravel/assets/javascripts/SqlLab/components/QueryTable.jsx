@@ -7,12 +7,9 @@ import * as Actions from '../actions';
 import moment from 'moment';
 import { Table } from 'reactable';
 import { ProgressBar } from 'react-bootstrap';
-
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { github } from 'react-syntax-highlighter/dist/styles';
-
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
+import SqlShrink from './SqlShrink';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
 
@@ -47,9 +44,7 @@ class QueryTable extends React.Component {
       q.started = moment.utc(q.startDttm).format('HH:mm:ss');
       const source = q.ctas ? q.executedSql : q.sql;
       q.sql = (
-        <SyntaxHighlighter language="sql" style={github}>
-          {source || ''}
-        </SyntaxHighlighter>
+        <SqlShrink sql={source} />
       );
       q.output = q.tempTable;
       q.progress = (
