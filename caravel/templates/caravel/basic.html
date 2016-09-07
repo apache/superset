@@ -13,8 +13,9 @@
       <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
     {% endblock %}
     {% block head_js %}
-    {% set VERSION_STRING = appbuilder.get_app.config.get("VERSION_STRING") %}
-      <script src="/static/assets/dist/css-theme.{{VERSION_STRING}}.entry.js"></script>
+      {% with filename="css-theme" %}
+        {% include "caravel/partials/_script_tag.html" %}
+      {% endwith %}
     {% endblock %}
   </head>
 

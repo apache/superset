@@ -1,5 +1,6 @@
 const webpack = require('webpack');
 const path = require('path');
+const fs = require('fs');
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -7,10 +8,7 @@ const APP_DIR = path.resolve(__dirname, './');
 // output dir
 const BUILD_DIR = path.resolve(__dirname, './dist');
 
-const fs = require('fs');
-const contents = fs.readFileSync('package.json');
-const JSONObject = JSON.parse(contents);
-const VERSION_STRING = JSONObject.version;
+const VERSION_STRING = JSON.parse(fs.readFileSync('package.json')).version;
 
 const config = {
   entry: {
@@ -24,7 +22,7 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: '[name].' + VERSION_STRING + '.entry.js',
+    filename: `[name].${VERSION_STRING}.entry.js`,
   },
   resolve: {
     extensions: [

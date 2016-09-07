@@ -24,8 +24,9 @@ if not os.path.exists(DATA_DIR):
 # ---------------------------------------------------------
 # Caravel specific config
 # ---------------------------------------------------------
-PACKAGE_DIR = os.path.join(BASE_DIR, 'static', 'assets', 'package.json')
-with open(PACKAGE_DIR) as package_file:
+PACKAGE_DIR = os.path.join(BASE_DIR, 'static', 'assets')
+PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
+with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
 
 ROW_LIMIT = 50000
