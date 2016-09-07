@@ -45,7 +45,7 @@ export default class CopyToClipboard extends React.Component {
         <a
           href="#"
           title="Copy to clipboard"
-          onClick={(e) => { this.copyToClipboard(e) }}
+          onClick={(e) => { this.copyToClipboard(e); }}
         >
           {this.props.copyNode}
         </a>
