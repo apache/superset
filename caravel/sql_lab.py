@@ -14,7 +14,7 @@ celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 def is_query_select(sql):
     return sql.upper().startswith('SELECT')
 
-def create_table_as(sql, table_name, override=False):
+def create_table_as(sql, table_name, schema=None, override=False):
     """Reformats the query into the create table as query.
 
     Works only for the single select SQL statements, in all other cases
@@ -29,10 +29,12 @@ def create_table_as(sql, table_name, override=False):
     # TODO(bkyryliuk): drop table if allowed, check the namespace and
     #                  the permissions.
     # TODO raise if multi-statement
+    if schema:
+        table_name = schema + '.' + table_name
     exec_sql = ''
     if is_query_select(sql):
         if override:
-            exec_sql = 'DROP TABLE IF EXISTS {};\n'.format(table_name)
+            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
         exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
     else:
         raise Exception("Could not generate CREATE TABLE statement")
@@ -43,7 +45,6 @@ def create_table_as(sql, table_name, override=False):
 def get_sql_results(query_id, return_results=True):
     """Executes the sql query returns the results."""
     db.session.commit()  # HACK
-    q = db.session.query(models.Query).all()
     query = db.session.query(models.Query).filter_by(id=query_id).one()
     database = query.database
     executed_sql = query.sql.strip().strip(';')
@@ -56,7 +57,8 @@ def get_sql_results(query_id, return_results=True):
                 query.tmp_table_name = 'tmp_{}_table_{}'.format(
                     query.user_id,
                     start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
-            executed_sql = create_table_as(executed_sql, query.tmp_table_name)
+            executed_sql = create_table_as(
+                executed_sql, query.tmp_table_name, database.force_ctas_schema)
             query.select_as_cta_used = True
         elif query.limit:
             executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
