@@ -309,7 +309,7 @@ function nvd3Vis(slice) {
           chart.margin({ left: 90 });
         }
 
-        if (fd.bottom_margin === 'default') {
+        if (fd.bottom_margin === 'auto') {
           const stretchMargin = calculateStretchMargins(payload);
           chart.margin({ bottom: stretchMargin });
         } else {

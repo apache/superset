@@ -329,8 +329,8 @@ class FormFactory(object):
             }),
             'bottom_margin': (FreeFormSelectField, {
                 "label": _("Bottom Margin"),
-                "choices": self.choicify(['default', 50, 75, 100, 125, 150, 200]),
-                "default": 'default',
+                "choices": self.choicify(['auto', 50, 75, 100, 125, 150, 200]),
+                "default": 'auto',
                 "description": _(
                     "Bottom marging, in pixels, allowing for more room for "
                     "axis labels"),
