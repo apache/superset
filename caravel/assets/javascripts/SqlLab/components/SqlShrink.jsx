@@ -3,7 +3,8 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 
 const SqlShrink = (props) => {
-  let lines = props.sql.split('\n');
+  const sql = props.sql || '';
+  let lines = sql.split('\n');
   if (lines.length >= props.maxLines) {
     lines = lines.slice(0, props.maxLines);
     lines.push('{...}');

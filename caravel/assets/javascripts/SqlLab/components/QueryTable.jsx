@@ -42,7 +42,7 @@ class QueryTable extends React.Component {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
       q.started = moment.utc(q.startDttm).format('HH:mm:ss');
-      const source = q.ctas ? q.executedSql : q.sql;
+      const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
         <SqlShrink sql={source} />
       );

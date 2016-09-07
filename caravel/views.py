@@ -26,7 +26,7 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.datastructures import ImmutableMultiDict, MultiDict
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -1347,12 +1347,13 @@ class Caravel(BaseCaravelView):
     def sqllab_viz(self):
         data = json.loads(request.args.get('data'))
         table_name = data.get('datasourceName')
+        viz_type = data.get('chartType')
         table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
         if not table:
             table = models.SqlaTable(
                 table_name=table_name,
             )
-        table.database_id = data.get('databaseId')
+        table.database_id = data.get('dbId')
         table.sql = data.get('sql')
         db.session.add(table)
         cols = []
@@ -1377,7 +1378,8 @@ class Caravel(BaseCaravelView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        return redirect('/caravel/explore/table/{table.id}/'.format(**locals()))
+        url = '/caravel/explore/table/{table.id}/?viz_type={viz_type}'
+        return redirect(url.format(**locals()))
 
     @has_access
     @expose("/sql/<database_id>/")
@@ -1557,20 +1559,16 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Unix time, milliseconds.
-        last_updated_ms_int = int(last_updated_ms) if last_updated_ms else 0
-
-        # Local date time, DO NOT USE IT.
-        # last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(
-            seconds=last_updated_ms_int / 1000)
+        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
             db.session.query(models.Query)
             .filter(
-                models.Query.user_id == g.user.get_id() or
-                models.Query.changed_on >= last_updated_dt
+                models.Query.user_id == g.user.get_id(),
+                models.Query.changed_on >= last_updated_dt,
             )
             .all()
         )

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Col, Modal } from 'react-bootstrap';
+import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -9,30 +9,58 @@ import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 
+const CHART_TYPES = [
+  { value: 'dist_bar', label: 'Distribution - Bar Chart',requiresTime: false },
+  { value: 'pie', label: 'Pie Chart', requiresTime: false },
+  { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
+  { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
+];
+
 class VisualizeModal extends React.Component {
   constructor(props) {
     super(props);
+    const uniqueId = shortid.generate();
     this.state = {
-      chartType: 'line',
-      datasourceName: shortid.generate(),
+      chartType: CHART_TYPES[0],
+      datasourceName: uniqueId,
       columns: {},
       hints: [],
     };
+    this.validate();
   }
   validate() {
     const hints = [];
-
+    const cols = this.mergedColumns();
     const re = /^\w+$/;
-    Object.keys(this.state.columns).forEach((colName) => {
-      const col = this.state.columns[colName];
+    Object.keys(cols).forEach((colName) => {
+      const col = cols[colName];
       if (!re.test(colName)) {
-        hints.push(`[${colName}] isn't right, alias is with only alphanumber and underscores`);
+        hints.push(
+          <div>
+            "{colName}" is not right as a column name, please alias it
+            (as in SELECT count(*) <strong>AS my_alias</strong>) using only
+            alphanumeric characters and underscores
+          </div>);
       }
     });
+    if (this.state.chartType === null) {
+      hints.push('Pick a chart type!');
+    } else if (this.state.chartType.requiresTime) {
+      let hasTime = false;
+      for (const colName in cols) {
+        const col = cols[colName];
+        if (col.hasOwnProperty('is_date') && col.is_date) {
+          hasTime = true;
+        }
+      }
+      if (!hasTime) {
+        hints.push('To use this chart type you need at least one column flagged as a date');
+      }
+    }
     this.setState({ hints });
   }
   changeChartType(option) {
-    this.setState({ chartType: (option) ? option.value : null });
+    this.setState({ chartType: option }, this.validate);
   }
   mergedColumns() {
     const columns = Object.assign({}, this.state.columns);
@@ -43,12 +71,11 @@ class VisualizeModal extends React.Component {
         }
       });
     }
-    this.validate();
     return columns;
   }
   visualize() {
     const vizOptions = {
-      chartType: this.state.chartType,
+      chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
       sql: this.props.query.sql,
@@ -58,19 +85,20 @@ class VisualizeModal extends React.Component {
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });
+    this.validate();
   }
   changeCheckbox(attr, col, event) {
     let columns = this.mergedColumns();
     const column = Object.assign({}, columns[col], { [attr]: event.target.checked });
     columns = Object.assign({}, columns, { [col]: column });
-    this.setState({ columns });
+    this.setState({ columns }, this.validate);
   }
   changeAggFunction(col, option) {
     let columns = this.mergedColumns();
     const val = (option) ? option.value : null;
     const column = Object.assign({}, columns[col], { agg: val });
     columns = Object.assign({}, columns, { [col]: column });
-    this.setState({ columns });
+    this.setState({ columns }, this.validate);
   }
   render() {
     if (!(this.props.query)) {
@@ -115,9 +143,7 @@ class VisualizeModal extends React.Component {
       <div className="VisualizeModal">
         <Modal show={this.props.show} onHide={this.props.onHide}>
           <Modal.Header closeButton>
-            <Modal.Title>
-              Visualize <span className="alert alert-danger">under construction</span>
-            </Modal.Title>
+            <Modal.Title>Visualize</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             {alerts}
@@ -127,13 +153,8 @@ class VisualizeModal extends React.Component {
                 <Select
                   name="select-chart-type"
                   placeholder="[Chart Type]"
-                  options={[
-                    { value: 'line', label: 'Time Series - Line Chart' },
-                    { value: 'bar', label: 'Time Series - Bar Chart' },
-                    { value: 'bar_dist', label: 'Distribution - Bar Chart' },
-                    { value: 'pie', label: 'Pie Chart' },
-                  ]}
-                  value={this.state.chartType}
+                  options={CHART_TYPES}
+                  value={(this.state.chartType) ? this.state.chartType.value : null}
                   autosize={false}
                   onChange={this.changeChartType.bind(this)}
                 />

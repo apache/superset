@@ -1836,7 +1836,7 @@ class Query(Model):
     start_time = Column(Numeric(precision=3))
     end_time = Column(Numeric(precision=3))
     changed_on = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
@@ -1848,6 +1848,7 @@ class Query(Model):
     def to_dict(self):
         return {
             'changedOn': self.changed_on,
+            'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,

@@ -249,33 +249,29 @@ class SqlEditor extends React.Component {
     );
     return (
       <div className="SqlEditor">
-        <div>
-          <div>
-            <Row>
-              <Col md={3}>
-                <SqlEditorLeft queryEditor={this.props.queryEditor} />
-              </Col>
-              <Col md={9}>
-                <AceEditor
-                  mode="sql"
-                  name={this.props.queryEditor.id}
-                  theme="github"
-                  minLines={5}
-                  maxLines={30}
-                  onChange={this.textChange.bind(this)}
-                  height="200px"
-                  width="100%"
-                  editorProps={{ $blockScrolling: true }}
-                  enableBasicAutocompletion
-                  value={this.props.queryEditor.sql}
-                />
-                {editorBottomBar}
-                <br />
-                <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
-              </Col>
-            </Row>
-          </div>
-        </div>
+        <Row>
+          <Col md={3}>
+            <SqlEditorLeft queryEditor={this.props.queryEditor} />
+          </Col>
+          <Col md={9}>
+            <AceEditor
+              mode="sql"
+              name={this.props.queryEditor.id}
+              theme="github"
+              minLines={5}
+              maxLines={30}
+              onChange={this.textChange.bind(this)}
+              height="200px"
+              width="100%"
+              editorProps={{ $blockScrolling: true }}
+              enableBasicAutocompletion
+              value={this.props.queryEditor.sql}
+            />
+            {editorBottomBar}
+            <br />
+            <SouthPane latestQuery={this.props.latestQuery} />
+          </Col>
+        </Row>
       </div>
     );
   }
