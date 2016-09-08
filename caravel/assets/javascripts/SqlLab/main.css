@@ -235,14 +235,6 @@ div.tablePopover:hover {
 .ace_content {
     background-color: #f4f4f4;
 }
-.ws-el > .ws-el-controls {
-    opacity: 0;
-    transition: visibility 0s, opacity 0.3s linear;
-}
-.ws-el:hover > .ws-el-controls {
-    opacity: 1;
-    transition: visibility 0s, opacity 0.3s linear;
-}
 
 .SouthPane .tab-content {
     padding-top: 10px;
