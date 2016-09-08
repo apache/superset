@@ -212,6 +212,74 @@ class CoreTests(CaravelTestCase):
         db.session.delete(datasource)
         db.session.commit()
 
+    def test_druid_sync_from_config(self):
+        cluster = models.DruidCluster(cluster_name="new_druid")
+        db.session.add(cluster)
+        db.session.commit()
+
+        cfg = {
+            "name": "test_click",
+            "dimensions": ["affiliate_id", "campaign", "first_seen"],
+            "metrics_spec": [{"type": "count", "name": "count"},
+                             {"type": "sum", "name": "sum"}],
+            "batch_ingestion": {
+                "sql": "SELECT * FROM clicks WHERE d='{{ ds }}'",
+                "ts_column": "d",
+                "sources": [{
+                    "table": "clicks",
+                    "partition": "d='{{ ds }}'"
+                }]
+            }
+        }
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # Datasource exists, not changes required
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # datasource exists, not changes required
+        cfg = {
+            "name": "test_click",
+            "dimensions": ["affiliate_id", "second_seen"],
+            "metrics_spec": [
+                {"type": "bla", "name": "sum"},
+                {"type": "unique", "name": "unique"}
+            ],
+        }
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        # columns and metrics are not deleted if config is changed as
+        # user could define his own dimensions / metrics and want to keep them
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen", "second_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum", "unique"])
+        # metric type will not be overridden, sum stays instead of bla
+        assert set([m.metric_type for m in druid_ds.metrics]) == set(
+            ["longSum", "sum", "unique"])
+        assert resp.status_code == 201
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
