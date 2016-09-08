@@ -117,6 +117,7 @@ class SqlEditorTopToolbar extends React.Component {
   }
   render() {
     const tables = this.props.tables.filter((t) => (t.queryEditorId === this.props.queryEditor.id));
+    const shouldShowReset = window.location.search === '?reset=1';
     return (
       <div className="clearfix sql-toolbar">
         <div>
@@ -159,9 +160,11 @@ class SqlEditorTopToolbar extends React.Component {
             <TableElement table={table} queryEditor={this.props.queryEditor} />
           ))}
         </div>
-        <Button bsSize="small" bsStyle="danger" onClick={this.resetState.bind(this)}>
-          <i className="fa fa-bomb" /> Reset State
-        </Button>
+        {shouldShowReset &&
+          <Button bsSize="small" bsStyle="danger" onClick={this.resetState.bind(this)}>
+            <i className="fa fa-bomb" /> Reset State
+          </Button>
+        }
       </div>
     );
   }
