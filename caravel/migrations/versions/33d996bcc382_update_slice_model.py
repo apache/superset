@@ -16,8 +16,7 @@ from caravel import db
 import logging
 from caravel.utils import generic_find_constraint_name
 
-def find_constraint_name(col_names, referenced_table):
-	cols = col_names
+def find_constraint_name(cols, referenced_table):
 	return generic_find_constraint_name(
 		table='slices', columns=cols, referenced=referenced_table, db=db)
 

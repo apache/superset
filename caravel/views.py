@@ -951,11 +951,6 @@ class Caravel(BaseCaravelView):
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
-        print("Inside views.py line 932")
-        print(src_registry)
-        print(src_registry.get_instances)
-        print(src_registry.all_sources)
-        print(src_registry.get_cls_model(datasource_type))
         datasource_class = src_registry.get_cls_model(datasource_type)
 
         datasources = (
@@ -1296,7 +1291,7 @@ class Caravel(BaseCaravelView):
                 json_error_response(__(
                     "Table %(t)s wasn't found in the database %(d)s",
                     t=table_name, s=db_name), status=404)
-            slices = table.slices
+            slices = session.query(models.Slice).filter_by(datasource_id=table.id, datasource_type=table.type).all()
 
         for slice in slices:
             try:
