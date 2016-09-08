@@ -1436,6 +1436,7 @@ class Caravel(BaseCaravelView):
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
+                is_dttm=config.get('is_date', False),
             ))
             agg = config.get('agg')
             if agg:
@@ -1443,10 +1444,11 @@ class Caravel(BaseCaravelView):
                     metric_name="{agg}__{column_name}".format(**locals()),
                     expression="{agg}({column_name})".format(**locals()),
                 ))
-        metrics.append(models.SqlMetric(
-            metric_name="count".format(**locals()),
-            expression="count(*)".format(**locals()),
-        ))
+        if not metrics:
+            metrics.append(models.SqlMetric(
+                metric_name="count".format(**locals()),
+                expression="count(*)".format(**locals()),
+            ))
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
