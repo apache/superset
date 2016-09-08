@@ -38,8 +38,6 @@ class TableElement extends React.Component {
         <Link
           href="#"
           onClick={this.props.actions.collapseTable.bind(this, this.props.table)}
-          placement="right"
-          tooltip="Collapse the table's structure information"
         >
           {this.props.table.name} <i className="fa fa-caret-up" />
         </Link>
@@ -60,8 +58,6 @@ class TableElement extends React.Component {
         <Link
           href="#"
           onClick={this.props.actions.expandTable.bind(this, this.props.table)}
-          placement="right"
-          tooltip="Expand the table's structure information"
         >
           {this.props.table.name} <i className="fa fa-caret-down" />
         </Link>
