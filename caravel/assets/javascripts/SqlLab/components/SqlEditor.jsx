@@ -260,7 +260,7 @@ class SqlEditor extends React.Component {
                   mode="sql"
                   name={this.props.queryEditor.id}
                   theme="github"
-                  minLines={5}
+                  minLines={7}
                   maxLines={30}
                   onChange={this.textChange.bind(this)}
                   height="200px"

@@ -10,6 +10,7 @@ class TableElement extends React.Component {
   setSelectStar() {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
   }
+
   selectStar() {
     let cols = '';
     this.props.table.columns.forEach((col, i) => {
@@ -20,6 +21,7 @@ class TableElement extends React.Component {
     });
     return `SELECT ${cols}\nFROM ${this.props.table.name}`;
   }
+
   popSelectStar() {
     const qe = {
       id: shortid.generate(),
@@ -30,26 +32,40 @@ class TableElement extends React.Component {
     };
     this.props.actions.addQueryEditor(qe);
   }
+
+  collapseTable(e) {
+    e.preventDefault();
+    this.props.actions.collapseTable.bind(this, this.props.table)();
+  }
+
+  expandTable(e) {
+    e.preventDefault();
+    this.props.actions.expandTable.bind(this, this.props.table)();
+  }
+
   render() {
     let metadata = null;
     let buttonToggle;
     if (this.props.table.expanded) {
       buttonToggle = (
-        <Link
+        <a
           href="#"
-          onClick={this.props.actions.collapseTable.bind(this, this.props.table)}
-          placement="right"
-          tooltip="Collapse the table's structure information"
+          onClick={(e) => { this.collapseTable(e); }}
         >
-          {this.props.table.name} <i className="fa fa-caret-up" />
-        </Link>
+          <strong>{this.props.table.name}</strong>
+          <small className="m-l-5"><i className="fa fa-minus" /></small>
+        </a>
       );
       metadata = (
         <div>
           {this.props.table.columns.map((col) => (
-            <div className="clearfix">
-              <span className="pull-left m-l-5">{col.name}</span>
-              <span className="pull-right text-muted">{col.type}</span>
+            <div className="row">
+              <div className="col-sm-8">
+                <div className="m-l-5">{col.name}</div>
+              </div>
+              <div className="col-sm-4">
+                <div className="pull-right text-muted"><small>{col.type}</small></div>
+              </div>
             </div>
           ))}
           <hr />
@@ -57,39 +73,44 @@ class TableElement extends React.Component {
       );
     } else {
       buttonToggle = (
-        <Link
+        <a
           href="#"
-          onClick={this.props.actions.expandTable.bind(this, this.props.table)}
-          placement="right"
-          tooltip="Expand the table's structure information"
+          onClick={(e) => { this.expandTable(e); }}
         >
-          {this.props.table.name} <i className="fa fa-caret-down" />
-        </Link>
+          {this.props.table.name}
+          <small className="m-l-5"><i className="fa fa-plus" /></small>
+        </a>
       );
     }
     return (
-      <div className="ws-el">
-        {buttonToggle}
-        <ButtonGroup className="ws-el-controls pull-right">
-          <Link
-            className="fa fa-pencil m-l-2"
-            onClick={this.setSelectStar.bind(this)}
-            tooltip="Run query in a new tab"
-            href="#"
-          />
-          <Link
-            className="fa fa-plus-circle m-l-2"
-            onClick={this.popSelectStar.bind(this)}
-            tooltip="Run query in a new tab"
-            href="#"
-          />
-          <Link
-            className="fa fa-trash m-l-2"
-            onClick={this.props.actions.removeTable.bind(this, this.props.table)}
-            tooltip="Remove from workspace"
-            href="#"
-          />
-        </ButtonGroup>
+      <div>
+        <div className="row">
+          <div className="col-sm-9 m-b-10">
+            {buttonToggle}
+          </div>
+          <div className="col-sm-3">
+            <ButtonGroup className="ws-el-controls pull-right">
+              <Link
+                className="fa fa-pencil pull-left m-l-2"
+                onClick={this.setSelectStar.bind(this)}
+                tooltip="Run query in this tab"
+                href="#"
+              />
+              <Link
+                className="fa fa-plus-circle pull-left  m-l-2"
+                onClick={this.popSelectStar.bind(this)}
+                tooltip="Run query in a new tab"
+                href="#"
+              />
+              <Link
+                className="fa fa-trash pull-left m-l-2"
+                onClick={this.props.actions.removeTable.bind(this, this.props.table)}
+                tooltip="Remove from workspace"
+                href="#"
+              />
+            </ButtonGroup>
+          </div>
+        </div>
         {metadata}
       </div>
     );
