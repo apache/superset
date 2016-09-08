@@ -183,7 +183,9 @@ export const sqlLabReducer = function (state, action) {
       let change = false;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
-        if (!state.queries.hasOwnProperty(id) || state.queries[id].changedOn !== changedQuery.changedOn) {
+        if (
+            !state.queries.hasOwnProperty(id) ||
+            state.queries[id].changedOn !== changedQuery.changedOn) {
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }

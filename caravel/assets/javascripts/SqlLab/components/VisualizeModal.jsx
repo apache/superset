@@ -10,7 +10,7 @@ import { Table } from 'reactable';
 import shortid from 'shortid';
 
 const CHART_TYPES = [
-  { value: 'dist_bar', label: 'Distribution - Bar Chart',requiresTime: false },
+  { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
   { value: 'pie', label: 'Pie Chart', requiresTime: false },
   { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
   { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
@@ -33,7 +33,6 @@ class VisualizeModal extends React.Component {
     const cols = this.mergedColumns();
     const re = /^\w+$/;
     Object.keys(cols).forEach((colName) => {
-      const col = cols[colName];
       if (!re.test(colName)) {
         hints.push(
           <div>
