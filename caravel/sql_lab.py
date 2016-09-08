@@ -79,7 +79,7 @@ def get_sql_results(query_id, return_results=True):
         cursor = result_proxy.cursor
         query.status = QueryStatus.RUNNING
         db.session.flush()
-        if hasattr(cursor, "poll"):
+        if database.backend == 'presto':
             polled = cursor.poll()
             # poll returns dict -- JSON status information or ``None``
             # if the query is done
