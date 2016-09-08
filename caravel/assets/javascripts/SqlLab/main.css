@@ -141,15 +141,12 @@ div.Workspace {
     max-height: 600px;
     box-shadow: rgba(0, 0, 0, 0.8) 5px 5px 25px
 }
-.SqlLab {
-    font-size: 12px;
-}
 .SqlLab pre {
     padding: 0px !important;
     margin: 0px;
     border: none;
-    font-size: 11px;
-    line-height: 125%;
+    font-size: 12px;
+    line-height: @line-height-base;
     background-color: transparent !important;
 }
 
@@ -237,14 +234,6 @@ div.tablePopover:hover {
 }
 .ace_content {
     background-color: #f4f4f4;
-}
-.ws-el > .ws-el-controls {
-    opacity: 0;
-    transition: visibility 0s, opacity 0.3s linear;
-}
-.ws-el:hover > .ws-el-controls {
-    opacity: 1;
-    transition: visibility 0s, opacity 0.3s linear;
 }
 
 .SouthPane .tab-content {
