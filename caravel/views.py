@@ -32,7 +32,7 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab
+    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab, src_registry
 )
 
 config = app.config
@@ -650,8 +650,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
-        'slice_name', 'description', 'viz_type', 'druid_datasource',
-        'table', 'owners', 'dashboards', 'params', 'cache_timeout']
+        'slice_name', 'description', 'viz_type', 'owners', 'dashboards', 'params', 'cache_timeout']
     base_order = ('changed_on', 'desc')
     description_columns = {
         'description': Markup(
@@ -952,8 +951,13 @@ class Caravel(BaseCaravelView):
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
-        datasource_class = models.SqlaTable \
-            if datasource_type == "table" else models.DruidDatasource
+        print("Inside views.py line 932")
+        print(src_registry)
+        print(src_registry.get_instances)
+        print(src_registry.all_sources)
+        print(src_registry.get_cls_model(datasource_type))
+        datasource_class = src_registry.get_cls_model(datasource_type)
+
         datasources = (
             db.session
             .query(datasource_class)

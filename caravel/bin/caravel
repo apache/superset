@@ -20,6 +20,7 @@ config = app.config
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
+utils.register_sources(caravel.models, caravel.src_registry)
 
 
 @manager.option(

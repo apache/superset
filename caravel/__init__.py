@@ -14,7 +14,7 @@ from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
 
-from caravel import version
+from caravel import version, source_registry
 
 VERSION = version.VERSION_STRING
 
@@ -63,6 +63,8 @@ appbuilder = AppBuilder(
     security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
 
 sm = appbuilder.sm
+
+src_registry = source_registry.SourceRegistry()
 
 get_session = appbuilder.get_session
 from caravel import config, views  # noqa
