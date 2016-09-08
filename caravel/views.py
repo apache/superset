@@ -1598,12 +1598,15 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/csv/<query_id>")
+    @expose("/csv/<client_id>")
     @log_this
-    def csv(self, query_id):
+    def csv(self, client_id):
         """Download the query results as csv."""
-        s = db.session()
-        query = s.query(models.Query).filter_by(id=int(query_id)).first()
+        query = (
+            db.session.query(models.Query)
+            .filter_by(client_id=client_id)
+            .first()
+        )
 
         if not self.database_access(query.database):
             flash(get_database_access_error_msg(query.database.database_name))

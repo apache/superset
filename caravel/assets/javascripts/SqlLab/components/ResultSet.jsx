@@ -22,6 +22,9 @@ class ResultSet extends React.Component {
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
   }
+  csv() {
+    window.location = '/caravel/csv/' + this.props.query.id;
+  }
   showModal() {
     this.setState({ showModal: true });
   }
@@ -43,7 +46,7 @@ class ResultSet extends React.Component {
                 >
                   <i className="fa fa-line-chart m-l-1" /> Visualize
                 </Button>
-                <Button bsSize="small">
+                <Button bsSize="small" onClick={this.csv.bind(this)}>
                   <i className="fa fa-file-text-o" /> .CSV
                 </Button>
               </ButtonGroup>
