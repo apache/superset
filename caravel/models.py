@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
+import re
 import textwrap
 from collections import namedtuple
 from copy import deepcopy, copy
@@ -1806,7 +1807,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11))
+    client_id = Column(String(11), unique=True)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1815,7 +1816,6 @@ class Query(Model):
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
-    name = Column(String(256))
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
@@ -1872,3 +1872,10 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+    @property
+    def name(self):
+        ts = datetime.now().isoformat()
+        ts = ts.replace('-', '').replace(':', '').split('.')[0]
+        tab = self.tab_name.replace(' ', '_').lower()
+        tab = re.sub(r'\W+', '', tab)
+        return "sqllab_{tab}_{ts}".format(**locals())
