@@ -135,6 +135,15 @@ class SqlEditor extends React.Component {
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
+
+  sqlEditorHeight() {
+    // quick hack to make the white bg of the tab stretch full height.
+    const tabNavHeight = 40;
+    const navBarHeight = 56;
+    const mysteryVerticalHeight = 50;
+    return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
+  }
+
   render() {
     let runButtons = (
       <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
@@ -248,7 +257,7 @@ class SqlEditor extends React.Component {
       </div>
     );
     return (
-      <div className="SqlEditor">
+      <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
         <Row>
           <Col md={3}>
             <SqlEditorLeft queryEditor={this.props.queryEditor} />
