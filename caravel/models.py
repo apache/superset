@@ -421,12 +421,16 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
+    @property
+    def backend(self):
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        return url.get_backend_name()
+
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        params = extra.get('engine_params', {})
         url = make_url(self.sqlalchemy_uri_decrypted)
-        backend = url.get_backend_name()
-        if backend == 'presto' and schema:
+        params = extra.get('engine_params', {})
+        if self.backend == 'presto' and schema:
             if '/' in url.database:
                 url.database = url.database.split('/')[0] + '/' + schema
             else:
