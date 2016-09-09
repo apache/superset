@@ -27,8 +27,16 @@ class QueryAutoRefresh extends React.Component {
     const url = '/caravel/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
     // No updates in case of failure.
     $.getJSON(url, (data, status) => {
-      if (status === 'success') {
+      if (Object.keys(data).length > 0) {
         this.props.actions.refreshQueries(data);
+      }
+      if (!this.props.networkOn) {
+        this.props.actions.setNetworkStatus(true);
+      }
+    })
+    .fail(() => {
+      if (this.props.networkOn) {
+        this.props.actions.setNetworkStatus(false);
       }
     });
   }
@@ -39,6 +47,7 @@ class QueryAutoRefresh extends React.Component {
 QueryAutoRefresh.propTypes = {
   actions: React.PropTypes.object,
   queriesLastUpdate: React.PropTypes.integer,
+  networkOn: React.PropTypes.boolean,
 };
 QueryAutoRefresh.defaultProps = {
   // queries: null,
@@ -47,6 +56,7 @@ QueryAutoRefresh.defaultProps = {
 function mapStateToProps(state) {
   return {
     queriesLastUpdate: state.queriesLastUpdate,
+    networkOn: state.networkOn,
   };
 }
 

@@ -11,9 +11,9 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
-// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
+  networkOn: true,
   queries: {},
   databases: {},
   queryEditors: [defaultQueryEditor],
@@ -176,6 +176,11 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
+    },
+    [actions.SET_NETWORK_STATUS]() {
+      if (state.networkOn !== action.networkOn) {
+        return Object.assign({}, state, { networkOn: action.networkOn });
+      }
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = Object.assign({}, state.queries);

@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
 import Select from 'react-select';
-import { Button } from 'react-bootstrap';
+import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 
 
@@ -116,10 +116,15 @@ class SqlEditorTopToolbar extends React.Component {
     });
   }
   render() {
+    let networkAlert = null;
+    if (!this.props.networkOn) {
+      networkAlert = <p><Label bsStyle="danger">OFFLINE</Label></p>;
+    }
     const tables = this.props.tables.filter((t) => (t.queryEditorId === this.props.queryEditor.id));
     const shouldShowReset = window.location.search === '?reset=1';
     return (
       <div className="clearfix sql-toolbar">
+        {networkAlert}
         <div>
           <Select
             name="select-db"
@@ -183,6 +188,7 @@ SqlEditorTopToolbar.defaultProps = {
 function mapStateToProps(state) {
   return {
     tables: state.tables,
+    networkOn: state.networkOn,
   };
 }
 
