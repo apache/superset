@@ -32,7 +32,8 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab, src_registry
+    appbuilder, db, models, viz, utils, app, sm, 
+    ascii_art, sql_lab, src_registry
 )
 
 config = app.config

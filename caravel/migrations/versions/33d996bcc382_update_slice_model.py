@@ -16,14 +16,16 @@ from caravel import db
 import logging
 from caravel.utils import generic_find_constraint_name
 
+
 def find_constraint_name(cols, referenced_table):
     return generic_find_constraint_name(
         table='slices', columns=cols, referenced=referenced_table, db=db)
 
+
 def upgrade():
     try:
         with op.batch_alter_table('slices') as batch_op:
-            cols_1 = {'druid_datasource_id'} 
+            cols_1 = {'druid_datasource_id'}
             constraint_1 = find_constraint_name(cols_1, 'datasources')
             batch_op.drop_constraint(constraint_1, type_="foreignkey")
 
@@ -45,5 +47,7 @@ def downgrade():
         batch_op.add_column(sa.Column('druid_datasource_id', sa.Integer()))
         batch_op.add_column(sa.Column('table_id', sa.Integer()))
 
-        batch_op.create_foreign_key(None, 'datasources', ['druid_datasource_id'], ['id'])
-        batch_op.create_foreign_key(None, 'tables', ['table_id'], ['id'])
+        batch_op.create_foreign_key(None, 
+            'datasources', ['druid_datasource_id'], ['id'])
+        batch_op.create_foreign_key(None, 
+            'tables', ['table_id'], ['id'])

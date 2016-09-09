@@ -20,15 +20,18 @@ from sqlalchemy import (
 
 Base = declarative_base()
 
+
 class Slice(Base):
     """Declarative class to do query in upgrade"""
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
 
+
 class Dashboard(Base):
     """Declarative class to do query in upgrade"""
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
+
     
 def upgrade():
     bind = op.get_bind()
