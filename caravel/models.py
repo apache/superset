@@ -842,7 +842,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '') for types in splitted]
+                values = [types.replace("'", '').strip() for types in splitted]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
