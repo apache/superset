@@ -97,15 +97,19 @@ class SqlEditor extends React.Component {
           that.props.actions.querySuccess(query, results);
         }
       },
-      error(err) {
+      error(err, textStatus, errorThrown) {
         let msg;
         try {
           msg = err.responseJSON.error;
         } catch (e) {
-          msg = (err.responseText) ? err.responseText : e;
+          if (err.responseText !== undefined) {
+            msg = err.responseText;
+          }
         }
-        if (typeof(msg) !== 'string') {
-          msg = JSON.stringify(msg);
+        if (textStatus === 'error' && errorThrown === '') {
+          msg = 'Could not connect to server';
+        } else if (msg === null) {
+          msg = `[${textStatus}] ${errorThrown}`;
         }
         that.props.actions.queryFailed(query, msg);
       },
