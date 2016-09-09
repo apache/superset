@@ -280,6 +280,34 @@ class CoreTests(CaravelTestCase):
             ["longSum", "sum", "unique"])
         assert resp.status_code == 201
 
+    def test_filter_druid_datasource(self):
+        gamma_ds = DruidDatasource(
+            datasource_name="datasource_for_gamma",
+        )
+        db.session.add(gamma_ds)
+        no_gamma_ds = DruidDatasource(
+            datasource_name="datasource_not_for_gamma",
+        )
+        db.session.add(no_gamma_ds)
+        db.session.commit()
+        utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
+        utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+        db.session.commit()
+
+        gamma_ds_permission_view = (
+            db.session.query(ab_models.PermissionView)
+            .join(ab_models.ViewMenu)
+            .filter(ab_models.ViewMenu.name == gamma_ds.perm)
+            .first()
+        )
+        sm.add_permission_role(sm.find_role('Gamma'), gamma_ds_permission_view)
+
+        self.login(username='gamma')
+        url = '/druiddatasourcemodelview/list/'
+        resp = self.client.get(url, follow_redirects=True)
+        assert 'datasource_for_gamma' in resp.data.decode('utf-8')
+        assert 'datasource_not_for_gamma' not in resp.data.decode('utf-8')
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
