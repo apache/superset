@@ -17,33 +17,33 @@ import logging
 from caravel.utils import generic_find_constraint_name
 
 def find_constraint_name(cols, referenced_table):
-	return generic_find_constraint_name(
-		table='slices', columns=cols, referenced=referenced_table, db=db)
+    return generic_find_constraint_name(
+        table='slices', columns=cols, referenced=referenced_table, db=db)
 
 def upgrade():
-	try:
-		with op.batch_alter_table('slices') as batch_op:
-			cols_1 = {'druid_datasource_id'} 
-			constraint_1 = find_constraint_name(cols_1, 'datasources')
-			batch_op.drop_constraint(constraint_1, type_="foreignkey")
+    try:
+        with op.batch_alter_table('slices') as batch_op:
+            cols_1 = {'druid_datasource_id'} 
+            constraint_1 = find_constraint_name(cols_1, 'datasources')
+            batch_op.drop_constraint(constraint_1, type_="foreignkey")
 
-			cols_2 = {'table_id'}
-			constraint_2 = find_constraint_name(cols_2, 'tables')
-			batch_op.drop_constraint(constraint_2, type_="foreignkey")
+            cols_2 = {'table_id'}
+            constraint_2 = find_constraint_name(cols_2, 'tables')
+            batch_op.drop_constraint(constraint_2, type_="foreignkey")
 
-			batch_op.drop_column('druid_datasource_id')
-			batch_op.drop_column('table_id')
-			batch_op.add_column(sa.Column('datasource_id', sa.Integer()))
-	except Exception as e:
-		logging.warning(e)
+            batch_op.drop_column('druid_datasource_id')
+            batch_op.drop_column('table_id')
+            batch_op.add_column(sa.Column('datasource_id', sa.Integer()))
+    except Exception as e:
+        logging.warning(e)
 
 
 def downgrade():
-	with op.batch_alter_table('slices') as batch_op:
-		batch_op.drop_column('datasource_id')
+    with op.batch_alter_table('slices') as batch_op:
+        batch_op.drop_column('datasource_id')
 
-		batch_op.add_column(sa.Column('druid_datasource_id', sa.Integer()))
-		batch_op.add_column(sa.Column('table_id', sa.Integer()))
+        batch_op.add_column(sa.Column('druid_datasource_id', sa.Integer()))
+        batch_op.add_column(sa.Column('table_id', sa.Integer()))
 
-		batch_op.create_foreign_key(None, 'datasources', ['druid_datasource_id'], ['id'])
-		batch_op.create_foreign_key(None, 'tables', ['table_id'], ['id'])
+        batch_op.create_foreign_key(None, 'datasources', ['druid_datasource_id'], ['id'])
+        batch_op.create_foreign_key(None, 'tables', ['table_id'], ['id'])
