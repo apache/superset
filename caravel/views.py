@@ -526,9 +526,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'changed_by_', 'changed_on_']
     order_columns = [
         'table_link', 'database', 'is_featured', 'changed_on_']
-    add_columns = [
-        'table_name', 'database', 'schema',
-        'default_endpoint', 'offset', 'cache_timeout']
+    add_columns = ['table_name', 'database', 'schema']
     edit_columns = [
         'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
@@ -536,14 +534,16 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource",
-        'schema': (
+        'offset': _("Timezone offset (in hours) for this datasource"),
+        'table_name': _(
+            "Name of the table that exists in the source database"),
+        'schema': _(
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
-        'sql': (
+        'sql': _(
             "This fields acts a Caravel view, meaning that Caravel will "
             "run a query against this string as a subquery."
         ),
@@ -561,17 +561,26 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'cache_timeout': _("Cache Timeout"),
     }
 
-    def post_add(self, table):
-        table_name = table.table_name
+    def pre_add(self, table):
+        # Fail before adding if the table can't be found
         try:
-            table.fetch_metadata()
+            table.get_sqla_table_object()
         except Exception as e:
             logging.exception(e)
-            flash(
-                "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table_name),
-                "danger")
+            raise Exception(
+                "Table [{}] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name".format(table.table_name))
+
+    def post_add(self, table):
+        table.fetch_metadata()
         utils.merge_perm(sm, 'datasource_access', table.perm)
+        flash(_(
+            "The table was created. As part of this two phase configuration "
+            "process, you should now click the edit button by "
+            "the new table to configure it."),
+            "info")
 
     def post_update(self, table):
         self.post_add(table)

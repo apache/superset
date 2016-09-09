@@ -889,16 +889,17 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
+    def get_sqla_table_object(self):
+        return self.database.get_table(self.table_name, schema=self.schema)
+
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
-            table = self.database.get_table(self.table_name, schema=self.schema)
-        except Exception as e:
-            flasher(str(e))
-            flasher(
+            table = self.get_sqla_table_object()
+        except Exception:
+            raise Exception(
                 "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information", "danger")
-            return
+                "couldn't fetch column information")
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
