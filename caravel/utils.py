@@ -404,10 +404,12 @@ def readfile(filepath):
         content = f.read()
     return content
 
-def register_sources(models, registry):
-    print("Inside register_sources")
-    registry.add_source(models.DruidDatasource.type, models.DruidDatasource)
-    registry.add_source(models.SqlaTable.type, models.SqlaTable)
+def register_sources(datasources, module_datasource_map, registry):
+    for m in datasources:
+        datasource_list = module_datasource_map[m]
+        for ds in datasource_list:
+            ds_class = getattr(datasources[m], ds)
+            registry.add_source(ds_class.type, ds_class)
     
 def generic_find_constraint_name(table, columns, referenced, db):
     """Utility to find a constraint name in alembic migrations"""

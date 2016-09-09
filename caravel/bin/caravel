@@ -20,7 +20,13 @@ config = app.config
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
-utils.register_sources(caravel.models, caravel.src_registry)
+module_datasource_map = dict(config.get("DEFAULT_MODULE_DS_MAP"), **config.get("ADDITIONAL_MODULE_DS_MAP"))
+
+datasources = {}
+for module in module_datasource_map:
+    datasources[module] = __import__(module, fromlist=module_datasource_map[module])
+
+utils.register_sources(datasources, module_datasource_map, caravel.src_registry)
 
 
 @manager.option(
