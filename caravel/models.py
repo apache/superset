@@ -1950,6 +1950,6 @@ class Query(Model):
     def name(self):
         ts = datetime.now().isoformat()
         ts = ts.replace('-', '').replace(':', '').split('.')[0]
-        tab = self.tab_name.replace(' ', '_').lower()
+        tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
         tab = re.sub(r'\W+', '', tab)
         return "sqllab_{tab}_{ts}".format(**locals())

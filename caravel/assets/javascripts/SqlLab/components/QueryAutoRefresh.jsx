@@ -26,7 +26,7 @@ class QueryAutoRefresh extends React.Component {
   stopwatch() {
     const url = '/caravel/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
     // No updates in case of failure.
-    $.getJSON(url, (data, status) => {
+    $.getJSON(url, (data) => {
       if (Object.keys(data).length > 0) {
         this.props.actions.refreshQueries(data);
       }

@@ -181,6 +181,7 @@ export const sqlLabReducer = function (state, action) {
       if (state.networkOn !== action.networkOn) {
         return Object.assign({}, state, { networkOn: action.networkOn });
       }
+      return state;
     },
     [actions.REFRESH_QUERIES]() {
       let newQueries = Object.assign({}, state.queries);
