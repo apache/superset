@@ -697,18 +697,13 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        a_druid_datasource = db.session.query(models.DruidDatasource).first()
-        if a_druid_datasource is not None:
-            url = "/druiddatasourcemodelview/list/"
-            msg = _(
-                "Click on a datasource link to create a Slice, "
-                "or click on a table link "
-                "<a href='/tablemodelview/list/'>here</a> "
-                "to create a Slice for a table"
-            )
-        else:
-            url = "/tablemodelview/list/"
-            msg = _("Click on a table link to create a Slice")
+        msg = _("Click on a link to create a Slice")
+        sources = src_registry.all_sources
+        for source in sources:
+            ds = db.session.query(src_registry.get_cls_model(source)).first()
+            if ds is not None:
+                url = "/{}/list/".format(ds.baselink)
+                break            
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
         return redirect(redirect_url)
