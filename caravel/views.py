@@ -697,12 +697,13 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        msg = _("Click on a link to create a Slice")
+        
         sources = src_registry.all_sources
         for source in sources:
             ds = db.session.query(src_registry.get_cls_model(source)).first()
             if ds is not None:
                 url = "/{}/list/".format(ds.baselink)
+                msg = _("Click on a {} link to create a Slice".format(source))
                 break            
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
