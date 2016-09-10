@@ -230,6 +230,19 @@ class FilterDashboardOwners(CaravelFilter):
         return qry
 
 
+class FilterDruidDatasource(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        perms = self.get_perms()
+        druid_datasources = []
+        for perm in perms:
+            match = re.search(r'\(id:(\d+)\)', perm)
+            druid_datasources.append(match.group(1))
+        qry = query.filter(self.model.id.in_(druid_datasources))
+        return qry
+
+
 def validate_json(form, field):  # noqa
     try:
         json.loads(field.data)
@@ -857,6 +870,7 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
+    base_filters = [['id', FilterDruidDatasource, lambda: []]]
     label_columns = {
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
