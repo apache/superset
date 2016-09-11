@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
+import re
 import textwrap
 from collections import namedtuple
 from copy import deepcopy, copy
@@ -421,12 +422,16 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
+    @property
+    def backend(self):
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        return url.get_backend_name()
+
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        params = extra.get('engine_params', {})
         url = make_url(self.sqlalchemy_uri_decrypted)
-        backend = url.get_backend_name()
-        if backend == 'presto' and schema:
+        params = extra.get('engine_params', {})
+        if self.backend == 'presto' and schema:
             if '/' in url.database:
                 url.database = url.database.split('/')[0] + '/' + schema
             else:
@@ -1876,7 +1881,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11))
+    client_id = Column(String(11), unique=True)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1885,7 +1890,6 @@ class Query(Model):
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
-    name = Column(String(256))
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
@@ -1910,7 +1914,7 @@ class Query(Model):
     start_time = Column(Numeric(precision=3))
     end_time = Column(Numeric(precision=3))
     changed_on = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
@@ -1922,6 +1926,7 @@ class Query(Model):
     def to_dict(self):
         return {
             'changedOn': self.changed_on,
+            'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,
@@ -1941,3 +1946,10 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+    @property
+    def name(self):
+        ts = datetime.now().isoformat()
+        ts = ts.replace('-', '').replace(':', '').split('.')[0]
+        tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
+        tab = re.sub(r'\W+', '', tab)
+        return "sqllab_{tab}_{ts}".format(**locals())

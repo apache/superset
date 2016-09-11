@@ -23,6 +23,7 @@ export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
+export const SET_NETWORK_STATUS = 'SET_NETWORK_STATUS';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -34,6 +35,10 @@ export function setDatabases(databases) {
 
 export function addQueryEditor(queryEditor) {
   return { type: ADD_QUERY_EDITOR, queryEditor };
+}
+
+export function setNetworkStatus(networkOn) {
+  return { type: SET_NETWORK_STATUS, networkOn };
 }
 
 export function addAlert(alert) {

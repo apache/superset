@@ -43,7 +43,7 @@ class ResultSet extends React.Component {
                 >
                   <i className="fa fa-line-chart m-l-1" /> Visualize
                 </Button>
-                <Button bsSize="small">
+                <Button bsSize="small" href={'/caravel/csv/' + this.props.query.id}>
                   <i className="fa fa-file-text-o" /> .CSV
                 </Button>
               </ButtonGroup>

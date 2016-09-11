@@ -4,12 +4,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import csv
 import doctest
 import imp
 import json
 import io
+import random
 import unittest
 
 
@@ -367,16 +367,19 @@ class CoreTests(CaravelTestCase):
         assert len(data['data']) > 0
 
     def test_csv_endpoint(self):
-        sql = "SELECT first_name, last_name FROM ab_user " \
-              "where first_name='admin'"
-        self.run_sql(sql, 'admin')
+        sql = """
+            SELECT first_name, last_name
+            FROM ab_user
+            WHERE first_name='admin'
+        """
+        client_id = "{}".format(random.getrandbits(64))[:10]
+        self.run_sql(sql, 'admin', client_id)
 
-        query1_id = self.get_query_by_sql(sql).id
         self.login('admin')
-        resp = self.client.get('/caravel/csv/{}'.format(query1_id))
+        resp = self.client.get('/caravel/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp.data.decode('utf-8')))
-        expected_data = csv.reader(io.StringIO(
-            "first_name,last_name\nadmin, user\n"))
+        expected_data = csv.reader(
+            io.StringIO("first_name,last_name\nadmin, user\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()

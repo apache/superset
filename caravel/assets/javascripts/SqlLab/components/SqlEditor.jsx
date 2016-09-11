@@ -97,15 +97,19 @@ class SqlEditor extends React.Component {
           that.props.actions.querySuccess(query, results);
         }
       },
-      error(err) {
+      error(err, textStatus, errorThrown) {
         let msg;
         try {
           msg = err.responseJSON.error;
         } catch (e) {
-          msg = (err.responseText) ? err.responseText : e;
+          if (err.responseText !== undefined) {
+            msg = err.responseText;
+          }
         }
-        if (typeof(msg) !== 'string') {
-          msg = JSON.stringify(msg);
+        if (textStatus === 'error' && errorThrown === '') {
+          msg = 'Could not connect to server';
+        } else if (msg === null) {
+          msg = `[${textStatus}] ${errorThrown}`;
         }
         that.props.actions.queryFailed(query, msg);
       },
@@ -135,6 +139,15 @@ class SqlEditor extends React.Component {
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
+
+  sqlEditorHeight() {
+    // quick hack to make the white bg of the tab stretch full height.
+    const tabNavHeight = 40;
+    const navBarHeight = 56;
+    const mysteryVerticalHeight = 50;
+    return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
+  }
+
   render() {
     let runButtons = (
       <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
@@ -248,34 +261,30 @@ class SqlEditor extends React.Component {
       </div>
     );
     return (
-      <div className="SqlEditor">
-        <div>
-          <div>
-            <Row>
-              <Col md={3}>
-                <SqlEditorLeft queryEditor={this.props.queryEditor} />
-              </Col>
-              <Col md={9}>
-                <AceEditor
-                  mode="sql"
-                  name={this.props.queryEditor.id}
-                  theme="github"
-                  minLines={7}
-                  maxLines={30}
-                  onChange={this.textChange.bind(this)}
-                  height="200px"
-                  width="100%"
-                  editorProps={{ $blockScrolling: true }}
-                  enableBasicAutocompletion
-                  value={this.props.queryEditor.sql}
-                />
-                {editorBottomBar}
-                <br />
-                <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
-              </Col>
-            </Row>
-          </div>
-        </div>
+      <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
+        <Row>
+          <Col md={3}>
+            <SqlEditorLeft queryEditor={this.props.queryEditor} />
+          </Col>
+          <Col md={9}>
+            <AceEditor
+              mode="sql"
+              name={this.props.queryEditor.id}
+              theme="github"
+              minLines={7}
+              maxLines={30}
+              onChange={this.textChange.bind(this)}
+              height="200px"
+              width="100%"
+              editorProps={{ $blockScrolling: true }}
+              enableBasicAutocompletion
+              value={this.props.queryEditor.sql}
+            />
+            {editorBottomBar}
+            <br />
+            <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
+          </Col>
+        </Row>
       </div>
     );
   }
