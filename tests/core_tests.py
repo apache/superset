@@ -372,7 +372,7 @@ class CoreTests(CaravelTestCase):
             FROM ab_user
             WHERE first_name='admin'
         """
-        client_id = random.getrandbits(64)
+        client_id = "{}".format(random.getrandbits(64))[:10]
         self.run_sql(sql, 'admin', client_id)
 
         self.login('admin')

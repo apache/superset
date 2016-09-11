@@ -1607,7 +1607,7 @@ class Caravel(BaseCaravelView):
         query = (
             db.session.query(models.Query)
             .filter_by(client_id=client_id)
-            .first()
+            .one()
         )
 
         if not self.database_access(query.database):
