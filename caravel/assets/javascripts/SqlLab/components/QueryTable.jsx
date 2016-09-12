@@ -20,6 +20,7 @@ class QueryTable extends React.Component {
     this.state = {
       showVisualizeModal: false,
       activeQuery: null,
+      searchText: '',
     };
   }
   hideVisualizeModal() {
@@ -35,6 +36,9 @@ class QueryTable extends React.Component {
   notImplemented() {
     /* eslint no-alert: 0 */
     alert('Not implemented yet!');
+  }
+  changeSearch(event) {
+    this.setState({ searchText: event.target.value });
   }
   render() {
     const data = this.props.queries.map((query) => {
@@ -108,10 +112,21 @@ class QueryTable extends React.Component {
           query={this.state.activeQuery}
           onHide={this.hideVisualizeModal.bind(this)}
         />
+        <div className="pull-right">
+          <input
+            type="text"
+            onChange={this.changeSearch.bind(this)}
+            className="form-control input-sm"
+            placeholder="Search Query History"
+          />
+        </div>
         <Table
           columns={this.props.columns}
           className="table table-condensed"
           data={data}
+          filterBy={this.state.searchText}
+          filterable={this.props.columns}
+          hideFilterInput
         />
       </div>
     );
@@ -121,10 +136,12 @@ QueryTable.propTypes = {
   columns: React.PropTypes.array,
   actions: React.PropTypes.object,
   queries: React.PropTypes.array,
+  searchText: React.PropTypes.string,
 };
 QueryTable.defaultProps = {
   columns: ['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions'],
   queries: [],
+  searchText: '',
 };
 
 function mapStateToProps() {

@@ -8,6 +8,7 @@ import * as Actions from './actions';
 
 import TabbedSqlEditors from './components/TabbedSqlEditors';
 import QueryAutoRefresh from './components/QueryAutoRefresh';
+import QuerySearch from './components/QuerySearch';
 import Alerts from './components/Alerts';
 
 import { bindActionCreators, createStore } from 'redux';
@@ -21,9 +22,20 @@ require('./main.css');
 let store = createStore(sqlLabReducer, initialState, enhancer());
 
 // jquery hack to highlight the navbar menu
-$('a[href="/caravel/sqllab"]').parent().addClass('active');
+// $('a[href="/caravel/sqllab"]').parent().addClass('active');
 
 const App = function (props) {
+  if (window.location.search) {
+    return (
+      <div className="container-fluid">
+        <div className="row">
+          <div className="col-md-12">
+            <QuerySearch />
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="App SqlLab">
       <div className="container-fluid">

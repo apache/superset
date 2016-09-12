@@ -13,11 +13,13 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
+// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
   networkOn: true,
   queries: {},
   databases: {},
+  filterDatabases: {},
   queryEditors: [defaultQueryEditor],
   tabHistory: [defaultQueryEditor.id],
   tables: [],
@@ -135,6 +137,16 @@ export const sqlLabReducer = function (state, action) {
         databases[db.id] = db;
       });
       return Object.assign({}, state, { databases });
+    },
+    [actions.SET_FILTER_DATABASES]() {
+      const filterDatabases = {};
+      action.filterDatabases.forEach((db) => {
+        filterDatabases[db.id] = db;
+      });
+      return Object.assign({}, state, { filterDatabases });
+    },
+    [actions.SET_QUERY_FILTER]() {
+      return Object.assign({}, state, { queryFilter: action.queryFilter });
     },
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);

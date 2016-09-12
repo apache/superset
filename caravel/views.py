@@ -1,4 +1,3 @@
-"""Flask web views for Caravel"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -1865,6 +1864,59 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
+    @expose("/get_all_users")
+    @log_this
+    def all_users(self):
+        """Get all the queries."""
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
+
+        return Response(
+            json.dumps([(u.id, u.username) for u in sm.get_all_users()]),
+            status=200,
+            mimetype="application/json")
+
+    @has_access
+    @expose("/search_queries/userId=<userId>"
+        "&dbId=<dbId>&sql=<search_text>&state=<state>")
+    @log_this
+    def search_queries(self, userId, dbId, search_text, state):
+        """Get all the queries."""
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
+
+        search_str = '%{}%'.format(search_text)
+
+        query = db.session.query(models.Query)
+        if not userId == 'null':
+            # Filter on user Id
+            query = query.filter(models.Query.user_id == userId)
+
+        if not dbId == 'null':
+            # Filter on db Id
+            query = query.filter(models.Query.database_id == dbId)
+
+        if not state == 'null':
+            query = query.filter(models.Query.status == state)
+
+        if not search_text == 'null':
+            query = query.filter(models.Query.sql.like(search_str))
+
+        sql_queries = query.limit(1000).all()
+
+        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+        return Response(
+            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
+            status=200,
+            mimetype="application/json")
+
+    @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         """endpoint that refreshes druid datasources metadata"""
@@ -1937,11 +1989,11 @@ appbuilder.add_view(
     category_label=__("Sources"),
     category_icon='')
 
-appbuilder.add_link(
-    'SQL Lab <span class="label label-danger">alpha</span>',
-    href='/caravel/sqllab',
-    icon="fa-flask")
+appbuilder.add_link('Query Search',
+    href='/caravel/sqllab?search', icon="fa-flask", category='SQL Lab')
 
+appbuilder.add_link('My Queries',
+    href='/caravel/sqllab', icon="fa-flask", category='SQL Lab')
 
 @app.after_request
 def apply_caching(response):

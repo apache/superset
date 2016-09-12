@@ -1,67 +1,87 @@
+const $ = window.$ = require('jquery');
 import React from 'react';
-import Select from 'react-select';
-import { Button } from 'react-bootstrap';
 
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
-import QueryTable from './QueryTable';
+import QuerySearchTable from './QuerySearchTable';
+import QuerySearchBar from './QuerySearchBar';
 
 class QuerySearch extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      queryText: '',
+      queriesArray: [],
     };
   }
-  changeQueryText(value) {
-    this.setState({ queryText: value });
+  componentWillMount() {
+    this.refreshQueries(this.props);
+  }
+  componentWillReceiveProps(nextProps) {
+    this.refreshQueries(nextProps);
+  }
+  getQueryState(val) {
+    let status;
+    switch (val) {
+      case 1:
+        status = 'success';
+        break;
+      case 2:
+        status = 'failed';
+        break;
+      case 3:
+        status = 'running';
+        break;
+      default:
+        status = null;
+    }
+    return status;
+  }
+  refreshQueries(nextProps) {
+    const userId = nextProps.queryFilter.userId;
+    const dbId = nextProps.queryFilter.queryDbId;
+    let sql = nextProps.queryFilter.searchText;
+    if (sql === '') sql = 'null';
+    const showState = this.getQueryState(nextProps.queryFilter.queryState);
+    const url = `
+      /caravel/search_queries/userId=${userId}&dbId=${dbId}&sql=${sql}&state=${showState}
+      `;
+    $.getJSON(url, (data, status) => {
+      if (status === 'success') {
+        let newQueriesArray = [];
+        for (const id in data) {
+          const q = data[id];
+          newQueriesArray.push(q);
+        }
+        this.setState({ queriesArray: newQueriesArray });
+      }
+    });
   }
   render() {
-    const queries = this.props.queries;
     return (
       <div>
-        <div className="pane-cell pane-west m-t-5">
-          <div className="panel panel-default Workspace">
-            <div className="panel-heading">
-              <h6>
-                <i className="fa fa-search" /> Search Queries
-              </h6>
-            </div>
-            <div className="panel-body">
-              <input type="text" className="form-control" placeholder="Query Text" />
-              <Select
-                name="select-user"
-                placeholder="[User]"
-                options={['maxime_beauchemin', 'someone else']}
-                value={'maxime_beauchemin'}
-                className="m-t-10"
-                autosize={false}
-              />
-            </div>
-          </div>
-        </div>
-        <div className="pane-cell">
-          <QueryTable
-            columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
-            queries={queries}
-          />
-        </div>
-        <Button>Search!</Button>
+        <QuerySearchBar />
+        <QuerySearchTable
+          columns={[
+            'state', 'dbId', 'userId',
+            'progress', 'rows', 'sql',
+          ]}
+          queries={this.state.queriesArray}
+        />
       </div>
     );
   }
 }
 QuerySearch.propTypes = {
-  queries: React.PropTypes.array,
+  queryFilter: React.PropTypes.object,
 };
 QuerySearch.defaultProps = {
-  queries: [],
+  queryFilter: {},
 };
 
 function mapStateToProps(state) {
   return {
-    queries: state.queries,
+    queryFilter: state.queryFilter,
   };
 }
 function mapDispatchToProps(dispatch) {

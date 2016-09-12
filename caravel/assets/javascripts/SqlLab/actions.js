@@ -17,6 +17,8 @@ export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const SET_DATABASES = 'SET_DATABASES';
+export const SET_FILTER_DATABASES = 'SET_FILTER_DATABASES';
+export const SET_QUERY_FILTER = 'SET_QUERY_FILTER';
 export const ADD_WORKSPACE_QUERY = 'ADD_WORKSPACE_QUERY';
 export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
@@ -31,6 +33,14 @@ export function resetState() {
 
 export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
+}
+
+export function setFilterDatabases(filterDatabases) {
+  return { type: SET_FILTER_DATABASES, filterDatabases };
+}
+
+export function setQueryFilter(queryFilter) {
+  return { type: SET_QUERY_FILTER, queryFilter };
 }
 
 export function addQueryEditor(queryEditor) {
