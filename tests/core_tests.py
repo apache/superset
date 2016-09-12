@@ -308,6 +308,16 @@ class CoreTests(CaravelTestCase):
         assert 'datasource_for_gamma' in resp.data.decode('utf-8')
         assert 'datasource_not_for_gamma' not in resp.data.decode('utf-8')
 
+    def test_add_filter(self, username='admin'):
+        # navigate to energy_usage slice with "Electricity,heat" in filter values
+        data = (
+            "/caravel/explore/table/1/?viz_type=table&groupby=source&metric=count&flt_col_1=source&flt_op_1=in&flt_eq_1=%27Electricity%2Cheat%27"
+            "&userid=1&datasource_name=energy_usage&datasource_id=1&datasource_type=tablerdo_save=saveas")
+        resp = self.client.get(
+            data,
+            follow_redirects=True)
+        assert ("source" in resp.data.decode('utf-8'))
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
