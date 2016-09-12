@@ -595,10 +595,7 @@ class Database(Model, AuditMixinNullable):
         """Database-specific SQL to convert unix timestamp to datetime
         """
         ts2date_exprs = {
-            # Although this SQL expression converts unix timestamp to datetime,
-            # in SQLite, it won't work now due to double-percent-sign issue
-            # https://github.com/airbnb/caravel/issues/617
-            # 'sqlite': "strftime('%Y-%m-%d %H:%M:%S', {col}, 'unixepoch')",
+            'sqlite': "datetime({col}, 'unixepoch')",
             'postgresql': "(timestamp 'epoch' + {col} * interval '1 second')",
             'mysql': "from_unixtime({col})",
             'mssql': "dateadd(S, {col}, '1970-01-01')"
