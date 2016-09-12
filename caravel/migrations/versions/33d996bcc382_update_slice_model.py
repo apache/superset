@@ -14,40 +14,47 @@ from alembic import op
 import sqlalchemy as sa
 from caravel import db
 import logging
+from sqlalchemy.ext.declarative import declarative_base
 from caravel.utils import generic_find_constraint_name
+from sqlalchemy import (
+    Column, Integer, String)
 
+Base = declarative_base()
 
-def find_constraint_name(cols, referenced_table):
-    return generic_find_constraint_name(
-        table='slices', columns=cols, referenced=referenced_table, db=db)
-
+class Slice(Base):
+    """Declarative class to do query in upgrade"""
+    __tablename__ = 'slices'
+    id = Column(Integer, primary_key=True)
+    datasource_id = Column(Integer)
+    druid_datasource_id = Column(Integer)
+    table_id = Column(Integer)
+    datasource_type = Column(String(200))
 
 def upgrade():
-    try:
-        with op.batch_alter_table('slices') as batch_op:
-            cols_1 = {'druid_datasource_id'}
-            constraint_1 = find_constraint_name(cols_1, 'datasources')
-            batch_op.drop_constraint(constraint_1, type_="foreignkey")
+    bind = op.get_bind()
+    op.add_column('slices', sa.Column('datasource_id', sa.Integer()))
+    session = db.Session(bind=bind)
 
-            cols_2 = {'table_id'}
-            constraint_2 = find_constraint_name(cols_2, 'tables')
-            batch_op.drop_constraint(constraint_2, type_="foreignkey")
+    for slc in session.query(Slice).all():
+        if slc.druid_datasource_id:
+            slc.datasource_id = slc.druid_datasource_id
+        if slc.table_id:
+            slc.datasource_id = slc.table_id
+        session.merge(slc)
+        session.commit()
+    session.close()
 
-            batch_op.drop_column('druid_datasource_id')
-            batch_op.drop_column('table_id')
-            batch_op.add_column(sa.Column('datasource_id', sa.Integer()))
-    except Exception as e:
-        logging.warning(e)
 
 
 def downgrade():
-    with op.batch_alter_table('slices') as batch_op:
-        batch_op.drop_column('datasource_id')
-
-        batch_op.add_column(sa.Column('druid_datasource_id', sa.Integer()))
-        batch_op.add_column(sa.Column('table_id', sa.Integer()))
-
-        batch_op.create_foreign_key(None, 
-            'datasources', ['druid_datasource_id'], ['id'])
-        batch_op.create_foreign_key(None, 
-            'tables', ['table_id'], ['id'])
+    bind = op.get_bind()
+    session = db.Session(bind=bind)
+    for slc in session.query(Slice).all():
+        if slc.datasource_type == 'druid':
+            slc.druid_datasource_id = slc.datasource_id
+        if slc.datasource_type == 'table':
+            slc.table_id = slc.datasource_id
+        session.merge(slc)
+        session.commit()
+    session.close()
+    op.drop_column('slices', 'datasource_id')
