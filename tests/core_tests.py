@@ -4,12 +4,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import csv
 import doctest
 import imp
 import json
 import io
+import random
 import unittest
 
 
@@ -212,6 +212,102 @@ class CoreTests(CaravelTestCase):
         db.session.delete(datasource)
         db.session.commit()
 
+    def test_druid_sync_from_config(self):
+        cluster = models.DruidCluster(cluster_name="new_druid")
+        db.session.add(cluster)
+        db.session.commit()
+
+        cfg = {
+            "name": "test_click",
+            "dimensions": ["affiliate_id", "campaign", "first_seen"],
+            "metrics_spec": [{"type": "count", "name": "count"},
+                             {"type": "sum", "name": "sum"}],
+            "batch_ingestion": {
+                "sql": "SELECT * FROM clicks WHERE d='{{ ds }}'",
+                "ts_column": "d",
+                "sources": [{
+                    "table": "clicks",
+                    "partition": "d='{{ ds }}'"
+                }]
+            }
+        }
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # Datasource exists, not changes required
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # datasource exists, not changes required
+        cfg = {
+            "name": "test_click",
+            "dimensions": ["affiliate_id", "second_seen"],
+            "metrics_spec": [
+                {"type": "bla", "name": "sum"},
+                {"type": "unique", "name": "unique"}
+            ],
+        }
+        resp = self.client.post(
+            '/caravel/sync_druid/', data=dict(
+                config=json.dumps(cfg), user="admin", cluster="new_druid"))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        # columns and metrics are not deleted if config is changed as
+        # user could define his own dimensions / metrics and want to keep them
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen", "second_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum", "unique"])
+        # metric type will not be overridden, sum stays instead of bla
+        assert set([m.metric_type for m in druid_ds.metrics]) == set(
+            ["longSum", "sum", "unique"])
+        assert resp.status_code == 201
+
+    def test_filter_druid_datasource(self):
+        gamma_ds = DruidDatasource(
+            datasource_name="datasource_for_gamma",
+        )
+        db.session.add(gamma_ds)
+        no_gamma_ds = DruidDatasource(
+            datasource_name="datasource_not_for_gamma",
+        )
+        db.session.add(no_gamma_ds)
+        db.session.commit()
+        utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
+        utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+        db.session.commit()
+
+        gamma_ds_permission_view = (
+            db.session.query(ab_models.PermissionView)
+            .join(ab_models.ViewMenu)
+            .filter(ab_models.ViewMenu.name == gamma_ds.perm)
+            .first()
+        )
+        sm.add_permission_role(sm.find_role('Gamma'), gamma_ds_permission_view)
+
+        self.login(username='gamma')
+        url = '/druiddatasourcemodelview/list/'
+        resp = self.client.get(url, follow_redirects=True)
+        assert 'datasource_for_gamma' in resp.data.decode('utf-8')
+        assert 'datasource_not_for_gamma' not in resp.data.decode('utf-8')
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
@@ -271,16 +367,19 @@ class CoreTests(CaravelTestCase):
         assert len(data['data']) > 0
 
     def test_csv_endpoint(self):
-        sql = "SELECT first_name, last_name FROM ab_user " \
-              "where first_name='admin'"
-        self.run_sql(sql, 'admin')
+        sql = """
+            SELECT first_name, last_name
+            FROM ab_user
+            WHERE first_name='admin'
+        """
+        client_id = "{}".format(random.getrandbits(64))[:10]
+        self.run_sql(sql, 'admin', client_id)
 
-        query1_id = self.get_query_by_sql(sql).id
         self.login('admin')
-        resp = self.client.get('/caravel/csv/{}'.format(query1_id))
+        resp = self.client.get('/caravel/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp.data.decode('utf-8')))
-        expected_data = csv.reader(io.StringIO(
-            "first_name,last_name\nadmin, user\n"))
+        expected_data = csv.reader(
+            io.StringIO("first_name,last_name\nadmin, user\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()

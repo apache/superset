@@ -49,7 +49,6 @@ class QueryEditors extends React.Component {
     const editors = this.props.queryEditors.map((qe, i) => {
       let latestQuery = this.props.queries[qe.latestQueryId];
       const database = this.props.databases[qe.dbId];
-
       const state = (latestQuery) ? latestQuery.state : '';
       const tabTitle = (
         <div>

@@ -14,13 +14,6 @@ from caravel import app, db, models, utils, appbuilder
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
-'''
-app.config['TESTING'] = True
-app.config['CSRF_ENABLED'] = False
-app.config['SECRET_KEY'] = 'thisismyscretkey'
-app.config['WTF_CSRF_ENABLED'] = False
-app.config['PUBLIC_ROLE_LIKE_GAMMA'] = True
-'''
 BASE_DIR = app.config.get("BASE_DIR")
 
 
@@ -65,6 +58,16 @@ class CaravelTestCase(unittest.TestCase):
     def get_query_by_sql(self, sql):
         session = db.create_scoped_session()
         query = session.query(models.Query).filter_by(sql=sql).first()
+        session.close()
+        return query
+
+    def get_latest_query(self, sql):
+        session = db.create_scoped_session()
+        query = (
+            session.query(models.Query)
+            .order_by(models.Query.id.desc())
+            .first()
+        )
         session.close()
         return query
 

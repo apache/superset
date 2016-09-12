@@ -11,9 +11,9 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
-// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
+  networkOn: true,
   queries: {},
   databases: {},
   queryEditors: [defaultQueryEditor],
@@ -131,7 +131,7 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
-      const alts = { state: 'failed', msg: action.msg, endDttm: now() };
+      const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
@@ -177,11 +177,27 @@ export const sqlLabReducer = function (state, action) {
     [actions.REMOVE_ALERT]() {
       return removeFromArr(state, 'alerts', action.alert);
     },
+    [actions.SET_NETWORK_STATUS]() {
+      if (state.networkOn !== action.networkOn) {
+        return Object.assign({}, state, { networkOn: action.networkOn });
+      }
+      return state;
+    },
     [actions.REFRESH_QUERIES]() {
-      const newQueries = Object.assign({}, state.queries);
+      let newQueries = Object.assign({}, state.queries);
       // Fetch the updates to the queries present in the store.
-      for (const queryId in state.queries) {
-        newQueries[queryId] = Object.assign(newQueries[queryId], action.alteredQueries[queryId]);
+      let change = false;
+      for (const id in action.alteredQueries) {
+        const changedQuery = action.alteredQueries[id];
+        if (
+            !state.queries.hasOwnProperty(id) ||
+            state.queries[id].changedOn !== changedQuery.changedOn) {
+          newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
+          change = true;
+        }
+      }
+      if (!change) {
+        newQueries = state.queries;
       }
       const queriesLastUpdate = now();
       return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });

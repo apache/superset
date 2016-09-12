@@ -4,7 +4,8 @@ import { connect } from 'react-redux';
 import * as Actions from '../actions';
 
 const $ = require('jquery');
-
+const QUERY_UPDATE_FREQ = 1000;
+const QUERY_UPDATE_BUFFER_MS = 5000;
 
 class QueryAutoRefresh extends React.Component {
   componentWillMount() {
@@ -15,7 +16,7 @@ class QueryAutoRefresh extends React.Component {
   }
   startTimer() {
     if (!(this.timer)) {
-      this.timer = setInterval(this.stopwatch.bind(this), 1000);
+      this.timer = setInterval(this.stopwatch.bind(this), QUERY_UPDATE_FREQ);
     }
   }
   stopTimer() {
@@ -23,11 +24,19 @@ class QueryAutoRefresh extends React.Component {
     this.timer = null;
   }
   stopwatch() {
-    const url = '/caravel/queries/0';
+    const url = '/caravel/queries/' + (this.props.queriesLastUpdate - QUERY_UPDATE_BUFFER_MS);
     // No updates in case of failure.
-    $.getJSON(url, (data, status) => {
-      if (status === 'success') {
+    $.getJSON(url, (data) => {
+      if (Object.keys(data).length > 0) {
         this.props.actions.refreshQueries(data);
+      }
+      if (!this.props.networkOn) {
+        this.props.actions.setNetworkStatus(true);
+      }
+    })
+    .fail(() => {
+      if (this.props.networkOn) {
+        this.props.actions.setNetworkStatus(false);
       }
     });
   }
@@ -37,13 +46,18 @@ class QueryAutoRefresh extends React.Component {
 }
 QueryAutoRefresh.propTypes = {
   actions: React.PropTypes.object,
+  queriesLastUpdate: React.PropTypes.integer,
+  networkOn: React.PropTypes.boolean,
 };
 QueryAutoRefresh.defaultProps = {
   // queries: null,
 };
 
-function mapStateToProps() {
-  return {};
+function mapStateToProps(state) {
+  return {
+    queriesLastUpdate: state.queriesLastUpdate,
+    networkOn: state.networkOn,
+  };
 }
 
 function mapDispatchToProps(dispatch) {

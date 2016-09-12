@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
+import re
 import textwrap
 from collections import namedtuple
 from copy import deepcopy, copy
@@ -421,12 +422,16 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
+    @property
+    def backend(self):
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        return url.get_backend_name()
+
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        params = extra.get('engine_params', {})
         url = make_url(self.sqlalchemy_uri_decrypted)
-        backend = url.get_backend_name()
-        if backend == 'presto' and schema:
+        params = extra.get('engine_params', {})
+        if self.backend == 'presto' and schema:
             if '/' in url.database:
                 url.database = url.database.split('/')[0] + '/' + schema
             else:
@@ -889,16 +894,17 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
+    def get_sqla_table_object(self):
+        return self.database.get_table(self.table_name, schema=self.schema)
+
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
-            table = self.database.get_table(self.table_name, schema=self.schema)
-        except Exception as e:
-            flasher(str(e))
-            flasher(
+            table = self.get_sqla_table_object()
+        except Exception:
+            raise Exception(
                 "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information", "danger")
-            return
+                "couldn't fetch column information")
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
@@ -1275,6 +1281,79 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def generate_metrics(self):
         for col in self.columns:
             col.generate_metrics()
+
+    @classmethod
+    def sync_to_db_from_config(cls, druid_config, user, cluster):
+        """Merges the ds config from druid_config into one stored in the db."""
+        session = db.session()
+        datasource = (
+            session.query(DruidDatasource)
+            .filter_by(
+                datasource_name=druid_config['name'])
+        ).first()
+        # Create a new datasource.
+        if not datasource:
+            datasource = DruidDatasource(
+                datasource_name=druid_config['name'],
+                cluster=cluster,
+                owner=user,
+                changed_by_fk=user.id,
+                created_by_fk=user.id,
+            )
+            session.add(datasource)
+
+        dimensions = druid_config['dimensions']
+        for dim in dimensions:
+            col_obj = (
+                session.query(DruidColumn)
+                .filter_by(
+                    datasource_name=druid_config['name'],
+                    column_name=dim)
+            ).first()
+            if not col_obj:
+                col_obj = DruidColumn(
+                    datasource_name=druid_config['name'],
+                    column_name=dim,
+                    groupby=True,
+                    filterable=True,
+                    # TODO: fetch type from Hive.
+                    type="STRING",
+                    datasource=datasource
+                )
+                session.add(col_obj)
+        # Import Druid metrics
+        for metric_spec in druid_config["metrics_spec"]:
+            metric_name = metric_spec["name"]
+            metric_type = metric_spec["type"]
+            metric_json = json.dumps(metric_spec)
+
+            if metric_type == "count":
+                metric_type = "longSum"
+                metric_json = json.dumps({
+                    "type": "longSum",
+                    "name": metric_name,
+                    "fieldName": metric_name,
+                })
+
+            metric_obj = (
+                session.query(DruidMetric)
+                .filter_by(
+                    datasource_name=druid_config['name'],
+                    metric_name=metric_name)
+            ).first()
+            if not metric_obj:
+                metric_obj = DruidMetric(
+                    metric_name=metric_name,
+                    metric_type=metric_type,
+                    verbose_name="%s(%s)" % (metric_type, metric_name),
+                    datasource=datasource,
+                    json=metric_json,
+                    description=(
+                        "Imported from the airolap config dir for %s" %
+                        druid_config['name']),
+                )
+                session.add(metric_obj)
+        session.commit()
 
     @classmethod
     def sync_to_db(cls, name, cluster):
@@ -1802,7 +1881,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11))
+    client_id = Column(String(11), unique=True)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1811,7 +1890,6 @@ class Query(Model):
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
-    name = Column(String(256))
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
@@ -1836,7 +1914,7 @@ class Query(Model):
     start_time = Column(Numeric(precision=3))
     end_time = Column(Numeric(precision=3))
     changed_on = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
@@ -1848,6 +1926,7 @@ class Query(Model):
     def to_dict(self):
         return {
             'changedOn': self.changed_on,
+            'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,
@@ -1867,3 +1946,10 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+    @property
+    def name(self):
+        ts = datetime.now().isoformat()
+        ts = ts.replace('-', '').replace(':', '').split('.')[0]
+        tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
+        tab = re.sub(r'\W+', '', tab)
+        return "sqllab_{tab}_{ts}".format(**locals())

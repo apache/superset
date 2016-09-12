@@ -26,7 +26,7 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.datastructures import ImmutableMultiDict, MultiDict
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -227,6 +227,19 @@ class FilterDashboardOwners(CaravelFilter):
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
         qry = query.filter_by(id=g.user.id)
+        return qry
+
+
+class FilterDruidDatasource(CaravelFilter):
+    def apply(self, query, func):  # noqa
+        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+            return query
+        perms = self.get_perms()
+        druid_datasources = []
+        for perm in perms:
+            match = re.search(r'\(id:(\d+)\)', perm)
+            druid_datasources.append(match.group(1))
+        qry = query.filter(self.model.id.in_(druid_datasources))
         return qry
 
 
@@ -526,9 +539,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'changed_by_', 'changed_on_']
     order_columns = [
         'table_link', 'database', 'is_featured', 'changed_on_']
-    add_columns = [
-        'table_name', 'database', 'schema',
-        'default_endpoint', 'offset', 'cache_timeout']
+    add_columns = ['table_name', 'database', 'schema']
     edit_columns = [
         'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
@@ -536,14 +547,16 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'offset': "Timezone offset (in hours) for this datasource",
-        'schema': (
+        'offset': _("Timezone offset (in hours) for this datasource"),
+        'table_name': _(
+            "Name of the table that exists in the source database"),
+        'schema': _(
             "Schema, as used only in some databases like Postgres, Redshift "
             "and DB2"),
         'description': Markup(
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
-        'sql': (
+        'sql': _(
             "This fields acts a Caravel view, meaning that Caravel will "
             "run a query against this string as a subquery."
         ),
@@ -561,17 +574,26 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
         'cache_timeout': _("Cache Timeout"),
     }
 
-    def post_add(self, table):
-        table_name = table.table_name
+    def pre_add(self, table):
+        # Fail before adding if the table can't be found
         try:
-            table.fetch_metadata()
+            table.get_sqla_table_object()
         except Exception as e:
             logging.exception(e)
-            flash(
-                "Table [{}] doesn't seem to exist, "
-                "couldn't fetch metadata".format(table_name),
-                "danger")
+            raise Exception(
+                "Table [{}] could not be found, "
+                "please double check your "
+                "database connection, schema, and "
+                "table name".format(table.table_name))
+
+    def post_add(self, table):
+        table.fetch_metadata()
         utils.merge_perm(sm, 'datasource_access', table.perm)
+        flash(_(
+            "The table was created. As part of this two phase configuration "
+            "process, you should now click the edit button by "
+            "the new table to configure it."),
+            "info")
 
     def post_update(self, table):
         self.post_add(table)
@@ -848,6 +870,7 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
+    base_filters = [['id', FilterDruidDatasource, lambda: []]]
     label_columns = {
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
@@ -1342,17 +1365,67 @@ class Caravel(BaseCaravelView):
             dash_edit_perm=dash_edit_perm)
 
     @has_access
+    @expose("/sync_druid/", methods=['POST'])
+    @log_this
+    def sync_druid_source(self):
+        """Syncs the druid datasource in main db with the provided config.
+
+        The endpoint takes 3 arguments:
+            user - user name to perform the operation as
+            cluster - name of the druid cluster
+            config - configuration stored in json that contains:
+                name: druid datasource name
+                dimensions: list of the dimensions, they become druid columns
+                    with the type STRING
+                metrics_spec: list of metrics (dictionary). Metric consists of
+                    2 attributes: type and name. Type can be count,
+                    etc. `count` type is stored internally as longSum
+            other fields will be ignored.
+
+            Example: {
+                "name": "test_click",
+                "metrics_spec": [{"type": "count", "name": "count"}],
+                "dimensions": ["affiliate_id", "campaign", "first_seen"]
+            }
+        """
+        druid_config = json.loads(request.form.get('config'))
+        user_name = request.form.get('user')
+        cluster_name = request.form.get('cluster')
+
+        user = sm.find_user(username=user_name)
+        if not user:
+            err_msg = __("Can't find User '%(name)s', please ask your admin "
+                         "to create one.", name=user_name)
+            logging.error(err_msg)
+            return json_error_response(err_msg)
+        cluster = db.session.query(models.DruidCluster).filter_by(
+            cluster_name=cluster_name).first()
+        if not cluster:
+            err_msg = __("Can't find DruidCluster with cluster_name = "
+                         "'%(name)s'", name=cluster_name)
+            logging.error(err_msg)
+            return json_error_response(err_msg)
+        try:
+            models.DruidDatasource.sync_to_db_from_config(
+                druid_config, user, cluster)
+        except Exception as e:
+            logging.exception(utils.error_msg_from_exception(e))
+            return json_error_response(utils.error_msg_from_exception(e))
+        return Response(status=201)
+
+    @has_access
     @expose("/sqllab_viz/")
     @log_this
     def sqllab_viz(self):
         data = json.loads(request.args.get('data'))
         table_name = data.get('datasourceName')
+        viz_type = data.get('chartType')
         table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
         if not table:
             table = models.SqlaTable(
                 table_name=table_name,
             )
-        table.database_id = data.get('databaseId')
+        table.database_id = data.get('dbId')
         table.sql = data.get('sql')
         db.session.add(table)
         cols = []
@@ -1363,6 +1436,7 @@ class Caravel(BaseCaravelView):
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
+                is_dttm=config.get('is_date', False),
             ))
             agg = config.get('agg')
             if agg:
@@ -1370,14 +1444,16 @@ class Caravel(BaseCaravelView):
                     metric_name="{agg}__{column_name}".format(**locals()),
                     expression="{agg}({column_name})".format(**locals()),
                 ))
-        metrics.append(models.SqlMetric(
-            metric_name="count".format(**locals()),
-            expression="count(*)".format(**locals()),
-        ))
+        if not metrics:
+            metrics.append(models.SqlMetric(
+                metric_name="count".format(**locals()),
+                expression="count(*)".format(**locals()),
+            ))
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        return redirect('/caravel/explore/table/{table.id}/'.format(**locals()))
+        url = '/caravel/explore/table/{table.id}/?viz_type={viz_type}'
+        return redirect(url.format(**locals()))
 
     @has_access
     @expose("/sql/<database_id>/")
@@ -1472,8 +1548,7 @@ class Caravel(BaseCaravelView):
 
         if not mydb:
             json_error_response(
-                'Database with id {} is missing.'.format(database_id),
-                QueryStatus.FAILED)
+                'Database with id {} is missing.'.format(database_id))
 
         if not self.database_access(mydb):
             json_error_response(
@@ -1525,12 +1600,15 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/csv/<query_id>")
+    @expose("/csv/<client_id>")
     @log_this
-    def csv(self, query_id):
+    def csv(self, client_id):
         """Download the query results as csv."""
-        s = db.session()
-        query = s.query(models.Query).filter_by(id=int(query_id)).first()
+        query = (
+            db.session.query(models.Query)
+            .filter_by(client_id=client_id)
+            .one()
+        )
 
         if not self.database_access(query.database):
             flash(get_database_access_error_msg(query.database.database_name))
@@ -1557,20 +1635,16 @@ class Caravel(BaseCaravelView):
                 mimetype="application/json")
 
         # Unix time, milliseconds.
-        last_updated_ms_int = int(last_updated_ms) if last_updated_ms else 0
-
-        # Local date time, DO NOT USE IT.
-        # last_updated_dt = datetime.fromtimestamp(int(last_updated_ms) / 1000)
+        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(
-            seconds=last_updated_ms_int / 1000)
+        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
             db.session.query(models.Query)
             .filter(
-                models.Query.user_id == g.user.get_id() or
-                models.Query.changed_on >= last_updated_dt
+                models.Query.user_id == g.user.get_id(),
+                models.Query.changed_on >= last_updated_dt,
             )
             .all()
         )
