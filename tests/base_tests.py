@@ -10,7 +10,7 @@ import unittest
 from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
-from caravel import app, db, models, utils, appbuilder
+from caravel import app, db, models, utils, appbuilder, sm
 
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
@@ -46,6 +46,27 @@ class CaravelTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Alpha'),
                 password='general')
 
+        # create druid cluster and druid datasources
+        session = db.session
+        cluster = session.query(models.DruidCluster).filter_by(
+            cluster_name="druid_test").first()
+        if not cluster:
+            cluster = models.DruidCluster(cluster_name="druid_test")
+            session.add(cluster)
+            session.commit()
+
+            druid_datasource1 = models.DruidDatasource(
+                datasource_name='druid_ds_1',
+                cluster_name='druid_test'
+            )
+            session.add(druid_datasource1)
+            druid_datasource2 = models.DruidDatasource(
+                datasource_name='druid_ds_2',
+                cluster_name='druid_test'
+            )
+            session.add(druid_datasource2)
+            session.commit()
+
         utils.init(caravel)
 
     def login(self, username='admin', password='general'):
@@ -70,6 +91,43 @@ class CaravelTestCase(unittest.TestCase):
         )
         session.close()
         return query
+
+    def get_access_requests(
+            self, username, table_id=None, druid_datasource_id=None):
+        if table_id:
+            return (
+                db.session.query(models.DatasourceAccessRequest)
+                .filter(
+                    models.DatasourceAccessRequest.created_by_fk ==
+                    sm.find_user(username).id,
+                    models.DatasourceAccessRequest.table_id == table_id
+                ).all()
+            )
+        if druid_datasource_id:
+            return (
+                db.session.query(models.DatasourceAccessRequest)
+                .filter(
+                    models.DatasourceAccessRequest.created_by_fk ==
+                    sm.find_user(username).id,
+                    models.DatasourceAccessRequest.druid_datasource_id ==
+                    druid_datasource_id
+                ).all()
+            )
+
+
+    def get_table_by_name(self, table_name):
+        return (
+            db.session.query(models.SqlaTable)
+                .filter(models.SqlaTable.table_name == table_name)
+                .first()
+        )
+
+    def get_druid_ds_by_name(self, druid_ds_name):
+        return (
+            db.session.query(models.DruidDatasource)
+                .filter(models.DruidDatasource.datasource_name == druid_ds_name)
+                .first()
+        )
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
