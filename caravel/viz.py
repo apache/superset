@@ -214,9 +214,12 @@ class BaseViz(object):
             extra_filters = json.loads(extra_filters)
             for slice_filters in extra_filters.values():
                 for col, vals in slice_filters.items():
-                    if col and vals:
-                        if col in self.datasource.filterable_column_names:
-                            filters += [(col, 'in', ",".join(vals))]
+                    if not (col and vals):
+                        continue
+                    elif col in self.datasource.filterable_column_names:
+                        # Quote values with comma to avoid conflict
+                        vals = ["'%s'" % x if "," in x else x for x in vals]
+                        filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):

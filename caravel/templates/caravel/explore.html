@@ -106,8 +106,11 @@
                 <div class="panel-title">
                   {{ _("Filters") }}
                   <i  class="fa fa-question-circle-o" data-toggle="tooltip"
-                      data-placement="bottom"
-                      title="{{_("Filters are defined using comma delimited strings as in 'US,FR,Other'")}}. {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                      data-placement="right"
+                      title="{{_("Filters are defined using comma delimited strings as in <US,FR,Other>")}}.
+                      {{_("Leave the value field empty to filter empty strings or nulls")}}.
+                      {{_("For filters with comma in values, wrap them in single quotes,
+                      as in <NY, 'Tahoe, CA', DC>")}}">
                   </i>
                 </div>
               </div>
