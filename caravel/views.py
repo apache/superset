@@ -32,7 +32,7 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, 
+    appbuilder, db, models, viz, utils, app, sm,
     ascii_art, sql_lab, src_registry
 )
 
@@ -697,14 +697,13 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        
         sources = src_registry.all_sources
         for source in sources:
             ds = db.session.query(src_registry.get_cls_model(source)).first()
             if ds is not None:
                 url = "/{}/list/".format(ds.baselink)
                 msg = _("Click on a {} link to create a Slice".format(source))
-                break            
+                break
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
         return redirect(redirect_url)
@@ -1288,7 +1287,9 @@ class Caravel(BaseCaravelView):
                 json_error_response(__(
                     "Table %(t)s wasn't found in the database %(d)s",
                     t=table_name, s=db_name), status=404)
-            slices = session.query(models.Slice).filter_by(datasource_id=table.id, datasource_type=table.type).all()
+            slices = session.query(models.Slice).filter_by(
+                datasource_id=table.id,
+                datasource_type=table.type).all()
 
         for slice in slices:
             try:

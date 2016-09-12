@@ -404,6 +404,7 @@ def readfile(filepath):
         content = f.read()
     return content
 
+
 def register_sources(datasources, module_datasource_map, registry):
     for m in datasources:
         datasource_list = module_datasource_map[m]

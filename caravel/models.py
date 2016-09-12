@@ -171,7 +171,9 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def datasource(self):
-        ds = db.session.query(self.cls_model).filter_by(id=self.datasource_id).first()
+        ds = db.session.query(
+            self.cls_model).filter_by(
+            id=self.datasource_id).first()
         return ds
 
     @renders('datasource_name')

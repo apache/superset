@@ -1,3 +1,10 @@
+from alembic import op
+import sqlalchemy as sa
+from caravel import db
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import (
+    Column, Integer, String)
+
 """update slice model
 
 Revision ID: 33d996bcc382
@@ -10,16 +17,8 @@ Create Date: 2016-09-07 23:50:59.366779
 revision = '33d996bcc382'
 down_revision = '41f6a59a61f2'
 
-from alembic import op
-import sqlalchemy as sa
-from caravel import db
-import logging
-from sqlalchemy.ext.declarative import declarative_base
-from caravel.utils import generic_find_constraint_name
-from sqlalchemy import (
-    Column, Integer, String)
-
 Base = declarative_base()
+
 
 class Slice(Base):
     """Declarative class to do query in upgrade"""
@@ -29,6 +28,7 @@ class Slice(Base):
     druid_datasource_id = Column(Integer)
     table_id = Column(Integer)
     datasource_type = Column(String(200))
+
 
 def upgrade():
     bind = op.get_bind()
@@ -43,7 +43,6 @@ def upgrade():
         session.merge(slc)
         session.commit()
     session.close()
-
 
 
 def downgrade():

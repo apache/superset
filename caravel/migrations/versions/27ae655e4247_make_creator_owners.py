@@ -32,7 +32,7 @@ class Dashboard(Base):
     __tablename__ = 'dashboards'
     id = Column(Integer, primary_key=True)
 
-    
+
 def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
