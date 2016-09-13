@@ -19,7 +19,11 @@ class TableElement extends React.Component {
         cols += ', ';
       }
     });
-    return `SELECT ${cols}\nFROM ${this.props.table.name}`;
+    let tableName = this.props.table.name;
+    if (this.props.table.schema) {
+      tableName = this.props.table.schema + '.' + tableName;
+    }
+    return `SELECT ${cols}\nFROM ${tableName}`;
   }
 
   popSelectStar() {

@@ -46,8 +46,8 @@ class QueryAutoRefresh extends React.Component {
 }
 QueryAutoRefresh.propTypes = {
   actions: React.PropTypes.object,
-  queriesLastUpdate: React.PropTypes.integer,
-  networkOn: React.PropTypes.boolean,
+  queriesLastUpdate: React.PropTypes.number,
+  networkOn: React.PropTypes.bool,
 };
 QueryAutoRefresh.defaultProps = {
   // queries: null,
