@@ -172,12 +172,9 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                if timestamp_format == "epoch_s":
+                if timestamp_format in ("epoch_s", "epoch_ms"):
                     df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="s")
-                elif timestamp_format == "epoch_ms":
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="ms")
+                        df.timestamp, utc=False)
                 else:
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)
