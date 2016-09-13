@@ -56,7 +56,6 @@ class SqlEditor extends React.Component {
     this.startQuery(runAsync);
   }
   startQuery(runAsync = false, ctas = false) {
-    console.log(runAsync);
     const that = this;
     const query = {
       dbId: this.props.queryEditor.dbId,

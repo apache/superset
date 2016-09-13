@@ -36,7 +36,7 @@ function addToObject(state, arrKey, obj) {
 
 function alterInObject(state, arrKey, obj, alterations) {
   const newObject = Object.assign({}, state[arrKey]);
-  newObject[obj.id] = (Object.assign({}, newObject[obj.id], alterations));
+  newObject[obj.id] = Object.assign({}, newObject[obj.id], alterations);
   return Object.assign({}, state, { [arrKey]: newObject });
 }
 
@@ -65,6 +65,16 @@ function removeFromArr(state, arrKey, obj, idKey = 'id') {
   return Object.assign({}, state, { [arrKey]: newArr });
 }
 
+function getFromArr(arr, id) {
+  let obj;
+  arr.forEach((o) => {
+    if (o.id === id) {
+      obj = o;
+    }
+  });
+  return obj;
+}
+
 function addToArr(state, arrKey, obj) {
   const newObj = Object.assign({}, obj);
   if (!newObj.id) {
@@ -87,9 +97,16 @@ export const sqlLabReducer = function (state, action) {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
       const qeIds = newState.queryEditors.map((qe) => qe.id);
-      let th = state.tabHistory.slice();
-      th = th.filter((id) => qeIds.includes(id));
-      newState = Object.assign({}, newState, { tabHistory: th });
+      const queries = {};
+      Object.keys(state.queries).forEach((k) => {
+        let query = state.queries[k];
+        if (qeIds.includes(query.sqlEditorId)) {
+          queries[k] = query;
+        }
+      });
+      let tabHistory = state.tabHistory.slice();
+      tabHistory = tabHistory.filter((id) => qeIds.includes(id));
+      newState = Object.assign({}, newState, { tabHistory, queries });
       return newState;
     },
     [actions.REMOVE_QUERY]() {
@@ -113,7 +130,14 @@ export const sqlLabReducer = function (state, action) {
       return removeFromArr(state, 'tables', action.table);
     },
     [actions.START_QUERY]() {
-      const newState = addToObject(state, 'queries', action.query);
+      const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
+      let newState = Object.assign({}, state);
+      if (qe.latestQueryId) {
+        const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null })
+        const queries = Object.assign({}, state.queries, { [q.id]: q });
+        newState = Object.assign({}, state, { queries });
+      }
+      newState = addToObject(newState, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };
       return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
@@ -157,12 +181,6 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
-    },
-    [actions.ADD_WORKSPACE_QUERY]() {
-      return addToArr(state, 'workspaceQueries', action.query);
-    },
-    [actions.REMOVE_WORKSPACE_QUERY]() {
-      return removeFromArr(state, 'workspaceQueries', action.query);
     },
     [actions.ADD_ALERT]() {
       return addToArr(state, 'alerts', action.alert);
