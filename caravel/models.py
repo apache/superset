@@ -412,6 +412,8 @@ class Database(Model, AuditMixinNullable):
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=False)
+    allow_run_sync = Column(Boolean, default=True)
+    allow_run_async = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
     extra = Column(Text, default=textwrap.dedent("""\

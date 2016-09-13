@@ -2,8 +2,9 @@ import celery
 from datetime import datetime
 import pandas as pd
 import logging
-from caravel import  app, db, models, utils
+from caravel import  app, cache, db, models, utils
 import time
+import json
 
 QueryStatus = models.QueryStatus
 
@@ -44,12 +45,12 @@ def create_table_as(sql, table_name, schema=None, override=False):
 @celery_app.task
 def get_sql_results(query_id, return_results=True):
     """Executes the sql query returns the results."""
-    db.session.commit()  # HACK
-    query = db.session.query(models.Query).filter_by(id=query_id).one()
+    session = db.session()
+    session.commit()  # HACK
+    query = session.query(models.Query).filter_by(id=query_id).one()
     database = query.database
     executed_sql = query.sql.strip().strip(';')
 
-    time.sleep(5)
     # Limit enforced only for retrieving the data, not for the CTA queries.
     if is_query_select(executed_sql):
         if query.select_as_cta:
@@ -74,12 +75,12 @@ def get_sql_results(query_id, return_results=True):
             query.error_message = utils.error_msg_from_exception(e)
             query.status = QueryStatus.FAILED
             query.tmp_table_name = None
-            db.session.commit()
+            session.commit()
             raise Exception(query.error_message)
 
         cursor = result_proxy.cursor
         query.status = QueryStatus.RUNNING
-        db.session.flush()
+        session.flush()
         if database.backend == 'presto':
             polled = cursor.poll()
             # poll returns dict -- JSON status information or ``None``
@@ -96,7 +97,7 @@ def get_sql_results(query_id, return_results=True):
                         progress = 100 * (completed_splits / total_splits)
                         if progress > query.progress:
                             query.progress = progress
-                        db.session.commit()
+                        session.commit()
                 time.sleep(1)
                 polled = cursor.poll()
 
@@ -126,7 +127,7 @@ def get_sql_results(query_id, return_results=True):
                 query.tmp_table_name, limit=query.limit))
 
         query.end_time = utils.now_as_float()
-        db.session.commit()
+        session.commit()
 
     payload = {
         'query_id': query.id,
@@ -139,3 +140,9 @@ def get_sql_results(query_id, return_results=True):
         payload['error'] = query.error_message
     if return_results:
         return payload
+    '''
+    # Hack testing using a kv store for results
+    key = "query_id={}".format(query.id)
+    logging.info("Storing results in key=[{}]".format(key))
+    cache.set(key, json.dumps(payload, default=utils.json_iso_dttm_ser))
+    '''

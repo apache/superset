@@ -52,10 +52,11 @@ class SqlEditor extends React.Component {
       this.startQuery();
     }
   }
-  runQuery() {
-    this.startQuery();
+  runQuery(runAsync = false) {
+    this.startQuery(runAsync);
   }
   startQuery(runAsync = false, ctas = false) {
+    console.log(runAsync);
     const that = this;
     const query = {
       dbId: this.props.queryEditor.dbId,
@@ -76,7 +77,7 @@ class SqlEditor extends React.Component {
 
     const sqlJsonUrl = '/caravel/sql_json/';
     const sqlJsonRequest = {
-      async: runAsync,
+      runAsync: runAsync,
       client_id: query.id,
       database_id: this.props.queryEditor.dbId,
       json: true,
@@ -149,17 +150,36 @@ class SqlEditor extends React.Component {
   }
 
   render() {
-    let runButtons = (
-      <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
+    let runButtons = [];
+    if (this.props.database.allow_run_sync) {
+      runButtons.push(
         <Button
           bsSize="small"
           bsStyle="primary"
           style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this)}
+          onClick={this.runQuery.bind(this, false)}
           disabled={!(this.props.queryEditor.dbId)}
         >
           <i className="fa fa-table" /> Run Query
         </Button>
+      );
+    }
+    if (this.props.database.allow_run_async) {
+      runButtons.push(
+        <Button
+          bsSize="small"
+          bsStyle="primary"
+          style={{ width: '100px' }}
+          onClick={this.runQuery.bind(this, true)}
+          disabled={!(this.props.queryEditor.dbId)}
+        >
+          <i className="fa fa-table" /> Run Async
+        </Button>
+      );
+    }
+    runButtons = (
+      <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
+        {runButtons}
       </ButtonGroup>
     );
     if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
