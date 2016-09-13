@@ -88,8 +88,8 @@ class ResultSet extends React.Component {
 }
 ResultSet.propTypes = {
   query: React.PropTypes.object,
-  showControls: React.PropTypes.boolean,
-  search: React.PropTypes.boolean,
+  showControls: React.PropTypes.bool,
+  search: React.PropTypes.bool,
   searchText: React.PropTypes.string,
 };
 ResultSet.defaultProps = {
