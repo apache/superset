@@ -151,7 +151,7 @@ class SqlEditor extends React.Component {
 
   render() {
     let runButtons = [];
-    if (this.props.database.allow_run_sync) {
+    if (this.props.database && this.props.database.allow_run_sync) {
       runButtons.push(
         <Button
           bsSize="small"
@@ -164,7 +164,7 @@ class SqlEditor extends React.Component {
         </Button>
       );
     }
-    if (this.props.database.allow_run_async) {
+    if (this.props.database && this.props.database.allow_run_async) {
       runButtons.push(
         <Button
           bsSize="small"
