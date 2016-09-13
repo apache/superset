@@ -350,7 +350,7 @@ def datetime_to_epoch(dttm):
 
 
 def now_as_float():
-    return datetime_to_epoch(datetime.now())
+    return datetime_to_epoch(datetime.utcnow())
 
 
 def json_int_dttm_ser(obj):
