@@ -1587,7 +1587,14 @@ class Caravel(BaseCaravelView):
 
         # Sync request.
         try:
-            data = sql_lab.get_sql_results(query_id)
+            SQLLAB_TIMEOUT = config.get("SQLLAB_TIMEOUT")
+            with utils.timeout(
+                    seconds=SQLLAB_TIMEOUT,
+                    error_message=(
+                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
+                        "timeout."
+                    ).format(**locals())):
+                data = sql_lab.get_sql_results(query_id)
         except Exception as e:
             logging.exception(e)
             return Response(

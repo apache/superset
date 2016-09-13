@@ -49,6 +49,7 @@ def get_sql_results(query_id, return_results=True):
     database = query.database
     executed_sql = query.sql.strip().strip(';')
 
+    time.sleep(5)
     # Limit enforced only for retrieving the data, not for the CTA queries.
     if is_query_select(executed_sql):
         if query.select_as_cta:
