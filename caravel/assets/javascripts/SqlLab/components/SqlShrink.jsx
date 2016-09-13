@@ -32,8 +32,8 @@ SqlShrink.defaultProps = {
 
 SqlShrink.propTypes = {
   sql: React.PropTypes.string,
-  maxWidth: React.PropTypes.integer,
-  maxLines: React.PropTypes.integer,
+  maxWidth: React.PropTypes.number,
+  maxLines: React.PropTypes.number,
 };
 
 export default SqlShrink;

@@ -26,6 +26,8 @@ class VisualizeModal extends React.Component {
       columns: {},
       hints: [],
     };
+  }
+  componentDidMount() {
     this.validate();
   }
   validate() {
@@ -135,8 +137,8 @@ class VisualizeModal extends React.Component {
         />
       ),
     }));
-    const alerts = this.state.hints.map((hint) => (
-      <Alert bsStyle="warning">{hint}</Alert>
+    const alerts = this.state.hints.map((hint, i) => (
+      <Alert bsStyle="warning" key={i}>{hint}</Alert>
     ));
     const modal = (
       <div className="VisualizeModal">
@@ -191,11 +193,12 @@ class VisualizeModal extends React.Component {
 }
 VisualizeModal.propTypes = {
   query: React.PropTypes.object,
-  show: React.PropTypes.boolean,
+  show: React.PropTypes.bool,
   onHide: React.PropTypes.function,
 };
 VisualizeModal.defaultProps = {
   show: false,
+  onHide: () => {},
 };
 
 function mapStateToProps() {
