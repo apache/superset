@@ -1440,15 +1440,19 @@ class Caravel(BaseCaravelView):
         table.sql = data.get('sql')
         db.session.add(table)
         cols = []
+        dims = []
         metrics = []
         for column_name, config in data.get('columns').items():
             is_dim = config.get('is_dim', False)
-            cols.append(models.TableColumn(
+            col = models.TableColumn(
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
                 is_dttm=config.get('is_date', False),
-            ))
+            )
+            cols.append(col)
+            if is_dim:
+                dims.append(col)
             agg = config.get('agg')
             if agg:
                 metrics.append(models.SqlMetric(
@@ -1463,8 +1467,15 @@ class Caravel(BaseCaravelView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        url = '/caravel/explore/table/{table.id}/?viz_type={viz_type}'
-        return redirect(url.format(**locals()))
+        params = {
+            'viz_type': viz_type,
+            'groupby': dims[0].column_name if dims else '',
+            'metrics': metrics[0].metric_name if metrics else '',
+            'metric': metrics[0].metric_name if metrics else '',
+        }
+        params = "&".join([k + '=' + v for k, v in params.items()])
+        url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
+        return redirect(url)
 
     @has_access
     @expose("/sql/<database_id>/")
