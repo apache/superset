@@ -63,12 +63,12 @@ class TableElement extends React.Component {
       metadata = (
         <div>
           {this.props.table.columns.map((col) => (
-            <div className="row">
-              <div className="col-sm-8">
-                <div className="m-l-5">{col.name}</div>
+            <div className="clearfix">
+              <div className="pull-left m-l-10">
+                {col.name}
               </div>
-              <div className="col-sm-4">
-                <div className="pull-right text-muted"><small>{col.type}</small></div>
+              <div className="pull-right text-muted">
+                <small> {col.type}</small>
               </div>
             </div>
           ))}
@@ -88,11 +88,11 @@ class TableElement extends React.Component {
     }
     return (
       <div>
-        <div className="row">
-          <div className="col-sm-9 m-b-10">
+        <div className="clearfix">
+          <div className="pull-left">
             {buttonToggle}
           </div>
-          <div className="col-sm-3">
+          <div className="pull-right">
             <ButtonGroup className="ws-el-controls pull-right">
               <Link
                 className="fa fa-pencil pull-left m-l-2"
