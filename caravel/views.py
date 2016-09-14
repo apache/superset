@@ -1247,18 +1247,16 @@ class Caravel(BaseCaravelView):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
-            database_name = request.json.get('database_name')
-            if database_name:
+            db_name = request.json.get('name')
+            if db_name and ':XXXXXXXXXX@' in uri:
                 database = (
-                    db.session
+                    db.session()
                     .query(models.Database)
-                    .filter_by(database_name=database_name)
-                    .first()
+                    .filter_by(database_name=db_name).first()
                 )
-                if uri == database.safe_sqlalchemy_uri():
-                    # the password-masked uri was passed
-                    # use the URI associated with this database
+                if database is not None:
                     uri = database.sqlalchemy_uri_decrypted
+
             connect_args = (
                 request.json
                 .get('extras', {})
