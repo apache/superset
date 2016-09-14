@@ -1205,11 +1205,16 @@ class Caravel(BaseCaravelView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-            return self.render_template(
-                template, viz=viz_obj, slice=slc, datasources=datasources,
-                can_add=slice_add_perm, can_edit=slice_edit_perm,
-                can_download=slice_download_perm,
-                userid=g.user.get_id() if g.user else '')
+                bootstrap_data = {
+                    "can_add": slice_add_perm,
+                    "can_download": slice_download_perm,
+                    "can_edit": slice_edit_perm,
+                    "datasources": datasources,
+                    "slice": slc,
+                    "userid": g.user.get_id() if g.user else '',
+                    "viz": viz_obj
+                }
+            return self.render_template(template, bootstrap_data=bootstrap_data)
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
