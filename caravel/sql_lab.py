@@ -2,9 +2,10 @@ import celery
 from datetime import datetime
 import pandas as pd
 import logging
-from caravel import  app, cache, db, models, utils
 import time
 import json
+
+from caravel import app, cache, db, models, utils
 
 QueryStatus = models.QueryStatus
 

@@ -34,6 +34,13 @@ db = SQLA(app)
 
 @event.listens_for(db.engine, 'checkout')
 def checkout(dbapi_con, con_record, con_proxy):
+    """
+    Making sure the connection is live, and preventing against:
+    'MySQL server has gone away'
+
+    Copied from:
+    http://stackoverflow.com/questions/30630120/mysql-keeps-losing-connection-during-celery-tasks
+    """
     try:
         try:
             dbapi_con.ping(False)

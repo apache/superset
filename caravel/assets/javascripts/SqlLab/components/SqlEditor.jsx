@@ -9,9 +9,7 @@ import {
   InputGroup,
   Form,
   FormControl,
-  DropdownButton,
   Label,
-  MenuItem,
   OverlayTrigger,
   Row,
   Tooltip,
@@ -27,7 +25,6 @@ import { connect } from 'react-redux';
 import * as Actions from '../actions';
 
 import shortid from 'shortid';
-import ButtonWithTooltip from './ButtonWithTooltip';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 

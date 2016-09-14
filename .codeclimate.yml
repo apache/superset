@@ -31,3 +31,4 @@ exclude_paths:
 - "caravel/assets/vendor/"
 - "caravel/assets/node_modules/"
 - "caravel/assets/javascripts/dist/"
+- "caravel/migrations"
