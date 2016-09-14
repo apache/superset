@@ -2,14 +2,18 @@
 
 {% block title %}
   {% if slice %}
-    [slice] {{ slice.slice_name }}
+    [slice] {{ bootstrap_data.slice.slice_name }}
   {% else %}
-    [explore] {{ viz.datasource.table_name }}
+    [explore] {{ bootstrap_data.viz.datasource.table_name }}
   {% endif %}
 {% endblock %}
 
+
 {% block body %}
-  <div id="js-explore-view-container"></div>
+  <div
+    id="js-explore-view-container"
+    data-bootstrap="{{ bootstrap_data }}"
+  ></div>
 {% endblock %}
 
 {% block tail_js %}
