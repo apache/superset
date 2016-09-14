@@ -77,7 +77,12 @@ class SqlEditorTopToolbar extends React.Component {
   }
   fetchDatabaseOptions() {
     this.setState({ databaseLoading: true });
-    const url = '/databaseasync/api/read?_flt_0_expose_in_sqllab=1';
+    const url = (
+      '/databaseasync/api/read?' +
+      '_flt_0_expose_in_sqllab=1&' +
+      '_oc_DatabaseAsync=database_name&' +
+      '_od_DatabaseAsync=asc'
+    );
     $.get(url, (data) => {
       const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
       this.props.actions.setDatabases(data.result);
