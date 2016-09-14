@@ -99,7 +99,7 @@ export const sqlLabReducer = function (state, action) {
       const qeIds = newState.queryEditors.map((qe) => qe.id);
       const queries = {};
       Object.keys(state.queries).forEach((k) => {
-        let query = state.queries[k];
+        const query = state.queries[k];
         if (qeIds.includes(query.sqlEditorId)) {
           queries[k] = query;
         }
@@ -133,7 +133,7 @@ export const sqlLabReducer = function (state, action) {
       const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
       let newState = Object.assign({}, state);
       if (qe.latestQueryId) {
-        const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null })
+        const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null });
         const queries = Object.assign({}, state.queries, { [q.id]: q });
         newState = Object.assign({}, state, { queries });
       }

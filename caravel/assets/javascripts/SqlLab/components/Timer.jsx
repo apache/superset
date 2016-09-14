@@ -27,7 +27,7 @@ class Timer extends React.Component {
   }
   stopwatch() {
     if (this.props && this.props.query) {
-      let endDttm = this.props.query.endDttm || now();
+      const endDttm = this.props.query.endDttm || now();
       const clockStr = fDuration(this.props.query.startDttm, endDttm);
       this.setState({ clockStr });
       if (this.props.query.state !== 'running') {

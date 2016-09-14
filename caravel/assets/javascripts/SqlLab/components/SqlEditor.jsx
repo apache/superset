@@ -76,10 +76,10 @@ class SqlEditor extends React.Component {
 
     const sqlJsonUrl = '/caravel/sql_json/';
     const sqlJsonRequest = {
-      runAsync: runAsync,
       client_id: query.id,
       database_id: this.props.queryEditor.dbId,
       json: true,
+      runAsync,
       schema: this.props.queryEditor.schema,
       select_as_cta: ctas,
       sql: this.props.queryEditor.sql,
