@@ -195,35 +195,6 @@ class SqlEditor extends React.Component {
         </ButtonGroup>
       );
     }
-    const rightButtons = (
-      <ButtonGroup className="inlineblock">
-        <ButtonWithTooltip
-          tooltip="Save this query in your workspace"
-          placement="left"
-          bsSize="small"
-          onClick={this.addWorkspaceQuery.bind(this)}
-        >
-          <i className="fa fa-save" />&nbsp;
-        </ButtonWithTooltip>
-        <DropdownButton
-          id="ddbtn-export"
-          pullRight
-          bsSize="small"
-          title={<i className="fa fa-file-o" />}
-        >
-          <MenuItem
-            onClick={this.notImplemented}
-          >
-            <i className="fa fa-file-text-o" /> export to .csv
-          </MenuItem>
-          <MenuItem
-            onClick={this.notImplemented}
-          >
-            <i className="fa fa-file-code-o" /> export to .json
-          </MenuItem>
-        </DropdownButton>
-      </ButtonGroup>
-    );
     let limitWarning = null;
     const rowLimit = 1000;
     if (this.props.latestQuery && this.props.latestQuery.rows === rowLimit) {
@@ -275,7 +246,6 @@ class SqlEditor extends React.Component {
         <div className="pull-right">
           {limitWarning}
           <Timer query={this.props.latestQuery} />
-          {rightButtons}
         </div>
       </div>
     );
