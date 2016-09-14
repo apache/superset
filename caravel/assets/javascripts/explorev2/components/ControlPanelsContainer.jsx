@@ -1,7 +1,7 @@
 import React from 'react';
 import { Panel } from 'react-bootstrap';
 
-export default class ChartContainer extends React.Component {
+export default class ControlPanelsContainer extends React.Component {
   render() {
     return (
       <Panel>
