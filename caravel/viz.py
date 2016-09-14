@@ -65,7 +65,7 @@ class BaseViz(object):
         form_class = ff.get_form()
         defaults = form_class().data.copy()
         previous_viz_type = form_data.get('previous_viz_type')
-        if isinstance(form_data, ImmutableMultiDict):
+        if isinstance(form_data, (MultiDict, ImmutableMultiDict)):
             form = form_class(form_data)
         else:
             form = form_class(**form_data)
@@ -120,17 +120,24 @@ class BaseViz(object):
         # Remove unchecked checkboxes because HTML is weird like that
         od = MultiDict()
         for key in sorted(d.keys()):
-            if d[key] is False:
-                del d[key]
+            # if MultiDict is initialized with MD({key:[emptyarray]}),
+            # key is included in d.keys() but accessing it throws
+            try:
+                if d[key] is False:
+                    del d[key]
+                    continue
+            except IndexError:
+                pass
+
+            if isinstance(d, (MultiDict, ImmutableMultiDict)):
+                v = d.getlist(key)
             else:
-                if isinstance(d, MultiDict):
-                    v = d.getlist(key)
-                else:
-                    v = d.get(key)
-                if not isinstance(v, list):
-                    v = [v]
-                for item in v:
-                    od.add(key, item)
+                v = d.get(key)
+            if not isinstance(v, list):
+                v = [v]
+            for item in v:
+                od.add(key, item)
+
         href = Href(
             '/caravel/explore/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
@@ -165,12 +172,9 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                if timestamp_format == "epoch_s":
+                if timestamp_format in ("epoch_s", "epoch_ms"):
                     df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="s")
-                elif timestamp_format == "epoch_ms":
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="ms")
+                        df.timestamp, utc=False)
                 else:
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)
@@ -207,9 +211,12 @@ class BaseViz(object):
             extra_filters = json.loads(extra_filters)
             for slice_filters in extra_filters.values():
                 for col, vals in slice_filters.items():
-                    if col and vals:
-                        if col in self.datasource.filterable_column_names:
-                            filters += [(col, 'in', ",".join(vals))]
+                    if not (col and vals):
+                        continue
+                    elif col in self.datasource.filterable_column_names:
+                        # Quote values with comma to avoid conflict
+                        vals = ["'%s'" % x if "," in x else x for x in vals]
+                        filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):
@@ -269,12 +276,12 @@ class BaseViz(object):
             return self.datasource.database.cache_timeout
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
-    def get_json(self):
+    def get_json(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
-
-        if self.form_data.get('force') != 'true':
+        force = force if force else self.form_data.get('force') == 'true'
+        if not force:
             payload = cache.get(cache_key)
 
         if payload:

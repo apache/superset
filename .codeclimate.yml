@@ -1,13 +1,8 @@
----
 engines:
   csslint:
     enabled: false
   duplication:
-    enabled: true
-    config:
-      languages:
-      - javascript
-      - python
+    enabled: false
   eslint:
     enabled: true
     config:
@@ -15,15 +10,24 @@ engines:
   pep8:
     enabled: true
   fixme:
-    enabled: true
+    enabled: false
   radon:
     enabled: true
+    checks:
+      Complexity:
+        enabled: false
 ratings:
   paths:
+  - "**.py"
   - "caravel/assets/**.js"
   - "caravel/assets/**.jsx"
-  - "caravel/**.py"
 exclude_paths:
-- tests/
-- caravel/assets/vendor/
-- caravel/assets/node_modules/
+- ".*"
+- "**.pyc"
+- "**.gz"
+- "env/"
+- "tests/"
+- "caravel/assets/images/"
+- "caravel/assets/vendor/"
+- "caravel/assets/node_modules/"
+- "caravel/assets/javascripts/dist/"

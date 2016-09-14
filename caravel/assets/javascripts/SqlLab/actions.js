@@ -16,20 +16,29 @@ export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
-export const SET_WORKSPACE_DB = 'SET_WORKSPACE_DB';
+export const SET_DATABASES = 'SET_DATABASES';
 export const ADD_WORKSPACE_QUERY = 'ADD_WORKSPACE_QUERY';
 export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
+export const SET_NETWORK_STATUS = 'SET_NETWORK_STATUS';
 
 export function resetState() {
   return { type: RESET_STATE };
 }
 
+export function setDatabases(databases) {
+  return { type: SET_DATABASES, databases };
+}
+
 export function addQueryEditor(queryEditor) {
   return { type: ADD_QUERY_EDITOR, queryEditor };
+}
+
+export function setNetworkStatus(networkOn) {
+  return { type: SET_NETWORK_STATUS, networkOn };
 }
 
 export function addAlert(alert) {

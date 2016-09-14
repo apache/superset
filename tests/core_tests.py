@@ -4,12 +4,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from datetime import datetime
 import csv
 import doctest
 import imp
 import json
 import io
+import random
 import unittest
 
 
@@ -86,50 +86,14 @@ class CoreTests(CaravelTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'slice_id_endpoint', '/caravel/slices/{}'.
-                 format(slc.id)),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
+                (slc.slice_name, 'slice_id_url',
+                    "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/".format(slc=slc)),
             ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
-
-    def test_slice_id_redirects(self, username='admin'):
-        def make_assertions(resp, standalone):
-            decoded = resp.data.decode('utf-8')
-            if standalone:
-                assert "Query" not in decoded
-                assert 'data-standalone="true"' in decoded
-
-            else:
-                assert "Query" in decoded
-                assert 'data-standalone="true"' not in decoded
-
-        self.login(username=username)
-        slc = db.session.query(models.Slice).filter_by(slice_name="Name Cloud").first()
-        get = self.client.get
-
-        # Standard redirect
-        slc_url = slc.slice_url
-        id_url = '/caravel/slice/{slc.id}'.format(slc=slc)
-
-        make_assertions(get(slc_url, follow_redirects=True), False)
-        make_assertions(get(id_url, follow_redirects=True), False)
-
-        # Explicit standalone
-        slc_url_standalone = '{slc_url}&standalone=true'.format(slc_url=slc_url)
-        id_url_standalone = '{id_url}?standalone=true'.format(id_url=id_url)
-
-        make_assertions(get(slc_url_standalone, follow_redirects=True), True)
-        make_assertions(get(id_url_standalone, follow_redirects=True), True)
-
-        # Explicit not-standalone
-        slc_url_notstandalone = '{slc_url}&standalone=false'.format(slc_url=slc_url)
-        id_url_notstandalone = '{id_url}?standalone=false'.format(id_url=id_url)
-
-        make_assertions(get(slc_url_notstandalone, follow_redirects=True), False)
-        make_assertions(get(id_url_notstandalone, follow_redirects=True), False)
 
     def test_dashboard(self):
         self.login(username='admin')
@@ -149,6 +113,20 @@ class CoreTests(CaravelTestCase):
     def test_misc(self):
         assert self.client.get('/health').data.decode('utf-8') == "OK"
         assert self.client.get('/ping').data.decode('utf-8') == "OK"
+
+    def test_warm_up_cache(self):
+        slice = db.session.query(models.Slice).first()
+        resp = self.client.get(
+            '/caravel/warm_up_cache?slice_id={}'.format(slice.id),
+            follow_redirects=True)
+        data = json.loads(resp.data.decode('utf-8'))
+        assert data == [{'slice_id': slice.id, 'slice_name': slice.slice_name}]
+
+        resp = self.client.get(
+            '/caravel/warm_up_cache?table_name=energy_usage&db_name=main',
+            follow_redirects=True)
+        data = json.loads(resp.data.decode('utf-8'))
+        assert len(data) == 3
 
     def test_shortner(self):
         self.login(username='admin')
@@ -234,6 +212,114 @@ class CoreTests(CaravelTestCase):
         db.session.delete(datasource)
         db.session.commit()
 
+    def test_druid_sync_from_config(self):
+        cluster = models.DruidCluster(cluster_name="new_druid")
+        db.session.add(cluster)
+        db.session.commit()
+
+        cfg = {
+            "user": "admin",
+            "cluster": "new_druid",
+            "config": {
+                "name": "test_click",
+                "dimensions": ["affiliate_id", "campaign", "first_seen"],
+                "metrics_spec": [{"type": "count", "name": "count"},
+                                 {"type": "sum", "name": "sum"}],
+                "batch_ingestion": {
+                    "sql": "SELECT * FROM clicks WHERE d='{{ ds }}'",
+                    "ts_column": "d",
+                    "sources": [{
+                        "table": "clicks",
+                        "partition": "d='{{ ds }}'"
+                    }]
+                }
+            }
+        }
+        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # datasource exists, not changes required
+        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum"])
+        assert resp.status_code == 201
+
+        # datasource exists, add new metrics and dimentions
+        cfg = {
+            "user": "admin",
+            "cluster": "new_druid",
+            "config": {
+                "name": "test_click",
+                "dimensions": ["affiliate_id", "second_seen"],
+                "metrics_spec": [
+                    {"type": "bla", "name": "sum"},
+                    {"type": "unique", "name": "unique"}
+                ],
+            }
+        }
+        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        # columns and metrics are not deleted if config is changed as
+        # user could define his own dimensions / metrics and want to keep them
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen", "second_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum", "unique"])
+        # metric type will not be overridden, sum stays instead of bla
+        assert set([m.metric_type for m in druid_ds.metrics]) == set(
+            ["longSum", "sum", "unique"])
+        assert resp.status_code == 201
+
+    def test_filter_druid_datasource(self):
+        gamma_ds = DruidDatasource(
+            datasource_name="datasource_for_gamma",
+        )
+        db.session.add(gamma_ds)
+        no_gamma_ds = DruidDatasource(
+            datasource_name="datasource_not_for_gamma",
+        )
+        db.session.add(no_gamma_ds)
+        db.session.commit()
+        utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
+        utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+        db.session.commit()
+
+        gamma_ds_permission_view = (
+            db.session.query(ab_models.PermissionView)
+            .join(ab_models.ViewMenu)
+            .filter(ab_models.ViewMenu.name == gamma_ds.perm)
+            .first()
+        )
+        sm.add_permission_role(sm.find_role('Gamma'), gamma_ds_permission_view)
+
+        self.login(username='gamma')
+        url = '/druiddatasourcemodelview/list/'
+        resp = self.client.get(url, follow_redirects=True)
+        assert 'datasource_for_gamma' in resp.data.decode('utf-8')
+        assert 'datasource_not_for_gamma' not in resp.data.decode('utf-8')
+
+    def test_add_filter(self, username='admin'):
+        # navigate to energy_usage slice with "Electricity,heat" in filter values
+        data = (
+            "/caravel/explore/table/1/?viz_type=table&groupby=source&metric=count&flt_col_1=source&flt_op_1=in&flt_eq_1=%27Electricity%2Cheat%27"
+            "&userid=1&datasource_name=energy_usage&datasource_id=1&datasource_type=tablerdo_save=saveas")
+        resp = self.client.get(
+            data,
+            follow_redirects=True)
+        assert ("source" in resp.data.decode('utf-8'))
+
     def test_gamma(self):
         self.login(username='gamma')
         resp = self.client.get('/slicemodelview/list/')
@@ -293,16 +379,19 @@ class CoreTests(CaravelTestCase):
         assert len(data['data']) > 0
 
     def test_csv_endpoint(self):
-        sql = "SELECT first_name, last_name FROM ab_user " \
-              "where first_name='admin'"
-        self.run_sql(sql, 'admin')
+        sql = """
+            SELECT first_name, last_name
+            FROM ab_user
+            WHERE first_name='admin'
+        """
+        client_id = "{}".format(random.getrandbits(64))[:10]
+        self.run_sql(sql, 'admin', client_id)
 
-        query1_id = self.get_query_by_sql(sql).id
         self.login('admin')
-        resp = self.client.get('/caravel/csv/{}'.format(query1_id))
+        resp = self.client.get('/caravel/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp.data.decode('utf-8')))
-        expected_data = csv.reader(io.StringIO(
-            "first_name,last_name\nadmin, user\n"))
+        expected_data = csv.reader(
+            io.StringIO("first_name,last_name\nadmin, user\n"))
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()

@@ -77,12 +77,11 @@ export const timeFormatFactory = function (d3timeFormat) {
 export const fDuration = function (t1, t2, f = 'HH:mm:ss.SS') {
   const diffSec = t2 - t1;
   const duration = moment(new Date(diffSec));
-  duration.millisecond((diffSec - Math.round(diffSec)) * 1000);
   return duration.utc().format(f);
 };
 
 export const now = function () {
   // seconds from EPOCH as a float
-  return moment().utc().valueOf() / 1000.0;
+  return moment().utc().valueOf();
 };
 

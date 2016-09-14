@@ -3,3 +3,5 @@ vendor/*
 dist/*
 stylesheets/*
 spec/*
+coverage/**
+**/*{.,-}min.js

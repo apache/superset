@@ -3,10 +3,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+import re
 
 import functools
 import json
 import logging
+import re
 import textwrap
 from collections import namedtuple
 from copy import deepcopy, copy
@@ -43,6 +45,8 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
+from werkzeug.datastructures import ImmutableMultiDict
+
 import caravel
 from caravel import app, db, get_session, utils, sm
 from caravel.viz import viz_types
@@ -51,6 +55,7 @@ from caravel.utils import flasher, MetricPermException, DimSelector
 config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -250,6 +255,30 @@ class Slice(Model, AuditMixinNullable):
         return '<a href="{url}">{obj.slice_name}</a>'.format(
             url=url, obj=self)
 
+    def get_viz(self, url_params_multidict=None):
+        """Creates :py:class:viz.BaseViz object from the url_params_multidict.
+
+        :param werkzeug.datastructures.MultiDict url_params_multidict:
+            Contains the visualization params, they override the self.params
+            stored in the database
+        :return: object of the 'viz_type' type that is taken from the
+            url_params_multidict or self.params.
+        :rtype: :py:class:viz.BaseViz
+        """
+        slice_params = json.loads(self.params)  # {}
+        slice_params['slice_id'] = self.id
+        slice_params['json'] = "false"
+        slice_params['slice_name'] = self.slice_name
+        slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
+        if url_params_multidict:
+            slice_params.update(url_params_multidict)
+        immutable_slice_params = ImmutableMultiDict(slice_params)
+        return viz_types[immutable_slice_params.get('viz_type')](
+            self.datasource,
+            form_data=immutable_slice_params,
+            slice_=self
+        )
+
 
 def set_perm(mapper, connection, target):  # noqa
     if target.table_id:
@@ -382,6 +411,9 @@ class Database(Model, AuditMixinNullable):
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
+    expose_in_sqllab = Column(Boolean, default=False)
+    allow_ctas = Column(Boolean, default=False)
+    force_ctas_schema = Column(String(250))
     extra = Column(Text, default=textwrap.dedent("""\
     {
         "metadata_params": {},
@@ -392,12 +424,16 @@ class Database(Model, AuditMixinNullable):
     def __repr__(self):
         return self.database_name
 
+    @property
+    def backend(self):
+        url = make_url(self.sqlalchemy_uri_decrypted)
+        return url.get_backend_name()
+
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
-        params = extra.get('engine_params', {})
         url = make_url(self.sqlalchemy_uri_decrypted)
-        backend = url.get_backend_name()
-        if backend == 'presto' and schema:
+        params = extra.get('engine_params', {})
+        if self.backend == 'presto' and schema:
             if '/' in url.database:
                 url.database = url.database.split('/')[0] + '/' + schema
             else:
@@ -554,6 +590,22 @@ class Database(Model, AuditMixinNullable):
 
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
+
+    def epoch_to_dttm(self, ms=False):
+        """Database-specific SQL to convert unix timestamp to datetime
+        """
+        ts2date_exprs = {
+            'sqlite': "datetime({col}, 'unixepoch')",
+            'postgresql': "(timestamp 'epoch' + {col} * interval '1 second')",
+            'mysql': "from_unixtime({col})",
+            'mssql': "dateadd(S, {col}, '1970-01-01')"
+        }
+        ts2date_exprs['redshift'] = ts2date_exprs['postgresql']
+        ts2date_exprs['vertica'] = ts2date_exprs['postgresql']
+        for db_type, expr in ts2date_exprs.items():
+            if self.sqlalchemy_uri.startswith(db_type):
+                return expr.replace('{col}', '({col}/1000.0)') if ms else expr
+        raise Exception(_("Unable to convert unix epoch to datetime"))
 
     def get_extra(self):
         extra = {}
@@ -759,6 +811,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
+                if dttm_col.python_date_format == 'epoch_s':
+                    dttm_expr = self.database.epoch_to_dttm().format(
+                        col=dttm_expr)
+                elif dttm_col.python_date_format == 'epoch_ms':
+                    dttm_expr = self.database.epoch_to_dttm(ms=True).format(
+                        col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
                     udf.function.format(col=dttm_expr)).label('timestamp')
@@ -805,7 +863,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         for col, op, eq in filter:
             col_obj = cols[col]
             if op in ('in', 'not in'):
-                values = eq.split(",")
+                splitted = FillterPattern.split(eq)[1::2]
+                values = [types.replace("'", '').strip() for types in splitted]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -860,16 +919,17 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         return QueryResult(
             df=df, duration=datetime.now() - qry_start_dttm, query=sql)
 
+    def get_sqla_table_object(self):
+        return self.database.get_table(self.table_name, schema=self.schema)
+
     def fetch_metadata(self):
         """Fetches the metadata for the table and merges it in"""
         try:
-            table = self.database.get_table(self.table_name, schema=self.schema)
-        except Exception as e:
-            flasher(str(e))
-            flasher(
+            table = self.get_sqla_table_object()
+        except Exception:
+            raise Exception(
                 "Table doesn't seem to exist in the specified database, "
-                "couldn't fetch column information", "danger")
-            return
+                "couldn't fetch column information")
 
         TC = TableColumn  # noqa shortcut to class
         M = SqlMetric  # noqa
@@ -1248,6 +1308,79 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col.generate_metrics()
 
     @classmethod
+    def sync_to_db_from_config(cls, druid_config, user, cluster):
+        """Merges the ds config from druid_config into one stored in the db."""
+        session = db.session()
+        datasource = (
+            session.query(DruidDatasource)
+            .filter_by(
+                datasource_name=druid_config['name'])
+        ).first()
+        # Create a new datasource.
+        if not datasource:
+            datasource = DruidDatasource(
+                datasource_name=druid_config['name'],
+                cluster=cluster,
+                owner=user,
+                changed_by_fk=user.id,
+                created_by_fk=user.id,
+            )
+            session.add(datasource)
+
+        dimensions = druid_config['dimensions']
+        for dim in dimensions:
+            col_obj = (
+                session.query(DruidColumn)
+                .filter_by(
+                    datasource_name=druid_config['name'],
+                    column_name=dim)
+            ).first()
+            if not col_obj:
+                col_obj = DruidColumn(
+                    datasource_name=druid_config['name'],
+                    column_name=dim,
+                    groupby=True,
+                    filterable=True,
+                    # TODO: fetch type from Hive.
+                    type="STRING",
+                    datasource=datasource
+                )
+                session.add(col_obj)
+        # Import Druid metrics
+        for metric_spec in druid_config["metrics_spec"]:
+            metric_name = metric_spec["name"]
+            metric_type = metric_spec["type"]
+            metric_json = json.dumps(metric_spec)
+
+            if metric_type == "count":
+                metric_type = "longSum"
+                metric_json = json.dumps({
+                    "type": "longSum",
+                    "name": metric_name,
+                    "fieldName": metric_name,
+                })
+
+            metric_obj = (
+                session.query(DruidMetric)
+                .filter_by(
+                    datasource_name=druid_config['name'],
+                    metric_name=metric_name)
+            ).first()
+            if not metric_obj:
+                metric_obj = DruidMetric(
+                    metric_name=metric_name,
+                    metric_type=metric_type,
+                    verbose_name="%s(%s)" % (metric_type, metric_name),
+                    datasource=datasource,
+                    json=metric_json,
+                    description=(
+                        "Imported from the airolap config dir for %s" %
+                        druid_config['name']),
+                )
+                session.add(metric_obj)
+        session.commit()
+
+    @classmethod
     def sync_to_db(cls, name, cluster):
         """Fetches metadata for that datasource and merges the Caravel db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
@@ -1489,9 +1622,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 cond = ~(Dimension(col) == eq)
             elif op in ('in', 'not in'):
                 fields = []
-                splitted = eq.split(',')
-                if len(splitted) > 1:
-                    for s in eq.split(','):
+                # Distinguish quoted values with regular value types
+                splitted = FillterPattern.split(eq)[1::2]
+                values = [types.replace("'", '') for types in splitted]
+                if len(values) > 1:
+                    for s in values:
                         s = s.strip()
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
@@ -1574,9 +1709,14 @@ class Log(Model):
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
             slice_id = int(slice_id) if slice_id else 0
+            params = ""
+            try:
+                params = json.dumps(d)
+            except:
+                pass
             log = cls(
                 action=f.__name__,
-                json=json.dumps(d),
+                json=params,
                 dashboard_id=d.get('dashboard_id') or None,
                 slice_id=slice_id,
                 user_id=user_id)
@@ -1768,7 +1908,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11))
+    client_id = Column(String(11), unique=True)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
@@ -1777,7 +1917,6 @@ class Query(Model):
     user_id = Column(
         Integer, ForeignKey('ab_user.id'), nullable=True)
     status = Column(String(16), default=QueryStatus.PENDING)
-    name = Column(String(256))
     tab_name = Column(String(256))
     sql_editor_id = Column(String(256))
     schema = Column(String(256))
@@ -1802,7 +1941,7 @@ class Query(Model):
     start_time = Column(Numeric(precision=3))
     end_time = Column(Numeric(precision=3))
     changed_on = Column(
-        DateTime, default=datetime.now, onupdate=datetime.now, nullable=True)
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
@@ -1814,6 +1953,7 @@ class Query(Model):
     def to_dict(self):
         return {
             'changedOn': self.changed_on,
+            'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,
@@ -1833,3 +1973,10 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+    @property
+    def name(self):
+        ts = datetime.now().isoformat()
+        ts = ts.replace('-', '').replace(':', '').split('.')[0]
+        tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
+        tab = re.sub(r'\W+', '', tab)
+        return "sqllab_{tab}_{ts}".format(**locals())
