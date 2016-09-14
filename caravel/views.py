@@ -1388,9 +1388,10 @@ class Caravel(BaseCaravelView):
                 "dimensions": ["affiliate_id", "campaign", "first_seen"]
             }
         """
-        druid_config = json.loads(request.form.get('config'))
-        user_name = request.form.get('user')
-        cluster_name = request.form.get('cluster')
+        payload = request.get_json(force=True)
+        druid_config = payload['config']
+        user_name = payload['user']
+        cluster_name = payload['cluster']
 
         user = sm.find_user(username=user_name)
         if not user:
