@@ -11,7 +11,7 @@ export default class ExploreViewContainer extends React.Component {
           <div className="col-sm-3">
             <QueryAndSaveButtons
               canAdd="True"
-              onQuery={() => { console.log('clicked query') }}
+              onQuery={() => { console.log('clicked query'); }}
             />
             <br /><br />
             <ControlPanelsContainer />
