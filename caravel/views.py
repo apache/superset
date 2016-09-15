@@ -1062,12 +1062,8 @@ class Caravel(BaseCaravelView):
             if k not in as_list and isinstance(v, list):
                 d[k] = v[0]
 
-        table_id = druid_datasource_id = None
         datasource_type = args.get('datasource_type')
-        if datasource_type in ('datasource', 'druid'):
-            druid_datasource_id = args.get('datasource_id')
-        elif datasource_type == 'table':
-            table_id = args.get('datasource_id')
+        datasource_id = args.get('datasource_id')
 
         if action in ('saveas'):
             d.pop('slice_id')  # don't save old slice_id
@@ -1076,9 +1072,8 @@ class Caravel(BaseCaravelView):
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
         slc.viz_type = args.get('viz_type')
-        slc.druid_datasource_id = druid_datasource_id
-        slc.table_id = table_id
         slc.datasource_type = datasource_type
+        slc.datasource_id = datasource_id
         slc.slice_name = slice_name
 
         if action in ('saveas') and slice_add_perm:
