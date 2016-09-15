@@ -427,7 +427,7 @@ class Database(Model, AuditMixinNullable):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
 
-    def set_sqlalchemi_uri(self, uri):
+    def set_sqlalchemy_uri(self, uri):
         conn = sqla.engine.url.make_url(uri)
         self.password = conn.password
         conn.password = "X" * 10 if conn.password else None
