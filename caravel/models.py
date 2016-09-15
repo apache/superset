@@ -174,7 +174,7 @@ class Slice(Model, AuditMixinNullable):
     @property
     def datasource(self):
         return self.get_datasource
-    
+
     @datasource.getter
     @utils.memoized
     def get_datasource(self):
