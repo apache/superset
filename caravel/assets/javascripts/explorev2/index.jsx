@@ -5,11 +5,13 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { compose, createStore } from 'redux';
 import { Provider } from 'react-redux';
 
+import { initialState } from './stores/store';
+
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = exploreViewContainer.getAttribute('data-bootstrap');
 
 
-import { initialState, exploreReducer } from './reducers';
+import { exploreReducer } from './reducers/exploreReducer';
 import persistState from 'redux-localstorage';
 
 let enhancer = compose(persistState());
