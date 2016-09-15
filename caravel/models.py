@@ -173,6 +173,11 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def datasource(self):
+        return self.get_datasource
+    
+    @datasource.getter
+    @utils.memoized
+    def get_datasource(self):
         ds = db.session.query(
             self.cls_model).filter_by(
             id=self.datasource_id).first()

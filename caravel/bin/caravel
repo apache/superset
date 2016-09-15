@@ -20,7 +20,8 @@ config = app.config
 
 manager = Manager(app)
 manager.add_command('db', MigrateCommand)
-module_datasource_map = dict(config.get("DEFAULT_MODULE_DS_MAP"), **config.get("ADDITIONAL_MODULE_DS_MAP"))
+module_datasource_map = config.get("DEFAULT_MODULE_DS_MAP")
+module_datasource_map.update(config.get("ADDITIONAL_MODULE_DS_MAP"))
 
 datasources = {}
 for module in module_datasource_map:
