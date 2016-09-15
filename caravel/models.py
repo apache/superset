@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
+import re
 
 import functools
 import json
@@ -54,6 +55,7 @@ from caravel.utils import flasher, MetricPermException, DimSelector
 config = app.config
 
 QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -589,6 +591,22 @@ class Database(Model, AuditMixinNullable):
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
 
+    def epoch_to_dttm(self, ms=False):
+        """Database-specific SQL to convert unix timestamp to datetime
+        """
+        ts2date_exprs = {
+            'sqlite': "datetime({col}, 'unixepoch')",
+            'postgresql': "(timestamp 'epoch' + {col} * interval '1 second')",
+            'mysql': "from_unixtime({col})",
+            'mssql': "dateadd(S, {col}, '1970-01-01')"
+        }
+        ts2date_exprs['redshift'] = ts2date_exprs['postgresql']
+        ts2date_exprs['vertica'] = ts2date_exprs['postgresql']
+        for db_type, expr in ts2date_exprs.items():
+            if self.sqlalchemy_uri.startswith(db_type):
+                return expr.replace('{col}', '({col}/1000.0)') if ms else expr
+        raise Exception(_("Unable to convert unix epoch to datetime"))
+
     def get_extra(self):
         extra = {}
         if self.extra:
@@ -793,6 +811,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
+                if dttm_col.python_date_format == 'epoch_s':
+                    dttm_expr = self.database.epoch_to_dttm().format(
+                        col=dttm_expr)
+                elif dttm_col.python_date_format == 'epoch_ms':
+                    dttm_expr = self.database.epoch_to_dttm(ms=True).format(
+                        col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
                     udf.function.format(col=dttm_expr)).label('timestamp')
@@ -839,7 +863,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         for col, op, eq in filter:
             col_obj = cols[col]
             if op in ('in', 'not in'):
-                values = eq.split(",")
+                splitted = FillterPattern.split(eq)[1::2]
+                values = [types.replace("'", '').strip() for types in splitted]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -1597,9 +1622,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 cond = ~(Dimension(col) == eq)
             elif op in ('in', 'not in'):
                 fields = []
-                splitted = eq.split(',')
-                if len(splitted) > 1:
-                    for s in eq.split(','):
+                # Distinguish quoted values with regular value types
+                splitted = FillterPattern.split(eq)[1::2]
+                values = [types.replace("'", '') for types in splitted]
+                if len(values) > 1:
+                    for s in values:
                         s = s.strip()
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)

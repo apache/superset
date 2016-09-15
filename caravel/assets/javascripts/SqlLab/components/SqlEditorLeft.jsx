@@ -179,7 +179,7 @@ SqlEditorTopToolbar.propTypes = {
   queryEditor: React.PropTypes.object,
   tables: React.PropTypes.array,
   actions: React.PropTypes.object,
-  networkOn: React.PropTypes.boolean,
+  networkOn: React.PropTypes.bool,
 };
 
 SqlEditorTopToolbar.defaultProps = {

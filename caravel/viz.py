@@ -172,12 +172,9 @@ class BaseViz(object):
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
-                if timestamp_format == "epoch_s":
+                if timestamp_format in ("epoch_s", "epoch_ms"):
                     df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="s")
-                elif timestamp_format == "epoch_ms":
-                    df.timestamp = pd.to_datetime(
-                        df.timestamp, utc=False, unit="ms")
+                        df.timestamp, utc=False)
                 else:
                     df.timestamp = pd.to_datetime(
                         df.timestamp, utc=False, format=timestamp_format)
@@ -214,9 +211,12 @@ class BaseViz(object):
             extra_filters = json.loads(extra_filters)
             for slice_filters in extra_filters.values():
                 for col, vals in slice_filters.items():
-                    if col and vals:
-                        if col in self.datasource.filterable_column_names:
-                            filters += [(col, 'in', ",".join(vals))]
+                    if not (col and vals):
+                        continue
+                    elif col in self.datasource.filterable_column_names:
+                        # Quote values with comma to avoid conflict
+                        vals = ["'%s'" % x if "," in x else x for x in vals]
+                        filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):
