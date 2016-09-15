@@ -43,7 +43,11 @@ def checkout(dbapi_con, con_record, con_proxy):
     """
     try:
         try:
-            dbapi_con.ping(False)
+            if hasattr(dbapi_con, 'ping'):
+                dbapi_con.ping(False)
+            else:
+                cursor = dbapi_con.cursor()
+                cursor.execute("SELECT 1")
         except TypeError:
             app.logger.debug('MySQL connection died. Restoring...')
             dbapi_con.ping()
