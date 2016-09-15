@@ -1,16 +1,16 @@
-div.widget .slice_container {
+.mapbox div.widget .slice_container {
     cursor: grab;
     cursor: -moz-grab;
     cursor: -webkit-grab;
     overflow: hidden;
 }
 
-div.widget .slice_container:active {
+.mapbox div.widget .slice_container:active {
     cursor: grabbing;
     cursor: -moz-grabbing;
     cursor: -webkit-grabbing;
 }
 
-.slice_container div {
+.mapbox .slice_container div {
     padding-top: 0px;
 }
