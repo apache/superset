@@ -415,6 +415,7 @@ class Database(Model, AuditMixinNullable):
     allow_run_sync = Column(Boolean, default=True)
     allow_run_async = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
+    allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
     extra = Column(Text, default=textwrap.dedent("""\
     {

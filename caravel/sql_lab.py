@@ -63,6 +63,9 @@ def get_sql_results(query_id, return_results=True):
 
     # Limit enforced only for retrieving the data, not for the CTA queries.
     is_select = is_query_select(executed_sql);
+    if not is_select and not database.allow_dml:
+        handle_error(
+            "Only `SELECT` statements are allowed against this database")
     if query.select_as_cta:
         if not is_select:
             handle_error(

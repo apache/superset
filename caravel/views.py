@@ -448,7 +448,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
-        'allow_ctas', 'force_ctas_schema']
+        'allow_ctas', 'allow_dml', 'force_ctas_schema']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     show_columns = [
@@ -480,6 +480,10 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "This assumes that you have a Celery worker setup as well "
             "as a results backend."),
         'allow_ctas': _("Allow CREATE TABLE AS option in SQL Lab"),
+        'allow_dml': _(
+            "Allow users to run non-SELECT statements "
+            "(UPDATE, DELETE, CREATE, ...) "
+            "in SQL Lab"),
         'force_ctas_schema': _(
             "When allowing CREATE TABLE AS option in SQL Lab, "
             "this option forces the table to be created in this schema"),
@@ -496,6 +500,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
         'allow_ctas': _("Allow CREATE TABLE AS"),
+        'allow_dml': _("Allow DML"),
         'force_ctas_schema': _("CTAS Schema"),
         'database_name': _("Database"),
         'creator': _("Creator"),
@@ -530,7 +535,7 @@ class DatabaseAsync(DatabaseView):
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
-        'allow_run_async', 'allow_run_sync',
+        'allow_run_async', 'allow_run_sync', 'allow_dml',
     ]
 
 appbuilder.add_view_no_menu(DatabaseAsync)
