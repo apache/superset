@@ -69,14 +69,16 @@ function nvd3Vis(slice) {
 
       // Calculates the longest label size for stretching bottom margin
       function calculateStretchMargins(payloadData) {
-        const axisLabels = payloadData.data[0].values;
         let stretchMargin = 0;
         const pixelsPerCharX = 4.5; // approx, depends on font size
-        let maxLabelSize = 0;
-        for (let i = 0; i < axisLabels.length; i++) {
-          maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
-        }
-        stretchMargin = Math.ceil(Math.max(stretchMargin, pixelsPerCharX * maxLabelSize));
+        let maxLabelSize = 10; // accomodate for shorter labels
+        payloadData.data.forEach((d) => {
+          const axisLabels = d.values;
+          for (let i = 0; i < axisLabels.length; i++) {
+            maxLabelSize = Math.max(axisLabels[i].x.length, maxLabelSize);
+          }
+        });
+        stretchMargin = Math.ceil(pixelsPerCharX * maxLabelSize);
         return stretchMargin;
       }
 
