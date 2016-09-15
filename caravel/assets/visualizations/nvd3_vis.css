@@ -18,6 +18,11 @@ text.nv-axislabel {
 
 .dist_bar svg.nvd3-svg {
   width: auto;
+  font-size: 14px;
+}
+
+.nv-x text{
+  font-size: 12px;
 }
 
 .bar .slice_container {
