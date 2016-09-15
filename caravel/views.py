@@ -1241,21 +1241,25 @@ class Caravel(BaseCaravelView):
     def testconn(self):
         """Tests a sqla connection"""
         try:
-            database_name = request.json.get('database_name')
-            database = (
-                db.session
-                .query(models.Database)
-                .filter_by(database_name=database_name)
-                .first()
-            )
             request_uri = request.json.get('uri')
-            if request_uri != database.safe_sqlalchemy_uri():
-                # the user altered the SQLAlchemy URI field
-                # so use that for testing the connection
-                uri = request_uri
+            database_name = request.json.get('database_name')
+            if database_name:
+                database = (
+                    db.session
+                    .query(models.Database)
+                    .filter_by(database_name=database_name)
+                    .first()
+                )
+                if request_uri != database.safe_sqlalchemy_uri():
+                    # the user altered the SQLAlchemy URI field
+                    # so use that for testing the connection
+                    uri = request_uri
+                else:
+                    # use the URI associated with this database
+                    uri = database.sqlalchemy_uri_decrypted
             else:
-                # use the URI associated with this database
-                uri = database.sqlalchemy_uri_decrypted
+                # database_name was not passed as an argument
+                uri = request_uri
             connect_args = (
                 request.json
                 .get('extras', {})
