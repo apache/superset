@@ -20,13 +20,20 @@ and interactive.
 [this project used to be named **Panoramix**]
 
 
-Video - Introduction to Caravel
----------------------------------
-[![Caravel - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+Screenshots & Gifs
+------------------
+![img](http://g.recordit.co/xFXSvaGUts.gif)
 
-Screenshots
-------------
+---
+![img](http://g.recordit.co/uZggYOdR5g.gif)
+
+---
+![img](http://g.recordit.co/U70FWLpLvh.gif)
+
+---
 ![img](http://i.imgur.com/x8t30YU.png)
+
+---
 ![img](http://i.imgur.com/DRCnbq6.png)
 
 Caravel
@@ -83,11 +90,23 @@ More screenshots
 ----------------
 
 ![img](http://i.imgur.com/SAhDJCI.png)
+
+---
 ![img](http://i.imgur.com/iuLpv1c.png)
+
+---
 ![img](http://i.imgur.com/V2FWeZx.png)
+
+---
 ![img](http://i.imgur.com/BeUtCzF.png)
+
+---
 ![img](http://i.imgur.com/phoY7jI.png)
+
+---
 ![img](http://i.imgur.com/NvIDgdC.png)
+
+---
 ![img](http://i.imgur.com/DzwYyns.png)
 
 
