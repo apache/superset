@@ -115,10 +115,6 @@ class CoreTests(CaravelTestCase):
         assert self.client.get('/ping').data.decode('utf-8') == "OK"
 
     def test_testconn(self):
-        data = json.dumps({'uri': 'sqlite:////tmp/caravel_unittests.db'})
-        response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
-        assert response.status_code == 200
-
         database = (
             db.session
             .query(models.Database)
