@@ -1,3 +1,7 @@
 node_modules/*
 vendor/*
-javascripts/dist/*
+dist/*
+stylesheets/*
+spec/*
+coverage/**
+**/*{.,-}min.js

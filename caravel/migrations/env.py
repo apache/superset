@@ -4,7 +4,7 @@ import logging
 from logging.config import fileConfig
 
 from alembic import context
-from flask.ext.appbuilder import Base
+from flask_appbuilder import Base
 from sqlalchemy import engine_from_config, pool
 
 # this is the Alembic Config object, which provides
@@ -72,11 +72,21 @@ def run_migrations_online():
                                 poolclass=pool.NullPool)
 
     connection = engine.connect()
+    kwargs = {}
+    if engine.name in ('sqlite', 'mysql'):
+        kwargs = {
+            'transaction_per_migration': True,
+            'transactional_ddl': True,
+        }
+    configure_args = current_app.extensions['migrate'].configure_args
+    if configure_args:
+        kwargs.update(configure_args)
+
     context.configure(connection=connection,
                       target_metadata=target_metadata,
                       #compare_type=True,
                       process_revision_directives=process_revision_directives,
-                      **current_app.extensions['migrate'].configure_args)
+                      **kwargs)
 
     try:
         with context.begin_transaction():

@@ -9,10 +9,10 @@ import os
 from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
-from flask.ext.appbuilder import SQLA, AppBuilder, IndexView
-from flask.ext.appbuilder.baseviews import expose
-from flask.ext.cache import Cache
-from flask.ext.migrate import Migrate
+from flask_appbuilder import SQLA, AppBuilder, IndexView
+from flask_appbuilder.baseviews import expose
+from flask_cache import Cache
+from flask_migrate import Migrate
 
 from caravel import version
 
@@ -24,9 +24,9 @@ CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 if not app.debug:
-  # In production mode, add log handler to sys.stderr.
-  app.logger.addHandler(logging.StreamHandler())
-  app.logger.setLevel(logging.INFO)
+    # In production mode, add log handler to sys.stderr.
+    app.logger.addHandler(logging.StreamHandler())
+    app.logger.setLevel(logging.INFO)
 
 db = SQLA(app)
 
@@ -45,6 +45,10 @@ if app.config.get('ENABLE_TIME_ROTATE'):
                                        interval=app.config.get('INTERVAL'),
                                        backupCount=app.config.get('BACKUP_COUNT'))
     logging.getLogger().addHandler(handler)
+
+if app.config.get('ENABLE_CORS'):
+    from flask_cors import CORS
+    CORS(app, **app.config.get('CORS_OPTIONS'))
 
 
 class MyIndexView(IndexView):

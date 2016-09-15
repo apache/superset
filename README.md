@@ -5,11 +5,14 @@ Caravel
 [![Build Status](https://travis-ci.org/airbnb/caravel.svg?branch=master)](https://travis-ci.org/airbnb/caravel)
 [![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
 [![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
+[![JS Test Coverage](https://codeclimate.com/github/airbnb/caravel/badges/coverage.svg)](https://codeclimate.com/github/airbnb/caravel/coverage)
 [![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
+[![Code Climate](https://codeclimate.com/github/airbnb/caravel/badges/gpa.svg)](https://codeclimate.com/github/airbnb/caravel)
 [![PyPI](https://img.shields.io/pypi/pyversions/caravel.svg?maxAge=2592000)](https://pypi.python.org/pypi/caravel)
 [![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
 [![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
+[![dependencies Status](https://david-dm.org/airbnb/caravel/status.svg?path=caravel/assets)](https://david-dm.org/airbnb/caravel?path=caravel/assets)
 
 Caravel is a data exploration platform designed to be visual, intuitive
 and interactive.
@@ -17,14 +20,21 @@ and interactive.
 [this project used to be named **Panoramix**]
 
 
-Video - Introduction to Caravel
----------------------------------
-[![Caravel - ](http://img.youtube.com/vi/3Txm_nj_R7M/0.jpg)](http://www.youtube.com/watch?v=3Txm_nj_R7M)
+Screenshots & Gifs
+------------------
+![img](http://g.recordit.co/xFXSvaGUts.gif)
 
-Screenshots
-------------
-![img](http://i.imgur.com/JRbTnTx.png)
-![img](http://i.imgur.com/4wRtxwb.png)
+---
+![img](http://g.recordit.co/uZggYOdR5g.gif)
+
+---
+![img](http://g.recordit.co/U70FWLpLvh.gif)
+
+---
+![img](http://i.imgur.com/x8t30YU.png)
+
+---
+![img](http://i.imgur.com/DRCnbq6.png)
 
 Caravel
 ---------
@@ -46,6 +56,7 @@ Caravel provides:
     made available to the user
 * Deep integration with Druid allows for Caravel to stay blazing fast while
     slicing and dicing large, realtime datasets
+* Fast loading dashboards with configurable caching
 
 
 Database Support
@@ -78,12 +89,25 @@ Installation & Configuration
 More screenshots
 ----------------
 
-![img](http://i.imgur.com/MAFZTtU.png)
-![img](http://i.imgur.com/xcy1QjN.png)
-![img](http://i.imgur.com/RWqA8ly.png)
-![img](http://i.imgur.com/D2kZL7q.png)
-![img](http://i.imgur.com/0UPTK61.png)
-![img](http://i.imgur.com/ahHoCuS.png)
+![img](http://i.imgur.com/SAhDJCI.png)
+
+---
+![img](http://i.imgur.com/iuLpv1c.png)
+
+---
+![img](http://i.imgur.com/V2FWeZx.png)
+
+---
+![img](http://i.imgur.com/BeUtCzF.png)
+
+---
+![img](http://i.imgur.com/phoY7jI.png)
+
+---
+![img](http://i.imgur.com/NvIDgdC.png)
+
+---
+![img](http://i.imgur.com/DzwYyns.png)
 
 
 Resources

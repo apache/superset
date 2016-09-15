@@ -1,0 +1,15 @@
+.markup .slice_container {
+    padding: 10px;
+    overflow: auto;
+}
+.separator {
+    background-color: transparent !important;
+}
+.separator hr {
+    border: 0;
+    height: 1px;
+    background-image: linear-gradient(to right, rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 1), rgba(0, 0, 0, 0));
+}
+.separator .chart-header {
+    border: none !important;
+}

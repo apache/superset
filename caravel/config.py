@@ -1,7 +1,7 @@
 """The main config file for Caravel
 
-All configuration in this file can be overridden by providing a local_config
-in your PYTHONPATH as there is a ``from local_config import *``
+All configuration in this file can be overridden by providing a caravel_config
+in your PYTHONPATH as there is a ``from caravel_config import *``
 at the end of this file.
 """
 from __future__ import absolute_import
@@ -15,14 +15,17 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-
+DATA_DIR = os.path.join(os.path.expanduser('~'), '.caravel')
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
 
 # ---------------------------------------------------------
-# Caravel specifix config
+# Caravel specific config
 # ---------------------------------------------------------
 ROW_LIMIT = 50000
-WEBSERVER_THREADS = 8
+CARAVEL_WORKERS = 16
 
+CARAVEL_WEBSERVER_ADDRESS = '0.0.0.0'
 CARAVEL_WEBSERVER_PORT = 8088
 CARAVEL_WEBSERVER_TIMEOUT = 60
 
@@ -33,7 +36,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:////tmp/caravel.db'
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'caravel.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -53,7 +56,7 @@ SHOW_STACKTRACE = True
 APP_NAME = "Caravel"
 
 # Uncomment to setup Setup an App icon
-# APP_ICON = "/static/img/something.png"
+APP_ICON = "/static/assets/images/caravel_logo.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -132,6 +135,10 @@ IMG_UPLOAD_URL = '/static/uploads/'
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
+# CORS Options
+ENABLE_CORS = False
+CORS_OPTIONS = {}
+
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
@@ -164,17 +171,45 @@ LOG_LEVEL = 'DEBUG'
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-FILENAME = '/tmp/caravel.log'
+FILENAME = os.path.join(DATA_DIR, 'caravel.log')
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
 
+# Set this API key to enable Mapbox visualizations
+MAPBOX_API_KEY = ""
+
+# Maximum number of rows returned in the SQL editor
+SQL_MAX_ROW = 1000
+
+# If defined, shows this text in an alert-warning box in the navbar
+# one example use case may be "STAGING" to make it clear that this is
+# not the production version of the site.
+WARNING_MSG = None
+
+# Default celery config is to use SQLA as a broker, in a production setting
+# you'll want to use a proper broker as specified here:
+# http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
+"""
+# Example:
+class CeleryConfig(object):
+  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+  CELERY_IMPORTS = ('caravel.tasks', )
+  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+  CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
+CELERY_CONFIG = CeleryConfig
+"""
+CELERY_CONFIG = None
+SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
+SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
+
+# The db id here results in selecting this one as a default in SQL Lab
+DEFAULT_DB_ID = None
 
 try:
     from caravel_config import *  # noqa
-except Exception:
+except ImportError:
     pass
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
-

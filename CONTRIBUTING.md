@@ -9,7 +9,7 @@ You can contribute in many ways:
 
 ### Report Bugs
 
-Report bugs through Github
+Report bugs through GitHub
 
 If you are reporting a bug, please include:
 
@@ -37,7 +37,7 @@ articles.
 
 ### Submit Feedback
 
-The best way to send feedback is to file an issue on Github.
+The best way to send feedback is to file an issue on GitHub.
 
 If you are proposing a feature:
 
@@ -49,13 +49,13 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
-[API Documentation](http://pythonhosted.com/caravel)
+Latest documentation and tutorial are available [here](http://airbnb.io/caravel)
 
 ## Setting up a Python development environment
 
 Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-dependencies) before follows these steps.
 
-    # fork the repo on github and then clone it
+    # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
     # git clone git@github.com:airbnb/caravel.git
@@ -102,11 +102,10 @@ echo prefix=~/.npm-packages >> ~/.npmrc
 curl -L https://www.npmjs.com/install.sh | sh
 ```
 
-The final step is to add
-`~/.node/bin` to your `PATH` so commands you install globally are usable.
-Add something like this to your `.bashrc` file.
+The final step is to add `~/.npm-packages/bin` to your `PATH` so commands you install globally are usable.
+Add something like this to your `.bashrc` file, then `source ~/.bashrc` to reflect the change.
 ```
-export PATH="$HOME/.node/bin:$PATH"
+export PATH="$HOME/.npm-packages/bin:$PATH"
 ```
 
 #### npm packages
@@ -140,17 +139,50 @@ npm run dev
 
 ## Testing
 
-Tests can then be run with:
+Python tests can be run with:
 
     ./run_tests.sh
+
+We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
+
+    cd /caravel/caravel/assets/javascripts
+    npm i
+    npm run test
+
+## Linting
 
 Lint the project with:
 
     # for python changes
     flake8 changes tests
+    flake8 changes caravel
 
     # for javascript
     npm run lint
+
+## Linting with codeclimate
+Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Caravel fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
+
+*Install the codeclimate cli tool*
+```
+curl -L https://github.com/docker/machine/releases/download/v0.7.0/docker-machine-`uname -s`-`uname -m` > /usr/local/bin/docker-machine && chmod +x /usr/local/bin/docker-machine 
+brew install docker
+docker-machine create --driver virtual box default
+docker-machine env default
+eval "$(docker-machine env default)"
+docker pull codeclimate/codeclimate
+brew tap codeclimate/formulae
+brew install codeclimate
+```
+
+*Run the lint command:*
+```
+docker-machine start
+eval "$(docker-machine env default)”
+codeclimate analyze
+```
+More info can be found here: https://docs.codeclimate.com/docs/open-source-free
+
 
 ## API documentation
 
@@ -189,7 +221,7 @@ meets these guidelines:
 
 We use [Babel](http://babel.pocoo.org/en/latest/) to translate Caravel. The
 key is to instrument the strings that need translation using
-`from flask.ext.babelpkg import lazy_gettext as _`. Once this is imported in
+`from flask_babel import lazy_gettext as _`. Once this is imported in
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
@@ -209,7 +241,7 @@ new language dictionary, run the following command:
 
     pybabel init -i ./babel/messages.pot -d caravel/translations -l es
 
-Then it's a matter of running the statement bellow to gather all stings that
+Then it's a matter of running the statement below to gather all stings that
 need translation
 
     fabmanager babel-extract --target caravel/translations/
