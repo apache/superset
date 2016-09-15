@@ -145,12 +145,16 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'stopped' });
     },
     [actions.QUERY_SUCCESS]() {
+      let rows;
+      if (action.results.data) {
+        rows = action.results.data.length;
+      }
       const alts = {
-        state: 'success',
-        results: action.results,
-        rows: action.results.data.length,
-        progress: 100,
         endDttm: now(),
+        progress: 100,
+        results: action.results,
+        rows,
+        state: 'success',
       };
       return alterInObject(state, 'queries', action.query, alts);
     },

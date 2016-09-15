@@ -52,87 +52,97 @@ def get_sql_results(query_id, return_results=True):
     database = query.database
     executed_sql = query.sql.strip().strip(';')
 
-    # Limit enforced only for retrieving the data, not for the CTA queries.
-    if is_query_select(executed_sql):
-        if query.select_as_cta:
-            if not query.tmp_table_name:
-                start_dttm = datetime.fromtimestamp(query.start_time)
-                query.tmp_table_name = 'tmp_{}_table_{}'.format(
-                    query.user_id,
-                    start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
-            executed_sql = create_table_as(
-                executed_sql, query.tmp_table_name, database.force_ctas_schema)
-            query.select_as_cta_used = True
-        elif query.limit:
-            executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
-            query.limit_used = True
-        engine = database.get_sqla_engine(schema=query.schema)
-        try:
-            query.executed_sql = executed_sql
-            logging.info("Running query: \n{}".format(executed_sql))
-            result_proxy = engine.execute(query.executed_sql, schema=query.schema)
-        except Exception as e:
-            logging.exception(e)
-            query.error_message = utils.error_msg_from_exception(e)
-            query.status = QueryStatus.FAILED
-            query.tmp_table_name = None
-            session.commit()
-            raise Exception(query.error_message)
 
-        cursor = result_proxy.cursor
-        query.status = QueryStatus.RUNNING
-        session.flush()
-        if database.backend == 'presto':
-            polled = cursor.poll()
-            # poll returns dict -- JSON status information or ``None``
-            # if the query is done
-            # https://github.com/dropbox/PyHive/blob/
-            # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
-            while polled:
-                # Update the object and wait for the kill signal.
-                stats = polled.get('stats', {})
-                if stats:
-                    completed_splits = float(stats.get('completedSplits'))
-                    total_splits = float(stats.get('totalSplits'))
-                    if total_splits and completed_splits:
-                        progress = 100 * (completed_splits / total_splits)
-                        if progress > query.progress:
-                            query.progress = progress
-                        session.commit()
-                time.sleep(1)
-                polled = cursor.poll()
-
-        columns = None
-        data = None
-        if result_proxy.cursor:
-            columns = [col[0] for col in result_proxy.cursor.description]
-            data = result_proxy.fetchall()
-            df = pd.DataFrame(data, columns=columns)
-            df = df.where((pd.notnull(df)), None)
-            # TODO consider generating tuples instead of dicts to send
-            # less data through the wire. The command bellow does that,
-            # but we'd need to align on the client side.
-            # data = df.values.tolist()
-            data = df.to_dict(orient='records')
-
-        query.rows = result_proxy.rowcount
-        query.progress = 100
-        query.status = QueryStatus.SUCCESS
-        if query.rows == -1 and data:
-            # Presto doesn't provide result_proxy.row_count
-            query.rows = len(data)
-
-        # CTAs queries result in 1 cell having the # of the added rows.
-        if query.select_as_cta:
-            query.select_sql = '{}'.format(database.select_star(
-                query.tmp_table_name, limit=query.limit))
-
-        query.end_time = utils.now_as_float()
+    def handle_error(msg):
+        """Local method handling error while processing the SQL"""
+        query.error_message = msg
+        query.status = QueryStatus.FAILED
+        query.tmp_table_name = None
         session.commit()
+        raise Exception(query.error_message)
+
+    # Limit enforced only for retrieving the data, not for the CTA queries.
+    is_select = is_query_select(executed_sql);
+    if query.select_as_cta:
+        if not is_select:
+            handle_error(
+                "Only `SELECT` statements can be used with the CREATE TABLE "
+                "feature.")
+        if not query.tmp_table_name:
+            start_dttm = datetime.fromtimestamp(query.start_time)
+            query.tmp_table_name = 'tmp_{}_table_{}'.format(
+                query.user_id,
+                start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
+        executed_sql = create_table_as(
+            executed_sql, query.tmp_table_name, database.force_ctas_schema)
+        query.select_as_cta_used = True
+    elif query.limit and is_select:
+        executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
+        query.limit_used = True
+    engine = database.get_sqla_engine(schema=query.schema)
+    try:
+        query.executed_sql = executed_sql
+        logging.info("Running query: \n{}".format(executed_sql))
+        result_proxy = engine.execute(query.executed_sql, schema=query.schema)
+    except Exception as e:
+        logging.exception(e)
+        handle_error(utils.error_msg_from_exception(e))
+
+    cursor = result_proxy.cursor
+    query.status = QueryStatus.RUNNING
+    session.flush()
+    if database.backend == 'presto':
+        polled = cursor.poll()
+        # poll returns dict -- JSON status information or ``None``
+        # if the query is done
+        # https://github.com/dropbox/PyHive/blob/
+        # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
+        while polled:
+            # Update the object and wait for the kill signal.
+            stats = polled.get('stats', {})
+            if stats:
+                completed_splits = float(stats.get('completedSplits'))
+                total_splits = float(stats.get('totalSplits'))
+                if total_splits and completed_splits:
+                    progress = 100 * (completed_splits / total_splits)
+                    if progress > query.progress:
+                        query.progress = progress
+                    session.commit()
+            time.sleep(1)
+            polled = cursor.poll()
+
+    columns = None
+    data = None
+    if result_proxy.cursor:
+        columns = [col[0] for col in result_proxy.cursor.description]
+        data = result_proxy.fetchall()
+        df = pd.DataFrame(data, columns=columns)
+        df = df.where((pd.notnull(df)), None)
+        # TODO consider generating tuples instead of dicts to send
+        # less data through the wire. The command bellow does that,
+        # but we'd need to align on the client side.
+        # data = df.values.tolist()
+        data = df.to_dict(orient='records')
+
+    query.rows = result_proxy.rowcount
+    query.progress = 100
+    query.status = QueryStatus.SUCCESS
+    if query.rows == -1 and data:
+        # Presto doesn't provide result_proxy.row_count
+        query.rows = len(data)
+
+    # CTAs queries result in 1 cell having the # of the added rows.
+    if query.select_as_cta:
+        query.select_sql = '{}'.format(database.select_star(
+            query.tmp_table_name, limit=query.limit))
+
+    query.end_time = utils.now_as_float()
+    session.commit()
 
     payload = {
         'query_id': query.id,
         'status': query.status,
+        'data': [],
     }
     if query.status == models.QueryStatus.SUCCESS:
         payload['data'] = data
