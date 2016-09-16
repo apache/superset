@@ -1801,6 +1801,12 @@ appbuilder.add_link(
     icon="fa-flask")
 
 
+@app.after_request
+def apply_caching(response):
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    return response
+
+
 # ---------------------------------------------------------------------
 # Redirecting URL from previous names
 class RegexConverter(BaseConverter):
