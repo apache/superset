@@ -127,8 +127,9 @@ const px = function () {
           cachedSelector = $('#is_cached');
           if (data !== undefined && data.is_cached) {
             cachedSelector
-              .attr('title',
-                    'Served from data cached at ' + data.cached_dttm + '. Click [Query] to force-refresh')
+              .attr(
+                'title',
+                `Served from data cached at ${data.cached_dttm}. Click [Query] to force-refresh`)
               .show()
               .tooltip('fixTitle');
           } else {
