@@ -22,7 +22,7 @@ from sqlalchemy.engine.url import make_url
 import sqlparse
 from dateutil.parser import parse
 
-from flask import request, g
+from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
@@ -102,12 +102,13 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('changed_on')
     def changed_on_(self):
-        return '<span class="no-wrap">{}</span>'.format(self.changed_on)
+        return Markup(
+            '<span class="no-wrap">{}</span>'.format(self.changed_on))
 
     @renders('changed_on')
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
-        return '<span class="no-wrap">{}</nobr>'.format(s)
+        return Markup('<span class="no-wrap">{}</span>'.format(s))
 
     @property
     def icons(self):
@@ -252,8 +253,8 @@ class Slice(Model, AuditMixinNullable):
     @property
     def slice_link(self):
         url = self.slice_url
-        return '<a href="{url}">{obj.slice_name}</a>'.format(
-            url=url, obj=self)
+        name = escape(self.slice_name)
+        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
     def get_viz(self, url_params_multidict=None):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -349,7 +350,9 @@ class Dashboard(Model, AuditMixinNullable):
         return metadata.reflect()
 
     def dashboard_link(self):
-        return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
+        title = escape(self.dashboard_title)
+        return Markup(
+            '<a href="{self.url}">{title}</a>'.format(**locals()))
 
     @property
     def json_data(self):
@@ -684,7 +687,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def link(self):
-        return '<a href="{self.url}">{self.table_name}</a>'.format(**locals())
+        table_name = escape(self.table_name)
+        return Markup(
+            '<a href="{self.url}">{table_name}</a>'.format(**locals()))
 
     @property
     def perm(self):
@@ -727,10 +732,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def name(self):
         return self.table_name
-
-    @renders('table_name')
-    def table_link(self):
-        return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
     @property
     def metrics_combo(self):
@@ -1231,9 +1232,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def link(self):
-        return (
-            '<a href="{self.url}">'
-            '{self.datasource_name}</a>').format(**locals())
+        name = escape(self.datasource_name)
+        return Markup('<a href="{self.url}">{name}</a>').format(**locals())
 
     @property
     def full_name(self):
@@ -1247,8 +1247,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @renders('datasource_name')
     def datasource_link(self):
         url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
-        return '<a href="{url}">{obj.datasource_name}</a>'.format(
-            url=url, obj=self)
+        name = escape(self.datasource_name)
+        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
     def get_metric_obj(self, metric_name):
         return [

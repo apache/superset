@@ -535,10 +535,10 @@ appbuilder.add_view_no_menu(DatabaseTablesAsync)
 class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
-        'table_link', 'database', 'is_featured',
+        'link', 'database', 'is_featured',
         'changed_by_', 'changed_on_']
     order_columns = [
-        'table_link', 'database', 'is_featured', 'changed_on_']
+        'link', 'database', 'is_featured', 'changed_on_']
     add_columns = ['table_name', 'database', 'schema']
     edit_columns = [
         'table_name', 'sql', 'is_featured', 'database', 'schema',
@@ -563,7 +563,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
     base_filters = [['id', TableSlice, lambda: []]]
     label_columns = {
-        'table_link': _("Table"),
+        'link': _("Table"),
         'changed_by_': _("Changed By"),
         'database': _("Database"),
         'changed_on_': _("Last Changed"),
