@@ -108,7 +108,7 @@ class AuditMixinNullable(AuditMixin):
     @renders('changed_on')
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
-        return Markup('<span class="no-wrap">{}</nobr>'.format(s))
+        return Markup('<span class="no-wrap">{}</span>'.format(s))
 
     @property
     def icons(self):
@@ -183,7 +183,7 @@ class Slice(Model, AuditMixinNullable):
         if self.table:
             return self.table.link
         elif self.druid_datasource:
-            return self.link
+            return self.druid_datasource.link
 
     @property
     def datasource_edit_url(self):
