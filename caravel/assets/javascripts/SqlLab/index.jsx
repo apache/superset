@@ -22,7 +22,7 @@ require('./main.css');
 let store = createStore(sqlLabReducer, initialState, enhancer());
 
 // jquery hack to highlight the navbar menu
-// $('a[href="/caravel/sqllab"]').parent().addClass('active');
+$('a:contains("SQL Lab")').parent().addClass('active');
 
 const App = function (props) {
   if (window.location.search) {

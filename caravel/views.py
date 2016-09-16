@@ -1864,51 +1864,31 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/get_all_users")
+    @expose("/search_queries")
     @log_this
-    def all_users(self):
-        """Get all the queries."""
-        if not g.user.get_id():
-            return Response(
-                json.dumps({'error': "Please login to access the queries."}),
-                status=403,
-                mimetype="application/json")
-
-        return Response(
-            json.dumps([(u.id, u.username) for u in sm.get_all_users()]),
-            status=200,
-            mimetype="application/json")
-
-    @has_access
-    @expose("/search_queries/userId=<userId>"
-        "&dbId=<dbId>&sql=<search_text>&state=<state>")
-    @log_this
-    def search_queries(self, userId, dbId, search_text, state):
-        """Get all the queries."""
-        if not g.user.get_id():
-            return Response(
-                json.dumps({'error': "Please login to access the queries."}),
-                status=403,
-                mimetype="application/json")
-
-        search_str = '%{}%'.format(search_text)
-
+    def search_queries(self):
+        """Search for queries."""
         query = db.session.query(models.Query)
-        if not userId == 'null':
-            # Filter on user Id
+        userId = request.args.get('userId')
+        databaseId = request.args.get('databaseId')
+        searchText = request.args.get('searchText')
+        status = request.args.get('status')
+
+        if userId != 'null':
+            # Filter on db Id
             query = query.filter(models.Query.user_id == userId)
 
-        if not dbId == 'null':
+        if databaseId != 'null':
             # Filter on db Id
-            query = query.filter(models.Query.database_id == dbId)
+            query = query.filter(models.Query.database_id == databaseId)
 
-        if not state == 'null':
-            query = query.filter(models.Query.status == state)
+        if status != 'null':
+            query = query.filter(models.Query.status == status)
 
-        if not search_text == 'null':
-            query = query.filter(models.Query.sql.like(search_str))
+        if searchText != 'null':
+            query = query.filter(models.Query.sql.like('%{}%'.format(searchText)))
 
-        sql_queries = query.limit(1000).all()
+        sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
 
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
         return Response(
@@ -1989,11 +1969,17 @@ appbuilder.add_view(
     category_label=__("Sources"),
     category_icon='')
 
-appbuilder.add_link('Query Search',
-    href='/caravel/sqllab?search', icon="fa-flask", category='SQL Lab')
+appbuilder.add_link(
+    'SQL Editor',
+    href='/caravel/sqllab',
+    icon="fa-flask",
+    category='SQL Lab')
+appbuilder.add_link(
+    'Query Search',
+    href='/caravel/sqllab?search',
+    icon="fa-flask",
+    category='SQL Lab')
 
-appbuilder.add_link('My Queries',
-    href='/caravel/sqllab', icon="fa-flask", category='SQL Lab')
 
 @app.after_request
 def apply_caching(response):
