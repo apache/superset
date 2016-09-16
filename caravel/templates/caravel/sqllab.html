@@ -2,5 +2,7 @@
 
 {% block tail_js %}
   {{ super() }}
-  <script src="/static/assets/dist/sqllab.entry.js"></script>
+  {% with filename="sqllab" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
 {% endblock %}
