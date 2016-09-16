@@ -2,7 +2,9 @@
 
 {% block head_js %}
   {{ super() }}
-  <script src="/static/assets/dist/dashboard.entry.js"></script>
+  {% with filename="dashboard" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
 {% endblock %}
 {% block title %}[dashboard] {{ dashboard.dashboard_title }}{% endblock %}
 {% block body %}

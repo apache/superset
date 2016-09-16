@@ -23,7 +23,11 @@
       <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
     </div>
   </body>
-  <script src="/static/assets/dist/css-theme.entry.js"></script>
-  <script src="/static/assets/dist/standalone.entry.js"></script>
+  {% with filename="css-theme" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
+  {% with filename="standalone" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
 </html>
 

@@ -1,6 +1,6 @@
 {
   "name": "caravel",
-  "version": "0.1.0",
+  "version": "0.10.0",
   "description": "Caravel is a data exploration platform designed to be visual, intuitive, and interactive.",
   "directories": {
     "doc": "docs",
