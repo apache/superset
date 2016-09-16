@@ -628,6 +628,11 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
+    def pre_add(self, db):
+        utils.merge_perm(sm, 'database_access', db.perm)
+
+    def pre_update(self, db):
+        self.pre_add(db)
 
 
 if config['DRUID_IS_ACTIVE']:
@@ -1613,7 +1618,7 @@ class Caravel(BaseCaravelView):
 
         if not self.database_access(query.database):
             flash(get_database_access_error_msg(query.database.database_name))
-            redirect('/')
+            return redirect('/')
 
         sql = query.select_sql or query.sql
         df = query.database.get_df(sql, query.schema)
