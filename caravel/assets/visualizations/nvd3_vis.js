@@ -312,8 +312,12 @@ function nvd3Vis(slice) {
         }
 
         if (fd.bottom_margin === 'auto') {
-          const stretchMargin = calculateStretchMargins(payload);
-          chart.margin({ bottom: stretchMargin });
+          if (vizType === 'dist_bar') {
+            const stretchMargin = calculateStretchMargins(payload);
+            chart.margin({ bottom: stretchMargin });
+          } else {
+            chart.margin({ bottom: 50 });
+          }
         } else {
           chart.margin({ bottom: fd.bottom_margin });
         }
