@@ -34,6 +34,7 @@ app.config['CELERY_CONFIG'] = CeleryConfig
 
 
 class UtilityFunctionTests(CaravelTestCase):
+
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         select_query = "SELECT * FROM outer_space;"
@@ -193,7 +194,7 @@ class CeleryTestCase(CaravelTestCase):
         result2 = self.run_sql(
             1, sql_where, tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
-        self.assertIsNone(result2['data'])
+        self.assertEqual([], result2['data'])
         self.assertIsNone(result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
@@ -208,7 +209,7 @@ class CeleryTestCase(CaravelTestCase):
         result3 = self.run_sql(
             1, sql_empty_result, tmp_table='tmp_table_3', cta='true',)
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
-        self.assertIsNone(result3['data'])
+        self.assertEqual([], result3['data'])
         self.assertIsNone(result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
@@ -249,6 +250,52 @@ class CeleryTestCase(CaravelTestCase):
         self.assertEqual(False, query1.limit_used)
         self.assertEqual(True, query1.select_as_cta)
         self.assertEqual(True, query1.select_as_cta_used)
+
+    def test_get_columns_dict(self):
+        main_db = db.session.query(models.Database).filter_by(
+            database_name='main').first()
+        df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
+        columns = sql_lab.get_columns_dict(df)
+        if main_db.sqlalchemy_uri.startswith('sqlite'):
+            self.assertEqual(
+                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
+                  'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'ds2',
+                  'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_ms', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_s', 'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
+                  'is_dim': False},
+                 {'agg': None, 'is_date': False, 'type': 'object',
+                  'name': 'string1', 'is_dim': True},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
+                  'is_dim': False},
+                 {'agg': None, 'is_date': False, 'type': 'object',
+                  'name': 'string3', 'is_dim': True}]
+                , columns
+            )
+        else:
+            self.assertEqual(
+                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
+                  'is_dim': False},
+                 {'agg': None, 'is_date': True, 'type': 'datetime64[ns]',
+                  'name': 'ds2', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_ms', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_s', 'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
+                  'is_dim': False},
+                 {'agg': None, 'is_date': False, 'type': 'object',
+                  'name': 'string1', 'is_dim': True},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
+                  'is_dim': False},
+                 {'agg': None, 'is_date': False, 'type': 'object',
+                  'name': 'string3', 'is_dim': True}]
+                , columns
+            )
 
 
 if __name__ == '__main__':

@@ -26,6 +26,19 @@ class VisualizeModal extends React.Component {
       columns: {},
       hints: [],
     };
+    // update columns if possible
+    this.componentWillMount();
+  }
+  componentWillMount() {
+    if (!this.props.query || !this.props.query.results.columns) {
+      return;
+    }
+    const columns = {};
+    const columnArray = this.props.query.results.columns;
+    for (let i = 0; i < columnArray.length; i++) {
+      columns[columnArray[i].name] = columnArray[i];
+    }
+    this.setState({ columns });
   }
   componentDidMount() {
     this.validate();
@@ -67,8 +80,8 @@ class VisualizeModal extends React.Component {
     const columns = Object.assign({}, this.state.columns);
     if (this.props.query && this.props.query.results.columns) {
       this.props.query.results.columns.forEach((col) => {
-        if (columns[col] === undefined) {
-          columns[col] = {};
+        if (columns[col.name] === undefined) {
+          columns[col.name] = col;
         }
       });
     }
@@ -88,17 +101,17 @@ class VisualizeModal extends React.Component {
     this.setState({ datasourceName: event.target.value });
     this.validate();
   }
-  changeCheckbox(attr, col, event) {
+  changeCheckbox(attr, columnName, event) {
     let columns = this.mergedColumns();
-    const column = Object.assign({}, columns[col], { [attr]: event.target.checked });
-    columns = Object.assign({}, columns, { [col]: column });
+    const column = Object.assign({}, columns[columnName], { [attr]: event.target.checked });
+    columns = Object.assign({}, columns, { [columnName]: column });
     this.setState({ columns }, this.validate);
   }
-  changeAggFunction(col, option) {
+  changeAggFunction(columnName, option) {
     let columns = this.mergedColumns();
     const val = (option) ? option.value : null;
-    const column = Object.assign({}, columns[col], { agg: val });
-    columns = Object.assign({}, columns, { [col]: column });
+    const column = Object.assign({}, columns[columnName], { agg: val });
+    columns = Object.assign({}, columns, { [columnName]: column });
     this.setState({ columns }, this.validate);
   }
   render() {
@@ -106,12 +119,12 @@ class VisualizeModal extends React.Component {
       return <div />;
     }
     const tableData = this.props.query.results.columns.map((col) => ({
-      column: col,
+      column: col.name,
       is_dimension: (
         <input
           type="checkbox"
-          onChange={this.changeCheckbox.bind(this, 'is_dim', col)}
-          checked={(this.state.columns[col]) ? this.state.columns[col].is_dim : false}
+          onChange={this.changeCheckbox.bind(this, 'is_dim', col.name)}
+          checked={(this.state.columns[col.name]) ? this.state.columns[col.name].is_dim : false}
           className="form-control"
         />
       ),
@@ -119,8 +132,8 @@ class VisualizeModal extends React.Component {
         <input
           type="checkbox"
           className="form-control"
-          onChange={this.changeCheckbox.bind(this, 'is_date', col)}
-          checked={(this.state.columns[col]) ? this.state.columns[col].is_date : false}
+          onChange={this.changeCheckbox.bind(this, 'is_date', col.name)}
+          checked={(this.state.columns[col.name]) ? this.state.columns[col.name].is_date : false}
         />
       ),
       agg_func: (
@@ -132,8 +145,8 @@ class VisualizeModal extends React.Component {
             { value: 'avg', label: 'AVG(x)' },
             { value: 'count_distinct', label: 'COUNT(DISTINCT x)' },
           ]}
-          onChange={this.changeAggFunction.bind(this, col)}
-          value={(this.state.columns[col]) ? this.state.columns[col].agg : null}
+          onChange={this.changeAggFunction.bind(this, col.name)}
+          value={(this.state.columns[col.name]) ? this.state.columns[col.name].agg : null}
         />
       ),
     }));

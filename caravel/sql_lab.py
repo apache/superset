@@ -2,10 +2,10 @@ import celery
 from datetime import datetime
 import pandas as pd
 import logging
+import numpy
 import time
-import json
 
-from caravel import app, cache, db, models, utils
+from caravel import app, db, models, utils
 
 QueryStatus = models.QueryStatus
 
@@ -114,18 +114,18 @@ def get_sql_results(query_id, return_results=True):
             time.sleep(1)
             polled = cursor.poll()
 
-    columns = None
+    column_names = None
     data = None
     if result_proxy.cursor:
-        columns = [col[0] for col in result_proxy.cursor.description]
+        column_names = [col[0] for col in result_proxy.cursor.description]
         data = result_proxy.fetchall()
-        df = pd.DataFrame(data, columns=columns)
-        df = df.where((pd.notnull(df)), None)
-        # TODO consider generating tuples instead of dicts to send
-        # less data through the wire. The command bellow does that,
-        # but we'd need to align on the client side.
-        # data = df.values.tolist()
-        data = df.to_dict(orient='records')
+    df = pd.DataFrame(data, columns=column_names)
+    df = df.where((pd.notnull(df)), None)
+    # TODO consider generating tuples instead of dicts to send
+    # less data through the wire. The command bellow does that,
+    # but we'd need to align on the client side.
+    # data = df.values.tolist()
+    data = df.to_dict(orient='records')
 
     query.rows = result_proxy.rowcount
     query.progress = 100
@@ -133,26 +133,23 @@ def get_sql_results(query_id, return_results=True):
     if query.rows == -1 and data:
         # Presto doesn't provide result_proxy.row_count
         query.rows = len(data)
-
-    # CTAs queries result in 1 cell having the # of the added rows.
     if query.select_as_cta:
         query.select_sql = '{}'.format(database.select_star(
             query.tmp_table_name, limit=query.limit))
-
     query.end_time = utils.now_as_float()
     session.commit()
 
-    payload = {
-        'query_id': query.id,
-        'status': query.status,
-        'data': [],
-    }
-    if query.status == models.QueryStatus.SUCCESS:
-        payload['data'] = data
-        payload['columns'] = columns
-    else:
-        payload['error'] = query.error_message
     if return_results:
+        payload = {
+            'query_id': query.id,
+            'status': query.status,
+            'data': [],
+        }
+        if query.status == models.QueryStatus.SUCCESS:
+            payload['data'] = data
+            payload['columns'] = get_columns_dict(df) if column_names else None
+        else:
+            payload['error'] = query.error_message
         return payload
     '''
     # Hack testing using a kv store for results
@@ -160,3 +157,80 @@ def get_sql_results(query_id, return_results=True):
     logging.info("Storing results in key=[{}]".format(key))
     cache.set(key, json.dumps(payload, default=utils.json_iso_dttm_ser))
     '''
+
+
+THRESHOLD = 95
+SAMPLE_SIZE = 100
+
+
+# TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*
+#     - dimensions, *_ts, ts_*, ds_*, *_ds - datetime, etc.
+# TODO(bkyryliuk): recognize integer encoded enums.
+def get_columns_dict(df):
+    if df.empty:
+        return None
+
+    columns = []
+    sample_size = min(SAMPLE_SIZE, len(df.index))
+    sample = df
+    if sample_size:
+        sample = df.sample(sample_size)
+    for col in df.dtypes.keys():
+        column = {
+            'name': col,
+            'type': df.dtypes[col].name,
+            'is_date': is_date(df.dtypes[col]),
+            'is_dim': is_dimension(df.dtypes[col], col),
+        }
+        agg = agg_func(df.dtypes[col], col)
+        if agg_func:
+            column['agg'] = agg
+
+        if column['type'] == 'object':
+            # check if encoded datetime
+            if get_datetime_conversion_rate(sample[col]) > THRESHOLD:
+                column['type'] = 'datetime_string'
+                column['is_date'] = True
+                column['is_dim'] = False
+                column.pop('agg', None)
+        columns.append(column)
+
+    return columns
+
+
+# It will give false positives on the numbers that are stored as strings.
+# It is hard to distinguish integer numbers and timestamps
+def get_datetime_conversion_rate(data_series):
+    success = 0
+    total = 0
+    for value in data_series:
+        total = total + 1
+        try:
+            pd.to_datetime(value)
+            success = success + 1
+        except Exception:
+            continue
+    return 100 * success / total
+
+
+def is_date(dtype):
+    return dtype.name.startswith('datetime')
+
+
+def is_dimension(dtype, column_name):
+    if is_id(column_name):
+        return False
+    return dtype == numpy.object or dtype == numpy.bool
+
+
+def is_id(column_name):
+    return column_name.startswith('id') or column_name.endswith('id')
+
+
+def agg_func(dtype, column_name):
+    # consider checking for key substring too.
+    if is_id(column_name):
+        return 'count_distinct'
+    if numpy.issubdtype(dtype, numpy.number):
+        return 'sum'
+    return None
