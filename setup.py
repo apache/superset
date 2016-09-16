@@ -1,16 +1,20 @@
 import imp
 import os
+import json
 from setuptools import setup, find_packages
 
-version = imp.load_source(
-    'version', os.path.join('caravel', 'version.py'))
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+PACKAGE_DIR = os.path.join(BASE_DIR, 'caravel', 'static', 'assets')
+PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
+with open(PACKAGE_FILE) as package_file:
+    version_string = json.load(package_file)['version']
 
 setup(
     name='caravel',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
-    version=version.VERSION_STRING,
+    version=version_string,
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
@@ -55,7 +59,7 @@ setup(
     author_email='maximebeauchemin@gmail.com',
     url='https://github.com/airbnb/caravel',
     download_url=(
-        'https://github.com/airbnb/caravel/tarball/' + version.VERSION_STRING),
+        'https://github.com/airbnb/caravel/tarball/' + version_string),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',

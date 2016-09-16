@@ -1,8 +1,10 @@
 {% extends "caravel/basic.html" %}
 
 {% block head_js %}
-{{ super() }}
-<script src="/static/assets/dist/welcome.entry.js"></script>
+  {{ super() }}
+  {% with filename="welcome" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
 {% endblock %}
 
 {% block title %}{{ _("Welcome!") }}{% endblock %}

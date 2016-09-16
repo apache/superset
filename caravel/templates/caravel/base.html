@@ -8,10 +8,14 @@
 
   {% block head_js %}
     {{super()}}
-    <script src="/static/assets/dist/css-theme.entry.js"></script>
+    {% with filename="css-theme" %}
+      {% include "caravel/partials/_script_tag.html" %}
+    {% endwith %}
   {% endblock %}
 
   {% block tail_js %}
-      {{super()}}
-      <script src="/static/assets/dist/common.entry.js"></script>
+    {{super()}}
+    {% with filename="common" %}
+      {% include "caravel/partials/_script_tag.html" %}
+    {% endwith %}
   {% endblock %}
