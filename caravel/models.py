@@ -1180,6 +1180,9 @@ class DruidCluster(Model, AuditMixinNullable):
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
+    @property
+    def perm(self):
+        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
 
 
 class DruidDatasource(Model, AuditMixinNullable, Queryable):
