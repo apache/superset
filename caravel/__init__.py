@@ -13,6 +13,7 @@ from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
+from caravel import source_registry
 
 
 APP_DIR = os.path.dirname(__file__)
