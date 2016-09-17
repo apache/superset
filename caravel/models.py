@@ -39,10 +39,11 @@ from sqlalchemy import (
     DateTime, Date, Table, Numeric,
     create_engine, MetaData, desc, asc, select, and_, func
 )
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
@@ -805,6 +806,22 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
+
+            # TODO: sqlalchemy 1.2 release should be doing this on its own.
+            # Patch only if the column clause is specific for DateTime set and
+            # granularity is selected.
+            @compiles(ColumnClause)
+            def _(element, compiler, **kw):
+                text = compiler.visit_column(element, **kw)
+                try:
+                    if element.is_literal and hasattr(element.type, 'python_type') and \
+                            type(element.type) is DateTime:
+
+                        text = text.replace('%%', '%')
+                except NotImplementedError:
+                    pass  # Some elements raise NotImplementedError for python_type
+                return text
+
             dttm_col = cols[granularity]
             dttm_expr = dttm_col.sqla_col.label('timestamp')
             timestamp = dttm_expr
@@ -820,7 +837,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                         col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr)).label('timestamp')
+                    udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
             else:
                 timestamp_grain = timestamp
 
