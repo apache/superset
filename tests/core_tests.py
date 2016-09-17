@@ -114,6 +114,18 @@ class CoreTests(CaravelTestCase):
         assert self.client.get('/health').data.decode('utf-8') == "OK"
         assert self.client.get('/ping').data.decode('utf-8') == "OK"
 
+    def test_testconn(self):
+        data = json.dumps({'uri': 'sqlite:////tmp/caravel_unittests.db'})
+        response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
+        assert response.status_code == 200
+
+        data = json.dumps({
+            'uri': 'postgresql+psycopg2://foo:XXXXXXXXXX@127.0.0.1/bar',
+            'name': 'main'
+        })
+        response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
+        assert response.status_code == 200
+
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
         resp = self.client.get(

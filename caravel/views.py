@@ -1251,6 +1251,16 @@ class Caravel(BaseCaravelView):
         """Tests a sqla connection"""
         try:
             uri = request.json.get('uri')
+            db_name = request.json.get('name')
+            if db_name and ':XXXXXXXXXX@' in uri:
+                database = (
+                    db.session()
+                    .query(models.Database)
+                    .filter_by(database_name=db_name).first()
+                )
+                if database is not None:
+                    uri = database.sqlalchemy_uri_decrypted
+
             connect_args = (
                 request.json
                 .get('extras', {})
