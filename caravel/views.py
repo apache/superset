@@ -497,10 +497,6 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, db):
-        conn = sqla.engine.url.make_url(db.sqlalchemy_uri)
-        db.password = conn.password
-        conn.password = "X" * 10 if conn.password else None
-        db.sqlalchemy_uri = str(conn)  # hides the password
         utils.merge_perm(sm, 'database_access', db.perm)
 
     def pre_update(self, db):
@@ -1252,15 +1248,17 @@ class Caravel(BaseCaravelView):
         try:
             uri = request.json.get('uri')
             db_name = request.json.get('name')
-            if db_name and ':XXXXXXXXXX@' in uri:
+            if db_name:
                 database = (
-                    db.session()
+                    db.session
                     .query(models.Database)
-                    .filter_by(database_name=db_name).first()
+                    .filter_by(database_name=db_name)
+                    .first()
                 )
-                if database is not None:
+                if uri == database.safe_sqlalchemy_uri():
+                    # the password-masked uri was passed
+                    # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
-
             connect_args = (
                 request.json
                 .get('extras', {})

@@ -433,6 +433,12 @@ class Database(Model, AuditMixinNullable):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
 
+    def set_sqlalchemy_uri(self, uri):
+        conn = sqla.engine.url.make_url(uri)
+        self.password = conn.password
+        conn.password = "X" * 10 if conn.password else None
+        self.sqlalchemy_uri = str(conn)  # hides the password
+
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
