@@ -60,7 +60,7 @@ class ResultSet extends React.Component {
         </div>
       );
     }
-    if (results && results.data.length > 0) {
+    if (results && results.data && results.data.length > 0) {
       return (
         <div>
           <VisualizeModal

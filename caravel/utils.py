@@ -4,13 +4,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from builtins import object
 from datetime import date, datetime
 import decimal
 import functools
 import json
 import logging
 import numpy
-import time
+import signal
 import uuid
 
 import parsedatetime
@@ -27,6 +28,10 @@ EPOCH = datetime(1970, 1, 1)
 
 
 class CaravelException(Exception):
+    pass
+
+
+class CaravelTimeoutException(Exception):
     pass
 
 
@@ -345,7 +350,7 @@ def datetime_to_epoch(dttm):
 
 
 def now_as_float():
-    return datetime_to_epoch(datetime.now())
+    return datetime_to_epoch(datetime.utcnow())
 
 
 def json_int_dttm_ser(obj):
@@ -414,3 +419,31 @@ def generic_find_constraint_name(table, columns, referenced, db):
                 fk.referred_table.name == referenced and
                 set(fk.column_keys) == columns):
             return fk.name
+
+
+class timeout(object):
+    """
+    To be used in a ``with`` block and timeout its content.
+    """
+    def __init__(self, seconds=1, error_message='Timeout'):
+        self.seconds = seconds
+        self.error_message = error_message
+
+    def handle_timeout(self, signum, frame):
+        logging.error("Process timed out")
+        raise CaravelTimeoutException(self.error_message)
+
+    def __enter__(self):
+        try:
+            signal.signal(signal.SIGALRM, self.handle_timeout)
+            signal.alarm(self.seconds)
+        except ValueError as e:
+            logging.warning("timeout can't be used in the current context")
+            logging.exception(e)
+
+    def __exit__(self, type, value, traceback):
+        try:
+            signal.alarm(0)
+        except ValueError as e:
+            logging.warning("timeout can't be used in the current context")
+            logging.exception(e)

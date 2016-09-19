@@ -213,6 +213,9 @@ SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite'
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
 
+# Timeout duration for SQL Lab synchronous queries
+SQLLAB_TIMEOUT = 30
+
 try:
     from caravel_config import *  # noqa
 except ImportError:

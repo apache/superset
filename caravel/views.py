@@ -33,7 +33,7 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, db, models, viz, utils, app, sm, ascii_art, sql_lab
+    appbuilder, cache, db, models, viz, utils, app, sm, ascii_art, sql_lab
 )
 
 config = app.config
@@ -456,7 +456,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     list_columns = ['database_name', 'creator', 'changed_on_']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
-        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema']
+        'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
+        'allow_ctas', 'allow_dml', 'force_ctas_schema']
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     show_columns = [
@@ -479,7 +480,19 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
             "to structure your URI here: "
             "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
         'expose_in_sqllab': _("Expose this DB in SQL Lab"),
+        'allow_run_sync': _(
+            "Allow users to run synchronous queries, this is the default "
+            "and should work well for queries that can be executed "
+            "within a web request scope (<~1 minute)"),
+        'allow_run_async': _(
+            "Allow users to run queries, against an async backend. "
+            "This assumes that you have a Celery worker setup as well "
+            "as a results backend."),
         'allow_ctas': _("Allow CREATE TABLE AS option in SQL Lab"),
+        'allow_dml': _(
+            "Allow users to run non-SELECT statements "
+            "(UPDATE, DELETE, CREATE, ...) "
+            "in SQL Lab"),
         'force_ctas_schema': _(
             "When allowing CREATE TABLE AS option in SQL Lab, "
             "this option forces the table to be created in this schema"),
@@ -496,6 +509,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     label_columns = {
         'expose_in_sqllab': _("Expose in SQL Lab"),
         'allow_ctas': _("Allow CREATE TABLE AS"),
+        'allow_dml': _("Allow DML"),
         'force_ctas_schema': _("CTAS Schema"),
         'database_name': _("Database"),
         'creator': _("Creator"),
@@ -525,7 +539,8 @@ appbuilder.add_view(
 class DatabaseAsync(DatabaseView):
     list_columns = [
         'id', 'database_name',
-        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema'
+        'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
+        'allow_run_async', 'allow_run_sync', 'allow_dml',
     ]
 
 appbuilder.add_view_no_menu(DatabaseAsync)
@@ -1453,15 +1468,19 @@ class Caravel(BaseCaravelView):
         table.sql = data.get('sql')
         db.session.add(table)
         cols = []
+        dims = []
         metrics = []
         for column_name, config in data.get('columns').items():
             is_dim = config.get('is_dim', False)
-            cols.append(models.TableColumn(
+            col = models.TableColumn(
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
                 is_dttm=config.get('is_date', False),
-            ))
+            )
+            cols.append(col)
+            if is_dim:
+                dims.append(col)
             agg = config.get('agg')
             if agg:
                 metrics.append(models.SqlMetric(
@@ -1476,8 +1495,15 @@ class Caravel(BaseCaravelView):
         table.columns = cols
         table.metrics = metrics
         db.session.commit()
-        url = '/caravel/explore/table/{table.id}/?viz_type={viz_type}'
-        return redirect(url.format(**locals()))
+        params = {
+            'viz_type': viz_type,
+            'groupby': dims[0].column_name if dims else '',
+            'metrics': metrics[0].metric_name if metrics else '',
+            'metric': metrics[0].metric_name if metrics else '',
+        }
+        params = "&".join([k + '=' + v for k, v in params.items()])
+        url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
+        return redirect(url)
 
     @has_access
     @expose("/sql/<database_id>/")
@@ -1558,12 +1584,22 @@ class Caravel(BaseCaravelView):
     def theme(self):
         return self.render_template('caravel/theme.html')
 
-    @has_access
+    @has_access_api
+    @expose("/cached_key/<key>/")
+    @log_this
+    def cached_key(self, key):
+        """Returns a key from the cache"""
+        resp = cache.get(key)
+        if resp:
+            return resp
+        return "nope"
+
+    @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        async = request.form.get('async') == 'true'
+        async = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
 
@@ -1600,7 +1636,7 @@ class Caravel(BaseCaravelView):
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            sql_lab.get_sql_results.delay(query_id)
+            sql_lab.get_sql_results.delay(query_id, return_results=False)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,
@@ -1610,7 +1646,15 @@ class Caravel(BaseCaravelView):
 
         # Sync request.
         try:
-            data = sql_lab.get_sql_results(query_id)
+            SQLLAB_TIMEOUT = config.get("SQLLAB_TIMEOUT")
+            with utils.timeout(
+                    seconds=SQLLAB_TIMEOUT,
+                    error_message=(
+                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
+                        "timeout. You may want to run your query as a "
+                        "`CREATE TABLE AS` to prevent timeouts."
+                    ).format(**locals())):
+                data = sql_lab.get_sql_results(query_id, return_results=True)
         except Exception as e:
             logging.exception(e)
             return Response(

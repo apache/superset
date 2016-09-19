@@ -10,6 +10,7 @@ from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
+from sqlalchemy import event, exc
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
@@ -26,6 +27,35 @@ if not app.debug:
     app.logger.setLevel(logging.INFO)
 
 db = SQLA(app)
+
+
+@event.listens_for(db.engine, 'checkout')
+def checkout(dbapi_con, con_record, con_proxy):
+    """
+    Making sure the connection is live, and preventing against:
+    'MySQL server has gone away'
+
+    Copied from:
+    http://stackoverflow.com/questions/30630120/mysql-keeps-losing-connection-during-celery-tasks
+    """
+    try:
+        try:
+            if hasattr(dbapi_con, 'ping'):
+                dbapi_con.ping(False)
+            else:
+                cursor = dbapi_con.cursor()
+                cursor.execute("SELECT 1")
+        except TypeError:
+            app.logger.debug('MySQL connection died. Restoring...')
+            dbapi_con.ping()
+    except dbapi_con.OperationalError as e:
+        app.logger.warning(e)
+        if e.args[0] in (2006, 2013, 2014, 2045, 2055):
+            raise exc.DisconnectionError()
+        else:
+            raise
+    return db
+
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 
