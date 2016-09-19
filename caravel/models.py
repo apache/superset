@@ -1734,7 +1734,10 @@ class Log(Model):
             d = request.args.to_dict()
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
-            slice_id = int(slice_id) if slice_id else 0
+            try:
+                slice_id = int(slice_id) if slice_id else 0
+            except ValueError:
+                slice_id = 0
             params = ""
             try:
                 params = json.dumps(d)
