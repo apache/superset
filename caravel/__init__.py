@@ -65,4 +65,4 @@ sm = appbuilder.sm
 src_registry = source_registry.SourceRegistry()
 
 get_session = appbuilder.get_session
-from caravel import config, views  # noqa
+from caravel import views, config  # noqa
