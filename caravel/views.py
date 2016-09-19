@@ -1883,9 +1883,11 @@ class Caravel(BaseCaravelView):
             query = query.filter(models.Query.database_id == databaseId)
 
         if status != 'null':
+            # Filter on status
             query = query.filter(models.Query.status == status)
 
         if searchText != 'null':
+            # Filter on search text
             query = query.filter(models.Query.sql.like('%{}%'.format(searchText)))
 
         sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
@@ -1976,7 +1978,7 @@ appbuilder.add_link(
     category='SQL Lab')
 appbuilder.add_link(
     'Query Search',
-    href='/caravel/sqllab?search',
+    href='/caravel/sqllab#search',
     icon="fa-flask",
     category='SQL Lab')
 
