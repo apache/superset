@@ -22,7 +22,7 @@ from sqlalchemy.engine.url import make_url
 import sqlparse
 from dateutil.parser import parse
 
-from flask import request, g
+from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
@@ -39,10 +39,11 @@ from sqlalchemy import (
     DateTime, Date, Table, Numeric,
     create_engine, MetaData, desc, asc, select, and_, func
 )
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import table, literal_column, text, column
-from sqlalchemy.sql.expression import TextAsFrom
+from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
@@ -102,12 +103,13 @@ class AuditMixinNullable(AuditMixin):
 
     @renders('changed_on')
     def changed_on_(self):
-        return '<span class="no-wrap">{}</span>'.format(self.changed_on)
+        return Markup(
+            '<span class="no-wrap">{}</span>'.format(self.changed_on))
 
     @renders('changed_on')
     def modified(self):
         s = humanize.naturaltime(datetime.now() - self.changed_on)
-        return '<span class="no-wrap">{}</nobr>'.format(s)
+        return Markup('<span class="no-wrap">{}</span>'.format(s))
 
     @property
     def icons(self):
@@ -248,8 +250,8 @@ class Slice(Model, AuditMixinNullable):
     @property
     def slice_link(self):
         url = self.slice_url
-        return '<a href="{url}">{obj.slice_name}</a>'.format(
-            url=url, obj=self)
+        name = escape(self.slice_name)
+        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
     def get_viz(self, url_params_multidict=None):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
@@ -341,7 +343,9 @@ class Dashboard(Model, AuditMixinNullable):
         return metadata.reflect()
 
     def dashboard_link(self):
-        return '<a href="{obj.url}">{obj.dashboard_title}</a>'.format(obj=self)
+        title = escape(self.dashboard_title)
+        return Markup(
+            '<a href="{self.url}">{title}</a>'.format(**locals()))
 
     @property
     def json_data(self):
@@ -676,7 +680,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
 
     @property
     def link(self):
-        return '<a href="{self.url}">{self.table_name}</a>'.format(**locals())
+        table_name = escape(self.table_name)
+        return Markup(
+            '<a href="{self.url}">{table_name}</a>'.format(**locals()))
 
     @property
     def perm(self):
@@ -719,10 +725,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     @property
     def name(self):
         return self.table_name
-
-    @renders('table_name')
-    def table_link(self):
-        return '<a href="{obj.explore_url}">{obj.table_name}</a>'.format(obj=self)
 
     @property
     def metrics_combo(self):
@@ -796,6 +798,22 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             metrics_exprs = []
 
         if granularity:
+
+            # TODO: sqlalchemy 1.2 release should be doing this on its own.
+            # Patch only if the column clause is specific for DateTime set and
+            # granularity is selected.
+            @compiles(ColumnClause)
+            def _(element, compiler, **kw):
+                text = compiler.visit_column(element, **kw)
+                try:
+                    if element.is_literal and hasattr(element.type, 'python_type') and \
+                            type(element.type) is DateTime:
+
+                        text = text.replace('%%', '%')
+                except NotImplementedError:
+                    pass  # Some elements raise NotImplementedError for python_type
+                return text
+
             dttm_col = cols[granularity]
             dttm_expr = dttm_col.sqla_col.label('timestamp')
             timestamp = dttm_expr
@@ -811,7 +829,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                         col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr)).label('timestamp')
+                    udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
             else:
                 timestamp_grain = timestamp
 
@@ -1223,9 +1241,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def link(self):
-        return (
-            '<a href="{self.url}">'
-            '{self.datasource_name}</a>').format(**locals())
+        name = escape(self.datasource_name)
+        return Markup('<a href="{self.url}">{name}</a>').format(**locals())
 
     @property
     def full_name(self):
@@ -1239,8 +1256,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @renders('datasource_name')
     def datasource_link(self):
         url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
-        return '<a href="{url}">{obj.datasource_name}</a>'.format(
-            url=url, obj=self)
+        name = escape(self.datasource_name)
+        return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
     def get_metric_obj(self, metric_name):
         return [
