@@ -624,6 +624,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
+
     def pre_add(self, db):
         utils.merge_perm(sm, 'database_access', db.perm)
 
