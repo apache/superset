@@ -1256,7 +1256,8 @@ class Caravel(BaseCaravelView):
             )
             request_uri = request.json.get('uri')
             if request_uri != database.safe_sqlalchemy_uri():
-                # the user altered the SQLAlchemy URI field so use that for testing the connection
+                # the user altered the SQLAlchemy URI field
+                # so use that for testing the connection
                 uri = request_uri
             else:
                 # use the URI associated with this database
