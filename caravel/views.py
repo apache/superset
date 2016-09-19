@@ -21,6 +21,7 @@ from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.widgets import ListWidget
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
@@ -60,6 +61,13 @@ class BaseCaravelView(BaseView):
         else:
             return (self.database_access(datasource.database) or
                     self.can_access("datasource_access", datasource.perm))
+
+
+class ListWidgetWithCheckboxes(ListWidget):
+    """An alternative to list view that renders Boolean fields as checkboxes
+
+    Works in conjunction with the `checkbox` view."""
+    template = 'caravel/fab_overrides/list_with_checkboxes.html'
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -276,6 +284,7 @@ class CaravelModelView(ModelView):
 class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
+    list_widget = ListWidgetWithCheckboxes
     edit_columns = [
         'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
@@ -853,6 +862,7 @@ appbuilder.add_view(
 
 class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
+    list_widget = ListWidgetWithCheckboxes
     list_columns = [
         'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
     order_columns = [
