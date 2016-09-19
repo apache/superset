@@ -696,7 +696,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def link(self):
         table_name = escape(self.table_name)
         return Markup(
-            '<a href="{self.url}">{table_name}</a>'.format(**locals()))
+            '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
 
     @property
     def perm(self):
