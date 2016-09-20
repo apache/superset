@@ -27,23 +27,23 @@ class VisualizeModal extends React.Component {
       hints: [],
     };
     // update columns if possible
-    this.setStateFromProps()
+    this.setStateFromProps();
+  }
+  componentWillMount() {
+    this.setStateFromProps();
+  }
+  componentDidMount() {
+    this.validate();
   }
   setStateFromProps() {
     if (!this.props.query || !this.props.query.results.columns) {
       return;
     }
-    columns = {}
+    const columns = {};
     this.props.query.results.columns.forEach((col) => {
-       columns[col.name] = col;
+      columns[col.name] = col;
     });
     this.setState({ columns });
-  }
-  componentWillMount() {
-    this.setStateFromProps()
-  }
-  componentDidMount() {
-    this.validate();
   }
   validate() {
     const hints = [];

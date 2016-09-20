@@ -14,7 +14,7 @@ import unittest
 import pandas as pd
 
 import caravel
-from caravel import app, appbuilder, db, models, sql_lab, utils
+from caravel import app, appbuilder, db, models, sql_lab, utils, dataframe
 
 from .base_tests import CaravelTestCase
 
@@ -195,7 +195,7 @@ class CeleryTestCase(CaravelTestCase):
             1, sql_where, tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
-        self.assertIsNone(result2['columns'])
+        self.assertEqual([], result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
@@ -210,7 +210,7 @@ class CeleryTestCase(CaravelTestCase):
             1, sql_empty_result, tmp_table='tmp_table_3', cta='true',)
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
-        self.assertIsNone(result3['columns'])
+        self.assertEqual([], result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
@@ -255,7 +255,7 @@ class CeleryTestCase(CaravelTestCase):
         main_db = db.session.query(models.Database).filter_by(
             database_name='main').first()
         df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
-        columns = sql_lab.get_columns_dict(df)
+        cdf = dataframe.CaravelDataFrame(df)
         if main_db.sqlalchemy_uri.startswith('sqlite'):
             self.assertEqual(
                 [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
@@ -268,19 +268,19 @@ class CeleryTestCase(CaravelTestCase):
                   'name': 'epoch_s', 'is_dim': False},
                  {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
                   'is_dim': False},
-                 {'agg': None, 'is_date': False, 'type': 'object',
+                 {'is_date': False, 'type': 'object',
                   'name': 'string1', 'is_dim': True},
                  {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
                   'is_dim': False},
-                 {'agg': None, 'is_date': False, 'type': 'object',
+                 {'is_date': False, 'type': 'object',
                   'name': 'string3', 'is_dim': True}]
-                , columns
+                , cdf.columns_dict
             )
         else:
             self.assertEqual(
                 [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
                   'is_dim': False},
-                 {'agg': None, 'is_date': True, 'type': 'datetime64[ns]',
+                 {'is_date': True, 'type': 'datetime64[ns]',
                   'name': 'ds2', 'is_dim': False},
                  {'agg': 'sum', 'is_date': False, 'type': 'int64',
                   'name': 'epoch_ms', 'is_dim': False},
@@ -288,13 +288,13 @@ class CeleryTestCase(CaravelTestCase):
                   'name': 'epoch_s', 'is_dim': False},
                  {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
                   'is_dim': False},
-                 {'agg': None, 'is_date': False, 'type': 'object',
+                 {'is_date': False, 'type': 'object',
                   'name': 'string1', 'is_dim': True},
                  {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
                   'is_dim': False},
-                 {'agg': None, 'is_date': False, 'type': 'object',
+                 {'is_date': False, 'type': 'object',
                   'name': 'string3', 'is_dim': True}]
-                , columns
+                , cdf.columns_dict
             )
 
 
