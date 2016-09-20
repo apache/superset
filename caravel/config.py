@@ -56,6 +56,9 @@ DEBUG = False
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
 
+# Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
+ENABLE_PROXY_FIX = False
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
