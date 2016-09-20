@@ -24,7 +24,8 @@ export default class DisplayQueryButton extends React.Component {
     const modalBody = (<pre>{this.state.viewSqlQuery}</pre>);
     return (
       <ModalTrigger
-        buttonBody={<span>Query</span>}
+        isButton
+        triggerNode={<span>Query</span>}
         modalTitle="Query"
         modalBody={modalBody}
         beforeOpen={this.beforeOpen}

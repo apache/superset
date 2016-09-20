@@ -6,7 +6,7 @@ import ModalTrigger from '../../../javascripts/components/ModalTrigger';
 
 describe('ModalTrigger', () => {
   const defaultProps = {
-    buttonBody: <button>My Button</button>,
+    triggerNode: <i className="fa fa-link" />,
     modalTitle: 'My Modal Title',
     modalBody: <div>Modal Body</div>,
   };
