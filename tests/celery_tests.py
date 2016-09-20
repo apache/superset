@@ -226,7 +226,8 @@ class CeleryTestCase(CaravelTestCase):
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
             1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
-        self.assertEqual(QueryStatus.PENDING, result1['query']['state'])
+        assert result1['query']['state'] in (
+            QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
 
         time.sleep(1)
 

@@ -408,7 +408,10 @@ class Database(Model, AuditMixinNullable):
     cache_timeout = Column(Integer)
     select_as_create_table_as = Column(Boolean, default=False)
     expose_in_sqllab = Column(Boolean, default=False)
+    allow_run_sync = Column(Boolean, default=True)
+    allow_run_async = Column(Boolean, default=False)
     allow_ctas = Column(Boolean, default=False)
+    allow_dml = Column(Boolean, default=False)
     force_ctas_schema = Column(String(250))
     extra = Column(Text, default=textwrap.dedent("""\
     {
@@ -424,6 +427,12 @@ class Database(Model, AuditMixinNullable):
     def backend(self):
         url = make_url(self.sqlalchemy_uri_decrypted)
         return url.get_backend_name()
+
+    def set_sqlalchemy_uri(self, uri):
+        conn = sqla.engine.url.make_url(uri)
+        self.password = conn.password
+        conn.password = "X" * 10 if conn.password else None
+        self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
@@ -682,7 +691,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def link(self):
         table_name = escape(self.table_name)
         return Markup(
-            '<a href="{self.url}">{table_name}</a>'.format(**locals()))
+            '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
 
     @property
     def perm(self):
@@ -1720,7 +1729,10 @@ class Log(Model):
             d = request.args.to_dict()
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
-            slice_id = int(slice_id) if slice_id else 0
+            try:
+                slice_id = int(slice_id) if slice_id else 0
+            except ValueError:
+                slice_id = 0
             params = ""
             try:
                 params = json.dumps(d)

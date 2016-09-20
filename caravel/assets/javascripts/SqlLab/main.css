@@ -239,6 +239,3 @@ div.tablePopover:hover {
 .SouthPane .tab-content {
     padding-top: 10px;
 }
-.SqlEditor textarea {
-    display: none;
-}
