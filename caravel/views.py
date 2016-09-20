@@ -1803,7 +1803,9 @@ appbuilder.add_link(
 
 @app.after_request
 def apply_caching(response):
-    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    """Applies the configuration's http headers to all responses"""
+    for k, v in config.get('HTTP_HEADERS').items():
+        response.headers[k] = v
     return response
 
 
