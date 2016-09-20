@@ -205,29 +205,12 @@
                       data-toggle="tooltip">
                       {{ _("0 sec") }}
                     </span>
-                    <div class="btn-group results" role="group">
-                      <a role="button" tabindex="0" class="btn btn-default btn-sm" id="shortner" data-toggle="popover" data-trigger="focus">
-                        <i class="fa fa-link" data-toggle="tooltip" title="{{ _("Short URL") }}"></i>&nbsp;
-                      </a>
-                      <span class="btn btn-default btn-sm" id="standalone" title="{{ _("Generate an embeddable iframe") }}" data-toggle="tooltip">
-                        <i class="fa fa-code"></i>&nbsp;
-                      </span>
-                      <span class="btn btn-default btn-sm" id="json" title="{{ _("Export to .json")}}" data-toggle="tooltip">
-                        <i class="fa fa-file-code-o"></i>
-                        .json
-                      </span>
-                      <span class="btn btn-default btn-sm {{ "disabled disabledButton" if not can_download }}" id="csv" title="{{ _("Export to .csv format") }}" data-toggle="tooltip">
-                        <i class="fa fa-file-text-o"></i>.csv
-                      </span>
-                      <span
-                        class="btn btn-default btn-sm disabled view_query"
-                        data-toggle="modal"
-                        data-target="#query_modal">
-                        <span data-toggle="tooltip" title="{{ _("View database query") }}">
-                          {{ _("query") }}
-                        </span>
-                      </span>
-                    </div>
+
+                    <span
+                      id="js-explore-actions"
+                      data-can-download="{{can_download}}"
+                    >
+                    </span>
                   </div>
                 </div>
               </div>
@@ -245,24 +228,7 @@
           </div>
         </div>
       </div>
-      <div class="modal fade" id="query_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
-        <div class="modal-dialog" role="document">
-          <div class="modal-content">
-            <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-              </button>
-              <h4 class="modal-title">{{ _("Query") }}</h4>
-            </div>
-            <div class="modal-body">
-              <pre id="query_container"></pre>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-default" data-dismiss="modal">{{ _("Close") }}</button>
-            </div>
-          </div>
-        </div>
-      </div>
+
       <div class="modal fade" id="sourceinfo_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
         <div class="modal-dialog modal-lg" role="document">
           <div class="modal-content">
