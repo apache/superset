@@ -3,7 +3,7 @@ from flask import flash
 
 class SourceRegistry(object):
     """ Central Registry for all available datasource engines"""
-    
+
     sources = {}
 
     def add_source(self, ds_type, cls):
@@ -14,4 +14,3 @@ class SourceRegistry(object):
 
     def all_sources(self):
         return self.sources
-
