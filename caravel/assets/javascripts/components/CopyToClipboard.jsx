@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import { Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { Button, Tooltip, OverlayTrigger } from 'react-bootstrap';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -36,9 +36,7 @@ export default class CopyToClipboard extends React.Component {
     this.setState({ hasCopied: false });
   }
 
-  copyToClipboard(e) {
-    e.preventDefault();
-
+  copyToClipboard() {
     const textToCopy = this.props.text;
     const textArea = document.createElement('textarea');
 
@@ -56,6 +54,7 @@ export default class CopyToClipboard extends React.Component {
     } catch (err) {
       window.alert('Sorry, your browser does not support copying. Use Ctrl / Cmd + C!'); // eslint-disable-line
     }
+
     document.body.removeChild(textArea);
 
     this.setState({ hasCopied: true });
@@ -86,13 +85,13 @@ export default class CopyToClipboard extends React.Component {
         }
         &nbsp;&nbsp;&nbsp;&nbsp;
         <OverlayTrigger placement="top" overlay={tooltip} trigger={['hover']}>
-          <a
-            href="#"
+          <Button
+            bsStyle="link"
             onClick={this.copyToClipboard}
             onMouseOut={this.onMouseOut}
           >
             {this.props.copyNode}
-          </a>
+          </Button>
         </OverlayTrigger>
       </div>
     );
