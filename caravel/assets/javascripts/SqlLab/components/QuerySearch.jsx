@@ -24,17 +24,12 @@ class QuerySearch extends React.Component {
     this.fetchUsers();
     this.refreshQueries();
   }
-  onDatabaseSelected(db) {
+  onChange(db) {
     const val = (db) ? db.value : null;
     this.setState({ databaseId: val });
   }
   insertParams(baseUrl, params) {
-    let url = baseUrl + '?';
-    for (let i = 0; i < params.length; i++) {
-      if (i === params.length - 1) url += params[i];
-      else url += params[i] + '&';
-    }
-    return url;
+    return baseUrl + '?' + params.join('&');
   }
   changeUser(user) {
     const val = (user) ? user.value : null;
@@ -73,8 +68,7 @@ class QuerySearch extends React.Component {
       if (status === 'success') {
         const newQueriesArray = [];
         for (const id in data) {
-          const q = data[id];
-          newQueriesArray.push(q);
+          newQueriesArray.push(data[id]);
         }
         this.setState({ queriesArray: newQueriesArray });
       }
@@ -99,7 +93,7 @@ class QuerySearch extends React.Component {
             />
           </div>
           <div className="col-sm-2">
-            <DatabaseSelect onDatabaseSelected={this.onDatabaseSelected.bind(this)} />
+            <DatabaseSelect onChange={this.onChange.bind(this)} />
           </div>
           <div className="col-sm-4">
             <input

@@ -670,6 +670,15 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
+    def test_search_query_endpoint(self):
+        userId = 'userId=null'
+        databaseId = 'databaseId=null'
+        searchText = 'searchText=null'
+        status = 'status=success'
+        params = [userId, databaseId, searchText, status]
+        resp = self.client.get('/caravel/search_queries?'+'&'.join(params))
+        self.assertEquals(200, resp.status_code)
+
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
         self.revoke_public_access('birth_names')

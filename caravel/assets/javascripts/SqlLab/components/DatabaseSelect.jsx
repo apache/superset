@@ -17,7 +17,7 @@ class DatabaseSelect extends React.Component {
   changeDb(db) {
     const val = (db) ? db.value : null;
     this.setState({ databaseId: val });
-    this.props.onDatabaseSelected(db);
+    this.props.onChange(db);
   }
   fetchDatabaseOptions() {
     this.setState({ databaseLoading: true });
@@ -45,7 +45,7 @@ class DatabaseSelect extends React.Component {
 }
 
 DatabaseSelect.propTypes = {
-  onDatabaseSelected: React.PropTypes.func,
+  onChange: React.PropTypes.func,
 };
 
 export default DatabaseSelect;

@@ -25,16 +25,16 @@ class SqlEditorTopToolbar extends React.Component {
     this.fetchSchemas();
     this.fetchTables();
   }
-  onDatabaseSelected(db) {
+  onChange(db) {
     const val = (db) ? db.value : null;
     this.setState({ schemaOptions: [] });
     this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
     if (!(db)) {
       this.setState({ tableOptions: [] });
-      return;
+    } else {
+      this.fetchTables(val, this.props.queryEditor.schema);
+      this.fetchSchemas(val);
     }
-    this.fetchTables(val, this.props.queryEditor.schema);
-    this.fetchSchemas(val);
   }
   resetState() {
     this.props.actions.resetState();
@@ -114,7 +114,7 @@ class SqlEditorTopToolbar extends React.Component {
       <div className="clearfix sql-toolbar">
         {networkAlert}
         <div>
-          <DatabaseSelect onDatabaseSelected={this.onDatabaseSelected.bind(this)} />
+          <DatabaseSelect onChange={this.onChange.bind(this)} />
         </div>
         <div className="m-t-5">
           <Select
