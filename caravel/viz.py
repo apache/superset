@@ -328,7 +328,15 @@ class BaseViz(object):
                 logging.exception(e)
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
-        return self.json_dumps(payload)
+        try:
+            result = self.json_dumps(payload)
+            return result
+        except Exception as e:
+            print(str(e))
+            print('error335')
+            print(payload)
+
+
 
     def json_dumps(self, obj):
         """Used by get_json, can be overridden to use specific switches"""
