@@ -3,34 +3,15 @@ from flask import flash
 
 class SourceRegistry(object):
     """ Central Registry for all available datasource engines"""
-    intances = 0
+    
+    sources = {}
 
-    __sources = {}
-
-    def __init__(self, sources={}):
-        self.__sources = sources
-        self.intances += 1
-
-    def add_source(self, ds_type, cls_model):
-        if ds_type not in self.__sources:
-            self.__sources[ds_type] = cls_model
-        if self.__sources[ds_type] is not cls_model:
-            flash(
-                'source type: {} is already associated with Model: {}'.format(
-                    ds_type, self.__sources[ds_type]
-                    )
-                )
-
-    def delete_source(self, ds_type):
-        del self.__sources[ds_type]
+    def add_source(self, ds_type, cls):
+        self.sources[ds_type] = cls
 
     def get_cls_model(self, ds_type):
-        return self.__sources[ds_type]
+        return self.sources[ds_type]
 
-    @property
     def all_sources(self):
-        return self.__sources
+        return self.sources
 
-    @property
-    def get_instances(self):
-        return self.intances
