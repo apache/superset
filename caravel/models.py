@@ -1204,9 +1204,6 @@ class DruidCluster(Model, AuditMixinNullable):
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
-    @property
-    def perm(self):
-        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
 
     @property
     def perm(self):
@@ -2016,9 +2013,6 @@ class Query(Model):
         return "sqllab_{tab}_{ts}".format(**locals())
 
 
-ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
-
-
 class DatasourceAccessRequest(Model, AuditMixinNullable):
     """ORM model for the access requests for datasources and dbs."""
     __tablename__ = 'access_request'
@@ -2031,6 +2025,8 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     druid_datasource = relationship(
         'DruidDatasource', foreign_keys=[druid_datasource_id])
 
+    ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
+
     @property
     def username(self):
         return self.creator()
@@ -2042,7 +2038,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         return self.table
 
     @property
-    def datasource_url(self):
+    def datasource_link(self):
         return self.datasource.link
 
     @property
@@ -2054,7 +2050,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def roles_with_datasource(self):
         action_list = ''
         for r in self.permission_view.role:
-            if r.name in ROLES_BLACKLIST:
+            if r.name in self.ROLES_BLACKLIST:
                 continue
             url = (
                 '/caravel/approve?request_access_id={}&role_to_grant={}'
@@ -2073,7 +2069,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
                 .format(self.id, r.name)
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
-            if r.name in ROLES_BLACKLIST:
+            if r.name in self.ROLES_BLACKLIST:
                 href = "{} Role".format(r.name)
             action_list = action_list + '<li>' + href + '</li>'
         return '<ul>' + action_list + '</ul>'

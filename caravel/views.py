@@ -627,16 +627,15 @@ appbuilder.add_view(
 class AccessRequestsModelView(CaravelModelView, DeleteMixin):
     datamodel = SQLAInterface(models.DatasourceAccessRequest)
     list_columns = [
-        'username', 'user_roles', 'datasource_url',
+        'username', 'user_roles', 'datasource_link',
         'roles_with_datasource', 'created_on']
-    order_columns = [
-        'username', 'datasource_url']
+    order_columns = ['username', 'datasource_link']
     base_order = ('changed_on', 'desc')
     label_columns = {
         'username': _("User"),
         'user_roles': _("User Roles"),
         'database': _("Database URL"),
-        'datasource_url': _("Datasource"),
+        'datasource_link': _("Datasource"),
         'roles_with_datasource': _("Roles to grant"),
         'created_on': _("Created On"),
     }
@@ -1020,10 +1019,10 @@ class Caravel(BaseCaravelView):
                 models.DatasourceAccessRequest.table_id == table_id,
                 models.DatasourceAccessRequest.druid_datasource_id ==
                 druid_datasource_id,
-            )
-        ).all()
+            ).all()
+        )
 
-        if len(duplicates) > 0:
+        if duplicates:
             flash(__(
                 "You have already requested access to the datasource %(name)s",
                 name=datasource_name), "warning")

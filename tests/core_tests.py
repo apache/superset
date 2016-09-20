@@ -49,6 +49,33 @@ class CoreTests(CaravelTestCase):
     def tearDown(self):
         pass
 
+    def test_admin_only_permissions(self):
+        def assert_admin_permission_in(role_name, assert_func):
+            role = sm.find_role(role_name)
+            permissions = [p.permission.name for p in role.permissions]
+            assert_func('can_sync_druid_source', permissions)
+            assert_func('can_approve', permissions)
+
+        assert_admin_permission_in('Admin', self.assertIn)
+        assert_admin_permission_in('Alpha', self.assertNotIn)
+        assert_admin_permission_in('Gamma', self.assertNotIn)
+
+    def test_admin_only_menu_views(self):
+        def assert_admin_view_menus_in(role_name, assert_func):
+            role = sm.find_role(role_name)
+            view_menus = [p.view_menu.name for p in role.permissions]
+            assert_func('ResetPasswordView', view_menus)
+            assert_func('RoleModelView', view_menus)
+            assert_func('Security', view_menus)
+            assert_func('UserDBModelView', view_menus)
+            assert_func('SQL Lab <span class="label label-danger">alpha</span>',
+                        view_menus)
+            assert_func('AccessRequestsModelView', view_menus)
+
+        assert_admin_view_menus_in('Admin', self.assertIn)
+        assert_admin_view_menus_in('Alpha', self.assertNotIn)
+        assert_admin_view_menus_in('Gamma', self.assertNotIn)
+
     def test_save_slice(self):
         self.login(username='admin')
 
@@ -431,6 +458,7 @@ class CoreTests(CaravelTestCase):
         session.commit()
 
     def test_druid_sync_from_config(self):
+        self.login()
         cluster = models.DruidCluster(cluster_name="new_druid")
         db.session.add(cluster)
         db.session.commit()

@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision = '5e4a03ef0bf0'
-down_revision = '41f6a59a61f2'
+down_revision = '65903709c321'
 
 
 def upgrade():
@@ -25,8 +25,7 @@ def upgrade():
         sa.Column('created_by_fk', sa.Integer(), nullable=True),
         sa.ForeignKeyConstraint(['changed_by_fk'], ['ab_user.id'], ),
         sa.ForeignKeyConstraint(['created_by_fk'], ['ab_user.id'], ),
-        sa.ForeignKeyConstraint(['druid_datasource_id'],
-                                ['datasources.id'], ),
+        sa.ForeignKeyConstraint(['druid_datasource_id'], ['datasources.id'], ),
         sa.ForeignKeyConstraint(['table_id'], ['tables.id'], ),
         sa.PrimaryKeyConstraint('id')
     )
