@@ -16,13 +16,11 @@ env:
     - TRAVIS_CACHE=$HOME/.travis_cache/
     - TRAVIS_NODE_VERSION="5.11"
   matrix:
-    #- TOX_ENV=py27-mysql
-    - TOX_ENV=py27-sqlite
-    - TOX_ENV=py27-postgres
-    - TOX_ENV=py34-sqlite
-    - TOX_ENV=py34-mysql
-    - TOX_ENV=py34-postgres
     - TOX_ENV=javascript
+    - TOX_ENV=py34-postgres
+    - TOX_ENV=py34-sqlite
+    - TOX_ENV=py27-mysql
+    - TOX_ENV=py27-sqlite
 before_install:
   - npm install -g npm@'>=3.9.5'
 before_script:
