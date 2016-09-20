@@ -10,6 +10,7 @@ let queryCount = 1;
 
 class QueryEditors extends React.Component {
   renameTab(qe) {
+    /* eslint no-alert: 0 */
     const newTitle = prompt('Enter a new title for the tab');
     if (newTitle) {
       this.props.actions.queryEditorSetTitle(qe, newTitle);
