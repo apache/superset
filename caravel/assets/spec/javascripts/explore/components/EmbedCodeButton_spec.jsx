@@ -1,6 +1,6 @@
 import React from 'react';
 import { expect } from 'chai';
-import { describe, it, beforeEach } from 'mocha';
+import { describe, it } from 'mocha';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
@@ -14,22 +14,18 @@ describe('EmbedCodeButton', () => {
       },
     },
   };
-  let wrapper;
-
-  beforeEach(() => {
-    wrapper = shallow(<EmbedCodeButton {...defaultProps} />);
-  });
 
   it('renders', () => {
     expect(React.isValidElement(<EmbedCodeButton {...defaultProps} />)).to.equal(true);
   });
 
   it('renders overlay trigger', () => {
+    const wrapper = shallow(<EmbedCodeButton {...defaultProps} />);
     expect(wrapper.find(OverlayTrigger)).to.have.length(1);
   });
 
   it('returns correct embed code', () => {
-    wrapper = mount(<EmbedCodeButton {...defaultProps} />);
+    const wrapper = mount(<EmbedCodeButton {...defaultProps} />);
     wrapper.setState({
       height: '1000',
       width: '2000',
