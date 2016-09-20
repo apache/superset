@@ -1,32 +1,52 @@
-const defaultTimeFilter = {
-  timeColumn: null,
-  timeGrain: null,
-  since: null,
-  until: null,
-};
-
-const defaultGroupBy = {
-  groupByColumn: [],
-  metrics: [],
-};
-
-const defaultSql = {
-  where: '',
-  having: '',
-};
-
 export const initialState = {
   datasources: null,
   datasourceId: null,
-  viz: null,
+  datasourceType: null,
   vizType: null,
-  timeFilter: defaultTimeFilter,
-  groupBy: defaultGroupBy,
+  timeColumnOpts: [],
+  timeColumn: null,
+  timeGrainOpts: [],
+  timeGrain: null,
+  since: null,
+  until: null,
+  groupByColumnOpts: [],
+  groupByColumns: [],
+  metricsOpts: [],
+  metrics: [],
   columns: [],
   orderings: [],
   timeStampFormat: null,
   rowLimit: null,
   searchBox: false,
-  SQL: defaultSql,
+  whereClause: '',
+  havingClause: '',
   filters: [],
+  filterColumnOpts: [],
+};
+
+// TODO: add datasource_type here after druid support is added
+export const defaultFormData = {
+  vizType: null,
+  timeColumn: null,
+  timeGrain: null,
+  since: null,
+  until: null,
+  groupByColumns: [],
+  metrics: [],
+  columns: [],
+  orderings: [],
+  timeStampFormat: null,
+  rowLimit: null,
+  searchBox: false,
+  whereClause: '',
+  havingClause: '',
+  filters: [],
+};
+
+export const defaultOpts = {
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  filterColumnOpts: [],
 };

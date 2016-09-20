@@ -1209,12 +1209,15 @@ class Caravel(BaseCaravelView):
                     "can_add": slice_add_perm,
                     "can_download": slice_download_perm,
                     "can_edit": slice_edit_perm,
-                    "datasources": datasources,
-                    "slice": slc,
-                    "userid": g.user.get_id() if g.user else '',
-                    "viz": viz_obj
+                    # TODO: separate endpoint for fetching datasources
+                    "datasources": [(d.id, d.full_name) for d in datasources],
+                    "datasource_id": datasource_id,
+                    "datasource_type": datasource_type,
+                    "slice": slc.to_json(),
+                    "user_id": g.user.get_id() if g.user else None,
+                    "viz": json.loads(viz_obj.get_json())
                 }
-            return self.render_template(template, bootstrap_data=bootstrap_data)
+            return self.render_template(template, bootstrap_data=json.dumps(bootstrap_data))
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
@@ -1836,6 +1839,32 @@ class Caravel(BaseCaravelView):
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
         return response
+
+    @has_access
+    @expose("/fetch_datasource_metadata")
+    @log_this
+    def fetch_datasource_metadata(self):
+        # TODO: check permissions
+        # TODO: check if datasource exits
+        session = db.session
+        datasource_class = SourceRegistry.sources[request.args.get('datasource_type')]
+        datasource = (
+            session.query(datasource_class)
+            .filter_by(id=request.args.get('datasource_id'))
+            .first()
+        )
+        # SUPPORT DRUID
+        # TODO: move this logic to the model (maybe)
+        grains_choices = [str(grain.name) for grain in datasource.database.grains()]
+        form_data = {
+                    "dttm_cols": datasource.dttm_cols,
+                    "time_grains": grains_choices,
+                    "groupby_cols": datasource.groupby_column_names,
+                    "metrics": datasource.metrics_combo,
+                    "filter_cols": datasource.filterable_column_names,
+                }
+        return Response(
+            json.dumps(form_data), mimetype="application/json")
 
     @has_access
     @expose("/queries/<last_updated_ms>")

@@ -16,26 +16,6 @@ describe('reducers', () => {
     expect(newState.vizType).to.equal('bar');
   });
 
-  it('should return new state with time filter', () => {
-    const newTimeFilter = {
-      timeColumn: 1,
-      timeGrain: 1,
-      since: 1,
-      until: 2,
-    };
-    const newState = exploreReducer(initialState, actions.setTimeFilter(newTimeFilter));
-    expect(newState.timeFilter).to.deep.equal(newTimeFilter);
-  });
-
-  it('should return new state with group by', () => {
-    const newGroupBy = {
-      groupByColumn: ['col1'],
-      metrics: ['sum_value'],
-    };
-    const newState = exploreReducer(initialState, actions.setGroupBy(newGroupBy));
-    expect(newState.groupBy).to.deep.equal(newGroupBy);
-  });
-
   it('should return new state with added column', () => {
     const newColumn = 'col';
     const newState = exploreReducer(initialState, actions.addColumn(newColumn));
@@ -75,15 +55,6 @@ describe('reducers', () => {
   it('should return new state with search box toggled', () => {
     const newState = exploreReducer(initialState, actions.toggleSearchBox(true));
     expect(newState.searchBox).to.equal(true);
-  });
-
-  it('should return new state with new sql', () => {
-    const newSql = {
-      where: 'where clause',
-      having: 'having clause',
-    };
-    const newState = exploreReducer(initialState, actions.setSQL(newSql));
-    expect(newState.SQL).to.equal(newSql);
   });
 
   it('should return new state with added filter', () => {
