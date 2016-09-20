@@ -722,9 +722,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        sources = src_registry.all_sources
+        sources = src_registry.sources
         for source in sources:
-            ds = db.session.query(src_registry.get_cls_model(source)).first()
+            ds = db.session.query(src_registry.sources[source]).first()
             if ds is not None:
                 url = "/{}/list/".format(ds.baselink)
                 msg = _("Click on a {} link to create a Slice".format(source))
@@ -973,7 +973,7 @@ class Caravel(BaseCaravelView):
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
-        datasource_class = src_registry.get_cls_model(datasource_type)
+        datasource_class = src_registry.sources[datasource_type]
 
         datasources = (
             db.session

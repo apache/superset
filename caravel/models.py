@@ -171,7 +171,7 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def cls_model(self):
-        return src_registry.get_cls_model(self.datasource_type)
+        return src_registry.sources[self.datasource_type]
 
     @property
     def datasource(self):

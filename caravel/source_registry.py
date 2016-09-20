@@ -6,11 +6,10 @@ class SourceRegistry(object):
 
     sources = {}
 
-    def add_source(self, ds_type, cls):
-        self.sources[ds_type] = cls
-
-    def get_cls_model(self, ds_type):
-        return self.sources[ds_type]
-
-    def all_sources(self):
-        return self.sources
+    def add_source(self, ds_type, cls_model):
+        if ds_type not in self.sources:
+            self.sources[ds_type] = cls_model
+        if self.sources[ds_type] is not cls_model:
+            raise Exception(
+                'source type: {} is already associated with Model: {}'.format(
+                    ds_type, self.sources[ds_type]))
