@@ -102,22 +102,27 @@ class SqlEditorTopToolbar extends React.Component {
     const tableName = tableOpt.value;
     const qe = this.props.queryEditor;
     const url = `/caravel/table/${qe.dbId}/${tableName}/${qe.schema}/`;
+
+    this.setState({ tableLoading: true });
     $.get(url, (data) => {
       this.props.actions.addTable({
         id: shortid.generate(),
         dbId: this.props.queryEditor.dbId,
         queryEditorId: this.props.queryEditor.id,
         name: data.name,
+        indexes: data.indexes,
         schema: qe.schema,
         columns: data.columns,
         expanded: true,
       });
+      this.setState({ tableLoading: false });
     })
     .fail(() => {
       this.props.actions.addAlert({
         msg: 'Error occurred while fetching metadata',
         bsStyle: 'danger',
       });
+      this.setState({ tableLoading: false });
     });
   }
   render() {
