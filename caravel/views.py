@@ -1796,6 +1796,14 @@ appbuilder.add_link(
     icon="fa-flask")
 
 
+@app.after_request
+def apply_caching(response):
+    """Applies the configuration's http headers to all responses"""
+    for k, v in config.get('HTTP_HEADERS').items():
+        response.headers[k] = v
+    return response
+
+
 # ---------------------------------------------------------------------
 # Redirecting URL from previous names
 class RegexConverter(BaseConverter):
