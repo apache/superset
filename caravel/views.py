@@ -1527,9 +1527,11 @@ class Caravel(BaseCaravelView):
         schema = None if schema in ('null', 'undefined') else schema
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
+        indexes = []
         t = mydb.get_columns(table_name, schema)
         try:
             t = mydb.get_columns(table_name, schema)
+            indexes = mydb.get_indexes(table_name, schema)
         except Exception as e:
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
@@ -1548,6 +1550,7 @@ class Caravel(BaseCaravelView):
         tbl = {
             'name': table_name,
             'columns': cols,
+            'indexes': indexes,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
 

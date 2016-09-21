@@ -633,6 +633,9 @@ class Database(Model, AuditMixinNullable):
     def get_columns(self, table_name, schema=None):
         return self.inspector.get_columns(table_name, schema)
 
+    def get_indexes(self, table_name, schema=None):
+        return self.inspector.get_indexes(table_name, schema)
+
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)
