@@ -749,6 +749,11 @@ class FormFactory(object):
                 "description": _(
                     "Whether to display the time range interactive selector")
             }),
+            'date_filter': (BetterBooleanField, {
+                "label": _("Date Filter"),
+                "default": False,
+                "description": _("Whether to include a time filter")
+            }),
             'show_datatable': (BetterBooleanField, {
                 "label": _("Data Table"),
                 "default": False,
