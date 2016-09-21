@@ -1,6 +1,7 @@
 import shortid from 'shortid';
 import * as actions from './actions';
 import { now } from '../modules/dates';
+
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
   from '../reduxUtils.js';
 
@@ -79,7 +80,8 @@ export const sqlLabReducer = function (state, action) {
       }
       newState = addToObject(newState, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };
-      return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
+      return alterInArr(
+        newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
     [actions.STOP_QUERY]() {
       return alterInObject(state, 'queries', action.query, { state: 'stopped' });
@@ -124,7 +126,8 @@ export const sqlLabReducer = function (state, action) {
       return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
     },
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
-      return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
+      return alterInArr(
+        state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
     },
     [actions.ADD_ALERT]() {
       return addToArr(state, 'alerts', action.alert);
