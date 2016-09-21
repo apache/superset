@@ -18,7 +18,7 @@ import { enhancer } from '../reduxUtils';
 
 require('./main.css');
 
-let store = createStore(sqlLabReducer, initialState, enhancer);
+let store = createStore(sqlLabReducer, initialState, enhancer());
 
 // jquery hack to highlight the navbar menu
 $('a[href="/caravel/sqllab"]').parent().addClass('active');
