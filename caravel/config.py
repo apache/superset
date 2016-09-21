@@ -43,9 +43,9 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'caravel.db')
+# SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'caravel.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
-# SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
+SQLALCHEMY_DATABASE_URI = 'postgresql+psycopg2://postgres:postgres@postgres/postgres'
 
 # Flask-WTF flag for CSRF
 CSRF_ENABLED = True
@@ -63,10 +63,10 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Caravel"
+APP_NAME = "PlantSecure"
 
 # Uncomment to setup Setup an App icon
-APP_ICON = "/static/assets/images/caravel_logo.png"
+APP_ICON = "/static/assets/images/tetra_logo.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone

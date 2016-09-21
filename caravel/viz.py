@@ -629,6 +629,49 @@ class TreemapViz(BaseViz):
         return chart_data
 
 
+class MekkoViz(BaseViz):
+    """Tree map visualisation for hierarchical data."""
+
+    viz_type = "mekko"
+    verbose_name = _("Mekko chart")
+    credits = '<a href="https://d3js.org">d3.js</a>'
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metrics',
+            'groupby',
+        ),
+    }, {
+        'label': _('Chart Options'),
+        'fields': (
+            'treemap_ratio',
+            'number_format',
+        )
+    },)
+
+    def get_df(self, query_obj=None):
+        df = super(MekkoViz, self).get_df(query_obj)
+        df = df.set_index(self.form_data.get("groupby"))
+        return df
+
+    def _nest(self, metric, df):
+        nlevels = df.index.nlevels
+        if nlevels == 1:
+            result = [{"name": n, "value": v}
+                      for n, v in zip(df.index, df[metric])]
+        else:
+            result = [{"name": l, "children": self._nest(metric, df.loc[l])}
+                      for l in df.index.levels[0]]
+        return result
+
+    def get_data(self):
+        df = self.get_df()
+        chart_data = [{"name": metric, "children": self._nest(metric, df)}
+                      for metric in df.columns]
+        return chart_data
+
+
 class CalHeatmapViz(BaseViz):
 
     """Calendar heatmap."""
@@ -2003,6 +2046,7 @@ viz_types_list = [
     HeatmapViz,
     BoxPlotViz,
     TreemapViz,
+    MekkoViz,
     CalHeatmapViz,
     HorizonViz,
     MapboxViz,

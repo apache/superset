@@ -26,6 +26,7 @@ const vizMap = {
   sunburst: require('./sunburst.js'),
   table: require('./table.js'),
   treemap: require('./treemap.js'),
+  mekko: require('./mekko.js'),
   word_cloud: require('./word_cloud.js'),
   world_map: require('./world_map.js'),
 };
