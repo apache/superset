@@ -17,7 +17,7 @@ from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
-from caravel import app, db, models, utils, appbuilder, sm
+from caravel import app, db, models, utils, appbuilder, sm, src_registry
 from caravel.models import DruidDatasource
 
 from .base_tests import CaravelTestCase
@@ -242,30 +242,42 @@ class CoreTests(CaravelTestCase):
         sm.add_role('table_role')
         self.login('admin')
 
-        def prepare_request(ds_name, role, lookup_function):
-            ds = lookup_function(ds_name)
-            ds_id = ds.id
+        def prepare_request(ds_type, ds_name, role):
+            ds_class = src_registry.sources[ds_type]
+            # TODO: generalize datasource names
+            if ds_type == 'table':
+                ds = session.query(ds_class).filter(
+                    ds_class.table_name == ds_name).first()
+            else:
+                ds = session.query(ds_class).filter(
+                    ds_class.datasource_name == ds_name).first()
             ds_perm_view = sm.find_permission_view_menu(
                 'datasource_access', ds.perm)
             sm.add_permission_role(sm.find_role(role), ds_perm_view)
             access_request = models.DatasourceAccessRequest(
-                table_id=ds_id,
+                datasource_id=ds.id,
+                datasource_type=ds_type,
                 created_by_fk=sm.find_user(username='gamma').id,
             )
             session.add(access_request)
             session.commit()
             return access_request
 
+        EXTEND_ROLE_REQUEST = (
+            '/caravel/approve?datasource_type={}&datasource_id={}&'
+            'created_by={}&role_to_extend={}')
+        GRANT_ROLE_REQUEST = (
+            '/caravel/approve?datasource_type={}&datasource_id={}&'
+            'created_by={}&role_to_grant={}')
+
         # Case 1. Grant new role to the user.
 
         access_request1 = prepare_request(
-            'unicode_test', 'table_role', self.get_table_by_name)
-        self.client.get(
-            '/caravel/approve?request_access_id={}&role_to_grant={}'
-            .format(access_request1.id, 'table_role')
-        )
-        access_requests = self.get_access_requests(
-            'gamma', table_id=access_request1.table_id)
+            'table', 'unicode_test', 'table_role')
+        ds_1_id = access_request1.datasource_id
+        self.client.get(GRANT_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma', 'table_role'))
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
         # request was removed
         self.assertFalse(access_requests)
         # user was granted table_role
@@ -274,16 +286,13 @@ class CoreTests(CaravelTestCase):
 
         # Case 2. Extend the role to have access to the table
 
-        access_request2 = prepare_request(
-            'long_lat', 'table_role', self.get_table_by_name)
-        long_lat_perm = access_request2.table.perm
+        access_request2 = prepare_request('table', 'long_lat', 'table_role')
+        ds_2_id = access_request2.datasource_id
+        long_lat_perm = access_request2.datasource.perm
 
-        self.client.get(
-            '/caravel/approve?request_access_id={}&role_to_extend={}'
-            .format(access_request2.id, 'table_role')
-        )
-        access_requests = self.get_access_requests(
-            'gamma', table_id=access_request2.table_id)
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', access_request2.datasource_id, 'gamma', 'table_role'))
+        access_requests = self.get_access_requests('gamma', 'table', ds_2_id)
         # request was removed
         self.assertFalse(access_requests)
         # table_role was extended to grant access to the long_lat table/
@@ -295,12 +304,9 @@ class CoreTests(CaravelTestCase):
         # Case 3. Grant new role to the user to access the druid datasource.
 
         sm.add_role('druid_role')
-        access_request3 = prepare_request(
-            'druid_ds_1', 'druid_role', self.get_druid_ds_by_name)
-        self.client.get(
-            '/caravel/approve?request_access_id={}&role_to_grant={}'
-            .format(access_request3.id, 'druid_role')
-        )
+        access_request3 = prepare_request('druid', 'druid_ds_1', 'druid_role')
+        self.client.get(GRANT_ROLE_REQUEST.format(
+            'druid', access_request3.datasource_id, 'gamma', 'druid_role'))
 
         # user was granted table_role
         user_roles = [r.name for r in sm.find_user('gamma').roles]
@@ -308,14 +314,11 @@ class CoreTests(CaravelTestCase):
 
         # Case 4. Extend the role to have access to the druid datasource
 
-        access_request4 = prepare_request(
-            'druid_ds_2', 'druid_role', self.get_druid_ds_by_name)
+        access_request4 = prepare_request('druid', 'druid_ds_2', 'druid_role')
         druid_ds_2_perm = access_request4.datasource.perm
 
-        self.client.get(
-            '/caravel/approve?request_access_id={}&role_to_extend={}'
-            .format(access_request4.id, 'druid_role')
-        )
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'druid', access_request4.datasource_id, 'gamma', 'druid_role'))
         # druid_role was extended to grant access to the druid_access_ds_2
         druid_role = sm.find_role('druid_role')
         perm_view = sm.find_permission_view_menu(
@@ -338,39 +341,45 @@ class CoreTests(CaravelTestCase):
         gamma_user.roles.append(sm.find_role('dummy_role'))
         session.commit()
 
+        ACCESS_REQUEST = (
+            '/caravel/request_access?datasource_type={}&datasource_id={}')
+        ROLE_EXTEND_LINK = (
+            '<a href="/caravel/approve?datasource_type={}&datasource_id={}&'
+            'created_by={}&role_to_extend={}">Extend {} Role</a>')
+        ROLE_GRANT_LINK = (
+            '<a href="/caravel/approve?datasource_type={}&datasource_id={}&'
+            'created_by={}&role_to_grant={}">Grant {} Role</a>')
+
         # Case 1. Request table access, there are no roles have this table.
 
-        table1 = self.get_table_by_name('random_time_series')
-        table_id1 = table1.id
-        table1_perm = table1.perm
+        table1 = session.query(models.SqlaTable).filter_by(
+            table_name='random_time_series').first()
+        table_1_id = table1.id
 
         # request access to the table
-        self.client.get('/caravel/request_access?table={}'.format(table_id1))
+        self.client.get(ACCESS_REQUEST.format('table', table_1_id))
 
         access_request1 = self.get_access_requests(
-            'gamma', table_id=table_id1)[0]
+            'gamma', 'table', table_1_id)[0]
+        approve_link_1 = ROLE_EXTEND_LINK.format(
+            'table', table_1_id, 'gamma', 'dummy_role', 'dummy_role')
         self.assertEqual(
             access_request1.user_roles,
-            '<ul><li>Gamma Role</li><li>'
-            '<a href="/caravel/approve?request_access_id={}&'
-            'role_to_extend=dummy_role">Extend dummy_role Role</a></li></ul>'
-            .format(access_request1.id))
+            '<ul><li>Gamma Role</li><li>{}</li></ul>'.format(approve_link_1))
         self.assertEqual(access_request1.roles_with_datasource, '<ul></ul>')
-        self.assertEqual(
-            access_request1.permission_view,
-            sm.find_permission_view_menu('datasource_access', table1_perm))
 
         # Case 2. Duplicate request.
 
-        self.client.get('/caravel/request_access?table={}'.format(table_id1))
+        self.client.get(ACCESS_REQUEST.format('table', table_1_id))
         access_requests_2 = self.get_access_requests(
-            'gamma', table_id=table_id1)
+            'gamma', 'table', table_1_id)
         self.assertEqual(len(access_requests_2), 1)
 
         # Case 3. Request access, roles exist that contains the table.
 
         # add table to the existing roles
-        table3 = self.get_table_by_name('energy_usage')
+        table3 = session.query(models.SqlaTable).filter_by(
+            table_name='energy_usage').first()
         table_3_id = table3.id
         table3_perm = table3.perm
 
@@ -384,47 +393,39 @@ class CoreTests(CaravelTestCase):
             sm.find_permission_view_menu('datasource_access', table3_perm))
         session.commit()
 
-        self.client.get('/caravel/request_access?table={}'.format(table_3_id))
+        self.client.get(ACCESS_REQUEST.format('table', table_3_id))
 
         access_request3 = self.get_access_requests(
-            'gamma', table_id=table_3_id)[0]
-        self.assertEqual(
-            access_request3.permission_view,
-            sm.find_permission_view_menu('datasource_access', table3_perm))
-        self.assertEqual(
-            access_request3.roles_with_datasource,
-            '<ul><li><a href="/caravel/approve?request_access_id={}&'
-            'role_to_grant=energy_usage_role">Grant energy_usage_role Role'
-            '</a></li></ul>'.format(access_request3.id))
+            'gamma', 'table', table_3_id)[0]
+        approve_link_3 = ROLE_GRANT_LINK.format(
+            'table', table_3_id, 'gamma', 'energy_usage_role',
+            'energy_usage_role')
+        self.assertEqual(access_request3.roles_with_datasource,
+                         '<ul><li>{}</li></ul>'.format(approve_link_3))
 
         # Case 4. Request druid access, there are no roles have this table.
-        druid_ds_4 = self.get_druid_ds_by_name('druid_ds_1')
+        druid_ds_4 = session.query(models.DruidDatasource).filter_by(
+            datasource_name='druid_ds_1').first()
         druid_ds_4_id = druid_ds_4.id
-        druid_ds_4_perm = druid_ds_4.perm
 
         # request access to the table
-        self.client.get(
-            '/caravel/request_access?druid={}'.format(druid_ds_4_id))
-
+        self.client.get(ACCESS_REQUEST.format('druid', druid_ds_4_id))
         access_request4 = self.get_access_requests(
-            'gamma', druid_datasource_id=druid_ds_4_id)[0]
+            'gamma', 'druid', druid_ds_4_id)[0]
+        approve_link_4 = ROLE_EXTEND_LINK.format(
+            'druid', druid_ds_4_id, 'gamma', 'dummy_role', 'dummy_role')
         self.assertEqual(
             access_request4.user_roles,
-            '<ul><li>Gamma Role</li><li>'
-            '<a href="/caravel/approve?request_access_id={}&'
-            'role_to_extend=dummy_role">Extend dummy_role Role</a></li></ul>'
-            .format(access_request4.id))
+            '<ul><li>Gamma Role</li><li>{}</li></ul>'.format(approve_link_4))
 
         self.assertEqual(
             access_request4.roles_with_datasource,
             '<ul></ul>'.format(access_request4.id))
-        self.assertEqual(
-            access_request4.permission_view,
-            sm.find_permission_view_menu('datasource_access', druid_ds_4_perm))
 
         # Case 5. Roles exist that contains the druid datasource.
         # add druid ds to the existing roles
-        druid_ds_5 = self.get_druid_ds_by_name('druid_ds_2')
+        druid_ds_5 = session.query(models.DruidDatasource).filter_by(
+            datasource_name='druid_ds_2').first()
         druid_ds_5_id = druid_ds_5.id
         druid_ds_5_perm = druid_ds_5.perm
 
@@ -438,19 +439,15 @@ class CoreTests(CaravelTestCase):
             sm.find_permission_view_menu('datasource_access', druid_ds_5_perm))
         session.commit()
 
-        self.client.get(
-            '/caravel/request_access?druid={}'.format(druid_ds_5_id))
-
+        self.client.get(ACCESS_REQUEST.format('druid', druid_ds_5_id))
         access_request5 = self.get_access_requests(
-            'gamma', druid_datasource_id=druid_ds_5_id)[0]
-        self.assertEqual(
-            access_request5.permission_view,
-            sm.find_permission_view_menu('datasource_access', druid_ds_5_perm))
-        self.assertEqual(
-            access_request5.roles_with_datasource,
-            '<ul><li><a href="/caravel/approve?request_access_id={}&'
-            'role_to_grant=druid_ds_2_role">Grant druid_ds_2_role Role'
-            '</a></li></ul>'.format(access_request5.id))
+            'gamma', 'druid', druid_ds_5_id)[0]
+        approve_link_5 = ROLE_GRANT_LINK.format(
+            'druid', druid_ds_5_id, 'gamma', 'druid_ds_2_role',
+            'druid_ds_2_role')
+
+        self.assertEqual(access_request5.roles_with_datasource,
+                         '<ul><li>{}</li></ul>'.format(approve_link_5))
 
         # cleanup
         gamma_user = sm.find_user(username='gamma')

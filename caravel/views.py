@@ -74,6 +74,9 @@ class ListWidgetWithCheckboxes(ListWidget):
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission")
 DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
+ACCESS_REQUEST_MISSING_ERR = __(
+    "The access requests seem to have been deleted")
+USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 def get_database_access_error_msg(database_name):
@@ -994,7 +997,8 @@ class Caravel(BaseCaravelView):
     def request_access_form(
             self, datasource_type, datasource_id, datasource_name):
         request_access_url = (
-            '/caravel/request_access?{}={}&datasource_name={}'.format(
+            '/caravel/request_access?datasource_type={}&datasource_id={}&'
+            'datasource_name=datasource_name'.format(
                 datasource_type, datasource_id, datasource_name)
         )
         return self.render_template(
@@ -1007,20 +1011,16 @@ class Caravel(BaseCaravelView):
     @has_access
     @expose("/request_access")
     def request_access(self):
-        table_id = request.args.get('table')
-        druid_datasource_id = request.args.get('druid')
+        datasource_id = request.args.get('datasource_id')
+        datasource_type = request.args.get('datasource_type')
         datasource_name = request.args.get('datasource_name')
+        session = db.session
 
-        duplicates = (
-            db.session.query(models.DatasourceAccessRequest)
-            .filter(
-                models.DatasourceAccessRequest.created_by_fk ==
-                g.user.get_id(),
-                models.DatasourceAccessRequest.table_id == table_id,
-                models.DatasourceAccessRequest.druid_datasource_id ==
-                druid_datasource_id,
-            ).all()
-        )
+        duplicates = session.query(models.DatasourceAccessRequest).filter(
+            models.DatasourceAccessRequest.datasource_id == datasource_id,
+            models.DatasourceAccessRequest.datasource_type ==
+            datasource_type,
+            models.DatasourceAccessRequest.created_by_fk == g.user.id).all()
 
         if duplicates:
             flash(__(
@@ -1029,8 +1029,8 @@ class Caravel(BaseCaravelView):
             return redirect('/slicemodelview/list/')
 
         access_request = models.DatasourceAccessRequest(
-            table_id=table_id,
-            druid_datasource_id=druid_datasource_id,
+            datasource_id=datasource_id,
+            datasource_type=datasource_type,
         )
         db.session.add(access_request)
         db.session.commit()
@@ -1042,45 +1042,64 @@ class Caravel(BaseCaravelView):
     @has_access
     @expose("/approve")
     def approve(self):
-        request_access_id = request.args.get('request_access_id')
+        datasource_type = request.args.get('datasource_type')
+        datasource_id = request.args.get('datasource_id')
+        created_by_username = request.args.get('created_by')
         role_to_grant = request.args.get('role_to_grant')
         role_to_extend = request.args.get('role_to_extend')
-        access_request = (
-            db.session.query(models.DatasourceAccessRequest)
-            .filter_by(id=request_access_id).first()
-        )
+
+        session = db.session
+        datasource_class = src_registry.sources[datasource_type]
+        datasource = session.query(datasource_class).filter_by(
+            id=datasource_id).first()
+
+        if not datasource:
+            flash(DATASOURCE_MISSING_ERR, "alert")
+            return json_error_response(DATASOURCE_MISSING_ERR)
+
+        requested_by = sm.find_user(username=created_by_username)
+        if not requested_by:
+            flash(USER_MISSING_ERR, "alert")
+            return json_error_response(USER_MISSING_ERR)
+
+        requests = (session.query(models.DatasourceAccessRequest).filter(
+            models.DatasourceAccessRequest.datasource_id == datasource_id,
+            models.DatasourceAccessRequest.datasource_type == datasource_type,
+            models.DatasourceAccessRequest.created_by_fk == requested_by.id)
+                    .all())
+
+        if not requests:
+            flash(ACCESS_REQUEST_MISSING_ERR, "alert")
+            return json_error_response(ACCESS_REQUEST_MISSING_ERR)
+
         # check if you can approve
-        if (self.all_datasource_access() or
-                (access_request.datasource and
-                 access_request.datasource.created_by_fk and
-                 g.user.id == access_request.datasource.owner_id)):
+        if self.all_datasource_access() or g.user.id == datasource.owner_id:
             # can by done by admin only
             if role_to_grant:
                 role = sm.find_role(role_to_grant)
-                access_request.created_by.roles.append(role)
+                requested_by.roles.append(role)
                 flash(__(
                     "%(user)s was granted the role %(role)s that gives access "
                     "to the %(datasource)s",
-                    user=access_request.creator(),
+                    user=requested_by.username,
                     role=role_to_grant,
-                    datasource=access_request.datasource.full_name), "info")
+                    datasource=datasource.full_name), "info")
 
             if role_to_extend:
-                sm.add_permission_role(sm.find_role(role_to_extend),
-                                       access_request.permission_view)
-                flash(__("Role %(role)s was extended to provide the access to"
-                         " the datasource %(datasource)s",
-                         role=role_to_extend,
-                         datasource=access_request.datasource.full_name),
-                      "info")
+                perm_view = sm.find_permission_view_menu(
+                    'datasource_access', datasource.perm)
+                sm.add_permission_role(sm.find_role(role_to_extend), perm_view)
+                flash(__("Role %(r)s was extended to provide the access to"
+                         " the datasource %(ds)s",
+                         r=role_to_extend, ds=datasource.full_name), "info")
 
         else:
             flash(__("You have no permission to approve this request"),
                   "danger")
             return redirect('/accessrequestsmodelview/list/')
-
-        db.session.delete(access_request)
-        db.session.commit()
+        for r in requests:
+            session.delete(r)
+        session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
     @has_access

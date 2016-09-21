@@ -2018,14 +2018,14 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     __tablename__ = 'access_request'
     id = Column(Integer, primary_key=True)
 
-    table_id = Column(Integer, ForeignKey('tables.id'))
-    druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
-
-    table = relationship('SqlaTable', foreign_keys=[table_id])
-    druid_datasource = relationship(
-        'DruidDatasource', foreign_keys=[druid_datasource_id])
+    datasource_id = Column(Integer)
+    datasource_type = Column(String(200))
 
     ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
+
+    @property
+    def cls_model(self):
+        return src_registry.sources[self.datasource_type]
 
     @property
     def username(self):
@@ -2033,28 +2033,32 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
 
     @property
     def datasource(self):
-        if self.druid_datasource:
-            return self.druid_datasource
-        return self.table
+        return self.get_datasource
+
+    @datasource.getter
+    @utils.memoized
+    def get_datasource(self):
+        ds = db.session.query(self.cls_model).filter_by(
+            id=self.datasource_id).first()
+        return ds
 
     @property
     def datasource_link(self):
         return self.datasource.link
 
     @property
-    def permission_view(self):
-        return sm.find_permission_view_menu(
-            'datasource_access', self.datasource.perm)
-
-    @property
     def roles_with_datasource(self):
         action_list = ''
-        for r in self.permission_view.role:
+        pv = sm.find_permission_view_menu(
+            'datasource_access', self.datasource.perm)
+        for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
             url = (
-                '/caravel/approve?request_access_id={}&role_to_grant={}'
-                .format(self.id, r.name)
+                '/caravel/approve?datasource_type={self.datasource_type}&'
+                'datasource_id={self.datasource_id}&'
+                'created_by={self.created_by.username}&role_to_grant={r.name}'
+                .format(**locals())
             )
             href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
             action_list = action_list + '<li>' + href + '</li>'
@@ -2065,8 +2069,10 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         action_list = ''
         for r in self.created_by.roles:
             url = (
-                '/caravel/approve?request_access_id={}&role_to_extend={}'
-                .format(self.id, r.name)
+                '/caravel/approve?datasource_type={self.datasource_type}&'
+                'datasource_id={self.datasource_id}&'
+                'created_by={self.created_by.username}&role_to_extend={r.name}'
+                .format(**locals())
             )
             href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
             if r.name in self.ROLES_BLACKLIST:

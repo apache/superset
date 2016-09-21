@@ -22,7 +22,7 @@ class CaravelTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(CaravelTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
-
+        self.maxDiff = None
         utils.init(caravel)
 
         admin = appbuilder.sm.find_user('admin')
@@ -92,42 +92,13 @@ class CaravelTestCase(unittest.TestCase):
         session.close()
         return query
 
-    def get_access_requests(
-            self, username, table_id=None, druid_datasource_id=None):
-        if table_id:
-            return (
-                db.session.query(models.DatasourceAccessRequest)
-                .filter(
-                    models.DatasourceAccessRequest.created_by_fk ==
-                    sm.find_user(username).id,
-                    models.DatasourceAccessRequest.table_id == table_id
-                ).all()
-            )
-        if druid_datasource_id:
-            return (
-                db.session.query(models.DatasourceAccessRequest)
-                .filter(
-                    models.DatasourceAccessRequest.created_by_fk ==
-                    sm.find_user(username).id,
-                    models.DatasourceAccessRequest.druid_datasource_id ==
-                    druid_datasource_id
-                ).all()
-            )
-
-
-    def get_table_by_name(self, table_name):
-        return (
-            db.session.query(models.SqlaTable)
-                .filter(models.SqlaTable.table_name == table_name)
-                .first()
-        )
-
-    def get_druid_ds_by_name(self, druid_ds_name):
-        return (
-            db.session.query(models.DruidDatasource)
-                .filter(models.DruidDatasource.datasource_name == druid_ds_name)
-                .first()
-        )
+    def get_access_requests(self, username, ds_type, ds_id):
+            return db.session.query(models.DatasourceAccessRequest).filter(
+                models.DatasourceAccessRequest.created_by_fk ==
+                sm.find_user(username=username).id,
+                models.DatasourceAccessRequest.datasource_type == ds_type,
+                models.DatasourceAccessRequest.datasource_id == ds_id
+            ).all()
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
