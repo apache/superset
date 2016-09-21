@@ -49,7 +49,7 @@ from sqlalchemy_utils import EncryptedType
 from werkzeug.datastructures import ImmutableMultiDict
 
 import caravel
-from caravel import app, db, get_session, utils, sm
+from caravel import app, db, get_session, utils, sm, src_registry
 from caravel.viz import viz_types
 from caravel.utils import flasher, MetricPermException, DimSelector
 
@@ -156,8 +156,7 @@ class Slice(Model, AuditMixinNullable):
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
     slice_name = Column(String(250))
-    druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
-    table_id = Column(Integer, ForeignKey('tables.id'))
+    datasource_id = Column(Integer)
     datasource_type = Column(String(200))
     datasource_name = Column(String(2000))
     viz_type = Column(String(250))
@@ -165,33 +164,34 @@ class Slice(Model, AuditMixinNullable):
     description = Column(Text)
     cache_timeout = Column(Integer)
     perm = Column(String(2000))
-
-    table = relationship(
-        'SqlaTable', foreign_keys=[table_id], backref='slices')
-    druid_datasource = relationship(
-        'DruidDatasource', foreign_keys=[druid_datasource_id], backref='slices')
     owners = relationship("User", secondary=slice_user)
 
     def __repr__(self):
         return self.slice_name
 
     @property
+    def cls_model(self):
+        return src_registry.sources[self.datasource_type]
+
+    @property
     def datasource(self):
-        return self.table or self.druid_datasource
+        return self.get_datasource
+
+    @datasource.getter
+    @utils.memoized
+    def get_datasource(self):
+        ds = db.session.query(
+            self.cls_model).filter_by(
+            id=self.datasource_id).first()
+        return ds
 
     @renders('datasource_name')
     def datasource_link(self):
-        if self.table:
-            return self.table.link
-        elif self.druid_datasource:
-            return self.druid_datasource.link
+        return self.datasource.link
 
     @property
     def datasource_edit_url(self):
-        if self.table:
-            return self.table.url
-        elif self.druid_datasource:
-            return self.druid_datasource.url
+        self.datasource.url
 
     @property
     @utils.memoized
@@ -203,10 +203,6 @@ class Slice(Model, AuditMixinNullable):
     @property
     def description_markeddown(self):
         return utils.markdown(self.description)
-
-    @property
-    def datasource_id(self):
-        return self.table_id or self.druid_datasource_id
 
     @property
     def data(self):
@@ -283,12 +279,8 @@ class Slice(Model, AuditMixinNullable):
 
 
 def set_perm(mapper, connection, target):  # noqa
-    if target.table_id:
-        src_class = SqlaTable
-        id_ = target.table_id
-    elif target.druid_datasource_id:
-        src_class = DruidDatasource
-        id_ = target.druid_datasource_id
+    src_class = target.cls_model
+    id_ = target.datasource_id
     ds = db.session.query(src_class).filter_by(id=int(id_)).first()
     target.perm = ds.perm
 

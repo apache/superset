@@ -75,7 +75,7 @@ def load_energy():
             slice_name="Energy Sankey",
             viz_type='sankey',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=textwrap.dedent("""\
             {
                 "collapsed_fieldsets": "",
@@ -105,7 +105,7 @@ def load_energy():
             slice_name="Energy Force Layout",
             viz_type='directed_force',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=textwrap.dedent("""\
             {
                 "charge": "-500",
@@ -136,7 +136,7 @@ def load_energy():
             slice_name="Heatmap",
             viz_type='heatmap',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=textwrap.dedent("""\
             {
                 "all_columns_x": "source",
@@ -224,7 +224,7 @@ def load_world_bank_health_n_pop():
             slice_name="Region Filter",
             viz_type='filter_box',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='filter_box',
@@ -233,7 +233,7 @@ def load_world_bank_health_n_pop():
             slice_name="World's Population",
             viz_type='big_number',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since='2000',
@@ -245,7 +245,7 @@ def load_world_bank_health_n_pop():
             slice_name="Most Populated Countries",
             viz_type='table',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='table',
@@ -255,7 +255,7 @@ def load_world_bank_health_n_pop():
             slice_name="Growth Rate",
             viz_type='line',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='line',
@@ -267,7 +267,7 @@ def load_world_bank_health_n_pop():
             slice_name="% Rural",
             viz_type='world_map',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='world_map',
@@ -277,7 +277,7 @@ def load_world_bank_health_n_pop():
             slice_name="Life Expectancy VS Rural %",
             viz_type='bubble',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='bubble',
@@ -298,7 +298,7 @@ def load_world_bank_health_n_pop():
             slice_name="Rural Breakdown",
             viz_type='sunburst',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type='sunburst',
@@ -310,7 +310,7 @@ def load_world_bank_health_n_pop():
             slice_name="World's Pop Growth",
             viz_type='area',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
@@ -321,7 +321,7 @@ def load_world_bank_health_n_pop():
             slice_name="Box plot",
             viz_type='box_plot',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
@@ -333,7 +333,7 @@ def load_world_bank_health_n_pop():
             slice_name="Treemap",
             viz_type='treemap',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="1960-01-01",
@@ -345,7 +345,7 @@ def load_world_bank_health_n_pop():
             slice_name="Parallel Coordinates",
             viz_type='para',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 since="2011-01-01",
@@ -615,7 +615,7 @@ def load_birth_names():
             slice_name="Girls",
             viz_type='table',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
@@ -625,7 +625,7 @@ def load_birth_names():
             slice_name="Boys",
             viz_type='table',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
@@ -636,7 +636,7 @@ def load_birth_names():
             slice_name="Participants",
             viz_type='big_number',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="big_number", granularity="ds",
@@ -645,7 +645,7 @@ def load_birth_names():
             slice_name="Genders",
             viz_type='pie',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="pie", groupby=['gender'])),
@@ -653,7 +653,7 @@ def load_birth_names():
             slice_name="Genders by State",
             viz_type='dist_bar',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 flt_eq_1="other", viz_type="dist_bar",
@@ -663,7 +663,7 @@ def load_birth_names():
             slice_name="Trends",
             viz_type='line',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
@@ -672,7 +672,7 @@ def load_birth_names():
             slice_name="Title",
             viz_type='markup',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="markup", markup_type="html",
@@ -690,7 +690,7 @@ def load_birth_names():
             slice_name="Name Cloud",
             viz_type='word_cloud',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="word_cloud", size_from="10",
@@ -700,7 +700,7 @@ def load_birth_names():
             slice_name="Pivot Table",
             viz_type='pivot_table',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="pivot_table", metrics=['sum__num'],
@@ -709,7 +709,7 @@ def load_birth_names():
             slice_name="Number of Girls",
             viz_type='big_number_total',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
                 viz_type="big_number_total", granularity="ds",
@@ -862,7 +862,7 @@ def load_unicode_test_data():
         slice_name="Unicode Cloud",
         viz_type='word_cloud',
         datasource_type='table',
-        table=tbl,
+        datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
@@ -935,7 +935,7 @@ def load_random_time_series_data():
         slice_name="Calendar Heatmap",
         viz_type='cal_heatmap',
         datasource_type='table',
-        table=tbl,
+        datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
@@ -1005,7 +1005,7 @@ def load_long_lat_data():
         slice_name="Mapbox Long/Lat",
         viz_type='mapbox',
         datasource_type='table',
-        table=tbl,
+        datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
     merge_slice(slc)
@@ -1084,7 +1084,7 @@ def load_multiformat_time_series_data():
             slice_name="Calendar Heatmap multiformat" + str(i),
             viz_type='cal_heatmap',
             datasource_type='table',
-            table=tbl,
+            datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)

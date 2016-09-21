@@ -33,7 +33,8 @@ from wtforms.validators import ValidationError
 
 import caravel
 from caravel import (
-    appbuilder, cache, db, models, viz, utils, app, sm, ascii_art, sql_lab
+    appbuilder, cache, db, models, viz, utils, app,
+    sm, ascii_art, sql_lab, src_registry
 )
 
 config = app.config
@@ -675,8 +676,7 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
-        'slice_name', 'description', 'viz_type', 'druid_datasource',
-        'table', 'owners', 'dashboards', 'params', 'cache_timeout']
+        'slice_name', 'description', 'viz_type', 'owners', 'dashboards', 'params', 'cache_timeout']
     base_order = ('changed_on', 'desc')
     description_columns = {
         'description': Markup(
@@ -722,18 +722,13 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        a_druid_datasource = db.session.query(models.DruidDatasource).first()
-        if a_druid_datasource is not None:
-            url = "/druiddatasourcemodelview/list/"
-            msg = _(
-                "Click on a datasource link to create a Slice, "
-                "or click on a table link "
-                "<a href='/tablemodelview/list/'>here</a> "
-                "to create a Slice for a table"
-            )
-        else:
-            url = "/tablemodelview/list/"
-            msg = _("Click on a table link to create a Slice")
+        sources = src_registry.sources
+        for source in sources:
+            ds = db.session.query(src_registry.sources[source]).first()
+            if ds is not None:
+                url = "/{}/list/".format(ds.baselink)
+                msg = _("Click on a {} link to create a Slice".format(source))
+                break
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
         return redirect(redirect_url)
@@ -978,8 +973,8 @@ class Caravel(BaseCaravelView):
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
-        datasource_class = models.SqlaTable \
-            if datasource_type == "table" else models.DruidDatasource
+        datasource_class = src_registry.sources[datasource_type]
+
         datasources = (
             db.session
             .query(datasource_class)
@@ -1093,12 +1088,8 @@ class Caravel(BaseCaravelView):
             if k not in as_list and isinstance(v, list):
                 d[k] = v[0]
 
-        table_id = druid_datasource_id = None
         datasource_type = args.get('datasource_type')
-        if datasource_type in ('datasource', 'druid'):
-            druid_datasource_id = args.get('datasource_id')
-        elif datasource_type == 'table':
-            table_id = args.get('datasource_id')
+        datasource_id = args.get('datasource_id')
 
         if action in ('saveas'):
             d.pop('slice_id')  # don't save old slice_id
@@ -1107,9 +1098,8 @@ class Caravel(BaseCaravelView):
         slc.params = json.dumps(d, indent=4, sort_keys=True)
         slc.datasource_name = args.get('datasource_name')
         slc.viz_type = args.get('viz_type')
-        slc.druid_datasource_id = druid_datasource_id
-        slc.table_id = table_id
         slc.datasource_type = datasource_type
+        slc.datasource_id = datasource_id
         slc.slice_name = slice_name
 
         if action in ('saveas') and slice_add_perm:
@@ -1330,7 +1320,9 @@ class Caravel(BaseCaravelView):
                 json_error_response(__(
                     "Table %(t)s wasn't found in the database %(d)s",
                     t=table_name, s=db_name), status=404)
-            slices = table.slices
+            slices = session.query(models.Slice).filter_by(
+                datasource_id=table.id,
+                datasource_type=table.type).all()
 
         for slice in slices:
             try:

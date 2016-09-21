@@ -14,6 +14,7 @@ from sqlalchemy import event, exc
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
+from caravel import source_registry
 from werkzeug.contrib.fixers import ProxyFix
 
 
@@ -95,5 +96,7 @@ appbuilder = AppBuilder(
 
 sm = appbuilder.sm
 
+src_registry = source_registry.SourceRegistry()
+
 get_session = appbuilder.get_session
-from caravel import config, views  # noqa
+from caravel import views, config  # noqa

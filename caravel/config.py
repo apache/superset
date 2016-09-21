@@ -164,6 +164,13 @@ VIZ_TYPE_BLACKLIST = []
 
 DRUID_DATA_SOURCE_BLACKLIST = []
 
+# --------------------------------------------------
+# Modules and datasources to be registered
+# --------------------------------------------------
+DEFAULT_MODULE_DS_MAP = {'caravel.models': ['DruidDatasource', 'SqlaTable']}
+ADDITIONAL_MODULE_DS_MAP = {}
+
+
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
