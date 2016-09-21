@@ -196,12 +196,7 @@ class BaseViz(object):
         extra_filters = self.form_data.get('extra_filters')
         if not extra_filters:
             return {}
-        extra_filters = json.loads(extra_filters)
-        # removing per-slice details
-        summary = {}
-        for flt in extra_filters.values():
-            summary.update(flt)
-        return summary
+        return json.loads(extra_filters)
 
     def query_filters(self, is_having_filter=False):
         """Processes the filters for the query"""

@@ -1369,6 +1369,8 @@ class Caravel(BaseCaravelView):
         md = dash.metadata_dejson
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
+        if 'filter_immune_slice_fields' not in md:
+            md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
         dash.json_metadata = json.dumps(md, indent=4)
         dash.css = data['css']

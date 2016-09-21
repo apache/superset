@@ -81,9 +81,13 @@ const px = function () {
         const parser = document.createElement('a');
         parser.href = data.json_endpoint;
         if (dashboard !== undefined) {
-          const flts =
-            newParams.extraFilters === false ? '' :
-              encodeURIComponent(JSON.stringify(dashboard.filters));
+          let flts;
+          if (newParams.extraFilters === false) {
+            flts = '';
+          } else {
+            flts = dashboard.effectiveExtraFilters(sliceId);
+            flts = encodeURIComponent(JSON.stringify(flts));
+          }
           qrystr = parser.search + '&extra_filters=' + flts;
         } else if ($('#query').length === 0) {
           qrystr = parser.search;
