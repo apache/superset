@@ -850,6 +850,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             obj.slug = re.sub(r'\W+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
+        utils.validate_json(obj.json_metadata)
+        utils.validate_json(obj.position_json)
 
     def pre_update(self, obj):
         check_ownership(obj)
