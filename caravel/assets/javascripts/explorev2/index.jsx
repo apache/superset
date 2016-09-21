@@ -2,25 +2,22 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import ExploreViewContainer from './components/ExploreViewContainer';
 
-import { compose, createStore } from 'redux';
+import { createStore } from 'redux';
 import { Provider } from 'react-redux';
+import { enhancer } from '../../utils/common';
 
 import { initialState } from './stores/store';
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = exploreViewContainer.getAttribute('data-bootstrap');
 
-
 import { exploreReducer } from './reducers/exploreReducer';
-import persistState from 'redux-localstorage';
 
-let enhancer = compose(persistState());
-if (process.env.NODE_ENV === 'dev') {
-  enhancer = compose(
-    persistState(), window.devToolsExtension && window.devToolsExtension()
-  );
-}
-let store = createStore(exploreReducer, initialState, enhancer);
+const bootstrappedState = Object.assign(initialState, {
+  datasources: bootstrapData.datasources,
+  viz: bootstrapData.viz,
+});
+const store = createStore(exploreReducer, bootstrappedState, enhancer);
 
 ReactDOM.render(
   <Provider store={store}>

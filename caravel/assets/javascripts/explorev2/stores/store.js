@@ -16,7 +16,9 @@ const defaultSql = {
 };
 
 export const initialState = {
+  datasources: null,
   datasourceId: null,
+  viz: null,
   vizType: null,
   timeFilter: defaultTimeFilter,
   groupBy: defaultGroupBy,

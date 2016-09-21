@@ -10,20 +10,14 @@ import TabbedSqlEditors from './components/TabbedSqlEditors';
 import QueryAutoRefresh from './components/QueryAutoRefresh';
 import Alerts from './components/Alerts';
 
-import { bindActionCreators, compose, createStore } from 'redux';
+import { bindActionCreators, createStore } from 'redux';
 import { connect, Provider } from 'react-redux';
 
 import { initialState, sqlLabReducer } from './reducers';
-import persistState from 'redux-localstorage';
+import { enhancer } from '../../utils/common';
 
 require('./main.css');
 
-let enhancer = compose(persistState());
-if (process.env.NODE_ENV === 'dev') {
-  enhancer = compose(
-    persistState(), window.devToolsExtension && window.devToolsExtension()
-  );
-}
 let store = createStore(sqlLabReducer, initialState, enhancer);
 
 // jquery hack to highlight the navbar menu

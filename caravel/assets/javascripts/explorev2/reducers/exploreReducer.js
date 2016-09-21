@@ -1,5 +1,5 @@
 import * as actions from '../actions/exploreActions';
-import * as utils from '../../../utils/reducerUtils';
+import { addToArr, removeFromArr } from '../../../utils/reducerUtils';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -52,10 +52,10 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { SQL: action.sql });
     },
     [actions.ADD_FILTER]() {
-      return utils.addToArr(state, 'filters', action.filter);
+      return addToArr(state, 'filters', action.filter);
     },
     [actions.REMOVE_FILTER]() {
-      return utils.removeFromArr(state, 'filters', action.filter);
+      return removeFromArr(state, 'filters', action.filter);
     },
   };
   if (action.type in actionHandlers) {

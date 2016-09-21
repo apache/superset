@@ -1,7 +1,9 @@
 import shortid from 'shortid';
 import * as actions from './actions';
 import { now } from '../modules/dates';
-import * as utils from '../../utils/reducerUtils';
+import
+  { addToArr, alterInArr, removeFromArr, addToObject, alterInObject }
+  from '../../utils/reducerUtils';
 
 const defaultQueryEditor = {
   id: shortid.generate(),
@@ -30,10 +32,10 @@ export const sqlLabReducer = function (state, action) {
       const tabHistory = state.tabHistory.slice();
       tabHistory.push(action.queryEditor.id);
       const newState = Object.assign({}, state, { tabHistory });
-      return utils.addToArr(newState, 'queryEditors', action.queryEditor);
+      return addToArr(newState, 'queryEditors', action.queryEditor);
     },
     [actions.REMOVE_QUERY_EDITOR]() {
-      let newState = utils.removeFromArr(state, 'queryEditors', action.queryEditor);
+      let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
       const qeIds = newState.queryEditors.map((qe) => qe.id);
       let th = state.tabHistory.slice();
@@ -50,25 +52,25 @@ export const sqlLabReducer = function (state, action) {
       return Object.assign({}, initialState);
     },
     [actions.ADD_TABLE]() {
-      return utils.addToArr(state, 'tables', action.table);
+      return addToArr(state, 'tables', action.table);
     },
     [actions.EXPAND_TABLE]() {
-      return utils.alterInArr(state, 'tables', action.table, { expanded: true });
+      return alterInArr(state, 'tables', action.table, { expanded: true });
     },
     [actions.COLLAPSE_TABLE]() {
-      return utils.alterInArr(state, 'tables', action.table, { expanded: false });
+      return alterInArr(state, 'tables', action.table, { expanded: false });
     },
     [actions.REMOVE_TABLE]() {
-      return utils.removeFromArr(state, 'tables', action.table);
+      return removeFromArr(state, 'tables', action.table);
     },
     [actions.START_QUERY]() {
-      const newState = utils.addToObject(state, 'queries', action.query);
+      const newState = addToObject(state, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };
-      return utils.alterInArr(
+      return alterInArr(
         newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
     [actions.STOP_QUERY]() {
-      return utils.alterInObject(state, 'queries', action.query, { state: 'stopped' });
+      return alterInObject(state, 'queries', action.query, { state: 'stopped' });
     },
     [actions.QUERY_SUCCESS]() {
       const alts = {
@@ -78,11 +80,11 @@ export const sqlLabReducer = function (state, action) {
         progress: 100,
         endDttm: now(),
       };
-      return utils.alterInObject(state, 'queries', action.query, alts);
+      return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
       const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
-      return utils.alterInObject(state, 'queries', action.query, alts);
+      return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map((qe) => qe.id);
@@ -94,29 +96,29 @@ export const sqlLabReducer = function (state, action) {
       return state;
     },
     [actions.QUERY_EDITOR_SETDB]() {
-      return utils.alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
+      return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
     },
     [actions.QUERY_EDITOR_SET_SCHEMA]() {
-      return utils.alterInArr(state, 'queryEditors', action.queryEditor, { schema: action.schema });
+      return alterInArr(state, 'queryEditors', action.queryEditor, { schema: action.schema });
     },
     [actions.QUERY_EDITOR_SET_TITLE]() {
-      return utils.alterInArr(state, 'queryEditors', action.queryEditor, { title: action.title });
+      return alterInArr(state, 'queryEditors', action.queryEditor, { title: action.title });
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
-      return utils.alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
+      return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
     },
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
-      return utils.alterInArr(
+      return alterInArr(
         state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
     },
     [actions.ADD_WORKSPACE_QUERY]() {
-      return utils.addToArr(state, 'workspaceQueries', action.query);
+      return addToArr(state, 'workspaceQueries', action.query);
     },
     [actions.REMOVE_WORKSPACE_QUERY]() {
-      return utils.removeFromArr(state, 'workspaceQueries', action.query);
+      return removeFromArr(state, 'workspaceQueries', action.query);
     },
     [actions.ADD_ALERT]() {
-      return utils.addToArr(state, 'alerts', action.alert);
+      return addToArr(state, 'alerts', action.alert);
     },
     [actions.SET_DATABASES]() {
       const databases = {};
@@ -126,7 +128,7 @@ export const sqlLabReducer = function (state, action) {
       return Object.assign({}, state, { databases });
     },
     [actions.REMOVE_ALERT]() {
-      return utils.removeFromArr(state, 'alerts', action.alert);
+      return removeFromArr(state, 'alerts', action.alert);
     },
     [actions.SET_NETWORK_STATUS]() {
       if (state.networkOn !== action.networkOn) {
