@@ -1,4 +1,7 @@
 /* eslint global-require: 0 */
+import persistState from 'redux-localstorage';
+import { compose } from 'redux';
+
 const d3 = window.d3 || require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
@@ -25,4 +28,14 @@ export function isNumeric(num) {
 export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance
   return (LUMINANCE_RED_WEIGHT * r) + (LUMINANCE_GREEN_WEIGHT * g) + (LUMINANCE_BLUE_WEIGHT * b);
+}
+
+export function getDevEnhancer() {
+  let enhancer = compose(persistState());
+  if (process.env.NODE_ENV === 'dev') {
+    enhancer = compose(
+      persistState(), window.devToolsExtension && window.devToolsExtension()
+    );
+  }
+  return enhancer;
 }
