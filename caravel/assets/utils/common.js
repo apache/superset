@@ -26,3 +26,14 @@ export function rgbLuminance(r, g, b) {
   // Formula: https://en.wikipedia.org/wiki/Relative_luminance
   return (LUMINANCE_RED_WEIGHT * r) + (LUMINANCE_GREEN_WEIGHT * g) + (LUMINANCE_BLUE_WEIGHT * b);
 }
+
+export function getParamFromQuery(query, param) {
+  const vars = query.split('&');
+  for (let i = 0; i < vars.length; i++) {
+    const pair = vars[i].split('=');
+    if (decodeURIComponent(pair[0]) === param) {
+      return decodeURIComponent(pair[1]);
+    }
+  }
+  return null;
+}

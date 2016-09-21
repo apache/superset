@@ -6,52 +6,49 @@ import CopyToClipboard from '../../components/CopyToClipboard';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
+import { getParamFromQuery } from '../../../utils/common';
 
 let queryCount = 1;
 
-class QueryEditors extends React.Component {
-  componentWillMount() {
+class TabbedSqlEditors extends React.Component {
+  constructor(props) {
+    super(props);
     const uri = window.location.toString();
-    const cleanUri = uri.substring(0, uri.indexOf('?'));
-    const query = window.location.search.substring(1);
-
-    if (query) {
-      queryCount++;
-      const qe = {
-        id: shortid.generate(),
-        title: this.getQueryVariable(query, 'title'),
-        dbId: this.getQueryVariable(query, 'dbid'),
-        schema: this.getQueryVariable(query, 'schema'),
-        autorun: this.getQueryVariable(query, 'autorun'),
-        sql: this.getQueryVariable(query, 'sql'),
-      };
-
-      this.props.actions.addQueryEditor(qe);
-      // Clean the url in browser history
-      window.history.replaceState({}, document.title, cleanUri);
-    }
+    const search = window.location.search;
+    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
+    const query = search.substring(1);
+    this.state = {
+      uri,
+      cleanUri,
+      query,
+    };
   }
-  getQueryVariable(query, variable) {
-    const vars = query.split('&');
-    for (let i = 0; i < vars.length; i++) {
-      const pair = vars[i].split('=');
-      if (decodeURIComponent(pair[0]) === variable) {
-        return decodeURIComponent(pair[1]);
-      }
+  componentWillMount() {
+    if (this.state.query) {
+      queryCount++;
+      const queryEditorProps = {
+        id: shortid.generate(),
+        title: getParamFromQuery(this.state.query, 'title'),
+        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        schema: getParamFromQuery(this.state.query, 'schema'),
+        autorun: getParamFromQuery(this.state.query, 'autorun'),
+        sql: getParamFromQuery(this.state.query, 'sql'),
+      };
+      this.props.actions.addQueryEditor(queryEditorProps);
+      // Clean the url in browser history
+      window.history.replaceState({}, document.title, this.state.cleanUri);
     }
-    console.log('Query variable %s not found', variable);
-    return null;
   }
   getQueryLink(qe) {
-    const queryList = [];
-    if (qe.dbId) queryList.push('dbid=' + qe.dbId);
-    if (qe.title) queryList.push('title=' + qe.title);
-    if (qe.schema) queryList.push('schema=' + qe.schema);
-    if (qe.autorun) queryList.push('autorun=' + qe.autorun);
-    if (qe.sql) queryList.push('sql=' + qe.sql);
+    const params = [];
+    if (qe.dbId) params.push('dbid=' + qe.dbId);
+    if (qe.title) params.push('title=' + qe.title);
+    if (qe.schema) params.push('schema=' + qe.schema);
+    if (qe.autorun) params.push('autorun=' + qe.autorun);
+    if (qe.sql) params.push('sql=' + qe.sql);
 
-    const queryString = queryList.join('&');
-    const queryLink = window.location.toString() + '?' + queryString;
+    const queryString = params.join('&');
+    const queryLink = this.state.cleanUri + '?' + queryString;
 
     return queryLink;
   }
@@ -157,14 +154,14 @@ class QueryEditors extends React.Component {
     );
   }
 }
-QueryEditors.propTypes = {
+TabbedSqlEditors.propTypes = {
   actions: React.PropTypes.object,
   databases: React.PropTypes.object,
   queries: React.PropTypes.object,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
 };
-QueryEditors.defaultProps = {
+TabbedSqlEditors.defaultProps = {
   tabHistory: [],
   queryEditors: [],
 };
@@ -183,4 +180,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(QueryEditors);
+export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
