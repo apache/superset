@@ -20,6 +20,7 @@ import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
 import sqlparse
+import jinja2
 from dateutil.parser import parse
 
 from flask import escape, g, Markup, request
@@ -781,6 +782,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart"))
 
+        # Re-compile all the macros before rendering any SQL expression,
+        # so that we're sure everything is up-to-date
+        recompile_sql_macros()
+
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
 
         if metrics:
@@ -892,9 +897,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where_clause_and += [text(extras['where'])]
+            where_clause_and += [text(render_sql_expr(extras['where']))]
         if extras and 'having' in extras:
-            having_clause_and += [text(extras['having'])]
+            having_clause_and += [text(render_sql_expr(extras['having']))]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
@@ -1061,7 +1066,7 @@ class SqlMetric(Model, AuditMixinNullable):
     @property
     def sqla_col(self):
         name = self.metric_name
-        return literal_column(self.expression).label(name)
+        return literal_column(render_sql_expr(self.expression)).label(name)
 
     @property
     def perm(self):
@@ -1121,7 +1126,7 @@ class TableColumn(Model, AuditMixinNullable):
         if not self.expression:
             col = column(self.column_name).label(name)
         else:
-            col = literal_column(self.expression).label(name)
+            col = literal_column(render_sql_expr(self.expression)).label(name)
         return col
 
     def dttm_sql_literal(self, dttm):
@@ -2000,6 +2005,7 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+
     @property
     def name(self):
         ts = datetime.now().isoformat()
@@ -2007,3 +2013,48 @@ class Query(Model):
         tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
         tab = re.sub(r'\W+', '', tab)
         return "sqllab_{tab}_{ts}".format(**locals())
+
+
+class SqlExprMacro(Model, AuditMixinNullable):
+
+    """SQL expression macros based on Jinja2 template"""
+
+    __tablename__ = 'sql_expr_macros'
+
+    id = Column(Integer, primary_key=True)
+    namespace = Column(String(50))
+    source_code = Column(Text)
+    _env = None
+    _compiled = False
+
+    @classmethod
+    def recompile(cls):
+        """Re-compile all macros into a Jinja2 environment"""
+        macros = db.session.query(cls).all()
+        if macros:
+            mapping = {m.namespace: m.source_code for m in macros}
+            env = jinja2.Environment(loader=jinja2.DictLoader(mapping))
+            for namespace in mapping:
+                env.globals[namespace] = env.get_template(namespace).module
+            cls._env = env
+        else:
+            cls._env = None
+        cls._compiled = True
+
+    @classmethod
+    def render(cls, expr):
+        """Render a SQL expression.
+
+        SQL expression uses jinja2 templates. Macros defined in `SqlExprMacro`
+        objects could be used in form of `{{ namespace.macro_name(args...) }}`.
+
+        See examples in `tests.core_tests:CoreTests.test_sql_expr_macro`
+        """
+        if not cls._compiled:
+            cls.recompile()
+        if not cls._env:
+            return expr
+        return cls._env.from_string(expr).render().strip()
+
+recompile_sql_macros = SqlExprMacro.recompile
+render_sql_expr = SqlExprMacro.render

@@ -492,6 +492,16 @@ class CoreTests(CaravelTestCase):
         db.session.commit()
         self.test_save_dash('alpha')
 
+    def test_sql_expr_macro(self, username='admin'):
+        code = """{% macro rate(col1, col2) %}
+        (case when (sum({{ col2 }}) = 0) then 0 else sum({{ col1 }})/sum({{ col2 }}) end)
+        {% endmacro %}"""
+        db.session.add(models.SqlExprMacro(namespace="test", source_code=code))
+        db.session.commit()
+        models.recompile_sql_macros()
+        assert models.render_sql_expr("{{ test.rate('clicks', 'views') }}") == \
+            "(case when (sum(views) = 0) then 0 else sum(clicks)/sum(views) end)"
+
 
 if __name__ == '__main__':
     unittest.main()

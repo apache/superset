@@ -301,8 +301,10 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "[Time Granularity] option, column has to be DATETIME or "
             "DATETIME-like")),
         'expression': utils.markdown(
-            "a valid SQL expression as supported by the underlying backend. "
-            "Example: `substr(name, 1, 1)`", True),
+            "a valid SQL expression as supported by the underlying backend "
+            "Example: `substr(name, 1, 1)`. "
+            "You could also use [SQL expression macros](/sqlmacromodelview/list/) "
+            "Example: `{{ namespace.macro(arg1, arg2) }}`", True),
         'python_date_format': utils.markdown(Markup(
             "The pattern of timestamp format, use "
             "<a href='https://docs.python.org/2/library/"
@@ -377,8 +379,10 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'expression', 'table', 'd3format', 'is_restricted']
     description_columns = {
         'expression': utils.markdown(
-            "a valid SQL expression as supported by the underlying backend. "
-            "Example: `count(DISTINCT userid)`", True),
+            "a valid SQL expression as supported by the underlying backend "
+            "Example: `substr(name, 1, 1)`. "
+            "You could also use [SQL expression macros](/sqlmacromodelview/list/) "
+            "Example: `{{ namespace.macro(arg1, arg2) }}`", True),
         'is_restricted': _("Whether the access to this metric is restricted "
                            "to certain roles. Only roles with the permission "
                            "'metric access on XXX (the name of this metric)' "
@@ -1796,6 +1800,31 @@ appbuilder.add_link(
     'SQL Lab <span class="label label-danger">alpha</span>',
     href='/caravel/sqllab',
     icon="fa-flask")
+
+
+class SqlMacroModelView(CaravelModelView, DeleteMixin):
+
+    """View for list/add/edit SQL expression macros"""
+
+    datamodel = SQLAInterface(models.SqlExprMacro)
+    list_columns = ['namespace']
+    edit_columns = ['namespace', 'source_code']
+    add_columns = edit_columns
+    description_columns = {
+        'source_code': utils.markdown(
+            "a valid jinja2 template including a list of "
+            "[macros](http://jinja.pocoo.org/docs/dev/templates/#macros). "
+            "Example: `{% macro func(args) %} ... {% endmacro %}`", True)
+    }
+
+appbuilder.add_view(
+    SqlMacroModelView,
+    "SQL Expression Macros",
+    label=__("SQL Expression Macros"),
+    icon="fa-code",
+    category="Sources",
+    category_label=__("Sources"),
+    category_icon='')
 
 
 @app.after_request
