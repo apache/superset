@@ -670,7 +670,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
     description = Column(Text)
-    default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     is_featured = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
@@ -1943,7 +1942,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11), unique=True)
+    client_id = Column(String(11), unique=True, nullable=False)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
