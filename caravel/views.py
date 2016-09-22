@@ -1422,9 +1422,10 @@ class Caravel(BaseCaravelView):
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
-        except Exception:
-            return Response(
-                traceback.format_exc(),
+        except Exception as e:
+            return Response((
+                "Connection failed!\n\n"
+                "The error message returned was:\n{}").format(e),
                 status=500,
                 mimetype="application/json")
 
