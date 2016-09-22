@@ -1270,7 +1270,7 @@ class Caravel(BaseCaravelView):
                     .filter_by(database_name=db_name)
                     .first()
                 )
-                if uri == database.safe_sqlalchemy_uri():
+                if database and uri == database.safe_sqlalchemy_uri():
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
