@@ -25,7 +25,7 @@ input {
   background-color: #fff;
 }
 .search input {
-  width: 400px;
+  width: 200px;
 }
 .search-container .fa-search {
   float: left;
