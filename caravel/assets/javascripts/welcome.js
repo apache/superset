@@ -40,6 +40,7 @@ function modelViewTable(selector, modelView, orderCol, order) {
     });
     // Hack to move the searchbox in the right spot
     const search = panel.find('.dataTables_filter input');
+    search.attr('placeholder', 'Start typing to filter dashboards');
     search.addClass('form-control').detach();
     search.appendTo(panel.find('.search'));
     panel.find('.dataTables_filter').remove();
