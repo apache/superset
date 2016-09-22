@@ -9,27 +9,19 @@ import Select from 'react-select';
 import '../stylesheets/react-select/select.less';
 
 import './filter_box.css';
-
-const TIME_CHOICES = [
-  '1 hour ago',
-  '12 hours ago',
-  '1 day ago',
-  '7 days ago',
-  '28 days ago',
-  '90 days ago',
-  '1 year ago',
-];
+import { TIME_CHOICES } from './constants.js';
 
 const propTypes = {
-  origSelectedValues: React.PropTypes.object,
   filtersChoices: React.PropTypes.object,
   onChange: React.PropTypes.func,
+  origSelectedValues: React.PropTypes.object,
   showDateFilter: React.PropTypes.bool,
 };
 
 const defaultProps = {
-  origSelectedValues: {},
+  filtersChoices: {},
   onChange: () => {},
+  origSelectedValues: {},
   showDateFilter: false,
 };
 
