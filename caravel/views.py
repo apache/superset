@@ -521,6 +521,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, db):
+        db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         utils.merge_perm(sm, 'database_access', db.perm)
 
     def pre_update(self, db):
