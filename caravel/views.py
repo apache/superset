@@ -36,6 +36,7 @@ from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
     sm, ascii_art, sql_lab, src_registry
 )
+from caravel.models import DatasourceAccessRequest as DAR
 
 config = app.config
 log_this = models.Log.log_this
@@ -74,6 +75,9 @@ class ListWidgetWithCheckboxes(ListWidget):
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission")
 DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
+ACCESS_REQUEST_MISSING_ERR = __(
+    "The access requests seem to have been deleted")
+USER_MISSING_ERR = __("The user seems to have been deleted")
 
 
 def get_database_access_error_msg(database_name):
@@ -81,13 +85,9 @@ def get_database_access_error_msg(database_name):
               "`all_datasource_access` permission", name=database_name)
 
 
-def get_datasource_access_error_msg(datasource):
-    error = ("This endpoint requires the datasource %(name)s, database or "
-             "`all_datasource_access` permission")
-    if hasattr(datasource, 'table_name'):
-        return __(error, name=datasource.table_name)
-    else:
-        return __(error, name=datasource.datasource_name)
+def get_datasource_access_error_msg(datasource_name):
+    return __("This endpoint requires the datasource %(name)s, database or "
+              "`all_datasource_access` permission", name=datasource_name)
 
 
 def get_error_msg():
@@ -628,6 +628,31 @@ appbuilder.add_view(
     icon='fa-table',)
 
 
+class AccessRequestsModelView(CaravelModelView, DeleteMixin):
+    datamodel = SQLAInterface(DAR)
+    list_columns = [
+        'username', 'user_roles', 'datasource_link',
+        'roles_with_datasource', 'created_on']
+    order_columns = ['username', 'datasource_link']
+    base_order = ('changed_on', 'desc')
+    label_columns = {
+        'username': _("User"),
+        'user_roles': _("User Roles"),
+        'database': _("Database URL"),
+        'datasource_link': _("Datasource"),
+        'roles_with_datasource': _("Roles to grant"),
+        'created_on': _("Created On"),
+    }
+
+appbuilder.add_view(
+    AccessRequestsModelView,
+    "Access requests",
+    label=__("Access requests"),
+    category="Security",
+    category_label=__("Security"),
+    icon='fa-table',)
+
+
 appbuilder.add_separator("Sources")
 
 
@@ -968,6 +993,122 @@ appbuilder.add_view_no_menu(R)
 
 class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
+    @log_this
+    @has_access
+    @expose("/request_access_form/<datasource_type>/<datasource_id>/"
+            "<datasource_name>")
+    def request_access_form(
+            self, datasource_type, datasource_id, datasource_name):
+        request_access_url = (
+            '/caravel/request_access?datasource_type={}&datasource_id={}&'
+            'datasource_name=datasource_name'.format(
+                datasource_type, datasource_id, datasource_name)
+        )
+        return self.render_template(
+            'caravel/request_access.html',
+            request_access_url=request_access_url,
+            datasource_name=datasource_name,
+            slicemodelview_link='/slicemodelview/list/')
+
+    @log_this
+    @has_access
+    @expose("/request_access")
+    def request_access(self):
+        datasource_id = request.args.get('datasource_id')
+        datasource_type = request.args.get('datasource_type')
+        datasource_name = request.args.get('datasource_name')
+        session = db.session
+
+        duplicates = (
+            session.query(DAR)
+            .filter(
+                DAR.datasource_id == datasource_id,
+                DAR.datasource_type == datasource_type,
+                DAR.created_by_fk == g.user.id)
+            .all()
+        )
+
+        if duplicates:
+            flash(__(
+                "You have already requested access to the datasource %(name)s",
+                name=datasource_name), "warning")
+            return redirect('/slicemodelview/list/')
+
+        access_request = DAR(datasource_id=datasource_id,
+                             datasource_type=datasource_type)
+        db.session.add(access_request)
+        db.session.commit()
+        flash(__("Access to the datasource %(name)s was requested",
+                 name=datasource_name), "info")
+        return redirect('/slicemodelview/list/')
+
+    @log_this
+    @has_access
+    @expose("/approve")
+    def approve(self):
+        datasource_type = request.args.get('datasource_type')
+        datasource_id = request.args.get('datasource_id')
+        created_by_username = request.args.get('created_by')
+        role_to_grant = request.args.get('role_to_grant')
+        role_to_extend = request.args.get('role_to_extend')
+
+        session = db.session
+        datasource_class = src_registry.sources[datasource_type]
+        datasource = session.query(datasource_class).filter_by(
+            id=datasource_id).first()
+
+        if not datasource:
+            flash(DATASOURCE_MISSING_ERR, "alert")
+            return json_error_response(DATASOURCE_MISSING_ERR)
+
+        requested_by = sm.find_user(username=created_by_username)
+        if not requested_by:
+            flash(USER_MISSING_ERR, "alert")
+            return json_error_response(USER_MISSING_ERR)
+
+        requests = (
+            session.query(DAR)
+            .filter(
+                DAR.datasource_id == datasource_id,
+                DAR.datasource_type == datasource_type,
+                DAR.created_by_fk == requested_by.id)
+            .all()
+        )
+
+        if not requests:
+            flash(ACCESS_REQUEST_MISSING_ERR, "alert")
+            return json_error_response(ACCESS_REQUEST_MISSING_ERR)
+
+        # check if you can approve
+        if self.all_datasource_access() or g.user.id == datasource.owner_id:
+            # can by done by admin only
+            if role_to_grant:
+                role = sm.find_role(role_to_grant)
+                requested_by.roles.append(role)
+                flash(__(
+                    "%(user)s was granted the role %(role)s that gives access "
+                    "to the %(datasource)s",
+                    user=requested_by.username,
+                    role=role_to_grant,
+                    datasource=datasource.full_name), "info")
+
+            if role_to_extend:
+                perm_view = sm.find_permission_view_menu(
+                    'datasource_access', datasource.perm)
+                sm.add_permission_role(sm.find_role(role_to_extend), perm_view)
+                flash(__("Role %(r)s was extended to provide the access to"
+                         " the datasource %(ds)s",
+                         r=role_to_extend, ds=datasource.full_name), "info")
+
+        else:
+            flash(__("You have no permission to approve this request"),
+                  "danger")
+            return redirect('/accessrequestsmodelview/list/')
+        for r in requests:
+            session.delete(r)
+        session.commit()
+        return redirect('/accessrequestsmodelview/list/')
+
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
     @expose("/explore/<datasource_type>/<datasource_id>/")
@@ -976,12 +1117,7 @@ class Caravel(BaseCaravelView):
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
         datasource_class = src_registry.sources[datasource_type]
-
-        datasources = (
-            db.session
-            .query(datasource_class)
-            .all()
-        )
+        datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
         datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
         datasource = datasource[0] if datasource else None
@@ -991,8 +1127,10 @@ class Caravel(BaseCaravelView):
             return redirect(error_redirect)
 
         if not self.datasource_access(datasource):
-            flash(__(get_datasource_access_error_msg(datasource)), "danger")
-            return redirect(error_redirect)
+            flash(
+                __(get_datasource_access_error_msg(datasource.name)), "danger")
+            return redirect('caravel/request_access_form/{}/{}/{}'.format(
+                datasource_type, datasource_id, datasource.name))
 
         request_args_multi_dict = request.args  # MultiDict
 
@@ -1566,7 +1704,7 @@ class Caravel(BaseCaravelView):
 
         # Prevent exposing column fields to users that cannot access DB.
         if not self.datasource_access(t.perm):
-            flash(get_datasource_access_error_msg(t), 'danger')
+            flash(get_datasource_access_error_msg(t.name), 'danger')
             return redirect("/tablemodelview/list/")
 
         fields = ", ".join(

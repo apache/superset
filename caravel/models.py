@@ -26,6 +26,7 @@ from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
+from flask_appbuilder.security.sqla.models import Role, PermissionView
 from flask_babel import lazy_gettext as _
 
 from pydruid.client import PyDruid
@@ -703,6 +704,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             "(id:{obj.id})").format(obj=self)
 
     @property
+    def name(self):
+        return self.table_name
+
+    @property
     def full_name(self):
         return "[{obj.database}].[{obj.table_name}]".format(obj=self)
 
@@ -1202,6 +1207,7 @@ class DruidCluster(Model, AuditMixinNullable):
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 DruidDatasource.sync_to_db(datasource, self)
+
     @property
     def perm(self):
         return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
@@ -2000,6 +2006,7 @@ class Query(Model):
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
         }
+
     @property
     def name(self):
         ts = datetime.now().isoformat()
@@ -2007,3 +2014,71 @@ class Query(Model):
         tab = self.tab_name.replace(' ', '_').lower() if self.tab_name else 'notab'
         tab = re.sub(r'\W+', '', tab)
         return "sqllab_{tab}_{ts}".format(**locals())
+
+
+class DatasourceAccessRequest(Model, AuditMixinNullable):
+    """ORM model for the access requests for datasources and dbs."""
+    __tablename__ = 'access_request'
+    id = Column(Integer, primary_key=True)
+
+    datasource_id = Column(Integer)
+    datasource_type = Column(String(200))
+
+    ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
+
+    @property
+    def cls_model(self):
+        return src_registry.sources[self.datasource_type]
+
+    @property
+    def username(self):
+        return self.creator()
+
+    @property
+    def datasource(self):
+        return self.get_datasource
+
+    @datasource.getter
+    @utils.memoized
+    def get_datasource(self):
+        ds = db.session.query(self.cls_model).filter_by(
+            id=self.datasource_id).first()
+        return ds
+
+    @property
+    def datasource_link(self):
+        return self.datasource.link
+
+    @property
+    def roles_with_datasource(self):
+        action_list = ''
+        pv = sm.find_permission_view_menu(
+            'datasource_access', self.datasource.perm)
+        for r in pv.role:
+            if r.name in self.ROLES_BLACKLIST:
+                continue
+            url = (
+                '/caravel/approve?datasource_type={self.datasource_type}&'
+                'datasource_id={self.datasource_id}&'
+                'created_by={self.created_by.username}&role_to_grant={r.name}'
+                .format(**locals())
+            )
+            href = '<a href="{}">Grant {} Role</a>'.format(url, r.name)
+            action_list = action_list + '<li>' + href + '</li>'
+        return '<ul>' + action_list + '</ul>'
+
+    @property
+    def user_roles(self):
+        action_list = ''
+        for r in self.created_by.roles:
+            url = (
+                '/caravel/approve?datasource_type={self.datasource_type}&'
+                'datasource_id={self.datasource_id}&'
+                'created_by={self.created_by.username}&role_to_extend={r.name}'
+                .format(**locals())
+            )
+            href = '<a href="{}">Extend {} Role</a>'.format(url, r.name)
+            if r.name in self.ROLES_BLACKLIST:
+                href = "{} Role".format(r.name)
+            action_list = action_list + '<li>' + href + '</li>'
+        return '<ul>' + action_list + '</ul>'

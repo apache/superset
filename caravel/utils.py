@@ -212,6 +212,32 @@ class JSONEncodedDict(TypeDecorator):
 
 def init(caravel):
     """Inits the Caravel application with security roles and such"""
+    ADMIN_ONLY_VIEW_MENUES = set([
+        'ResetPasswordView',
+        'RoleModelView',
+        'Security',
+        'UserDBModelView',
+        'SQL Lab <span class="label label-danger">alpha</span>',
+        'AccessRequestsModelView',
+    ])
+
+    ADMIN_ONLY_PERMISSIONS = set([
+        'can_sync_druid_source',
+        'can_approve',
+    ])
+
+    ALPHA_ONLY_PERMISSIONS = set([
+        'all_datasource_access',
+        'can_add',
+        'can_download',
+        'can_delete',
+        'can_edit',
+        'can_save',
+        'datasource_access',
+        'database_access',
+        'muldelete',
+    ])
+
     db = caravel.db
     models = caravel.models
     config = caravel.app.config
@@ -223,44 +249,34 @@ def init(caravel):
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
 
     perms = db.session.query(ab_models.PermissionView).all()
+    # set alpha and admin permissions
     for perm in perms:
         if (
                 perm.permission and
                 perm.permission.name in ('datasource_access', 'database_access')):
             continue
-        if perm.view_menu and perm.view_menu.name not in (
-                'ResetPasswordView',
-                'RoleModelView',
-                'Security',
-                'UserDBModelView',
-                'SQL Lab'):
+        if (
+                perm.view_menu and
+                perm.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
+                perm.permission and
+                perm.permission.name not in ADMIN_ONLY_PERMISSIONS):
 
             sm.add_permission_role(alpha, perm)
         sm.add_permission_role(admin, perm)
+
     gamma = sm.add_role("Gamma")
     public_role = sm.find_role("Public")
     public_role_like_gamma = \
         public_role and config.get('PUBLIC_ROLE_LIKE_GAMMA', False)
+
+    # set gamma permissions
     for perm in perms:
         if (
-                perm.view_menu and perm.view_menu.name not in (
-                    'ResetPasswordView',
-                    'RoleModelView',
-                    'UserDBModelView',
-                    'SQL Lab',
-                    'Security') and
+                perm.view_menu and
+                perm.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
                 perm.permission and
-                perm.permission.name not in (
-                    'all_datasource_access',
-                    'can_add',
-                    'can_download',
-                    'can_delete',
-                    'can_edit',
-                    'can_save',
-                    'datasource_access',
-                    'database_access',
-                    'muldelete',
-                )):
+                perm.permission.name not in ADMIN_ONLY_PERMISSIONS and
+                perm.permission.name not in ALPHA_ONLY_PERMISSIONS):
             sm.add_permission_role(gamma, perm)
             if public_role_like_gamma:
                 sm.add_permission_role(public_role, perm)

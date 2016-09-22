@@ -1,0 +1,24 @@
+{% extends "caravel/basic.html" %}
+{% block title %}{{ _("No Access!") }}{% endblock %}
+{% block body %}
+    {% include "caravel/flash_wrapper.html" %}
+    <div class="container">
+        <h4>
+            {{ _("You do not have permissions to access the datasource %(name)s.",
+                 name=datasource_name)
+            }}
+        </h4>
+        <div id="buttons">
+            <button  onclick="window.location.href = '{{ request_access_url }}';"
+                     id="request"
+            >
+                {{ _("Request Permissions") }}
+            </button>
+            <button onclick="window.location.href = '{{ slicemodelview_link }}';"
+                    id="cancel"
+            >
+                {{ _("Cancel") }}
+            </button>
+        </div>
+    </div>
+{% endblock %}
