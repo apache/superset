@@ -27,3 +27,6 @@ ul.select2-results div.filter_box{
 .filter_box:hover {
     z-index: 1000;
 }
+.m-b-5 {
+    margin-bottom: 5px;
+}

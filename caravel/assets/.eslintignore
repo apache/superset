@@ -1,7 +1,10 @@
-node_modules/*
-vendor/*
-dist/*
-stylesheets/*
-spec/*
-coverage/**
 **/*{.,-}min.js
+**/*.sh
+coverage/**
+dist/*
+images/*
+node_modules/*
+node_modules*/*
+spec/*
+stylesheets/*
+vendor/*

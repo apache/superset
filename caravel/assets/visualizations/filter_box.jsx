@@ -9,6 +9,21 @@ import Select from 'react-select';
 import '../stylesheets/react-select/select.less';
 
 import './filter_box.css';
+import { TIME_CHOICES } from './constants.js';
+
+const propTypes = {
+  filtersChoices: React.PropTypes.object,
+  onChange: React.PropTypes.func,
+  origSelectedValues: React.PropTypes.object,
+  showDateFilter: React.PropTypes.bool,
+};
+
+const defaultProps = {
+  filtersChoices: {},
+  onChange: () => {},
+  origSelectedValues: {},
+  showDateFilter: false,
+};
 
 class FilterBox extends React.Component {
   constructor(props) {
@@ -17,7 +32,42 @@ class FilterBox extends React.Component {
       selectedValues: props.origSelectedValues,
     };
   }
+  changeFilter(filter, options) {
+    let vals = null;
+    if (options) {
+      if (Array.isArray(options)) {
+        vals = options.map((opt) => opt.value);
+      } else {
+        vals = options.value;
+      }
+    }
+    const selectedValues = Object.assign({}, this.state.selectedValues);
+    selectedValues[filter] = vals;
+    this.setState({ selectedValues });
+    this.props.onChange(filter, vals);
+  }
   render() {
+    let dateFilter;
+    if (this.props.showDateFilter) {
+      dateFilter = ['__from', '__to'].map((field) => {
+        const val = this.state.selectedValues[field];
+        const choices = TIME_CHOICES.slice();
+        if (!choices.includes(val)) {
+          choices.push(val);
+        }
+        const options = choices.map((s) => ({ value: s, label: s }));
+        return (
+          <div className="m-b-5">
+            {field.replace('__', '')}
+            <Select.Creatable
+              options={options}
+              value={this.state.selectedValues[field]}
+              onChange={this.changeFilter.bind(this, field)}
+            />
+          </div>
+        );
+      });
+    }
     const filters = Object.keys(this.props.filtersChoices).map((filter) => {
       const data = this.props.filtersChoices[filter];
       const maxes = {};
@@ -25,7 +75,7 @@ class FilterBox extends React.Component {
         return d.metric;
       });
       return (
-        <div>
+        <div key={filter} className="m-b-5">
           {filter}
           <Select
             placeholder={`Select [${filter}]`}
@@ -44,38 +94,21 @@ class FilterBox extends React.Component {
               };
               return { value: opt.id, label: opt.id, style };
             })}
-            onChange={(selectedOptions) => {
-              let vals;
-              if (selectedOptions) {
-                vals = selectedOptions.map((opt) => opt.value);
-              } else {
-                vals = null;
-              }
-              const selectedValues = this.state.selectedValues;
-              selectedValues[filter] = vals;
-              this.setState({ selectedValues });
-              this.props.onChange(filter, vals);
-            }}
+            onChange={this.changeFilter.bind(this, filter)}
           />
         </div>
       );
     });
     return (
       <div>
+        {dateFilter}
         {filters}
       </div>
     );
   }
 }
-FilterBox.propTypes = {
-  origSelectedValues: React.PropTypes.objectOf(React.PropTypes.array),
-  filtersChoices: React.PropTypes.objectOf(React.PropTypes.array),
-  onChange: React.PropTypes.function,
-};
-FilterBox.defaultProps = {
-  origSelectedValues: {},
-  onChange() {},
-};
+FilterBox.propTypes = propTypes;
+FilterBox.defaultProps = defaultProps;
 
 function filterBox(slice) {
   const d3token = d3.select(slice.selector);
@@ -86,6 +119,7 @@ function filterBox(slice) {
     // filter box should ignore the dashboard's filters
     const url = slice.jsonEndpoint({ extraFilters: false });
     $.getJSON(url, (payload) => {
+      const fd = payload.form_data;
       const filtersChoices = {};
       // Making sure the ordering of the fields matches the setting in the
       // dropdown as it may have been shuffled while serialized to json
@@ -96,6 +130,7 @@ function filterBox(slice) {
         <FilterBox
           filtersChoices={filtersChoices}
           onChange={slice.setFilter}
+          showDateFilter={fd.date_filter}
           origSelectedValues={slice.getFilters() || {}}
         />,
         document.getElementById(slice.containerId)
