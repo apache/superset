@@ -210,32 +210,6 @@ class CoreTests(CaravelTestCase):
         assert new_slice in dash.slices
         assert len(set(dash.slices)) == len(dash.slices)
 
-    def test_add_slice_redirect_to_sqla(self, username='admin'):
-        self.login(username=username)
-        url = '/slicemodelview/add'
-        resp = self.client.get(url, follow_redirects=True)
-        assert (
-            "Click on a table link to create a Slice" in
-            resp.data.decode('utf-8')
-        )
-
-    def test_add_slice_redirect_to_druid(self, username='admin'):
-        datasource = DruidDatasource(
-            datasource_name="datasource_name",
-        )
-        db.session.add(datasource)
-        db.session.commit()
-
-        self.login(username=username)
-        url = '/slicemodelview/add'
-        resp = self.client.get(url, follow_redirects=True)
-        assert (
-            "Click on a datasource link to create a Slice"
-            in resp.data.decode('utf-8')
-        )
-
-        db.session.delete(datasource)
-        db.session.commit()
 
     def test_druid_sync_from_config(self):
         cluster = models.DruidCluster(cluster_name="new_druid")

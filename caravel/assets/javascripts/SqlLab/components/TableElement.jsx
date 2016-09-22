@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import shortid from 'shortid';
+import ModalTrigger from '../../components/ModalTrigger.jsx';
 
 class TableElement extends React.Component {
   setSelectStar() {
@@ -86,6 +87,27 @@ class TableElement extends React.Component {
         </a>
       );
     }
+    let keyLink;
+    if (this.props.table.indexes && this.props.table.indexes.length > 0) {
+      keyLink = (
+        <ModalTrigger
+          modalTitle={
+            <div>
+              Keys for table <strong>{this.props.table.name}</strong>
+            </div>
+          }
+          modalBody={
+            <pre>{JSON.stringify(this.props.table.indexes, null, 4)}</pre>
+          }
+          triggerNode={
+            <Link
+              className="fa fa-key pull-left m-l-2"
+              tooltip={`View indexes (${this.props.table.indexes.length})`}
+            />
+          }
+        />
+      );
+    }
     return (
       <div>
         <div className="clearfix">
@@ -94,6 +116,7 @@ class TableElement extends React.Component {
           </div>
           <div className="pull-right">
             <ButtonGroup className="ws-el-controls pull-right">
+              {keyLink}
               <Link
                 className="fa fa-pencil pull-left m-l-2"
                 onClick={this.setSelectStar.bind(this)}

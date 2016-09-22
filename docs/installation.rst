@@ -108,6 +108,10 @@ load balancer knows if your caravel instance is running. This is provided
 at ``/health`` which will return a 200 response containing "OK" if the
 webserver is running.
 
+If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
+should set `ENABLE_PROXY_FIX = True` in the caravel config file to extract and use
+the headers.
+
 
 Configuration
 -------------

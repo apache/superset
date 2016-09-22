@@ -251,3 +251,20 @@ You can then translate the strings gathered in files located under
 to take effect, they need to be compiled using this command:
 
     fabmanager babel-compile --target caravel/translations/
+
+
+## Adding new datasources
+
+1. Create Models and Views for the datasource, add them under caravel folder, like a new my_models.py
+    with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
+    and datasourcemodelview.
+
+2. Create db migration files for the new models
+
+3. Specify this variable to add the datasource model and from which module it is from in config.py:
+
+    For example:
+
+    `ADDITIONAL_MODULE_DS_MAP = {'caravel.my_models': ['MyDatasource', 'MyOtherDatasource']}`
+
+    This means it'll register MyDatasource and MyOtherDatasource in caravel.my_models module in the source registry.

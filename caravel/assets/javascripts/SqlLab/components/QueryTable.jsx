@@ -33,6 +33,7 @@ class QueryTable extends React.Component {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
   }
   notImplemented() {
+    /* eslint no-alert: 0 */
     alert('Not implemented yet!');
   }
   render() {

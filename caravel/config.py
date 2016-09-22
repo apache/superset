@@ -56,6 +56,9 @@ DEBUG = False
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
 
+# Extract and use X-Forwarded-For/X-Forwarded-Proto headers?
+ENABLE_PROXY_FIX = False
+
 # ------------------------------
 # GLOBALS FOR APP Builder
 # ------------------------------
@@ -161,6 +164,13 @@ VIZ_TYPE_BLACKLIST = []
 
 DRUID_DATA_SOURCE_BLACKLIST = []
 
+# --------------------------------------------------
+# Modules and datasources to be registered
+# --------------------------------------------------
+DEFAULT_MODULE_DS_MAP = {'caravel.models': ['DruidDatasource', 'SqlaTable']}
+ADDITIONAL_MODULE_DS_MAP = {}
+
+
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
@@ -209,6 +219,12 @@ CELERY_CONFIG = CeleryConfig
 CELERY_CONFIG = None
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
+
+# static http headers to be served by your Caravel server.
+# The following example prevents iFrame from other domains
+# and "clickjacking" as a result
+# HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
+HTTP_HEADERS = {}
 
 # The db id here results in selecting this one as a default in SQL Lab
 DEFAULT_DB_ID = None
