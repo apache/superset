@@ -446,6 +446,16 @@ def validate_json(obj):
             raise CaravelException("JSON is not valid")
 
 
+def table_has_constraint(table, name, db):
+    """Utility to find a constraint name in alembic migrations"""
+    t = sa.Table(table, db.metadata, autoload=True, autoload_with=db.engine)
+
+    for c in t.constraints:
+        if c.name == name:
+            return True
+    return False
+
+
 class timeout(object):
     """
     To be used in a ``with`` block and timeout its content.

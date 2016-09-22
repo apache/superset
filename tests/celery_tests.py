@@ -125,7 +125,7 @@ class CeleryTestCase(CaravelTestCase):
             shell=True
         )
 
-    def run_sql(self, dbid, sql, cta='false', tmp_table='tmp',
+    def run_sql(self, dbid, sql, client_id, cta='false', tmp_table='tmp',
                 async='false'):
         self.login()
         resp = self.client.post(
@@ -136,7 +136,7 @@ class CeleryTestCase(CaravelTestCase):
                 async=async,
                 select_as_cta=cta,
                 tmp_table_name=tmp_table,
-                client_id="not_used",
+                client_id=client_id,
             ),
         )
         self.logout()
@@ -185,14 +185,14 @@ class CeleryTestCase(CaravelTestCase):
         # Case 1.
         # Table doesn't exist.
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
-        result1 = self.run_sql(1, sql_dont_exist, cta='true', )
+        result1 = self.run_sql(1, sql_dont_exist, "1", cta='true')
         self.assertTrue('error' in result1)
 
         # Case 2.
         # Table and DB exists, CTA call to the backend.
         sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
         result2 = self.run_sql(
-            1, sql_where, tmp_table='tmp_table_2', cta='true')
+            1, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
         self.assertEqual([], result2['columns'])
@@ -207,7 +207,7 @@ class CeleryTestCase(CaravelTestCase):
         # Table and DB exists, CTA call to the backend, no data.
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
-            1, sql_empty_result, tmp_table='tmp_table_3', cta='true',)
+            1, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true',)
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
         self.assertEqual([], result3['columns'])
@@ -226,7 +226,7 @@ class CeleryTestCase(CaravelTestCase):
         # Table and DB exists, async CTA call to the backend.
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
-            1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
+            1, sql_where, "4", async='true', tmp_table='tmp_async_1', cta='true')
         assert result1['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
 
