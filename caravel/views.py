@@ -822,6 +822,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         if obj.slug:
             obj.slug = obj.slug.replace(" ", "-")
             obj.slug = re.sub(r'\W+', '', obj.slug)
+        if g.user not in obj.owners:
+            obj.owners.append(g.user)
 
     def pre_update(self, obj):
         check_ownership(obj)
