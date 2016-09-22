@@ -847,6 +847,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
         if obj.slug:
             obj.slug = obj.slug.replace(" ", "-")
             obj.slug = re.sub(r'\W+', '', obj.slug)
+        if g.user not in obj.owners:
+            obj.owners.append(g.user)
 
     def pre_update(self, obj):
         check_ownership(obj)
@@ -1408,7 +1410,7 @@ class Caravel(BaseCaravelView):
                     .filter_by(database_name=db_name)
                     .first()
                 )
-                if uri == database.safe_sqlalchemy_uri():
+                if database and uri == database.safe_sqlalchemy_uri():
                     # the password-masked uri was passed
                     # use the URI associated with this database
                     uri = database.sqlalchemy_uri_decrypted
@@ -1665,9 +1667,11 @@ class Caravel(BaseCaravelView):
         schema = None if schema in ('null', 'undefined') else schema
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
+        indexes = []
         t = mydb.get_columns(table_name, schema)
         try:
             t = mydb.get_columns(table_name, schema)
+            indexes = mydb.get_indexes(table_name, schema)
         except Exception as e:
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
@@ -1686,6 +1690,7 @@ class Caravel(BaseCaravelView):
         tbl = {
             'name': table_name,
             'columns': cols,
+            'indexes': indexes,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
 
@@ -1929,6 +1934,14 @@ appbuilder.add_link(
     'SQL Lab <span class="label label-danger">alpha</span>',
     href='/caravel/sqllab',
     icon="fa-flask")
+
+
+@app.after_request
+def apply_caching(response):
+    """Applies the configuration's http headers to all responses"""
+    for k, v in config.get('HTTP_HEADERS').items():
+        response.headers[k] = v
+    return response
 
 
 # ---------------------------------------------------------------------
