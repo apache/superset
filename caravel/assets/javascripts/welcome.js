@@ -1,3 +1,7 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+import FavesTable from './welcome/components/FavesTable.jsx';
+
 const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
 const jQuery = window.jQuery = $;
@@ -48,6 +52,15 @@ function modelViewTable(selector, modelView, orderCol, order) {
     $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
   });
 }
+
+function renderFaveTable() {
+  ReactDOM.render(
+    <FavesTable />,
+    document.getElementById('js-faves-table')
+  );
+}
+
 $(document).ready(function () {
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');
+  renderFaveTable();
 });
