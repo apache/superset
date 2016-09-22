@@ -1754,21 +1754,7 @@ class Caravel(BaseCaravelView):
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
-
-        """ get faves """
-        session = db.session()
-        FavStar = models.FavStar  # noqa
-        faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
-
-        """ serialize for client """
-        for index, f in enumerate(faves):
-            faves[index] = f.serialize()
-
-        return self.render_template(
-            'caravel/welcome.html',
-            utils=utils,
-            faves=faves
-        )
+        return self.render_template('caravel/welcome.html', utils=utils)
 
     @has_access
     @expose("/sqllab")
