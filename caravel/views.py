@@ -36,6 +36,7 @@ from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
     sm, ascii_art, sql_lab, src_registry
 )
+from caravel.models import DatasourceAccessRequest as DAR
 
 config = app.config
 log_this = models.Log.log_this
@@ -628,7 +629,7 @@ appbuilder.add_view(
 
 
 class AccessRequestsModelView(CaravelModelView, DeleteMixin):
-    datamodel = SQLAInterface(models.DatasourceAccessRequest)
+    datamodel = SQLAInterface(DAR)
     list_columns = [
         'username', 'user_roles', 'datasource_link',
         'roles_with_datasource', 'created_on']
@@ -1016,11 +1017,14 @@ class Caravel(BaseCaravelView):
         datasource_name = request.args.get('datasource_name')
         session = db.session
 
-        duplicates = session.query(models.DatasourceAccessRequest).filter(
-            models.DatasourceAccessRequest.datasource_id == datasource_id,
-            models.DatasourceAccessRequest.datasource_type ==
-            datasource_type,
-            models.DatasourceAccessRequest.created_by_fk == g.user.id).all()
+        duplicates = (
+            session.query(DAR)
+            .filter(
+                DAR.datasource_id == datasource_id,
+                DAR.datasource_type == datasource_type,
+                DAR.created_by_fk == g.user.id)
+            .all()
+        )
 
         if duplicates:
             flash(__(
@@ -1028,10 +1032,8 @@ class Caravel(BaseCaravelView):
                 name=datasource_name), "warning")
             return redirect('/slicemodelview/list/')
 
-        access_request = models.DatasourceAccessRequest(
-            datasource_id=datasource_id,
-            datasource_type=datasource_type,
-        )
+        access_request = DAR(datasource_id=datasource_id,
+                             datasource_type=datasource_type)
         db.session.add(access_request)
         db.session.commit()
         flash(__("Access to the datasource %(name)s was requested",
@@ -1062,11 +1064,14 @@ class Caravel(BaseCaravelView):
             flash(USER_MISSING_ERR, "alert")
             return json_error_response(USER_MISSING_ERR)
 
-        requests = (session.query(models.DatasourceAccessRequest).filter(
-            models.DatasourceAccessRequest.datasource_id == datasource_id,
-            models.DatasourceAccessRequest.datasource_type == datasource_type,
-            models.DatasourceAccessRequest.created_by_fk == requested_by.id)
-                    .all())
+        requests = (
+            session.query(DAR)
+            .filter(
+                DAR.datasource_id == datasource_id,
+                DAR.datasource_type == datasource_type,
+                DAR.created_by_fk == requested_by.id)
+            .all()
+        )
 
         if not requests:
             flash(ACCESS_REQUEST_MISSING_ERR, "alert")
