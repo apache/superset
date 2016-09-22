@@ -81,10 +81,8 @@ const px = function () {
         const parser = document.createElement('a');
         parser.href = data.json_endpoint;
         if (dashboard !== undefined) {
-          let flts;
-          if (newParams.extraFilters === false) {
-            flts = '';
-          } else {
+          let flts = '';
+          if (newParams.extraFilters !== false) {
             flts = dashboard.effectiveExtraFilters(sliceId);
             flts = encodeURIComponent(JSON.stringify(flts));
           }

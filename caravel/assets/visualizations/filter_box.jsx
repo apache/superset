@@ -12,30 +12,6 @@ import './filter_box.css';
 import { TIME_CHOICES } from './constants.js';
 
 const propTypes = {
-  filtersChoices: React.PropTypes.object,
-  onChange: React.PropTypes.func,
-  origSelectedValues: React.PropTypes.object,
-  showDateFilter: React.PropTypes.bool,
-};
-
-const defaultProps = {
-  filtersChoices: {},
-  onChange: () => {},
-  origSelectedValues: {},
-  showDateFilter: false,
-};
-
-const TIME_CHOICES = [
-  '1 hour ago',
-  '12 hours ago',
-  '1 day ago',
-  '7 days ago',
-  '28 days ago',
-  '90 days ago',
-  '1 year ago',
-];
-
-const propTypes = {
   origSelectedValues: React.PropTypes.object,
   filtersChoices: React.PropTypes.object,
   onChange: React.PropTypes.func,
