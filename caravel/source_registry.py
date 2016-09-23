@@ -1,4 +1,3 @@
-from flask import flash
 
 
 class SourceRegistry(object):
@@ -6,10 +5,10 @@ class SourceRegistry(object):
 
     sources = {}
 
-    def add_source(self, ds_type, cls_model):
-        if ds_type not in self.sources:
-            self.sources[ds_type] = cls_model
-        if self.sources[ds_type] is not cls_model:
-            raise Exception(
-                'source type: {} is already associated with Model: {}'.format(
-                    ds_type, self.sources[ds_type]))
+    @classmethod
+    def register_sources(cls, datasource_config):
+        for module_name, class_names in datasource_config.items():
+            module_obj = __import__(module_name, fromlist=class_names)
+            for class_name in class_names:
+                source_class = getattr(module_obj, class_name)
+                cls.sources[source_class.type] = source_class
