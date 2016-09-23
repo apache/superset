@@ -1,57 +1,14 @@
 import React from 'react';
-import { DropdownButton, MenuItem, Tab, Tabs, Popover, OverlayTrigger } from 'react-bootstrap';
+import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import CopyToClipboard from '../../components/CopyToClipboard';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
-import { getParamFromQuery } from '../../../utils/common';
 
 let queryCount = 1;
 
-class TabbedSqlEditors extends React.Component {
-  constructor(props) {
-    super(props);
-    const uri = window.location.toString();
-    const search = window.location.search;
-    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
-    const query = search.substring(1);
-    this.state = {
-      uri,
-      cleanUri,
-      query,
-    };
-  }
-  componentWillMount() {
-    if (this.state.query) {
-      queryCount++;
-      const queryEditorProps = {
-        id: shortid.generate(),
-        title: getParamFromQuery(this.state.query, 'title'),
-        dbId: getParamFromQuery(this.state.query, 'dbid'),
-        schema: getParamFromQuery(this.state.query, 'schema'),
-        autorun: getParamFromQuery(this.state.query, 'autorun'),
-        sql: getParamFromQuery(this.state.query, 'sql'),
-      };
-      this.props.actions.addQueryEditor(queryEditorProps);
-      // Clean the url in browser history
-      window.history.replaceState({}, document.title, this.state.cleanUri);
-    }
-  }
-  getQueryLink(qe) {
-    const params = [];
-    if (qe.dbId) params.push('dbid=' + qe.dbId);
-    if (qe.title) params.push('title=' + qe.title);
-    if (qe.schema) params.push('schema=' + qe.schema);
-    if (qe.autorun) params.push('autorun=' + qe.autorun);
-    if (qe.sql) params.push('sql=' + qe.sql);
-
-    const queryString = params.join('&');
-    const queryLink = this.state.cleanUri + '?' + queryString;
-
-    return queryLink;
-  }
+class QueryEditors extends React.Component {
   renameTab(qe) {
     /* eslint no-alert: 0 */
     const newTitle = prompt('Enter a new title for the tab');
@@ -94,14 +51,6 @@ class TabbedSqlEditors extends React.Component {
       let latestQuery = this.props.queries[qe.latestQueryId];
       const database = this.props.databases[qe.dbId];
       const state = (latestQuery) ? latestQuery.state : '';
-      const popoverRight = (
-        <Popover id="popover-positioned-right" title="Link for current query:" >
-          <CopyToClipboard
-            text={this.getQueryLink(qe)}
-            copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
-          />
-        </Popover>
-      );
       const tabTitle = (
         <div>
           <div className={'circle ' + state} /> {qe.title} {' '}
@@ -115,13 +64,6 @@ class TabbedSqlEditors extends React.Component {
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
-            <OverlayTrigger trigger="click" placement="right" overlay={popoverRight}>
-              <MenuItem eventKey="3">
-                <div>
-                  <i className="fa fa-link" /> copy query
-                </div>
-              </MenuItem>
-            </OverlayTrigger>
           </DropdownButton>
         </div>
       );
@@ -154,14 +96,14 @@ class TabbedSqlEditors extends React.Component {
     );
   }
 }
-TabbedSqlEditors.propTypes = {
+QueryEditors.propTypes = {
   actions: React.PropTypes.object,
   databases: React.PropTypes.object,
   queries: React.PropTypes.object,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
 };
-TabbedSqlEditors.defaultProps = {
+QueryEditors.defaultProps = {
   tabHistory: [],
   queryEditors: [],
 };
@@ -180,4 +122,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
+export default connect(mapStateToProps, mapDispatchToProps)(QueryEditors);

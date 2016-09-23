@@ -29,17 +29,39 @@ import SouthPane from './SouthPane';
 import Timer from './Timer';
 
 import SqlEditorLeft from './SqlEditorLeft';
+import { getParamFromQuery } from '../../../utils/common';
+import CopyToClipboard from '../../components/CopyToClipboard';
 
 class SqlEditor extends React.Component {
   constructor(props) {
     super(props);
+    const uri = window.location.toString();
+    const search = window.location.search;
+    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
+    const query = search.substring(1);
     this.state = {
       autorun: props.queryEditor.autorun,
       sql: props.queryEditor.sql,
       ctas: '',
+      uri,
+      cleanUri,
+      query,
     };
   }
   componentDidMount() {
+    if (this.state.query) {
+      const queryEditorProps = {
+        id: shortid.generate(),
+        title: getParamFromQuery(this.state.query, 'title'),
+        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        schema: getParamFromQuery(this.state.query, 'schema'),
+        autorun: getParamFromQuery(this.state.query, 'autorun'),
+        sql: getParamFromQuery(this.state.query, 'sql'),
+      };
+      this.props.actions.addQueryEditor(queryEditorProps);
+      // Clean the url in browser history
+      window.history.replaceState({}, document.title, this.state.cleanUri);
+    }
     this.onMount();
   }
   onMount() {
@@ -48,6 +70,19 @@ class SqlEditor extends React.Component {
       this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);
       this.startQuery();
     }
+  }
+  getQueryLink(qe) {
+    const params = [];
+    if (qe.dbId) params.push('dbid=' + qe.dbId);
+    if (qe.title) params.push('title=' + qe.title);
+    if (qe.schema) params.push('schema=' + qe.schema);
+    if (qe.autorun) params.push('autorun=' + qe.autorun);
+    if (qe.sql) params.push('sql=' + qe.sql);
+
+    const queryString = params.join('&');
+    const queryLink = this.state.cleanUri + '?' + queryString;
+
+    return queryLink;
   }
   runQuery(runAsync = false) {
     this.startQuery(runAsync);
@@ -241,6 +276,14 @@ class SqlEditor extends React.Component {
           </Form>
         </div>
         <div className="pull-right">
+          <CopyToClipboard
+            text={this.getQueryLink(this.props.queryEditor)}
+            copyNode={
+              <div>
+                <i className="fa fa-link" /> Copy Query
+              </div>}
+            shouldShowText={false}
+          />
           {limitWarning}
           <Timer query={this.props.latestQuery} />
         </div>
