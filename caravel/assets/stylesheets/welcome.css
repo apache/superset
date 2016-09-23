@@ -27,6 +27,9 @@ input {
 .search input {
   width: 200px;
 }
+.search-container {
+  margin-top: -16px;
+}
 .search-container .fa-search {
   float: left;
   margin-left: -25px;

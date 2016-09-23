@@ -1337,6 +1337,18 @@ class Caravel(BaseCaravelView):
             status=200,
             mimetype="application/json")
 
+    @expose("/favstarlist/")
+    def favstar(self):
+        session = db.session()
+        FavStar = models.FavStar  # noqa
+        faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
+        session.commit()
+        return Response(
+            json.dumps({'faves': 'faves'}),
+            status=200,
+            mimetype="application/json")
+
+
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
         session = db.session()
@@ -1760,14 +1772,14 @@ class Caravel(BaseCaravelView):
         FavStar = models.FavStar  # noqa
         faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
 
-        """ serialize for client """
+        """ serialize faves for client """
         for index, f in enumerate(faves):
-            faves[index] = f.serialize()
+            faves[index] = json.loads(f.serialize())
 
         return self.render_template(
             'caravel/welcome.html',
             utils=utils,
-            faves=faves
+            faves=json.dumps({"data": faves})
         )
 
     @has_access

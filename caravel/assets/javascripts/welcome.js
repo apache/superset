@@ -55,9 +55,13 @@ function modelViewTable(selector, modelView, orderCol, order) {
 }
 
 function renderFaveTable() {
+  const favesEl = document.getElementById('js-faves-table');
+  const faves = JSON.parse(favesEl.getAttribute('faves'))
   ReactDOM.render(
-    <FavesTable />,
-    document.getElementById('js-faves-table')
+    <FavesTable
+      faves={faves.data}
+    />,
+    favesEl
   );
 }
 

@@ -1918,13 +1918,13 @@ class FavStar(Model):
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=func.now())
 
-    """todo(alanna) - return name of slice or dashboard with these props"""
     def serialize(self):
-        return {
+        data = {
             'user_id': self.user_id,
             'class_name': self.class_name,
             'obj_id': self.obj_id
         }
+        return json.dumps(data)
 
 
 class QueryStatus:
