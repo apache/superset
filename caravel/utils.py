@@ -445,6 +445,14 @@ def generic_find_constraint_name(table, columns, referenced, db):
             return fk.name
 
 
+def validate_json(obj):
+    if obj:
+        try:
+            json.loads(obj)
+        except Exception:
+            raise CaravelException("JSON is not valid")
+
+
 class timeout(object):
     """
     To be used in a ``with`` block and timeout its content.

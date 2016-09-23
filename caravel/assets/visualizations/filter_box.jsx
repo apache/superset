@@ -12,16 +12,15 @@ import './filter_box.css';
 import { TIME_CHOICES } from './constants.js';
 
 const propTypes = {
+  origSelectedValues: React.PropTypes.object,
   filtersChoices: React.PropTypes.object,
   onChange: React.PropTypes.func,
-  origSelectedValues: React.PropTypes.object,
   showDateFilter: React.PropTypes.bool,
 };
 
 const defaultProps = {
-  filtersChoices: {},
-  onChange: () => {},
   origSelectedValues: {},
+  onChange: () => {},
   showDateFilter: false,
 };
 
