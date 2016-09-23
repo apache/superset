@@ -61,3 +61,51 @@ Why is the map not visible in the mapbox visualization?
 
 You need to register to mapbox.com, get an API key and configure it as
 ``MAPBOX_API_KEY`` in ``caravel_config.py``.
+
+
+How to add dynamic filters to a dashboard?
+------------------------------------------
+
+It's easy: use the ``Filter Box`` widget, build a slice, and add it to your
+dashboard.
+
+The ``Filter Box`` widget allows you to define a query to populate dropdowns
+that can be use for filtering. To build the list of distinct values, we
+run a query, and sort the result by the metric you provide, sorting
+descending.
+
+The widget also has a checkbox ``Date Filter``, which enables time filtering
+capabilities to your dashboard. After checking the box and refreshing, you'll
+see a ``from`` and a ``to`` dropdown show up.
+
+But what about if you don't want certain widgets to get filtered on your
+dashboard? You can do that by editing your dashboard, and in the form,
+edit the ``JSON Metadata`` field, more specifically the
+``filter_immune_slices`` key, that receives an array of sliceIds that should
+never be affected by any dashboard level filtering.
+
+
+..code::
+
+    {
+        "filter_immune_slices": [324, 65, 92],
+        "expanded_slices": {},
+        "filter_immune_slice_fields": {
+            "177": ["country_name", "__from", "__to"],
+            "32": ["__from", "__to"]
+        }
+    }
+
+In the json blob above, slices 324, 65 and 92 won't be affected by any
+dashboard level filtering.
+
+Now note the ``filter_immune_slice_fields`` key. This one allows you to
+be more specific and define for a specific slice_id, which filter fields
+should be disregarded.
+
+Note the use of the ``__from`` and ``__to`` keywords, those are reserved
+for dealing with the time boundary filtering mentioned above.
+
+But what happens with filtering when dealing with slices coming from
+different tables or databases? If the column name is shared, the filter will
+be applied, it's as simple as that.

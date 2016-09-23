@@ -34,8 +34,9 @@ from wtforms.validators import ValidationError
 import caravel
 from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, src_registry
+    sm, ascii_art, sql_lab
 )
+from caravel.source_registry import SourceRegistry
 from caravel.models import DatasourceAccessRequest as DAR
 
 config = app.config
@@ -748,9 +749,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        sources = src_registry.sources
+        sources = SourceRegistry.sources
         for source in sources:
-            ds = db.session.query(src_registry.sources[source]).first()
+            ds = db.session.query(SourceRegistry.sources[source]).first()
             if ds is not None:
                 url = "/{}/list/".format(ds.baselink)
                 msg = _("Click on a {} link to create a Slice".format(source))
@@ -850,6 +851,8 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
             obj.slug = re.sub(r'\W+', '', obj.slug)
         if g.user not in obj.owners:
             obj.owners.append(g.user)
+        utils.validate_json(obj.json_metadata)
+        utils.validate_json(obj.position_json)
 
     def pre_update(self, obj):
         check_ownership(obj)
@@ -1054,7 +1057,7 @@ class Caravel(BaseCaravelView):
         role_to_extend = request.args.get('role_to_extend')
 
         session = db.session
-        datasource_class = src_registry.sources[datasource_type]
+        datasource_class = SourceRegistry.sources[datasource_type]
         datasource = session.query(datasource_class).filter_by(
             id=datasource_id).first()
 
@@ -1117,7 +1120,7 @@ class Caravel(BaseCaravelView):
     @log_this
     def explore(self, datasource_type, datasource_id, slice_id=None):
         error_redirect = '/slicemodelview/list/'
-        datasource_class = src_registry.sources[datasource_type]
+        datasource_class = SourceRegistry.sources[datasource_type]
         datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
         datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
@@ -1369,6 +1372,8 @@ class Caravel(BaseCaravelView):
         md = dash.metadata_dejson
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
+        if 'filter_immune_slice_fields' not in md:
+            md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
         dash.json_metadata = json.dumps(md, indent=4)
         dash.css = data['css']

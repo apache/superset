@@ -26,7 +26,6 @@ from flask import escape, g, Markup, request
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
-from flask_appbuilder.security.sqla.models import Role, PermissionView
 from flask_babel import lazy_gettext as _
 
 from pydruid.client import PyDruid
@@ -50,7 +49,8 @@ from sqlalchemy_utils import EncryptedType
 from werkzeug.datastructures import ImmutableMultiDict
 
 import caravel
-from caravel import app, db, get_session, utils, sm, src_registry
+from caravel import app, db, get_session, utils, sm
+from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
 from caravel.utils import flasher, MetricPermException, DimSelector
 
@@ -172,7 +172,7 @@ class Slice(Model, AuditMixinNullable):
 
     @property
     def cls_model(self):
-        return src_registry.sources[self.datasource_type]
+        return SourceRegistry.sources[self.datasource_type]
 
     @property
     def datasource(self):
@@ -2028,7 +2028,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
 
     @property
     def cls_model(self):
-        return src_registry.sources[self.datasource_type]
+        return SourceRegistry.sources[self.datasource_type]
 
     @property
     def username(self):

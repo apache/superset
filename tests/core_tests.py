@@ -17,7 +17,8 @@ from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
 import caravel
-from caravel import app, db, models, utils, appbuilder, sm, src_registry
+from caravel import app, db, models, utils, appbuilder, sm
+from caravel.source_registry import SourceRegistry
 from caravel.models import DruidDatasource
 
 from .base_tests import CaravelTestCase
@@ -243,7 +244,7 @@ class CoreTests(CaravelTestCase):
         self.login('admin')
 
         def prepare_request(ds_type, ds_name, role):
-            ds_class = src_registry.sources[ds_type]
+            ds_class = SourceRegistry.sources[ds_type]
             # TODO: generalize datasource names
             if ds_type == 'table':
                 ds = session.query(ds_class).filter(
