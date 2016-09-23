@@ -1215,7 +1215,7 @@ class Caravel(BaseCaravelView):
                     "userid": g.user.get_id() if g.user else '',
                     "viz": viz_obj
                 }
-            return self.render_template(template, bootstrap_data=bootstrap_data)
+            return self.render_template(template)
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):

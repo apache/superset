@@ -13,17 +13,15 @@ const bootstrapData = exploreViewContainer.getAttribute('data-bootstrap');
 
 import { exploreReducer } from './reducers/exploreReducer';
 
-const bootstrappedState = Object.assign(initialState, {
-  datasources: bootstrapData.datasources,
-  viz: bootstrapData.viz,
-});
-const store = createStore(exploreReducer, bootstrappedState, enhancer);
+// const bootstrappedState = Object.assign(initialState, {
+//   datasources: bootstrapData.datasources,
+//   viz: bootstrapData.viz,
+// });
+const store = createStore(exploreReducer, initialState, enhancer);
 
 ReactDOM.render(
   <Provider store={store}>
-    <ExploreViewContainer
-      data={bootstrapData}
-    />
+    <ExploreViewContainer />
   </Provider>,
   exploreViewContainer
 );
