@@ -2,10 +2,10 @@ import celery
 from datetime import datetime
 import pandas as pd
 import logging
+import numpy
 import time
-import json
 
-from caravel import app, cache, db, models, utils
+from caravel import app, db, models, utils, dataframe
 
 QueryStatus = models.QueryStatus
 
@@ -114,45 +114,40 @@ def get_sql_results(query_id, return_results=True):
             time.sleep(1)
             polled = cursor.poll()
 
-    columns = None
-    data = None
+    cdf = None
     if result_proxy.cursor:
-        columns = [col[0] for col in result_proxy.cursor.description]
+        column_names = [col[0] for col in result_proxy.cursor.description]
         data = result_proxy.fetchall()
-        df = pd.DataFrame(data, columns=columns)
-        df = df.where((pd.notnull(df)), None)
-        # TODO consider generating tuples instead of dicts to send
-        # less data through the wire. The command bellow does that,
-        # but we'd need to align on the client side.
-        # data = df.values.tolist()
-        data = df.to_dict(orient='records')
+        cdf = dataframe.CaravelDataFrame(
+            pd.DataFrame(data, columns=column_names))
+    # TODO consider generating tuples instead of dicts to send
+    # less data through the wire. The command bellow does that,
+    # but we'd need to align on the client side.
+    # data = df.values.tolist()
 
     query.rows = result_proxy.rowcount
     query.progress = 100
     query.status = QueryStatus.SUCCESS
-    if query.rows == -1 and data:
+    if query.rows == -1 and cdf:
         # Presto doesn't provide result_proxy.row_count
-        query.rows = len(data)
-
-    # CTAs queries result in 1 cell having the # of the added rows.
+        query.rows = cdf.size
     if query.select_as_cta:
         query.select_sql = '{}'.format(database.select_star(
             query.tmp_table_name, limit=query.limit))
-
     query.end_time = utils.now_as_float()
     session.commit()
 
-    payload = {
-        'query_id': query.id,
-        'status': query.status,
-        'data': [],
-    }
-    if query.status == models.QueryStatus.SUCCESS:
-        payload['data'] = data
-        payload['columns'] = columns
-    else:
-        payload['error'] = query.error_message
     if return_results:
+        payload = {
+            'query_id': query.id,
+            'status': query.status,
+            'data': [],
+        }
+        if query.status == models.QueryStatus.SUCCESS:
+            payload['data'] = cdf.data if cdf else []
+            payload['columns'] = cdf.columns_dict if cdf else []
+        else:
+            payload['error'] = query.error_message
         return payload
     '''
     # Hack testing using a kv store for results

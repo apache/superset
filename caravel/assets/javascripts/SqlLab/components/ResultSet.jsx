@@ -72,7 +72,7 @@ class ResultSet extends React.Component {
           <div className="ResultSet">
             <Table
               data={results.data}
-              columns={results.columns}
+              columns={results.columns.map((col) => col.name)}
               sortable
               className="table table-condensed table-bordered"
               filterBy={this.state.searchText}
