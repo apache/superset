@@ -96,8 +96,12 @@
 </ul>
 </li>
 <li><a class="reference internal" href="#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
-<li><a class="reference internal" href="#customizing">Customizing</a></li>
-<li><a class="reference internal" href="#restricting-the-access-to-the-metrics">Restricting the access to the metrics</a></li>
+<li><a class="reference internal" href="#customizing">Customizing</a><ul>
+<li><a class="reference internal" href="#permissions">Permissions</a></li>
+<li><a class="reference internal" href="#restricting-access-to-a-subset-of-data-sources">Restricting access to a subset of data sources</a></li>
+<li><a class="reference internal" href="#restricting-the-access-to-some-metrics">Restricting the access to some metrics</a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -141,8 +145,8 @@ FAB provides authentication, user management, permissions and roles.</p>
 assume that these 3 roles will stay up-to-date as Caravel evolves.</p>
 <div class="section" id="admin">
 <h3>Admin<a class="headerlink" href="#admin" title="Permalink to this headline">¶</a></h3>
-<p>Admins have all rights, including granting or revoking rights from other
-users and altering other people&#8217;s slices and dashboards.</p>
+<p>Admins have all possible rights, including granting or revoking rights from
+other users and altering other people&#8217;s slices and dashboards.</p>
 </div>
 <div class="section" id="alpha">
 <h3>Alpha<a class="headerlink" href="#alpha" title="Permalink to this headline">¶</a></h3>
@@ -186,11 +190,48 @@ each view. On top of that, Caravel can expose more granular permissions like
 <p>We do not recommend altering the 3 base roles as there
 are a set of assumptions that Caravel build upon. It is possible though for
 you to create your own roles, and union them to existing ones.</p>
-<p>The best way to go is probably to give user <code class="docutils literal"><span class="pre">Gamma</span></code> plus another role
-that would add specific permissions needed by this type of users.</p>
+<div class="section" id="permissions">
+<h3>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h3>
+<p>Roles are composed of a set of permissions, and Caravel has many categories
+of permissions. Here are the different categories of permissions:</p>
+<ul class="simple">
+<li><strong>Model &amp; action</strong>: models are entities like <code class="docutils literal"><span class="pre">Dashboard</span></code>,
+<code class="docutils literal"><span class="pre">Slice</span></code>, or <code class="docutils literal"><span class="pre">User</span></code>. Each model has a fixed set of permissions, like
+<code class="docutils literal"><span class="pre">can_edit</span></code>, <code class="docutils literal"><span class="pre">can_show</span></code>, <code class="docutils literal"><span class="pre">can_delete</span></code>, <code class="docutils literal"><span class="pre">can_list</span></code>, <code class="docutils literal"><span class="pre">can_add</span></code>, and
+so on. By adding <code class="docutils literal"><span class="pre">can_delete</span> <span class="pre">on</span> <span class="pre">Dashboard</span></code> to a role, and granting that
+role to a user, this user will be able to delete dashboards.</li>
+<li><strong>Views</strong>: views are individual web pages, like the <code class="docutils literal"><span class="pre">explore</span></code> view or the
+<code class="docutils literal"><span class="pre">SQL</span> <span class="pre">Lab</span></code> view. When granted to a user, he/she will see that view in
+the its menu items, and be able to load that page.</li>
+<li><strong>Data source</strong>: For each data source, a permission is created. If the user
+does not have the <code class="docutils literal"><span class="pre">all_datasource_access</span></code> permission granted, the user
+will only be able to see Slices or explore the data sources that are granted
+to them</li>
+<li><strong>Database</strong>: Granting access to a database allows for the user to access
+all data sources within that database, and will enable the user to query
+that database in SQL Lab, provided that the SQL Lab specific permission
+have been granted to the user</li>
+</ul>
 </div>
-<div class="section" id="restricting-the-access-to-the-metrics">
-<h2>Restricting the access to the metrics<a class="headerlink" href="#restricting-the-access-to-the-metrics" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="restricting-access-to-a-subset-of-data-sources">
+<h3>Restricting access to a subset of data sources<a class="headerlink" href="#restricting-access-to-a-subset-of-data-sources" title="Permalink to this headline">¶</a></h3>
+<p>The best way to go is probably to give user <code class="docutils literal"><span class="pre">Gamma</span></code> plus one or many other
+roles that would add access to specific data sources. We recommend that you
+create individual roles for each access profile. Say people in your finance
+department might have access to a set of databases and data sources, and
+these permissions can be consolidated in a single role. Users with this
+profile then need to be attributed <code class="docutils literal"><span class="pre">Gamma</span></code> as a foundation to the models
+and views they can access, and that <code class="docutils literal"><span class="pre">Finance</span></code> role that is a collection
+of permissions to data objects.</p>
+<p>One user can have many roles, so a finance executive could be granted
+<code class="docutils literal"><span class="pre">Gamma</span></code>, <code class="docutils literal"><span class="pre">Finance</span></code>, and perhaps another <code class="docutils literal"><span class="pre">Executive</span></code> role that gather
+a set of data sources that power dashboards only made available to executives.
+When looking at its dashboard list, this user will only see the
+list of dashboards it has access to, based on the roles and
+permissions that were attributed.</p>
+</div>
+<div class="section" id="restricting-the-access-to-some-metrics">
+<h3>Restricting the access to some metrics<a class="headerlink" href="#restricting-the-access-to-some-metrics" title="Permalink to this headline">¶</a></h3>
 <p>Sometimes some metrics are relatively sensitive (e.g. revenue).
 We may want to restrict those metrics to only a few roles.
 For example, assumed there is a metric <code class="docutils literal"><span class="pre">[cluster1].[datasource1].[revenue]</span></code>
@@ -208,6 +249,7 @@ click the Save button on the bottom of the page.</li>
 <em>Access to the metrics denied: revenue (Status: 500)</em> in the slices.
 It also happens when the user wants to access a post-aggregation metric that
 is dependent on revenue.</p>
+</div>
 </div>
 </div>
 

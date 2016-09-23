@@ -91,6 +91,9 @@
 <li><a class="reference internal" href="#can-i-query-join-multiple-tables-at-one-time">Can I query/join multiple tables at one time?</a></li>
 <li><a class="reference internal" href="#how-big-can-my-data-source-be">How BIG can my data source be?</a></li>
 <li><a class="reference internal" href="#how-do-i-create-my-own-visualization">How do I create my own visualization?</a></li>
+<li><a class="reference internal" href="#why-are-my-queries-timing-out">Why are my queries timing out?</a></li>
+<li><a class="reference internal" href="#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
+<li><a class="reference internal" href="#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
 </ul>
 </li>
 </ul>
@@ -158,6 +161,57 @@ framework, in the meantime, we&#8217;ve tagged a few pull requests as
 <code class="docutils literal"><span class="pre">example</span></code> to give people examples of how to contribute new
 visualizations.</p>
 <p><a class="reference external" href="https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed">https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed</a></p>
+</div>
+<div class="section" id="why-are-my-queries-timing-out">
+<h2>Why are my queries timing out?<a class="headerlink" href="#why-are-my-queries-timing-out" title="Permalink to this headline">¶</a></h2>
+<p>If you are seeing timeouts (504 Gateway Time-out) when running queries,
+it&#8217;s because the web server is timing out web requests. If you want to
+increase the default (50), you can specify the timeout when starting the
+web server with the <code class="docutils literal"><span class="pre">-t</span></code> flag, which is expressed in seconds.</p>
+<p><code class="docutils literal"><span class="pre">caravel</span> <span class="pre">runserver</span> <span class="pre">-t</span> <span class="pre">300</span></code></p>
+</div>
+<div class="section" id="why-is-the-map-not-visible-in-the-mapbox-visualization">
+<h2>Why is the map not visible in the mapbox visualization?<a class="headerlink" href="#why-is-the-map-not-visible-in-the-mapbox-visualization" title="Permalink to this headline">¶</a></h2>
+<p>You need to register to mapbox.com, get an API key and configure it as
+<code class="docutils literal"><span class="pre">MAPBOX_API_KEY</span></code> in <code class="docutils literal"><span class="pre">caravel_config.py</span></code>.</p>
+</div>
+<div class="section" id="how-to-add-dynamic-filters-to-a-dashboard">
+<h2>How to add dynamic filters to a dashboard?<a class="headerlink" href="#how-to-add-dynamic-filters-to-a-dashboard" title="Permalink to this headline">¶</a></h2>
+<p>It&#8217;s easy: use the <code class="docutils literal"><span class="pre">Filter</span> <span class="pre">Box</span></code> widget, build a slice, and add it to your
+dashboard.</p>
+<p>The <code class="docutils literal"><span class="pre">Filter</span> <span class="pre">Box</span></code> widget allows you to define a query to populate dropdowns
+that can be use for filtering. To build the list of distinct values, we
+run a query, and sort the result by the metric you provide, sorting
+descending.</p>
+<p>The widget also has a checkbox <code class="docutils literal"><span class="pre">Date</span> <span class="pre">Filter</span></code>, which enables time filtering
+capabilities to your dashboard. After checking the box and refreshing, you&#8217;ll
+see a <code class="docutils literal"><span class="pre">from</span></code> and a <code class="docutils literal"><span class="pre">to</span></code> dropdown show up.</p>
+<p>But what about if you don&#8217;t want certain widgets to get filtered on your
+dashboard? You can do that by editing your dashboard, and in the form,
+edit the <code class="docutils literal"><span class="pre">JSON</span> <span class="pre">Metadata</span></code> field, more specifically the
+<code class="docutils literal"><span class="pre">filter_immune_slices</span></code> key, that receives an array of sliceIds that should
+never be affected by any dashboard level filtering.</p>
+<p>..code:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">{</span>
+    <span class="s2">&quot;filter_immune_slices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">324</span><span class="p">,</span> <span class="mi">65</span><span class="p">,</span> <span class="mi">92</span><span class="p">],</span>
+    <span class="s2">&quot;expanded_slices&quot;</span><span class="p">:</span> <span class="p">{},</span>
+    <span class="s2">&quot;filter_immune_slice_fields&quot;</span><span class="p">:</span> <span class="p">{</span>
+        <span class="s2">&quot;177&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;country_name&quot;</span><span class="p">,</span> <span class="s2">&quot;__from&quot;</span><span class="p">,</span> <span class="s2">&quot;__to&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;32&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;__from&quot;</span><span class="p">,</span> <span class="s2">&quot;__to&quot;</span><span class="p">]</span>
+    <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>In the json blob above, slices 324, 65 and 92 won&#8217;t be affected by any
+dashboard level filtering.</p>
+<p>Now note the <code class="docutils literal"><span class="pre">filter_immune_slice_fields</span></code> key. This one allows you to
+be more specific and define for a specific slice_id, which filter fields
+should be disregarded.</p>
+<p>Note the use of the <code class="docutils literal"><span class="pre">__from</span></code> and <code class="docutils literal"><span class="pre">__to</span></code> keywords, those are reserved
+for dealing with the time boundary filtering mentioned above.</p>
+<p>But what happens with filtering when dealing with slices coming from
+different tables or databases? If the column name is shared, the filter will
+be applied, it&#8217;s as simple as that.</p>
 </div>
 </div>
 

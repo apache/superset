@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SQL Lab &mdash; caravel  documentation</title>
+    
+    <link rel="stylesheet" href="_static/basic.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-3.3.6/css/bootstrap-theme.min.css" type="text/css" />
+    <link rel="stylesheet" href="_static/bootstrap-sphinx.css" type="text/css" />
+    <link rel="stylesheet" href="_static/docs.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-1.11.0.min.js"></script>
+    <script type="text/javascript" src="_static/js/jquery-fix.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-3.3.6/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="_static/bootstrap-sphinx.js"></script>
+    <link rel="top" title="caravel  documentation" href="index.html" />
+    <link rel="next" title="Videos" href="videos.html" />
+    <link rel="prev" title="Security" href="security.html" />
+<meta charset='utf-8'>
+<meta http-equiv='X-UA-Compatible' content='IE=edge,chrome=1'>
+<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1'>
+<meta name="apple-mobile-web-app-capable" content="yes">
+
+  </head>
+  <body role="document">
+  
+  <div id="navbar" class="navbar navbar-default ">
+    <div class="container">
+      <div class="navbar-header">
+        <!-- .btn-navbar is used as the toggle for collapsed navbar content -->
+        <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".nav-collapse">
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+          <span class="icon-bar"></span>
+        </button>
+        <a class="navbar-brand" href="index.html">
+          Caravel Documentation</a>
+        <span class="navbar-text navbar-version pull-left"><b></b></span>
+      </div>
+
+        <div class="collapse navbar-collapse nav-collapse">
+          <ul class="nav navbar-nav">
+            
+            
+              <li class="dropdown globaltoc-container">
+  <a role="button"
+     id="dLabelGlobalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="index.html">Topics <b class="caret"></b></a>
+  <ul class="dropdown-menu globaltoc"
+      role="menu"
+      aria-labelledby="dLabelGlobalToc"><ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
+</ul>
+</ul>
+</li>
+              
+                <li class="dropdown">
+  <a role="button"
+     id="dLabelLocalToc"
+     data-toggle="dropdown"
+     data-target="#"
+     href="#">Page <b class="caret"></b></a>
+  <ul class="dropdown-menu localtoc"
+      role="menu"
+      aria-labelledby="dLabelLocalToc"><ul>
+<li><a class="reference internal" href="#">SQL Lab</a></li>
+</ul>
+</ul>
+</li>
+              
+            
+            
+            
+            
+            
+              <li class="hidden-sm"></li>
+            
+          </ul>
+
+          
+            
+<form class="navbar-form navbar-right" action="search.html" method="get">
+ <div class="form-group">
+  <input type="text" name="q" class="form-control" placeholder="Search" />
+ </div>
+  <input type="hidden" name="check_keywords" value="yes" />
+  <input type="hidden" name="area" value="default" />
+</form>
+          
+        </div>
+    </div>
+  </div>
+
+  
+  <div class="container mainbody">
+  
+  <div class="section" id="sql-lab">
+<h1>SQL Lab<a class="headerlink" href="#sql-lab" title="Permalink to this headline">¶</a></h1>
+<a class="reference internal image-reference" href="_images/sqllab.gif"><img alt="_images/sqllab.gif" src="_images/sqllab.gif" style="width: 862.5px; height: 493.5px;" /></a>
+<p>SQL Lab is a SQL IDE (interactive development environment) for SQL.</p>
+<p>It features:</p>
+<ul class="simple">
+<li>multiple tabs as individual workspaces</li>
+<li>table and column metadata browsing, providing a reference while authoring
+queries</li>
+<li>viewing query results in a table view</li>
+<li>exposes an easy workflow to create rich visualizations out of arbitrary SQL
+using Caravel&#8217;s visualization engine</li>
+<li>a per-tab query history, keeping track of previous iterations</li>
+<li>support for long running background sql statements as &#8220;CREATE TABLE AS&#8221;</li>
+<li>works with most database backends, allowing to query Impala, Presto,
+Hive, MySQL, Postgres, Vertica, Teradata, Oracle and pretty any
+SQL-speaking database you may have laying around</li>
+<li>a query search engine, allowing you to easily find that query you ran a
+few weeks ago, seeing who has been querying a table you created</li>
+</ul>
+<p>Caravel&#8217;s SQL Lab is growing within Airbnb to replace Airpal, a similar tool
+focussed on querying Presto. Airpal has served us extremely well, democratizing
+access to data internally, and its success built a strong case for SQL Lab.
+The rational for integrating the Airpal use case
+into Caravel is multifold.  The main reason was to enable a smooth flow from
+arbitrary SQL to visualization, dashboarding and sharing. We also wanted to
+allow support and centralize the tooling for database engines beyond Presto
+which transcends Airpal&#8217;s original mission.
+Another benefit of having all of the data access within one platform is be
+able to manage authentication, roles and permissions in a single tool.</p>
+<p>Computationally intensive, long running queries are common in this petabyte
+scale era, and SQL Lab is designed to provide a nice workflow for this use
+case. By setting up an asynchronous backend, you can enable the CTAS
+(create table as) feature, which will run your query and store the result
+in a newly created table. You can then query and visualize data off of that
+summary table. Note that we&#8217;re planning to add even better support for long running
+queries that won&#8217;t require write access to the source database
+in the near future.</p>
+<p>SQL Lab makes it easy to expose internal databases to SQL speaking employees.
+It a matter of filling in a form to register the database into Caravel, and
+granting permissions to users through roles. While a Caravel user either has
+full access to a database connection or no access at all,
+it&#8217;s possible for administrator to create different database users
+(say one MySQL <cite>all_read_write_access</cite> user and one a <cite>read_only_some_tables</cite>
+user) and expose them as different connections into Caravel.</p>
+<p>On the Caravel side, individual databases can be set
+to allow <cite>CREATE TABLE AS</cite> operation or not, and be instructed to target a
+specified database schema when doing so. There&#8217;s also a flag for defining
+whether non-SELECT statements (UPDATE, DELETE, CREATE, ...) are allowed for that
+database connection, where Caravel won&#8217;t even attempt to run these statements.</p>
+<p>Note that Airbnb subscribes to the &#8220;release early, release often&#8221; moto, and while SQL
+Lab is a solid product today, it will get even better overtime. Here are some
+features we are currently working on that should see the light of day very
+soon:</p>
+<ul class="simple">
+<li>An smoother &#8220;visualize flow&#8221;, with smart defaults</li>
+<li>Better support for long running queries without the need of CTAS</li>
+<li>SQL macros support</li>
+<li>surface more metadata: index, partitions, views, comments, ...</li>
+<li>column aware autocomplete in the SQL editor</li>
+</ul>
+</div>
+
+
+  </div>
+<footer class="footer">
+  <div class="container">
+    <p class="pull-right">
+      <a href="#">Back to top</a>
+      
+    </p>
+    <p>
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.4.<br/>
+    </p>
+  </div>
+</footer>
+  </body>
+</html>
