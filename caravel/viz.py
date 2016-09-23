@@ -1657,8 +1657,8 @@ class FilterBoxViz(BaseViz):
 
     def query_obj(self):
         qry = super(FilterBoxViz, self).query_obj()
-        groupby = self.form_data['groupby']
-        if len(groupby) < 1:
+        groupby = self.form_data.get('groupby')
+        if len(groupby) < 1 and not self.form_data.get('date_filter'):
             raise Exception("Pick at least one filter field")
         qry['metrics'] = [
             self.form_data['metric']]
@@ -1666,7 +1666,7 @@ class FilterBoxViz(BaseViz):
 
     def get_data(self):
         qry = self.query_obj()
-        filters = [g for g in qry['groupby']]
+        filters = [g for g in self.form_data['groupby']]
         d = {}
         for flt in filters:
             qry['groupby'] = [flt]
