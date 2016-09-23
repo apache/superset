@@ -123,7 +123,7 @@ QueryTable.propTypes = {
   queries: React.PropTypes.array,
 };
 QueryTable.defaultProps = {
-  columns: ['started', 'duration', 'rows'],
+  columns: ['state', 'started', 'duration', 'progress', 'rows', 'sql', 'actions'],
   queries: [],
 };
 
