@@ -271,6 +271,10 @@ class Slice(Model, AuditMixinNullable):
         slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
         if url_params_multidict:
             slice_params.update(url_params_multidict)
+            to_del = [k for k in slice_params if k not in url_params_multidict]
+            for k in to_del:
+                del slice_params[k]
+
         immutable_slice_params = ImmutableMultiDict(slice_params)
         return viz_types[immutable_slice_params.get('viz_type')](
             self.datasource,
