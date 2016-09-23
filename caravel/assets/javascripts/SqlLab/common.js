@@ -4,5 +4,3 @@ export const STATE_BSSTYLE_MAP = {
   running: 'warning',
   success: 'success',
 };
-
-export const STATUS_OPTIONS = ['success', 'failed', 'running'];

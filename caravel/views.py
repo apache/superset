@@ -1,3 +1,4 @@
+"""Flask web views for Caravel"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -1864,41 +1865,6 @@ class Caravel(BaseCaravelView):
             mimetype="application/json")
 
     @has_access
-    @expose("/search_queries")
-    @log_this
-    def search_queries(self):
-        """Search for queries."""
-        query = db.session.query(models.Query)
-        userId = request.args.get('userId')
-        databaseId = request.args.get('databaseId')
-        searchText = request.args.get('searchText')
-        status = request.args.get('status')
-
-        if userId != 'null':
-            # Filter on db Id
-            query = query.filter(models.Query.user_id == userId)
-
-        if databaseId != 'null':
-            # Filter on db Id
-            query = query.filter(models.Query.database_id == databaseId)
-
-        if status != 'null':
-            # Filter on status
-            query = query.filter(models.Query.status == status)
-
-        if searchText != 'null':
-            # Filter on search text
-            query = query.filter(models.Query.sql.like('%{}%'.format(searchText)))
-
-        sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
-
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-        return Response(
-            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-            status=200,
-            mimetype="application/json")
-
-    @has_access
     @expose("/refresh_datasources/")
     def refresh_datasources(self):
         """endpoint that refreshes druid datasources metadata"""
@@ -1972,15 +1938,9 @@ appbuilder.add_view(
     category_icon='')
 
 appbuilder.add_link(
-    'SQL Editor',
+    'SQL Lab <span class="label label-danger">alpha</span>',
     href='/caravel/sqllab',
-    icon="fa-flask",
-    category='SQL Lab')
-appbuilder.add_link(
-    'Query Search',
-    href='/caravel/sqllab#search',
-    icon="fa-flask",
-    category='SQL Lab')
+    icon="fa-flask")
 
 
 @app.after_request

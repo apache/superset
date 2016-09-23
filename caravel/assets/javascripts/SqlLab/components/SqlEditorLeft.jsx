@@ -8,13 +8,14 @@ import shortid from 'shortid';
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
-import DatabaseSelect from './DatabaseSelect';
 
 
 class SqlEditorTopToolbar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      databaseLoading: false,
+      databaseOptions: [],
       schemaLoading: false,
       schemaOptions: [],
       tableLoading: false,
@@ -22,19 +23,9 @@ class SqlEditorTopToolbar extends React.Component {
     };
   }
   componentWillMount() {
+    this.fetchDatabaseOptions();
     this.fetchSchemas();
     this.fetchTables();
-  }
-  onChange(db) {
-    const val = (db) ? db.value : null;
-    this.setState({ schemaOptions: [] });
-    this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
-    if (!(db)) {
-      this.setState({ tableOptions: [] });
-    } else {
-      this.fetchTables(val, this.props.queryEditor.schema);
-      this.fetchSchemas(val);
-    }
   }
   resetState() {
     this.props.actions.resetState();
@@ -72,6 +63,37 @@ class SqlEditorTopToolbar extends React.Component {
         this.setState({ schemaLoading: false });
       });
     }
+  }
+  changeDb(db) {
+    const val = (db) ? db.value : null;
+    this.setState({ schemaOptions: [] });
+    this.props.actions.queryEditorSetDb(this.props.queryEditor, val);
+    if (!(db)) {
+      this.setState({ tableOptions: [] });
+      return;
+    }
+    this.fetchTables(val, this.props.queryEditor.schema);
+    this.fetchSchemas(val);
+  }
+  fetchDatabaseOptions() {
+    this.setState({ databaseLoading: true });
+    const url = (
+      '/databaseasync/api/read?' +
+      '_flt_0_expose_in_sqllab=1&' +
+      '_oc_DatabaseAsync=database_name&' +
+      '_od_DatabaseAsync=asc'
+    );
+    $.get(url, (data) => {
+      const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
+      this.props.actions.setDatabases(data.result);
+      this.setState({ databaseOptions: options });
+      this.setState({ databaseLoading: false });
+
+      // Auto select if only one option
+      if (options.length === 1) {
+        this.changeDb(options[0]);
+      }
+    });
   }
   closePopover(ref) {
     this.refs[ref].hide();
@@ -114,7 +136,15 @@ class SqlEditorTopToolbar extends React.Component {
       <div className="clearfix sql-toolbar">
         {networkAlert}
         <div>
-          <DatabaseSelect onChange={this.onChange.bind(this)} />
+          <Select
+            name="select-db"
+            placeholder={`Select a database (${this.state.databaseOptions.length})`}
+            options={this.state.databaseOptions}
+            value={this.props.queryEditor.dbId}
+            isLoading={this.state.databaseLoading}
+            autosize={false}
+            onChange={this.changeDb.bind(this)}
+          />
         </div>
         <div className="m-t-5">
           <Select
