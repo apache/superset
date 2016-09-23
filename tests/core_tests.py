@@ -69,7 +69,7 @@ class CoreTests(CaravelTestCase):
             assert_func('RoleModelView', view_menus)
             assert_func('Security', view_menus)
             assert_func('UserDBModelView', view_menus)
-            assert_func('SQL Lab <span class="label label-danger">alpha</span>',
+            assert_func('SQL Lab',
                         view_menus)
             assert_func('AccessRequestsModelView', view_menus)
 
@@ -669,6 +669,15 @@ class CoreTests(CaravelTestCase):
         self.logout()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
+
+    def test_search_query_endpoint(self):
+        userId = 'userId=null'
+        databaseId = 'databaseId=null'
+        searchText = 'searchText=null'
+        status = 'status=success'
+        params = [userId, databaseId, searchText, status]
+        resp = self.client.get('/caravel/search_queries?'+'&'.join(params))
+        self.assertEquals(200, resp.status_code)
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.

@@ -1,73 +1,134 @@
+const $ = window.$ = require('jquery');
 import React from 'react';
-import Select from 'react-select';
-import { Button } from 'react-bootstrap';
 
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
+import { Button } from 'react-bootstrap';
+import Select from 'react-select';
 import QueryTable from './QueryTable';
+import DatabaseSelect from './DatabaseSelect';
+import { STATUS_OPTIONS } from '../common';
 
 class QuerySearch extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      queryText: '',
+      userLoading: false,
+      userOptions: [],
+      databaseId: null,
+      userId: null,
+      searchText: null,
+      status: 'success',
+      queriesArray: [],
     };
   }
-  changeQueryText(value) {
-    this.setState({ queryText: value });
+  componentWillMount() {
+    this.fetchUsers();
+    this.refreshQueries();
+  }
+  onChange(db) {
+    const val = (db) ? db.value : null;
+    this.setState({ databaseId: val });
+  }
+  insertParams(baseUrl, params) {
+    return baseUrl + '?' + params.join('&');
+  }
+  changeUser(user) {
+    const val = (user) ? user.value : null;
+    this.setState({ userId: val });
+  }
+  changeStatus(status) {
+    const val = (status) ? status.value : null;
+    this.setState({ status: val });
+  }
+  changeSearch(event) {
+    this.setState({ searchText: event.target.value });
+  }
+  fetchUsers() {
+    this.setState({ userLoading: true });
+    const url = '/users/api/read';
+    $.getJSON(url, (data, status) => {
+      if (status === 'success') {
+        const options = [];
+        for (let i = 0; i < data.pks.length; i++) {
+          options.push({ value: data.pks[i], label: data.result[i].username });
+        }
+        this.setState({ userOptions: options, userLoading: false });
+      }
+    });
+  }
+  refreshQueries() {
+    const params = [
+      `userId=${this.state.userId}`,
+      `databaseId=${this.state.databaseId}`,
+      `searchText=${this.state.searchText}`,
+      `status=${this.state.status}`,
+    ];
+
+    const url = this.insertParams('/caravel/search_queries', params);
+    $.getJSON(url, (data, status) => {
+      if (status === 'success') {
+        const newQueriesArray = [];
+        for (const id in data) {
+          newQueriesArray.push(data[id]);
+        }
+        this.setState({ queriesArray: newQueriesArray });
+      }
+    });
+  }
+  search() {
+    this.refreshQueries(this.props);
   }
   render() {
-    const queries = this.props.queries;
     return (
       <div>
-        <div className="pane-cell pane-west m-t-5">
-          <div className="panel panel-default Workspace">
-            <div className="panel-heading">
-              <h6>
-                <i className="fa fa-search" /> Search Queries
-              </h6>
-            </div>
-            <div className="panel-body">
-              <input type="text" className="form-control" placeholder="Query Text" />
-              <Select
-                name="select-user"
-                placeholder="[User]"
-                options={['maxime_beauchemin', 'someone else']}
-                value={'maxime_beauchemin'}
-                className="m-t-10"
-                autosize={false}
-              />
-            </div>
+        <div className="row space-1">
+          <div className="col-sm-2">
+            <Select
+              name="select-user"
+              placeholder="[User]"
+              options={this.state.userOptions}
+              value={this.state.userId}
+              isLoading={this.state.userLoading}
+              autosize={false}
+              onChange={this.changeUser.bind(this)}
+            />
           </div>
+          <div className="col-sm-2">
+            <DatabaseSelect onChange={this.onChange.bind(this)} />
+          </div>
+          <div className="col-sm-4">
+            <input
+              type="text"
+              onChange={this.changeSearch.bind(this)}
+              className="form-control input-sm"
+              placeholder="Search Results"
+            />
+          </div>
+          <div className="col-sm-2">
+            <Select
+              name="select-state"
+              placeholder="[Query Status]"
+              options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+              value={this.state.status}
+              isLoading={false}
+              autosize={false}
+              onChange={this.changeStatus.bind(this)}
+            />
+          </div>
+          <Button bsSize="small" bsStyle="success" onClick={this.search.bind(this)}>
+            Search
+          </Button>
         </div>
-        <div className="pane-cell">
-          <QueryTable
-            columns={['state', 'started', 'duration', 'rows', 'sql', 'actions']}
-            queries={queries}
-          />
-        </div>
-        <Button>Search!</Button>
+        <QueryTable
+          columns={[
+            'state', 'dbId', 'userId',
+            'progress', 'rows', 'sql',
+          ]}
+          queries={this.state.queriesArray}
+        />
       </div>
     );
   }
 }
-QuerySearch.propTypes = {
-  queries: React.PropTypes.array,
-};
-QuerySearch.defaultProps = {
-  queries: [],
-};
 
-function mapStateToProps(state) {
-  return {
-    queries: state.queries,
-  };
-}
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
 
-export default connect(mapStateToProps, mapDispatchToProps)(QuerySearch);
+export default QuerySearch;

@@ -13,6 +13,7 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
+// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
   networkOn: true,
