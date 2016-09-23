@@ -13,12 +13,6 @@ class ResultSet extends React.Component {
       showModal: false,
     };
   }
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      this.state.searchText !== nextState.searchText ||
-      this.state.showModal !== nextState.showModal
-    );
-  }
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
   }
