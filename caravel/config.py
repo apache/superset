@@ -235,6 +235,25 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
+# ---------------------------------------------------
+# Configure Caravel to use a custom Time Grain for Databases
+# ---------------------------------------------------
+
+# DB_CUSTOM_GRAIN = (
+#     ('postgresql', (
+#         ("Time Column", 'Time Column', "{col}"),
+#         ("second", 'second', "DATE_TRUNC('second', {col})"),
+#         ("minute", 'minute', "DATE_TRUNC('minute', {col})"),
+#         ("hour", 'hour', "DATE_TRUNC('hour', {col})"),
+#         ("day", 'day', "DATE_TRUNC('day', {col})"),
+#         ("week", 'week', "DATE({col}) - DAYOFWEEK(DATE({col})) + 1"),
+#         ("month", 'month', "DATE_TRUNC('month', {col})"),
+#         ("year", 'year', "DATE_TRUNC('year', {col})"),
+#     )),
+#     )
+
+DB_CUSTOM_GRAIN = None
+
 try:
     from caravel_config import *  # noqa
 except ImportError:
