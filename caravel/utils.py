@@ -217,7 +217,7 @@ def init(caravel):
         'RoleModelView',
         'Security',
         'UserDBModelView',
-        'SQL Lab <span class="label label-danger">alpha</span>',
+        'SQL Lab',
         'AccessRequestsModelView',
     ])
 
