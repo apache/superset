@@ -744,10 +744,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
                 "table-condensed"))
 
     @property
-    def name(self):
-        return self.table_name
-
-    @property
     def metrics_combo(self):
         return sorted(
             [
