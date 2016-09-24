@@ -240,7 +240,7 @@ SQLLAB_TIMEOUT = 30
 # ---------------------------------------------------
 
 # DB_CUSTOM_GRAIN = (
-#     ('vertica', (
+#     ('postgresql', (
 #         ("Time Column", 'Time Column', "{col}"),
 #         ("second", 'second', "DATE_TRUNC('second', {col})"),
 #         ("minute", 'minute', "DATE_TRUNC('minute', {col})"),
