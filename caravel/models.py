@@ -338,6 +338,10 @@ class Dashboard(Model, AuditMixinNullable):
         return "/caravel/dashboard/{}/".format(self.slug or self.id)
 
     @property
+    def datasources(self):
+        return {slc.datasource for slc in self.slices}
+
+    @property
     def metadata_dejson(self):
         if self.json_metadata:
             return json.loads(self.json_metadata)
@@ -1244,6 +1248,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return sorted(
             [(m.metric_name, m.verbose_name) for m in self.metrics],
             key=lambda x: x[1])
+
+    @property
+    def database(self):
+        return self.cluster
 
     @property
     def num_cols(self):
