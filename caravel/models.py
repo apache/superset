@@ -1919,12 +1919,11 @@ class FavStar(Model):
     dttm = Column(DateTime, default=func.now())
 
     def serialize(self):
-        data = {
+        return {
             'user_id': self.user_id,
             'class_name': self.class_name,
             'obj_id': self.obj_id
         }
-        return json.dumps(data)
 
 
 class QueryStatus:

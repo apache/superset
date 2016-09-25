@@ -13,10 +13,17 @@ export default function FavesTable ({ faves }) {
       </tr>
     );
   });
+  const hasFaves = faves.length > 0;
+
   return (
     <div>
       <table className="table" style={{display: 'table', width: '100%'}}>
         <tbody>
+          {!hasFaves &&
+            <tr>
+              <td>You don't have any favorites yet.</td>
+            </tr>
+          }
           {rows}
         </tbody>
       </table>

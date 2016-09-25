@@ -16,7 +16,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, jsonify)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1337,14 +1337,31 @@ class Caravel(BaseCaravelView):
             status=200,
             mimetype="application/json")
 
-    @expose("/favstarlist/")
-    def favstar(self):
+    @api
+    @has_access_api
+    @expose("/fav_dashboards_list/",  methods=["GET"])
+    def fav_dashboards_list(self):
         session = db.session()
         FavStar = models.FavStar  # noqa
         faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
-        session.commit()
+
+        # for f in faves:
+        #     return f.serialize()
+
+        # for f in faves:
+        #     if f.class_name == "Dashboard":
+        #         dashboard = session.query(Dashboard).filter_by(id=f.obj_id).first()
+        #         f.dashboard_title = dashboard.dashboard_title
+        #         f.description = dashboard.description
+
+        # json.dumps(
+        #     [{"slice_id": session.id, "slice_name": session.slice_name}
+        #     for session in slices])
+
+        session.close()
+
         return Response(
-            json.dumps({'faves': 'faves'}),
+            jsonify({"faves": faves}),
             status=200,
             mimetype="application/json")
 
@@ -1767,20 +1784,9 @@ class Caravel(BaseCaravelView):
     def welcome(self):
         """Personalized welcome page"""
 
-        """ get faves """
-        session = db.session()
-        FavStar = models.FavStar  # noqa
-        faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
-
-        """ serialize faves for client """
-        for index, f in enumerate(faves):
-            faves[index] = json.loads(f.serialize())
-
         return self.render_template(
             'caravel/welcome.html',
-            utils=utils,
-            faves=json.dumps({"data": faves})
-        )
+            utils=utils)
 
     @has_access
     @expose("/sqllab")

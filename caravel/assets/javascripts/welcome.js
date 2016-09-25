@@ -56,10 +56,12 @@ function modelViewTable(selector, modelView, orderCol, order) {
 
 function renderFaveTable() {
   const favesEl = document.getElementById('js-faves-table');
-  const faves = JSON.parse(favesEl.getAttribute('faves'))
+  $.get('/caravel/fav_dashboards_list/', function(data) {
+    console.log('data', data);
+  });
   ReactDOM.render(
     <FavesTable
-      faves={faves.data}
+      faves={[]}
     />,
     favesEl
   );
