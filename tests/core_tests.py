@@ -8,6 +8,7 @@ import csv
 import doctest
 import json
 import io
+import pickle
 import random
 import unittest
 
@@ -451,6 +452,38 @@ class CoreTests(CaravelTestCase):
         db.session.merge(dash)
         db.session.commit()
         self.test_save_dash('alpha')
+
+    def test_export_dashboards(self):
+        births_dash = db.session.query(models.Dashboard).filter_by(
+            slug='births').first()
+
+        # export 1 dashboard
+        export_dash_url_1 = (
+            '/dashboardmodelview/export_dashboards?id={}'
+            .format(births_dash.id)
+        )
+        resp_1 = self.client.get(export_dash_url_1)
+        exported_dashboards_1 = pickle.loads(resp_1.data)
+        self.assertEquals(1, len(exported_dashboards_1))
+        self.assertEquals('births', exported_dashboards_1[0].slug)
+        self.assertEquals('Births', exported_dashboards_1[0].dashboard_title)
+        self.assertTrue(exported_dashboards_1[0].position_json)
+        self.assertEquals(10, len(exported_dashboards_1[0].slices))
+
+        # export 2 dashboards
+        world_health_dash = db.session.query(models.Dashboard).filter_by(
+            slug='world_health').first()
+        export_dash_url_2 = (
+            '/dashboardmodelview/export_dashboards?id={}&id={}'
+            .format(births_dash.id, world_health_dash.id)
+        )
+        resp_2 = self.client.get(export_dash_url_2)
+        exported_dashboards_2 = pickle.loads(resp_2.data)
+        self.assertEquals(2, len(exported_dashboards_2))
+        self.assertEquals('births', exported_dashboards_2[0].slug)
+        self.assertEquals(10, len(exported_dashboards_2[0].slices))
+        self.assertEquals('world_health', exported_dashboards_2[1].slug)
+        self.assertEquals(10, len(exported_dashboards_2[1].slices))
 
 
 if __name__ == '__main__':

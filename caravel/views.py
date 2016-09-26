@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import json
 import logging
+import os
+import pickle
 import re
 import sys
 import time
@@ -15,8 +17,9 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
-from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+    g, request, make_response, redirect, flash, Response, render_template,
+    Markup, url_for, send_file)
+from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose, filemanager
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
@@ -26,6 +29,8 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
+from werkzeug import secure_filename
+from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from werkzeug.datastructures import ImmutableMultiDict
 from wtforms.validators import ValidationError
@@ -867,14 +872,55 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     def pre_delete(self, obj):
         check_ownership(obj)
 
+    @action("mulexport", "Export", "Export dashboards?", "fa-database", single=True)
+    def mulexport(self, items):
+        # TODO: find a way to download file and redirect.
+        ids = ''.join('&id={}'.format(d.id) for d in items)
+        dashboard_names = ''.join(
+            '&dashboard_name={}'.format(d.dashboard_title) for d in items)
+        return redirect('/dashboardmodelview/export_dashboards_form?{}{}'
+                        .format(ids[1:], dashboard_names))
+
+    @expose("/export_dashboards")
+    def download_file(self):
+        ids = request.args.getlist('id')
+        payload = models.Dashboard.export_dashboards(ids)
+        return Response(
+            payload,
+            status=200,
+            headers=generate_download_headers("pickle"),
+            mimetype="application/text")
+
+    @expose("/export_dashboards_form")
+    def download_dashboards(self):
+        ids = request.args.getlist('id')
+        args = ''.join('&id={}'.format(id) for id in ids)
+        dashboard_names = request.args.getlist('dashboard_name')
+        concat_dashboard_names = ', '.join(dashboard_names)
+        download_url = (
+            '/dashboardmodelview/export_dashboards?{}'.format(args[1:])
+        )
+        return self.render_template(
+            'caravel/export_dashboards.html',
+            dashboard_names=concat_dashboard_names,
+            download_url=download_url,
+            dashboards_url='/dashboardmodelview/list'
+        )
+
 
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=__("Dashboards"),
+    label=__("Dashboards list"),
     icon="fa-dashboard",
-    category="",
+    category='Dashboards',
     category_icon='',)
+
+appbuilder.add_link(
+    'Import Dashboards',
+    href='/caravel/import_dashboards',
+    icon="fa-flask",
+    category='Dashboards')
 
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
@@ -1126,6 +1172,7 @@ class Caravel(BaseCaravelView):
             return viz_obj
 
     @has_access
+<<<<<<< f70d301f0d37fe6c4f94cd7d6026a72a56087d34
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
@@ -1149,6 +1196,26 @@ class Caravel(BaseCaravelView):
             status=200,
             mimetype="application/json")
 
+    @expose("/import_dashboards", methods=['GET', 'POST'])
+    @log_this
+    def import_dashboards(self):
+        """Overrides the dashboards using pickled instances from the file."""
+        if request.method == 'POST':
+            file = request.files['file']
+            if file:
+                filename = secure_filename(file.filename)
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                for d in pickle.load(open(filepath, 'rb')):
+                    models.Dashboard.import_dashboard(d)
+                os.remove(filepath)
+                return redirect('/dashboardmodelview/list/')
+        return self.render_template('caravel/import_dashboards.html')
+
+    @has_access
+    @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
+    @expose("/explore/<datasource_type>/<datasource_id>/")
+    @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")

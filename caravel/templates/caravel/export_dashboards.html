@@ -1,0 +1,24 @@
+{% extends "caravel/basic.html" %}
+{% block title %}{{ _("Export") }}{% endblock %}
+{% block body %}
+    {% include "caravel/flash_wrapper.html" %}
+    <div class="container">
+        <title>{{ _("Export the dashboards") }}</title>
+        <h4>
+            {{ _("You are about to export dashboards: %(dashboard_names)s ",
+                  dashboard_names=dashboard_names) }}
+        </h4>
+        <div id="buttons">
+            <button onclick="window.location.href = '{{ download_url }}';"
+                    id="export_dashboards"
+            >
+                {{ _("Export") }}
+            </button>
+            <button onclick="window.location.href = '{{ dashboards_url }}';"
+                    id="go_back"
+            >
+                {{ _("Go back") }}
+            </button>
+        </div>
+    </div>
+{% endblock %}

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import functools
 import json
 import logging
+import pickle
 import re
 import textwrap
 from collections import namedtuple
@@ -18,6 +19,9 @@ import pandas as pd
 import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.orm import joinedload
+from sqlalchemy.orm.session import make_transient
+
 import sqlparse
 from dateutil.parser import parse
 
@@ -41,6 +45,7 @@ from sqlalchemy import (
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship
+from sqlalchemy.orm.session import make_transient
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -283,6 +288,47 @@ class Slice(Model, AuditMixinNullable):
             slice_=self
         )
 
+    @classmethod
+    def import_slice(cls, slice):
+        make_transient(slice)
+        slice.id = None
+
+        session = db.session
+        existing_slice = (
+            session.query(Slice)
+            .filter_by(slice_name=slice.slice_name)
+            .first()
+        )
+
+        # no overrides for the slices
+        # TODO: consider comparing the object and overriding if needed.
+        if existing_slice:
+            return existing_slice
+
+        id_pos = slice.perm.find('(id')
+        if id_pos == -1:
+            logging.warning('slice {} has malformed perm {}'.format(
+                slice.slice_name, slice.perf))
+            return None
+
+        perm_prefix = slice.perm[:id_pos]
+        datasource_class = SourceRegistry.sources[
+            slice.datasource_type]
+        datasources = session.query(datasource_class).all()
+        slice_datasource = [d for d in datasources if perm_prefix in d.perm][0]
+        slice.datasource_id = slice_datasource.id
+        # generate correct perms for the slice
+        slice.perm = '{}(id:{})'.format(perm_prefix, slice_datasource.id)
+        session.add(slice)
+        session.commit()
+
+        created_slice = (
+            session.query(Slice)
+            .filter_by(slice_name=slice.slice_name)
+            .first()
+        )
+        return created_slice
+
 
 def set_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
@@ -369,6 +415,68 @@ class Dashboard(Model, AuditMixinNullable):
         }
         return json.dumps(d)
 
+    @classmethod
+    def import_dashboard(cls, dashboard_to_import):
+        session = db.session
+        # TODO: provide nice error message about failed imports
+        slices_to_attach = []
+        for slice in dashboard_to_import.slices:
+            imported_slice = Slice.import_slice(slice)
+            if not imported_slice:
+                break
+            slices_to_attach.append(imported_slice)
+            logging.info(
+                slice.slice_name + ' belongs to the dashboard ' +
+                dashboard_to_import.dashboard_title)
+        # Skip dashboard creation if the slice wasn't imported
+        if not slices_to_attach:
+            logging.warning('Dashboard {} import failed'.format(
+                dashboard_to_import.dashboard_title))
+            return
+
+        existing_dashboard = (
+            session.query(Dashboard)
+            .filter_by(
+                dashboard_title=dashboard_to_import.dashboard_title)
+            .first()
+        )
+
+        # Override the dashboard
+        if existing_dashboard:
+            # TODO: add nice notification about the overriden dashboard
+            session.delete(existing_dashboard)
+            session.commit()
+
+        # session.add(dashboard_to_import) causes sqlachemy failures
+        # related to the attached users / slices. Creating new object
+        # allows to avoid conflicts in the sql alchemy state.
+        new_dash = Dashboard(
+            dashboard_title=dashboard_to_import.dashboard_title,
+            position_json=dashboard_to_import.position_json,
+            json_metadata=dashboard_to_import.json_metadata,
+            description=dashboard_to_import.description,
+            css=dashboard_to_import.css,
+            slug=dashboard_to_import.slug,
+            slices=slices_to_attach,
+        )
+        session.add(new_dash)
+        session.commit()
+
+    @classmethod
+    def export_dashboards(cls, dashboard_ids):
+        eager_dashboards = []
+        for dashboard_id in dashboard_ids:
+            eager_dashboard = db.session.query(Dashboard).options(
+                joinedload('slices')).filter_by(id=dashboard_id).first()
+            db.session.expunge(eager_dashboard)
+            make_transient(eager_dashboard)
+            eager_dashboard.created_by_fk = None
+            eager_dashboard.changed_by_fk = None
+            eager_dashboard.owners = []
+            eager_dashboards.append(eager_dashboard)
+        return pickle.dumps(eager_dashboards)
+
+
 
 class Queryable(object):
 
@@ -404,7 +512,6 @@ class Queryable(object):
             return self.default_endpoint
         else:
             return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
-
 
 class Database(Model, AuditMixinNullable):
 
