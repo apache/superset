@@ -1573,13 +1573,13 @@ msgstr "Источник / Цель"
 msgid "Choose a source and a target"
 msgstr "Выберите источник и цель"
 
-#: caravel/viz.py:1391 Перевести
+#: caravel/viz.py:1391
 msgid "Directed Force Layout"
-msgstr ""
+msgstr "Ориентированный граф"
 
 #: caravel/viz.py:1402
 msgid "Force Layout"
-msgstr ""
+msgstr "Граф"
 
 #: caravel/viz.py:1433
 msgid "World Map"
@@ -1809,39 +1809,39 @@ msgstr "Добро пожаловать!"
 msgid "Test Connection"
 msgstr "Проверка соединения"
 
-msgid "Databases"
-msgstr "Базы данных"
+#~ msgid "Databases"
+#~ msgstr "Базы данных"
 
-msgid "Sources"
-msgstr "Источники данных"
+#~ msgid "Sources"
+#~ msgstr "Источники данных"
 
-msgid "Tables"
-msgstr "Таблицы"
+#~ msgid "Tables"
+#~ msgstr "Таблицы"
 
-msgid "Druid Clusters"
-msgstr "Кластеры Druid"
+#~ msgid "Druid Clusters"
+#~ msgstr "Кластеры Druid"
 
-msgid "Action Log"
-msgstr "Журнал активности"
+#~ msgid "Action Log"
+#~ msgstr "Журнал активности"
 
-msgid "Security"
-msgstr "Настройки безопасности"
+#~ msgid "Security"
+#~ msgstr "Настройки безопасности"
 
-msgid "Druid Datasources"
-msgstr "Источник данных Druid"
+#~ msgid "Druid Datasources"
+#~ msgstr "Источник данных Druid"
 
-msgid "CSS Templates"
-msgstr "Шаблоны CSS"
+#~ msgid "CSS Templates"
+#~ msgstr "Шаблоны CSS"
 
-msgid "Documentation"
-msgstr "Документация"
+#~ msgid "Documentation"
+#~ msgstr "Документация"
 
-msgid "Standalone version, use to embed anywhere"
-msgstr "Автономная версия, использовать для размещения в любом месте"
+#~ msgid "Standalone version, use to embed anywhere"
+#~ msgstr "Автономная версия, использовать для размещения в любом месте"
 
-msgid "Overwrite"
-msgstr "Перезаписать"
+#~ msgid "Overwrite"
+#~ msgstr "Перезаписать"
 
-msgid "Save as"
-msgstr "Сохранить как"
+#~ msgid "Save as"
+#~ msgstr "Сохранить как"
 
