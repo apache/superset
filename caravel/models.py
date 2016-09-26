@@ -188,7 +188,9 @@ class Slice(Model, AuditMixinNullable):
 
     @renders('datasource_name')
     def datasource_link(self):
-        return self.datasource.link
+        datasource = self.datasource
+        if datasource:
+            return self.datasource.link
 
     @property
     def datasource_edit_url(self):
