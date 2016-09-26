@@ -2,8 +2,8 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import * as V from 'victory';
 import theme from '../../components/VictoryTheme';
-import dataForThreeLines from '../stores/dataForThreeLines';
 import moment from 'moment';
+import sliceJSON from '../stores/sliceJSON';
 
 const chartContainerStyle = {
   position: 'fixed',
@@ -13,29 +13,24 @@ const chartContainerStyle = {
 export default class ChartContainer extends React.Component {
   constructor(props) {
     super(props);
+    const sliceObj = sliceJSON();
+    console.log('sliceObj', sliceObj)
     this.state = {
       params: this.getParamsFromUrl(),
-      data: dataForThreeLines().data,
+      data: sliceObj.data,
       height: window.innerHeight - 100,
     };
     this.getSliceData();
   }
 
   getSliceData() {
-    console.log('this.state', this.state)
-    const datasourceType = this.state.params.datasource_type;
-    const datasourceId = this.state.params.datasource_id;
-    const sliceId = this.state.params.slice_id;
-    const url = `/caravel/explore/${datasourceType}/${datasourceId}/${sliceId}/`;
-    console.log('url', url)
+    // const datasourceType = this.state.params.datasource_type;
+    // const datasourceId = this.state.params.datasource_id;
+    // const sliceId = this.state.params.slice_id;
+    // const url = `/caravel/explore/${datasourceType}/${datasourceId}/${sliceId}/?format=json`;
+    const url ='/caravel/explore/table/2/?slice_name=Growth+Rate&row_limit=50000&metric=sum__SP_POP_TOTL&show_bubbles=y&entity=country_code&secondary_metric=sum__SP_POP_TOTL&viz_type=line&since=1960-01-01&json=true&until=2014-01-01&datasource_id=1&format=json&metrics=sum__SP_POP_TOTL&datasource_name=birth_names&country_fieldtype=cca3&granularity=year&slice_id=7&num_period_compare=10&datasource_type=table&compare_lag=10&limit=25&markup_type=markdown&compare_suffix=o10Y&where=&groupby=country_name';
     fetch(url, {
       credentials: 'same-origin',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
-      method: 'JSON',
-      data: { myNameIs: 'alanna' }
     }).then((response) => {
       console.log('response', response)
     }).then((body) => {
@@ -76,15 +71,14 @@ export default class ChartContainer extends React.Component {
           }
         >
           <V.VictoryChart theme={theme}>
-            <V.VictoryLine
-              data={this.formatDates(this.state.data[0].values)}
-            />
-            <V.VictoryLine
-              data={this.formatDates(this.state.data[1].values)}
-            />
-            <V.VictoryLine
-              data={this.formatDates(this.state.data[2].values)}
-            />
+            {this.state.data.map((data) => {
+              return (
+                <V.VictoryLine
+                  key={data.key}
+                  data={data.values}
+                />
+              );
+            })}
             <V.VictoryAxis
               label="label 1"
               orientation="left"
