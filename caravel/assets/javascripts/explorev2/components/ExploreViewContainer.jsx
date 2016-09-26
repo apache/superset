@@ -10,7 +10,7 @@ const ExploreViewContainer = function () {
         <div className="col-sm-3">
           <QueryAndSaveButtons
             canAdd="True"
-            onQuery={() => { console.log('clicked query'); }}
+            onQuery={() => {}}
           />
           <br /><br />
           <ControlPanelsContainer />

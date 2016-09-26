@@ -1,45 +1,82 @@
 import React from 'react';
 import { Panel } from 'react-bootstrap';
 import * as V from 'victory';
+import theme from '../../components/VictoryTheme';
+import dataForThreeLines from '../stores/dataForThreeLines';
+import moment from 'moment';
 
-const ChartContainer = function () {
-  return (
-    <Panel
-      header={<div className="panel-title">Chart Title</div>}
-    >
-      <V.VictoryChart height={200}>
-        <V.VictoryAxis
-          style={
-            {
-              axisLabel: {fontsize: 8, fontFamily: 'Roboto'},
-            }
-          }
-          padding={20}
-        />
-        <V.VictoryAxis
-          dependentAxis
-          padding={20}
-          style={
-            {
-              axisLabel: {fontsize: 8, fontFamily: 'Roboto'},
-            }
-          }
-        />
-        <V.VictoryBar
-          style={{
-            data: {fill: "blue", width: 20},
-            labels: {fontSize: 10}
-          }}
-          data={[
-            {x: 1, y: 1},
-            {x: 2, y: 2},
-            {x: 3, y: 3},
-            {x: 4, y: 2},
-            {x: 5, y: 1},
-          ]}
-        />
-      </V.VictoryChart>
-    </Panel>
-  );
+const chartContainerStyle = {
+  position: 'fixed',
+  width: '73%',
 };
-export default ChartContainer;
+
+export default class ChartContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      params: this.getParamsFromUrl(),
+      data: dataForThreeLines().data,
+      height: window.innerHeight - 100,
+    };
+  }
+
+  getParamsFromUrl() {
+    const hash = window.location.search;
+    const params = hash.split('?')[1].split('&');
+    const newParams = {};
+    params.forEach((p) => {
+      const value = p.split('=')[1].replace(/\+/g, ' ');
+      const key = p.split('=')[0];
+      newParams[key] = value;
+    });
+    return newParams;
+  }
+
+  formatDates(values) {
+    const newValues = values.map((val) => {
+      return {
+        x: moment(new Date(val.x)).format('MMM D, YYYY'),
+        y: val.y,
+      };
+    });
+    return newValues;
+  }
+
+  render() {
+    console.log('this.state', this.state)
+    return (
+      <div className="chart-container" style={chartContainerStyle}>
+        <Panel
+          style={{ height: this.state.height }}
+          header={
+            <div className="panel-title">{this.state.params.slice_name}</div>
+          }
+        >
+          <V.VictoryChart theme={theme}>
+            <V.VictoryLine
+              data={this.formatDates(this.state.data[0].values)}
+            />
+            <V.VictoryLine
+              data={this.formatDates(this.state.data[1].values)}
+            />
+            <V.VictoryLine
+              data={this.formatDates(this.state.data[2].values)}
+            />
+            <V.VictoryAxis
+              label="label 1"
+              orientation="left"
+              padding={40}
+            />
+            <V.VictoryAxis
+              dependentAxis
+              label="label 2"
+              orientation="bottom"
+              padding={40}
+              fixLabelOverlap
+            />
+          </V.VictoryChart>
+        </Panel>
+      </div>
+    );
+  }
+}
