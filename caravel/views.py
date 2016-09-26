@@ -1178,7 +1178,7 @@ class Caravel(BaseCaravelView):
                 slice_params_multi_dict, slc, slice_add_perm, slice_edit_perm)
 
         # handle different endpoints
-        if slice_params_multi_dict.get("json") == "true":
+        if (slice_params_multi_dict.get("json") == "true") or (request.method == "JSON"):
             if config.get("DEBUG"):
                 # Allows for nice debugger stack traces in debug mode
                 return Response(

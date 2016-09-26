@@ -18,6 +18,29 @@ export default class ChartContainer extends React.Component {
       data: dataForThreeLines().data,
       height: window.innerHeight - 100,
     };
+    this.getSliceData();
+  }
+
+  getSliceData() {
+    console.log('this.state', this.state)
+    const datasourceType = this.state.params.datasource_type;
+    const datasourceId = this.state.params.datasource_id;
+    const sliceId = this.state.params.slice_id;
+    const url = `/caravel/explore/${datasourceType}/${datasourceId}/${sliceId}/`;
+    console.log('url', url)
+    fetch(url, {
+      credentials: 'same-origin',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      method: 'JSON',
+      data: { myNameIs: 'alanna' }
+    }).then((response) => {
+      console.log('response', response)
+    }).then((body) => {
+      console.log('body', body)
+    });
   }
 
   getParamsFromUrl() {
@@ -35,7 +58,7 @@ export default class ChartContainer extends React.Component {
   formatDates(values) {
     const newValues = values.map((val) => {
       return {
-        x: moment(new Date(val.x)).format('MMM D, YYYY'),
+        x: moment(new Date(val.x)).format('MMM D'),
         y: val.y,
       };
     });

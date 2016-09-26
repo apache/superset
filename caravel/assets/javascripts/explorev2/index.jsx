@@ -9,14 +9,9 @@ import { enhancer } from '../../utils/common';
 import { initialState } from './stores/store';
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
-//const bootstrapData = exploreViewContainer.getAttribute('data-bootstrap');
 
 import { exploreReducer } from './reducers/exploreReducer';
 
-// const bootstrappedState = Object.assign(initialState, {
-//   datasources: bootstrapData.datasources,
-//   viz: bootstrapData.viz,
-// });
 const store = createStore(exploreReducer, initialState, enhancer);
 
 ReactDOM.render(
