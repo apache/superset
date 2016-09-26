@@ -1707,15 +1707,15 @@ msgstr ""
 
 #: caravel/templates/appbuilder/navbar_right.html:36
 msgid "Profile"
-msgstr "Профиль"
+msgstr ""
 
 #: caravel/templates/appbuilder/navbar_right.html:37
 msgid "Logout"
-msgstr "Выйти из системы"
+msgstr ""
 
 #: caravel/templates/appbuilder/navbar_right.html:42
 msgid "Login"
-msgstr "Войти в систему"
+msgstr ""
 
 #: caravel/templates/caravel/explore.html:34
 #: caravel/templates/caravel/explore.html:241
