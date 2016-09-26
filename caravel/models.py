@@ -439,9 +439,12 @@ class Database(Model, AuditMixinNullable):
         return url.get_backend_name()
 
     def set_sqlalchemy_uri(self, uri):
+        password_mask = "X" * 10
         conn = sqla.engine.url.make_url(uri)
-        self.password = conn.password
-        conn.password = "X" * 10 if conn.password else None
+        if conn.password != password_mask:
+            # do not over-write the password with the password mask
+            self.password = conn.password
+        conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
     def get_sqla_engine(self, schema=None):
