@@ -115,6 +115,9 @@ const config = {
         NODE_ENV: JSON.stringify(process.env.NODE_ENV),
       },
     }),
+    new webpack.ProvidePlugin({
+      fetch: 'imports?this=>global!exports?global.fetch!whatwg-fetch',
+    }),
   ],
 };
 if (process.env.NODE_ENV === 'production') {
