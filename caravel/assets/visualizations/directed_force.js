@@ -11,13 +11,13 @@ function directedForceVis(slice) {
     const width = slice.width();
     const height = slice.height() - 25;
     d3.json(slice.jsonEndpoint(), function (error, json) {
-      const linkLength = json.form_data.link_length || 200;
-      const charge = json.form_data.charge || -500;
-
       if (error !== null) {
         slice.error(error.responseText, error);
         return;
       }
+      const linkLength = json.form_data.link_length || 200;
+      const charge = json.form_data.charge || -500;
+
       const links = json.data;
       const nodes = {};
       // Compute the distinct nodes from the links.
@@ -87,6 +87,7 @@ function directedForceVis(slice) {
       .on('tick', tick)
       .start();
 
+      div.selectAll('*').remove();
       const svg = div.append('svg')
       .attr('width', width)
       .attr('height', height);
@@ -168,7 +169,6 @@ function directedForceVis(slice) {
       .text(function (d) {
         return d.name;
       });
-
 
       slice.done(json);
     });

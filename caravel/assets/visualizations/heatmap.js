@@ -18,6 +18,10 @@ function heatmapVis(slice) {
     };
 
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      if (error) {
+        slice.error(error.responseText, error);
+        return;
+      }
       const data = payload.data;
       // Dynamically adjusts  based on max x / y category lengths
       function adjustMargins() {
@@ -56,10 +60,6 @@ function heatmapVis(slice) {
 
       slice.container.html('');
       const matrix = {};
-      if (error) {
-        slice.error(error.responseText, error);
-        return;
-      }
       const fd = payload.form_data;
 
       adjustMargins();

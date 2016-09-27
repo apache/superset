@@ -326,7 +326,7 @@ def load_world_bank_health_n_pop():
                 defaults,
                 since="1960-01-01",
                 until="now",
-                whisker_options="Tukey",
+                whisker_options="Min/max (no outliers)",
                 viz_type='box_plot',
                 groupby=["region"],)),
         Slice(

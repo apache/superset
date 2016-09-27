@@ -116,6 +116,8 @@ class BaseViz(object):
             del d['json']
         if 'action' in d:
             del d['action']
+        if 'slice_id' in d:
+            del d['slice_id']
         d.update(kwargs)
         # Remove unchecked checkboxes because HTML is weird like that
         od = MultiDict()
@@ -716,7 +718,7 @@ class BoxPlotViz(NVD3Viz):
     viz_type = "box_plot"
     verbose_name = _("Box Plot")
     sort_series = False
-    is_timeseries = False
+    is_timeseries = True
     fieldsets = ({
         'label': None,
         'fields': (
