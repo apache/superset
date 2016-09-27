@@ -24,6 +24,9 @@ class QuerySearch extends React.Component {
     this.fetchUsers();
     this.refreshQueries();
   }
+  onUserClicked(userId) {
+    this.setState({ userId }, () => { this.refreshQueries(); });
+  }
   onChange(db) {
     const val = (db) ? db.value : null;
     this.setState({ databaseId: val });
@@ -74,9 +77,6 @@ class QuerySearch extends React.Component {
       }
     });
   }
-  search() {
-    this.refreshQueries(this.props);
-  }
   render() {
     return (
       <div>
@@ -114,15 +114,16 @@ class QuerySearch extends React.Component {
               onChange={this.changeStatus.bind(this)}
             />
           </div>
-          <Button bsSize="small" bsStyle="success" onClick={this.search.bind(this)}>
+          <Button bsSize="small" bsStyle="success" onClick={this.refreshQueries.bind(this)}>
             Search
           </Button>
         </div>
         <QueryTable
           columns={[
             'state', 'dbId', 'userId',
-            'progress', 'rows', 'sql',
+            'progress', 'rows', 'sql', 'querylink',
           ]}
+          onUserClicked={this.onUserClicked.bind(this)}
           queries={this.state.queriesArray}
         />
       </div>

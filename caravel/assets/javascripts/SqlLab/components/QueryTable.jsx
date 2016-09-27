@@ -17,10 +17,20 @@ import { fDuration } from '../../modules/dates';
 class QueryTable extends React.Component {
   constructor(props) {
     super(props);
+    const uri = window.location.toString();
+    const cleanUri = uri.substring(0, uri.indexOf('#'));
     this.state = {
+      cleanUri,
       showVisualizeModal: false,
       activeQuery: null,
     };
+  }
+  getQueryLink(dbId, sql) {
+    const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
+    const queryString = params.join('&');
+    const queryLink = this.state.cleanUri + '?' + queryString;
+
+    return queryLink;
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -42,6 +52,11 @@ class QueryTable extends React.Component {
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
+      q.userId = (
+        <a onClick={this.props.onUserClicked.bind(this, q.userId)}>
+          {q.userId}
+        </a>
+      );
       q.started = moment(q.startDttm).format('HH:mm:ss');
       const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
@@ -98,7 +113,13 @@ class QueryTable extends React.Component {
           />
         </div>
       );
-
+      q.querylink = (
+        <div style={{ width: '75px' }}>
+          <a href={this.getQueryLink(q.dbId, source)} >
+            <i className="fa fa-external-link" /> Open in SQL Editor
+          </a>
+        </div>
+      );
       return q;
     }).reverse();
     return (
@@ -121,10 +142,12 @@ QueryTable.propTypes = {
   columns: React.PropTypes.array,
   actions: React.PropTypes.object,
   queries: React.PropTypes.array,
+  onUserClicked: React.PropTypes.func,
 };
 QueryTable.defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
+  onUserClicked: () => {},
 };
 
 function mapStateToProps() {
