@@ -6,8 +6,8 @@ import moment from 'moment';
 import sliceJSON from '../stores/sliceJSON';
 
 const chartContainerStyle = {
-  position: 'fixed',
-  width: '73%',
+  // position: 'fixed',
+  // width: '73%',
 };
 
 export default class ChartContainer extends React.Component {
@@ -18,7 +18,10 @@ export default class ChartContainer extends React.Component {
     this.state = {
       params: this.getParamsFromUrl(),
       data: sliceObj.data,
-      height: window.innerHeight - 100,
+      height: 1000,
+      lineData: sliceObj.data[0],
+      label1: 'Label 1',
+      sliceObj
     };
     this.getSliceData();
   }
@@ -60,6 +63,15 @@ export default class ChartContainer extends React.Component {
     return newValues;
   }
 
+  changeData() {
+    const lineIndex = Math.floor(Math.random() * this.state.data.length);
+    this.setState({ lineData: this.state.data[lineIndex] });
+  }
+
+  handleLabelChange(e) {
+    this.setState({ label1: e.currentTarget.value })
+  }
+
   render() {
     console.log('this.state', this.state)
     return (
@@ -67,31 +79,35 @@ export default class ChartContainer extends React.Component {
         <Panel
           style={{ height: this.state.height }}
           header={
-            <div className="panel-title">{this.state.params.slice_name}</div>
+            <div className="panel-title">Growth Rate</div>
           }
         >
           <V.VictoryChart theme={theme}>
-            {this.state.data.map((data) => {
-              return (
-                <V.VictoryLine
-                  key={data.key}
-                  data={data.values}
-                />
-              );
-            })}
+            <V.VictoryLine
+              data={this.state.lineData.values}
+            />
             <V.VictoryAxis
-              label="label 1"
+              label={this.state.label1}
               orientation="left"
               padding={40}
             />
             <V.VictoryAxis
               dependentAxis
-              label="label 2"
+              label={this.state.lineData.key}
               orientation="bottom"
               padding={40}
               fixLabelOverlap
             />
           </V.VictoryChart>
+          <button className="btn btn-primary" onClick={this.changeData.bind(this)}>
+            Update Line Data
+          </button>
+          <br/><br/>
+          <div>
+            <label>Update Label 1
+              <input type="text" name="label-1" onChange={this.handleLabelChange.bind(this)} />
+            </label>
+          </div>
         </Panel>
       </div>
     );
