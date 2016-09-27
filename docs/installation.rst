@@ -124,7 +124,7 @@ of the parameters you can copy / paste in that configuration module: ::
     # Caravel specific config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
-    CARAVEL_WORKERS = 16
+    CARAVEL_WORKERS = 4
 
     CARAVEL_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
@@ -331,4 +331,3 @@ your environment.::
     npm run prod
     cd $CARAVEL_HOME
     python setup.py install
-
