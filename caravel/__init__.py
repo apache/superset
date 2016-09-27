@@ -85,7 +85,7 @@ if app.config.get('ENABLE_PROXY_FIX'):
 if app.config.get('UPLOAD_FOLDER'):
     try:
         os.makedirs(app.config.get('UPLOAD_FOLDER'))
-    except OSError, e:
+    except OSError:
         pass
 
 

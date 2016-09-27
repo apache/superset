@@ -18,7 +18,7 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, make_response, redirect, flash, Response, render_template,
-    Markup, url_for, send_file)
+    Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -895,7 +895,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=__("Dashboards list"),
+    label=__("Dashboards List"),
     icon="fa-dashboard",
     category='Dashboards',
     category_icon='',)
