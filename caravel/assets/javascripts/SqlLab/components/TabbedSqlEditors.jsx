@@ -1,8 +1,7 @@
 import React from 'react';
-import { DropdownButton, MenuItem, Tab, Tabs, Popover, OverlayTrigger } from 'react-bootstrap';
+import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
-import CopyToClipboard from '../../components/CopyToClipboard';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
@@ -95,14 +94,6 @@ class TabbedSqlEditors extends React.Component {
       let latestQuery = this.props.queries[qe.latestQueryId];
       const database = this.props.databases[qe.dbId];
       const state = (latestQuery) ? latestQuery.state : '';
-      const popoverRight = (
-        <Popover id="popover-positioned-right" title="Link for current query:" >
-          <CopyToClipboard
-            text={this.getQueryLink(qe)}
-            copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
-          />
-        </Popover>
-      );
       const tabTitle = (
         <div>
           <div className={'circle ' + state} /> {qe.title} {' '}

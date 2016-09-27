@@ -1,6 +1,14 @@
 import React from 'react';
 import CopyToClipboard from '../../components/CopyToClipboard';
 
+const propTypes = {
+  qe: React.PropTypes.object,
+};
+
+const defaultProps = {
+  qe: null,
+};
+
 export default class CopyQueryTabUrl extends React.Component {
   constructor(props) {
     super(props);
@@ -41,3 +49,6 @@ export default class CopyQueryTabUrl extends React.Component {
     );
   }
 }
+
+CopyQueryTabUrl.propTypes = propTypes;
+CopyQueryTabUrl.defaultProps = defaultProps;
