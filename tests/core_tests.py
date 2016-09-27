@@ -459,7 +459,7 @@ class CoreTests(CaravelTestCase):
 
         # export 1 dashboard
         export_dash_url_1 = (
-            '/dashboardmodelview/export_dashboards?id={}'
+            '/dashboardmodelview/export_dashboards_form?id={}&action=go'
             .format(births_dash.id)
         )
         resp_1 = self.client.get(export_dash_url_1)
@@ -474,7 +474,7 @@ class CoreTests(CaravelTestCase):
         world_health_dash = db.session.query(models.Dashboard).filter_by(
             slug='world_health').first()
         export_dash_url_2 = (
-            '/dashboardmodelview/export_dashboards?id={}&id={}'
+            '/dashboardmodelview/export_dashboards_form?id={}&id={}&action=go'
             .format(births_dash.id, world_health_dash.id)
         )
         resp_2 = self.client.get(export_dash_url_2)
@@ -484,6 +484,190 @@ class CoreTests(CaravelTestCase):
         self.assertEquals(10, len(exported_dashboards_2[0].slices))
         self.assertEquals('world_health', exported_dashboards_2[1].slug)
         self.assertEquals(10, len(exported_dashboards_2[1].slices))
+
+    def test_import_slice(self):
+        session = db.session
+
+        def get_slice(name, ds_id=666, slc_id=1,
+                      perm='[main].[wb_health_population](id:666)'):
+            return models.Slice(
+                slice_name=name,
+                datasource_type='table',
+                viz_type='bubble',
+                params='{"num_period_compare": "10"}',
+                # used to locate the datasource
+                perm=perm,
+                datasource_id=ds_id,
+                id=slc_id
+            )
+
+        def find_slice(slc_id):
+            return session.query(models.Slice).filter_by(id=slc_id).first()
+
+        # Case 1. Import slice with different datasource id
+        slc_id_1 = models.Slice.import_slice(
+            get_slice('Import Me 1'), import_time=1989)
+        slc_1 = find_slice(slc_id_1)
+        table_id = db.session.query(models.SqlaTable).filter_by(
+            table_name='wb_health_population').first().id
+        self.assertEquals(table_id, slc_1.datasource_id)
+        self.assertEquals(
+            '[main].[wb_health_population](id:{})'.format(table_id),
+            slc_1.perm)
+        self.assertEquals('Import Me 1', slc_1.slice_name)
+        self.assertEquals('table', slc_1.datasource_type)
+        self.assertEquals('bubble', slc_1.viz_type)
+        self.assertEquals(
+            '{"num_period_compare": "10",'
+            ' "remote_id": 1, '
+            '"import_time": 1989}',
+            slc_1.params)
+
+        # Case 2. Import slice with same datasource id
+        slc_id_2 = models.Slice.import_slice(get_slice(
+            'Import Me 2', ds_id=table_id, slc_id=2,
+            perm='[main].[wb_health_population](id:{})'.format(table_id)))
+        slc_2 = find_slice(slc_id_2)
+        self.assertEquals(table_id, slc_2.datasource_id)
+        self.assertEquals(
+            '[main].[wb_health_population](id:{})'.format(table_id),
+            slc_2.perm)
+
+        # Case 3. Import slice with no permissions
+        slice_3 = get_slice('Import Me 3', slc_id=3)
+        slice_3.perm = None
+        slc_id_3 = models.Slice.import_slice(slice_3)
+        self.assertIsNone(slc_id_3)
+
+        # Case 4. Import slice with non existent datasource
+        slc_id_4 = models.Slice.import_slice(get_slice(
+            'Import Me 4', slc_id=4, perm='[main].[non_existent](id:999)'))
+        self.assertIsNone(slc_id_4)
+
+        # Case 5. Slice already exists, no override
+        slc_id_5 = models.Slice.import_slice(
+            get_slice('Import Me 1'), import_time=1989)
+        slc_5 = find_slice(slc_id_5)
+        self.assertEquals(table_id, slc_5.datasource_id)
+        self.assertEquals(
+            '[main].[wb_health_population](id:{})'.format(table_id),
+            slc_5.perm)
+        self.assertEquals('Import Me 1', slc_5.slice_name)
+        self.assertEquals('table', slc_5.datasource_type)
+        self.assertEquals('bubble', slc_5.viz_type)
+        self.assertEquals(
+            '{"num_period_compare": "10",'
+            ' "remote_id": 1, '
+            '"import_time": 1989}',
+            slc_5.params)
+
+        # Case 6. Older version of slice already exists, override
+        slc_id_6 = models.Slice.import_slice(
+            get_slice('Import Me New 1'), import_time=1990)
+        slc_6 = find_slice(slc_id_6)
+        self.assertEquals(table_id, slc_6.datasource_id)
+        self.assertEquals(
+            '[main].[wb_health_population](id:{})'.format(table_id),
+            slc_5.perm)
+        self.assertEquals('Import Me New 1', slc_6.slice_name)
+        self.assertEquals('table', slc_6.datasource_type)
+        self.assertEquals('bubble', slc_6.viz_type)
+        self.assertEquals(
+            '{"num_period_compare": "10",'
+            ' "remote_id": 1, '
+            '"import_time": 1990}',
+            slc_6.params)
+
+        session.delete(slc_2)
+        session.delete(slc_6)
+        session.commit()
+
+    def test_import_dashboard(self):
+        session = db.session
+
+        def get_dashboard(title, id=0, slcs=[]):
+            return models.Dashboard(
+                id=id,
+                dashboard_title=title,
+                slices=slcs,
+                position_json='{"size_y": 2, "size_x": 2}',
+                slug='{}_imported'.format(title.lower()),
+            )
+
+        def find_dash(dash_id):
+            return session.query(models.Dashboard).filter_by(
+                id=dash_id).first()
+
+        def get_slc(name, table, slc_id):
+            return models.Slice(
+                id=slc_id,
+                slice_name=name,
+                datasource_type='table',
+                perm='[main].[{}](id:{})'.format(table, slc_id)
+            )
+
+        # Case 1. Import empty dashboard
+        empty_dash = get_dashboard('empty_dashboard', id=1001)
+        imported_dash_id_1 = models.Dashboard.import_dashboard(
+            empty_dash, import_time=1989)
+        # Dashboard import fails if there are no slices
+        self.assertIsNone(find_dash(imported_dash_id_1))
+
+        # Case 2. Import dashboard with 1 new slice.
+        dash_with_1_slice = get_dashboard(
+            'dash_with_1_slice',
+            slcs=[get_slc('health_slc', 'wb_health_population', 1001)],
+            id=1002)
+        imported_dash_id_2 = models.Dashboard.import_dashboard(
+            dash_with_1_slice, import_time=1990)
+        imported_dash_2 = find_dash(imported_dash_id_2)
+        self.assertEquals('dash_with_1_slice', imported_dash_2.dashboard_title)
+        self.assertEquals(1, len(imported_dash_2.slices))
+        self.assertEquals('wb_health_population',
+                          imported_dash_2.slices[0].datasource.table_name)
+        self.assertEquals('{"remote_id": 1002, "import_time": 1990}',
+                          imported_dash_2.json_metadata)
+
+        # Case 3. Import dashboard with 2 new slices.
+        dash_with_2_slices = get_dashboard(
+            'dash_with_2_slices',
+            slcs=[get_slc('energy_slc', 'energy_usage', 1002),
+                  get_slc('birth_slc', 'birth_names', 1003)],
+            id=1003)
+        imported_dash_id_3 = models.Dashboard.import_dashboard(
+            dash_with_2_slices, import_time=1991)
+        imported_dash_3 = find_dash(imported_dash_id_3)
+        self.assertEquals('dash_with_2_slices', imported_dash_3.dashboard_title)
+        self.assertEquals(2, len(imported_dash_3.slices))
+        self.assertEquals('{"remote_id": 1003, "import_time": 1991}',
+                          imported_dash_3.json_metadata)
+        imported_dash_slice_ids_3 = [s.id for s in imported_dash_3.slices]
+
+        # Case 4. Override the dashboard and 2 slices
+        dash_with_2_slices_new = get_dashboard(
+            'dash_with_2_slices_new',
+            slcs=[get_slc('energy_slc', 'energy_usage', 1002),
+                  get_slc('birth_slc', 'birth_names', 1003)],
+            id=1003)
+        imported_dash_id_4 = models.Dashboard.import_dashboard(
+            dash_with_2_slices_new, import_time=1992)
+        imported_dash_4 = find_dash(imported_dash_id_4)
+        self.assertEquals('dash_with_2_slices_new',
+                          imported_dash_4.dashboard_title)
+        self.assertEquals(2, len(imported_dash_4.slices))
+        self.assertEquals(
+            imported_dash_slice_ids_3, [s.id for s in imported_dash_4.slices])
+        self.assertEquals('{"remote_id": 1003, "import_time": 1992}',
+                          imported_dash_4.json_metadata)
+
+        # cleanup
+        slc_to_delete = set(imported_dash_2.slices)
+        slc_to_delete.update(imported_dash_4.slices)
+        for slc in slc_to_delete:
+            session.delete(slc)
+        session.delete(imported_dash_2)
+        session.delete(imported_dash_4)
+        session.commit()
 
 
 if __name__ == '__main__':

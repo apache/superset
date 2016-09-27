@@ -289,45 +289,64 @@ class Slice(Model, AuditMixinNullable):
         )
 
     @classmethod
-    def import_slice(cls, slice):
-        make_transient(slice)
-        slice.id = None
-
+    def import_slice(cls, slc, import_time=None):
         session = db.session
-        existing_slice = (
-            session.query(Slice)
-            .filter_by(slice_name=slice.slice_name)
-            .first()
-        )
-
-        # no overrides for the slices
-        # TODO: consider comparing the object and overriding if needed.
-        if existing_slice:
-            return existing_slice
-
-        id_pos = slice.perm.find('(id')
+        make_transient(slc)
+        slc.dashboards = []
+        id_pos = slc.perm.find('(id') if slc.perm else -1
         if id_pos == -1:
             logging.warning('slice {} has malformed perm {}'.format(
-                slice.slice_name, slice.perf))
+                slc.slice_name, slc.perm))
             return None
 
-        perm_prefix = slice.perm[:id_pos]
-        datasource_class = SourceRegistry.sources[
-            slice.datasource_type]
+        perm_prefix = slc.perm[:id_pos]
+        datasource_class = SourceRegistry.sources[slc.datasource_type]
         datasources = session.query(datasource_class).all()
-        slice_datasource = [d for d in datasources if perm_prefix in d.perm][0]
-        slice.datasource_id = slice_datasource.id
-        # generate correct perms for the slice
-        slice.perm = '{}(id:{})'.format(perm_prefix, slice_datasource.id)
-        session.add(slice)
-        session.commit()
+        if not datasources:
+            logging.warning('Datasource {} was not found for the slice {}.'
+                            .format(slc.datasource_id, slc.slice_name))
+            return None
 
-        created_slice = (
+        params_dict = {}
+        if slc.params:
+            params_dict = json.loads(slc.params)
+        if 'remote_id' not in params_dict:
+            params_dict['remote_id'] = slc.id
+            params_dict['import_time'] = import_time
+        slc.params = json.dumps(params_dict)
+
+        # find if the slice was already imported
+        slc_to_override = (
             session.query(Slice)
-            .filter_by(slice_name=slice.slice_name)
+            .filter(Slice.params.ilike('%"remote_id": {}%'.format(slc.id)))
             .first()
         )
-        return created_slice
+
+        slc.id = None
+        if slc_to_override:
+            slc_params = json.loads(slc_to_override.params)
+            if slc_params.get('import_time') == import_time:
+                # slice was imported in the current batch, no changes needed:
+                return slc_to_override.id
+            slc.id = slc_to_override.id
+            # delete old version of the slice
+            session.delete(slc_to_override)
+            session.commit()
+
+        # add slice pointing to the right datasources
+        slc_dss = [d for d in datasources if perm_prefix in d.perm]
+        if not slc_dss:
+            logging.warning(
+                'Datasources were not found for the slice {} with perm {} '
+                .format(slc.slice_name, slc.perm))
+            return None
+        slc.datasource_id = slc_dss[0].id
+        # generate correct perms for the slice
+        slc.perm = '{}(id:{})'.format(perm_prefix, slc.datasource_id)
+        session.add(slc)
+        logging.info('Imported the slice: {}'.format(slc.to_json()))
+        session.flush()
+        return slc.id
 
 
 def set_perm(mapper, connection, target):  # noqa
@@ -416,17 +435,26 @@ class Dashboard(Model, AuditMixinNullable):
         return json.dumps(d)
 
     @classmethod
-    def import_dashboard(cls, dashboard_to_import):
-        session = db.session
+    def import_dashboard(cls, dashboard_to_import, import_time=None):
+        logging.info('Started import of the dashboard: {}'
+                     .format(dashboard_to_import.to_json()))
+        make_transient(dashboard_to_import)
         # TODO: provide nice error message about failed imports
         slices_to_attach = []
-        for slice in dashboard_to_import.slices:
-            imported_slice = Slice.import_slice(slice)
-            if not imported_slice:
-                break
-            slices_to_attach.append(imported_slice)
+        session = db.session
+        logging.info('Dashboard has {} slices'
+                     .format(len(dashboard_to_import.slices)))
+        slices = copy(dashboard_to_import.slices)
+        for slc in slices:
+            logging.info('Importing slice {} from the dashboard: {}'.format(
+                slc.to_json(), dashboard_to_import.dashboard_title))
+            slc_id = Slice.import_slice(slc, import_time=import_time)
+            if not slc_id:
+                continue
+            slices_to_attach.append(
+                session.query(Slice).filter_by(id=slc_id).first())
             logging.info(
-                slice.slice_name + ' belongs to the dashboard ' +
+                slc.slice_name + ' belongs to the dashboard ' +
                 dashboard_to_import.dashboard_title)
         # Skip dashboard creation if the slice wasn't imported
         if not slices_to_attach:
@@ -434,16 +462,27 @@ class Dashboard(Model, AuditMixinNullable):
                 dashboard_to_import.dashboard_title))
             return
 
-        existing_dashboard = (
-            session.query(Dashboard)
-            .filter_by(
-                dashboard_title=dashboard_to_import.dashboard_title)
-            .first()
-        )
+        if dashboard_to_import.json_metadata:
+            json_metadata_dict = json.loads(dashboard_to_import.json_metadata)
+        else:
+            json_metadata_dict = {}
+        if 'remote_id' not in json_metadata_dict:
+            json_metadata_dict['remote_id'] = dashboard_to_import.id
+            json_metadata_dict['import_time'] = import_time
 
         # Override the dashboard
+        existing_dashboard = (
+            session.query(Dashboard)
+            .filter(Dashboard.json_metadata.ilike(
+                '%"remote_id": {}%'.format(dashboard_to_import.id)))
+            .first()
+        )
+        dashboard_to_import.id = None
         if existing_dashboard:
             # TODO: add nice notification about the overriden dashboard
+            logging.info('Dashboard already exist and will be overridden: {}'
+                         .format(existing_dashboard.to_json()))
+
             session.delete(existing_dashboard)
             session.commit()
 
@@ -453,7 +492,7 @@ class Dashboard(Model, AuditMixinNullable):
         new_dash = Dashboard(
             dashboard_title=dashboard_to_import.dashboard_title,
             position_json=dashboard_to_import.position_json,
-            json_metadata=dashboard_to_import.json_metadata,
+            json_metadata=json.dumps(json_metadata_dict),
             description=dashboard_to_import.description,
             css=dashboard_to_import.css,
             slug=dashboard_to_import.slug,
@@ -461,6 +500,8 @@ class Dashboard(Model, AuditMixinNullable):
         )
         session.add(new_dash)
         session.commit()
+        logging.info('Imported the dashboard: {}'.format(new_dash.to_json()))
+        return new_dash.id
 
     @classmethod
     def export_dashboards(cls, dashboard_ids):
@@ -475,7 +516,6 @@ class Dashboard(Model, AuditMixinNullable):
             eager_dashboard.owners = []
             eager_dashboards.append(eager_dashboard)
         return pickle.dumps(eager_dashboards)
-
 
 
 class Queryable(object):
@@ -512,6 +552,7 @@ class Queryable(object):
             return self.default_endpoint
         else:
             return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+
 
 class Database(Model, AuditMixinNullable):
 
