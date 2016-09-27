@@ -299,6 +299,7 @@ class Slice(Model, AuditMixinNullable):
         session = db.session
         make_transient(slc)
         slc.dashboards = []
+        # perms are named [{db_name}].[{datasource_name}](id:{id})
         id_pos = slc.perm.find('(id') if slc.perm else -1
         if id_pos == -1:
             logging.warning('slice {} has malformed perm {}'.format(
@@ -516,7 +517,7 @@ class Dashboard(Model, AuditMixinNullable):
             slices=slices_to_attach,
         )
         session.add(new_dash)
-        session.commit()
+        session.flush()
         logging.info('Imported the dashboard: {}'.format(new_dash.to_json()))
         return new_dash.id
 

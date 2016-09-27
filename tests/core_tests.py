@@ -518,10 +518,8 @@ class CoreTests(CaravelTestCase):
         self.assertEquals('table', slc_1.datasource_type)
         self.assertEquals('bubble', slc_1.viz_type)
         self.assertEquals(
-            '{"num_period_compare": "10",'
-            ' "remote_id": 1, '
-            '"import_time": 1989}',
-            slc_1.params)
+            {"num_period_compare": "10", "remote_id": 1, "import_time": 1989},
+            json.loads(slc_1.params))
 
         # Case 2. Import slice with same datasource id
         slc_id_2 = models.Slice.import_slice(get_slice(
@@ -556,10 +554,8 @@ class CoreTests(CaravelTestCase):
         self.assertEquals('table', slc_5.datasource_type)
         self.assertEquals('bubble', slc_5.viz_type)
         self.assertEquals(
-            '{"num_period_compare": "10",'
-            ' "remote_id": 1, '
-            '"import_time": 1989}',
-            slc_5.params)
+            {"num_period_compare": "10", "remote_id": 1, "import_time": 1989},
+            json.loads(slc_5.params))
 
         # Case 6. Older version of slice already exists, override
         slc_id_6 = models.Slice.import_slice(
@@ -573,10 +569,8 @@ class CoreTests(CaravelTestCase):
         self.assertEquals('table', slc_6.datasource_type)
         self.assertEquals('bubble', slc_6.viz_type)
         self.assertEquals(
-            '{"num_period_compare": "10",'
-            ' "remote_id": 1, '
-            '"import_time": 1990}',
-            slc_6.params)
+            {"num_period_compare": "10", "remote_id": 1, "import_time": 1990},
+            json.loads(slc_6.params))
 
         session.delete(slc_2)
         session.delete(slc_6)
@@ -625,8 +619,9 @@ class CoreTests(CaravelTestCase):
         self.assertEquals(1, len(imported_dash_2.slices))
         self.assertEquals('wb_health_population',
                           imported_dash_2.slices[0].datasource.table_name)
-        self.assertEquals('{"remote_id": 1002, "import_time": 1990}',
-                          imported_dash_2.json_metadata)
+        self.assertEquals(
+            {"remote_id": 1002, "import_time": 1990},
+            json.loads(imported_dash_2.json_metadata))
 
         # Case 3. Import dashboard with 2 new slices.
         dash_with_2_slices = get_dashboard(
@@ -639,9 +634,10 @@ class CoreTests(CaravelTestCase):
         imported_dash_3 = find_dash(imported_dash_id_3)
         self.assertEquals('dash_with_2_slices', imported_dash_3.dashboard_title)
         self.assertEquals(2, len(imported_dash_3.slices))
-        self.assertEquals('{"remote_id": 1003, "import_time": 1991}',
-                          imported_dash_3.json_metadata)
-        imported_dash_slice_ids_3 = [s.id for s in imported_dash_3.slices]
+        self.assertEquals(
+            {"remote_id": 1003, "import_time": 1991},
+            json.loads(imported_dash_3.json_metadata))
+        imported_dash_slice_ids_3 = {s.id for s in imported_dash_3.slices}
 
         # Case 4. Override the dashboard and 2 slices
         dash_with_2_slices_new = get_dashboard(
@@ -656,9 +652,10 @@ class CoreTests(CaravelTestCase):
                           imported_dash_4.dashboard_title)
         self.assertEquals(2, len(imported_dash_4.slices))
         self.assertEquals(
-            imported_dash_slice_ids_3, [s.id for s in imported_dash_4.slices])
-        self.assertEquals('{"remote_id": 1003, "import_time": 1992}',
-                          imported_dash_4.json_metadata)
+            imported_dash_slice_ids_3, {s.id for s in imported_dash_4.slices})
+        self.assertEquals(
+            {"remote_id": 1003, "import_time": 1992},
+            json.loads(imported_dash_4.json_metadata))
 
         # cleanup
         slc_to_delete = set(imported_dash_2.slices)

@@ -903,7 +903,7 @@ appbuilder.add_view(
 appbuilder.add_link(
     'Import Dashboards',
     href='/caravel/import_dashboards',
-    icon="fa-flask",
+    icon="fa-cloud-upload",
     category='Dashboards')
 
 
