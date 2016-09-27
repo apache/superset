@@ -86,7 +86,8 @@ function dashboardContainer(dashboardData) {
       // Summarized filter, not defined by sliceId
       // returns k=field, v=array of values
       const f = {};
-      if (sliceId && this.metadata.filter_immune_slices.includes(sliceId)) {
+      const immuneSlices = this.metadata.filter_immune_slices || [];
+      if (sliceId && immuneSlices.includes(sliceId)) {
         // The slice is immune to dashboard fiterls
         return f;
       }
