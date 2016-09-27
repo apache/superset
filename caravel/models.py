@@ -290,6 +290,12 @@ class Slice(Model, AuditMixinNullable):
 
     @classmethod
     def import_slice(cls, slc, import_time=None):
+        """Inserts or overrides slc in the database.
+
+        remote_id and import_time fields in params_dict are set to track the
+        slice origin and ensure correct overrides for multiple imports.
+        Slice.perm is used to find the datasources and connect them.
+        """
         session = db.session
         make_transient(slc)
         slc.dashboards = []
@@ -436,6 +442,15 @@ class Dashboard(Model, AuditMixinNullable):
 
     @classmethod
     def import_dashboard(cls, dashboard_to_import, import_time=None):
+        """Imports the dashboard from the object to the database.
+
+        Once dashboard is imported, json_metadata field is extended and stores
+        remote_id and import_time. It helps to decide if the dashboard has to
+        be overridden or just copies over. Slices that belong to this dashboard
+        will be wired to existing tables using Slice.perm field to derive the
+        datasource name. This function can be used to import/export dashboards
+        between multiple caravel instances. Audit metadata isn't copies over.
+        """
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
         make_transient(dashboard_to_import)
@@ -444,6 +459,8 @@ class Dashboard(Model, AuditMixinNullable):
         session = db.session
         logging.info('Dashboard has {} slices'
                      .format(len(dashboard_to_import.slices)))
+        # copy slices object as Slice.import_slice will mutate the slice
+        # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
