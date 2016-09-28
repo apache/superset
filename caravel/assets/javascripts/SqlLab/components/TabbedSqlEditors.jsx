@@ -5,10 +5,53 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
+import { getParamFromQuery } from '../../../utils/common';
+import CopyQueryTabUrl from './CopyQueryTabUrl';
 
 let queryCount = 1;
 
-class QueryEditors extends React.Component {
+class TabbedSqlEditors extends React.Component {
+  constructor(props) {
+    super(props);
+    const uri = window.location.toString();
+    const search = window.location.search;
+    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
+    const query = search.substring(1);
+    this.state = {
+      uri,
+      cleanUri,
+      query,
+    };
+  }
+  componentWillMount() {
+    if (this.state.query) {
+      queryCount++;
+      const queryEditorProps = {
+        id: shortid.generate(),
+        title: getParamFromQuery(this.state.query, 'title'),
+        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        schema: getParamFromQuery(this.state.query, 'schema'),
+        autorun: getParamFromQuery(this.state.query, 'autorun'),
+        sql: getParamFromQuery(this.state.query, 'sql'),
+      };
+      this.props.actions.addQueryEditor(queryEditorProps);
+      // Clean the url in browser history
+      window.history.replaceState({}, document.title, this.state.cleanUri);
+    }
+  }
+  getQueryLink(qe) {
+    const params = [];
+    if (qe.dbId) params.push('dbid=' + qe.dbId);
+    if (qe.title) params.push('title=' + qe.title);
+    if (qe.schema) params.push('schema=' + qe.schema);
+    if (qe.autorun) params.push('autorun=' + qe.autorun);
+    if (qe.sql) params.push('sql=' + qe.sql);
+
+    const queryString = params.join('&');
+    const queryLink = this.state.cleanUri + '?' + queryString;
+
+    return queryLink;
+  }
   renameTab(qe) {
     /* eslint no-alert: 0 */
     const newTitle = prompt('Enter a new title for the tab');
@@ -64,6 +107,9 @@ class QueryEditors extends React.Component {
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
+            <MenuItem eventKey="3">
+              <i className="fa fa-clipboard" /> <CopyQueryTabUrl qe={qe} />
+            </MenuItem>
           </DropdownButton>
         </div>
       );
@@ -96,14 +142,14 @@ class QueryEditors extends React.Component {
     );
   }
 }
-QueryEditors.propTypes = {
+TabbedSqlEditors.propTypes = {
   actions: React.PropTypes.object,
   databases: React.PropTypes.object,
   queries: React.PropTypes.object,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
 };
-QueryEditors.defaultProps = {
+TabbedSqlEditors.defaultProps = {
   tabHistory: [],
   queryEditors: [],
 };
@@ -122,4 +168,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(QueryEditors);
+export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
