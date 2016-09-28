@@ -1972,12 +1972,14 @@ appbuilder.add_view(
 appbuilder.add_link(
     'SQL Editor',
     href='/caravel/sqllab',
+    category_icon="fa-flask",
     icon="fa-flask",
     category='SQL Lab')
 appbuilder.add_link(
     'Query Search',
     href='/caravel/sqllab#search',
-    icon="fa-flask",
+    icon="fa-search",
+    category_icon="fa-flask",
     category='SQL Lab')
 
 
