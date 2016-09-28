@@ -1599,9 +1599,7 @@ class Caravel(BaseCaravelView):
         viz_type = data.get('chartType')
         table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
         if not table:
-            table = models.SqlaTable(
-                table_name=table_name,
-            )
+            table = models.SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         table.sql = data.get('sql')
         db.session.add(table)

@@ -107,6 +107,7 @@ def get_or_create_main_db(caravel):
     logging.info(config.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.set_sqlalchemy_uri(config.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.expose_in_sqllab = True
+    dbobj.allow_run_sync = True
     db.session.add(dbobj)
     db.session.commit()
     return dbobj
