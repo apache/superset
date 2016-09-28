@@ -572,7 +572,7 @@ class CoreTests(CaravelTestCase):
         resp = self.client.get('/dashboardmodelview/list/')
         assert "List Dashboard" in resp.data.decode('utf-8')
 
-    def run_sql(self, sql, user_name, client_id='not_used'):
+    def run_sql(self, sql, user_name, client_id):
         self.login(username=user_name)
         dbid = (
             db.session.query(models.Database)
@@ -581,16 +581,17 @@ class CoreTests(CaravelTestCase):
         )
         resp = self.client.post(
             '/caravel/sql_json/',
-            data=dict(database_id=dbid, sql=sql, select_as_create_as=False, client_id=client_id),
+            data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
+                      client_id=client_id),
         )
         self.logout()
         return json.loads(resp.data.decode('utf-8'))
 
     def test_sql_json(self):
-        data = self.run_sql('SELECT * FROM ab_user', 'admin')
+        data = self.run_sql('SELECT * FROM ab_user', 'admin', "1")
         assert len(data['data']) > 0
 
-        data = self.run_sql('SELECT * FROM unexistant_table', 'admin')
+        data = self.run_sql('SELECT * FROM unexistant_table', 'admin', "2")
         assert len(data['error']) > 0
 
     def test_sql_json_has_access(self):
@@ -617,7 +618,7 @@ class CoreTests(CaravelTestCase):
                 'gagarin', 'Iurii', 'Gagarin', 'gagarin@cosmos.ussr',
                 appbuilder.sm.find_role('Astronaut'),
                 password='general')
-        data = self.run_sql('SELECT * FROM ab_user', 'gagarin')
+        data = self.run_sql('SELECT * FROM ab_user', 'gagarin', "3")
         db.session.query(models.Query).delete()
         db.session.commit()
         assert len(data['data']) > 0

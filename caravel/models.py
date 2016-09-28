@@ -1943,7 +1943,7 @@ class Query(Model):
 
     __tablename__ = 'query'
     id = Column(Integer, primary_key=True)
-    client_id = Column(String(11), unique=True)
+    client_id = Column(String(11), unique=True, nullable=False)
 
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
 
