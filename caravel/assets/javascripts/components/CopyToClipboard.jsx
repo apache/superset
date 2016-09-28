@@ -6,12 +6,14 @@ const propTypes = {
   onCopyEnd: PropTypes.func,
   shouldShowText: PropTypes.bool,
   text: PropTypes.string.isRequired,
+  inMenu: PropTypes.bool,
 };
 
 const defaultProps = {
   copyNode: <span>Copy</span>,
   onCopyEnd: () => {},
   shouldShowText: true,
+  inMenu: false,
 };
 
 export default class CopyToClipboard extends React.Component {
@@ -71,20 +73,14 @@ export default class CopyToClipboard extends React.Component {
     return tooltipText;
   }
 
-  render() {
-    const tooltip = (
-      <Tooltip id="copy-to-clipboard-tooltip">
-        {this.tooltipText()}
-      </Tooltip>
-    );
-
+  renderLink() {
     return (
-      <div>
+      <span>
         {this.props.shouldShowText &&
           <span>{this.props.text}</span>
         }
         &nbsp;&nbsp;&nbsp;&nbsp;
-        <OverlayTrigger placement="top" overlay={tooltip} trigger={['hover']}>
+        <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
           <Button
             bsStyle="link"
             onClick={this.copyToClipboard}
@@ -93,8 +89,39 @@ export default class CopyToClipboard extends React.Component {
             {this.props.copyNode}
           </Button>
         </OverlayTrigger>
-      </div>
+      </span>
     );
+  }
+
+  renderInMenu() {
+    return (
+      <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
+        <span
+          onClick={this.copyToClipboard}
+          onMouseOut={this.onMouseOut}
+        >
+          {this.props.copyNode}
+        </span>
+      </OverlayTrigger>
+    );
+  }
+
+  renderTooltip() {
+    return (
+      <Tooltip id="copy-to-clipboard-tooltip">
+        {this.tooltipText()}
+      </Tooltip>
+    );
+  }
+
+  render() {
+    let html;
+    if (this.props.inMenu) {
+      html = this.renderInMenu();
+    } else {
+      html = this.renderLink();
+    }
+    return html;
   }
 }
 
