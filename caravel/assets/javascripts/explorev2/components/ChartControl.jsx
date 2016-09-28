@@ -3,7 +3,22 @@ import Select from 'react-select';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
-import { VIZ_TYPES } from '../../../utils/common';
+import { VIZ_TYPES } from '../constants';
+
+const propTypes = {
+  actions: React.PropTypes.object,
+  datasources: React.PropTypes.array,
+  datasourceId: React.PropTypes.number,
+  datasourceType: React.PropTypes.string,
+  vizType: React.PropTypes.string,
+};
+
+const defaultProps = {
+  datasources: [],
+  datasourceId: null,
+  datasourceType: null,
+  vizType: null,
+};
 
 class ChartControl extends React.Component {
   componentWillMount() {
@@ -30,7 +45,7 @@ class ChartControl extends React.Component {
           <div className="row">
             <Select
               name="select-datasource"
-              placeholder={'Select a datasource'}
+              placeholder="Select a datasource"
               options={this.props.datasources.map((d) => ({ value: d[0], label: d[1] }))}
               value={this.props.datasourceId}
               autosize={false}
@@ -41,7 +56,7 @@ class ChartControl extends React.Component {
           <div className="row">
             <Select
               name="select-viztype"
-              placeholder={'Select a viz type'}
+              placeholder="Select a viz type"
               options={VIZ_TYPES}
               value={this.props.vizType}
               autosize={false}
@@ -54,20 +69,8 @@ class ChartControl extends React.Component {
   }
 }
 
-ChartControl.propTypes = {
-  actions: React.PropTypes.object,
-  datasources: React.PropTypes.array,
-  datasourceId: React.PropTypes.number,
-  datasourceType: React.PropTypes.string,
-  vizType: React.PropTypes.string,
-};
-
-ChartControl.defaultProps = {
-  datasources: [],
-  datasourceId: null,
-  datasourceType: null,
-  vizType: null,
-};
+ChartControl.propTypes = propTypes;
+ChartControl.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {

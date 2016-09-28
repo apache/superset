@@ -4,6 +4,21 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 
+const propTypes = {
+  actions: React.PropTypes.object,
+  metricsOpts: React.PropTypes.array,
+  metrics: React.PropTypes.array,
+  groupByColumnOpts: React.PropTypes.array,
+  groupByColumns: React.PropTypes.array,
+};
+
+const defaultProps = {
+  metricsOpts: [],
+  metrics: [],
+  groupByColumnOpts: [],
+  groupByColumns: [],
+};
+
 class GroupBy extends React.Component {
   changeColumns(groupByColumnOpts) {
     this.props.actions.setGroupByColumns(groupByColumnOpts);
@@ -21,7 +36,7 @@ class GroupBy extends React.Component {
             <Select
               multi
               name="select-time-column"
-              placeholder={'Select groupby columns'}
+              placeholder="Select groupby columns"
               options={this.props.groupByColumnOpts}
               value={this.props.groupByColumns}
               autosize={false}
@@ -33,7 +48,7 @@ class GroupBy extends React.Component {
             <Select
               multi
               name="select-since"
-              placeholder={'Select metrics'}
+              placeholder="Select metrics"
               options={this.props.metricsOpts}
               value={this.props.metrics}
               autosize={false}
@@ -46,20 +61,8 @@ class GroupBy extends React.Component {
   }
 }
 
-GroupBy.propTypes = {
-  actions: React.PropTypes.object,
-  metricsOpts: React.PropTypes.array,
-  metrics: React.PropTypes.array,
-  groupByColumnOpts: React.PropTypes.array,
-  groupByColumns: React.PropTypes.array,
-};
-
-GroupBy.defaultProps = {
-  metricsOpts: [],
-  metrics: [],
-  groupByColumnOpts: [],
-  groupByColumns: [],
-};
+GroupBy.propTypes = propTypes;
+GroupBy.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {

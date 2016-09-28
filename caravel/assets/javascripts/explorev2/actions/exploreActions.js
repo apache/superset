@@ -19,8 +19,8 @@ export const SET_TIME_STAMP = 'SET_TIME_STAMP';
 export const SET_ROW_LIMIT = 'SET_ROW_LIMIT';
 export const TOGGLE_SEARCHBOX = 'TOGGLE_SEARCHBOX';
 export const SET_FILTER_COLUMN_OPTS = 'SET_FILTER_COLUMN_OPTS';
-export const SET_WHERE_CLAUSE = 'SET_SET_WHERE_CLAUSE';
-export const SET_HAVING_CLAUSE = 'SET_SET_HAVING_CLAUSE';
+export const SET_WHERE_CLAUSE = 'SET_WHERE_CLAUSE';
+export const SET_HAVING_CLAUSE = 'SET_HAVING_CLAUSE';
 export const ADD_FILTER = 'ADD_FILTER';
 export const SET_FILTER = 'SET_FILTER';
 export const REMOVE_FILTER = 'REMOVE_FILTER';
@@ -68,9 +68,7 @@ export function setFormOpts(datasourceId, datasourceType) {
     const timeGrainOpts = [];
 
     if (datasourceId) {
-      const params = [];
-      params.push(`datasource_id=${datasourceId}`);
-      params.push(`datasource_type=${datasourceType}`);
+      const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
       const url = '/caravel/fetch_datasource_metadata?' + params.join('&');
 
       $.get(url, (data, status) => {

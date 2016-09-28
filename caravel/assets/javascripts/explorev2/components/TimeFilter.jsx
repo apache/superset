@@ -3,20 +3,28 @@ import Select from 'react-select';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
+import { sinceOptions, untilOptions } from '../constants';
 
-const sinceOptions = ['1 hour ago', '12 hours ago', '1 day ago',
-  '7 days ago', '28 days ago', '90 days ago', '1 year ago'];
-const untilOptions = ['now', '1 day ago', '7 days ago',
-  '28 days ago', '90 days ago', '1 year ago'];
+const propTypes = {
+  actions: React.PropTypes.object,
+  timeColumnOpts: React.PropTypes.array,
+  timeColumn: React.PropTypes.string,
+  timeGrainOpts: React.PropTypes.array,
+  timeGrain: React.PropTypes.string,
+  since: React.PropTypes.string,
+  until: React.PropTypes.string,
+};
+
+const defaultProps = {
+  timeColumnOpts: [],
+  timeColumn: null,
+  timeGrainOpts: [],
+  timeGrain: null,
+  since: null,
+  until: null,
+};
 
 class TimeFilter extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      sinceOptions,
-      untilOptions,
-    };
-  }
   changeTimeColumn(timeColumnOpt) {
     const val = (timeColumnOpt) ? timeColumnOpt.value : null;
     this.props.actions.setTimeColumn(val);
@@ -43,7 +51,7 @@ class TimeFilter extends React.Component {
             <Select
               className="col-sm-6"
               name="select-time-column"
-              placeholder={'Select a time column'}
+              placeholder="Select a time column"
               options={this.props.timeColumnOpts}
               value={this.props.timeColumn}
               autosize={false}
@@ -52,7 +60,7 @@ class TimeFilter extends React.Component {
             <Select
               className="col-sm-6"
               name="select-time-grain"
-              placeholder={'Select a time grain'}
+              placeholder="Select a time grain"
               options={this.props.timeGrainOpts}
               value={this.props.timeGrain}
               autosize={false}
@@ -64,7 +72,7 @@ class TimeFilter extends React.Component {
             <Select
               className="col-sm-6"
               name="select-since"
-              placeholder={'Select Since Time'}
+              placeholder="Select Since Time"
               options={sinceOptions.map((s) => ({ value: s, label: s }))}
               value={this.props.since}
               autosize={false}
@@ -73,7 +81,7 @@ class TimeFilter extends React.Component {
             <Select
               className="col-sm-6"
               name="select-until"
-              placeholder={'Select Until Time'}
+              placeholder="Select Until Time"
               options={untilOptions.map((u) => ({ value: u, label: u }))}
               value={this.props.until}
               autosize={false}
@@ -86,24 +94,8 @@ class TimeFilter extends React.Component {
   }
 }
 
-TimeFilter.propTypes = {
-  actions: React.PropTypes.object,
-  timeColumnOpts: React.PropTypes.array,
-  timeColumn: React.PropTypes.string,
-  timeGrainOpts: React.PropTypes.array,
-  timeGrain: React.PropTypes.string,
-  since: React.PropTypes.string,
-  until: React.PropTypes.string,
-};
-
-TimeFilter.defaultProps = {
-  timeColumnOpts: [],
-  timeColumn: null,
-  timeGrainOpts: [],
-  timeGrain: null,
-  since: null,
-  until: null,
-};
+TimeFilter.propTypes = propTypes;
+TimeFilter.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {

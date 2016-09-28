@@ -3,6 +3,10 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 
+const propTypes = {
+  actions: React.PropTypes.object,
+};
+
 class SqlClause extends React.Component {
   changeWhere(whereClause) {
     this.props.actions.setWhereClause(whereClause);
@@ -39,12 +43,7 @@ class SqlClause extends React.Component {
   }
 }
 
-SqlClause.propTypes = {
-  actions: React.PropTypes.object,
-};
-
-SqlClause.defaultProps = {
-};
+SqlClause.propTypes = propTypes;
 
 function mapStateToProps() {
   return {};

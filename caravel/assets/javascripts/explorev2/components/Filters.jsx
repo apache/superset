@@ -7,6 +7,17 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import shortid from 'shortid';
 
+const propTypes = {
+  actions: React.PropTypes.object,
+  filterColumnOpts: React.PropTypes.array,
+  filters: React.PropTypes.array,
+};
+
+const defaultProps = {
+  filterColumnOpts: [],
+  filters: [],
+};
+
 class Filters extends React.Component {
   constructor(props) {
     super(props);
@@ -43,7 +54,7 @@ class Filters extends React.Component {
           className="row"
           multi={false}
           name="select-column"
-          placeholder={'Select column'}
+          placeholder="Select column"
           options={this.props.filterColumnOpts}
           value={filter.field}
           autosize={false}
@@ -54,7 +65,7 @@ class Filters extends React.Component {
             className="col-sm-3"
             multi={false}
             name="select-op"
-            placeholder={'Select operator'}
+            placeholder="Select operator"
             options={this.state.opOpts.map((o) => ({ value: o, label: o }))}
             value={filter.op}
             autosize={false}
@@ -97,16 +108,9 @@ class Filters extends React.Component {
   }
 }
 
-Filters.propTypes = {
-  actions: React.PropTypes.object,
-  filterColumnOpts: React.PropTypes.array,
-  filters: React.PropTypes.array,
-};
+Filters.propTypes = propTypes;
 
-Filters.defaultProps = {
-  filterColumnOpts: [],
-  filters: [],
-};
+Filters.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
