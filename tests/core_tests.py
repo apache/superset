@@ -168,7 +168,8 @@ class CoreTests(CaravelTestCase):
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
         response = self.client.post(url, data=data)
-        assert sqlalchemy_uri_decrypted == database.sqlalchemy_uri_decrypted
+        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
