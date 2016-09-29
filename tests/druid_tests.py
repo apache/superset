@@ -102,19 +102,20 @@ class DruidTests(CaravelTestCase):
         datasource_id = cluster.datasources[0].id
         db.session.commit()
 
-        resp = self.client.get('/caravel/explore/druid/{}/'.format(
-            datasource_id))
-        assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
-
         nres = [
-            list(v['event'].items()) + [('timestamp', v['timestamp'])]
-            for v in GB_RESULT_SET]
+        list(v['event'].items()) + [('timestamp', v['timestamp'])]
+        for v in GB_RESULT_SET]
         nres = [dict(v) for v in nres]
         import pandas as pd
         df = pd.DataFrame(nres)
         instance.export_pandas.return_value = df
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
+
+        resp = self.client.get('/caravel/explore/druid/{}/'.format(
+            datasource_id))
+        assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
+
         resp = self.client.get(
             '/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
