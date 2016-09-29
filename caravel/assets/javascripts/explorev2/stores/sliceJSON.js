@@ -1,6 +1,8 @@
 export default function sliceJSON() {
   const data = {
-    "json_endpoint": "/caravel/explore/table/2/?slice_name=Growth+Rate&row_limit=50000&metric=sum__SP_POP_TOTL&show_bubbles=y&entity=country_code&secondary_metric=sum__SP_POP_TOTL&viz_type=line&since=1960-01-01&json=true&until=2014-01-01&datasource_id=1&format=json&metrics=sum__SP_POP_TOTL&datasource_name=birth_names&country_fieldtype=cca3&granularity=year&slice_id=7&num_period_compare=10&datasource_type=table&compare_lag=10&limit=25&markup_type=markdown&compare_suffix=o10Y&where=&groupby=country_name",
+    "jsonEndpoint": function () {
+      return "/caravel/explore/table/2/?slice_name=Growth+Rate&row_limit=50000&metric=sum__SP_POP_TOTL&show_bubbles=y&entity=country_code&secondary_metric=sum__SP_POP_TOTL&viz_type=line&since=1960-01-01&json=true&until=2014-01-01&datasource_id=1&format=json&metrics=sum__SP_POP_TOTL&datasource_name=birth_names&country_fieldtype=cca3&granularity=year&slice_id=7&num_period_compare=10&datasource_type=table&compare_lag=10&limit=25&markup_type=markdown&compare_suffix=o10Y&where=&groupby=country_name";
+    },
     "form_data": {
       "slice_name": "Growth Rate",
       "y_axis_zero": false,
