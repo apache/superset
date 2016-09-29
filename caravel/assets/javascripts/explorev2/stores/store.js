@@ -1,0 +1,52 @@
+export const initialState = {
+  datasources: null,
+  datasourceId: null,
+  datasourceType: null,
+  vizType: null,
+  timeColumnOpts: [],
+  timeColumn: null,
+  timeGrainOpts: [],
+  timeGrain: null,
+  since: null,
+  until: null,
+  groupByColumnOpts: [],
+  groupByColumns: [],
+  metricsOpts: [],
+  metrics: [],
+  columns: [],
+  orderings: [],
+  timeStampFormat: null,
+  rowLimit: null,
+  searchBox: false,
+  whereClause: '',
+  havingClause: '',
+  filters: [],
+  filterColumnOpts: [],
+};
+
+// TODO: add datasource_type here after druid support is added
+export const defaultFormData = {
+  vizType: null,
+  timeColumn: null,
+  timeGrain: null,
+  since: null,
+  until: null,
+  groupByColumns: [],
+  metrics: [],
+  columns: [],
+  orderings: [],
+  timeStampFormat: null,
+  rowLimit: null,
+  searchBox: false,
+  whereClause: '',
+  havingClause: '',
+  filters: [],
+};
+
+export const defaultOpts = {
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  filterColumnOpts: [],
+};

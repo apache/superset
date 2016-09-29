@@ -1,4 +1,7 @@
 /* eslint global-require: 0 */
+import persistState from 'redux-localstorage';
+import { compose } from 'redux';
+
 const d3 = window.d3 || require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
