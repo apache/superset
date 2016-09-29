@@ -12,6 +12,7 @@ const propTypes = {
 
 export default class TimeSeriesLineChart extends React.Component {
   renderLines() {
+    // todo: when rendering lines, call a function to generate the legend
     return this.props.data.map((d, i) => {
       return (
         <V.VictoryLine
