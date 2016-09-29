@@ -15,7 +15,7 @@ export default class ChartContainer extends React.Component {
     this.state = {
       params: this.getParamsFromUrl(),
       data: sliceObj.data,
-      height: 1000,
+      height: window.innerHeight,
       label1: 'Label 1',
       sliceObj,
     };
