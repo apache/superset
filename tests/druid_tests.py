@@ -103,8 +103,8 @@ class DruidTests(CaravelTestCase):
         db.session.commit()
 
         nres = [
-        list(v['event'].items()) + [('timestamp', v['timestamp'])]
-        for v in GB_RESULT_SET]
+            list(v['event'].items()) + [('timestamp', v['timestamp'])]
+            for v in GB_RESULT_SET]
         nres = [dict(v) for v in nres]
         import pandas as pd
         df = pd.DataFrame(nres)
