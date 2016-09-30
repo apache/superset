@@ -42,7 +42,8 @@ config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
 QueryStatus = models.QueryStatus
-
+DRUID_TIME_GRAINS = ['all', '5 seconds', '30 seconds', '1 minute',
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days']
 
 class BaseCaravelView(BaseView):
     def can_access(self, permission_name, view_name):
@@ -1976,8 +1977,7 @@ class Caravel(BaseCaravelView):
             grains = datasource.database.grains()
             grains_choices = [grain.name for grain in grains]
         elif datasource_class_name == 'DruidDatasource':
-            time_columns = ['all', '5 seconds', '30 seconds', '1 minute',
-                '5 minutes', '1 hour', '6 hour', '1 day', '7 days']
+            time_columns = DRUID_TIME_GRAINS
             grains_choices = ['now']
 
         form_data = {

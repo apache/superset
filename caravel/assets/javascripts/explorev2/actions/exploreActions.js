@@ -81,7 +81,7 @@ export function setFormOpts(datasourceId, datasourceType) {
           data.time_columns.forEach((d) => {
             if (d) timeColumnOpts.push({ value: d, label: d });
           });
-          data.time_grains.forEach((d) => {
+          data.groupby_cols.forEach((d) => {
             if (d) groupByColumnOpts.push({ value: d, label: d });
           });
           data.metrics.forEach((d) => {
