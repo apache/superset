@@ -67,9 +67,15 @@ export function addToArr(state, arrKey, obj) {
 export function enhancer() {
   let enhancerWithPersistState = compose(persistState());
   if (process.env.NODE_ENV === 'dev') {
-    enhancerWithPersistState = compose(
-      persistState(), window.devToolsExtension && window.devToolsExtension()
-    );
+    if (window.devToolsExtension) {
+      enhancerWithPersistState = compose(
+        persistState(), window.devToolsExtension && window.devToolsExtension()
+      );
+    } else {
+      console.warn('You may encounter errors unless' +
+        'you have Redux Devtool Extension installed: ' +
+        'http://github.com/zalmoxisus/redux-devtools-extension');
+    }
   }
   return enhancerWithPersistState;
 }
