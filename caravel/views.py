@@ -71,6 +71,8 @@ class ListWidgetWithCheckboxes(ListWidget):
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission")
 DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
+DATASOURCE_ACCESS_ERR = __(
+    "User does not have access to this datasource")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -1203,6 +1205,7 @@ class Caravel(BaseCaravelView):
                     "datasources": [(d.id, d.full_name) for d in datasources],
                     "datasource_id": datasource_id,
                     "datasource_type": datasource_type,
+                    "datasource_class": datasource_class.__name__,
                     "user_id": g.user.get_id() if g.user else None,
                     "viz": json.loads(viz_obj.get_json())
                 }
@@ -1949,8 +1952,6 @@ class Caravel(BaseCaravelView):
     @expose("/fetch_datasource_metadata")
     @log_this
     def fetch_datasource_metadata(self):
-        # TODO: check permissions
-        # TODO: check if datasource exits
         session = db.session
         datasource_type = request.args.get('datasource_type')
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1959,17 +1960,35 @@ class Caravel(BaseCaravelView):
             .filter_by(id=request.args.get('datasource_id'))
             .first()
         )
-        # SUPPORT DRUID
-        # TODO: move this logic to the model (maybe)
-        datasource_grains = datasource.database.grains()
-        grain_names = [str(grain.name) for grain in datasource_grains]
+
+        # Check if datasource exists
+        if not datasource:
+            return json_error_response(DATASOURCE_MISSING_ERR)
+        # Check permission for datasource
+        if not self.datasource_access(datasource):
+            return json_error_response(DATASOURCE_ACCESS_ERR)
+
+        time_columns = []
+        grains_choices = []
+        datasource_class_name = datasource_class.__name__
+        if datasource_class_name == 'SqlaTable':
+            time_columns = datasource.dttm_cols
+            grains = datasource.database.grains()
+            grains_choices = [grain.name for grain in grains]
+        elif datasource_class_name == 'DruidDatasource':
+            time_columns = ['all', '5 seconds', '30 seconds', '1 minute',
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days']
+            grains_choices = ['now']
+
         form_data = {
-                    "dttm_cols": datasource.dttm_cols,
-                    "time_grains": grain_names,
-                    "groupby_cols": datasource.groupby_column_names,
-                    "metrics": datasource.metrics_combo,
-                    "filter_cols": datasource.filterable_column_names,
-                }
+            "datasource_class": datasource_class_name,
+            "time_columns": time_columns,
+            "time_grains": grains_choices,
+            "groupby_cols": datasource.groupby_column_names,
+            "metrics": datasource.metrics_combo,
+            "filter_cols": datasource.filterable_column_names,
+        }
+
         return Response(
             json.dumps(form_data), mimetype="application/json")
 

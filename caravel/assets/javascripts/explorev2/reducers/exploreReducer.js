@@ -103,6 +103,9 @@ export const exploreReducer = function (state, action) {
     [actions.CLEAR_ALL_OPTS]() {
       return Object.assign({}, state, defaultOpts);
     },
+    [actions.SET_DATASOURCE_CLASS]() {
+      return Object.assign({}, state, { datasourceClass: action.datasourceClass });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

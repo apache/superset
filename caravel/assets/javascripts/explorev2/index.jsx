@@ -17,6 +17,7 @@ const bootstrappedState = Object.assign(initialState, {
   datasources: bootstrapData.datasources,
   datasourceId: parseInt(bootstrapData.datasource_id, 10),
   datasourceType: bootstrapData.datasource_type,
+  datasourceClass: bootstrapData.datasource_class,
   sliceName: bootstrapData.viz.form_data.slice_name,
   sliceId: bootstrapData.viz.form_data.slice_id,
   vizType: bootstrapData.viz.form_data.viz_type,
