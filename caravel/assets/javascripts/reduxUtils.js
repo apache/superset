@@ -72,7 +72,9 @@ export function enhancer() {
         persistState(), window.devToolsExtension && window.devToolsExtension()
       );
     } else {
-      console.log('Please kindly install Redux Devtool Extension to use SQL Lab');
+      console.warn('You may encounter errors unless' +
+        'you have Redux Devtool Extension installed: ' +
+        'http://github.com/zalmoxisus/redux-devtools-extension');
     }
   }
   return enhancerWithPersistState;
