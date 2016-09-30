@@ -114,7 +114,10 @@ class SqlEditorTopToolbar extends React.Component {
       <div className="clearfix sql-toolbar">
         {networkAlert}
         <div>
-          <DatabaseSelect onChange={this.onChange.bind(this)} />
+          <DatabaseSelect
+            onChange={this.onChange.bind(this)}
+            databaseId={this.props.queryEditor.dbId}
+          />
         </div>
         <div className="m-t-5">
           <Select

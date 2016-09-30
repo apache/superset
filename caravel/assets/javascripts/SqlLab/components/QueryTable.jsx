@@ -12,6 +12,7 @@ import VisualizeModal from './VisualizeModal';
 import SqlShrink from './SqlShrink';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
+import { getLink } from '../../../utils/common';
 
 
 class QueryTable extends React.Component {
@@ -27,10 +28,7 @@ class QueryTable extends React.Component {
   }
   getQueryLink(dbId, sql) {
     const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
-    const queryString = params.join('&');
-    const queryLink = this.state.cleanUri + '?' + queryString;
-
-    return queryLink;
+    return getLink(this.state.cleanUri, params);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -53,14 +51,25 @@ class QueryTable extends React.Component {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
       q.userId = (
-        <a onClick={this.props.onUserClicked.bind(this, q.userId)}>
+        <button
+          className="btn btn-link btn-xs"
+          onClick={this.props.onUserClicked.bind(this, q.userId)}
+        >
           {q.userId}
-        </a>
+        </button>
+      );
+      q.dbId = (
+        <button
+          className="btn btn-link btn-xs"
+          onClick={this.props.onDbClicked.bind(this, q.dbId)}
+        >
+          {q.dbId}
+        </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
       const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
-        <SqlShrink sql={source} />
+        <SqlShrink sql={source} maxWidth={100} />
       );
       q.output = q.tempTable;
       q.progress = (
@@ -114,9 +123,12 @@ class QueryTable extends React.Component {
         </div>
       );
       q.querylink = (
-        <div style={{ width: '75px' }}>
-          <a href={this.getQueryLink(q.dbId, source)} >
-            <i className="fa fa-external-link" /> Open in SQL Editor
+        <div style={{ width: '100px' }}>
+          <a
+            href={this.getQueryLink(q.dbId, source)}
+            className="btn btn-primary btn-xs"
+          >
+            <i className="fa fa-external-link" />Open in SQL Editor
           </a>
         </div>
       );
@@ -143,11 +155,13 @@ QueryTable.propTypes = {
   actions: React.PropTypes.object,
   queries: React.PropTypes.array,
   onUserClicked: React.PropTypes.func,
+  onDbClicked: React.PropTypes.func,
 };
 QueryTable.defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
   onUserClicked: () => {},
+  onDbClicked: () => {},
 };
 
 function mapStateToProps() {
