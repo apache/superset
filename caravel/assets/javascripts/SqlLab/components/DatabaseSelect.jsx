@@ -1,6 +1,9 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
+import { bindActionCreators } from 'redux';
 import Select from 'react-select';
+import { connect } from 'react-redux';
+import * as Actions from '../actions';
 
 class DatabaseSelect extends React.Component {
   constructor(props) {
@@ -11,7 +14,7 @@ class DatabaseSelect extends React.Component {
       databaseId: null,
     };
   }
-  componentWillMount() {
+  componentDidMount() {
     this.fetchDatabaseOptions();
   }
   changeDb(db) {
@@ -25,6 +28,7 @@ class DatabaseSelect extends React.Component {
     $.get(url, (data) => {
       const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
       this.setState({ databaseOptions: options, databaseLoading: false });
+      this.props.actions.setDatabases(data.result);
     });
   }
   render() {
@@ -46,6 +50,13 @@ class DatabaseSelect extends React.Component {
 
 DatabaseSelect.propTypes = {
   onChange: React.PropTypes.func,
+  actions: React.PropTypes.object,
 };
 
-export default DatabaseSelect;
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(Actions, dispatch),
+  };
+}
+
+export default connect(null, mapDispatchToProps)(DatabaseSelect);
