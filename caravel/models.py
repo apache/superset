@@ -1184,6 +1184,7 @@ class DruidCluster(Model, AuditMixinNullable):
     broker_port = Column(Integer)
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
+    cache_timeout = Column(Integer)
 
     def __repr__(self):
         return self.cluster_name

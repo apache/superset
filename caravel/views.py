@@ -659,7 +659,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     add_columns = [
         'cluster_name',
         'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
-        'broker_host', 'broker_port', 'broker_endpoint',
+        'broker_host', 'broker_port', 'broker_endpoint', 'cache_timeout',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
@@ -995,8 +995,8 @@ class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
     @log_this
     @has_access
-    @expose("/request_access_form/")
-    def request_access_form(self):
+    @expose("/request_access/")
+    def request_access(self):
         datasources = set()
         dashboard_id = request.args.get('dashboard_id')
         if dashboard_id:
@@ -1120,7 +1120,7 @@ class Caravel(BaseCaravelView):
             flash(
                 __(get_datasource_access_error_msg(datasource.name)), "danger")
             return redirect(
-                'caravel/request_access_form/?'
+                'caravel/request_access/?'
                 'datasource_type={datasource_type}&'
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
@@ -1522,7 +1522,7 @@ class Caravel(BaseCaravelView):
                     __(get_datasource_access_error_msg(datasource.name)),
                     "danger")
                 return redirect(
-                    'caravel/request_access_form/?'
+                    'caravel/request_access/?'
                     'dashboard_id={dash.id}&'
                     ''.format(**locals()))
 

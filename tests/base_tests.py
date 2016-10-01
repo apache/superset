@@ -92,13 +92,18 @@ class CaravelTestCase(unittest.TestCase):
         session.close()
         return query
 
+    def get_resp(self, url):
+        """Shortcut to get the parsed results while following redirects"""
+        resp = self.client.get(url, follow_redirects=True)
+        return resp.data.decode('utf-8')
+
     def get_access_requests(self, username, ds_type, ds_id):
-            return db.session.query(models.DatasourceAccessRequest).filter(
-                models.DatasourceAccessRequest.created_by_fk ==
-                sm.find_user(username=username).id,
-                models.DatasourceAccessRequest.datasource_type == ds_type,
-                models.DatasourceAccessRequest.datasource_id == ds_id
-            ).all()
+            DAR = models.DatasourceAccessRequest
+            return db.session.query(DAR).filter(
+                DAR.created_by_fk == sm.find_user(username=username).id,
+                DAR.datasource_type == ds_type,
+                DAR.datasource_id == ds_id
+            ).one()
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
