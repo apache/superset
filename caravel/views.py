@@ -1195,11 +1195,11 @@ class Caravel(BaseCaravelView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-                return self.render_template(
-                    template, viz=viz_obj, slice=slc, datasources=datasources,
-                    can_add=slice_add_perm, can_edit=slice_edit_perm,
-                    can_download=slice_download_perm,
-                    userid=g.user.get_id() if g.user else '')
+            return self.render_template(
+                template, viz=viz_obj, slice=slc, datasources=datasources,
+                can_add=slice_add_perm, can_edit=slice_edit_perm,
+                can_download=slice_download_perm,
+                userid=g.user.get_id() if g.user else '')
 
     @has_access
     @expose("/exploreV2/<datasource_type>/<datasource_id>/<slice_id>/")
@@ -1289,22 +1289,22 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         else:
+            bootstrap_data = {
+                "can_add": slice_add_perm,
+                "can_download": slice_download_perm,
+                "can_edit": slice_edit_perm,
+                # TODO: separate endpoint for fetching datasources
+                "datasources": [(d.id, d.full_name) for d in datasources],
+                "datasource_id": datasource_id,
+                "datasource_type": datasource_type,
+                "user_id": g.user.get_id() if g.user else None,
+                "viz": json.loads(viz_obj.get_json())
+            }
             if slice_params_multi_dict.get("standalone") == "true":
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explorev2.html"
-                bootstrap_data = {
-                    "can_add": slice_add_perm,
-                    "can_download": slice_download_perm,
-                    "can_edit": slice_edit_perm,
-                    # TODO: separate endpoint for fetching datasources
-                    "datasources": [(d.id, d.full_name) for d in datasources],
-                    "datasource_id": datasource_id,
-                    "datasource_type": datasource_type,
-                    "user_id": g.user.get_id() if g.user else None,
-                    "viz": json.loads(viz_obj.get_json())
-                }
-                return self.render_template(template, bootstrap_data=json.dumps(bootstrap_data))
+            return self.render_template(template, bootstrap_data=json.dumps(bootstrap_data))
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
