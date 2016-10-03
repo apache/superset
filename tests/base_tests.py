@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import imp
 import os
 import unittest
 
@@ -15,11 +16,22 @@ from caravel import app, db, models, utils, appbuilder, sm
 os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
 
 BASE_DIR = app.config.get("BASE_DIR")
+cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
 
 class CaravelTestCase(unittest.TestCase):
+    requires_examples = False
+    examples_loaded = False
 
     def __init__(self, *args, **kwargs):
+        if (
+                self.requires_examples and
+                not os.environ.get('SOLO_TEST') and
+                not os.environ.get('examples_loaded')
+            ):
+            cli.load_examples(load_test_data=True)
+            utils.init(caravel)
+            os.environ['examples_loaded'] = '1'
         super(CaravelTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
@@ -92,13 +104,22 @@ class CaravelTestCase(unittest.TestCase):
         session.close()
         return query
 
+    def get_resp(self, url):
+        """Shortcut to get the parsed results while following redirects"""
+        resp = self.client.get(url, follow_redirects=True)
+        return resp.data.decode('utf-8')
+
     def get_access_requests(self, username, ds_type, ds_id):
-            return db.session.query(models.DatasourceAccessRequest).filter(
-                models.DatasourceAccessRequest.created_by_fk ==
-                sm.find_user(username=username).id,
-                models.DatasourceAccessRequest.datasource_type == ds_type,
-                models.DatasourceAccessRequest.datasource_id == ds_id
-            ).all()
+            DAR = models.DatasourceAccessRequest
+            return (
+                db.session.query(DAR)
+                .filter(
+                    DAR.created_by == sm.find_user(username=username),
+                    DAR.datasource_type == ds_type,
+                    DAR.datasource_id == ds_id,
+                )
+                .first()
+            )
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)

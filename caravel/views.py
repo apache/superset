@@ -57,12 +57,8 @@ class BaseCaravelView(BaseView):
                 self.can_access("database_access", database.perm))
 
     def datasource_access(self, datasource):
-        if hasattr(datasource, "cluster"):
-            return (self.database_access(datasource.cluster) or
-                    self.can_access("datasource_access", datasource.perm))
-        else:
-            return (self.database_access(datasource.database) or
-                    self.can_access("datasource_access", datasource.perm))
+        return (self.database_access(datasource.database) or
+                self.can_access("datasource_access", datasource.perm))
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -202,6 +198,7 @@ class FilterSlice(CaravelFilter):
 
 
 class FilterDashboard(CaravelFilter):
+    """List dashboards for which users have access to at least one slice"""
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -662,7 +659,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     add_columns = [
         'cluster_name',
         'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
-        'broker_host', 'broker_port', 'broker_endpoint',
+        'broker_host', 'broker_port', 'broker_endpoint', 'cache_timeout',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']
@@ -998,52 +995,42 @@ class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
     @log_this
     @has_access
-    @expose("/request_access_form/<datasource_type>/<datasource_id>/"
-            "<datasource_name>")
-    def request_access_form(
-            self, datasource_type, datasource_id, datasource_name):
-        request_access_url = (
-            '/caravel/request_access?datasource_type={}&datasource_id={}&'
-            'datasource_name=datasource_name'.format(
-                datasource_type, datasource_id, datasource_name)
-        )
-        return self.render_template(
-            'caravel/request_access.html',
-            request_access_url=request_access_url,
-            datasource_name=datasource_name,
-            slicemodelview_link='/slicemodelview/list/')
-
-    @log_this
-    @has_access
-    @expose("/request_access")
+    @expose("/request_access/")
     def request_access(self):
+        datasources = set()
+        dashboard_id = request.args.get('dashboard_id')
+        if dashboard_id:
+            dash = (
+                db.session.query(models.Dashboard)
+                .filter_by(id=int(dashboard_id))
+                .one()
+            )
+            datasources |= dash.datasources
         datasource_id = request.args.get('datasource_id')
         datasource_type = request.args.get('datasource_type')
-        datasource_name = request.args.get('datasource_name')
-        session = db.session
+        if datasource_id:
+            ds_class = SourceRegistry.sources.get(datasource_type)
+            datasource = (
+                db.session.query(ds_class)
+                .filter_by(id=int(datasource_id))
+                .one()
+            )
+            datasources.add(datasource)
+        if request.args.get('action') == 'go':
+            for datasource in datasources:
+                access_request = DAR(
+                    datasource_id=datasource.id,
+                    datasource_type=datasource.type)
+                db.session.add(access_request)
+                db.session.commit()
+            flash(__("Access was requested"), "info")
+            return redirect('/')
 
-        duplicates = (
-            session.query(DAR)
-            .filter(
-                DAR.datasource_id == datasource_id,
-                DAR.datasource_type == datasource_type,
-                DAR.created_by_fk == g.user.id)
-            .all()
+        return self.render_template(
+            'caravel/request_access.html',
+            datasources=datasources,
+            datasource_names=", ".join([o.name for o in datasources]),
         )
-
-        if duplicates:
-            flash(__(
-                "You have already requested access to the datasource %(name)s",
-                name=datasource_name), "warning")
-            return redirect('/slicemodelview/list/')
-
-        access_request = DAR(datasource_id=datasource_id,
-                             datasource_type=datasource_type)
-        db.session.add(access_request)
-        db.session.commit()
-        flash(__("Access to the datasource %(name)s was requested",
-                 name=datasource_name), "info")
-        return redirect('/slicemodelview/list/')
 
     @log_this
     @has_access
@@ -1132,8 +1119,11 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(datasource):
             flash(
                 __(get_datasource_access_error_msg(datasource.name)), "danger")
-            return redirect('caravel/request_access_form/{}/{}/{}'.format(
-                datasource_type, datasource_id, datasource.name))
+            return redirect(
+                'caravel/request_access/?'
+                'datasource_type={datasource_type}&'
+                'datasource_id={datasource_id}&'
+                ''.format(**locals()))
 
         request_args_multi_dict = request.args  # MultiDict
 
@@ -1524,7 +1514,17 @@ class Caravel(BaseCaravelView):
             qry = qry.filter_by(slug=dashboard_id)
 
         templates = session.query(models.CssTemplate).all()
-        dash = qry.first()
+        dash = qry.one()
+        datasources = {slc.datasource for slc in dash.slices}
+        for datasource in datasources:
+            if not self.datasource_access(datasource):
+                flash(
+                    __(get_datasource_access_error_msg(datasource.name)),
+                    "danger")
+                return redirect(
+                    'caravel/request_access/?'
+                    'dashboard_id={dash.id}&'
+                    ''.format(**locals()))
 
         # Hack to log the dashboard_id properly, even when getting a slug
         @log_this
@@ -1532,7 +1532,8 @@ class Caravel(BaseCaravelView):
             pass
         dashboard(dashboard_id=dash.id)
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
-        dash_save_perm = dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
+        dash_save_perm = \
+            dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             user_id=g.user.get_id(),
