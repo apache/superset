@@ -1972,6 +1972,7 @@ class Query(Model):
     # Could be configured in the caravel config.
     limit = Column(Integer)
     limit_used = Column(Boolean, default=False)
+    limit_reached = Column(Boolean, default=False)
     select_as_cta = Column(Boolean)
     select_as_cta_used = Column(Boolean, default=False)
 
@@ -1993,6 +1994,10 @@ class Query(Model):
     __table_args__ = (
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
     )
+
+    @property
+    def limit_reached(self):
+        return self.rows == self.limit if self.limit_used else False
 
     def to_dict(self):
         return {
@@ -2016,6 +2021,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
+            'limit_reached': self.limit_reached,
         }
 
     @property
