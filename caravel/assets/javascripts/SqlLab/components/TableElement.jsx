@@ -64,7 +64,7 @@ class TableElement extends React.Component {
       metadata = (
         <div>
           {this.props.table.columns.map((col) => (
-            <div className="clearfix">
+            <div className="clearfix" key={shortid.generate()}>
               <div className="pull-left m-l-10">
                 {col.name}
               </div>
