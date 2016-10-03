@@ -1955,14 +1955,14 @@ class Caravel(BaseCaravelView):
         # SUPPORT DRUID
         # TODO: move this logic to the model (maybe)
         datasource_grains = datasource.database.grains()
-        grain_names = str(grain.name) for grain in datasource_grains
+        grain_names = [str(grain.name) for grain in datasource_grains]
         form_data = {
-            "dttm_cols": datasource.dttm_cols,
-            "time_grains": [grain_names],
-            "groupby_cols": datasource.groupby_column_names,
-            "metrics": datasource.metrics_combo,
-            "filter_cols": datasource.filterable_column_names,
-        }
+                    "dttm_cols": datasource.dttm_cols,
+                    "time_grains": grain_names,
+                    "groupby_cols": datasource.groupby_column_names,
+                    "metrics": datasource.metrics_combo,
+                    "filter_cols": datasource.filterable_column_names,
+                }
         return Response(
             json.dumps(form_data), mimetype="application/json")
 
