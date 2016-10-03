@@ -19,7 +19,7 @@ const defaultProps = {
   groupByColumns: [],
 };
 
-class GroupBy extends React.Component {
+export class GroupBy extends React.Component {
   changeColumns(groupByColumnOpts) {
     this.props.actions.setGroupByColumns(groupByColumnOpts);
   }

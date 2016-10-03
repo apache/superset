@@ -25,7 +25,7 @@ const defaultProps = {
   until: null,
 };
 
-class TimeFilter extends React.Component {
+export class TimeFilter extends React.Component {
   changeTimeColumn(timeColumnOpt) {
     const val = (timeColumnOpt) ? timeColumnOpt.value : null;
     this.props.actions.setTimeColumn(val);

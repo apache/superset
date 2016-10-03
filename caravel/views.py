@@ -75,6 +75,8 @@ class ListWidgetWithCheckboxes(ListWidget):
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission")
 DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
+DATASOURCE_ACCESS_ERR = __(
+    "User does not have access to this datasource")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -1207,6 +1209,7 @@ class Caravel(BaseCaravelView):
                     "datasources": [(d.id, d.full_name) for d in datasources],
                     "datasource_id": datasource_id,
                     "datasource_type": datasource_type,
+                    "datasource_class": datasource_class.__name__,
                     "user_id": g.user.get_id() if g.user else None,
                     "viz": json.loads(viz_obj.get_json())
                 }
