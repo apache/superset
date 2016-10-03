@@ -193,12 +193,12 @@ class SqlEditor extends React.Component {
       );
     }
     let limitWarning = null;
-    const rowLimit = 1000;
-    if (this.props.latestQuery && this.props.latestQuery.rows === rowLimit) {
+    if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
         <Tooltip id="tooltip">
           It appears that the number of rows in the query results displayed
-          was limited on the server side to the {rowLimit} limit.
+          was limited on the server side to
+          the {this.props.latestQuery.rows} limit.
         </Tooltip>
       );
       limitWarning = (
