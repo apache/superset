@@ -1,3 +1,4 @@
+import { it, describe } from 'mocha';
 import { expect } from 'chai';
 import shortid from 'shortid';
 import * as actions from '../../../../javascripts/explorev2/actions/exploreActions';
@@ -5,7 +6,6 @@ import { initialState } from '../../../../javascripts/explorev2/stores/store';
 import { exploreReducer } from '../../../../javascripts/explorev2/reducers/exploreReducer';
 
 describe('reducers', () => {
-
   it('should return new state with datasource id', () => {
     const newState = exploreReducer(initialState, actions.setDatasource(1));
     expect(newState.datasourceId).to.equal(1);
@@ -88,5 +88,4 @@ describe('reducers', () => {
     const newState = exploreReducer(testState, actions.removeFilter(filter1));
     expect(newState.filters).to.deep.equal([filter2]);
   });
-
 });

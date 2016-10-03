@@ -1304,7 +1304,9 @@ class Caravel(BaseCaravelView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explorev2.html"
-            return self.render_template(template, bootstrap_data=json.dumps(bootstrap_data))
+            return self.render_template(
+                    template,
+                    bootstrap_data=json.dumps(bootstrap_data))
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
@@ -1943,7 +1945,8 @@ class Caravel(BaseCaravelView):
         # TODO: check permissions
         # TODO: check if datasource exits
         session = db.session
-        datasource_class = SourceRegistry.sources[request.args.get('datasource_type')]
+        datasource_class =
+            SourceRegistry.sources[request.args.get('datasource_type')]
         datasource = (
             session.query(datasource_class)
             .filter_by(id=request.args.get('datasource_id'))
@@ -1951,7 +1954,8 @@ class Caravel(BaseCaravelView):
         )
         # SUPPORT DRUID
         # TODO: move this logic to the model (maybe)
-        grains_choices = [str(grain.name) for grain in datasource.database.grains()]
+        grains_choices =
+            [str(grain.name) for grain in datasource.database.grains()]
         form_data = {
                     "dttm_cols": datasource.dttm_cols,
                     "time_grains": grains_choices,
