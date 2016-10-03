@@ -1945,8 +1945,8 @@ class Caravel(BaseCaravelView):
         # TODO: check permissions
         # TODO: check if datasource exits
         session = db.session
-        datasource_class =
-            SourceRegistry.sources[request.args.get('datasource_type')]
+        datasource_type = request.args.get('datasource_type')
+        datasource_class = SourceRegistry.sources[datasource_type]
         datasource = (
             session.query(datasource_class)
             .filter_by(id=request.args.get('datasource_id'))
@@ -1954,15 +1954,15 @@ class Caravel(BaseCaravelView):
         )
         # SUPPORT DRUID
         # TODO: move this logic to the model (maybe)
-        grains_choices =
-            [str(grain.name) for grain in datasource.database.grains()]
+        datasource_grains = datasource.database.grains()
+        grain_names = str(grain.name) for grain in datasource_grains
         form_data = {
-                    "dttm_cols": datasource.dttm_cols,
-                    "time_grains": grains_choices,
-                    "groupby_cols": datasource.groupby_column_names,
-                    "metrics": datasource.metrics_combo,
-                    "filter_cols": datasource.filterable_column_names,
-                }
+            "dttm_cols": datasource.dttm_cols,
+            "time_grains": [grain_names],
+            "groupby_cols": datasource.groupby_column_names,
+            "metrics": datasource.metrics_combo,
+            "filter_cols": datasource.filterable_column_names,
+        }
         return Response(
             json.dumps(form_data), mimetype="application/json")
 
