@@ -5,9 +5,8 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
-import { getParamFromQuery } from '../../../utils/common';
+import { getParamFromQuery, getLink } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
-import { getLink } from '../../../utils/common';
 
 let queryCount = 1;
 
