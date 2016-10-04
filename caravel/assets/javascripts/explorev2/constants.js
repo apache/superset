@@ -6,6 +6,7 @@ import SqlClause from './components/SqlClause';
 import Filters from './components/Filters';
 import NotGroupBy from './components/NotGroupBy';
 import Options from './components/Options';
+import PivotColumns from './components/PivotColumns';
 
 export const VIZ_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -42,7 +43,6 @@ export const sinceOptions = ['1 hour ago', '12 hours ago', '1 day ago',
   '7 days ago', '28 days ago', '90 days ago', '1 year ago'];
 export const untilOptions = ['now', '1 day ago', '7 days ago',
   '28 days ago', '90 days ago', '1 year ago'];
-
 export const timestampOptions = [
     ['smart_date', 'Adaptative formating'],
     ['%m/%d/%Y', '"%m/%d/%Y" | 01/14/2019'],
@@ -51,7 +51,6 @@ export const timestampOptions = [
      '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'],
     ['%H:%M:%S', '"%H:%M:%S" | 01:32:10'],
 ];
-
 export const rowLimitOptions = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 export const DefaultControls = (
@@ -64,13 +63,22 @@ export const DefaultControls = (
   </div>
 );
 
-export const TableVizControls = (
+const TableControls = (
   <div>
     <NotGroupBy />
     <Options />
   </div>
 );
 
+const PivotTableControls = (
+  <div>
+    <PivotColumns />
+  </div>
+);
+
 export const VIZ_CONTROL_MAPPING = {
-  table: TableVizControls,
+  table: TableControls,
+  pivot_table: PivotTableControls,
 };
+
+export const aggMetricOpts = ['sum', 'mean', 'min', 'max', 'median', 'stdev', 'var'];

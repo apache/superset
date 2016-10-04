@@ -1,5 +1,6 @@
 const $ = window.$ = require('jquery');
 export const SET_DATASOURCE = 'SET_DATASOURCE';
+export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export const SET_VIZTYPE = 'SET_VIZTYPE';
 export const SET_TIME_COLUMN_OPTS = 'SET_TIME_COLUMN_OPTS';
 export const SET_TIME_GRAIN_OPTS = 'SET_TIME_GRAIN_OPTS';
@@ -29,7 +30,8 @@ export const CHANGE_FILTER_OP = 'CHANGE_FILTER_OP';
 export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const RESET_FORM_DATA = 'RESET_FORM_DATA';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
-export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
+export const SET_PIVOT_COLUMNS = ' SET_PIVOT_COLUMNS';
+export const SET_AGG_METRIC = 'SET_AGG_METRIC';
 
 export function setTimeColumnOpts(timeColumnOpts) {
   return { type: SET_TIME_COLUMN_OPTS, timeColumnOpts };
@@ -205,4 +207,12 @@ export function changeFilterOp(filter, op) {
 
 export function changeFilterValue(filter, value) {
   return { type: CHANGE_FILTER_VALUE, filter, value };
+}
+
+export function setPivotColumns(pivotColumns) {
+  return { type: SET_PIVOT_COLUMNS, pivotColumns };
+}
+
+export function setAggMetric(aggMetric) {
+  return { type: SET_AGG_METRIC, aggMetric };
 }
