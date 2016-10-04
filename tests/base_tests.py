@@ -104,6 +104,15 @@ class CaravelTestCase(unittest.TestCase):
         session.close()
         return query
 
+    def get_slice(self, slice_name, session):
+        slc = (
+            session.query(models.Slice)
+            .filter_by(slice_name=slice_name)
+            .one()
+        )
+        session.expunge_all()
+        return slc
+
     def get_resp(self, url):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.client.get(url, follow_redirects=True)
