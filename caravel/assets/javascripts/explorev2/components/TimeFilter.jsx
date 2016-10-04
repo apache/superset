@@ -7,6 +7,7 @@ import { sinceOptions, untilOptions } from '../constants';
 
 const propTypes = {
   actions: React.PropTypes.object,
+  datasourceClass: React.PropTypes.string,
   timeColumnOpts: React.PropTypes.array,
   timeColumn: React.PropTypes.string,
   timeGrainOpts: React.PropTypes.array,
@@ -42,16 +43,20 @@ class TimeFilter extends React.Component {
     this.props.actions.setUntil(val);
   }
   render() {
+    const timeColumnPlaceHolder =
+      (this.props.datasourceClass === 'SqlaTable') ? 'Time Column' : 'Time Granularity';
+    const timeGrainPlaceHolder =
+      (this.props.datasourceClass === 'SqlaTable') ? 'Time Grain' : 'Origin';
     return (
       <div className="panel space-1">
         <div className="panel-header">Time Filter</div>
         <div className="panel-body">
           <div className="row">
-            <h5 className="section-heading">Time Column & Grain</h5>
+            <h5 className="section-heading">Time Column & Grains</h5>
             <Select
               className="col-sm-6"
               name="select-time-column"
-              placeholder="Select a time column"
+              placeholder={`Select a ${timeColumnPlaceHolder}`}
               options={this.props.timeColumnOpts}
               value={this.props.timeColumn}
               autosize={false}
@@ -60,7 +65,7 @@ class TimeFilter extends React.Component {
             <Select
               className="col-sm-6"
               name="select-time-grain"
-              placeholder="Select a time grain"
+              placeholder={`Select a ${timeGrainPlaceHolder}`}
               options={this.props.timeGrainOpts}
               value={this.props.timeGrain}
               autosize={false}
@@ -99,6 +104,7 @@ TimeFilter.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
+    datasourceClass: state.datasourceClass,
     timeColumnOpts: state.timeColumnOpts,
     timeColumn: state.timeColumn,
     timeGrainOpts: state.timeGrainOpts,

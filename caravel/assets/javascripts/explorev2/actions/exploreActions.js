@@ -29,6 +29,7 @@ export const CHANGE_FILTER_OP = 'CHANGE_FILTER_OP';
 export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const RESET_FORM_DATA = 'RESET_FORM_DATA';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
+export const SET_DATASOURCE_CLASS = 'SET_DATASOURCE_CLASS';
 
 export function setTimeColumnOpts(timeColumnOpts) {
   return { type: SET_TIME_COLUMN_OPTS, timeColumnOpts };
@@ -59,6 +60,10 @@ export function clearAllOpts() {
   return { type: CLEAR_ALL_OPTS };
 }
 
+export function setDatasourceClass(datasourceClass) {
+  return { type: SET_DATASOURCE_CLASS, datasourceClass };
+}
+
 export function setFormOpts(datasourceId, datasourceType) {
   return function (dispatch) {
     const timeColumnOpts = [];
@@ -73,7 +78,7 @@ export function setFormOpts(datasourceId, datasourceType) {
 
       $.get(url, (data, status) => {
         if (status === 'success') {
-          data.dttm_cols.forEach((d) => {
+          data.time_columns.forEach((d) => {
             if (d) timeColumnOpts.push({ value: d, label: d });
           });
           data.groupby_cols.forEach((d) => {
@@ -89,6 +94,7 @@ export function setFormOpts(datasourceId, datasourceType) {
             if (d) timeGrainOpts.push({ value: d, label: d });
           });
           // Repopulate options for controls
+          dispatch(setDatasourceClass(data.datasource_class));
           dispatch(setTimeColumnOpts(timeColumnOpts));
           dispatch(setTimeGrainOpts(timeGrainOpts));
           dispatch(setGroupByColumnOpts(groupByColumnOpts));
