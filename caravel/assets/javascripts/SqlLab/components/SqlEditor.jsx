@@ -155,6 +155,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, false)}
           disabled={!(this.props.queryEditor.dbId)}
+          key={shortid.generate()}
         >
           <i className="fa fa-table" /> Run Query
         </Button>
@@ -168,6 +169,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, true)}
           disabled={!(this.props.queryEditor.dbId)}
+          key={shortid.generate()}
         >
           <i className="fa fa-table" /> Run Async
         </Button>
