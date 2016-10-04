@@ -1201,6 +1201,113 @@ class Caravel(BaseCaravelView):
                 can_download=slice_download_perm,
                 userid=g.user.get_id() if g.user else '')
 
+    @has_access
+    @expose("/exploreV2/<datasource_type>/<datasource_id>/<slice_id>/")
+    @expose("/exploreV2/<datasource_type>/<datasource_id>/")
+    @log_this
+    def exploreV2(self, datasource_type, datasource_id, slice_id=None):
+        error_redirect = '/slicemodelview/list/'
+        datasource_class = SourceRegistry.sources[datasource_type]
+        datasources = db.session.query(datasource_class).all()
+        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+        datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
+        datasource = datasource[0] if datasource else None
+
+        if not datasource:
+            flash(DATASOURCE_MISSING_ERR, "alert")
+            return redirect(error_redirect)
+
+        if not self.datasource_access(datasource):
+            flash(
+                __(get_datasource_access_error_msg(datasource.name)), "danger")
+            return redirect('caravel/request_access_form/{}/{}/{}'.format(
+                datasource_type, datasource_id, datasource.name))
+
+        request_args_multi_dict = request.args  # MultiDict
+
+        slice_id = slice_id or request_args_multi_dict.get("slice_id")
+        slc = None
+        # build viz_obj and get it's params
+        if slice_id:
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            try:
+                viz_obj = slc.get_viz(
+                    url_params_multidict=request_args_multi_dict)
+            except Exception as e:
+                logging.exception(e)
+                flash(utils.error_msg_from_exception(e), "danger")
+                return redirect(error_redirect)
+        else:
+            viz_type = request_args_multi_dict.get("viz_type")
+            if not viz_type and datasource.default_endpoint:
+                return redirect(datasource.default_endpoint)
+            # default to table if no default endpoint and no viz_type
+            viz_type = viz_type or "table"
+            # validate viz params
+            try:
+                viz_obj = viz.viz_types[viz_type](
+                    datasource, request_args_multi_dict)
+            except Exception as e:
+                logging.exception(e)
+                flash(utils.error_msg_from_exception(e), "danger")
+                return redirect(error_redirect)
+        slice_params_multi_dict = ImmutableMultiDict(viz_obj.orig_form_data)
+
+        # slc perms
+        slice_add_perm = self.can_access('can_add', 'SliceModelView')
+        slice_edit_perm = check_ownership(slc, raise_if_false=False)
+        slice_download_perm = self.can_access('can_download', 'SliceModelView')
+
+        # handle save or overwrite
+        action = slice_params_multi_dict.get('action')
+        if action in ('saveas', 'overwrite'):
+            return self.save_or_overwrite_slice(
+                slice_params_multi_dict, slc, slice_add_perm, slice_edit_perm)
+
+        # handle different endpoints
+        if slice_params_multi_dict.get("json") == "true":
+            if config.get("DEBUG"):
+                # Allows for nice debugger stack traces in debug mode
+                return Response(
+                    viz_obj.get_json(),
+                    status=200,
+                    mimetype="application/json")
+            try:
+                return Response(
+                    viz_obj.get_json(),
+                    status=200,
+                    mimetype="application/json")
+            except Exception as e:
+                logging.exception(e)
+                return json_error_response(utils.error_msg_from_exception(e))
+
+        elif slice_params_multi_dict.get("csv") == "true":
+            payload = viz_obj.get_csv()
+            return Response(
+                payload,
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv")
+        else:
+            bootstrap_data = {
+                "can_add": slice_add_perm,
+                "can_download": slice_download_perm,
+                "can_edit": slice_edit_perm,
+                # TODO: separate endpoint for fetching datasources
+                "datasources": [(d.id, d.full_name) for d in datasources],
+                "datasource_id": datasource_id,
+                "datasource_type": datasource_type,
+                "user_id": g.user.get_id() if g.user else None,
+                "viz": json.loads(viz_obj.get_json())
+            }
+            if slice_params_multi_dict.get("standalone") == "true":
+                template = "caravel/standalone.html"
+            else:
+                template = "caravel/explorev2.html"
+            return self.render_template(
+                    template,
+                    bootstrap_data=json.dumps(bootstrap_data))
+
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
         """Save or overwrite a slice"""
@@ -1830,6 +1937,34 @@ class Caravel(BaseCaravelView):
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
         return response
+
+    @has_access
+    @expose("/fetch_datasource_metadata")
+    @log_this
+    def fetch_datasource_metadata(self):
+        # TODO: check permissions
+        # TODO: check if datasource exits
+        session = db.session
+        datasource_type = request.args.get('datasource_type')
+        datasource_class = SourceRegistry.sources[datasource_type]
+        datasource = (
+            session.query(datasource_class)
+            .filter_by(id=request.args.get('datasource_id'))
+            .first()
+        )
+        # SUPPORT DRUID
+        # TODO: move this logic to the model (maybe)
+        datasource_grains = datasource.database.grains()
+        grain_names = [str(grain.name) for grain in datasource_grains]
+        form_data = {
+                    "dttm_cols": datasource.dttm_cols,
+                    "time_grains": grain_names,
+                    "groupby_cols": datasource.groupby_column_names,
+                    "metrics": datasource.metrics_combo,
+                    "filter_cols": datasource.filterable_column_names,
+                }
+        return Response(
+            json.dumps(form_data), mimetype="application/json")
 
     @has_access
     @expose("/queries/<last_updated_ms>")
