@@ -42,8 +42,11 @@ config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
 QueryStatus = models.QueryStatus
-DRUID_TIME_GRAINS = ['all', '5 seconds', '30 seconds', '1 minute',
-                '5 minutes', '1 hour', '6 hour', '1 day', '7 days']
+DRUID_TIME_GRAINS = [
+    'all', '5 seconds', '30 seconds', '1 minute',
+    '5 minutes', '1 hour', '6 hour', '1 day', '7 days'
+]
+
 
 class BaseCaravelView(BaseView):
     def can_access(self, permission_name, view_name):
@@ -72,8 +75,6 @@ class ListWidgetWithCheckboxes(ListWidget):
 ALL_DATASOURCE_ACCESS_ERR = __(
     "This endpoint requires the `all_datasource_access` permission")
 DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
-DATASOURCE_ACCESS_ERR = __(
-    "User does not have access to this datasource")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
@@ -1198,19 +1199,11 @@ class Caravel(BaseCaravelView):
                 template = "caravel/standalone.html"
             else:
                 template = "caravel/explore.html"
-                bootstrap_data = {
-                    "can_add": slice_add_perm,
-                    "can_download": slice_download_perm,
-                    "can_edit": slice_edit_perm,
-                    # TODO: separate endpoint for fetching datasources
-                    "datasources": [(d.id, d.full_name) for d in datasources],
-                    "datasource_id": datasource_id,
-                    "datasource_type": datasource_type,
-                    "datasource_class": datasource_class.__name__,
-                    "user_id": g.user.get_id() if g.user else None,
-                    "viz": json.loads(viz_obj.get_json())
-                }
-            return self.render_template(template, bootstrap_data=json.dumps(bootstrap_data))
+            return self.render_template(
+                template, viz=viz_obj, slice=slc, datasources=datasources,
+                can_add=slice_add_perm, can_edit=slice_edit_perm,
+                can_download=slice_download_perm,
+                userid=g.user.get_id() if g.user else '')
 
     @has_access
     @expose("/exploreV2/<datasource_type>/<datasource_id>/<slice_id>/")
@@ -1308,6 +1301,7 @@ class Caravel(BaseCaravelView):
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
                 "datasource_type": datasource_type,
+                "datasource_class": datasource_class.__name__,
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())
             }

@@ -23,7 +23,7 @@ const bootstrappedState = Object.assign(initialState, {
   vizType: bootstrapData.viz.form_data.viz_type,
   timeColumn: bootstrapData.viz.form_data.granularity_sqla,
   timeGrain: bootstrapData.viz.form_data.time_grain_sqla,
-  metrics: [bootstrapData.viz.form_data.metric].map((m) => ({ value: m, label: m })),
+  metrics: [bootstrapData.viz.form_data.metrics].map((m) => ({ value: m, label: m })),
   since: bootstrapData.viz.form_data.since,
   until: bootstrapData.viz.form_data.until,
   havingClause: bootstrapData.viz.form_data.having,
