@@ -1150,7 +1150,7 @@ class TableColumn(Model, AuditMixinNullable):
         elif tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
         elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
             default = "'{}'".format(dttm.strftime(tf))
             iso = dttm.isoformat()

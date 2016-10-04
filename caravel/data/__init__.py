@@ -27,6 +27,8 @@ config = app.config
 
 DATA_FOLDER = os.path.join(config.get("BASE_DIR"), 'data')
 
+misc_dash_slices = []  # slices assembled in a "Misc Chart" dashboard
+
 
 def merge_slice(slc):
     o = db.session.query(Slice).filter_by(slice_name=slc.slice_name).first()
@@ -70,98 +72,99 @@ def load_energy():
     db.session.commit()
     tbl.fetch_metadata()
 
-    merge_slice(
-        Slice(
-            slice_name="Energy Sankey",
-            viz_type='sankey',
-            datasource_type='table',
-            datasource_id=tbl.id,
-            params=textwrap.dedent("""\
-            {
-                "collapsed_fieldsets": "",
-                "datasource_id": "3",
-                "datasource_name": "energy_usage",
-                "datasource_type": "table",
-                "flt_col_0": "source",
-                "flt_eq_0": "",
-                "flt_op_0": "in",
-                "groupby": [
-                    "source",
-                    "target"
-                ],
-                "having": "",
-                "metric": "sum__value",
-                "row_limit": "5000",
-                "slice_id": "",
-                "slice_name": "Energy Sankey",
-                "viz_type": "sankey",
-                "where": ""
-            }
-            """))
+    slc = Slice(
+        slice_name="Energy Sankey",
+        viz_type='sankey',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=textwrap.dedent("""\
+        {
+            "collapsed_fieldsets": "",
+            "datasource_id": "3",
+            "datasource_name": "energy_usage",
+            "datasource_type": "table",
+            "flt_col_0": "source",
+            "flt_eq_0": "",
+            "flt_op_0": "in",
+            "groupby": [
+                "source",
+                "target"
+            ],
+            "having": "",
+            "metric": "sum__value",
+            "row_limit": "5000",
+            "slice_name": "Energy Sankey",
+            "viz_type": "sankey",
+            "where": ""
+        }
+        """)
     )
+    misc_dash_slices.append(slc.slice_name)
+    merge_slice(slc)
 
-    merge_slice(
-        Slice(
-            slice_name="Energy Force Layout",
-            viz_type='directed_force',
-            datasource_type='table',
-            datasource_id=tbl.id,
-            params=textwrap.dedent("""\
-            {
-                "charge": "-500",
-                "collapsed_fieldsets": "",
-                "datasource_id": "1",
-                "datasource_name": "energy_usage",
-                "datasource_type": "table",
-                "flt_col_0": "source",
-                "flt_eq_0": "",
-                "flt_op_0": "in",
-                "groupby": [
-                    "source",
-                    "target"
-                ],
-                "having": "",
-                "link_length": "200",
-                "metric": "sum__value",
-                "row_limit": "5000",
-                "slice_id": "229",
-                "slice_name": "Force",
-                "viz_type": "directed_force",
-                "where": ""
-            }
-            """))
+    slc = Slice(
+        slice_name="Energy Force Layout",
+        viz_type='directed_force',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=textwrap.dedent("""\
+        {
+            "charge": "-500",
+            "collapsed_fieldsets": "",
+            "datasource_id": "1",
+            "datasource_name": "energy_usage",
+            "datasource_type": "table",
+            "flt_col_0": "source",
+            "flt_eq_0": "",
+            "flt_op_0": "in",
+            "groupby": [
+                "source",
+                "target"
+            ],
+            "having": "",
+            "link_length": "200",
+            "metric": "sum__value",
+            "row_limit": "5000",
+            "slice_name": "Force",
+            "viz_type": "directed_force",
+            "where": ""
+        }
+        """)
     )
-    merge_slice(
-        Slice(
-            slice_name="Heatmap",
-            viz_type='heatmap',
-            datasource_type='table',
-            datasource_id=tbl.id,
-            params=textwrap.dedent("""\
-            {
-                "all_columns_x": "source",
-                "all_columns_y": "target",
-                "canvas_image_rendering": "pixelated",
-                "collapsed_fieldsets": "",
-                "datasource_id": "1",
-                "datasource_name": "energy_usage",
-                "datasource_type": "table",
-                "flt_col_0": "source",
-                "flt_eq_0": "",
-                "flt_op_0": "in",
-                "having": "",
-                "linear_color_scheme": "blue_white_yellow",
-                "metric": "sum__value",
-                "normalize_across": "heatmap",
-                "slice_id": "229",
-                "slice_name": "Heatmap",
-                "viz_type": "heatmap",
-                "where": "",
-                "xscale_interval": "1",
-                "yscale_interval": "1"
-            }
-            """))
+    misc_dash_slices.append(slc.slice_name)
+    merge_slice(slc)
+
+    slc = Slice(
+        slice_name="Heatmap",
+        viz_type='heatmap',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=textwrap.dedent("""\
+        {
+            "all_columns_x": "source",
+            "all_columns_y": "target",
+            "canvas_image_rendering": "pixelated",
+            "collapsed_fieldsets": "",
+            "datasource_id": "1",
+            "datasource_name": "energy_usage",
+            "datasource_type": "table",
+            "flt_col_0": "source",
+            "flt_eq_0": "",
+            "flt_op_0": "in",
+            "having": "",
+            "linear_color_scheme": "blue_white_yellow",
+            "metric": "sum__value",
+            "normalize_across": "heatmap",
+            "slice_name": "Heatmap",
+            "viz_type": "heatmap",
+            "where": "",
+            "xscale_interval": "1",
+            "yscale_interval": "1"
+        }
+        """)
     )
+    misc_dash_slices.append(slc.slice_name)
+    merge_slice(slc)
 
 
 def load_world_bank_health_n_pop():
@@ -359,6 +362,7 @@ def load_world_bank_health_n_pop():
                 secondary_metric='sum__SP_POP_TOTL',
                 series="country_name",)),
     ]
+    misc_dash_slices.append(slices[-1].slice_name)
     for slc in slices:
         merge_slice(slc)
 
@@ -1008,6 +1012,7 @@ def load_long_lat_data():
         datasource_id=tbl.id,
         params=get_slice_json(slice_data),
     )
+    misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
 
 
@@ -1081,10 +1086,85 @@ def load_multiformat_time_series_data():
         }
 
         slc = Slice(
-            slice_name="Calendar Heatmap multiformat" + str(i),
+            slice_name="Calendar Heatmap multiformat " + str(i),
             viz_type='cal_heatmap',
             datasource_type='table',
             datasource_id=tbl.id,
             params=get_slice_json(slice_data),
         )
         merge_slice(slc)
+    misc_dash_slices.append(slc.slice_name)
+
+
+def load_misc_dashboard():
+    """Loading a dasbhoard featuring misc charts"""
+
+    print("Creating the dashboard")
+    db.session.expunge_all()
+    DASH_SLUG = "misc_charts"
+    dash = db.session.query(Dash).filter_by(slug=DASH_SLUG).first()
+
+    if not dash:
+        dash = Dash()
+    js = textwrap.dedent("""\
+    [
+        {
+            "col": 1,
+            "row": 7,
+            "size_x": 6,
+            "size_y": 4,
+            "slice_id": "442"
+        },
+        {
+            "col": 1,
+            "row": 2,
+            "size_x": 6,
+            "size_y": 5,
+            "slice_id": "443"
+        },
+        {
+            "col": 7,
+            "row": 2,
+            "size_x": 6,
+            "size_y": 4,
+            "slice_id": "444"
+        },
+        {
+            "col": 9,
+            "row": 0,
+            "size_x": 4,
+            "size_y": 2,
+            "slice_id": "455"
+        },
+        {
+            "col": 7,
+            "row": 6,
+            "size_x": 6,
+            "size_y": 5,
+            "slice_id": "467"
+        },
+        {
+            "col": 1,
+            "row": 0,
+            "size_x": 8,
+            "size_y": 2,
+            "slice_id": "475"
+        }
+    ]
+    """)
+    l = json.loads(js)
+    slices = (
+        db.session
+        .query(Slice)
+        .filter(Slice.slice_name.in_(misc_dash_slices))
+        .all()
+    )
+    slices = sorted(slices, key=lambda x: x.id)
+    for i, pos in enumerate(l):
+        pos['slice_id'] = str(slices[i].id)
+    dash.dashboard_title = "Misc Charts"
+    dash.position_json = json.dumps(l, indent=4)
+    dash.slug = DASH_SLUG
+    dash.slices = slices
+    db.session.merge(dash)
+    db.session.commit()

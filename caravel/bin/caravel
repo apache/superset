@@ -105,6 +105,9 @@ def load_examples(load_test_data):
     print("Loading [Multiformat time series]")
     data.load_multiformat_time_series_data()
 
+    print("Loading [Misc Charts] dashboard")
+    data.load_misc_dashboard()
+
     if load_test_data:
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()
