@@ -1,6 +1,6 @@
 {
   "name": "caravel",
-  "version": "0.10.0.dev0",
+  "version": "0.10.0-dev.0",
   "description": "Caravel is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
