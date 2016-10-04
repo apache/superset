@@ -20,7 +20,6 @@ import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import joinedload
-from sqlalchemy.orm.session import make_transient
 
 import sqlparse
 from dateutil.parser import parse
@@ -288,6 +287,24 @@ class Slice(Model, AuditMixinNullable):
             slice_=self
         )
 
+    def alter_params(self, **kwargs):
+        params_dict = {}
+        if self.params:
+            params_dict = json.loads(self.params)
+        for key, value in kwargs.iteritems():
+            params_dict[key] = value
+        self.params = json.dumps(params_dict)
+
+    def override(self, slice):
+        """Overrides the plain fields of the dashboard."""
+        for field in Slice.export_fields():
+            setattr(self, field, getattr(slice, field))
+
+    @classmethod
+    def export_fields(cls):
+        return ('slice_name', 'datasource_type', 'datasource_name', 'viz_type',
+                'params', 'cache_timeout')
+
     @classmethod
     def import_slice(cls, slc, import_time=None):
         """Inserts or overrides slc in the database.
@@ -299,61 +316,28 @@ class Slice(Model, AuditMixinNullable):
         session = db.session
         make_transient(slc)
         slc.dashboards = []
-        # perms are named [{db_name}].[{datasource_name}](id:{id})
-        id_pos = slc.perm.find('(id') if slc.perm else -1
-        if id_pos == -1:
-            logging.warning('slice {} has malformed perm {}'.format(
-                slc.slice_name, slc.perm))
-            return None
-
-        perm_prefix = slc.perm[:id_pos]
-        datasource_class = SourceRegistry.sources[slc.datasource_type]
-        datasources = session.query(datasource_class).all()
-        if not datasources:
-            logging.warning('Datasource {} was not found for the slice {}.'
-                            .format(slc.datasource_id, slc.slice_name))
-            return None
-
-        params_dict = {}
-        if slc.params:
-            params_dict = json.loads(slc.params)
-        if 'remote_id' not in params_dict:
-            params_dict['remote_id'] = slc.id
-            params_dict['import_time'] = import_time
-        slc.params = json.dumps(params_dict)
+        slc.alter_params(remote_id=slc.id, import_time=import_time)
 
         # find if the slice was already imported
         slc_to_override = (
             session.query(Slice)
-            .filter(Slice.params.ilike('%"remote_id": {}%'.format(slc.id)))
+            .filter(Slice.params.ilike('%"remote_id": {},%'.format(slc.id)))
             .first()
         )
 
         slc.id = None
+        params = json.loads(slc.params)
+        slc.datasource_id = SourceRegistry.get_datasource_by_name(
+            session, slc.datasource_type, params['datasource_name'],
+            params['schema'], params['database_name']).id
         if slc_to_override:
-            slc_params = json.loads(slc_to_override.params)
-            if slc_params.get('import_time') == import_time:
-                # slice was imported in the current batch, no changes needed:
-                return slc_to_override.id
-            slc.id = slc_to_override.id
-            # delete old version of the slice
-            session.delete(slc_to_override)
-            session.commit()
-
-        # add slice pointing to the right datasources
-        slc_dss = [d for d in datasources if perm_prefix in d.perm]
-        if not slc_dss:
-            logging.warning(
-                'Datasources were not found for the slice {} with perm {} '
-                .format(slc.slice_name, slc.perm))
-            return None
-        slc.datasource_id = slc_dss[0].id
-        # generate correct perms for the slice
-        slc.perm = '{}(id:{})'.format(perm_prefix, slc.datasource_id)
-        session.add(slc)
-        logging.info('Imported the slice: {}'.format(slc.to_json()))
-        session.flush()
-        return slc.id
+            slc_to_override.override(slc)
+            session.flush()
+            return slc_to_override.id
+        else:
+            session.add(slc)
+            session.flush()
+            return slc.id
 
 
 def set_perm(mapper, connection, target):  # noqa
@@ -441,6 +425,14 @@ class Dashboard(Model, AuditMixinNullable):
         }
         return json.dumps(d)
 
+    def alter_json_metadata(self, **kwargs):
+        json_metadata_dict = {}
+        if self.json_metadata:
+            json_metadata_dict = json.loads(self.json_metadata)
+        for key, value in kwargs.iteritems():
+            json_metadata_dict[key] = value
+        self.json_metadata = json.dumps(json_metadata_dict)
+
     @classmethod
     def import_dashboard(cls, dashboard_to_import, import_time=None):
         """Imports the dashboard from the object to the database.
@@ -454,86 +446,86 @@ class Dashboard(Model, AuditMixinNullable):
         """
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
-        make_transient(dashboard_to_import)
+        # make_transient(dashboard_to_import)
         # TODO: provide nice error message about failed imports
-        slices_to_attach = []
         session = db.session
         logging.info('Dashboard has {} slices'
                      .format(len(dashboard_to_import.slices)))
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
+        slice_ids = set()
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            slc_id = Slice.import_slice(slc, import_time=import_time)
-            if not slc_id:
-                continue
-            slices_to_attach.append(
-                session.query(Slice).filter_by(id=slc_id).first())
-            logging.info(
-                slc.slice_name + ' belongs to the dashboard ' +
-                dashboard_to_import.dashboard_title)
-        # Skip dashboard creation if the slice wasn't imported
-        if not slices_to_attach:
-            logging.warning('Dashboard {} import failed'.format(
-                dashboard_to_import.dashboard_title))
-            return
+            slice_ids.add(Slice.import_slice(slc, import_time=import_time))
 
-        if dashboard_to_import.json_metadata:
-            json_metadata_dict = json.loads(dashboard_to_import.json_metadata)
-        else:
-            json_metadata_dict = {}
-        if 'remote_id' not in json_metadata_dict:
-            json_metadata_dict['remote_id'] = dashboard_to_import.id
-            json_metadata_dict['import_time'] = import_time
+        dashboard_to_import.alter_json_metadata(
+            remote_id=dashboard_to_import.id, import_time=import_time)
+        dashboard_to_import.id = None
+        dashboard_to_import.slices = session.query(Slice).filter(
+            Slice.id.in_(slice_ids)).all()
 
         # Override the dashboard
         existing_dashboard = (
             session.query(Dashboard)
             .filter(Dashboard.json_metadata.ilike(
-                '%"remote_id": {}%'.format(dashboard_to_import.id)))
+                '%"remote_id": {},%'.format(dashboard_to_import.id)))
             .first()
         )
-        dashboard_to_import.id = None
+
         if existing_dashboard:
-            # TODO: add nice notification about the overriden dashboard
-            logging.info('Dashboard already exist and will be overridden: {}'
-                         .format(existing_dashboard.to_json()))
+            existing_dashboard.override(dashboard_to_import)
+            session.flush()
+            return existing_dashboard.id
+        else:
+            # session.add(dashboard_to_import) causes sqlachemy failures
+            # related to the attached users / slices. Creating new object
+            # allows to avoid conflicts in the sql alchemy state.
+            copied_dash = dashboard_to_import.copy()
+            session.add(copied_dash)
+            session.flush()
+            return copied_dash.id
 
-            session.delete(existing_dashboard)
-            session.commit()
+    def override(self, dashboard):
+        """Overrides the plain fields of the dashboard."""
+        for field in Dashboard.export_fields():
+            setattr(self, field, getattr(dashboard, field))
 
-        # session.add(dashboard_to_import) causes sqlachemy failures
-        # related to the attached users / slices. Creating new object
-        # allows to avoid conflicts in the sql alchemy state.
-        new_dash = Dashboard(
-            dashboard_title=dashboard_to_import.dashboard_title,
-            position_json=dashboard_to_import.position_json,
-            json_metadata=json.dumps(json_metadata_dict),
-            description=dashboard_to_import.description,
-            css=dashboard_to_import.css,
-            slug=dashboard_to_import.slug,
-            slices=slices_to_attach,
-        )
-        session.add(new_dash)
-        session.flush()
-        logging.info('Imported the dashboard: {}'.format(new_dash.to_json()))
-        return new_dash.id
+    def copy(self):
+        """Creates a copy of the dashboard without relationships."""
+        dashboard = Dashboard()
+        dashboard.override(self)
+        return dashboard
+
+    @classmethod
+    def export_fields(cls):
+        return ('dashboard_title', 'position_json', 'json_metadata',
+                'description', 'css', 'slug', 'slices')
 
     @classmethod
     def export_dashboards(cls, dashboard_ids):
         eager_dashboards = []
+        datasource_set = set()
         for dashboard_id in dashboard_ids:
             eager_dashboard = db.session.query(Dashboard).options(
                 joinedload('slices')).filter_by(id=dashboard_id).first()
-            db.session.expunge(eager_dashboard)
-            make_transient(eager_dashboard)
-            eager_dashboard.created_by_fk = None
-            eager_dashboard.changed_by_fk = None
-            eager_dashboard.owners = []
-            eager_dashboards.append(eager_dashboard)
-        return pickle.dumps(eager_dashboards)
+            for slc in eager_dashboard.slices:
+                if slc.datasource not in datasource_set:
+                    datasource_set.add(slc.datasource)
+                # add extra params for the import
+                slc.alter_params(
+                    remote_id=slc.id,
+                    datasource_name=slc.datasource.name,
+                    schema=slc.datasource.name,
+                    database_name=slc.datasource.database.database_name,
+                )
+
+            eager_dashboards.append(eager_dashboard.copy())
+        return pickle.dumps({
+            'dashboards': eager_dashboards,
+            'datasources': list(datasource_set),
+        })
 
 
 class Queryable(object):
@@ -597,6 +589,10 @@ class Database(Model, AuditMixinNullable):
     """))
 
     def __repr__(self):
+        return self.database_name
+
+    @property
+    def name(self):
         return self.database_name
 
     @property
@@ -1400,6 +1396,10 @@ class DruidCluster(Model, AuditMixinNullable):
     def perm(self):
         return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
 
+    @property
+    def name(self):
+        return self.cluster_name
+
 
 class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
@@ -1427,6 +1427,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
+
+    @property
+    def database(self):
+        return self.cluster
 
     @property
     def metrics_combo(self):

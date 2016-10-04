@@ -1083,9 +1083,8 @@ class Caravel(BaseCaravelView):
         role_to_extend = request.args.get('role_to_extend')
 
         session = db.session
-        datasource_class = SourceRegistry.sources[datasource_type]
-        datasource = session.query(datasource_class).filter_by(
-            id=datasource_id).first()
+        datasource = SourceRegistry.get_datasource(
+            datasource_type, datasource_id, session)
 
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
@@ -1156,7 +1155,6 @@ class Caravel(BaseCaravelView):
             return viz_obj
 
     @has_access
-<<<<<<< f70d301f0d37fe6c4f94cd7d6026a72a56087d34
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
@@ -1191,9 +1189,9 @@ class Caravel(BaseCaravelView):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 f.save(filepath)
                 current_tt = int(time.time())
-                for d in pickle.load(open(filepath, 'rb')):
+                for data in pickle.load(open(filepath, 'rb')):
                     models.Dashboard.import_dashboard(
-                        d, import_time=current_tt)
+                        data['dashboards'], import_time=current_tt)
                 os.remove(filepath)
                 return redirect('/dashboardmodelview/list/')
         return self.render_template('caravel/import_dashboards.html')
