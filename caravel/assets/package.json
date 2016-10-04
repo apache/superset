@@ -87,7 +87,6 @@
     "topojson": "^1.6.22",
     "victory": "^0.12.1",
     "viewport-mercator-project": "^2.1.0",
-    "whatwg-fetch": "^1.0.0"
   },
   "devDependencies": {
     "babel": "^6.3.26",
