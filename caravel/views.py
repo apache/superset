@@ -1962,6 +1962,8 @@ class Caravel(BaseCaravelView):
             "groupby_cols": datasource.groupby_column_names,
             "metrics": datasource.metrics_combo,
             "filter_cols": datasource.filterable_column_names
+            "columns": datasource.column_names,
+            "ordering_cols": order_by_choices
         }
         form_data = dict(
             column_opts.items() + datasource.time_column_grains.items()

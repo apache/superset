@@ -43,7 +43,7 @@ describe('reducers', () => {
   });
 
   it('should return new state with time stamp', () => {
-    const newState = exploreReducer(initialState, actions.setTimeStamp(1));
+    const newState = exploreReducer(initialState, actions.setTimeStampFormat(1));
     expect(newState.timeStampFormat).to.equal(1);
   });
 
