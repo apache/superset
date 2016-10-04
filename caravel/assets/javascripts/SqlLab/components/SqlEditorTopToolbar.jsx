@@ -142,7 +142,7 @@ class SqlEditorTopToolbar extends React.Component {
         <hr />
         <div className="m-t-5">
           {tables.map((table) => (
-            <TableElement table={table} queryEditor={this.props.queryEditor} />
+            <TableElement table={table} queryEditor={this.props.queryEditor} key={table.id} />
           ))}
         </div>
         {shouldShowReset &&

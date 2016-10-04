@@ -100,6 +100,7 @@ class TabbedSqlEditors extends React.Component {
           <DropdownButton
             bsSize="small"
             id={'ddbtn-tab-' + i}
+            title=""
           >
             <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> close tab
@@ -118,6 +119,7 @@ class TabbedSqlEditors extends React.Component {
           key={qe.id}
           title={tabTitle}
           eventKey={qe.id}
+          id={`a11y-query-editor-${qe.id}`}
         >
           <div className="panel panel-default">
             <div className="panel-body">
@@ -135,6 +137,7 @@ class TabbedSqlEditors extends React.Component {
         bsStyle="tabs"
         activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
         onSelect={this.handleSelect.bind(this)}
+        id="a11y-query-editor-tabs"
       >
         {editors}
         <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
