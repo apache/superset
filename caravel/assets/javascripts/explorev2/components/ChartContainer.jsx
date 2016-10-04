@@ -1,6 +1,5 @@
 import React from 'react';
 import { Panel } from 'react-bootstrap';
-import sliceJSON from '../stores/sliceJSON';
 import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
 
 const chartContainerStyle = {
@@ -11,13 +10,11 @@ const chartContainerStyle = {
 export default class ChartContainer extends React.Component {
   constructor(props) {
     super(props);
-    const sliceObj = sliceJSON();
     this.state = {
       params: this.getParamsFromUrl(),
-      data: sliceObj.data,
+      data: props.viz.data,
       height: window.innerHeight,
       label1: 'Label 1',
-      sliceObj,
     };
   }
 
@@ -44,18 +41,16 @@ export default class ChartContainer extends React.Component {
   }
 
   render() {
-    console.log('this.state', this.state)
     return (
       <div className="chart-container" style={chartContainerStyle}>
         <Panel
           style={{ height: this.state.height }}
           header={
-            <div className="panel-title">Growth Rate</div>
+            <div className="panel-title">{this.props.viz.form_data.slice_name}</div>
           }
         >
           <TimeSeriesLineChart
-            data={this.state.sliceObj.data}
-            sliceObj={this.state.sliceObj}
+            data={this.state.data}
             label1="Percentage"
           />
         </Panel>

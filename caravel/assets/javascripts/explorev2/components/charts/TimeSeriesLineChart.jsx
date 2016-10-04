@@ -6,7 +6,6 @@ import { schemeCategory20c } from 'd3-scale';
 
 const propTypes = {
   data: PropTypes.array.isRequired,
-  sliceObj: PropTypes.object.isRequired,
   label1: PropTypes.string.isRequired,
 };
 
@@ -35,7 +34,7 @@ export default class TimeSeriesLineChart extends React.Component {
         />
         <V.VictoryAxis
           dependentAxis
-          label={this.props.sliceObj.form_data.granularity_sqla}
+          label={'label needed'}
           orientation="bottom"
           tickValues={this.props.data[0].values.map((d) => d.x)}
           tickFormat={(x) => moment(new Date(x)).format('YYYY')}

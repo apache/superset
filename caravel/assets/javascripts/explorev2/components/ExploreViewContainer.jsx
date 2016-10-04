@@ -1,9 +1,12 @@
 import React from 'react';
+import { bindActionCreators } from 'redux';
+import * as actions from '../actions/exploreActions';
+import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import QueryAndSaveButtons from './QueryAndSaveButtons';
 
-const ExploreViewContainer = function () {
+const ExploreViewContainer = function (props) {
   return (
     <div className="container-fluid">
       <div className="row">
@@ -16,11 +19,22 @@ const ExploreViewContainer = function () {
           <ControlPanelsContainer />
         </div>
         <div className="col-sm-9">
-          <ChartContainer />
+          <ChartContainer
+            viz={props.data.viz}
+          />
         </div>
       </div>
     </div>
   );
 };
 
-export default ExploreViewContainer;
+function mapStateToProps(state) {
+  return {}
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+  };
+}
+export default connect(mapStateToProps, mapDispatchToProps)(ExploreViewContainer);
