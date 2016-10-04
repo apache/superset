@@ -126,7 +126,7 @@ class QuerySearch extends React.Component {
         </div>
         <QueryTable
           columns={[
-            'state', 'dbId', 'userId',
+            'state', 'db', 'user',
             'progress', 'rows', 'sql', 'querylink',
           ]}
           onUserClicked={this.onUserClicked.bind(this)}
