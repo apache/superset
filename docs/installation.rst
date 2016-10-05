@@ -304,6 +304,7 @@ Upgrading should be as straightforward as running::
 
     pip install caravel --upgrade
     caravel db upgrade
+    caravel init
 
 SQL Lab
 -------
