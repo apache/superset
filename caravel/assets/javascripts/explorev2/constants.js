@@ -6,6 +6,8 @@ import SqlClause from './components/SqlClause';
 import Filters from './components/Filters';
 import NotGroupBy from './components/NotGroupBy';
 import Options from './components/Options';
+import ChartOptions from './components/ChartOptions';
+import AdvancedAnalytics from './components/AdvancedAnalytics';
 
 export const VIZ_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -71,6 +73,32 @@ export const TableVizControls = (
   </div>
 );
 
+export const LineVizControls = (
+  <div>
+    <ChartOptions />
+    <AdvancedAnalytics />
+  </div>
+);
+
 export const VIZ_CONTROL_MAPPING = {
   table: TableVizControls,
+  line: LineVizControls,
 };
+
+export const lineStyleOptions = ['linear', 'basis', 'cardinal',
+  'monotone', 'step-before', 'step-after'];
+
+export const yAxisOptions = [
+  ['.3s', '".3s" | 12.3k'],
+  ['.3%', '".3%" | 1234543.210%'],
+  ['.4r', '".4r" | 12350'],
+  ['.3f', '".3f" | 12345.432'],
+  ['+,', '"+," | +12,345.4321'],
+  ['$,.2f', '"$,.2f" | $12,345.43'],
+];
+
+export const rollingOptions = ['None', 'mean', 'sum', 'std', 'cumsum'];
+export const periodRatioTypeOptions = ['factor', 'growth', 'value'];
+export const resampleRuleOptions = ['1T', '1H', '1D', '7D', '1M', '1AS'];
+export const resampleHowOptions = ['mean', 'sum', 'median'];
+export const resampleFillOptions = ['ffill', 'bfill'];

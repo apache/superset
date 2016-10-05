@@ -94,6 +94,16 @@ export const exploreReducer = function (state, action) {
     [actions.SET_DATASOURCE_TYPE]() {
       return Object.assign({}, state, { datasourceType: action.datasourceType });
     },
+    [actions.TOGGLE_CHECK_BOX]() {
+      const newState = Object.assign({}, state);
+      newState[action.checkBoxKey] = !(state[action.checkBoxKey]);
+      return newState;
+    },
+    [actions.SET_STATE_VALUE]() {
+      const newState = Object.assign({}, state);
+      newState[action.property] = action.value;
+      return newState;
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

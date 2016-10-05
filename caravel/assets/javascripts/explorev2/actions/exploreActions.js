@@ -30,6 +30,8 @@ export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const RESET_FORM_DATA = 'RESET_FORM_DATA';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
+export const TOGGLE_CHECK_BOX = 'TOGGLE_CHECK_BOX';
+export const SET_STATE_VALUE = 'SET_STATE_VALUE';
 
 export function setTimeColumnOpts(timeColumnOpts) {
   return { type: SET_TIME_COLUMN_OPTS, timeColumnOpts };
@@ -205,4 +207,12 @@ export function changeFilterOp(filter, op) {
 
 export function changeFilterValue(filter, value) {
   return { type: CHANGE_FILTER_VALUE, filter, value };
+}
+
+export function toggleCheckBox(checkBoxKey) {
+  return { type: TOGGLE_CHECK_BOX, checkBoxKey };
+}
+
+export function setStateValue(property, value) {
+  return { type: SET_STATE_VALUE, property, value };
 }
