@@ -8,7 +8,6 @@ import Legend from './Legend';
 const propTypes = {
   data: PropTypes.array.isRequired,
   label1: PropTypes.string.isRequired,
-  height: PropTypes.number.isRequired,
 };
 
 export default class TimeSeriesLineChart extends React.Component {
@@ -40,12 +39,10 @@ export default class TimeSeriesLineChart extends React.Component {
   }
 
   render() {
-    console.log('this.props.height', this.props.height)
     return (
-      <div style={{ height: this.props.height }}>
+      <div style={{ height: '80%', width: '100%' }}>
         <V.VictoryChart
           theme={theme}
-          height={this.props.height}
         >
           {this.renderLines()}
           <V.VictoryAxis

@@ -8,7 +8,6 @@ export default class ChartContainer extends React.Component {
     this.state = {
       params: this.getParamsFromUrl(),
       data: props.viz.data,
-      height: window.innerHeight,
       label1: 'Label 1',
     };
   }
@@ -39,15 +38,14 @@ export default class ChartContainer extends React.Component {
     return (
       <div className="chart-container">
         <Panel
-          style={{ height: this.state.height }}
+          style={{ height: this.props.height }}
           header={
             <div className="panel-title">{this.props.viz.form_data.slice_name}</div>
           }
         >
           <TimeSeriesLineChart
             data={this.state.data}
-            label1="Percentage"
-            height={this.state.height}
+            label1="Label 1"
           />
         </Panel>
       </div>
