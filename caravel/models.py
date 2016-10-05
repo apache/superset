@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-import re
 
 import functools
 import json
@@ -826,7 +825,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # Patch only if the column clause is specific for DateTime set and
             # granularity is selected.
             @compiles(ColumnClause)
-            def _(element, compiler, **kw):
+            def visit_column(element, compiler, **kw):
                 text = compiler.visit_column(element, **kw)
                 try:
                     if element.is_literal and hasattr(element.type, 'python_type') and \
