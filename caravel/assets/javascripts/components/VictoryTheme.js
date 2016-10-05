@@ -2,8 +2,6 @@ const { assign } = Object;
 
 const A11Y_BABU = '#00A699';
 const AXIS_LINE_GRAY = '#484848';
-const LABEL_TEXT_GRAY = '#767676';
-const GRID_LINE_GRAY = '#DBDBDB';
 
 // Colors
 const colors = [

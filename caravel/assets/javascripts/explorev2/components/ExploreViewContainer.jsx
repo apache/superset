@@ -13,7 +13,7 @@ export default class ExploreViewContainer extends React.Component {
 
   getHeight() {
     const navHeight = 90;
-    return (window.innerHeight - navHeight) + 'px';
+    return `${window.innerHeight - navHeight}px`;
   }
 
   render() {
