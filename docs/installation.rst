@@ -66,6 +66,13 @@ On windows the syntax for activating it is a bit different: ::
 Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
 To exit a virtualenv just type ``deactivate``.
 
+Python's setup tools and pip
+----------------------------
+Put all the chances on your side by getting the very latest ``pip``
+and ``setuptools`` libraries.::
+
+    pip install --upgrade setuptools pip
+
 Caravel installation and initialization
 ---------------------------------------
 Follow these few simple steps to install Caravel.::
