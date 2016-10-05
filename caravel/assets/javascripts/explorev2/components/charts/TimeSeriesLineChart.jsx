@@ -3,44 +3,69 @@ import * as V from 'victory';
 import theme from '../../../components/VictoryTheme';
 import moment from 'moment';
 import { schemeCategory20c } from 'd3-scale';
+import Legend from './Legend';
 
 const propTypes = {
   data: PropTypes.array.isRequired,
   label1: PropTypes.string.isRequired,
+  height: PropTypes.number.isRequired,
 };
 
 export default class TimeSeriesLineChart extends React.Component {
+  constructor(props) {
+    super(props);
+    this.keysToColorsMap = this.mapKeysToColors(props.data);
+  }
+
+  mapKeysToColors(data) {
+    // todo: what if there are more lines than colors in schemeCategory20c?
+    const keysToColorsMap = {};
+    data.forEach((d, i) => {
+      keysToColorsMap[d.key] = schemeCategory20c[i];
+    });
+    return keysToColorsMap;
+  }
+
   renderLines() {
-    // todo: when rendering lines, call a function to generate the legend
-    return this.props.data.map((d, i) => {
+    return this.props.data.map((d) => {
       return (
         <V.VictoryLine
           key={d.key}
           data={d.values}
           interpolation="cardinal"
-          style={{ data: { stroke: schemeCategory20c[i] } }}
+          style={{ data: { stroke: this.keysToColorsMap[d.key] } }}
         />
       );
     });
   }
 
   render() {
+    console.log('this.props.height', this.props.height)
     return (
-      <V.VictoryChart theme={theme}>
-        {this.renderLines()}
-        <V.VictoryAxis
-          label={this.props.label1}
-          orientation="left"
+      <div style={{ height: this.props.height }}>
+        <V.VictoryChart
+          theme={theme}
+          height={this.props.height}
+        >
+          {this.renderLines()}
+          <V.VictoryAxis
+            label={this.props.label1}
+            orientation="left"
+          />
+          <V.VictoryAxis
+            dependentAxis
+            label={'label needed'}
+            orientation="bottom"
+            tickValues={this.props.data[0].values.map((d) => d.x)}
+            tickFormat={(x) => moment(new Date(x)).format('YYYY')}
+            fixLabelOverlap
+          />
+        </V.VictoryChart>
+        <Legend
+          data={this.props.data}
+          keysToColorsMap={this.keysToColorsMap}
         />
-        <V.VictoryAxis
-          dependentAxis
-          label={'label needed'}
-          orientation="bottom"
-          tickValues={this.props.data[0].values.map((d) => d.x)}
-          tickFormat={(x) => moment(new Date(x)).format('YYYY')}
-          fixLabelOverlap
-        />
-      </V.VictoryChart>
+      </div>
     );
   }
 }

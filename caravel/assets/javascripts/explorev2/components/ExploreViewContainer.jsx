@@ -4,6 +4,13 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import QueryAndSaveButtons from './QueryAndSaveButtons';
 
 export default class ExploreViewContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      height: this.getHeight(),
+    };
+  }
+
   getHeight() {
     const navHeight = 90;
     return (window.innerHeight - navHeight) + 'px';
@@ -13,12 +20,10 @@ export default class ExploreViewContainer extends React.Component {
     return (
       <div
         className="container-fluid"
-        style={
-          {
-            height: this.getHeight(),
-            overflow: 'hidden',
-          }
-        }
+        style={{
+          height: this.state.height,
+          overflow: 'hidden',
+        }}
       >
         <div className="row table-body">
           <div className="table-cell col-sm-4">
@@ -32,6 +37,7 @@ export default class ExploreViewContainer extends React.Component {
           <div className="table-cell col-sm-8">
             <ChartContainer
               viz={this.props.data.viz}
+              height={this.state.height}
             />
           </div>
         </div>

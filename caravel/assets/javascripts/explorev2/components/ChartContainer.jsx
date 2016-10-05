@@ -2,11 +2,6 @@ import React from 'react';
 import { Panel } from 'react-bootstrap';
 import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
 
-const chartContainerStyle = {
-  // position: 'fixed',
-  // width: '73%',
-};
-
 export default class ChartContainer extends React.Component {
   constructor(props) {
     super(props);
@@ -42,7 +37,7 @@ export default class ChartContainer extends React.Component {
 
   render() {
     return (
-      <div className="chart-container" style={chartContainerStyle}>
+      <div className="chart-container">
         <Panel
           style={{ height: this.state.height }}
           header={
@@ -52,6 +47,7 @@ export default class ChartContainer extends React.Component {
           <TimeSeriesLineChart
             data={this.state.data}
             label1="Percentage"
+            height={this.state.height}
           />
         </Panel>
       </div>
