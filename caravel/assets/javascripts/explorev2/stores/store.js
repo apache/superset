@@ -2,7 +2,6 @@ export const initialState = {
   datasources: null,
   datasourceId: null,
   datasourceType: null,
-  datasourceClass: null,
   vizType: null,
   timeColumnOpts: [],
   timeColumn: null,

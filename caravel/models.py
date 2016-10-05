@@ -760,6 +760,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": self.dttm_cols,
+            "time_grains": [grain.name for grain in self.database.grains()]
+        }
+
     def get_col(self, col_name):
         columns = self.table_columns
         for col in columns:
@@ -1277,6 +1284,16 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{obj.cluster_name}]."
             "[{obj.datasource_name}]").format(obj=self)
+
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": [
+                'all', '5 seconds', '30 seconds', '1 minute',
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days'
+            ],
+            "time_grains": ['now']
+        }
 
     def __repr__(self):
         return self.datasource_name
