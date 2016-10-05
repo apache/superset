@@ -1189,10 +1189,14 @@ class Caravel(BaseCaravelView):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 f.save(filepath)
                 current_tt = int(time.time())
-                for data in pickle.load(open(filepath, 'rb')):
-                    models.Dashboard.import_dashboard(
-                        data['dashboards'], import_time=current_tt)
+                data = pickle.load(open(filepath, 'rb'))
+                for table in data['datasources']:
+                    models.SqlaTable.import_obj(table, import_time=current_tt)
+                for dashboard in data['dashboards']:
+                    models.Dashboard.import_obj(
+                        dashboard, import_time=current_tt)
                 os.remove(filepath)
+                db.session.commit()
                 return redirect('/dashboardmodelview/list/')
         return self.render_template('caravel/import_dashboards.html')
 

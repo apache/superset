@@ -1058,7 +1058,7 @@ def load_multiformat_time_series_data():
         'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
         'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
     }
-    for col in obj.table_columns:
+    for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
         col.dbatabase_expr = dttm_and_expr[1]
@@ -1069,7 +1069,7 @@ def load_multiformat_time_series_data():
     tbl = obj
 
     print("Creating some slices")
-    for i, col in enumerate(tbl.table_columns):
+    for i, col in enumerate(tbl.columns):
         slice_data = {
             "granularity_sqla": col.column_name,
             "datasource_id": "8",

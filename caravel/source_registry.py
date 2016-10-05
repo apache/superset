@@ -1,4 +1,5 @@
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import subqueryload
+
 
 
 class SourceRegistry(object):
@@ -31,7 +32,6 @@ class SourceRegistry(object):
                  d.name == datasource_name and schema == schema]
         return db_ds[0]
 
-
     @classmethod
     def get_eager_datasource(cls, session, datasource_type, datasource_id):
         """Returns datasource with columns and metrics."""
@@ -39,8 +39,10 @@ class SourceRegistry(object):
         if datasource_type == 'table':
             return (
                 session.query(datasource_class)
-                .options(joinedload('table_columns')
-                         .joinedload('sql_metrics'))
+                .options(
+                    subqueryload(datasource_class.columns),
+                    subqueryload(datasource_class.metrics)
+                )
                 .filter_by(id=datasource_id)
                 .one()
             )

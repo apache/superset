@@ -19,7 +19,7 @@ import pandas as pd
 import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import subqueryload
 
 import sqlparse
 from dateutil.parser import parse
@@ -72,6 +72,19 @@ class JavascriptPostAggregator(Postaggregator):
             'function': function,
         }
         self.name = name
+
+
+class ImportMixin(object):
+    def override(self, obj):
+        """Overrides the plain fields of the dashboard."""
+        for field in obj.__class__.export_fields:
+            setattr(self, field, getattr(obj, field))
+
+    def copy(self):
+        """Creates a copy of the dashboard without relationships."""
+        new_obj = self.__class__()
+        new_obj.override(self)
+        return new_obj
 
 
 class AuditMixinNullable(AuditMixin):
@@ -153,7 +166,7 @@ slice_user = Table('slice_user', Model.metadata,
 )
 
 
-class Slice(Model, AuditMixinNullable):
+class Slice(Model, AuditMixinNullable, ImportMixin):
 
     """A slice is essentially a report or a view on data"""
 
@@ -169,6 +182,9 @@ class Slice(Model, AuditMixinNullable):
     cache_timeout = Column(Integer)
     perm = Column(String(2000))
     owners = relationship("User", secondary=slice_user)
+
+    export_fields = ('slice_name', 'datasource_type', 'datasource_name',
+                     'viz_type', 'params', 'cache_timeout')
 
     def __repr__(self):
         return self.slice_name
@@ -291,22 +307,12 @@ class Slice(Model, AuditMixinNullable):
         params_dict = {}
         if self.params:
             params_dict = json.loads(self.params)
-        for key, value in kwargs.iteritems():
-            params_dict[key] = value
+        for key in kwargs:
+            params_dict[key] = kwargs[key]
         self.params = json.dumps(params_dict)
 
-    def override(self, slice):
-        """Overrides the plain fields of the dashboard."""
-        for field in Slice.export_fields():
-            setattr(self, field, getattr(slice, field))
-
     @classmethod
-    def export_fields(cls):
-        return ('slice_name', 'datasource_type', 'datasource_name', 'viz_type',
-                'params', 'cache_timeout')
-
-    @classmethod
-    def import_slice(cls, slc, import_time=None):
+    def import_obj(cls, slc, import_time=None):
         """Inserts or overrides slc in the database.
 
         remote_id and import_time fields in params_dict are set to track the
@@ -365,7 +371,7 @@ dashboard_user = Table(
 )
 
 
-class Dashboard(Model, AuditMixinNullable):
+class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     """The dashboard object!"""
 
@@ -380,6 +386,9 @@ class Dashboard(Model, AuditMixinNullable):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
+
+    export_fields = ('dashboard_title', 'position_json', 'json_metadata',
+                     'description', 'css', 'slug', 'slices')
 
     def __repr__(self):
         return self.dashboard_title
@@ -429,25 +438,23 @@ class Dashboard(Model, AuditMixinNullable):
         json_metadata_dict = {}
         if self.json_metadata:
             json_metadata_dict = json.loads(self.json_metadata)
-        for key, value in kwargs.iteritems():
-            json_metadata_dict[key] = value
+        for key in kwargs:
+            json_metadata_dict[key] = kwargs[key]
         self.json_metadata = json.dumps(json_metadata_dict)
 
     @classmethod
-    def import_dashboard(cls, dashboard_to_import, import_time=None):
+    def import_obj(cls, dashboard_to_import, import_time=None):
         """Imports the dashboard from the object to the database.
 
-        Once dashboard is imported, json_metadata field is extended and stores
-        remote_id and import_time. It helps to decide if the dashboard has to
-        be overridden or just copies over. Slices that belong to this dashboard
-        will be wired to existing tables using Slice.perm field to derive the
-        datasource name. This function can be used to import/export dashboards
-        between multiple caravel instances. Audit metadata isn't copies over.
+         Once dashboard is imported, json_metadata field is extended and stores
+         remote_id and import_time. It helps to decide if the dashboard has to
+         be overridden or just copies over. Slices that belong to this
+         dashboard will be wired to existing tables. This function can be used
+         to import/export dashboards between multiple caravel instances.
+         Audit metadata isn't copies over.
         """
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
-        # make_transient(dashboard_to_import)
-        # TODO: provide nice error message about failed imports
         session = db.session
         logging.info('Dashboard has {} slices'
                      .format(len(dashboard_to_import.slices)))
@@ -458,15 +465,9 @@ class Dashboard(Model, AuditMixinNullable):
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            slice_ids.add(Slice.import_slice(slc, import_time=import_time))
+            slice_ids.add(Slice.import_obj(slc, import_time=import_time))
 
-        dashboard_to_import.alter_json_metadata(
-            remote_id=dashboard_to_import.id, import_time=import_time)
-        dashboard_to_import.id = None
-        dashboard_to_import.slices = session.query(Slice).filter(
-            Slice.id.in_(slice_ids)).all()
-
-        # Override the dashboard
+        # override the dashboard
         existing_dashboard = (
             session.query(Dashboard)
             .filter(Dashboard.json_metadata.ilike(
@@ -474,8 +475,13 @@ class Dashboard(Model, AuditMixinNullable):
             .first()
         )
 
+        dashboard_to_import.id = None
+        dashboard_to_import.alter_json_metadata(import_time=import_time)
+        new_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+
         if existing_dashboard:
             existing_dashboard.override(dashboard_to_import)
+            existing_dashboard.slices = new_slices
             session.flush()
             return existing_dashboard.id
         else:
@@ -483,36 +489,26 @@ class Dashboard(Model, AuditMixinNullable):
             # related to the attached users / slices. Creating new object
             # allows to avoid conflicts in the sql alchemy state.
             copied_dash = dashboard_to_import.copy()
+            copied_dash.slices = new_slices
             session.add(copied_dash)
             session.flush()
             return copied_dash.id
 
-    def override(self, dashboard):
-        """Overrides the plain fields of the dashboard."""
-        for field in Dashboard.export_fields():
-            setattr(self, field, getattr(dashboard, field))
-
-    def copy(self):
-        """Creates a copy of the dashboard without relationships."""
-        dashboard = Dashboard()
-        dashboard.override(self)
-        return dashboard
-
-    @classmethod
-    def export_fields(cls):
-        return ('dashboard_title', 'position_json', 'json_metadata',
-                'description', 'css', 'slug', 'slices')
-
     @classmethod
     def export_dashboards(cls, dashboard_ids):
-        eager_dashboards = []
-        datasource_set = set()
+        copied_dashboards = []
+        datasource_ids = set()
         for dashboard_id in dashboard_ids:
-            eager_dashboard = db.session.query(Dashboard).options(
-                joinedload('slices')).filter_by(id=dashboard_id).first()
-            for slc in eager_dashboard.slices:
-                if slc.datasource not in datasource_set:
-                    datasource_set.add(slc.datasource)
+            # make sure that dashboard_id is an integer
+            dashboard_id = int(dashboard_id)
+            copied_dashboard = (
+                db.session.query(Dashboard)
+                .options(subqueryload(Dashboard.slices))
+                .filter_by(id=dashboard_id).first()
+            )
+            make_transient(copied_dashboard)
+            for slc in copied_dashboard.slices:
+                datasource_ids.add((slc.datasource_id, slc.datasource_type))
                 # add extra params for the import
                 slc.alter_params(
                     remote_id=slc.id,
@@ -520,11 +516,23 @@ class Dashboard(Model, AuditMixinNullable):
                     schema=slc.datasource.name,
                     database_name=slc.datasource.database.database_name,
                 )
+            copied_dashboard.alter_json_metadata(remote_id=dashboard_id)
+            copied_dashboards.append(copied_dashboard)
 
-            eager_dashboards.append(eager_dashboard.copy())
+            eager_datasources = []
+            for dashboard_id, dashboard_type in datasource_ids:
+                eager_datasource = SourceRegistry.get_eager_datasource(
+                    db.session, dashboard_type, dashboard_id)
+                eager_datasource.alter_json_metadata(
+                    remote_id=eager_datasource.id,
+                    database_name=eager_datasource.database.database_name,
+                )
+                make_transient(eager_datasource)
+                eager_datasources.append(eager_datasource)
+
         return pickle.dumps({
-            'dashboards': eager_dashboards,
-            'datasources': list(datasource_set),
+            'dashboards': copied_dashboards,
+            'datasources': eager_datasources,
         })
 
 
@@ -827,7 +835,7 @@ class Database(Model, AuditMixinNullable):
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
 
 
-class SqlaTable(Model, Queryable, AuditMixinNullable):
+class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     """An ORM object for SqlAlchemy table references"""
 
@@ -851,9 +859,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     cache_timeout = Column(Integer)
     schema = Column(String(255))
     sql = Column(Text)
-    table_columns = relationship("TableColumn", back_populates="table")
+    json_metadata = Column(Text)
 
     baselink = "tablemodelview"
+    export_fields = (
+        'table_name', 'main_dttm_col', 'description', 'default_endpoint',
+        'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
+        'sql', 'json_metadata')
 
     __table_args__ = (
         sqla.UniqueConstraint(
@@ -935,7 +947,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         }
 
     def get_col(self, col_name):
-        columns = self.table_columns
+        columns = self.columns
         for col in columns:
             if col_name == col.column_name:
                 return col
@@ -1224,8 +1236,81 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
 
+    def alter_json_metadata(self, **kwargs):
+        json_metadata_dict = {}
+        if self.json_metadata:
+            json_metadata_dict = json.loads(self.json_metadata)
+        for key in kwargs:
+            json_metadata_dict[key] = kwargs[key]
+        self.json_metadata = json.dumps(json_metadata_dict)
 
-class SqlMetric(Model, AuditMixinNullable):
+    @property
+    def dict_metadata(self):
+        if self.json_metadata:
+            return json.loads(self.json_metadata)
+        return {}
+
+    @classmethod
+    def import_obj(cls, datasource_to_import, import_time=None):
+        """Imports the datasource from the object to the database.
+
+         Metrics and columns and datasource will be overrided if exists.
+         This function can be used to import/export dashboards between multiple
+         caravel instances. Audit metadata isn't copies over.
+        """
+        session = db.session
+        make_transient(datasource_to_import)
+        logging.info('Started import of the datasource: {}'
+                     .format(datasource_to_import.to_json()))
+
+        datasource_to_import.id = None
+        database_name = datasource_to_import.dict_metadata['database_name']
+        datasource_to_import.database_id = session.query(Database).filter_by(
+            database_name=database_name).one().id
+        datasource_to_import.alter_json_metadata(import_time=import_time)
+
+        # override the datasource
+        datasource = (
+            session.query(SqlaTable).join(Database)
+            .filter(
+                SqlaTable.table_name == datasource_to_import.table_name,
+                SqlaTable.schema == datasource_to_import.schema,
+                Database.id == datasource_to_import.database_id,
+            )
+            .first()
+        )
+
+        if datasource:
+            datasource.override(datasource_to_import)
+            session.flush()
+        else:
+            datasource = datasource_to_import.copy()
+            session.add(datasource)
+            session.flush()
+
+        for m in datasource_to_import.metrics:
+            new_m = m.copy()
+            new_m.table_id = datasource.id
+            logging.info('Importing metric {} from the datasource: {}'.format(
+                new_m.to_json(), datasource_to_import.full_name))
+            imported_m = SqlMetric.import_obj(new_m)
+            if imported_m not in datasource.metrics:
+                datasource.metrics.append(imported_m)
+
+        for c in datasource_to_import.columns:
+            new_c = c.copy()
+            new_c.table_id = datasource.id
+            logging.info('Importing column {} from the datasource: {}'.format(
+                new_c.to_json(), datasource_to_import.full_name))
+            imported_c = TableColumn.import_obj(new_c)
+            if imported_c not in datasource.columns:
+                datasource.columns.append(imported_c)
+        db.session.flush()
+
+        return datasource.id
+
+
+class SqlMetric(Model, AuditMixinNullable, ImportMixin):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
@@ -1244,6 +1329,10 @@ class SqlMetric(Model, AuditMixinNullable):
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
 
+    export_fields = (
+        'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',
+        'description', 'is_restricted', 'd3format')
+
     @property
     def sqla_col(self):
         name = self.metric_name
@@ -1256,8 +1345,28 @@ class SqlMetric(Model, AuditMixinNullable):
         ).format(obj=self,
                  parent_name=self.table.full_name) if self.table else None
 
+    @classmethod
+    def import_obj(cls, metric_to_import):
+        session = db.session
+        make_transient(metric_to_import)
+        metric_to_import.id = None
 
-class TableColumn(Model, AuditMixinNullable):
+        # find if the column was already imported
+        existing_metric = session.query(SqlMetric).filter(
+            SqlMetric.table_id == metric_to_import.table_id,
+            SqlMetric.metric_name == metric_to_import.metric_name).first()
+        metric_to_import.table = None
+        if existing_metric:
+            existing_metric.override(metric_to_import)
+            session.flush()
+            return existing_metric
+
+        session.add(metric_to_import)
+        session.flush()
+        return metric_to_import
+
+
+class TableColumn(Model, AuditMixinNullable, ImportMixin):
 
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -1287,6 +1396,12 @@ class TableColumn(Model, AuditMixinNullable):
     num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
     date_types = ('DATE', 'TIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
+    export_fields = (
+        'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
+        'type', 'groupby', 'count_distinct', 'sum', 'max', 'min',
+        'filterable', 'expression', 'description', 'python_date_format',
+        'database_expression'
+    )
 
     def __repr__(self):
         return self.column_name
@@ -1311,6 +1426,27 @@ class TableColumn(Model, AuditMixinNullable):
         else:
             col = literal_column(self.expression).label(name)
         return col
+
+    @classmethod
+    def import_obj(cls, column_to_import):
+        session = db.session
+        make_transient(column_to_import)
+        column_to_import.id = None
+        column_to_import.table = None
+
+        # find if the column was already imported
+        existing_column = session.query(TableColumn).filter(
+            TableColumn.table_id == column_to_import.table_id,
+            TableColumn.column_name == column_to_import.column_name).first()
+        column_to_import.table = None
+        if existing_column:
+            existing_column.override(column_to_import)
+            session.flush()
+            return existing_column
+
+        session.add(column_to_import)
+        session.flush()
+        return column_to_import
 
     def dttm_sql_literal(self, dttm):
         """Convert datetime object to string
