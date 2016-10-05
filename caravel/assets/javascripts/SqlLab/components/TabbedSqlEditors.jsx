@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
-import { getParamFromQuery } from '../../../utils/common';
+import { getParamFromQuery, getLink } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 
 let queryCount = 1;
@@ -47,10 +47,7 @@ class TabbedSqlEditors extends React.Component {
     if (qe.autorun) params.push('autorun=' + qe.autorun);
     if (qe.sql) params.push('sql=' + qe.sql);
 
-    const queryString = params.join('&');
-    const queryLink = this.state.cleanUri + '?' + queryString;
-
-    return queryLink;
+    return getLink(this.state.cleanUri, params);
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */
