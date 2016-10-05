@@ -52,7 +52,7 @@ from sqlalchemy_utils import EncryptedType
 from werkzeug.datastructures import ImmutableMultiDict
 
 import caravel
-from caravel import app, db, get_session, utils, sm
+from caravel import app, db, db_engines, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
 from caravel.utils import flasher, MetricPermException, DimSelector
@@ -678,6 +678,11 @@ class Database(Model, AuditMixinNullable):
     def all_schema_names(self):
         return sorted(self.inspector.get_schema_names())
 
+    @property
+    def db_engine(self):
+        engine_name = self.get_sqla_engine().name or 'base'
+        return db_engines.engines.get(engine_name, db_engines.BaseEngine)
+
     def grains(self):
         """Defines time granularity database-specific expressions.
 
@@ -687,93 +692,7 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        Grain = namedtuple('Grain', 'name label function')
-        db_time_grains = {
-            'presto': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('second', _('second'),
-                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
-                Grain('minute', _('minute'),
-                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
-                Grain('hour', _('hour'),
-                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
-                Grain('day', _('day'),
-                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
-                Grain('week', _('week'),
-                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
-                Grain('month', _('month'),
-                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
-                Grain('quarter', _('quarter'),
-                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
-                Grain("week_ending_saturday", _('week_ending_saturday'),
-                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-                      "CAST({col} AS TIMESTAMP))))"),
-                Grain("week_start_sunday", _('week_start_sunday'),
-                      "date_add('day', -1, date_trunc('week', "
-                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
-            ),
-            'mysql': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain("second", _('second'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-                      " + SECOND({col})) SECOND)"),
-                Grain("minute", _('minute'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)"),
-                Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL HOUR({col}) HOUR)"),
-                Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE(DATE_SUB({col}, "
-                      "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
-                Grain("month", _('month'), "DATE(DATE_SUB({col}, "
-                      "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
-            ),
-            'sqlite': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'),
-                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'),
-                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
-            ),
-            'postgresql': (
-                Grain("Time Column", _('Time Column'), "{col}"),
-                Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
-                Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
-                Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
-                Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
-                Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
-                Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
-                Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
-            ),
-            'mssql': (
-                Grain("Time Column", _('Time Column'), "{col}"),
-                Grain("second", _('second'), "DATEADD(second, "
-                      "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
-                Grain("minute", _('minute'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}), 0)"),
-                Grain("5 minute", _('5 minute'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}) / 5 * 5, 0)"),
-                Grain("half hour", _('half hour'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}) / 30 * 30, 0)"),
-                Grain("hour", _('hour'), "DATEADD(hour, "
-                      "DATEDIFF(hour, 0, {col}), 0)"),
-                Grain("day", _('day'), "DATEADD(day, "
-                      "DATEDIFF(day, 0, {col}), 0)"),
-                Grain("week", _('week'), "DATEADD(week, "
-                      "DATEDIFF(week, 0, {col}), 0)"),
-                Grain("month", _('month'), "DATEADD(month, "
-                      "DATEDIFF(month, 0, {col}), 0)"),
-                Grain("quarter", _('quarter'), "DATEADD(quarter, "
-                      "DATEDIFF(quarter, 0, {col}), 0)"),
-                Grain("year", _('year'), "DATEADD(year, "
-                      "DATEDIFF(year, 0, {col}), 0)"),
-            ),
-        }
-        db_time_grains['redshift'] = db_time_grains['postgresql']
-        db_time_grains['vertica'] = db_time_grains['postgresql']
-        for db_type, grains in db_time_grains.items():
-            if self.sqlalchemy_uri.startswith(db_type):
-                return grains
+        return self.db_engine.time_grains
 
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
@@ -781,18 +700,10 @@ class Database(Model, AuditMixinNullable):
     def epoch_to_dttm(self, ms=False):
         """Database-specific SQL to convert unix timestamp to datetime
         """
-        ts2date_exprs = {
-            'sqlite': "datetime({col}, 'unixepoch')",
-            'postgresql': "(timestamp 'epoch' + {col} * interval '1 second')",
-            'mysql': "from_unixtime({col})",
-            'mssql': "dateadd(S, {col}, '1970-01-01')"
-        }
-        ts2date_exprs['redshift'] = ts2date_exprs['postgresql']
-        ts2date_exprs['vertica'] = ts2date_exprs['postgresql']
-        for db_type, expr in ts2date_exprs.items():
-            if self.sqlalchemy_uri.startswith(db_type):
-                return expr.replace('{col}', '({col}/1000.0)') if ms else expr
-        raise Exception(_("Unable to convert unix epoch to datetime"))
+        if ms:
+            return self.db_engine.epoch_ms_to_dttm
+        else:
+            return self.db_engine.epoch_to_dttm
 
     def get_extra(self):
         extra = {}
