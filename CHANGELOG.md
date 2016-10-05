@@ -58,7 +58,7 @@
 - [1c544c9](https://github.com/airbnb/caravel/commit/1c544c9845f0fe0d8745f5b2cf531a1fd2ae0d0c) Enable list with checkboxes only on Table->Columns view (#1138) (@mistercrunch)
 - [ca66ba4](https://github.com/airbnb/caravel/commit/ca66ba489399a3c37e39875f6d1f6c278cfcb9be) Fix initialization of Database sqlalchemy_uri and password (#1137) (@dennisobrien)
 - [afa1f09](https://github.com/airbnb/caravel/commit/afa1f0916b061d86afc2898515463876be5fa011) Make sql test connection work with saved Database instance (#694) (@xrmx)
-- [69d37d8](https://github.com/airbnb/caravel/commit/69d37d8b2a8de4750b2949905a6e05b28cdf88a6) Fix double escaping of dttm expressions (#744) (#1103) (@xrmx)
+- [69d37d8](https://github.com/airbnb/caravel/commit/69d37d8b2a8de4750b2949905a6e05b28cdf88a6) Fix double escaping of dttm expressions (#744) (#1103) (@tan31989)
 - [b62d7e3](https://github.com/airbnb/caravel/commit/b62d7e3e8eaa80e201af3141fb4fe26c39e1ff79) [security] prevent XSS on FAB list views (#1125) (@mistercrunch)
 - [e8f1bab](https://github.com/airbnb/caravel/commit/e8f1baba438c98a985c252297474c18eeaa41359) [explore] giving more room to Slice title (#1118) (@mistercrunch)
 - [ffe6fb8](https://github.com/airbnb/caravel/commit/ffe6fb849f4c2eb0fc33d866d40cb4afb801af38) Apply stretchMargin only to distribution bar (#1124) (@vera-liu)
