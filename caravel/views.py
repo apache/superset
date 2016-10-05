@@ -1961,7 +1961,7 @@ class Caravel(BaseCaravelView):
         column_opts = {
             "groupby_cols": datasource.groupby_column_names,
             "metrics": datasource.metrics_combo,
-            "filter_cols": datasource.filterable_column_names
+            "filter_cols": datasource.filterable_column_names,
             "columns": datasource.column_names,
             "ordering_cols": order_by_choices
         }
