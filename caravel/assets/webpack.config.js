@@ -12,14 +12,14 @@ const VERSION_STRING = JSON.parse(fs.readFileSync('package.json')).version;
 
 const config = {
   entry: {
-    'css-theme': APP_DIR + '/javascripts/css-theme.js',
-    dashboard: APP_DIR + '/javascripts/dashboard/Dashboard.jsx',
-    explore: APP_DIR + '/javascripts/explore/explore.jsx',
-    explorev2: APP_DIR + '/javascripts/explorev2/index.jsx',
-    welcome: APP_DIR + '/javascripts/welcome.js',
-    standalone: APP_DIR + '/javascripts/standalone.js',
-    common: APP_DIR + '/javascripts/common.js',
-    sqllab: APP_DIR + '/javascripts/SqlLab/index.jsx',
+    'css-theme': ['babel-polyfill', APP_DIR + '/javascripts/css-theme.js'],
+    dashboard: ['babel-polyfill', APP_DIR + '/javascripts/dashboard/Dashboard.jsx'],
+    explore: ['babel-polyfill', APP_DIR + '/javascripts/explore/explore.jsx'],
+    explorev2: ['babel-polyfill', APP_DIR + '/javascripts/explorev2/index.jsx'],
+    welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
+    standalone: ['babel-polyfill', APP_DIR + '/javascripts/standalone.js'],
+    common: ['babel-polyfill', APP_DIR + '/javascripts/common.js'],
+    sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
   },
   output: {
     path: BUILD_DIR,
