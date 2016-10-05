@@ -12,16 +12,14 @@ export default class Legend extends React.Component {
         <i
           className="fa fa-circle"
           style={{ color: this.props.keysToColorsMap[key] }}
-        ></i> &nbsp;&nbsp;
+        /> &nbsp;&nbsp;
         <span>{key}</span>
       </li>
     );
   }
 
   render() {
-    const legendEls = this.props.data.map((d) => {
-      return this.legendItem(d.key);
-    });
+    const legendEls = this.props.data.map((d) => this.legendItem(d.key));
     return (
       <ul className="list-unstyled list-inline">
         {legendEls}
