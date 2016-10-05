@@ -92,6 +92,7 @@
 <li><a class="reference internal" href="#getting-started">Getting Started</a></li>
 <li><a class="reference internal" href="#os-dependencies">OS dependencies</a></li>
 <li><a class="reference internal" href="#python-virtualenv">Python virtualenv</a></li>
+<li><a class="reference internal" href="#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
 <li><a class="reference internal" href="#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
 <li><a class="reference internal" href="#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
@@ -198,6 +199,14 @@ otherwise you can install from pip:</p>
 </div>
 <p>Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
 To exit a virtualenv just type <code class="docutils literal"><span class="pre">deactivate</span></code>.</p>
+</div>
+<div class="section" id="python-s-setup-tools-and-pip">
+<h2>Python&#8217;s setup tools and pip<a class="headerlink" href="#python-s-setup-tools-and-pip" title="Permalink to this headline">¶</a></h2>
+<p>Put all the chances on your side by getting the very latest <code class="docutils literal"><span class="pre">pip</span></code>
+and <code class="docutils literal"><span class="pre">setuptools</span></code> libraries.:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="o">--</span><span class="n">upgrade</span> <span class="n">setuptools</span> <span class="n">pip</span>
+</pre></div>
+</div>
 </div>
 <div class="section" id="caravel-installation-and-initialization">
 <h2>Caravel installation and initialization<a class="headerlink" href="#caravel-installation-and-initialization" title="Permalink to this headline">¶</a></h2>
@@ -430,6 +439,7 @@ metadata from your Druid cluster(s)</p>
 <p>Upgrading should be as straightforward as running:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">caravel</span> <span class="o">--</span><span class="n">upgrade</span>
 <span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
+<span class="n">caravel</span> <span class="n">init</span>
 </pre></div>
 </div>
 </div>
