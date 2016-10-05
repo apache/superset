@@ -106,6 +106,11 @@ the credential you entered while creating the admin account, and navigate to
 your datasources for Caravel to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
 
+Please note that *gunicorn*, Caravel default application server, does not
+work on Windows so you need to use the development web server.
+The development web server though is not intended to be used on production systems
+so better use a supported platform that can run *gunicorn*.
+
 Configuration behind a load balancer
 ------------------------------------
 
