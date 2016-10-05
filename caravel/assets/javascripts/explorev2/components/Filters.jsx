@@ -109,7 +109,6 @@ class Filters extends React.Component {
 }
 
 Filters.propTypes = propTypes;
-
 Filters.defaultProps = defaultProps;
 
 function mapStateToProps(state) {

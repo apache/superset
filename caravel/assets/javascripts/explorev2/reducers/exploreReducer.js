@@ -40,31 +40,19 @@ export const exploreReducer = function (state, action) {
     [actions.SET_METRICS]() {
       return Object.assign({}, state, { metrics: action.metrics });
     },
-    [actions.ADD_COLUMN]() {
-      return Object.assign({}, state, { columns: [...state.columns, action.column] });
+    [actions.SET_COLUMN_OPTS]() {
+      return Object.assign({}, state, { columnOpts: action.columnOpts });
     },
-    [actions.REMOVE_COLUMN]() {
-      const newColumns = [];
-      state.columns.forEach((c) => {
-        if (c !== action.column) {
-          newColumns.push(c);
-        }
-      });
-      return Object.assign({}, state, { columns: newColumns });
+    [actions.SET_NOT_GROUPBY_COLUMNS]() {
+      return Object.assign({}, state, { columns: action.columns });
     },
-    [actions.ADD_ORDERING]() {
-      return Object.assign({}, state, { orderings: [...state.orderings, action.ordering] });
+    [actions.SET_ORDERING_OPTS]() {
+      return Object.assign({}, state, { orderingOpts: action.orderingOpts });
     },
-    [actions.REMOVE_ORDERING]() {
-      const newOrderings = [];
-      state.orderings.forEach((o) => {
-        if (o !== action.ordering) {
-          newOrderings.push(o);
-        }
-      });
-      return Object.assign({}, state, { orderings: newOrderings });
+    [actions.SET_ORDERINGS]() {
+      return Object.assign({}, state, { orderings: action.orderings });
     },
-    [actions.SET_TIME_STAMP]() {
+    [actions.SET_TIME_STAMP_FORMAT]() {
       return Object.assign({}, state, { timeStampFormat: action.timeStampFormat });
     },
     [actions.SET_ROW_LIMIT]() {
