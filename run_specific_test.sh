@@ -5,4 +5,5 @@ export CARAVEL_CONFIG=tests.caravel_test_config
 set -e
 caravel/bin/caravel version -v
 export SOLO_TEST=1
-nosetests tests.core_tests:CoreTests.test_endpoints_for_a_slice
+#nosetests tests.core_tests:CoreTests.test_slice_endpoint
+nosetests tests.druid_tests

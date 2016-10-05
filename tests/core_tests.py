@@ -44,9 +44,14 @@ class CoreTests(CaravelTestCase):
     def tearDown(self):
         pass
 
+    def test_welcome(self):
+        self.login()
+        resp = self.client.get('/caravel/welcome')
+        assert 'Welcome' in resp.data.decode('utf-8')
+
     def test_slice_endpoint(self):
         self.login(username='admin')
-        slc = self.get_slice("Energy Sankey", db.session)
+        slc = self.get_slice("Girls", db.session)
         resp = self.get_resp('/caravel/slice/{}/'.format(slc.id))
         assert 'Time Column' in resp
         assert 'List Roles' in resp

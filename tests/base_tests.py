@@ -81,6 +81,12 @@ class CaravelTestCase(unittest.TestCase):
 
         utils.init(caravel)
 
+    def get_or_create(self, cls, criteria, session):
+        obj = session.query(cls).filter_by(**criteria).first()
+        if not obj:
+            obj = cls(**criteria)
+        return obj
+
     def login(self, username='admin', password='general'):
         resp = self.client.post(
             '/login/',
@@ -132,11 +138,6 @@ class CaravelTestCase(unittest.TestCase):
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
-
-    def test_welcome(self):
-        self.login()
-        resp = self.client.get('/caravel/welcome')
-        assert 'Welcome' in resp.data.decode('utf-8')
 
     def setup_public_access_for_dashboard(self, table_name):
         public_role = appbuilder.sm.find_role('Public')

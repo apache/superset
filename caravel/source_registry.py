@@ -14,7 +14,7 @@ class SourceRegistry(object):
                 cls.sources[source_class.type] = source_class
 
     @classmethod
-    def get_datasource(cls, datasource_type, datasource_id, session=None):
+    def get_datasource(cls, datasource_type, datasource_id, session):
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)

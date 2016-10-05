@@ -14,7 +14,6 @@ from caravel import db, sm, utils
 from caravel.models import DruidCluster, DruidDatasource
 
 from .base_tests import CaravelTestCase
-from flask_appbuilder.security.sqla import models as ab_models
 
 
 SEGMENT_METADATA = [{
@@ -118,25 +117,40 @@ class DruidTests(CaravelTestCase):
             datasource_id))
         assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
 
-        resp = self.client.get(
-            '/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&'
+        url = (
+            '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
             'include_search=false&metrics=count&groupby=name&flt_col_0=dim1&'
             'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
             'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&json=true&'
+            'datasource_type=druid&previous_viz_type=table&'
             'force=true'.format(datasource_id, datasource_id))
-        assert "Canada" in resp.data.decode('utf-8')
+        resp = self.get_resp(url)
+        assert "Canada" in resp
 
     def test_druid_sync_from_config(self):
+        CLUSTER_NAME = 'new_druid'
         self.login()
-        cluster = DruidCluster(cluster_name="new_druid")
-        db.session.add(cluster)
+        cluster = self.get_or_create(
+            DruidCluster,
+            {'cluster_name': CLUSTER_NAME},
+            db.session)
+
+        db.session.merge(cluster)
+        db.session.commit()
+
+        ds = (
+            db.session.query(DruidDatasource)
+            .filter_by(datasource_name='test_click')
+            .first()
+        )
+        if ds:
+            db.session.delete(ds)
         db.session.commit()
 
         cfg = {
             "user": "admin",
-            "cluster": "new_druid",
+            "cluster": CLUSTER_NAME,
             "config": {
                 "name": "test_click",
                 "dimensions": ["affiliate_id", "campaign", "first_seen"],
@@ -152,30 +166,24 @@ class DruidTests(CaravelTestCase):
                 }
             }
         }
-        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+        def check():
+            resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+            druid_ds = db.session.query(DruidDatasource).filter_by(
+                datasource_name="test_click").first()
+            col_names = set([c.column_name for c in druid_ds.columns])
+            assert {"affiliate_id", "campaign", "first_seen"} == col_names
+            metric_names = {m.metric_name for m in druid_ds.metrics}
+            assert {"count", "sum"} == metric_names
+            assert resp.status_code == 201
 
-        druid_ds = db.session.query(DruidDatasource).filter_by(
-            datasource_name="test_click").first()
-        assert set([c.column_name for c in druid_ds.columns]) == set(
-            ["affiliate_id", "campaign", "first_seen"])
-        assert set([m.metric_name for m in druid_ds.metrics]) == set(
-            ["count", "sum"])
-        assert resp.status_code == 201
-
-        # datasource exists, not changes required
-        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
-        druid_ds = db.session.query(DruidDatasource).filter_by(
-            datasource_name="test_click").first()
-        assert set([c.column_name for c in druid_ds.columns]) == set(
-            ["affiliate_id", "campaign", "first_seen"])
-        assert set([m.metric_name for m in druid_ds.metrics]) == set(
-            ["count", "sum"])
-        assert resp.status_code == 201
+        check()
+        # checking twice to make sure a second sync yields the same results
+        check()
 
         # datasource exists, add new metrics and dimentions
         cfg = {
             "user": "admin",
-            "cluster": "new_druid",
+            "cluster": CLUSTER_NAME,
             "config": {
                 "name": "test_click",
                 "dimensions": ["affiliate_id", "second_seen"],
@@ -200,39 +208,39 @@ class DruidTests(CaravelTestCase):
         assert resp.status_code == 201
 
     def test_filter_druid_datasource(self):
-        gamma_ds = DruidDatasource(
-            datasource_name="datasource_for_gamma",
-        )
-        db.session.add(gamma_ds)
-        no_gamma_ds = DruidDatasource(
-            datasource_name="datasource_not_for_gamma",
-        )
-        db.session.add(no_gamma_ds)
-        db.session.commit()
+        CLUSTER_NAME = 'new_druid'
+        cluster = self.get_or_create(
+            DruidCluster,
+            {'cluster_name': CLUSTER_NAME},
+            db.session)
+        db.session.merge(cluster)
+
+        gamma_ds = self.get_or_create(
+            DruidDatasource, {'datasource_name': 'datasource_for_gamma'},
+            db.session)
+        gamma_ds.cluster = cluster
+        db.session.merge(gamma_ds)
+
+        no_gamma_ds = self.get_or_create(
+            DruidDatasource, {'datasource_name': 'datasource_not_for_gamma'},
+            db.session)
+        no_gamma_ds.cluster = cluster
+        db.session.merge(no_gamma_ds)
+
         utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
         utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+
         db.session.commit()
 
-        gamma_ds_permission_view = (
-            db.session.query(ab_models.PermissionView)
-            .join(ab_models.ViewMenu)
-            .filter(ab_models.ViewMenu.name == gamma_ds.perm)
-            .first()
-        )
-        sm.add_permission_role(sm.find_role('Gamma'), gamma_ds_permission_view)
+        perm = sm.find_permission_view_menu('datasource_access', gamma_ds.perm)
+        sm.add_permission_role(sm.find_role('Gamma'), perm)
+        db.session.commit()
 
         self.login(username='gamma')
         url = '/druiddatasourcemodelview/list/'
         resp = self.get_resp(url)
         assert 'datasource_for_gamma' in resp
         assert 'datasource_not_for_gamma' not in resp
-
-    def test_add_filter(self, username='admin'):
-        # navigate to energy_usage slice with "Electricity,heat" in filter values
-        data = (
-            "/caravel/explore/table/1/?viz_type=table&groupby=source&metric=count&flt_col_1=source&flt_op_1=in&flt_eq_1=%27Electricity%2Cheat%27"
-            "&userid=1&datasource_name=energy_usage&datasource_id=1&datasource_type=tablerdo_save=saveas")
-        assert "source" in self.get_resp(data)
 
 
 if __name__ == '__main__':

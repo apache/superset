@@ -243,7 +243,8 @@ class FilterDruidDatasource(CaravelFilter):
         druid_datasources = []
         for perm in perms:
             match = re.search(r'\(id:(\d+)\)', perm)
-            druid_datasources.append(match.group(1))
+            if match:
+                druid_datasources.append(match.group(1))
         qry = query.filter(self.model.id.in_(druid_datasources))
         return qry
 
@@ -1132,7 +1133,7 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
-                    {'error': "You don't have access to this datasource"}),
+                    {'error': _("You don't have access to this datasource")}),
                 status=404,
                 mimetype="application/json")
         return Response(
