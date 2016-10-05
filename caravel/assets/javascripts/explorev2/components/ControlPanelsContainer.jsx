@@ -11,15 +11,13 @@ const defaultProps = {
   vizType: null,
 };
 
-class ControlPanelsContainer extends React.Component {
-  render() {
-    return (
-      <Panel>
-        {DefaultControls}
-        {VIZ_CONTROL_MAPPING[this.props.vizType]}
-      </Panel>
-    );
-  }
+function ControlPanelsContainer(props) {
+  return (
+    <Panel>
+      {DefaultControls}
+      {VIZ_CONTROL_MAPPING[props.vizType]}
+    </Panel>
+  );
 }
 
 ControlPanelsContainer.propTypes = propTypes;
