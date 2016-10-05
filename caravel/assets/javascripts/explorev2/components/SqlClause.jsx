@@ -7,7 +7,7 @@ const propTypes = {
   actions: React.PropTypes.object,
 };
 
-class SqlClause extends React.Component {
+export class SqlClause extends React.Component {
   changeWhere(whereClause) {
     this.props.actions.setWhereClause(whereClause);
   }

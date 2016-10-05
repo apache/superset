@@ -20,7 +20,7 @@ const defaultProps = {
   vizType: null,
 };
 
-class ChartControl extends React.Component {
+export class ChartControl extends React.Component {
   componentWillMount() {
     if (this.props.datasourceId) {
       this.props.actions.setFormOpts(this.props.datasourceId, this.props.datasourceType);

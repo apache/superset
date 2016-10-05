@@ -1,5 +1,4 @@
 import React from 'react';
-// import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
@@ -18,7 +17,7 @@ const defaultProps = {
   filters: [],
 };
 
-class Filters extends React.Component {
+export class Filters extends React.Component {
   constructor(props) {
     super(props);
     this.state = {

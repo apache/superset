@@ -307,6 +307,19 @@ class CoreTests(CaravelTestCase):
         self.assertEqual(list(expected_data), list(data))
         self.logout()
 
+    def test_datasource_metadata_endpoint(self):
+        params = [
+            'datasource_id=1',
+            'datasource_type=table'
+        ]
+        resp = self.client.get('/caravel/fetch_datasource_metadata?'+'&'.join(params))
+        self.assertEquals(500, resp.status_code)
+
+        self.login('admin')
+        resp = self.client.get('/caravel/fetch_datasource_metadata?'+'&'.join(params))
+        self.assertEquals(200, resp.status_code)
+        self.logout()
+
     def test_queries_endpoint(self):
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
