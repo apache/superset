@@ -2006,6 +2006,7 @@ class Query(Model):
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
+    user = relationship('User', backref='queries', foreign_keys=[user_id])
 
     __table_args__ = (
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
@@ -2020,6 +2021,7 @@ class Query(Model):
             'changedOn': self.changed_on,
             'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
+            'db': self.database.database_name,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,
             'executedSql': self.executed_sql,
@@ -2037,6 +2039,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
+            'user': self.user.username,
             'limit_reached': self.limit_reached,
         }
 
