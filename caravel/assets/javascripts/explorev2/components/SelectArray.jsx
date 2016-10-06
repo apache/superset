@@ -26,12 +26,18 @@ const defaultProps = {
 };
 
 class SelectArray extends React.Component {
+<<<<<<< b7d1f78f5e38bdcc99c7b6a15645092f5d76ca4a
   changeSelectData(key, multi, opt) {
     if (multi) this.props.actions.setFormData(key, opt);
     else {
       const val = opt ? opt.value : null;
       this.props.actions.setFormData(key, val);
     }
+=======
+  changeSelectData(field, opt) {
+    const val = opt ? opt.value : null;
+    this.props.actions.setStateValue(field, val);
+>>>>>>> Not working yet
   }
   render() {
     const selects = this.props.selectArray.map((obj) => (
@@ -41,12 +47,20 @@ class SelectArray extends React.Component {
       >
         <h5 className="section-heading">{obj.title}</h5>
         <Select
+<<<<<<< b7d1f78f5e38bdcc99c7b6a15645092f5d76ca4a
           multi={obj.multi}
           name={`select-${obj.key}`}
           options={obj.options}
           value={obj.value}
           autosize={false}
           onChange={this.changeSelectData.bind(this, obj.key, obj.multi)}
+=======
+          name={`select-${obj.key}`}
+          options={obj.options.map((o) => ({ value: o, label: o }))}
+          value={obj.value}
+          autosize={false}
+          onChange={this.changeSelectData.bind(this, obj.key)}
+>>>>>>> Not working yet
         />
       </div>
     ));

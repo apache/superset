@@ -79,6 +79,11 @@ export const exploreReducer = function (state, action) {
         viz: setVizInState(state.viz, action),
       };
     },
+    [actions.TOGGLE_CHECK_BOX]() {
+      const newState = Object.assign({}, state);
+      newState[action.checkBoxKey] = !(state[action.checkBoxKey]);
+      return newState;
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
