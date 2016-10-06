@@ -49,14 +49,16 @@ class ChartOptions extends React.Component {
   }
   render() {
     const checkBoxes = Object.keys(checkBoxLabels).map((k) => (
-      <Checkbox
-        inline
-        onChange={this.onToggle.bind(this, k)}
-        key={k}
-        checked={this.props[k]}
-      >
-        {checkBoxLabels[k]}
-      </Checkbox>
+      <div className="col-sm-6">
+        <Checkbox
+          inline
+          onChange={this.onToggle.bind(this, k)}
+          key={k}
+          checked={this.props[k]}
+        >
+          {checkBoxLabels[k]}
+        </Checkbox>
+      </div>
     ));
 
     return (
