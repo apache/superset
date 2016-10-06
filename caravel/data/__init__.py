@@ -178,7 +178,7 @@ def load_world_bank_health_n_pop():
         tbl_name,
         db.engine,
         if_exists='replace',
-        chunksize=500,
+        chunksize=50,
         dtype={
             'year': DateTime(),
             'country_code': String(3),
