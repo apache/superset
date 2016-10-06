@@ -43,6 +43,8 @@ click the ``+`` sign.
 
 .. image:: _static/img/create_role.png
    :scale: 50 %
+   
+Note that when using ``caravel load_examples``, permission properties such as the above are not created automatically for the tables in the example datasets. However when adding new tables, such properties are created, allowing roles to be assigned permissions to access them.
 
 This new window allows you to give this new role a name, attribute it to users
 and select the tables in the ``Permissions`` dropdown. To select the data
