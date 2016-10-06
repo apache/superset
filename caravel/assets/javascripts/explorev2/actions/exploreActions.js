@@ -11,11 +11,11 @@ export const SET_GROUPBY_COLUMNS = 'SET_GROUPBY_COLUMNS';
 export const SET_GROUPBY_COLUMN_OPTS = 'SET_GROUPBY_COLUMN_OPTS';
 export const SET_METRICS = 'SET_METRICS';
 export const SET_METRICS_OPTS = 'SET_METRICS_OPTS';
-export const ADD_COLUMN = 'ADD_COLUMN';
-export const REMOVE_COLUMN = 'REMOVE_COLUMN';
-export const ADD_ORDERING = 'ADD_ORDERING';
-export const REMOVE_ORDERING = 'REMOVE_ORDERING';
-export const SET_TIME_STAMP = 'SET_TIME_STAMP';
+export const SET_COLUMN_OPTS = 'SET_COLUMN_OPTS';
+export const SET_NOT_GROUPBY_COLUMNS = 'SET_NOT_GROUPBY_COLUMNS';
+export const SET_ORDERING_OPTS = 'SET_ORDERING_OPTS';
+export const SET_ORDERINGS = 'SET_ORDERINGS';
+export const SET_TIME_STAMP_FORMAT = 'SET_TIME_STAMP_FORMAT';
 export const SET_ROW_LIMIT = 'SET_ROW_LIMIT';
 export const TOGGLE_SEARCHBOX = 'TOGGLE_SEARCHBOX';
 export const SET_FILTER_COLUMN_OPTS = 'SET_FILTER_COLUMN_OPTS';
@@ -47,6 +47,14 @@ export function setMetricsOpts(metricsOpts) {
   return { type: SET_METRICS_OPTS, metricsOpts };
 }
 
+export function setColumnOpts(columnOpts) {
+  return { type: SET_COLUMN_OPTS, columnOpts };
+}
+
+export function setOrderingOpts(orderingOpts) {
+  return { type: SET_ORDERING_OPTS, orderingOpts };
+}
+
 export function setFilterColumnOpts(filterColumnOpts) {
   return { type: SET_FILTER_COLUMN_OPTS, filterColumnOpts };
 }
@@ -71,6 +79,8 @@ export function setFormOpts(datasourceId, datasourceType) {
     const metricsOpts = [];
     const filterColumnOpts = [];
     const timeGrainOpts = [];
+    const columnOpts = [];
+    const orderingOpts = [];
 
     if (datasourceId) {
       const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
@@ -93,12 +103,21 @@ export function setFormOpts(datasourceId, datasourceType) {
           data.time_grains.forEach((d) => {
             if (d) timeGrainOpts.push({ value: d, label: d });
           });
+          data.columns.forEach((d) => {
+            if (d) columnOpts.push({ value: d, label: d });
+          });
+          data.ordering_cols.forEach((d) => {
+            if (d) orderingOpts.push({ value: d, label: d });
+          });
+
           // Repopulate options for controls
           dispatch(setTimeColumnOpts(timeColumnOpts));
           dispatch(setTimeGrainOpts(timeGrainOpts));
           dispatch(setGroupByColumnOpts(groupByColumnOpts));
           dispatch(setMetricsOpts(metricsOpts));
           dispatch(setFilterColumnOpts(filterColumnOpts));
+          dispatch(setColumnOpts(columnOpts));
+          dispatch(setOrderingOpts(orderingOpts));
         }
       });
     } else {
@@ -140,24 +159,16 @@ export function setMetrics(metrics) {
   return { type: SET_METRICS, metrics };
 }
 
-export function addColumn(column) {
-  return { type: ADD_COLUMN, column };
+export function setNotGroupByColumns(columns) {
+  return { type: SET_NOT_GROUPBY_COLUMNS, columns };
 }
 
-export function removeColumn(column) {
-  return { type: REMOVE_COLUMN, column };
+export function setOrderings(orderings) {
+  return { type: SET_ORDERINGS, orderings };
 }
 
-export function addOrdering(ordering) {
-  return { type: ADD_ORDERING, ordering };
-}
-
-export function removeOrdering(ordering) {
-  return { type: REMOVE_ORDERING, ordering };
-}
-
-export function setTimeStamp(timeStampFormat) {
-  return { type: SET_TIME_STAMP, timeStampFormat };
+export function setTimeStampFormat(timeStampFormat) {
+  return { type: SET_TIME_STAMP_FORMAT, timeStampFormat };
 }
 
 export function setRowLimit(rowLimit) {

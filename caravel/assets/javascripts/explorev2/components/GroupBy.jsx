@@ -20,11 +20,11 @@ const defaultProps = {
 };
 
 class GroupBy extends React.Component {
-  changeColumns(groupByColumnOpts) {
-    this.props.actions.setGroupByColumns(groupByColumnOpts);
+  changeColumns(groupByColumns) {
+    this.props.actions.setGroupByColumns(groupByColumns);
   }
-  changeMetrics(metricsOpts) {
-    this.props.actions.setMetrics(metricsOpts);
+  changeMetrics(metrics) {
+    this.props.actions.setMetrics(metrics);
   }
   render() {
     return (
