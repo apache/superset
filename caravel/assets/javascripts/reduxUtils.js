@@ -67,9 +67,8 @@ export function addToArr(state, arrKey, obj) {
 export function enhancer() {
   let enhancerWithPersistState = compose(persistState());
   if (process.env.NODE_ENV === 'dev') {
-    enhancerWithPersistState = compose(
-      persistState(), window.devToolsExtension && window.devToolsExtension()
-    );
+    const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+    enhancerWithPersistState = composeEnhancers(persistState());
   }
   return enhancerWithPersistState;
 }
