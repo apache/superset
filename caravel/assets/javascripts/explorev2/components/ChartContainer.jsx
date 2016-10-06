@@ -1,6 +1,17 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 import { Panel } from 'react-bootstrap';
 import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
+import moment from 'moment';
+
+const propTypes = {
+  viz: PropTypes.shape({
+    data: PropTypes.object.isRequired,
+    form_data: PropTypes.shape({
+      slice_name: PropTypes.object.isRequired,
+    }).isRequired,
+  }).isRequired,
+  height: PropTypes.number.isRequired,
+};
 
 export default class ChartContainer extends React.Component {
   constructor(props) {
@@ -25,7 +36,7 @@ export default class ChartContainer extends React.Component {
   }
 
   formatDates(values) {
-    const newValues = values.map((val) => {
+    const newValues = values.map(function (val) {
       return {
         x: moment(new Date(val.x)).format('MMM D'),
         y: val.y,
@@ -52,3 +63,5 @@ export default class ChartContainer extends React.Component {
     );
   }
 }
+
+ChartContainer.propTypes = propTypes;

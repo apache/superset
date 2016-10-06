@@ -1,7 +1,13 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import QueryAndSaveButtons from './QueryAndSaveButtons';
+
+const propTypes = {
+  data: PropTypes.shape({
+    viz: PropTypes.object.isRequired,
+  }).isRequired,
+};
 
 export default class ExploreViewContainer extends React.Component {
   constructor(props) {
@@ -44,4 +50,6 @@ export default class ExploreViewContainer extends React.Component {
       </div>
     );
   }
-};
+}
+
+ExploreViewContainer.propTypes = propTypes;
