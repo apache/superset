@@ -7,6 +7,7 @@ const propTypes = {
   viz: PropTypes.shape({
     data: PropTypes.array.isRequired,
     form_data: PropTypes.shape({
+      viz_type: PropTypes.string.isRequired,
       slice_name: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
@@ -45,6 +46,12 @@ export default class ChartContainer extends React.Component {
     return newValues;
   }
 
+  isLineViz() {
+    // todo(alanna) generalize this check and map to charts
+    const vizType = this.props.viz.form_data.viz_type;
+    return vizType === 'line';
+  }
+
   render() {
     return (
       <div className="chart-container">
@@ -54,10 +61,12 @@ export default class ChartContainer extends React.Component {
             <div className="panel-title">{this.props.viz.form_data.slice_name}</div>
           }
         >
-          <TimeSeriesLineChart
-            data={this.state.data}
-            label1="Label 1"
-          />
+          {this.isLineViz() &&
+            <TimeSeriesLineChart
+              data={this.state.data}
+              label1="Label 1"
+            />
+          }
         </Panel>
       </div>
     );
