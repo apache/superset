@@ -26,7 +26,7 @@ export default class TimeSeriesLineChart extends React.Component {
   }
 
   renderLines() {
-    return this.props.data.map(function (d) {
+    return this.props.data.map((d) => {
       return (
         <V.VictoryLine
           key={d.key}

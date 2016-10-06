@@ -5,12 +5,12 @@ import moment from 'moment';
 
 const propTypes = {
   viz: PropTypes.shape({
-    data: PropTypes.object.isRequired,
+    data: PropTypes.array.isRequired,
     form_data: PropTypes.shape({
-      slice_name: PropTypes.object.isRequired,
+      slice_name: PropTypes.string.isRequired,
     }).isRequired,
   }).isRequired,
-  height: PropTypes.number.isRequired,
+  height: PropTypes.string.isRequired,
 };
 
 export default class ChartContainer extends React.Component {
