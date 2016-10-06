@@ -156,13 +156,13 @@ you encounter an error.</p>
 <p>Here&#8217;s how to install them:</p>
 <p>For <strong>Debian</strong> and <strong>Ubuntu</strong>, the following command will ensure that
 the required dependencies are installed:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">build</span><span class="o">-</span><span class="n">essential</span> <span class="n">libssl</span><span class="o">-</span><span class="n">dev</span> <span class="n">libffi</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">apt</span><span class="o">-</span><span class="n">get</span> <span class="n">install</span> <span class="n">build</span><span class="o">-</span><span class="n">essential</span> <span class="n">libssl</span><span class="o">-</span><span class="n">dev</span> <span class="n">libffi</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">dev</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">libsasl2</span><span class="o">-</span><span class="n">dev</span> <span class="n">libldap2</span><span class="o">-</span><span class="n">dev</span>
 </pre></div>
 </div>
 <p>For <strong>Fedora</strong> and <strong>RHEL-derivatives</strong>, the following command will ensure
 that the required dependencies are installed:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">sudo</span> <span class="n">yum</span> <span class="n">upgrade</span> <span class="n">python</span><span class="o">-</span><span class="n">setuptools</span>
-<span class="n">sudo</span> <span class="n">yum</span> <span class="n">install</span> <span class="n">gcc</span> <span class="n">libffi</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">python</span><span class="o">-</span><span class="n">wheel</span> <span class="n">openssl</span><span class="o">-</span><span class="n">devel</span>
+<span class="n">sudo</span> <span class="n">yum</span> <span class="n">install</span> <span class="n">gcc</span> <span class="n">libffi</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">devel</span> <span class="n">python</span><span class="o">-</span><span class="n">pip</span> <span class="n">python</span><span class="o">-</span><span class="n">wheel</span> <span class="n">openssl</span><span class="o">-</span><span class="n">devel</span> <span class="n">libsasl2</span><span class="o">-</span><span class="n">devel</span> <span class="n">openldap</span><span class="o">-</span><span class="n">devel</span>
 </pre></div>
 </div>
 <p><strong>OSX</strong>, system python is not recommended. brew&#8217;s python also ships with pip</p>
@@ -239,6 +239,10 @@ the credential you entered while creating the admin account, and navigate to
 <cite>Menu -&gt; Admin -&gt; Refresh Metadata</cite>. This action should bring in all of
 your datasources for Caravel to be aware of, and they should show up in
 <cite>Menu -&gt; Datasources</cite>, from where you can start playing with your data!</p>
+<p>Please note that <em>gunicorn</em>, Caravel default application server, does not
+work on Windows so you need to use the development web server.
+The development web server though is not intended to be used on production systems
+so better use a supported platform that can run <em>gunicorn</em>.</p>
 </div>
 <div class="section" id="configuration-behind-a-load-balancer">
 <h2>Configuration behind a load balancer<a class="headerlink" href="#configuration-behind-a-load-balancer" title="Permalink to this headline">¶</a></h2>
