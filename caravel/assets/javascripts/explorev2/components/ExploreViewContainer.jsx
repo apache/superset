@@ -1,26 +1,55 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import QueryAndSaveButtons from './QueryAndSaveButtons';
 
-const ExploreViewContainer = function () {
-  return (
-    <div className="container-fluid">
-      <div className="row">
-        <div className="col-sm-3">
-          <QueryAndSaveButtons
-            canAdd="True"
-            onQuery={() => { console.log('clicked query'); }}
-          />
-          <br /><br />
-          <ControlPanelsContainer />
-        </div>
-        <div className="col-sm-9">
-          <ChartContainer />
-        </div>
-      </div>
-    </div>
-  );
+const propTypes = {
+  data: PropTypes.shape({
+    viz: PropTypes.object.isRequired,
+  }).isRequired,
 };
 
-export default ExploreViewContainer;
+export default class ExploreViewContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      height: this.getHeight(),
+    };
+  }
+
+  getHeight() {
+    const navHeight = 90;
+    return `${window.innerHeight - navHeight}px`;
+  }
+
+  render() {
+    return (
+      <div
+        className="container-fluid"
+        style={{
+          height: this.state.height,
+          overflow: 'hidden',
+        }}
+      >
+        <div className="row table-body">
+          <div className="table-cell col-sm-4">
+            <QueryAndSaveButtons
+              canAdd="True"
+              onQuery={() => {}}
+            />
+            <br /><br />
+            <ControlPanelsContainer />
+          </div>
+          <div className="table-cell col-sm-8">
+            <ChartContainer
+              viz={this.props.data.viz}
+              height={this.state.height}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+ExploreViewContainer.propTypes = propTypes;

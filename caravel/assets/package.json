@@ -48,6 +48,7 @@
     "d3": "^3.5.14",
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.2.1",
+    "d3-scale": "^1.0.3",
     "d3-tip": "^0.6.7",
     "datamaps": "^0.4.4",
     "datatables-bootstrap3-plugin": "^0.4.0",
@@ -84,6 +85,7 @@
     "style-loader": "^0.13.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "topojson": "^1.6.22",
+    "victory": "^0.12.1",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {

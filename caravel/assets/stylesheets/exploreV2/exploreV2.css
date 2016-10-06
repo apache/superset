@@ -1,0 +1,8 @@
+.table-body {
+  display: table;
+}
+
+.table-cell {
+  float: none;
+  display: table-cell;
+}
