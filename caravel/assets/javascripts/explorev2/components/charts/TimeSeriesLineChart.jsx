@@ -25,17 +25,19 @@ export default class TimeSeriesLineChart extends React.Component {
     return keysToColorsMap;
   }
 
+  renderLine(d) {
+    return (
+      <V.VictoryLine
+        key={d.key}
+        data={d.values}
+        interpolation="cardinal"
+        style={{ data: { stroke: this.keysToColorsMap[d.key] } }}
+      />
+    );
+  }
+
   renderLines() {
-    return this.props.data.map((d) => {
-      return (
-        <V.VictoryLine
-          key={d.key}
-          data={d.values}
-          interpolation="cardinal"
-          style={{ data: { stroke: this.keysToColorsMap[d.key] } }}
-        />
-      );
-    });
+    return this.props.data.map((d) => this.renderLine(d));
   }
 
   render() {
