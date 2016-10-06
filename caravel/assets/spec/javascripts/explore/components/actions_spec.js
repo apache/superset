@@ -16,34 +16,20 @@ describe('reducers', () => {
     expect(newState.vizType).to.equal('bar');
   });
 
-  it('should return new state with added column', () => {
-    const newColumn = 'col';
-    const newState = exploreReducer(initialState, actions.addColumn(newColumn));
-    expect(newState.columns).to.deep.equal([newColumn]);
+  it('should return new state with not groupby columns', () => {
+    const newColumn = ['col'];
+    const newState = exploreReducer(initialState, actions.setNotGroupByColumns(newColumn));
+    expect(newState.columns).to.deep.equal(['col']);
   });
 
-  it('should return new state with removed column', () => {
-    const testState = { initialState, columns: ['col1', 'col2'] };
-    const remColumn = 'col1';
-    const newState = exploreReducer(testState, actions.removeColumn(remColumn));
-    expect(newState.columns).to.deep.equal(['col2']);
-  });
-
-  it('should return new state with added ordering', () => {
-    const newOrdering = 'ord';
-    const newState = exploreReducer(initialState, actions.addOrdering(newOrdering));
+  it('should return new state with orderings', () => {
+    const newOrdering = ['ord'];
+    const newState = exploreReducer(initialState, actions.setOrderings(newOrdering));
     expect(newState.orderings).to.deep.equal(['ord']);
   });
 
-  it('should return new state with removed ordering', () => {
-    const testState = { initialState, orderings: ['ord1', 'ord2'] };
-    const remOrdering = 'ord1';
-    const newState = exploreReducer(testState, actions.removeOrdering(remOrdering));
-    expect(newState.orderings).to.deep.equal(['ord2']);
-  });
-
   it('should return new state with time stamp', () => {
-    const newState = exploreReducer(initialState, actions.setTimeStamp(1));
+    const newState = exploreReducer(initialState, actions.setTimeStampFormat(1));
     expect(newState.timeStampFormat).to.equal(1);
   });
 

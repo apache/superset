@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-import re
 
 import functools
 import json
@@ -761,6 +760,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": self.dttm_cols,
+            "time_grains": [grain.name for grain in self.database.grains()]
+        }
+
     def get_col(self, col_name):
         columns = self.table_columns
         for col in columns:
@@ -826,7 +832,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # Patch only if the column clause is specific for DateTime set and
             # granularity is selected.
             @compiles(ColumnClause)
-            def _(element, compiler, **kw):
+            def visit_column(element, compiler, **kw):
                 text = compiler.visit_column(element, **kw)
                 try:
                     if element.is_literal and hasattr(element.type, 'python_type') and \
@@ -1150,7 +1156,7 @@ class TableColumn(Model, AuditMixinNullable):
         elif tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
         elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
             default = "'{}'".format(dttm.strftime(tf))
             iso = dttm.isoformat()
@@ -1278,6 +1284,16 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{obj.cluster_name}]."
             "[{obj.datasource_name}]").format(obj=self)
+
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": [
+                'all', '5 seconds', '30 seconds', '1 minute',
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days'
+            ],
+            "time_grains": ['now']
+        }
 
     def __repr__(self):
         return self.datasource_name

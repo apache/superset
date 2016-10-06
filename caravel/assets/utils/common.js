@@ -37,3 +37,7 @@ export function getParamFromQuery(query, param) {
   }
   return null;
 }
+
+export function getLink(baseUrl, params) {
+  return baseUrl + '?' + params.join('&');
+}

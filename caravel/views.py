@@ -1942,8 +1942,6 @@ class Caravel(BaseCaravelView):
     @expose("/fetch_datasource_metadata")
     @log_this
     def fetch_datasource_metadata(self):
-        # TODO: check permissions
-        # TODO: check if datasource exits
         session = db.session
         datasource_type = request.args.get('datasource_type')
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1952,17 +1950,29 @@ class Caravel(BaseCaravelView):
             .filter_by(id=request.args.get('datasource_id'))
             .first()
         )
-        # SUPPORT DRUID
-        # TODO: move this logic to the model (maybe)
-        datasource_grains = datasource.database.grains()
-        grain_names = [str(grain.name) for grain in datasource_grains]
-        form_data = {
-                    "dttm_cols": datasource.dttm_cols,
-                    "time_grains": grain_names,
-                    "groupby_cols": datasource.groupby_column_names,
-                    "metrics": datasource.metrics_combo,
-                    "filter_cols": datasource.filterable_column_names,
-                }
+
+        # Check if datasource exists
+        if not datasource:
+            return json_error_response(DATASOURCE_MISSING_ERR)
+        # Check permission for datasource
+        if not self.datasource_access(datasource):
+            return json_error_response(DATASOURCE_ACCESS_ERR)
+
+        order_by_choices = []
+        for s in sorted(datasource.num_cols):
+            order_by_choices.append(s + ' [asc]')
+            order_by_choices.append(s + ' [desc]')
+        column_opts = {
+            "groupby_cols": datasource.groupby_column_names,
+            "metrics": datasource.metrics_combo,
+            "filter_cols": datasource.filterable_column_names,
+            "columns": datasource.column_names,
+            "ordering_cols": order_by_choices
+        }
+        form_data = dict(
+            column_opts.items() + datasource.time_column_grains.items()
+        )
+
         return Response(
             json.dumps(form_data), mimetype="application/json")
 

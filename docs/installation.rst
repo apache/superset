@@ -24,13 +24,13 @@ Here's how to install them:
 For **Debian** and **Ubuntu**, the following command will ensure that
 the required dependencies are installed: ::
 
-    sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip
+    sudo apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev
 
 For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel
+    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
@@ -66,6 +66,13 @@ On windows the syntax for activating it is a bit different: ::
 Once you activated your virtualenv everything you are doing is confined inside the virtualenv.
 To exit a virtualenv just type ``deactivate``.
 
+Python's setup tools and pip
+----------------------------
+Put all the chances on your side by getting the very latest ``pip``
+and ``setuptools`` libraries.::
+
+    pip install --upgrade setuptools pip
+
 Caravel installation and initialization
 ---------------------------------------
 Follow these few simple steps to install Caravel.::
@@ -98,6 +105,11 @@ the credential you entered while creating the admin account, and navigate to
 `Menu -> Admin -> Refresh Metadata`. This action should bring in all of
 your datasources for Caravel to be aware of, and they should show up in
 `Menu -> Datasources`, from where you can start playing with your data!
+
+Please note that *gunicorn*, Caravel default application server, does not
+work on Windows so you need to use the development web server.
+The development web server though is not intended to be used on production systems
+so better use a supported platform that can run *gunicorn*.
 
 Configuration behind a load balancer
 ------------------------------------
@@ -297,6 +309,7 @@ Upgrading should be as straightforward as running::
 
     pip install caravel --upgrade
     caravel db upgrade
+    caravel init
 
 SQL Lab
 -------
