@@ -44,7 +44,7 @@ click the ``+`` sign.
 .. image:: _static/img/create_role.png
    :scale: 50 %
    
-Note that when using ``caravel load_examples``, permission properties such as the above are not created automatically for the tables in the example datasets. However when adding new tables, such properties are created, allowing roles to be assigned permissions to access them.
+Note that when using ``caravel load_examples``, permission properties such as the above are not created automatically for the tables in the example datasets. However when adding new tables, such properties are created, allowing roles to be assigned permissions to access them. This can be found by removing or renaming an existing table, then adding that table back as a new one. Any slices depending on that table will then need to be re-created, but roles can then be granted permission to see the new table (and slice) with permissions named as per the above screenshot.
 
 This new window allows you to give this new role a name, attribute it to users
 and select the tables in the ``Permissions`` dropdown. To select the data
