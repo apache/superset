@@ -12,31 +12,12 @@ const defaultProps = {
 };
 
 function ControlPanelsContainer(props) {
-  const wrapperDivStyle = {
-    position: 'relative',
-    overflow: 'hidden',
-    width: '100%',
-    height: '100%',
-  };
-
-  const innerDivStyle = {
-    position: 'absolute',
-    top: '0px',
-    left: '0px',
-    right: '0px',
-    bottom: '0px',
-    overflow: 'scroll',
-    marginRight: '0px',
-    marginBottom: '0px',
-  };
   return (
     <Panel>
-      <div style={wrapperDivStyle}>
-        <div style={innerDivStyle}>
-          <div className="panel-body" style={{ marginBottom: '100px' }}>
-            {DefaultControls}
-            {VIZ_CONTROL_MAPPING[props.vizType]}
-          </div>
+      <div className="scrollbar-container">
+        <div className="scrollbar-content">
+          {DefaultControls}
+          {VIZ_CONTROL_MAPPING[props.vizType]}
         </div>
       </div>
     </Panel>
