@@ -28,7 +28,8 @@ class QueryTable extends React.Component {
   }
   getQueryLink(dbId, sql) {
     const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
-    return getLink(this.state.cleanUri, params);
+    const link = getLink(this.state.cleanUri, params);
+    return encodeURI(link);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -50,20 +51,20 @@ class QueryTable extends React.Component {
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
-      q.userId = (
+      q.user = (
         <button
           className="btn btn-link btn-xs"
           onClick={this.props.onUserClicked.bind(this, q.userId)}
         >
-          {q.userId}
+          {q.user}
         </button>
       );
-      q.dbId = (
+      q.db = (
         <button
           className="btn btn-link btn-xs"
           onClick={this.props.onDbClicked.bind(this, q.dbId)}
         >
-          {q.dbId}
+          {q.db}
         </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
