@@ -162,7 +162,7 @@ const px = function () {
           slice.data.standalone_endpoint = data.standalone_endpoint;
           slice.data.form_data = data.form_data;
           if (slice.changedDataCb !== undefined) {
-            slice.changedDataCb && slice.changedDataCb();
+            slice.changedDataCb();
           }
         }
         $('#timer').removeClass('label-warning label-danger');
