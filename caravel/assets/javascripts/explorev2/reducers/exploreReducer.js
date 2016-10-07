@@ -8,7 +8,16 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { datasourceId: action.datasourceId });
     },
     [actions.SET_VIZTYPE]() {
-      return Object.assign({}, state, { vizType: action.vizType });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            vizType: action.vizType,
+          },
+        },
+      };
     },
     [actions.SET_TIME_COLUMN_OPTS]() {
       return Object.assign({}, state, { timeColumnOpts: action.timeColumnOpts });
@@ -17,55 +26,163 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { timeGrainOpts: action.timeGrainOpts });
     },
     [actions.SET_TIME_COLUMN]() {
-      return Object.assign({}, state, { timeColumn: action.timeColumn });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            timeColumn: action.timeColumn,
+          },
+        },
+      };
     },
     [actions.SET_TIME_GRAIN]() {
-      return Object.assign({}, state, { timeGrain: action.timeGrain });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            timeGrain: action.timeGrain,
+          },
+        },
+      };
     },
     [actions.SET_SINCE]() {
-      return Object.assign({}, state, { since: action.since });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            since: action.since,
+          },
+        },
+      };
     },
     [actions.SET_UNTIL]() {
-      return Object.assign({}, state, { until: action.until });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            until: action.until,
+          },
+        },
+      };
     },
     [actions.SET_GROUPBY_COLUMN_OPTS]() {
       return Object.assign({}, state, { groupByColumnOpts: action.groupByColumnOpts });
     },
     [actions.SET_GROUPBY_COLUMNS]() {
-      return Object.assign({}, state, { groupByColumns: action.groupByColumns });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            groupByColumns: action.groupByColumns,
+          },
+        },
+      };
     },
     [actions.SET_METRICS_OPTS]() {
       return Object.assign({}, state, { metricsOpts: action.metricsOpts });
     },
     [actions.SET_METRICS]() {
-      return Object.assign({}, state, { metrics: action.metrics });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            metrics: action.metrics,
+          },
+        },
+      };
     },
     [actions.SET_COLUMN_OPTS]() {
       return Object.assign({}, state, { columnOpts: action.columnOpts });
     },
     [actions.SET_NOT_GROUPBY_COLUMNS]() {
-      return Object.assign({}, state, { columns: action.columns });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            columns: action.columns,
+          },
+        },
+      };
     },
     [actions.SET_ORDERING_OPTS]() {
       return Object.assign({}, state, { orderingOpts: action.orderingOpts });
     },
     [actions.SET_ORDERINGS]() {
-      return Object.assign({}, state, { orderings: action.orderings });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            orderings: action.orderings,
+          },
+        },
+      };
     },
     [actions.SET_TIME_STAMP_FORMAT]() {
-      return Object.assign({}, state, { timeStampFormat: action.timeStampFormat });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            timeStampFormat: action.timeStampFormat,
+          },
+        },
+      };
     },
     [actions.SET_ROW_LIMIT]() {
-      return Object.assign({}, state, { rowLimit: action.rowLimit });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            rowLimit: action.rowLimit,
+          },
+        },
+      };
     },
     [actions.TOGGLE_SEARCHBOX]() {
       return Object.assign({}, state, { searchBox: action.searchBox });
     },
     [actions.SET_WHERE_CLAUSE]() {
-      return Object.assign({}, state, { whereClause: action.whereClause });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            where: action.where,
+          },
+        },
+      };
     },
     [actions.SET_HAVING_CLAUSE]() {
-      return Object.assign({}, state, { havingClause: action.havingClause });
+      return {
+        ...state,
+        viz: {
+          ...state.viz,
+          formData: {
+            ...state.viz.formData,
+            having: action.having,
+          },
+        },
+      };
     },
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });

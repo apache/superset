@@ -67,9 +67,9 @@ GroupBy.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     metricsOpts: state.metricsOpts,
-    metrics: state.metrics,
+    metrics: state.viz.formData.metrics,
     groupByColumnOpts: state.groupByColumnOpts,
-    groupByColumns: state.groupByColumns,
+    groupByColumns: state.viz.formData.groupByColumns,
   };
 }
 

@@ -106,11 +106,11 @@ function mapStateToProps(state) {
   return {
     datasourceClass: state.datasourceClass,
     timeColumnOpts: state.timeColumnOpts,
-    timeColumn: state.timeColumn,
+    timeColumn: state.viz.formData.timeColumn,
     timeGrainOpts: state.timeGrainOpts,
-    timeGrain: state.timeGrain,
-    since: state.since,
-    until: state.until,
+    timeGrain: state.viz.formData.timeGrain,
+    since: state.viz.formData.since,
+    until: state.viz.formData.until,
   };
 }
 

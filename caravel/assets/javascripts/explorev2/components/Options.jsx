@@ -62,8 +62,8 @@ Options.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    timeStampFormat: state.timeStampFormat,
-    rowLimit: state.rowLimit,
+    timeStampFormat: state.viz.formData.timeStampFormat,
+    rowLimit: state.viz.formData.rowLimit,
   };
 }
 

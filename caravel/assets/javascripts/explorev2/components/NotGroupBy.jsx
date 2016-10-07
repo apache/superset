@@ -67,9 +67,9 @@ NotGroupBy.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     columnOpts: state.columnOpts,
-    columns: state.columns,
+    columns: state.viz.formData.columns,
     orderingOpts: state.orderingOpts,
-    orderings: state.orderings,
+    orderings: state.viz.formData.orderings,
   };
 }
 

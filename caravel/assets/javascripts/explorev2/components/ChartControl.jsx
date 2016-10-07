@@ -77,7 +77,7 @@ function mapStateToProps(state) {
     datasources: state.datasources,
     datasourceId: state.datasourceId,
     datasourceType: state.datasourceType,
-    vizType: state.vizType,
+    vizType: state.viz.formData.vizType,
   };
 }
 

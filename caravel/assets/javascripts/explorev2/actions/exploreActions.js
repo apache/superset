@@ -179,12 +179,12 @@ export function toggleSearchBox(searchBox) {
   return { type: TOGGLE_SEARCHBOX, searchBox };
 }
 
-export function setWhereClause(whereClause) {
-  return { type: SET_WHERE_CLAUSE, whereClause };
+export function setWhereClause(where) {
+  return { type: SET_WHERE_CLAUSE, where };
 }
 
-export function setHavingClause(havingClause) {
-  return { type: SET_HAVING_CLAUSE, havingClause };
+export function setHavingClause(having) {
+  return { type: SET_HAVING_CLAUSE, having };
 }
 
 export function addFilter(filter) {
