@@ -5,7 +5,7 @@
 // js
 const $ = window.$ = require('jquery');
 const px = require('./../modules/caravel.js');
-const showModal = require('./../modules/utils.js').showModal;
+const utils = require('./../modules/utils.js');
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 
 import React from 'react';
@@ -81,7 +81,7 @@ function saveSlice() {
   if (action === 'saveas') {
     const sliceName = $('input[name=new_slice_name]').val();
     if (sliceName === '') {
-      showModal({
+      utils.showModal({
         title: 'Error',
         body: 'You must pick a name for the new slice',
       });
@@ -91,13 +91,13 @@ function saveSlice() {
   }
   const addToDash = $('input[name=addToDash]:checked').val();
   if (addToDash === 'existing' && $('#save_to_dashboard_id').val() === '') {
-    showModal({
+    utils.showModal({
       title: 'Error',
       body: 'You must pick an existing dashboard',
     });
     return;
   } else if (addToDash === 'new' && $('input[name=new_dashboard_name]').val() === '') {
-    showModal({
+    utils.showModal({
       title: 'Error',
       body: 'Please enter a name for the new dashboard',
     });
@@ -336,16 +336,7 @@ function initExploreView() {
   prepSaveDialog();
 }
 
-function initComponents() {
-  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
-  ReactDOM.render(
-    <QueryAndSaveBtns
-      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
-      onQuery={() => query(true)}
-    />,
-    queryAndSaveBtnsEl
-  );
-
+function renderExploreActions() {
   const exploreActionsEl = document.getElementById('js-explore-actions');
   ReactDOM.render(
     <ExploreActionButtons
@@ -356,14 +347,49 @@ function initComponents() {
   );
 }
 
+function initComponents() {
+  const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
+  ReactDOM.render(
+    <QueryAndSaveBtns
+      canAdd={queryAndSaveBtnsEl.getAttribute('data-can-add')}
+      onQuery={() => query(true)}
+    />,
+    queryAndSaveBtnsEl
+  );
+  renderExploreActions();
+}
+
+let exploreController = {
+  type: 'slice',
+  done: (sliceObj) => {
+    slice = sliceObj;
+    renderExploreActions();
+    const cachedSelector = $('#is_cached');
+    if (slice.data !== undefined && slice.data.is_cached) {
+      cachedSelector
+      .attr(
+        'title',
+        `Served from data cached at ${slice.data.cached_dttm}. Click [Query] to force refresh`)
+      .show()
+      .tooltip('fixTitle');
+    } else {
+      cachedSelector.hide();
+    }
+  },
+  error: (sliceObj) => {
+    slice = sliceObj;
+    renderExploreActions();
+  },
+};
+exploreController = Object.assign({}, utils.controllerInterface, exploreController);
+
+
 $(document).ready(function () {
   const data = $('.slice').data('slice');
 
   initExploreView();
 
-  slice = px.Slice(data);
-
-  $('.slice').data('slice', slice);
+  slice = px.Slice(data, exploreController);
 
   // call vis render method, which issues ajax
   // calls render on the slice for the first time
