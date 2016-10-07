@@ -220,11 +220,11 @@ and <code class="docutils literal"><span class="pre">setuptools</span></code> li
 <span class="c1"># Initialize the database</span>
 <span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
 
-<span class="c1"># Create default roles and permissions</span>
-<span class="n">caravel</span> <span class="n">init</span>
-
 <span class="c1"># Load some data to play with</span>
 <span class="n">caravel</span> <span class="n">load_examples</span>
+
+<span class="c1"># Create default roles and permissions</span>
+<span class="n">caravel</span> <span class="n">init</span>
 
 <span class="c1"># Start the web server on port 8088</span>
 <span class="n">caravel</span> <span class="n">runserver</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span>
@@ -264,7 +264,7 @@ of the parameters you can copy / paste in that configuration module:</p>
 <span class="c1"># Caravel specific config</span>
 <span class="c1">#---------------------------------------------------------</span>
 <span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
-<span class="n">CARAVEL_WORKERS</span> <span class="o">=</span> <span class="mi">16</span>
+<span class="n">CARAVEL_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
 
 <span class="n">CARAVEL_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
 <span class="c1">#---------------------------------------------------------</span>
