@@ -94,6 +94,12 @@ export const exploreReducer = function (state, action) {
     [actions.SET_DATASOURCE_TYPE]() {
       return Object.assign({}, state, { datasourceType: action.datasourceType });
     },
+    [actions.SET_PIVOT_COLUMNS]() {
+      return Object.assign({}, state, { pivotColumns: action.pivotColumns });
+    },
+    [actions.SET_AGG_METRIC]() {
+      return Object.assign({}, state, { aggMetric: action.aggMetric });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();

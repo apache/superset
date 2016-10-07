@@ -24,6 +24,8 @@ export const initialState = {
   havingClause: '',
   filters: [],
   filterColumnOpts: [],
+  pivotColumns: [],
+  aggMetric: null,
 };
 
 // TODO: add datasource_type here after druid support is added
@@ -43,6 +45,8 @@ export const defaultFormData = {
   whereClause: '',
   havingClause: '',
   filters: [],
+  pivotColumns: [],
+  aggMetric: null,
 };
 
 export const defaultOpts = {
