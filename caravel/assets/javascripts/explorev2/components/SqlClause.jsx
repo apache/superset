@@ -8,11 +8,11 @@ const propTypes = {
 };
 
 class SqlClause extends React.Component {
-  changeWhere(whereClause) {
-    this.props.actions.setWhereClause(whereClause);
+  changeWhere(event) {
+    this.props.actions.setWhereClause(event.target.value);
   }
-  changeHaving(havingClause) {
-    this.props.actions.setHavingClause(havingClause);
+  changeHaving(event) {
+    this.props.actions.setHavingClause(event.target.value);
   }
   render() {
     return (
