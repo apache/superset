@@ -32,9 +32,9 @@ class ChartControl extends React.Component {
     this.props.actions.resetFormData();
     this.props.actions.setFormOpts(val, this.props.datasourceType);
   }
-  changeViz(vizOpt) {
-    const val = (vizOpt) ? vizOpt.value : null;
-    this.props.actions.setVizType(val);
+  changeViz(opt) {
+    const val = opt ? opt.value : null;
+    this.props.actions.setFormData('vizType', val);
   }
   render() {
     return (

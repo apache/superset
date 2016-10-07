@@ -8,11 +8,8 @@ const propTypes = {
 };
 
 class SqlClause extends React.Component {
-  changeWhere(where) {
-    this.props.actions.setWhereClause(where);
-  }
-  changeHaving(having) {
-    this.props.actions.setHavingClause(having);
+  onChange(key, event) {
+    this.props.actions.setFormData(key, event.target.value);
   }
   render() {
     return (
@@ -23,7 +20,7 @@ class SqlClause extends React.Component {
             <h5 className="section-heading">Where</h5>
             <input
               type="text"
-              onChange={this.changeWhere.bind(this)}
+              onChange={this.onChange.bind(this, 'where')}
               className="form-control input-sm"
               placeholder="Where Clause"
             />
@@ -32,7 +29,7 @@ class SqlClause extends React.Component {
             <h5 className="section-heading">Having</h5>
             <input
               type="text"
-              onChange={this.changeHaving.bind(this)}
+              onChange={this.onChange.bind(this, 'having')}
               className="form-control input-sm"
               placeholder="Having Clause"
             />
