@@ -140,12 +140,12 @@ class BaseViz(object):
             for item in v:
                 od.add(key, item)
 
-        base_endpoint = '/caravel/explore/'
+        base_endpoint = '/caravel/explore'
         if json_endpoint:
-            base_endpoint = '/caravel/explore_json/'
+            base_endpoint = '/caravel/explore_json'
 
         href = Href(
-            base_endpoint + '{self.datasource.type}/'
+            '{base_endpoint}/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         if for_cache_key and 'force' in od:
             del od['force']

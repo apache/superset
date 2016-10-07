@@ -180,6 +180,7 @@ function initExploreView() {
       `<span>${viz.text}</span>`
     );
   }
+
   $('.select2').select2({
     dropdownAutoWidth: true,
   });
