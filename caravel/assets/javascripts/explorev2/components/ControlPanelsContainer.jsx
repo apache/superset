@@ -29,7 +29,7 @@ ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    vizType: state.vizType,
+    vizType: state.viz.formData.vizType,
   };
 }
 
