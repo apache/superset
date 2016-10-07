@@ -32,7 +32,7 @@ manager.add_command('db', MigrateCommand)
     '-p', '--port', default=config.get("CARAVEL_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 @manager.option(
-    '-w', '--workers', default=config.get("CARAVEL_WORKERS", 16),
+    '-w', '--workers', default=config.get("CARAVEL_WORKERS", 2),
     help="Number of gunicorn web server workers to fire up")
 @manager.option(
     '-t', '--timeout', default=config.get("CARAVEL_WEBSERVER_TIMEOUT"),
