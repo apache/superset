@@ -65,6 +65,7 @@ function query(forceUpdate, pushState) {
   $('.query-and-save button').attr('disabled', 'disabled');
   if (force) {  // Don't hide the alert message when the page is just loaded
     $('div.alert').remove();
+    updateUI();
   }
   $('#is_cached').hide();
   prepForm();
@@ -354,6 +355,10 @@ function initComponents() {
     />,
     exploreActionsEl
   );
+}
+
+function updateUI() {
+  window.location.reload();
 }
 
 $(document).ready(function () {
