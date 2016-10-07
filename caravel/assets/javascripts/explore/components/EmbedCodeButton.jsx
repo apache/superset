@@ -12,7 +12,6 @@ export default class EmbedCodeButton extends React.Component {
     this.state = {
       height: '400',
       width: '600',
-      srcLink: window.location.origin + props.slice.data.standalone_endpoint,
     };
     this.handleInputChange = this.handleInputChange.bind(this);
   }
@@ -26,11 +25,15 @@ export default class EmbedCodeButton extends React.Component {
   }
 
   generateEmbedHTML() {
-    const { width, height, srcLink } = this.state;
+    const srcLink = window.location.origin + this.props.slice.data.standalone_endpoint;
     /* eslint max-len: 0 */
-    const embedHTML =
-      `<iframe src="${srcLink}" width="${width}" height="${height}" seamless frameBorder="0" scrolling="no"></iframe>`;
-    return embedHTML;
+    return `
+      <iframe
+        src="${srcLink}"
+        width="${this.state.width}"
+        height="${this.state.height}"
+        seamless frameBorder="0" scrolling="no">
+      </iframe>`;
   }
 
   renderPopover() {

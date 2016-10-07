@@ -1,5 +1,5 @@
 import React from 'react';
-import Select from 'react-select';
+import SelectArray from './SelectArray';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
@@ -19,47 +19,33 @@ const defaultProps = {
   orderings: [],
 };
 
-class NotGroupBy extends React.Component {
-  changeColumns(columns) {
-    this.props.actions.setNotGroupByColumns(columns);
-  }
-  changeOrderings(orderings) {
-    this.props.actions.setOrderings(orderings);
-  }
-  render() {
-    return (
-      <div className="panel space-1">
-        <div className="panel-header">Not GroupBy</div>
-        <div className="panel-body">
-          <div className="row">
-            <h5 className="section-heading">Columns</h5>
-            <Select
-              multi
-              name="select-column"
-              placeholder="Select columns"
-              options={this.props.columnOpts}
-              value={this.props.columns}
-              autosize={false}
-              onChange={this.changeColumns.bind(this)}
-            />
-          </div>
-          <div className="row">
-            <h5 className="section-heading">Orderings</h5>
-            <Select
-              multi
-              name="select-orderings"
-              placeholder="Select orderings"
-              options={this.props.orderingOpts}
-              value={this.props.orderings}
-              autosize={false}
-              onChange={this.changeOrderings.bind(this)}
-            />
-          </div>
-        </div>
+const NotGroupBy = (props) => {
+  const selects = [
+    {
+      key: 'columns',
+      title: 'Columns',
+      options: props.columnOpts,
+      value: props.columns,
+      multi: true,
+      width: '12',
+    },
+    {
+      key: 'orderings',
+      title: 'Orderings',
+      options: props.orderingOpts,
+      value: props.orderings,
+      multi: true,
+      width: '12',
+    }];
+  return (
+    <div className="panel">
+      <div className="panel-header">Not GroupBy</div>
+      <div className="panel-body">
+        <SelectArray selectArray={selects} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 NotGroupBy.propTypes = propTypes;
 NotGroupBy.defaultProps = defaultProps;
@@ -67,9 +53,9 @@ NotGroupBy.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     columnOpts: state.columnOpts,
-    columns: state.columns,
+    columns: state.viz.formData.columns,
     orderingOpts: state.orderingOpts,
-    orderings: state.orderings,
+    orderings: state.viz.formData.orderings,
   };
 }
 

@@ -1,48 +1,44 @@
+// TODO: add datasource_type here after druid support is added
+export const defaultFormData = {
+  sliceId: null,
+  vizType: null,
+  timeColumn: null,
+  timeGrain: null,
+  groupByColumns: [],
+  metrics: [],
+  since: null,
+  until: null,
+  having: null,
+  where: null,
+  columns: [],
+  orderings: [],
+  timeStampFormat: 'smart_date',
+  rowLimit: 50000,
+  searchBox: false,
+  whereClause: '',
+  havingClause: '',
+  filters: [],
+};
+
 export const initialState = {
   datasources: null,
   datasourceId: null,
   datasourceType: null,
-  vizType: null,
   timeColumnOpts: [],
-  timeColumn: null,
   timeGrainOpts: [],
   timeGrain: null,
-  since: null,
-  until: null,
   groupByColumnOpts: [],
-  groupByColumns: [],
   metricsOpts: [],
-  metrics: [],
   columnOpts: [],
-  columns: [],
   orderingOpts: [],
-  orderings: [],
-  timeStampFormat: 'smart_date',
-  rowLimit: 50000,
   searchBox: false,
   whereClause: '',
   havingClause: '',
   filters: [],
   filterColumnOpts: [],
-};
-
-// TODO: add datasource_type here after druid support is added
-export const defaultFormData = {
-  vizType: null,
-  timeColumn: null,
-  timeGrain: null,
-  since: null,
-  until: null,
-  groupByColumns: [],
-  metrics: [],
-  columns: [],
-  orderings: [],
-  timeStampFormat: 'smart_date',
-  rowLimit: 50000,
-  searchBox: false,
-  whereClause: '',
-  havingClause: '',
-  filters: [],
+  viz: {
+    formData: defaultFormData,
+  },
 };
 
 export const defaultOpts = {
