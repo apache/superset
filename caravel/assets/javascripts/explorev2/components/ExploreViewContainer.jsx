@@ -31,16 +31,16 @@ export default class ExploreViewContainer extends React.Component {
           overflow: 'hidden',
         }}
       >
-        <div className="row table-body">
-          <div className="table-cell col-sm-4">
+        <div className="row">
+          <div className="col-sm-4">
             <QueryAndSaveButtons
               canAdd="True"
               onQuery={() => {}}
             />
-            <br /><br />
+            <br />
             <ControlPanelsContainer />
           </div>
-          <div className="table-cell col-sm-8">
+          <div className="col-sm-8">
             <ChartContainer
               viz={this.props.data.viz}
               height={this.state.height}

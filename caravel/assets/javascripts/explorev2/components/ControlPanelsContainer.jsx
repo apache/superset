@@ -14,8 +14,12 @@ const defaultProps = {
 function ControlPanelsContainer(props) {
   return (
     <Panel>
-      {DefaultControls}
-      {VIZ_CONTROL_MAPPING[props.vizType]}
+      <div className="scrollbar-container">
+        <div className="scrollbar-content">
+          {DefaultControls}
+          {VIZ_CONTROL_MAPPING[props.vizType]}
+        </div>
+      </div>
     </Panel>
   );
 }
