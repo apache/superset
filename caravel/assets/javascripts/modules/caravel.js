@@ -25,40 +25,41 @@ const px = function () {
       }
     }
     $('.favstar')
-      .attr('title', 'Click to favorite/unfavorite')
-      .css('cursor', 'pointer')
-      .each(show)
-      .each(function () {
-        let url = baseUrl + $(this).attr('class_name');
-        const star = this;
-        url += '/' + $(this).attr('obj_id') + '/';
-        $.getJSON(url + 'count/', function (data) {
-          if (data.count > 0) {
-            $(star).addClass('selected').each(show);
-          }
-        });
-      })
-      .click(function () {
-        $(this).toggleClass('selected');
-        let url = baseUrl + $(this).attr('class_name');
-        url += '/' + $(this).attr('obj_id') + '/';
-        if ($(this).hasClass('selected')) {
-          url += 'select/';
-        } else {
-          url += 'unselect/';
+    .attr('title', 'Click to favorite/unfavorite')
+    .css('cursor', 'pointer')
+    .each(show)
+    .each(function () {
+      let url = baseUrl + $(this).attr('class_name');
+      const star = this;
+      url += '/' + $(this).attr('obj_id') + '/';
+      $.getJSON(url + 'count/', function (data) {
+        if (data.count > 0) {
+          $(star).addClass('selected').each(show);
         }
-        $.get(url);
-        $(this).each(show);
-      })
+      });
+    })
+    .click(function () {
+      $(this).toggleClass('selected');
+      let url = baseUrl + $(this).attr('class_name');
+      url += '/' + $(this).attr('obj_id') + '/';
+      if ($(this).hasClass('selected')) {
+        url += 'select/';
+      } else {
+        url += 'unselect/';
+      }
+      $.get(url);
+      $(this).each(show);
+    })
     .tooltip();
   }
-  const Slice = function (data, dashboard) {
+  const Slice = function (data, controller) {
     let timer;
     const token = $('#' + data.token);
     const containerId = data.token + '_con';
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
+    const origJsonEndpoint = data.json_endpoint;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -76,16 +77,13 @@ const px = function () {
       container,
       containerId,
       selector,
-      querystring(params) {
-        const newParams = params || {};
+      querystring() {
         const parser = document.createElement('a');
         parser.href = data.json_endpoint;
-        if (dashboard !== undefined) {
-          let flts = '';
-          if (newParams.extraFilters !== false) {
-            flts = dashboard.effectiveExtraFilters(sliceId);
-            flts = encodeURIComponent(JSON.stringify(flts));
-          }
+        if (controller.type === 'dashboard') {
+          parser.href = origJsonEndpoint;
+          let flts = controller.effectiveExtraFilters(sliceId);
+          flts = encodeURIComponent(JSON.stringify(flts));
           qrystr = parser.search + '&extra_filters=' + flts;
         } else if ($('#query').length === 0) {
           qrystr = parser.search;
@@ -104,11 +102,10 @@ const px = function () {
         };
         return Mustache.render(s, context);
       },
-      jsonEndpoint(params) {
-        const newParams = params || {};
+      jsonEndpoint() {
         const parser = document.createElement('a');
         parser.href = data.json_endpoint;
-        let endpoint = parser.pathname + this.querystring({ extraFilters: newParams.extraFilters });
+        let endpoint = parser.pathname + this.querystring();
         endpoint += '&json=true';
         endpoint += '&force=' + this.force;
         return endpoint;
@@ -116,43 +113,16 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        const format = this.data.column_formats[col];
+        const format = data.column_formats[col];
         return utils.d3format(format, number);
       },
       /* eslint no-shadow: 0 */
-      done(data) {
+      done(payload) {
+        Object.assign(data, payload);
+
         clearInterval(timer);
         token.find('img.loading').hide();
         container.show();
-        let cachedSelector = null;
-        if (dashboard === undefined) {
-          cachedSelector = $('#is_cached');
-          if (data !== undefined && data.is_cached) {
-            cachedSelector
-              .attr(
-                'title',
-                `Served from data cached at ${data.cached_dttm}. Click [Query] to force-refresh`)
-              .show()
-              .tooltip('fixTitle');
-          } else {
-            cachedSelector.hide();
-          }
-        } else {
-          const refresh = this.getWidgetHeader().find('.refresh');
-          if (data !== undefined && data.is_cached) {
-            refresh
-              .addClass('danger')
-              .attr('title',
-                    'Served from data cached at ' + data.cached_dttm +
-                    '. Click to force-refresh')
-              .tooltip('fixTitle');
-          } else {
-            refresh
-              .removeClass('danger')
-              .attr('title', 'Click to force-refresh')
-              .tooltip('fixTitle');
-          }
-        }
 
         if (data !== undefined) {
           slice.viewSqlQuery = data.query;
@@ -162,6 +132,7 @@ const px = function () {
         $('#timer').addClass('label-success');
         $('.query-and-save button').removeAttr('disabled');
         always(data);
+        controller.done(this);
       },
       getErrorMsg(xhr) {
         if (xhr.statusText === 'timeout') {
@@ -193,6 +164,7 @@ const px = function () {
         $('#timer').addClass('btn-danger');
         $('.query-and-save button').removeAttr('disabled');
         always(data);
+        controller.error(this);
       },
       width() {
         return token.width();
@@ -238,30 +210,19 @@ const px = function () {
         this.viz.resize();
       },
       addFilter(col, vals) {
-        if (dashboard !== undefined) {
-          dashboard.addFilter(sliceId, col, vals);
-        }
+        controller.addFilter(sliceId, col, vals);
       },
       setFilter(col, vals) {
-        if (dashboard !== undefined) {
-          dashboard.setFilter(sliceId, col, vals);
-        }
+        controller.setFilter(sliceId, col, vals);
       },
       getFilters() {
-        if (dashboard !== undefined) {
-          return dashboard.filters[sliceId];
-        }
-        return false;
+        return controller.filters[sliceId];
       },
       clearFilter() {
-        if (dashboard !== undefined) {
-          dashboard.clearFilter(sliceId);
-        }
+        controller.clearFilter(sliceId);
       },
       removeFilter(col, vals) {
-        if (dashboard !== undefined) {
-          dashboard.removeFilter(sliceId, col, vals);
-        }
+        controller.removeFilter(sliceId, col, vals);
       },
     };
     slice.viz = vizMap[data.form_data.viz_type](slice);

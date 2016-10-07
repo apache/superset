@@ -13,8 +13,6 @@ export default class URLShortLinkButton extends React.Component {
     this.state = {
       shortUrl: '',
     };
-
-    this.getShortUrl();
   }
 
   getShortUrl() {
@@ -22,7 +20,7 @@ export default class URLShortLinkButton extends React.Component {
       type: 'POST',
       url: '/r/shortner/',
       data: {
-        data: '/' + window.location.pathname + this.props.slice.querystring(),
+        data: '/' + window.location.pathname + window.location.search,
       },
       success: (data) => {
         this.setState({
@@ -51,16 +49,15 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   render() {
-    const shortUrl = this.state.shortUrl;
-    const isDisabled = shortUrl === '';
     return (
       <OverlayTrigger
         trigger="click"
         rootClose
         placement="left"
+        onEnter={this.getShortUrl.bind(this)}
         overlay={this.renderPopover()}
       >
-        <span className="btn btn-default btn-sm" disabled={isDisabled}>
+        <span className="btn btn-default btn-sm">
           <i className="fa fa-link"></i>&nbsp;
         </span>
       </OverlayTrigger>
