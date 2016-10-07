@@ -391,8 +391,6 @@ $(document).ready(function () {
 
   slice = px.Slice(data, exploreController);
 
-  $('.slice').data('slice', slice);
-
   // call vis render method, which issues ajax
   // calls render on the slice for the first time
   query(false, false);
