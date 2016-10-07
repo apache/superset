@@ -275,6 +275,13 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         name = escape(self.slice_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
+    @property
+    def params_dict(self):
+        if self.params:
+            return json.loads(self.params)
+        else:
+            return {}
+
     def get_viz(self, url_params_multidict=None):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
@@ -325,11 +332,11 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         slc.alter_params(remote_id=slc.id, import_time=import_time)
 
         # find if the slice was already imported
-        slc_to_override = (
-            session.query(Slice)
-            .filter(Slice.params.ilike('%"remote_id": {},%'.format(slc.id)))
-            .first()
-        )
+        slc_to_override = None
+        for s in session.query(Slice).all():
+            if ('remote_id' in s.params_dict and
+                    s.params_dict['remote_id'] == slc.id):
+                slc_to_override = s
 
         slc.id = None
         params = json.loads(slc.params)
@@ -468,12 +475,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             slice_ids.add(Slice.import_obj(slc, import_time=import_time))
 
         # override the dashboard
-        existing_dashboard = (
-            session.query(Dashboard)
-            .filter(Dashboard.json_metadata.ilike(
-                '%"remote_id": {},%'.format(dashboard_to_import.id)))
-            .first()
-        )
+        existing_dashboard = None
+        for dash in session.query(Dashboard).all():
+            if ('remote_id' in dash.metadata_dejson and
+                    dash.metadata_dejson['remote_id'] ==
+                    dashboard_to_import.id):
+                existing_dashboard = dash
 
         dashboard_to_import.id = None
         dashboard_to_import.alter_json_metadata(import_time=import_time)
