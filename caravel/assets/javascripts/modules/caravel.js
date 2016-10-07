@@ -76,6 +76,7 @@ const px = function () {
       container,
       containerId,
       selector,
+      changedDataCb: undefined,
       querystring(params) {
         const newParams = params || {};
         const parser = document.createElement('a');
@@ -156,12 +157,18 @@ const px = function () {
 
         if (data !== undefined) {
           slice.viewSqlQuery = data.query;
+          slice.data.json_endpoint = data.json_endpoint;
+          slice.data.csv_endpoint = data.csv_endpoint;
+          slice.data.standalone_endpoint = data.standalone_endpoint;
+          slice.data.form_data = data.form_data;
+          if (slice.changedDataCb !== undefined) {
+            slice.changedDataCb();
+          }
         }
-
         $('#timer').removeClass('label-warning label-danger');
         $('#timer').addClass('label-success');
         $('.query-and-save button').removeAttr('disabled');
-        always(data);
+        always();
       },
       getErrorMsg(xhr) {
         if (xhr.statusText === 'timeout') {

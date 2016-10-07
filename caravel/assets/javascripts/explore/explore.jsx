@@ -68,7 +68,6 @@ function query(forceUpdate, pushState) {
   }
   $('#is_cached').hide();
   prepForm();
-
   if (pushState !== false) {
     // update the url after prepForm() fix the field ids
     history.pushState({}, document.title, slice.querystring());
@@ -336,7 +335,7 @@ function initExploreView() {
   prepSaveDialog();
 }
 
-function initComponents() {
+function renderComponents() {
   const queryAndSaveBtnsEl = document.getElementById('js-query-and-save-btns');
   ReactDOM.render(
     <QueryAndSaveBtns
@@ -362,6 +361,7 @@ $(document).ready(function () {
   initExploreView();
 
   slice = px.Slice(data);
+  slice.changedDataCb = renderComponents;
 
   $('.slice').data('slice', slice);
 
@@ -371,5 +371,5 @@ $(document).ready(function () {
 
   slice.bindResizeToWindowResize();
 
-  initComponents();
+  renderComponents();
 });
