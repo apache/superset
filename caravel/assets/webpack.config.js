@@ -11,6 +11,9 @@ const BUILD_DIR = path.resolve(__dirname, './dist');
 const VERSION_STRING = JSON.parse(fs.readFileSync('package.json')).version;
 
 const config = {
+  node: {
+    fs: 'empty',
+  },
   entry: {
     'css-theme': APP_DIR + '/javascripts/css-theme.js',
     dashboard: APP_DIR + '/javascripts/dashboard/Dashboard.jsx',
