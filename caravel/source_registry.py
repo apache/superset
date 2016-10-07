@@ -1,7 +1,6 @@
 from sqlalchemy.orm import subqueryload
 
 
-
 class SourceRegistry(object):
     """ Central Registry for all available datasource engines"""
 

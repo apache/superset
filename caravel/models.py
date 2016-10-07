@@ -311,12 +311,9 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         )
 
     def alter_params(self, **kwargs):
-        params_dict = {}
-        if self.params:
-            params_dict = json.loads(self.params)
-        for key in kwargs:
-            params_dict[key] = kwargs[key]
-        self.params = json.dumps(params_dict)
+        d = self.params_dict
+        d.update(kwargs)
+        self.params = json.dumps(d)
 
     @classmethod
     def import_obj(cls, slc, import_time=None):
@@ -441,13 +438,16 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         }
         return json.dumps(d)
 
+    @property
+    def dict_metadata(self):
+        if not self.json_metadata:
+            return {}
+        return json.loads(self.json_metadata)
+
     def alter_json_metadata(self, **kwargs):
-        json_metadata_dict = {}
-        if self.json_metadata:
-            json_metadata_dict = json.loads(self.json_metadata)
-        for key in kwargs:
-            json_metadata_dict[key] = kwargs[key]
-        self.json_metadata = json.dumps(json_metadata_dict)
+        d = self.dict_metadata
+        d.update(kwargs)
+        self.json_metadata = json.dumps(d)
 
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
@@ -1244,12 +1244,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             self.main_dttm_col = any_date_col
 
     def alter_json_metadata(self, **kwargs):
-        json_metadata_dict = {}
-        if self.json_metadata:
-            json_metadata_dict = json.loads(self.json_metadata)
-        for key in kwargs:
-            json_metadata_dict[key] = kwargs[key]
-        self.json_metadata = json.dumps(json_metadata_dict)
+        d = self.dict_metadata
+        d.update(kwargs)
+        self.json_metadata = json.dumps(d)
 
     @property
     def dict_metadata(self):
