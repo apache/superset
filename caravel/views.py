@@ -26,7 +26,6 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
@@ -244,7 +243,8 @@ class FilterDruidDatasource(CaravelFilter):
         druid_datasources = []
         for perm in perms:
             match = re.search(r'\(id:(\d+)\)', perm)
-            druid_datasources.append(match.group(1))
+            if match:
+                druid_datasources.append(match.group(1))
         qry = query.filter(self.model.id.in_(druid_datasources))
         return qry
 
@@ -672,6 +672,7 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'broker_port': _("Broker Port"),
         'broker_endpoint': _("Broker Endpoint"),
     }
+
     def pre_add(self, db):
         utils.merge_perm(sm, 'database_access', db.perm)
 
@@ -699,7 +700,8 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
     list_columns = [
         'slice_link', 'viz_type', 'datasource_link', 'creator', 'modified']
     edit_columns = [
-        'slice_name', 'description', 'viz_type', 'owners', 'dashboards', 'params', 'cache_timeout']
+        'slice_name', 'description', 'viz_type', 'owners', 'dashboards',
+        'params', 'cache_timeout']
     base_order = ('changed_on', 'desc')
     description_columns = {
         'description': Markup(
@@ -1099,61 +1101,80 @@ class Caravel(BaseCaravelView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
+    def get_viz(
+            self,
+            slice_id=None,
+            args=None,
+            datasource_type=None,
+            datasource_id=None):
+        if slice_id:
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+            return slc.get_viz()
+        else:
+            viz_type = args.get('viz_type', 'table')
+            datasource = SourceRegistry.get_datasource(
+                datasource_type, datasource_id, db.session)
+            viz_obj = viz.viz_types[viz_type](datasource, request.args)
+            return viz_obj
+
     @has_access
-    @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
-    @expose("/explore/<datasource_type>/<datasource_id>/")
-    @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
+    @expose("/slice/<slice_id>/")
+    def slice(self, slice_id):
+        viz_obj = self.get_viz(slice_id)
+        return redirect(viz_obj.get_url(**request.args))
+
+    @has_access_api
+    @expose("/explore_json/<datasource_type>/<datasource_id>/")
+    def explore_json(self, datasource_type, datasource_id):
+        viz_obj = self.get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            args=request.args)
+        if not self.datasource_access(viz_obj.datasource):
+            return Response(
+                json.dumps(
+                    {'error': _("You don't have access to this datasource")}),
+                status=404,
+                mimetype="application/json")
+        return Response(
+            viz_obj.get_json(),
+            status=200,
+            mimetype="application/json")
+
     @log_this
-    def explore(self, datasource_type, datasource_id, slice_id=None):
+    @has_access
+    @expose("/explore/<datasource_type>/<datasource_id>/")
+    def explore(self, datasource_type, datasource_id):
+        viz_type = request.args.get("viz_type")
+        slice_id = request.args.get('slice_id')
+        slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
-        datasource = [ds for ds in datasources if int(datasource_id) == ds.id]
-        datasource = datasource[0] if datasource else None
 
-        if not datasource:
+        viz_obj = self.get_viz(
+            datasource_type=datasource_type,
+            datasource_id=datasource_id,
+            args=request.args)
+
+        if not viz_obj.datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
             return redirect(error_redirect)
 
-        if not self.datasource_access(datasource):
+        if not self.datasource_access(viz_obj.datasource):
             flash(
-                __(get_datasource_access_error_msg(datasource.name)), "danger")
+                __(get_datasource_access_error_msg(viz_obj.datasource.name)),
+                "danger")
             return redirect(
                 'caravel/request_access/?'
                 'datasource_type={datasource_type}&'
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
 
-        request_args_multi_dict = request.args  # MultiDict
-
-        slice_id = slice_id or request_args_multi_dict.get("slice_id")
-        slc = None
-        # build viz_obj and get it's params
-        if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            try:
-                viz_obj = slc.get_viz(
-                    url_params_multidict=request_args_multi_dict)
-            except Exception as e:
-                logging.exception(e)
-                flash(utils.error_msg_from_exception(e), "danger")
-                return redirect(error_redirect)
-        else:
-            viz_type = request_args_multi_dict.get("viz_type")
-            if not viz_type and datasource.default_endpoint:
-                return redirect(datasource.default_endpoint)
-            # default to table if no default endpoint and no viz_type
-            viz_type = viz_type or "table"
-            # validate viz params
-            try:
-                viz_obj = viz.viz_types[viz_type](
-                    datasource, request_args_multi_dict)
-            except Exception as e:
-                logging.exception(e)
-                flash(utils.error_msg_from_exception(e), "danger")
-                return redirect(error_redirect)
-        slice_params_multi_dict = ImmutableMultiDict(viz_obj.orig_form_data)
+        if not viz_type and viz_obj.datasource.default_endpoint:
+            return redirect(viz_obj.datasource.default_endpoint)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
@@ -1161,45 +1182,29 @@ class Caravel(BaseCaravelView):
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         # handle save or overwrite
-        action = slice_params_multi_dict.get('action')
+        action = request.args.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                slice_params_multi_dict, slc, slice_add_perm, slice_edit_perm)
+                request.args, slc, slice_add_perm, slice_edit_perm)
 
         # handle different endpoints
-        if slice_params_multi_dict.get("json") == "true":
-            if config.get("DEBUG"):
-                # Allows for nice debugger stack traces in debug mode
-                return Response(
-                    viz_obj.get_json(),
-                    status=200,
-                    mimetype="application/json")
-            try:
-                return Response(
-                    viz_obj.get_json(),
-                    status=200,
-                    mimetype="application/json")
-            except Exception as e:
-                logging.exception(e)
-                return json_error_response(utils.error_msg_from_exception(e))
-
-        elif slice_params_multi_dict.get("csv") == "true":
+        if request.args.get("csv") == "true":
             payload = viz_obj.get_csv()
             return Response(
                 payload,
                 status=200,
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
+        elif request.args.get("standalone") == "true":
+            return self.render_template("caravel/standalone.html", viz=viz_obj)
         else:
-            if slice_params_multi_dict.get("standalone") == "true":
-                template = "caravel/standalone.html"
-            else:
-                template = "caravel/explore.html"
             return self.render_template(
-                template, viz=viz_obj, slice=slc, datasources=datasources,
+                "caravel/explore.html",
+                viz=viz_obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
                 can_download=slice_download_perm,
-                userid=g.user.get_id() if g.user else '')
+                userid=g.user.get_id() if g.user else ''
+            )
 
     @has_access
     @expose("/exploreV2/<datasource_type>/<datasource_id>/<slice_id>/")
@@ -1705,7 +1710,11 @@ class Caravel(BaseCaravelView):
         data = json.loads(request.args.get('data'))
         table_name = data.get('datasourceName')
         viz_type = data.get('chartType')
-        table = db.session.query(models.SqlaTable).filter_by(table_name=table_name).first()
+        table = (
+            db.session.query(models.SqlaTable)
+            .filter_by(table_name=table_name)
+            .first()
+        )
         if not table:
             table = models.SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')

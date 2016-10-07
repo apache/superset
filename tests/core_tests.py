@@ -44,6 +44,33 @@ class CoreTests(CaravelTestCase):
     def tearDown(self):
         pass
 
+    def test_welcome(self):
+        self.login()
+        resp = self.client.get('/caravel/welcome')
+        assert 'Welcome' in resp.data.decode('utf-8')
+
+    def test_slice_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+        resp = self.get_resp('/caravel/slice/{}/'.format(slc.id))
+        assert 'Time Column' in resp
+        assert 'List Roles' in resp
+
+        # Testing overrides
+        resp = self.get_resp(
+            '/caravel/slice/{}/?standalone=true'.format(slc.id))
+        assert 'List Roles' not in resp
+
+    def test_endpoints_for_a_slice(self):
+        self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        resp = self.get_resp(slc.viz.csv_endpoint)
+        assert 'Jennifer,' in resp
+
+        resp = self.get_resp(slc.viz.json_endpoint)
+        assert '"Jennifer"' in resp
+
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
             role = sm.find_role(role_name)
@@ -73,13 +100,7 @@ class CoreTests(CaravelTestCase):
 
     def test_save_slice(self):
         self.login(username='admin')
-
-        slc = (
-            db.session.query(models.Slice.id)
-            .filter_by(slice_name="Energy Sankey")
-            .first())
-        slice_id = slc.id
-
+        slice_id = self.get_slice("Energy Sankey", db.session).id
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
         url = (
