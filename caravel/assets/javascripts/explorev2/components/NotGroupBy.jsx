@@ -20,25 +20,25 @@ const defaultProps = {
 };
 
 const NotGroupBy = (props) => {
-  const selects = [];
-  selects.push({
-    key: 'columns',
-    title: 'Columns',
-    options: props.columnOpts,
-    value: props.columns,
-    multi: true,
-    width: '12',
-  });
-  selects.push({
-    key: 'orderings',
-    title: 'Orderings',
-    options: props.orderingOpts,
-    value: props.orderings,
-    multi: true,
-    width: '12',
-  });
+  const selects = [
+    {
+      key: 'columns',
+      title: 'Columns',
+      options: props.columnOpts,
+      value: props.columns,
+      multi: true,
+      width: '12',
+    },
+    {
+      key: 'orderings',
+      title: 'Orderings',
+      options: props.orderingOpts,
+      value: props.orderings,
+      multi: true,
+      width: '12',
+    }];
   return (
-    <div className="panel space-1">
+    <div className="panel">
       <div className="panel-header">Not GroupBy</div>
       <div className="panel-body">
         <SelectArray selectArray={selects} />

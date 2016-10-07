@@ -26,37 +26,36 @@ const defaultProps = {
 };
 
 const TimeFilter = (props) => {
-  const timeColumnTitle =
-    (props.datasourceType === 'table') ? 'Time Column' : 'Time Granularity';
-  const timeGrainTitle =
-    (props.datasourceType === 'table') ? 'Time Grain' : 'Origin';
-  const selects = [];
-  selects.push({
-    key: 'timeColumn',
-    title: timeColumnTitle,
-    options: props.timeColumnOpts,
-    value: props.timeColumn,
-  });
-  selects.push({
-    key: 'timeGrain',
-    title: timeGrainTitle,
-    options: props.timeGrainOpts,
-    value: props.timeGrain,
-  });
-  selects.push({
-    key: 'since',
-    title: 'Since',
-    options: sinceOptions.map((s) => ({ value: s, label: s })),
-    value: props.since,
-  });
-  selects.push({
-    key: 'until',
-    title: 'Until',
-    options: untilOptions.map((u) => ({ value: u, label: u })),
-    value: props.until,
-  });
+  const isDatasourceTypeTable = props.datasourceType === 'table';
+  const timeColumnTitle = isDatasourceTypeTable ? 'Time Column' : 'Time Granularity';
+  const timeGrainTitle = isDatasourceTypeTable ? 'Time Grain' : 'Origin';
+  const selects = [
+    {
+      key: 'timeColumn',
+      title: timeColumnTitle,
+      options: props.timeColumnOpts,
+      value: props.timeColumn,
+    },
+    {
+      key: 'timeGrain',
+      title: timeGrainTitle,
+      options: props.timeGrainOpts,
+      value: props.timeGrain,
+    },
+    {
+      key: 'since',
+      title: 'Since',
+      options: sinceOptions.map((s) => ({ value: s, label: s })),
+      value: props.since,
+    },
+    {
+      key: 'until',
+      title: 'Until',
+      options: untilOptions.map((u) => ({ value: u, label: u })),
+      value: props.until,
+    }];
   return (
-    <div className="panel space-1">
+    <div className="panel">
       <div className="panel-header">Time Filter</div>
       <div className="panel-body">
         <SelectArray selectArray={selects} />

@@ -3,9 +3,9 @@ import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
 const setFormInViz = function (state, action) {
-  const newForm = Object.assign({}, state);
-  newForm[action.key] = action.value;
-  return newForm;
+  const newFormData = Object.assign({}, state);
+  newFormData[action.key] = action.value;
+  return newFormData;
 };
 
 const setVizInState = function (state, action) {

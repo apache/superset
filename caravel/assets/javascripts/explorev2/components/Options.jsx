@@ -17,23 +17,23 @@ const defaultProps = {
 };
 
 const Options = (props) => {
-  const selects = [];
-  selects.push({
-    key: 'timeStampFormat',
-    title: 'Timestamp Format',
-    options: timestampOptions.map((t) => ({ value: t[0], label: t[1] })),
-    value: props.timeStampFormat,
-    width: '12',
-  });
-  selects.push({
-    key: 'rowLimit',
-    title: 'Row Limit',
-    options: rowLimitOptions.map((r) => ({ value: r, label: r })),
-    value: props.rowLimit,
-    width: '12',
-  });
+  const selects = [
+    {
+      key: 'timeStampFormat',
+      title: 'Timestamp Format',
+      options: timestampOptions.map((t) => ({ value: t[0], label: t[1] })),
+      value: props.timeStampFormat,
+      width: '12',
+    },
+    {
+      key: 'rowLimit',
+      title: 'Row Limit',
+      options: rowLimitOptions.map((r) => ({ value: r, label: r })),
+      value: props.rowLimit,
+      width: '12',
+    }];
   return (
-    <div className="panel space-1">
+    <div className="panel">
       <div className="panel-header">Options</div>
       <div className="panel-body">
         <SelectArray selectArray={selects} />

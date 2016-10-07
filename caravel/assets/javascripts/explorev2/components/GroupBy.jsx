@@ -20,25 +20,25 @@ const defaultProps = {
 };
 
 const GroupBy = (props) => {
-  const selects = [];
-  selects.push({
-    key: 'groupByColumns',
-    title: 'GroupBy Column',
-    options: props.groupByColumnOpts,
-    value: props.groupByColumns,
-    multi: true,
-    width: '12',
-  });
-  selects.push({
-    key: 'metrics',
-    title: 'Metrics',
-    options: props.metricsOpts,
-    value: props.metrics,
-    multi: true,
-    width: '12',
-  });
+  const selects = [
+    {
+      key: 'groupByColumns',
+      title: 'Group By',
+      options: props.groupByColumnOpts,
+      value: props.groupByColumns,
+      multi: true,
+      width: '12',
+    },
+    {
+      key: 'metrics',
+      title: 'Metrics',
+      options: props.metricsOpts,
+      value: props.metrics,
+      multi: true,
+      width: '12',
+    }];
   return (
-    <div className="panel space-1">
+    <div className="panel">
       <div className="panel-header">GroupBy</div>
       <div className="panel-body">
         <SelectArray selectArray={selects} />

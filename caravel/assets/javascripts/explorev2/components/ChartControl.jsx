@@ -38,7 +38,7 @@ class ChartControl extends React.Component {
   }
   render() {
     return (
-      <div className="panel space-1">
+      <div className="panel">
         <div className="panel-header">Chart Options</div>
         <div className="panel-body">
           <h5 className="section-heading">Datasource</h5>

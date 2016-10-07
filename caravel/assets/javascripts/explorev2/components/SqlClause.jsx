@@ -13,7 +13,7 @@ class SqlClause extends React.Component {
   }
   render() {
     return (
-      <div className="panel space-1">
+      <div className="panel">
         <div className="panel-header">SQL</div>
         <div className="panel-body">
           <div className="row">
