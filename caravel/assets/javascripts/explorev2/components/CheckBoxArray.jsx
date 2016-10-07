@@ -20,8 +20,8 @@ const defaultProps = {
 };
 
 class CheckBoxArray extends React.Component {
-  onToggle(checkBoxKey) {
-    this.props.actions.toggleCheckBox(checkBoxKey);
+  onToggle(checkBoxKey, checked) {
+    this.props.actions.setFormData(checkBoxKey, checked);
   }
   render() {
     const checkBoxes = this.props.checkBoxArray.map((obj) => (
@@ -31,7 +31,7 @@ class CheckBoxArray extends React.Component {
       >
         <Checkbox
           inline
-          onChange={this.onToggle.bind(this, obj.key)}
+          onChange={this.onToggle.bind(this, obj.key, !obj.checked)}
           checked={obj.checked}
         >
           {obj.label}

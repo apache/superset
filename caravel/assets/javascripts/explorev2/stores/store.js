@@ -18,6 +18,23 @@ export const defaultFormData = {
   whereClause: '',
   havingClause: '',
   filters: [],
+  rolling: null,
+  periodRatioType: null,
+  resampleHow: null,
+  resampleRule: null,
+  resampleFill: null,
+  showBrush: false,
+  showLegend: false,
+  richTooltip: false,
+  yAxisZero: false,
+  yLogScale: false,
+  contribution: false,
+  showControl: false,
+  xAxisShowminmax: false,
+  xFormat: null,
+  yFormat: null,
+  lineStyle: null,
+  chartStyle: null,
 };
 
 export const initialState = {
@@ -50,4 +67,3 @@ export const defaultOpts = {
   columnOpts: [],
   orderingOpts: [],
 };
-

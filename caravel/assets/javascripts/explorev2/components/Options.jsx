@@ -4,6 +4,7 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { timestampOptions, rowLimitOptions } from '../constants';
+import { getSelectOptions } from '../../../utils/common';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -21,14 +22,14 @@ const Options = (props) => {
     {
       key: 'timeStampFormat',
       title: 'Timestamp Format',
-      options: timestampOptions.map((t) => ({ value: t[0], label: t[1] })),
+      options: getSelectOptions(timestampOptions),
       value: props.timeStampFormat,
       width: '12',
     },
     {
       key: 'rowLimit',
       title: 'Row Limit',
-      options: rowLimitOptions.map((r) => ({ value: r, label: r })),
+      options: getSelectOptions(rowLimitOptions),
       value: props.rowLimit,
       width: '12',
     }];

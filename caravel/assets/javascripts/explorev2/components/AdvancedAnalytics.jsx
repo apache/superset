@@ -7,6 +7,7 @@ import {
   rollingOptions, periodRatioTypeOptions, resampleHowOptions,
   resampleRuleOptions, resampleFillOptions,
 } from '../constants';
+import { getSelectOptions } from '../../../utils/common';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -34,31 +35,31 @@ class AdvancedAnalytics extends React.Component {
       {
         key: 'rolling',
         title: 'Rolling',
-        options: rollingOptions,
+        options: getSelectOptions(rollingOptions),
         value: this.props.rolling,
       },
       {
         key: 'periodRatioType',
         title: 'Period Ratio Type',
-        options: periodRatioTypeOptions,
+        options: getSelectOptions(periodRatioTypeOptions),
         value: this.props.periodRatioType,
       },
       {
         key: 'resampleHow',
         title: 'Resample How',
-        options: resampleHowOptions,
+        options: getSelectOptions(resampleHowOptions),
         value: this.props.resampleHow,
       },
       {
         key: 'resampleRule',
         title: 'Resample Rule',
-        options: resampleRuleOptions,
+        options: getSelectOptions(resampleRuleOptions),
         value: this.props.resampleRule,
       },
       {
         key: 'resampleFill',
         title: 'Resample Fill',
-        options: resampleFillOptions,
+        options: getSelectOptions(resampleFillOptions),
         value: this.props.resampleFill,
         width: '12',
       }];

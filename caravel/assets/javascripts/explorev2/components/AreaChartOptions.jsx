@@ -6,6 +6,7 @@ import CheckBoxArray from './CheckBoxArray';
 import SelectArray from './SelectArray';
 import { areaCheckBoxes, lineStyleOptions, chartStyleOptions,
   timestampOptions, yAxisOptions, checkBoxLabels } from '../constants';
+import { getSelectOptions } from '../../../utils/common';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -39,39 +40,36 @@ const defaultProps = {
 };
 
 const AreaChartOptions = (props) => {
-  const checkBoxes = [];
-  Object.keys(areaCheckBoxes).forEach(
-    function (k) {
-      checkBoxes.push({
-        key: k,
-        label: checkBoxLabels[k],
-        checked: props[k],
-      });
-    });
+  const checkBoxes = areaCheckBoxes.map((k) => (
+    {
+      key: k,
+      label: checkBoxLabels[k],
+      checked: props[k],
+    }));
   const selects = [
     {
       key: 'lineStyle',
       title: 'Line Style',
-      options: lineStyleOptions,
+      options: getSelectOptions(lineStyleOptions),
       value: props.lineStyle,
     },
     {
       key: 'chartStyle',
       title: 'Chart Style',
-      options: chartStyleOptions,
+      options: getSelectOptions(chartStyleOptions),
       value: props.chartStyle,
     },
     {
       key: 'xFormat',
       title: 'X Axis Format',
-      options: timestampOptions,
+      options: timestampOptions.map((o) => ({ value: o[0], label: o[1] })),
       value: props.xFormat,
     },
     {
       key: 'yFormat',
       title: 'Y Axis Format',
-      options: yAxisOptions,
-      value: this.props.yFormat,
+      options: yAxisOptions.map((o) => ({ value: o[0], label: o[1] })),
+      value: props.yFormat,
     }];
   return (
     <div className="panel space-1">
