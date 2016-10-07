@@ -2,6 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import { DefaultControls, VIZ_CONTROL_MAPPING } from '../constants';
+import { Scrollbars } from 'react-custom-scrollbars';
 
 const propTypes = {
   vizType: React.PropTypes.string,
@@ -14,8 +15,14 @@ const defaultProps = {
 function ControlPanelsContainer(props) {
   return (
     <Panel>
-      {DefaultControls}
-      {VIZ_CONTROL_MAPPING[props.vizType]}
+      <Scrollbars
+        autoHide={false}
+      >
+        <div className="panel-body" style={{ marginBottom: '100px' }}>
+          {DefaultControls}
+          {VIZ_CONTROL_MAPPING[props.vizType]}
+        </div>
+      </Scrollbars>
     </Panel>
   );
 }

@@ -67,6 +67,7 @@
     "react-ace": "^3.4.1",
     "react-bootstrap": "^0.30.3",
     "react-bootstrap-table": "^2.3.8",
+    "react-custom-scrollbars": "^4.0.0",
     "react-dom": "^15.3.2",
     "react-draggable": "^2.1.2",
     "react-grid-layout": "^0.13.1",
