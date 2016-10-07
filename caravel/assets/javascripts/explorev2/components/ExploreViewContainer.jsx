@@ -37,7 +37,7 @@ export default class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={() => {}}
             />
-            <br /><br />
+            <br />
             <ControlPanelsContainer />
           </div>
           <div className="table-cell col-sm-8">
