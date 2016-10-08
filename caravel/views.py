@@ -27,6 +27,7 @@ from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
+from werkzeug.datastructures import ImmutableMultiDict
 from wtforms.validators import ValidationError
 
 import caravel
