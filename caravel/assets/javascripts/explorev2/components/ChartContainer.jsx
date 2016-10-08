@@ -24,8 +24,7 @@ class ChartContainer extends React.Component {
 
   isLineViz() {
     // todo(alanna) generalize this check and map to charts
-    const vizType = this.props.vizType;
-    return vizType === 'line';
+    return this.props.vizType === 'line';
   }
 
   render() {
@@ -40,7 +39,8 @@ class ChartContainer extends React.Component {
           {this.isLineViz() &&
             <TimeSeriesLineChart
               data={this.props.data}
-              label1="Label 1"
+              xAxisLabel="xAxisLabel"
+              yAxisLabel="yAxisLabel"
             />
           }
         </Panel>
