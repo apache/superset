@@ -29,12 +29,15 @@ export const defaultFormData = {
   yAxisZero: false,
   yLogScale: false,
   contribution: false,
-  showControl: false,
+  showControls: false,
   xAxisShowminmax: false,
-  xFormat: null,
-  yFormat: null,
-  lineStyle: null,
-  chartStyle: null,
+  xAxisFormat: null,
+  yAxisFormat: null,
+  xAxisLabel: null,
+  yAxisLabel: null,
+  lineInterpolation: null,
+  stackedStyle: null,
+  seriesLimit: null,
 };
 
 export const initialState = {

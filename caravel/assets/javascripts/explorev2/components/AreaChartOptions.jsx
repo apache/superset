@@ -4,8 +4,8 @@ import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import CheckBoxArray from './CheckBoxArray';
 import SelectArray from './SelectArray';
-import { areaCheckBoxes, lineStyleOptions, chartStyleOptions,
-  timestampOptions, yAxisOptions, checkBoxLabels } from '../constants';
+import { areaCheckBoxes, lineInterpolationOptions, stackedStyleOptions, timestampOptions,
+  yAxisOptions, checkBoxLabels, seriesLimitOptions } from '../constants';
 import { getSelectOptions } from '../../../utils/common';
 
 const propTypes = {
@@ -16,12 +16,13 @@ const propTypes = {
   yAxisZero: React.PropTypes.bool,
   yLogScale: React.PropTypes.bool,
   contribution: React.PropTypes.bool,
-  showControl: React.PropTypes.bool,
+  showControls: React.PropTypes.bool,
   xAxisShowminmax: React.PropTypes.bool,
-  xFormat: React.PropTypes.string,
-  yFormat: React.PropTypes.string,
-  lineStyle: React.PropTypes.string,
-  chartStyle: React.PropTypes.string,
+  xAxisFormat: React.PropTypes.string,
+  yAxisFormat: React.PropTypes.string,
+  lineInterpolation: React.PropTypes.string,
+  stackedStyle: React.PropTypes.string,
+  seriesLimit: React.PropTypes.number,
 };
 
 const defaultProps = {
@@ -31,12 +32,13 @@ const defaultProps = {
   yAxisZero: false,
   yLogScale: false,
   contribution: false,
-  showControl: false,
+  showControls: false,
   xAxisShowminmax: false,
-  xFormat: null,
-  yFormat: null,
-  lineStyle: null,
-  chartStyle: null,
+  xAxisFormat: null,
+  yAxisFormat: null,
+  lineInterpolation: null,
+  stackedStyle: null,
+  seriesLimit: null,
 };
 
 const AreaChartOptions = (props) => {
@@ -48,29 +50,37 @@ const AreaChartOptions = (props) => {
     }));
   const selects = [
     {
-      key: 'lineStyle',
+      key: 'lineInterpolation',
       title: 'Line Style',
-      options: getSelectOptions(lineStyleOptions),
-      value: props.lineStyle,
+      options: getSelectOptions(lineInterpolationOptions),
+      value: props.lineInterpolation,
     },
     {
-      key: 'chartStyle',
+      key: 'stackedStyle',
       title: 'Chart Style',
-      options: getSelectOptions(chartStyleOptions),
-      value: props.chartStyle,
+      options: getSelectOptions(stackedStyleOptions),
+      value: props.stackedStyle,
     },
     {
-      key: 'xFormat',
+      key: 'xAxisFormat',
       title: 'X Axis Format',
       options: timestampOptions.map((o) => ({ value: o[0], label: o[1] })),
-      value: props.xFormat,
+      value: props.xAxisFormat,
     },
     {
-      key: 'yFormat',
+      key: 'yAxisFormat',
       title: 'Y Axis Format',
       options: yAxisOptions.map((o) => ({ value: o[0], label: o[1] })),
-      value: props.yFormat,
+      value: props.yAxisFormat,
+    },
+    {
+      key: 'seriesLimit',
+      title: 'Series Limit',
+      options: getSelectOptions(seriesLimitOptions),
+      value: props.seriesLimit,
+      width: '12',
     }];
+
   return (
     <div className="panel space-1">
       <div className="panel-header">Chart Options</div>
@@ -95,11 +105,11 @@ function mapStateToProps(state) {
     contribution: state.viz.formData.contribution,
     xAxisShowminmax: state.viz.formData.xAxisShowminmax,
     showControls: state.viz.formData.showControls,
-    xFormat: state.viz.formData.xFormat,
-    yFormat: state.viz.formData.yFormat,
-    lineStyle: state.viz.formData.lineStyle,
-    showControl: state.viz.formData.showControl,
-    chartStyle: state.viz.formData.chartStyle,
+    xAxisFormat: state.viz.formData.xAxisFormat,
+    yAxisFormat: state.viz.formData.yAxisFormat,
+    lineInterpolation: state.viz.formData.lineInterpolation,
+    stackedStyle: state.viz.formData.stackedStyle,
+    seriesLimit: state.viz.formData.seriesLimit,
   };
 }
 

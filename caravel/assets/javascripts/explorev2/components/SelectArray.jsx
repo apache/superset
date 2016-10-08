@@ -14,6 +14,7 @@ const propTypes = {
       value: React.PropTypes.oneOfType([
         React.PropTypes.string,
         React.PropTypes.array,
+        React.PropTypes.number,
       ]),
       width: React.PropTypes.string,
       multi: React.PropTypes.bool,

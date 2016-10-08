@@ -85,10 +85,10 @@ export const VIZ_CONTROL_MAPPING = {
   area: AreaVizControls,
 };
 
-export const lineStyleOptions = ['linear', 'basis', 'cardinal',
+export const lineInterpolationOptions = ['linear', 'basis', 'cardinal',
   'monotone', 'step-before', 'step-after'];
 
-export const chartStyleOptions = ['stack', 'stream', 'expand'];
+export const stackedStyleOptions = ['stack', 'stream', 'expand'];
 
 export const yAxisOptions = [
   ['.3s', '".3s" | 12.3k'],
