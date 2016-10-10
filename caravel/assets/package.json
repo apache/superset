@@ -1,6 +1,6 @@
 {
   "name": "caravel",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "description": "Caravel is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -48,6 +48,7 @@
     "d3": "^3.5.14",
     "d3-cloud": "^1.2.1",
     "d3-sankey": "^0.2.1",
+    "d3-scale": "^1.0.3",
     "d3-tip": "^0.6.7",
     "datamaps": "^0.4.4",
     "datatables-bootstrap3-plugin": "^0.4.0",
@@ -77,12 +78,14 @@
     "reactable": "^0.14.0",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",
+    "redux-thunk": "^2.1.0",
     "select2": "3.5",
     "select2-bootstrap-css": "^1.4.6",
     "shortid": "^2.2.6",
     "style-loader": "^0.13.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "topojson": "^1.6.22",
+    "victory": "^0.12.1",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {
@@ -101,9 +104,9 @@
     "eslint-plugin-jsx-a11y": "^1.2.0",
     "eslint-plugin-react": "^5.2.2",
     "exports-loader": "^0.6.3",
-    "istanbul": "^1.0.0-alpha",
     "file-loader": "^0.8.5",
     "imports-loader": "^0.6.5",
+    "istanbul": "^1.0.0-alpha",
     "jsdom": "^8.0.1",
     "json-loader": "^0.5.4",
     "less": "^2.6.1",

@@ -12,15 +12,24 @@ import VisualizeModal from './VisualizeModal';
 import SqlShrink from './SqlShrink';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
+import { getLink } from '../../../utils/common';
 
 
 class QueryTable extends React.Component {
   constructor(props) {
     super(props);
+    const uri = window.location.toString();
+    const cleanUri = uri.substring(0, uri.indexOf('#'));
     this.state = {
+      cleanUri,
       showVisualizeModal: false,
       activeQuery: null,
     };
+  }
+  getQueryLink(dbId, sql) {
+    const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
+    const link = getLink(this.state.cleanUri, params);
+    return encodeURI(link);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -42,10 +51,26 @@ class QueryTable extends React.Component {
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
+      q.user = (
+        <button
+          className="btn btn-link btn-xs"
+          onClick={this.props.onUserClicked.bind(this, q.userId)}
+        >
+          {q.user}
+        </button>
+      );
+      q.db = (
+        <button
+          className="btn btn-link btn-xs"
+          onClick={this.props.onDbClicked.bind(this, q.dbId)}
+        >
+          {q.db}
+        </button>
+      );
       q.started = moment(q.startDttm).format('HH:mm:ss');
       const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
-        <SqlShrink sql={source} />
+        <SqlShrink sql={source} maxWidth={100} />
       );
       q.output = q.tempTable;
       q.progress = (
@@ -98,7 +123,16 @@ class QueryTable extends React.Component {
           />
         </div>
       );
-
+      q.querylink = (
+        <div style={{ width: '100px' }}>
+          <a
+            href={this.getQueryLink(q.dbId, source)}
+            className="btn btn-primary btn-xs"
+          >
+            <i className="fa fa-external-link" />Open in SQL Editor
+          </a>
+        </div>
+      );
       return q;
     }).reverse();
     return (
@@ -121,10 +155,14 @@ QueryTable.propTypes = {
   columns: React.PropTypes.array,
   actions: React.PropTypes.object,
   queries: React.PropTypes.array,
+  onUserClicked: React.PropTypes.func,
+  onDbClicked: React.PropTypes.func,
 };
 QueryTable.defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
+  onUserClicked: () => {},
+  onDbClicked: () => {},
 };
 
 function mapStateToProps() {

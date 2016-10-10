@@ -209,7 +209,7 @@ class VisualizeModal extends React.Component {
 VisualizeModal.propTypes = {
   query: React.PropTypes.object,
   show: React.PropTypes.bool,
-  onHide: React.PropTypes.function,
+  onHide: React.PropTypes.func,
 };
 VisualizeModal.defaultProps = {
   show: false,

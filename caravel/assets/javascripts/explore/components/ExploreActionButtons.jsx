@@ -13,7 +13,6 @@ export default function ExploreActionButtons({ canDownload, slice }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
-
   return (
     <div className="btn-group results" role="group">
       <URLShortLinkButton slice={slice} />

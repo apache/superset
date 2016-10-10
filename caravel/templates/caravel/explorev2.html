@@ -1,0 +1,16 @@
+{% extends "caravel/basic.html" %}
+
+{% block body %}
+  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/explorev2/explorev2.css">
+  <div
+    id="js-explore-view-container"
+    data-bootstrap="{{ bootstrap_data }}"
+  ></div>
+{% endblock %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="explorev2" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}

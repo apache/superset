@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-import re
 
 import functools
 import json
@@ -41,7 +40,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import backref, relationship
 from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
@@ -680,7 +679,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
-        'Database', backref='tables', foreign_keys=[database_id])
+        'Database',
+        backref=backref('tables', cascade='all, delete-orphan'),
+        foreign_keys=[database_id])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
     schema = Column(String(255))
@@ -761,6 +762,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
     def sql_url(self):
         return self.database.sql_url + "?table_name=" + str(self.table_name)
 
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": self.dttm_cols,
+            "time_grains": [grain.name for grain in self.database.grains()]
+        }
+
     def get_col(self, col_name):
         columns = self.table_columns
         for col in columns:
@@ -826,7 +834,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable):
             # Patch only if the column clause is specific for DateTime set and
             # granularity is selected.
             @compiles(ColumnClause)
-            def _(element, compiler, **kw):
+            def visit_column(element, compiler, **kw):
                 text = compiler.visit_column(element, **kw)
                 try:
                     if element.is_literal and hasattr(element.type, 'python_type') and \
@@ -1063,7 +1071,9 @@ class SqlMetric(Model, AuditMixinNullable):
     metric_type = Column(String(32))
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
-        'SqlaTable', backref='metrics', foreign_keys=[table_id])
+        'SqlaTable',
+        backref=backref('metrics', cascade='all, delete-orphan'),
+        foreign_keys=[table_id])
     expression = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
@@ -1090,7 +1100,9 @@ class TableColumn(Model, AuditMixinNullable):
     id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
-        'SqlaTable', backref='columns', foreign_keys=[table_id])
+        'SqlaTable',
+        backref=backref('columns', cascade='all, delete-orphan'),
+        foreign_keys=[table_id])
     column_name = Column(String(255))
     verbose_name = Column(String(1024))
     is_dttm = Column(Boolean, default=False)
@@ -1150,7 +1162,7 @@ class TableColumn(Model, AuditMixinNullable):
         elif tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
         elif tf == 'epoch_ms':
-            return str((dttm - datetime(1970, 1, 1)).total_seconds()*1000.0)
+            return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
             default = "'{}'".format(dttm.strftime(tf))
             iso = dttm.isoformat()
@@ -1236,7 +1248,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     description = Column(Text)
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
-    owner = relationship('User', backref='datasources', foreign_keys=[user_id])
+    owner = relationship(
+        'User',
+        backref=backref('datasources', cascade='all, delete-orphan'),
+        foreign_keys=[user_id])
     cluster_name = Column(
         String(250), ForeignKey('clusters.cluster_name'))
     cluster = relationship(
@@ -1278,6 +1293,16 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return (
             "[{obj.cluster_name}]."
             "[{obj.datasource_name}]").format(obj=self)
+
+    @property
+    def time_column_grains(self):
+        return {
+            "time_columns": [
+                'all', '5 seconds', '30 seconds', '1 minute',
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days'
+            ],
+            "time_grains": ['now']
+        }
 
     def __repr__(self):
         return self.datasource_name
@@ -1783,8 +1808,10 @@ class DruidMetric(Model, AuditMixinNullable):
         String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
-    datasource = relationship('DruidDatasource', backref='metrics',
-                              enable_typechecks=False)
+    datasource = relationship(
+        'DruidDatasource',
+        backref=backref('metrics', cascade='all, delete-orphan'),
+        enable_typechecks=False)
     json = Column(Text)
     description = Column(Text)
     is_restricted = Column(Boolean, default=False, nullable=True)
@@ -1817,8 +1844,10 @@ class DruidColumn(Model, AuditMixinNullable):
         String(255),
         ForeignKey('datasources.datasource_name'))
     # Setting enable_typechecks=False disables polymorphic inheritance.
-    datasource = relationship('DruidDatasource', backref='columns',
-                              enable_typechecks=False)
+    datasource = relationship(
+        'DruidDatasource',
+        backref=backref('columns', cascade='all, delete-orphan'),
+        enable_typechecks=False)
     column_name = Column(String(255))
     is_active = Column(Boolean, default=True)
     type = Column(String(32))
@@ -1990,6 +2019,10 @@ class Query(Model):
 
     database = relationship(
         'Database', foreign_keys=[database_id], backref='queries')
+    user = relationship(
+        'User',
+        backref=backref('queries', cascade='all, delete-orphan'),
+        foreign_keys=[user_id])
 
     __table_args__ = (
         sqla.Index('ti_user_id_changed_on', user_id, changed_on),
@@ -2004,6 +2037,7 @@ class Query(Model):
             'changedOn': self.changed_on,
             'changed_on': self.changed_on.isoformat(),
             'dbId': self.database_id,
+            'db': self.database.database_name,
             'endDttm': self.end_time,
             'errorMessage': self.error_message,
             'executedSql': self.executed_sql,
@@ -2021,6 +2055,7 @@ class Query(Model):
             'tab': self.tab_name,
             'tempTable': self.tmp_table_name,
             'userId': self.user_id,
+            'user': self.user.username,
             'limit_reached': self.limit_reached,
         }
 
