@@ -85,10 +85,20 @@ export const VIZ_CONTROL_MAPPING = {
   area: AreaVizControls,
 };
 
-export const lineInterpolationOptions = ['linear', 'basis', 'cardinal',
-  'monotone', 'step-before', 'step-after'];
+export const lineInterpolationOptions = [
+  'linear',
+  'basis',
+  'cardinal',
+  'monotone',
+  'step-before',
+  'step-after',
+];
 
-export const stackedStyleOptions = ['stack', 'stream', 'expand'];
+export const stackedStyleOptions = [
+  'stack',
+  'stream',
+  'expand',
+];
 
 export const yAxisOptions = [
   ['.3s', '".3s" | 12.3k'],
@@ -110,11 +120,43 @@ export const checkBoxLabels = {
   xAxisShowminmax: 'X bounds',
 };
 
-export const rollingOptions = ['None', 'mean', 'sum', 'std', 'cumsum'];
-export const periodRatioTypeOptions = ['factor', 'growth', 'value'];
-export const resampleRuleOptions = ['1T', '1H', '1D', '7D', '1M', '1AS'];
-export const resampleHowOptions = ['mean', 'sum', 'median'];
-export const resampleFillOptions = ['ffill', 'bfill'];
-export const areaCheckBoxes = ['showBrush', 'showLegend', 'richTooltip', 'yAxisZero',
-  'yLogScale', 'contribution', 'showControls', 'xAxisShowminmax'];
+export const rollingOptions = [
+  'None',
+  'mean',
+  'sum',
+  'std',
+  'cumsum',
+];
+export const periodRatioTypeOptions = [
+  'factor',
+  'growth',
+  'value',
+];
+export const resampleRuleOptions = [
+  '1T',
+  '1H',
+  '1D',
+  '7D',
+  '1M',
+  '1AS',
+];
+export const resampleHowOptions = [
+  'mean',
+  'sum',
+  'median',
+];
+export const resampleFillOptions = [
+  'ffill',
+  'bfill',
+];
+export const areaCheckBoxes = [
+  'showBrush',
+  'showLegend',
+  'richTooltip',
+  'yAxisZero',
+  'yLogScale',
+  'contribution',
+  'showControls',
+  'xAxisShowminmax',
+];
 export const seriesLimitOptions = [0, 5, 10, 25, 50, 100, 500];

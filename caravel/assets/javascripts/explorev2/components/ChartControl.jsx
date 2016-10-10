@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import { VIZ_TYPES } from '../constants';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   datasources: React.PropTypes.array,
   datasourceId: React.PropTypes.number,
   datasourceType: React.PropTypes.string,

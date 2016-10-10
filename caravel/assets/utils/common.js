@@ -54,6 +54,6 @@ export function getParamsFromUrl() {
   return newParams;
 }
 
-export function getSelectOptions(optionArray) {
+export function formatSelectOptions(optionArray) {
   return optionArray.map((o) => ({ value: o, label: o }));
 }

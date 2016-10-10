@@ -5,7 +5,7 @@ import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   columnOpts: React.PropTypes.array,
   columns: React.PropTypes.array,
   orderingOpts: React.PropTypes.array,

@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import { Checkbox } from 'react-bootstrap';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   checkBoxArray: React.PropTypes.arrayOf(
     React.PropTypes.shape({
       key: React.PropTypes.string.isRequired,

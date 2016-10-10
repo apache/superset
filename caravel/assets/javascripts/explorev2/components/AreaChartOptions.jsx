@@ -6,10 +6,10 @@ import CheckBoxArray from './CheckBoxArray';
 import SelectArray from './SelectArray';
 import { areaCheckBoxes, lineInterpolationOptions, stackedStyleOptions, timestampOptions,
   yAxisOptions, checkBoxLabels, seriesLimitOptions } from '../constants';
-import { getSelectOptions } from '../../../utils/common';
+import { formatSelectOptions } from '../../../utils/common';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   showBrush: React.PropTypes.bool,
   showLegend: React.PropTypes.bool,
   richTooltip: React.PropTypes.bool,
@@ -52,13 +52,13 @@ const AreaChartOptions = (props) => {
     {
       key: 'lineInterpolation',
       title: 'Line Style',
-      options: getSelectOptions(lineInterpolationOptions),
+      options: formatSelectOptions(lineInterpolationOptions),
       value: props.lineInterpolation,
     },
     {
       key: 'stackedStyle',
       title: 'Chart Style',
-      options: getSelectOptions(stackedStyleOptions),
+      options: formatSelectOptions(stackedStyleOptions),
       value: props.stackedStyle,
     },
     {
@@ -76,7 +76,7 @@ const AreaChartOptions = (props) => {
     {
       key: 'seriesLimit',
       title: 'Series Limit',
-      options: getSelectOptions(seriesLimitOptions),
+      options: formatSelectOptions(seriesLimitOptions),
       value: props.seriesLimit,
       width: '12',
     }];

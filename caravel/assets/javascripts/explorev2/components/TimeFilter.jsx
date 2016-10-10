@@ -4,7 +4,7 @@ import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { sinceOptions, untilOptions } from '../constants';
 import SelectArray from './SelectArray';
-import { getSelectOptions } from '../../../utils/common';
+import { formatSelectOptions } from '../../../utils/common';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -46,13 +46,13 @@ const TimeFilter = (props) => {
     {
       key: 'since',
       title: 'Since',
-      options: getSelectOptions(sinceOptions),
+      options: formatSelectOptions(sinceOptions),
       value: props.since,
     },
     {
       key: 'until',
       title: 'Until',
-      options: getSelectOptions(untilOptions),
+      options: formatSelectOptions(untilOptions),
       value: props.until,
     }];
   return (

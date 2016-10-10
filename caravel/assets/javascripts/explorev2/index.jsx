@@ -4,6 +4,7 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
+import { formatSelectOptions } from '../../utils/common';
 
 import { initialState } from './stores/store';
 
@@ -24,7 +25,7 @@ const bootstrappedState = Object.assign(initialState, {
       vizType: bootstrapData.viz.form_data.viz_type,
       timeColumn: bootstrapData.viz.form_data.granularity_sqla,
       timeGrain: bootstrapData.viz.form_data.time_grain_sqla,
-      metrics: bootstrapData.viz.form_data.metrics.map((m) => ({ value: m, label: m })),
+      metrics: formatSelectOptions(bootstrapData.viz.form_data.metrics),
       since: bootstrapData.viz.form_data.since,
       until: bootstrapData.viz.form_data.until,
       having: bootstrapData.viz.form_data.having,
@@ -52,7 +53,7 @@ const bootstrappedState = Object.assign(initialState, {
       resampleRule: bootstrapData.viz.form_data.resample_rule,
       resampleFill: bootstrapData.viz.form_data.resample_fillmethod,
       seriesLimit: parseInt(bootstrapData.viz.form_data.limit, 10),
-      groupByColumns: bootstrapData.viz.form_data.groupby.map((c) => ({ value: c, label: c })),
+      groupByColumns: formatSelectOptions(bootstrapData.viz.form_data.groupby),
     },
   },
 });
