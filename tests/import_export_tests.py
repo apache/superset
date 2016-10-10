@@ -16,8 +16,6 @@ from .base_tests import CaravelTestCase
 class ImportExportTests(CaravelTestCase):
     """Testing export import functionality for dashboards"""
 
-    examples_loaded = False
-
     def __init__(self, *args, **kwargs):
         super(ImportExportTests, self).__init__(*args, **kwargs)
 
@@ -58,26 +56,26 @@ class ImportExportTests(CaravelTestCase):
             .format(births_dash.id, world_health_dash.id)
         )
         resp_2 = self.client.get(export_dash_url_2)
-        exported_dashboards_2 = pickle.loads(resp_2.data)['dashboards']
+        exported_dashboards_2 = sorted(pickle.loads(resp_2.data)['dashboards'])
         self.assertEquals(2, len(exported_dashboards_2))
-        self.assertEquals('births', exported_dashboards_2[0].slug)
         self.assertEquals(9, len(exported_dashboards_2[0].slices))
+        self.assertEquals('births', exported_dashboards_2[0].slug)
+
+        self.assertEquals(10, len(exported_dashboards_2[1].slices))
         self.assertEquals('world_health', exported_dashboards_2[1].slug)
         self.assertEquals(
             world_health_dash.id,
             json.loads(exported_dashboards_2[1].json_metadata)['remote_id']
         )
 
-        self.assertEquals(10, len(exported_dashboards_2[1].slices))
-
-        exported_tables_2 = pickle.loads(resp_2.data)['datasources']
+        exported_tables_2 = sorted(pickle.loads(resp_2.data)['datasources'])
         self.assertEquals(2, len(exported_tables_2))
         table_names = [t.table_name for t in exported_tables_2]
         self.assertEquals(len(set(table_names)), len(table_names))
         self.assertEquals(
-            2, len([c for c in [t.columns for t in exported_tables_2]]))
+            14, len([c for c in t.columns for t in exported_tables_2]))
         self.assertEquals(
-            2, len([m for m in [t.metrics for t in exported_tables_2]]))
+            8, len([m for m in t.metrics for t in exported_tables_2]))
 
     def test_import_slice(self):
         session = db.session
@@ -190,7 +188,7 @@ class ImportExportTests(CaravelTestCase):
                 'remote_id': "'{}'".format(slc_id),
                 'datasource_name': table_name,
                 'database_name': 'main',
-                'schema': '',
+                'schema': 'test',
             }
             return models.Slice(
                 id=slc_id,

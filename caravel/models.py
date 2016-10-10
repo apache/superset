@@ -316,7 +316,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         self.params = json.dumps(d)
 
     @classmethod
-    def import_obj(cls, slc, import_time=None):
+    def import_obj(cls, slc_to_import, import_time=None):
         """Inserts or overrides slc in the database.
 
         remote_id and import_time fields in params_dict are set to track the
@@ -324,30 +324,31 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         Slice.perm is used to find the datasources and connect them.
         """
         session = db.session
-        make_transient(slc)
-        slc.dashboards = []
-        slc.alter_params(remote_id=slc.id, import_time=import_time)
+        make_transient(slc_to_import)
+        slc_to_import.dashboards = []
+        slc_to_import.alter_params(
+            remote_id=slc_to_import.id, import_time=import_time)
 
         # find if the slice was already imported
         slc_to_override = None
-        for s in session.query(Slice).all():
-            if ('remote_id' in s.params_dict and
-                    s.params_dict['remote_id'] == slc.id):
-                slc_to_override = s
+        for slc in session.query(Slice).all():
+            if ('remote_id' in slc.params_dict and
+                    slc.params_dict['remote_id'] == slc_to_import.id):
+                slc_to_override = slc
 
-        slc.id = None
-        params = json.loads(slc.params)
-        slc.datasource_id = SourceRegistry.get_datasource_by_name(
-            session, slc.datasource_type, params['datasource_name'],
+        slc_to_import.id = None
+        params = slc_to_import.params_dict
+        slc_to_import.datasource_id = SourceRegistry.get_datasource_by_name(
+            session, slc_to_import.datasource_type, params['datasource_name'],
             params['schema'], params['database_name']).id
         if slc_to_override:
-            slc_to_override.override(slc)
+            slc_to_override.override(slc_to_import)
             session.flush()
             return slc_to_override.id
         else:
-            session.add(slc)
+            session.add(slc_to_import)
             session.flush()
-            return slc.id
+            return slc_to_import.id
 
 
 def set_perm(mapper, connection, target):  # noqa

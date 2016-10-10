@@ -32,7 +32,6 @@ from sqlalchemy import create_engine
 from werkzeug import secure_filename
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
-from werkzeug.datastructures import ImmutableMultiDict
 from wtforms.validators import ValidationError
 
 import caravel
@@ -538,6 +537,16 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         self.pre_add(db)
 
 
+appbuilder.add_link(
+    'Import Dashboards',
+    label=__("Import Dashboards"),
+    href='/caravel/import_dashboards',
+    icon="fa-cloud-upload",
+    category='Manage',
+    category_label=__("Manage"),
+    category_icon='fa-wrench',)
+
+
 appbuilder.add_view(
     DatabaseView,
     "Databases",
@@ -662,7 +671,6 @@ appbuilder.add_view(
     category="Security",
     category_label=__("Security"),
     icon='fa-table',)
-
 
 appbuilder.add_separator("Sources")
 
@@ -895,17 +903,10 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
-    label=__("Dashboards List"),
+    label=__("Dashboards"),
     icon="fa-dashboard",
-    category='Dashboards',
+    category='',
     category_icon='',)
-
-appbuilder.add_link(
-    'Import Dashboards',
-    href='/caravel/import_dashboards',
-    icon="fa-cloud-upload",
-    category='Dashboards')
-
 
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
@@ -1182,28 +1183,23 @@ class Caravel(BaseCaravelView):
     @log_this
     def import_dashboards(self):
         """Overrides the dashboards using pickled instances from the file."""
-        if request.method == 'POST':
-            f = request.files['file']
-            if f:
-                filename = secure_filename(f.filename)
-                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                f.save(filepath)
-                current_tt = int(time.time())
-                data = pickle.load(open(filepath, 'rb'))
-                for table in data['datasources']:
-                    models.SqlaTable.import_obj(table, import_time=current_tt)
-                for dashboard in data['dashboards']:
-                    models.Dashboard.import_obj(
-                        dashboard, import_time=current_tt)
-                os.remove(filepath)
-                db.session.commit()
-                return redirect('/dashboardmodelview/list/')
+        f = request.files.get('file')
+        if request.method == 'POST' and f:
+            filename = secure_filename(f.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            f.save(filepath)
+            current_tt = int(time.time())
+            data = pickle.load(open(filepath, 'rb'))
+            for table in data['datasources']:
+                models.SqlaTable.import_obj(table, import_time=current_tt)
+            for dashboard in data['dashboards']:
+                models.Dashboard.import_obj(
+                    dashboard, import_time=current_tt)
+            os.remove(filepath)
+            db.session.commit()
+            return redirect('/dashboardmodelview/list/')
         return self.render_template('caravel/import_dashboards.html')
 
-    @has_access
-    @expose("/explore/<datasource_type>/<datasource_id>/<slice_id>/")
-    @expose("/explore/<datasource_type>/<datasource_id>/")
-    @expose("/datasource/<datasource_type>/<datasource_id>/")  # Legacy url
     @log_this
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
