@@ -18,6 +18,7 @@ const bootstrappedState = Object.assign(initialState, {
   datasourceType: bootstrapData.datasource_type,
   sliceName: bootstrapData.viz.form_data.slice_name,
   viz: {
+    data: bootstrapData.viz.data,
     formData: {
       sliceId: bootstrapData.viz.form_data.slice_id,
       vizType: bootstrapData.viz.form_data.viz_type,
@@ -39,9 +40,7 @@ const store = createStore(exploreReducer, bootstrappedState,
 
 ReactDOM.render(
   <Provider store={store}>
-    <ExploreViewContainer
-      data={bootstrapData}
-    />
+    <ExploreViewContainer />
   </Provider>,
   exploreViewContainer
 );
