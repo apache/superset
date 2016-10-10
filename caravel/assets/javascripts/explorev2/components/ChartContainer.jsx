@@ -1,41 +1,17 @@
 import React, { PropTypes } from 'react';
+import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
 import moment from 'moment';
 
 const propTypes = {
-  viz: PropTypes.shape({
-    data: PropTypes.array.isRequired,
-    form_data: PropTypes.shape({
-      viz_type: PropTypes.string.isRequired,
-      slice_name: PropTypes.string.isRequired,
-    }).isRequired,
-  }).isRequired,
+  data: PropTypes.array.isRequired,
+  sliceName: PropTypes.string.isRequired,
+  vizType: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
 };
 
-export default class ChartContainer extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      params: this.getParamsFromUrl(),
-      data: props.viz.data,
-      label1: 'Label 1',
-    };
-  }
-
-  getParamsFromUrl() {
-    const hash = window.location.search;
-    const params = hash.split('?')[1].split('&');
-    const newParams = {};
-    params.forEach((p) => {
-      const value = p.split('=')[1].replace(/\+/g, ' ');
-      const key = p.split('=')[0];
-      newParams[key] = value;
-    });
-    return newParams;
-  }
-
+class ChartContainer extends React.Component {
   formatDates(values) {
     const newValues = values.map(function (val) {
       return {
@@ -48,8 +24,7 @@ export default class ChartContainer extends React.Component {
 
   isLineViz() {
     // todo(alanna) generalize this check and map to charts
-    const vizType = this.props.viz.form_data.viz_type;
-    return vizType === 'line';
+    return this.props.vizType === 'line';
   }
 
   render() {
@@ -58,13 +33,14 @@ export default class ChartContainer extends React.Component {
         <Panel
           style={{ height: this.props.height }}
           header={
-            <div className="panel-title">{this.props.viz.form_data.slice_name}</div>
+            <div className="panel-title">{this.props.sliceName}</div>
           }
         >
           {this.isLineViz() &&
             <TimeSeriesLineChart
-              data={this.state.data}
-              label1="Label 1"
+              data={this.props.data}
+              xAxisLabel="xAxisLabel"
+              yAxisLabel="yAxisLabel"
             />
           }
         </Panel>
@@ -74,3 +50,17 @@ export default class ChartContainer extends React.Component {
 }
 
 ChartContainer.propTypes = propTypes;
+
+function mapStateToProps(state) {
+  return {
+    data: state.viz.data,
+    sliceName: state.sliceName,
+    vizType: state.viz.formData.vizType,
+  };
+}
+
+function mapDispatchToProps() {
+  return {};
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(ChartContainer);

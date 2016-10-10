@@ -30,7 +30,7 @@ with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
 
 ROW_LIMIT = 50000
-CARAVEL_WORKERS = 16
+CARAVEL_WORKERS = 2
 
 CARAVEL_WEBSERVER_ADDRESS = '0.0.0.0'
 CARAVEL_WEBSERVER_PORT = 8088

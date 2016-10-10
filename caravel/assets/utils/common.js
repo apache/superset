@@ -41,3 +41,15 @@ export function getParamFromQuery(query, param) {
 export function getLink(baseUrl, params) {
   return baseUrl + '?' + params.join('&');
 }
+
+export function getParamsFromUrl() {
+  const hash = window.location.search;
+  const params = hash.split('?')[1].split('&');
+  const newParams = {};
+  params.forEach((p) => {
+    const value = p.split('=')[1].replace(/\+/g, ' ');
+    const key = p.split('=')[0];
+    newParams[key] = value;
+  });
+  return newParams;
+}

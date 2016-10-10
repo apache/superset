@@ -32,13 +32,13 @@ class ChartControl extends React.Component {
     this.props.actions.resetFormData();
     this.props.actions.setFormOpts(val, this.props.datasourceType);
   }
-  changeViz(vizOpt) {
-    const val = (vizOpt) ? vizOpt.value : null;
-    this.props.actions.setVizType(val);
+  changeViz(opt) {
+    const val = opt ? opt.value : null;
+    this.props.actions.setFormData('vizType', val);
   }
   render() {
     return (
-      <div className="panel space-1">
+      <div className="panel">
         <div className="panel-header">Chart Options</div>
         <div className="panel-body">
           <h5 className="section-heading">Datasource</h5>
@@ -77,7 +77,7 @@ function mapStateToProps(state) {
     datasources: state.datasources,
     datasourceId: state.datasourceId,
     datasourceType: state.datasourceType,
-    vizType: state.vizType,
+    vizType: state.viz.formData.vizType,
   };
 }
 

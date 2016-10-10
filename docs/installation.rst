@@ -86,11 +86,11 @@ Follow these few simple steps to install Caravel.::
     # Initialize the database
     caravel db upgrade
 
-    # Create default roles and permissions
-    caravel init
-
     # Load some data to play with
     caravel load_examples
+
+    # Create default roles and permissions
+    caravel init
 
     # Start the web server on port 8088
     caravel runserver -p 8088
@@ -136,7 +136,7 @@ of the parameters you can copy / paste in that configuration module: ::
     # Caravel specific config
     #---------------------------------------------------------
     ROW_LIMIT = 5000
-    CARAVEL_WORKERS = 16
+    CARAVEL_WORKERS = 4
 
     CARAVEL_WEBSERVER_PORT = 8088
     #---------------------------------------------------------
@@ -344,4 +344,3 @@ your environment.::
     npm run prod
     cd $CARAVEL_HOME
     python setup.py install
-

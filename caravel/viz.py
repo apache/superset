@@ -104,7 +104,7 @@ class BaseViz(object):
     def reassignments(self):
         pass
 
-    def get_url(self, for_cache_key=False, **kwargs):
+    def get_url(self, for_cache_key=False, json_endpoint=False, **kwargs):
         """Returns the URL for the viz
 
         :param for_cache_key: when getting the url as the identifier to hash
@@ -140,8 +140,12 @@ class BaseViz(object):
             for item in v:
                 od.add(key, item)
 
+        base_endpoint = '/caravel/explore'
+        if json_endpoint:
+            base_endpoint = '/caravel/explore_json'
+
         href = Href(
-            '/caravel/explore/{self.datasource.type}/'
+            '{base_endpoint}/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         if for_cache_key and 'force' in od:
             del od['force']
@@ -373,7 +377,7 @@ class BaseViz(object):
 
     @property
     def json_endpoint(self):
-        return self.get_url(json="true")
+        return self.get_url(json_endpoint=True)
 
     @property
     def cache_key(self):
@@ -1261,7 +1265,6 @@ class HistogramViz(BaseViz):
         }
     }
 
-
     def query_obj(self):
         """Returns the query object for this visualization"""
         d = super(HistogramViz, self).query_obj()
@@ -1271,7 +1274,6 @@ class HistogramViz(BaseViz):
             raise Exception("Must have one numeric column specified")
         d['columns'] = [numeric_column]
         return d
-
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -1288,7 +1290,6 @@ class HistogramViz(BaseViz):
         df.replace([np.inf, -np.inf], np.nan)
         df = df.fillna(0)
         return df
-
 
     def get_data(self):
         """Returns the chart data"""

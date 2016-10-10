@@ -7,7 +7,8 @@ import Legend from './Legend';
 
 const propTypes = {
   data: PropTypes.array.isRequired,
-  label1: PropTypes.string.isRequired,
+  xAxisLabel: PropTypes.string.isRequired,
+  yAxisLabel: PropTypes.string.isRequired,
 };
 
 export default class TimeSeriesLineChart extends React.Component {
@@ -44,12 +45,12 @@ export default class TimeSeriesLineChart extends React.Component {
         >
           {this.renderLines()}
           <V.VictoryAxis
-            label={this.props.label1}
+            label={this.props.yAxisLabel}
             orientation="left"
           />
           <V.VictoryAxis
             dependentAxis
-            label={'label needed'}
+            label={this.props.xAxisLabel}
             orientation="bottom"
             tickValues={this.props.data[0].values.map((d) => d.x)}
             tickFormat={(x) => moment(new Date(x)).format('YYYY')}

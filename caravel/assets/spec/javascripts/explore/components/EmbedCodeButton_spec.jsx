@@ -31,7 +31,13 @@ describe('EmbedCodeButton', () => {
       width: '2000',
       srcLink: 'http://localhost/endpoint_url',
     });
-    const embedHTML = `<iframe src="http://localhost/endpoint_url" width="2000" height="1000" seamless frameBorder="0" scrolling="no"></iframe>`;
+    const embedHTML = `
+      <iframe
+        src="nullendpoint_url"
+        width="2000"
+        height="1000"
+        seamless frameBorder="0" scrolling="no">
+      </iframe>`;
     expect(wrapper.instance().generateEmbedHTML()).to.equal(embedHTML);
   });
 });

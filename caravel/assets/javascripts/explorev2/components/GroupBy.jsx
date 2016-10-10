@@ -1,8 +1,8 @@
 import React from 'react';
-import Select from 'react-select';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
+import SelectArray from './SelectArray';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -19,47 +19,33 @@ const defaultProps = {
   groupByColumns: [],
 };
 
-class GroupBy extends React.Component {
-  changeColumns(groupByColumns) {
-    this.props.actions.setGroupByColumns(groupByColumns);
-  }
-  changeMetrics(metrics) {
-    this.props.actions.setMetrics(metrics);
-  }
-  render() {
-    return (
-      <div className="panel space-1">
-        <div className="panel-header">GroupBy</div>
-        <div className="panel-body">
-          <div className="row">
-            <h5 className="section-heading">GroupBy Column</h5>
-            <Select
-              multi
-              name="select-time-column"
-              placeholder="Select groupby columns"
-              options={this.props.groupByColumnOpts}
-              value={this.props.groupByColumns}
-              autosize={false}
-              onChange={this.changeColumns.bind(this)}
-            />
-          </div>
-          <div className="row">
-            <h5 className="section-heading">Metrics</h5>
-            <Select
-              multi
-              name="select-since"
-              placeholder="Select metrics"
-              options={this.props.metricsOpts}
-              value={this.props.metrics}
-              autosize={false}
-              onChange={this.changeMetrics.bind(this)}
-            />
-          </div>
-        </div>
+const GroupBy = (props) => {
+  const selects = [
+    {
+      key: 'groupByColumns',
+      title: 'Group By',
+      options: props.groupByColumnOpts,
+      value: props.groupByColumns,
+      multi: true,
+      width: '12',
+    },
+    {
+      key: 'metrics',
+      title: 'Metrics',
+      options: props.metricsOpts,
+      value: props.metrics,
+      multi: true,
+      width: '12',
+    }];
+  return (
+    <div className="panel">
+      <div className="panel-header">GroupBy</div>
+      <div className="panel-body">
+        <SelectArray selectArray={selects} />
       </div>
-    );
-  }
-}
+    </div>
+  );
+};
 
 GroupBy.propTypes = propTypes;
 GroupBy.defaultProps = defaultProps;
@@ -67,9 +53,9 @@ GroupBy.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     metricsOpts: state.metricsOpts,
-    metrics: state.metrics,
+    metrics: state.viz.formData.metrics,
     groupByColumnOpts: state.groupByColumnOpts,
-    groupByColumns: state.groupByColumns,
+    groupByColumns: state.viz.formData.groupByColumns,
   };
 }
 
