@@ -596,15 +596,29 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
 
     def pre_add(self, table):
         # Fail before adding if the table can't be found
+        print("Blabla")
+        # TODO: figure out how to get DB object
+        print(table.to_json())
         try:
             table.get_sqla_table_object()
         except Exception as e:
-            logging.exception(e)
+            logging.exception(str(e))
             raise Exception(
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
                 "table name".format(table.table_name))
+        existing_tables = db.session.query(models.Table).filter_by(
+            table_name=table.table_name,
+            schema=table.schema,
+            database_id=table.database_id,
+        ).all()
+        print("Blabla")
+        print(existing_tables)
+        if existing_tables:
+            raise Exception(
+                "Table [{}.{}] already exists in the database [{}]".format(
+                    table.schema, table.table_name, table.database.table_name))
 
     def post_add(self, table):
         table.fetch_metadata()
