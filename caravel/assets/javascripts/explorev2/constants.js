@@ -6,6 +6,7 @@ import SqlClause from './components/SqlClause';
 import Filters from './components/Filters';
 import NotGroupBy from './components/NotGroupBy';
 import Options from './components/Options';
+import ChartOptions from './components/ChartOptions';
 import AreaChartOptions from './components/AreaChartOptions';
 import AdvancedAnalytics from './components/AdvancedAnalytics';
 
@@ -75,6 +76,7 @@ export const TableVizControls = (
 
 export const AreaVizControls = (
   <div>
+    <ChartOptions />
     <AreaChartOptions />
     <AdvancedAnalytics />
   </div>
@@ -149,14 +151,16 @@ export const resampleFillOptions = [
   'ffill',
   'bfill',
 ];
-export const areaCheckBoxes = [
+export const defaultCheckBoxes = [
   'showBrush',
   'showLegend',
   'richTooltip',
   'yAxisZero',
   'yLogScale',
   'contribution',
-  'showControls',
   'xAxisShowminmax',
+];
+export const areaCheckBoxes = [
+  'showControls',
 ];
 export const seriesLimitOptions = [0, 5, 10, 25, 50, 100, 500];
