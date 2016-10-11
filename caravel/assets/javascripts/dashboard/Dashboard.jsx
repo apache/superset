@@ -1,3 +1,4 @@
+require('babel-polyfill');
 const $ = window.$ = require('jquery');
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 const px = require('../modules/caravel.js');
