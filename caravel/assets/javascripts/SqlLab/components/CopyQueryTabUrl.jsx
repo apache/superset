@@ -10,19 +10,6 @@ const defaultProps = {
 };
 
 export default class CopyQueryTabUrl extends React.Component {
-  constructor(props) {
-    super(props);
-    const uri = window.location.toString();
-    const search = window.location.search;
-    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
-    const query = search.substring(1);
-    this.state = {
-      uri,
-      cleanUri,
-      query,
-    };
-  }
-
   getQueryLink() {
     const params = [];
     const qe = this.props.qe;
@@ -33,7 +20,7 @@ export default class CopyQueryTabUrl extends React.Component {
     if (qe.sql) params.push('sql=' + encodeURIComponent(qe.sql));
 
     const queryString = params.join('&');
-    const queryLink = this.state.cleanUri + '?' + queryString;
+    const queryLink = window.location.pathname + '?' + queryString;
 
     return queryLink;
   }

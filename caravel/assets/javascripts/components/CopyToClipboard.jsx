@@ -1,5 +1,6 @@
 import React, { PropTypes } from 'react';
 import { Button, Tooltip, OverlayTrigger } from 'react-bootstrap';
+import $ from 'jquery';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -23,6 +24,7 @@ export default class CopyToClipboard extends React.Component {
     super(props);
     this.state = {
       hasCopied: false,
+      shortUrl: '',
     };
 
     // bindings
@@ -31,17 +33,42 @@ export default class CopyToClipboard extends React.Component {
     this.onMouseOut = this.onMouseOut.bind(this);
   }
 
+  componentWillMount() {
+    this.getShortUrl();
+  }
+
   onMouseOut() {
     // delay to avoid flash of text change on tooltip
     setTimeout(this.resetTooltipText, 200);
   }
 
+  getShortUrl() {
+    $.ajax({
+      type: 'POST',
+      url: '/r/shortner/',
+      data: {
+        data: '/' + this.props.text,
+      },
+      success: (data) => {
+        this.setState({
+          shortUrl: data,
+        });
+      },
+      error: (error) => {
+        /* eslint no-console: 0 */
+        if (console && console.warn) {
+          console.warn('Something went wrong...');
+          console.warn(error);
+        }
+      },
+    });
+  }
   resetTooltipText() {
     this.setState({ hasCopied: false });
   }
 
   copyToClipboard() {
-    const textToCopy = this.props.text;
+    const textToCopy = this.state.shortUrl;
     const textArea = document.createElement('textarea');
 
     textArea.style.position = 'fixed';
@@ -76,7 +103,7 @@ export default class CopyToClipboard extends React.Component {
     return (
       <span>
         {this.props.shouldShowText &&
-          <span>{this.props.text}</span>
+          <span>{this.state.shortUrl}</span>
         }
         &nbsp;&nbsp;&nbsp;&nbsp;
         <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
