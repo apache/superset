@@ -86,6 +86,10 @@ def get_datasource_access_error_msg(datasource_name):
               "`all_datasource_access` permission", name=datasource_name)
 
 
+def get_datasource_exist_error_mgs(full_name):
+    return __("Datasource %(name)s already exists", name=full_name)
+
+
 def get_error_msg():
     if config.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
@@ -595,30 +599,25 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, table):
+        existing_tables = db.session.query(models.SqlaTable).filter_by(
+            table_name=table.table_name,
+            schema=table.schema,
+            database_id=table.database.id,
+        ).all()
+        # table object is already added to the session
+        if len(existing_tables) > 1:
+            raise Exception(get_datasource_exist_error_mgs(table.full_name))
+
         # Fail before adding if the table can't be found
-        print("Blabla")
-        # TODO: figure out how to get DB object
-        print(table.to_json())
         try:
             table.get_sqla_table_object()
         except Exception as e:
-            logging.exception(str(e))
+            logging.exception(e)
             raise Exception(
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
                 "table name".format(table.table_name))
-        existing_tables = db.session.query(models.Table).filter_by(
-            table_name=table.table_name,
-            schema=table.schema,
-            database_id=table.database_id,
-        ).all()
-        print("Blabla")
-        print(existing_tables)
-        if existing_tables:
-            raise Exception(
-                "Table [{}.{}] already exists in the database [{}]".format(
-                    table.schema, table.table_name, table.database.table_name))
 
     def post_add(self, table):
         table.fetch_metadata()
@@ -947,6 +946,19 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'offset': _("Time Offset"),
         'cache_timeout': _("Cache Timeout"),
     }
+
+    def pre_add(self, datasource):
+        existing_datasources = (
+            db.session.query(models.DruidDatasource)
+            .filter_by(
+                datasource_name=datasource.datasource_name,
+                cluster_name=datasource.cluster.cluster_name,
+            ).all()
+        )
+        # table object is already added to the session
+        if len(existing_datasources) > 1:
+            raise Exception(get_datasource_exist_error_mgs(
+                datasource.full_name))
 
     def post_add(self, datasource):
         datasource.generate_metrics()
