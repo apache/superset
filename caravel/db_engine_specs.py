@@ -23,23 +23,30 @@ from flask_babel import lazy_gettext as _
 Grain = namedtuple('Grain', 'name label function')
 
 
-class BaseEngine(object):
+class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    epoch_to_dttm = None
+    time_grains = tuple()
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        raise NotImplementedError()
 
     @classmethod
     def epoch_ms_to_dttm(cls):
-        return cls.epoch_to_dttm.replace('{col}', '({col}/1000.0)')
+        return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
 
     @classmethod
     def extra_table_metadata(cls, table):
         """Returns engine-specific table metadata"""
         return {}
 
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
-class PostgresEngine(BaseEngine):
+
+class PostgresEngineSpec(BaseEngineSpec):
     engine = 'postgres'
-    epoch_to_dttm = "(timestamp 'epoch' + {col} * interval '1 second')"
 
     time_grains = (
         Grain("Time Column", _('Time Column'), "{col}"),
@@ -52,10 +59,17 @@ class PostgresEngine(BaseEngine):
         Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
     )
 
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "(timestamp 'epoch' + {col} * interval '1 second')"
 
-class SqliteEngine(BaseEngine):
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+
+class SqliteEngineSpec(BaseEngineSpec):
     engine = 'sqlite'
-    epoch_to_dttm = "datetime({col}, 'unixepoch')"
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain('day', _('day'), 'DATE({col})'),
@@ -65,10 +79,20 @@ class SqliteEngine(BaseEngine):
               "DATE({col}, -strftime('%d', {col}) || ' days')"),
     )
 
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "datetime({col}, 'unixepoch')"
 
-class MySQLEngine(BaseEngine):
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        iso = dttm.isoformat().replace('T', ' ')
+        if '.' not in iso:
+            iso += '.000000'
+        return "'{}'".format(iso)
+
+
+class MySQLEngineSpec(BaseEngineSpec):
     engine = 'mysql'
-    epoch_to_dttm = "from_unixtime({col})"
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
         Grain("second", _('second'), "DATE_ADD(DATE({col}), "
@@ -84,9 +108,19 @@ class MySQLEngine(BaseEngine):
         Grain("month", _('month'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
     )
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        if target_type.upper() in ('DATETIME', 'DATE'):
+            return "STR_TO_DATE('{}', '%Y-%m-%d %H:%i:%s')".format(
+                dttm.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "from_unixtime({col})"
 
 
-class PrestoEngine(BaseEngine):
+class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
 
     time_grains = (
@@ -113,8 +147,18 @@ class PrestoEngine(BaseEngine):
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
     )
 
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        if target_type.upper() in ('DATE', 'DATETIME'):
+            return "from_iso8601_date('{}')".format(dttm.isoformat())
+        return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
-class MssqlEngine(BaseEngine):
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "from_unixtime({col})"
+
+
+class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
     epoch_to_dttm = "dateadd(S, {col}, '1970-01-01')"
 
@@ -142,14 +186,28 @@ class MssqlEngine(BaseEngine):
               "DATEDIFF(year, 0, {col}), 0)"),
     )
 
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return "CONVERT(DATETIME, '{}', 126)".format(iso)
 
-class RedshiftEngine(PostgresEngine):
+
+class RedshiftEngineSpec(PostgresEngineSpec):
     engine = 'redshift'
 
 
-class VerticaEngine(PostgresEngine):
+class OracleEngineSpec(PostgresEngineSpec):
+    engine = 'oracle'
+
+    @classmethod
+    def convert_dttm(cls, target_type, dttm):
+        return (
+            """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+        ).format(dttm.isoformat())
+
+
+class VerticaEngineSpec(PostgresEngineSpec):
     engine = 'vertica'
 
 engines = {
     o.engine: o for o in globals().values()
-    if inspect.isclass(o) and issubclass(o, BaseEngine)}
+    if inspect.isclass(o) and issubclass(o, BaseEngineSpec)}

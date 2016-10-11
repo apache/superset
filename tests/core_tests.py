@@ -130,8 +130,7 @@ class CoreTests(CaravelTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
-                (slc.slice_name, 'slice_id_url',
-                    "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/".format(slc=slc)),
+                (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
@@ -401,7 +400,6 @@ class CoreTests(CaravelTestCase):
         resp = self.get_resp('/dashboardmodelview/list/')
         assert "/caravel/dashboard/births/" in resp
 
-        print(self.get_resp('/caravel/dashboard/births/'))
         assert 'Births' in self.get_resp('/caravel/dashboard/births/')
 
         # Confirm that public doesn't have access to other datasets.

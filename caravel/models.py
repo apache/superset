@@ -52,7 +52,7 @@ from sqlalchemy_utils import EncryptedType
 from werkzeug.datastructures import ImmutableMultiDict
 
 import caravel
-from caravel import app, db, db_engines, get_session, utils, sm
+from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
 from caravel.utils import flasher, MetricPermException, DimSelector
@@ -276,6 +276,12 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             "/caravel/explore/{obj.datasource_type}/"
             "{obj.datasource_id}/".format(obj=self))
         return href(slice_params)
+
+    @property
+    def slice_id_url(self):
+        return (
+            "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
+        ).format(slc=self)
 
     @property
     def edit_url(self):
@@ -679,9 +685,10 @@ class Database(Model, AuditMixinNullable):
         return sorted(self.inspector.get_schema_names())
 
     @property
-    def db_engine(self):
+    def db_engine_spec(self):
         engine_name = self.get_sqla_engine().name or 'base'
-        return db_engines.engines.get(engine_name, db_engines.BaseEngine)
+        return db_engine_specs.engines.get(
+            engine_name, db_engine_specs.BaseEngineSpec)
 
     def grains(self):
         """Defines time granularity database-specific expressions.
@@ -692,18 +699,10 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        return self.db_engine.time_grains
+        return self.db_engine_spec.time_grains
 
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
-
-    def epoch_to_dttm(self, ms=False):
-        """Database-specific SQL to convert unix timestamp to datetime
-        """
-        if ms:
-            return self.db_engine.epoch_ms_to_dttm
-        else:
-            return self.db_engine.epoch_to_dttm
 
     def get_extra(self):
         extra = {}
@@ -939,12 +938,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
+                db_engine_spec = self.database.db_engine_spec
                 if dttm_col.python_date_format == 'epoch_s':
-                    dttm_expr = self.database.epoch_to_dttm().format(
-                        col=dttm_expr)
+                    dttm_expr = \
+                        db_engine_spec.epoch_to_dttm().format(col=dttm_expr)
                 elif dttm_col.python_date_format == 'epoch_ms':
-                    dttm_expr = self.database.epoch_to_dttm(ms=True).format(
-                        col=dttm_expr)
+                    dttm_expr = \
+                        db_engine_spec.epoch_ms_to_dttm().format(col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
                     udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
@@ -1345,7 +1345,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         return column_to_import
 
     def dttm_sql_literal(self, dttm):
-        """Convert datetime object to string
+        """Convert datetime object to a SQL expression string
 
         If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
@@ -1353,6 +1353,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         If database_expression is not empty, the internal dttm
         will be parsed as the sql sentence for the database to convert
         """
+
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
@@ -1361,21 +1362,9 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         elif tf == 'epoch_ms':
             return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
-            default = "'{}'".format(dttm.strftime(tf))
-            iso = dttm.isoformat()
-            d = {
-                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso),  # untested
-                'mysql': default,
-                'oracle':
-                    """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-                        dttm.isoformat()),
-                'presto': default,
-                'sqlite': default,
-            }
-            for k, v in d.items():
-                if self.table.database.sqlalchemy_uri.startswith(k):
-                    return v
-            return default
+            s = self.table.database.db_engine_spec.convert_dttm(
+                self.type, dttm)
+            return s or "'{}'".format(dttm.strftime(tf))
 
 
 class DruidCluster(Model, AuditMixinNullable):
