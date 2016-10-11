@@ -347,6 +347,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             return slc_to_override.id
         else:
             session.add(slc_to_import)
+            logging.info('Final slice: {}'.format(slc_to_import.to_json()))
             session.flush()
             return slc_to_import.id
 

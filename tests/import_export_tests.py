@@ -4,6 +4,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from sqlalchemy.orm.session import make_transient
+
 import json
 import pickle
 import unittest
@@ -19,366 +21,348 @@ class ImportExportTests(CaravelTestCase):
     def __init__(self, *args, **kwargs):
         super(ImportExportTests, self).__init__(*args, **kwargs)
 
-    def test_export_dashboards(self):
-        births_dash = db.session.query(models.Dashboard).filter_by(
-            slug='births').first()
+    @classmethod
+    def delete_imports(cls):
+        # Imported data clean up
+        session = db.session
+        for slc in session.query(models.Slice):
+            if 'remote_id' in slc.params_dict:
+                session.delete(slc)
+        for dash in session.query(models.Dashboard):
+            if 'remote_id' in dash.metadata_dejson:
+                session.delete(dash)
+        for table in session.query(models.SqlaTable):
+            if 'remote_id' in table.dict_metadata:
+                session.delete(table)
+        session.commit()
 
-        # export 1 dashboard
-        export_dash_url_1 = (
+    @classmethod
+    def setUpClass(cls):
+        cls.delete_imports()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.delete_imports()
+
+    def create_slice(self, name, ds_id=None, id=None, db_name='main',
+                     table_name='wb_health_population'):
+        params = {
+            'num_period_compare': '10',
+            'remote_id': id,
+            'datasource_name': table_name,
+            'database_name': db_name,
+            'schema': '',
+        }
+
+        if table_name and not ds_id:
+            table = self.get_table_by_name(table_name)
+            if table:
+                ds_id = table.id
+
+        return models.Slice(
+            slice_name=name,
+            datasource_type='table',
+            viz_type='bubble',
+            params=json.dumps(params),
+            datasource_id=ds_id,
+            id=id
+        )
+
+    def create_dashboard(self, title, id=0, slcs=[]):
+        json_metadata = {'remote_id': id}
+        return models.Dashboard(
+            id=id,
+            dashboard_title=title,
+            slices=slcs,
+            position_json='{"size_y": 2, "size_x": 2}',
+            slug='{}_imported'.format(title.lower()),
+            json_metadata=json.dumps(json_metadata)
+        )
+
+    def create_table(self, name, schema='', id=0, cols_names=[], metric_names=[]):
+        json_metadata = {'remote_id': id, 'database_name': 'main'}
+        table = models.SqlaTable(
+            id=id,
+            schema=schema,
+            table_name=name,
+            json_metadata=json.dumps(json_metadata)
+        )
+        for col_name in cols_names:
+            table.columns.append(
+                models.TableColumn(column_name=col_name))
+        for metric_name in metric_names:
+            table.metrics.append(models.SqlMetric(metric_name=metric_name))
+        return table
+
+    def get_slice(self, slc_id):
+        return db.session.query(models.Slice).filter_by(id=slc_id).first()
+
+    def get_dash(self, dash_id):
+        return db.session.query(models.Dashboard).filter_by(
+            id=dash_id).first()
+
+    def get_dash_by_slug(self, dash_slug):
+        return db.session.query(models.Dashboard).filter_by(
+            slug=dash_slug).first()
+
+    def get_table(self, table_id):
+        return db.session.query(models.SqlaTable).filter_by(
+            id=table_id).first()
+
+    def get_table_by_name(self, name):
+        return db.session.query(models.SqlaTable).filter_by(
+            table_name=name).first()
+
+    def assert_dash_equals(self, expected_dash, actual_dash):
+        self.assertEquals(expected_dash.slug, actual_dash.slug)
+        self.assertEquals(
+            expected_dash.dashboard_title, actual_dash.dashboard_title)
+        self.assertEquals(
+            expected_dash.position_json, actual_dash.position_json)
+        self.assertEquals(
+            len(expected_dash.slices), len(actual_dash.slices))
+        expected_slices = sorted(
+            expected_dash.slices, key=lambda s: s.slice_name)
+        actual_slices = sorted(
+            actual_dash.slices, key=lambda s: s.slice_name)
+        for e_slc, a_slc in zip(expected_slices, actual_slices):
+            self.assert_slice_equals(e_slc, a_slc)
+
+    def assert_table_equals(self, expected_ds, actual_ds):
+        self.assertEquals(expected_ds.table_name, actual_ds.table_name)
+        self.assertEquals(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
+        self.assertEquals(expected_ds.schema, actual_ds.schema)
+        self.assertEquals(len(expected_ds.metrics), len(actual_ds.metrics))
+        self.assertEquals(len(expected_ds.columns), len(actual_ds.columns))
+        self.assertEquals(
+            set([c.column_name for c in expected_ds.columns]),
+            set([c.column_name for c in actual_ds.columns]))
+        self.assertEquals(
+            set([m.metric_name for m in expected_ds.metrics]),
+            set([m.metric_name for m in actual_ds.metrics]))
+
+    def assert_slice_equals(self, expected_slc, actual_slc):
+        self.assertEquals(actual_slc.datasource.perm, actual_slc.perm)
+        self.assertEquals(expected_slc.slice_name, actual_slc.slice_name)
+        self.assertEquals(
+            expected_slc.datasource_type, actual_slc.datasource_type)
+        self.assertEquals(expected_slc.viz_type, actual_slc.viz_type)
+        self.assertEquals(
+            json.loads(expected_slc.params), json.loads(actual_slc.params))
+
+    def test_export_1_dashboard(self):
+        birth_dash = self.get_dash_by_slug('births')
+        export_dash_url = (
             '/dashboardmodelview/export_dashboards_form?id={}&action=go'
-            .format(births_dash.id)
+            .format(birth_dash.id)
         )
-        resp_1 = self.client.get(export_dash_url_1)
-        exported_dashboards_1 = pickle.loads(resp_1.data)['dashboards']
-        self.assertEquals(1, len(exported_dashboards_1))
-        self.assertEquals('births', exported_dashboards_1[0].slug)
-        self.assertEquals('Births', exported_dashboards_1[0].dashboard_title)
+        resp = self.client.get(export_dash_url)
+        exported_dashboards = pickle.loads(resp.data)['dashboards']
+        self.assert_dash_equals(birth_dash, exported_dashboards[0])
         self.assertEquals(
-            births_dash.id,
-            json.loads(exported_dashboards_1[0].json_metadata)['remote_id']
-        )
+            birth_dash.id,
+            json.loads(exported_dashboards[0].json_metadata)['remote_id'])
 
-        self.assertTrue(exported_dashboards_1[0].position_json)
-        self.assertEquals(9, len(exported_dashboards_1[0].slices))
+        exported_tables = pickle.loads(resp.data)['datasources']
+        self.assertEquals(1, len(exported_tables))
+        self.assert_table_equals(
+            self.get_table_by_name('birth_names'), exported_tables[0])
 
-        exported_tables_1 = pickle.loads(resp_1.data)['datasources']
-        self.assertEquals(1, len(exported_tables_1))
-        self.assertEquals(
-            1, len([c for c in [t.columns for t in exported_tables_1]]))
-        self.assertEquals(
-            1, len([m for m in [t.metrics for t in exported_tables_1]]))
-
-        # export 2 dashboards
-        world_health_dash = db.session.query(models.Dashboard).filter_by(
-            slug='world_health').first()
-        export_dash_url_2 = (
+    def test_export_2_dashboards(self):
+        birth_dash = self.get_dash_by_slug('births')
+        world_health_dash = self.get_dash_by_slug('world_health')
+        export_dash_url = (
             '/dashboardmodelview/export_dashboards_form?id={}&id={}&action=go'
-            .format(births_dash.id, world_health_dash.id)
+            .format(birth_dash.id, world_health_dash.id))
+        resp = self.client.get(export_dash_url)
+        exported_dashboards = sorted(pickle.loads(resp.data)['dashboards'],
+                                     key=lambda d: d.dashboard_title)
+        self.assertEquals(2, len(exported_dashboards))
+        self.assert_dash_equals(birth_dash, exported_dashboards[0])
+        self.assertEquals(
+            birth_dash.id,
+            json.loads(exported_dashboards[0].json_metadata)['remote_id']
         )
-        resp_2 = self.client.get(export_dash_url_2)
-        exported_dashboards_2 = sorted(pickle.loads(resp_2.data)['dashboards'])
-        self.assertEquals(2, len(exported_dashboards_2))
-        self.assertEquals(9, len(exported_dashboards_2[0].slices))
-        self.assertEquals('births', exported_dashboards_2[0].slug)
 
-        self.assertEquals(10, len(exported_dashboards_2[1].slices))
-        self.assertEquals('world_health', exported_dashboards_2[1].slug)
+        self.assert_dash_equals(world_health_dash, exported_dashboards[1])
         self.assertEquals(
             world_health_dash.id,
-            json.loads(exported_dashboards_2[1].json_metadata)['remote_id']
+            json.loads(exported_dashboards[1].json_metadata)['remote_id']
         )
 
-        exported_tables_2 = sorted(pickle.loads(resp_2.data)['datasources'])
-        self.assertEquals(2, len(exported_tables_2))
-        table_names = [t.table_name for t in exported_tables_2]
-        self.assertEquals(len(set(table_names)), len(table_names))
-        self.assertEquals(
-            14, len([c for c in t.columns for t in exported_tables_2]))
-        self.assertEquals(
-            8, len([m for m in t.metrics for t in exported_tables_2]))
+        exported_tables = sorted(
+            pickle.loads(resp.data)['datasources'], key=lambda t: t.table_name)
+        self.assertEquals(2, len(exported_tables))
+        self.assert_table_equals(
+            self.get_table_by_name('birth_names'), exported_tables[0])
+        self.assert_table_equals(
+            self.get_table_by_name('wb_health_population'), exported_tables[1])
 
-    def test_import_slice(self):
-        session = db.session
+    def test_import_1_slice(self):
+        expected_slice = self.create_slice('Import Me', id=10001);
+        slc_id = models.Slice.import_obj(expected_slice, import_time=1989)
+        self.assert_slice_equals(expected_slice, self.get_slice(slc_id))
 
-        def create_slice(name, ds_id=666, slc_id=1,
-                      db_name='main',
-                      table_name='wb_health_population'):
-            params = {
-                'num_period_compare': '10',
-                'remote_id': slc_id,
-                'datasource_name': table_name,
-                'database_name': db_name,
-                'schema': '',
-            }
-            return models.Slice(
-                slice_name=name,
-                datasource_type='table',
-                viz_type='bubble',
-                params=json.dumps(params),
-                datasource_id=ds_id,
-                id=slc_id
-            )
+        table_id = self.get_table_by_name('wb_health_population').id
+        self.assertEquals(table_id, self.get_slice(slc_id).datasource_id)
 
-        def get_slice(slc_id):
-            return session.query(models.Slice).filter_by(id=slc_id).first()
+    def test_import_2_slices_for_same_table(self):
+        table_id = self.get_table_by_name('wb_health_population').id
+        # table_id != 666, import func will have to find the table
+        slc_1 = self.create_slice('Import Me 1', ds_id=666, id=10002)
+        slc_id_1 = models.Slice.import_obj(slc_1)
+        slc_2 = self.create_slice('Import Me 2', ds_id=666, id=10003)
+        slc_id_2 = models.Slice.import_obj(slc_2)
 
-        # Case 1. Import slice with different datasource id
-        slc_id_1 = models.Slice.import_obj(
-            create_slice('Import Me 1'), import_time=1989)
-        slc_1 = get_slice(slc_id_1)
-        table_id = db.session.query(models.SqlaTable).filter_by(
-            table_name='wb_health_population').first().id
-        self.assertEquals(table_id, slc_1.datasource_id)
-        self.assertEquals(
-            '[main].[wb_health_population](id:{})'.format(table_id),
-            slc_1.perm)
-        self.assertEquals('Import Me 1', slc_1.slice_name)
-        self.assertEquals('table', slc_1.datasource_type)
-        self.assertEquals('bubble', slc_1.viz_type)
-        self.assertEquals(
-            {'num_period_compare': '10',
-             'datasource_name': 'wb_health_population',
-             'database_name': 'main',
-             'remote_id': 1,
-             'schema': '',
-             'import_time': 1989,},
-            json.loads(slc_1.params))
+        imported_slc_1 = self.get_slice(slc_id_1)
+        imported_slc_2 = self.get_slice(slc_id_2)
+        self.assertEquals(table_id, imported_slc_1.datasource_id)
+        self.assert_slice_equals(slc_1, imported_slc_1)
 
-        # Case 2. Import slice with same datasource id
-        slc_id_2 = models.Slice.import_obj(create_slice(
-            'Import Me 2', ds_id=table_id, slc_id=2))
-        slc_2 = get_slice(slc_id_2)
-        self.assertEquals(table_id, slc_2.datasource_id)
-        self.assertEquals(
-            '[main].[wb_health_population](id:{})'.format(table_id),
-            slc_2.perm)
+        self.assertEquals(table_id, imported_slc_2.datasource_id)
+        self.assert_slice_equals(slc_2, imported_slc_2)
 
-        # Case 3. Import slice with non existent datasource
+    def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(IndexError):
-            models.Slice.import_obj(create_slice(
-                'Import Me 3', slc_id=3, table_name='non_existent'))
+            models.Slice.import_obj(self.create_slice(
+                'Import Me 3', id=10004, table_name='non_existent'))
 
-        # Case 4. Older version of slice already exists, override
-        slc_id_4 = models.Slice.import_obj(
-            create_slice('Import Me New 1'), import_time=1990)
-        slc_4 = get_slice(slc_id_4)
-        self.assertEquals(table_id, slc_4.datasource_id)
-        self.assertEquals(
-            '[main].[wb_health_population](id:{})'.format(table_id),
-            slc_4.perm)
-        self.assertEquals('Import Me New 1', slc_4.slice_name)
-        self.assertEquals('table', slc_4.datasource_type)
-        self.assertEquals('bubble', slc_4.viz_type)
-        self.assertEquals(
-            {'num_period_compare': '10',
-             'datasource_name': 'wb_health_population',
-             'database_name': 'main',
-             'remote_id': 1,
-             'schema': '',
-             'import_time': 1990
-             },
-            json.loads(slc_4.params))
-        # override doesn't change the id
-        self.assertEquals(slc_id_1, slc_id_4)
+    def test_import_slices_override(self):
+        slc = self.create_slice('Import Me New', id=10005)
+        slc_1_id = models.Slice.import_obj(slc, import_time=1990)
+        slc.slice_name = 'Import Me New'
+        slc_2_id = models.Slice.import_obj(
+            self.create_slice('Import Me New', id=10005), import_time=1990)
+        self.assertEquals(slc_1_id, slc_2_id)
+        imported_slc = self.get_slice(slc_2_id)
+        self.assert_slice_equals(slc, imported_slc)
 
-        session.delete(slc_2)
-        session.delete(slc_4)
-        session.commit()
-
-    def test_import_dashboard(self):
-        session = db.session
-
-        def create_dashboard(title, id=0, slcs=[]):
-            json_metadata = {'remote_id': id}
-            return models.Dashboard(
-                id=id,
-                dashboard_title=title,
-                slices=slcs,
-                position_json='{"size_y": 2, "size_x": 2}',
-                slug='{}_imported'.format(title.lower()),
-                json_metadata=json.dumps(json_metadata)
-            )
-
-        def get_dash(dash_id):
-            return session.query(models.Dashboard).filter_by(
-                id=dash_id).first()
-
-        def get_slc(name, table_name, slc_id):
-            params = {
-                'remote_id': "'{}'".format(slc_id),
-                'datasource_name': table_name,
-                'database_name': 'main',
-                'schema': 'test',
-            }
-            return models.Slice(
-                id=slc_id,
-                slice_name=name,
-                datasource_type='table',
-                params=json.dumps(params)
-            )
-
-        # Case 1. Import empty dashboard can be imported
-        empty_dash = create_dashboard('empty_dashboard', id=1001)
-        imported_dash_id_1 = models.Dashboard.import_obj(
+    def test_import_empty_dashboard(self):
+        empty_dash = self.create_dashboard('empty_dashboard', id=10001)
+        imported_dash_id = models.Dashboard.import_obj(
             empty_dash, import_time=1989)
-        imported_dash_1 = get_dash(imported_dash_id_1)
-        self.assertEquals('empty_dashboard', imported_dash_1.dashboard_title)
+        imported_dash = self.get_dash(imported_dash_id)
+        self.assert_dash_equals(empty_dash, imported_dash)
 
-        # Case 2. Import dashboard with 1 new slice.
-        dash_with_1_slice = create_dashboard(
-            'dash_with_1_slice',
-            slcs=[get_slc('health_slc', 'wb_health_population', 1001)],
-            id=1002)
-        imported_dash_id_2 = models.Dashboard.import_obj(
+    def test_import_dashboard_1_slice(self):
+        slc = self.create_slice('health_slc', id=10006)
+        dash_with_1_slice = self.create_dashboard(
+            'dash_with_1_slice', slcs=[slc], id=10002)
+        imported_dash_id = models.Dashboard.import_obj(
             dash_with_1_slice, import_time=1990)
-        imported_dash_2 = get_dash(imported_dash_id_2)
-        self.assertEquals('dash_with_1_slice', imported_dash_2.dashboard_title)
-        self.assertEquals(1, len(imported_dash_2.slices))
-        self.assertEquals('wb_health_population',
-                          imported_dash_2.slices[0].datasource.table_name)
-        self.assertEquals(
-            {"remote_id": 1002, "import_time": 1990},
-            json.loads(imported_dash_2.json_metadata))
+        imported_dash = self.get_dash(imported_dash_id)
 
-        # Case 3. Import dashboard with 2 new slices.
-        dash_with_2_slices = create_dashboard(
-            'dash_with_2_slices',
-            slcs=[get_slc('energy_slc', 'energy_usage', 1002),
-                  get_slc('birth_slc', 'birth_names', 1003)],
-            id=1003)
-        imported_dash_id_3 = models.Dashboard.import_obj(
+        expected_dash = self.create_dashboard(
+            'dash_with_1_slice', slcs=[slc], id=10002)
+        make_transient(expected_dash)
+        self.assert_dash_equals(expected_dash, imported_dash)
+        self.assertEquals({"remote_id": 10002, "import_time": 1990},
+                          json.loads(imported_dash.json_metadata))
+
+    def test_import_dashboard_2_slices(self):
+        e_slc = self.create_slice('e_slc', id=10007, table_name='energy_usage')
+        b_slc = self.create_slice('b_slc', id=10008, table_name='birth_names')
+        dash_with_2_slices = self.create_dashboard(
+            'dash_with_2_slices', slcs=[e_slc, b_slc], id=10003)
+        imported_dash_id = models.Dashboard.import_obj(
             dash_with_2_slices, import_time=1991)
-        imported_dash_3 = get_dash(imported_dash_id_3)
-        self.assertEquals('dash_with_2_slices', imported_dash_3.dashboard_title)
-        self.assertEquals(2, len(imported_dash_3.slices))
-        self.assertEquals(
-            {"remote_id": 1003, "import_time": 1991},
-            json.loads(imported_dash_3.json_metadata))
-        imported_dash_slice_ids_3 = {s.id for s in imported_dash_3.slices}
+        imported_dash = self.get_dash(imported_dash_id)
 
-        # Case 4. Override the dashboard and 2 slices
-        dash_with_2_slices_new = create_dashboard(
-            'dash_with_2_slices_new',
-            slcs=[get_slc('energy_slc', 'energy_usage', 1002),
-                  get_slc('birth_slc', 'birth_names', 1003)],
-            id=1003)
-        imported_dash_id_4 = models.Dashboard.import_obj(
-            dash_with_2_slices_new, import_time=1992)
-        imported_dash_4 = get_dash(imported_dash_id_4)
-        self.assertEquals('dash_with_2_slices_new',
-                          imported_dash_4.dashboard_title)
-        self.assertEquals(2, len(imported_dash_4.slices))
-        self.assertEquals(
-            imported_dash_slice_ids_3, {s.id for s in imported_dash_4.slices})
-        self.assertEquals(
-            {"remote_id": 1003, "import_time": 1992},
-            json.loads(imported_dash_4.json_metadata))
+        expected_dash = self.create_dashboard(
+            'dash_with_2_slices', slcs=[e_slc, b_slc], id=10003)
+        make_transient(expected_dash)
+        self.assert_dash_equals(imported_dash, expected_dash)
+        self.assertEquals({"remote_id": 10003, "import_time": 1991},
+                          json.loads(imported_dash.json_metadata))
+
+    def test_import_override_dashboard_2_slices(self):
+        e_slc = self.create_slice('e_slc', id=10009, table_name='energy_usage')
+        b_slc = self.create_slice('b_slc', id=10010, table_name='birth_names')
+        dash_to_import = self.create_dashboard(
+            'override_dashboard', slcs=[e_slc, b_slc], id=10004)
+        imported_dash_id_1 = models.Dashboard.import_obj(
+            dash_to_import, import_time=1992)
+
+        # create new instances of the slices
+        e_slc = self.create_slice(
+            'e_slc', id=10009, table_name='energy_usage')
+        b_slc = self.create_slice(
+            'b_slc', id=10010, table_name='birth_names')
+        c_slc = self.create_slice('c_slc', id=10011, table_name='birth_names')
+        dash_to_import_override = self.create_dashboard(
+            'override_dashboard_new', slcs=[e_slc, b_slc, c_slc], id=10004)
+        imported_dash_id_2 = models.Dashboard.import_obj(
+            dash_to_import_override, import_time=1992)
+
         # override doesn't change the id
-        self.assertEquals(imported_dash_id_3, imported_dash_id_4)
+        self.assertEquals(imported_dash_id_1, imported_dash_id_2)
+        expected_dash = self.create_dashboard(
+            'override_dashboard_new', slcs=[e_slc, b_slc, c_slc], id=10004)
+        make_transient(expected_dash)
+        imported_dash = self.get_dash(imported_dash_id_2)
+        self.assert_dash_equals(expected_dash, imported_dash)
+        self.assertEquals({"remote_id": 10004, "import_time": 1992},
+                          json.loads(imported_dash.json_metadata))
 
-        # cleanup
-        slc_to_delete = set(imported_dash_2.slices)
-        slc_to_delete.update(imported_dash_4.slices)
-        for slc in slc_to_delete:
-            session.delete(slc)
+    def test_import_table_no_metadata(self):
+        table = self.create_table('pure_table', id=10001)
+        imported_t_id = models.SqlaTable.import_obj(table, import_time=1989)
+        imported_table = self.get_table(imported_t_id)
+        self.assert_table_equals(table, imported_table)
 
-        session.delete(imported_dash_1)
-        session.delete(imported_dash_2)
-        session.delete(imported_dash_4)
-        session.commit()
-
-    def test_import_tables(self):
-        session = db.session
-
-        def create_table(
-                name, schema='', id=0, cols_names=[], metric_names=[]):
-            json_metadata = {'remote_id': id, 'database_name': 'main'}
-            table = models.SqlaTable(
-                id=id,
-                schema=schema,
-                table_name=name,
-                json_metadata=json.dumps(json_metadata)
-            )
-            for col_name in cols_names:
-                table.columns.append(
-                    models.TableColumn(column_name=col_name))
-            for metric_name in metric_names:
-                table.metrics.append(models.SqlMetric(metric_name=metric_name))
-            return table
-
-        def get_table(table_id):
-            return session.query(models.SqlaTable).filter_by(
-                id=table_id).first()
-
-        # Case 1. Import table with no metrics and columns
-        pure_table = create_table('pure_table', id=1001)
-        imported_table_1_id = models.SqlaTable.import_obj(
-            pure_table, import_time=1989)
-        imported_table_1 = get_table(imported_table_1_id)
-        self.assertEquals('pure_table', imported_table_1.table_name)
-
-        # Case 2. Import table with 1 column and metric
-        table_2 = create_table(
-            'table_2', id=1002, cols_names=["col1"], metric_names=["metric1"])
-        imported_table_id_2 = models.SqlaTable.import_obj(
-            table_2, import_time=1990)
-        imported_table_2 = get_table(imported_table_id_2)
-        self.assertEquals('table_2', imported_table_2.table_name)
-        self.assertEquals(1, len(imported_table_2.columns))
-        self.assertEquals('col1', imported_table_2.columns[0].column_name)
-        self.assertEquals(1, len(imported_table_2.metrics))
-        self.assertEquals('metric1', imported_table_2.metrics[0].metric_name)
+    def test_import_table_1_col_1_met(self):
+        table = self.create_table(
+            'table_1_col_1_met', id=10002,
+            cols_names=["col1"], metric_names=["metric1"])
+        imported_t_id = models.SqlaTable.import_obj(table, import_time=1990)
+        imported_table = self.get_table(imported_t_id)
+        self.assert_table_equals(table, imported_table)
         self.assertEquals(
-            {'remote_id': 1002, 'import_time': 1990, 'database_name': 'main'},
-            json.loads(imported_table_2.json_metadata))
+            {'remote_id': 10002, 'import_time': 1990, 'database_name': 'main'},
+            json.loads(imported_table.json_metadata))
 
-        # Case 3. Import table with 2 metrics and 2 columns
-        table_3 = create_table(
-            'table_3', id=1003, cols_names=['col1', 'col2'],
-            metric_names=['metric1', 'metric2'])
-        imported_table_id_3 = models.SqlaTable.import_obj(
-            table_3, import_time=1991)
+    def test_import_table_2_col_2_met(self):
+        table = self.create_table(
+            'table_2_col_2_met', id=10003, cols_names=['c1', 'c2'],
+            metric_names=['m1', 'm2'])
+        imported_t_id = models.SqlaTable.import_obj(table, import_time=1991)
 
-        imported_table_3 = get_table(imported_table_id_3)
-        self.assertEquals('table_3', imported_table_3.table_name)
-        self.assertEquals(2, len(imported_table_3.columns))
-        self.assertEquals(
-            {'col1', 'col2'},
-            set([c.column_name for c in imported_table_3.columns]))
-        self.assertEquals(2, len(imported_table_3.metrics))
-        self.assertEquals(
-            {'metric1', 'metric2'},
-            set([m.metric_name for m in imported_table_3.metrics]))
-        imported_table_3_id = imported_table_3.id
+        imported_table = self.get_table(imported_t_id)
+        self.assert_table_equals(table, imported_table)
 
-        # Case 4. Override table with different metrics and columns
-        table_4 = create_table(
-            'table_3', id=1003, cols_names=['new_col1', 'col2', 'col3'],
+    def test_import_table_override(self):
+        table = self.create_table(
+            'table_override', id=10003, cols_names=['col1'],
+            metric_names=['m1'])
+        imported_t_id = models.SqlaTable.import_obj(table, import_time=1991)
+
+        table_over = self.create_table(
+            'table_override', id=10003, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_table_id_4 = models.SqlaTable.import_obj(
-            table_4, import_time=1992)
+        imported_table_over_id = models.SqlaTable.import_obj(
+            table_over, import_time=1992)
 
-        imported_table_4 = get_table(imported_table_id_4)
-        self.assertEquals('table_3', imported_table_4.table_name)
-        self.assertEquals(4, len(imported_table_4.columns))
-        # metrics and columns are never deleted, only appended
-        self.assertEquals(
-            {'col1', 'new_col1', 'col2', 'col3'},
-            set([c.column_name for c in imported_table_4.columns]))
-        self.assertEquals(3, len(imported_table_4.metrics))
-        self.assertEquals(
-            {'new_metric1', 'metric1', 'metric2'},
-            set([m.metric_name for m in imported_table_4.metrics]))
-        # override doesn't change the id
-        self.assertEquals(imported_table_3_id, imported_table_4.id)
+        imported_table_over = self.get_table(imported_table_over_id)
+        self.assertEquals(imported_t_id, imported_table_over.id)
+        expected_table = self.create_table(
+            'table_override', id=10003, metric_names=['new_metric1', 'm1'],
+            cols_names=['col1', 'new_col1', 'col2', 'col3'])
+        self.assert_table_equals(expected_table, imported_table_over)
 
-        # Case 5. Override with the identical table
-        table_5 = create_table(
-            'table_3', id=1003, cols_names=['new_col1', 'col2', 'col3'],
+    def test_import_table_override_idential(self):
+        table = self.create_table(
+            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_table_id_5 = models.SqlaTable.import_obj(
-            table_5, import_time=1993)
+        imported_t_id = models.SqlaTable.import_obj(table, import_time=1993)
 
-        imported_table_5 = get_table(imported_table_id_5)
-        self.assertEquals('table_3', imported_table_5.table_name)
-        self.assertEquals(4, len(imported_table_5.columns))
-        self.assertEquals(
-            {'col1', 'new_col1', 'col2', 'col3'},
-            set([c.column_name for c in imported_table_5.columns]))
-        self.assertEquals(3, len(imported_table_5.metrics))
-        self.assertEquals(
-            {'new_metric1', 'metric1', 'metric2'},
-            set([m.metric_name for m in imported_table_5.metrics]))
+        copy_table = self.create_table(
+            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_t_id_copy = models.SqlaTable.import_obj(
+            copy_table, import_time=1994)
 
-        # cleanup
-        # imported_table_3 and 4 are overriden
-        for table in [imported_table_1, imported_table_2, imported_table_5]:
-            for metric in table.metrics:
-                session.delete(metric)
-            for column in table.columns:
-                session.delete(column)
-            session.delete(table)
-        session.commit()
+        self.assertEquals(imported_t_id, imported_t_id_copy)
+        self.assert_table_equals(copy_table, self.get_table(imported_t_id))
 
 if __name__ == '__main__':
     unittest.main()
