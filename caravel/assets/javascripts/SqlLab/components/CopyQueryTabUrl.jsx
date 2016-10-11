@@ -27,10 +27,10 @@ export default class CopyQueryTabUrl extends React.Component {
     const params = [];
     const qe = this.props.qe;
     if (qe.dbId) params.push('dbid=' + qe.dbId);
-    if (qe.title) params.push('title=' + qe.title);
-    if (qe.schema) params.push('schema=' + qe.schema);
+    if (qe.title) params.push('title=' + encodeURIComponent(qe.title));
+    if (qe.schema) params.push('schema=' + encodeURIComponent(qe.schema));
     if (qe.autorun) params.push('autorun=' + qe.autorun);
-    if (qe.sql) params.push('sql=' + qe.sql);
+    if (qe.sql) params.push('sql=' + encodeURIComponent(qe.sql));
 
     const queryString = params.join('&');
     const queryLink = this.state.cleanUri + '?' + queryString;
@@ -43,7 +43,8 @@ export default class CopyQueryTabUrl extends React.Component {
       <CopyToClipboard
         inMenu
         text={this.getQueryLink()}
-        copyNode={<span>copy query</span>}
+        copyNode={<span>share query</span>}
+        tooltipText="copy URL to clipboard"
         shouldShowText={false}
       />
     );

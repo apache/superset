@@ -92,7 +92,7 @@
     "babel": "^6.3.26",
     "babel-core": "^6.10.4",
     "babel-loader": "^6.2.4",
-    "babel-preset-airbnb": "^2.0.0",
+    "babel-preset-airbnb": "^2.1.1",
     "babel-preset-react": "^6.11.1",
     "chai": "^3.5.0",
     "codeclimate-test-reporter": "^0.3.3",

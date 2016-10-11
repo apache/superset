@@ -7,6 +7,7 @@ const propTypes = {
   shouldShowText: PropTypes.bool,
   text: PropTypes.string.isRequired,
   inMenu: PropTypes.bool,
+  tooltipText: PropTypes.string,
 };
 
 const defaultProps = {
@@ -14,6 +15,7 @@ const defaultProps = {
   onCopyEnd: () => {},
   shouldShowText: true,
   inMenu: false,
+  tooltipText: 'Copy to clipboard',
 };
 
 export default class CopyToClipboard extends React.Component {
@@ -64,13 +66,10 @@ export default class CopyToClipboard extends React.Component {
   }
 
   tooltipText() {
-    let tooltipText;
     if (this.state.hasCopied) {
-      tooltipText = 'Copied!';
-    } else {
-      tooltipText = 'Copy text';
+      return 'Copied!';
     }
-    return tooltipText;
+    return this.props.tooltipText;
   }
 
   renderLink() {
