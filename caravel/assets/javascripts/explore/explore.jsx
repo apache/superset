@@ -3,6 +3,7 @@
 // nb: to add a new vis, you must also add a Python fn in viz.py
 //
 // js
+require('babel-polyfill');
 const $ = window.$ = require('jquery');
 const px = require('./../modules/caravel.js');
 const utils = require('./../modules/utils.js');

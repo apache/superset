@@ -1,3 +1,4 @@
+require('babel-polyfill');
 const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
 const jQuery = window.jQuery = $;
