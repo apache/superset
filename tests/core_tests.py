@@ -15,7 +15,11 @@ import unittest
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
-from caravel import db, models, utils, appbuilder, sm
+import caravel
+from caravel import app, db, models, utils, appbuilder, sm
+from caravel.source_registry import SourceRegistry
+from caravel.models import DruidDatasource
+from caravel.views import DatabaseView
 
 from .base_tests import CaravelTestCase
 
@@ -176,6 +180,17 @@ class CoreTests(CaravelTestCase):
         response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
 
+    def test_databaseview_edit(self, username='admin'):
+        # validate that sending a password-masked uri does not over-write the decrypted uri
+        self.login(username=username)
+        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
+        url = 'databaseview/edit/{}'.format(database.id)
+        data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
+        data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
+        response = self.client.post(url, data=data)
+        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
