@@ -1,4 +1,13 @@
 {% extends "caravel/basic.html" %}
+
+# TODO: move the libs required by flask into the common.js from welcome.js.
+{% block head_js %}
+  {{ super() }}
+  {% with filename="welcome" %}
+    {% include "caravel/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}
+
 {% block title %}{{ _("Import") }}{% endblock %}
 {% block body %}
     {% include "caravel/flash_wrapper.html" %}
