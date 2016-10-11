@@ -396,6 +396,18 @@ class CoreTests(CaravelTestCase):
         resp = self.get_resp('/dashboardmodelview/list/')
         assert "/caravel/dashboard/world_health/" not in resp
 
+    def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
+        self.logout()
+        self.setup_public_access_for_dashboard('birth_names')
+
+        dash = db.session.query(models.Dashboard).filter_by(dashboard_title="Births").first()
+        dash.owners = [appbuilder.sm.find_user('admin')]
+        dash.created_by = appbuilder.sm.find_user('admin')
+        db.session.merge(dash)
+        db.session.commit()
+
+        assert 'Births' in self.get_resp('/caravel/dashboard/births/')
+
     def test_only_owners_can_save(self):
         dash = (
             db.session

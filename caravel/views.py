@@ -136,6 +136,14 @@ def check_ownership(obj, raise_if_false=True):
     """
     if not obj:
         return False
+
+    security_exception = utils.CaravelSecurityException(
+              "You don't have the rights to alter [{}]".format(obj))
+
+    if g.user.is_anonymous():
+        if raise_if_false:
+            raise security_exception
+        return False
     roles = (r.name for r in get_user_roles())
     if 'Admin' in roles:
         return True
@@ -154,8 +162,7 @@ def check_ownership(obj, raise_if_false=True):
             g.user.username in owner_names):
         return True
     if raise_if_false:
-        raise utils.CaravelSecurityException(
-            "You don't have the rights to alter [{}]".format(obj))
+        raise security_exception
     else:
         return False
 
