@@ -86,6 +86,18 @@ class ImportMixin(object):
         new_obj.override(self)
         return new_obj
 
+    def alter_params(self, **kwargs):
+        d = self.params_dict
+        d.update(kwargs)
+        self.params = json.dumps(d)
+
+    @property
+    def params_dict(self):
+        if self.params:
+            return json.loads(self.params)
+        else:
+            return {}
+
 
 class AuditMixinNullable(AuditMixin):
 
@@ -275,13 +287,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         name = escape(self.slice_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
-    @property
-    def params_dict(self):
-        if self.params:
-            return json.loads(self.params)
-        else:
-            return {}
-
     def get_viz(self, url_params_multidict=None):
         """Creates :py:class:viz.BaseViz object from the url_params_multidict.
 
@@ -309,11 +314,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             form_data=immutable_slice_params,
             slice_=self
         )
-
-    def alter_params(self, **kwargs):
-        d = self.params_dict
-        d.update(kwargs)
-        self.params = json.dumps(d)
 
     @classmethod
     def import_obj(cls, slc_to_import, import_time=None):
@@ -412,13 +412,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return {slc.datasource for slc in self.slices}
 
     @property
-    def metadata_dejson(self):
-        if self.json_metadata:
-            return json.loads(self.json_metadata)
-        else:
-            return {}
-
-    @property
     def sqla_metadata(self):
         metadata = MetaData(bind=self.get_sqla_engine())
         return metadata.reflect()
@@ -432,7 +425,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     def json_data(self):
         d = {
             'id': self.id,
-            'metadata': self.metadata_dejson,
+            'metadata': self.params_dict,
             'dashboard_title': self.dashboard_title,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
@@ -441,15 +434,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         return json.dumps(d)
 
     @property
-    def dict_metadata(self):
-        if not self.json_metadata:
-            return {}
-        return json.loads(self.json_metadata)
+    def params(self):
+        return self.json_metadata
 
-    def alter_json_metadata(self, **kwargs):
-        d = self.dict_metadata
-        d.update(kwargs)
-        self.json_metadata = json.dumps(d)
+    @params.setter
+    def params(self, value):
+        self.json_metadata = value
 
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
@@ -479,13 +469,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         # override the dashboard
         existing_dashboard = None
         for dash in session.query(Dashboard).all():
-            if ('remote_id' in dash.metadata_dejson and
-                    dash.metadata_dejson['remote_id'] ==
+            if ('remote_id' in dash.params_dict and
+                    dash.params_dict['remote_id'] ==
                     dashboard_to_import.id):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
-        dashboard_to_import.alter_json_metadata(import_time=import_time)
+        dashboard_to_import.alter_params(import_time=import_time)
         new_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         if existing_dashboard:
@@ -525,14 +515,14 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     schema=slc.datasource.name,
                     database_name=slc.datasource.database.database_name,
                 )
-            copied_dashboard.alter_json_metadata(remote_id=dashboard_id)
+            copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
 
             eager_datasources = []
             for dashboard_id, dashboard_type in datasource_ids:
                 eager_datasource = SourceRegistry.get_eager_datasource(
                     db.session, dashboard_type, dashboard_id)
-                eager_datasource.alter_json_metadata(
+                eager_datasource.alter_params(
                     remote_id=eager_datasource.id,
                     database_name=eager_datasource.database.database_name,
                 )
@@ -868,13 +858,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     schema = Column(String(255))
     sql = Column(Text)
-    json_metadata = Column(Text)
+    params = Column(Text)
 
     baselink = "tablemodelview"
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
-        'sql', 'json_metadata')
+        'sql', 'params')
 
     __table_args__ = (
         sqla.UniqueConstraint(
@@ -1245,17 +1235,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         if not self.main_dttm_col:
             self.main_dttm_col = any_date_col
 
-    def alter_json_metadata(self, **kwargs):
-        d = self.dict_metadata
-        d.update(kwargs)
-        self.json_metadata = json.dumps(d)
-
-    @property
-    def dict_metadata(self):
-        if self.json_metadata:
-            return json.loads(self.json_metadata)
-        return {}
-
     @classmethod
     def import_obj(cls, datasource_to_import, import_time=None):
         """Imports the datasource from the object to the database.
@@ -1270,10 +1249,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                      .format(datasource_to_import.to_json()))
 
         datasource_to_import.id = None
-        database_name = datasource_to_import.dict_metadata['database_name']
+        database_name = datasource_to_import.params_dict['database_name']
         datasource_to_import.database_id = session.query(Database).filter_by(
             database_name=database_name).one().id
-        datasource_to_import.alter_json_metadata(import_time=import_time)
+        datasource_to_import.alter_params(import_time=import_time)
 
         # override the datasource
         datasource = (

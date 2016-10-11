@@ -29,10 +29,10 @@ class ImportExportTests(CaravelTestCase):
             if 'remote_id' in slc.params_dict:
                 session.delete(slc)
         for dash in session.query(models.Dashboard):
-            if 'remote_id' in dash.metadata_dejson:
+            if 'remote_id' in dash.params_dict:
                 session.delete(dash)
         for table in session.query(models.SqlaTable):
-            if 'remote_id' in table.dict_metadata:
+            if 'remote_id' in table.params_dict:
                 session.delete(table)
         session.commit()
 
@@ -80,12 +80,12 @@ class ImportExportTests(CaravelTestCase):
         )
 
     def create_table(self, name, schema='', id=0, cols_names=[], metric_names=[]):
-        json_metadata = {'remote_id': id, 'database_name': 'main'}
+        params = {'remote_id': id, 'database_name': 'main'}
         table = models.SqlaTable(
             id=id,
             schema=schema,
             table_name=name,
-            json_metadata=json.dumps(json_metadata)
+            params=json.dumps(params)
         )
         for col_name in cols_names:
             table.columns.append(
@@ -319,7 +319,7 @@ class ImportExportTests(CaravelTestCase):
         self.assert_table_equals(table, imported_table)
         self.assertEquals(
             {'remote_id': 10002, 'import_time': 1990, 'database_name': 'main'},
-            json.loads(imported_table.json_metadata))
+            json.loads(imported_table.params))
 
     def test_import_table_2_col_2_met(self):
         table = self.create_table(

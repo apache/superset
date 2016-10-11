@@ -908,6 +908,7 @@ appbuilder.add_view(
     category='',
     category_icon='',)
 
+
 class DashboardModelViewAsync(DashboardModelView):  # noqa
     list_columns = ['dashboard_link', 'creator', 'modified', 'dashboard_title']
     label_columns = {
@@ -1529,7 +1530,7 @@ class Caravel(BaseCaravelView):
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
         dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
-        md = dash.metadata_dejson
+        md = dash.params_dict
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:

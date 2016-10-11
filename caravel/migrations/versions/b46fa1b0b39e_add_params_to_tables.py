@@ -17,12 +17,12 @@ import sqlalchemy as sa
 
 def upgrade():
     op.add_column('tables',
-                  sa.Column('json_metadata', sa.Text(), nullable=True))
+                  sa.Column('params', sa.Text(), nullable=True))
 
 
 def downgrade():
     try:
-        op.drop_column('tables', 'json_metadata')
+        op.drop_column('tables', 'params')
     except Exception as e:
         logging.warning(str(e))
 
