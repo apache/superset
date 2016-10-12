@@ -151,7 +151,7 @@ class BaseViz(object):
             del od['force']
         return href(od)
 
-    def get_df(self, query_obj=None):
+    def get_df(self, query_obj=None, return_empty = False):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
             query_obj = self.query_obj()
@@ -175,6 +175,8 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
+            if return_empty and df.empty:
+                return df
             raise Exception("No data, review your incantations!")
         else:
             if 'timestamp' in df.columns:
@@ -418,6 +420,7 @@ class TableViz(BaseViz):
             'table_timestamp_format',
             'row_limit',
             ('include_search', None),
+            ('allow_empty', None),
         )
     })
     form_overrides = ({
@@ -441,7 +444,8 @@ class TableViz(BaseViz):
         return d
 
     def get_df(self, query_obj=None):
-        df = super(TableViz, self).get_df(query_obj)
+        df = super(TableViz, self).get_df(query_obj, 
+            return_empty = self.form_data['allow_empty'])
         if (
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):

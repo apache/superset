@@ -961,6 +961,12 @@ class FormFactory(object):
                 ],
                 "description": _("The color for points and clusters in RGB")
             }),
+            'allow_empty': (BetterBooleanField, {
+                "label": _("Allow Empty"),
+                "default": False,
+                "description": _(
+                    "Allow the visualization to show empty results")
+            }),
         }
 
         # Override default arguments with form overrides
