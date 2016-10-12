@@ -29,7 +29,7 @@ class TabbedSqlEditors extends React.Component {
       const queryEditorProps = {
         id: shortid.generate(),
         title: getParamFromQuery(this.state.query, 'title'),
-        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
         schema: getParamFromQuery(this.state.query, 'schema'),
         autorun: getParamFromQuery(this.state.query, 'autorun'),
         sql: getParamFromQuery(this.state.query, 'sql'),
