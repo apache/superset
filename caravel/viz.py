@@ -1655,6 +1655,7 @@ class FilterBoxViz(BaseViz):
         'groupby': {
             'label': _('Filter fields'),
             'description': _("The fields you want to filter on"),
+            'default': [],
         },
     }
 
