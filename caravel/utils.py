@@ -31,7 +31,7 @@ class CaravelException(Exception):
     pass
 
 
-class CaravelTimeoutException(Exception):
+class CaravelTimeoutException(CaravelException):
     pass
 
 
@@ -39,7 +39,11 @@ class CaravelSecurityException(CaravelException):
     pass
 
 
-class MetricPermException(Exception):
+class MetricPermException(CaravelException):
+    pass
+
+
+class NoDataException(CaravelException):
     pass
 
 

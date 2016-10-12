@@ -175,7 +175,7 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
-            raise Exception("No data, review your incantations!")
+            raise utils.NoDataException("No data.")
         else:
             if 'timestamp' in df.columns:
                 if timestamp_format in ("epoch_s", "epoch_ms"):
