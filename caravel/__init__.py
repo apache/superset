@@ -82,6 +82,12 @@ if app.config.get('ENABLE_CORS'):
 if app.config.get('ENABLE_PROXY_FIX'):
     app.wsgi_app = ProxyFix(app.wsgi_app)
 
+if app.config.get('UPLOAD_FOLDER'):
+    try:
+        os.makedirs(app.config.get('UPLOAD_FOLDER'))
+    except OSError:
+        pass
+
 
 class MyIndexView(IndexView):
     @expose('/')

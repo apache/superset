@@ -452,6 +452,5 @@ class CoreTests(CaravelTestCase):
         db.session.commit()
         self.test_save_dash('alpha')
 
-
 if __name__ == '__main__':
     unittest.main()

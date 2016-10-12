@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import json
 import logging
+import os
+import pickle
 import re
 import sys
 import time
@@ -15,7 +17,8 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, make_response, redirect, flash, Response, render_template,
+    Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -26,8 +29,9 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.routing import BaseConverter
+from werkzeug import secure_filename
 from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import caravel
@@ -533,6 +537,16 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         self.pre_add(db)
 
 
+appbuilder.add_link(
+    'Import Dashboards',
+    label=__("Import Dashboards"),
+    href='/caravel/import_dashboards',
+    icon="fa-cloud-upload",
+    category='Manage',
+    category_label=__("Manage"),
+    category_icon='fa-wrench',)
+
+
 appbuilder.add_view(
     DatabaseView,
     "Databases",
@@ -657,7 +671,6 @@ appbuilder.add_view(
     category="Security",
     category_label=__("Security"),
     icon='fa-table',)
-
 
 appbuilder.add_separator("Sources")
 
@@ -867,13 +880,32 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     def pre_delete(self, obj):
         check_ownership(obj)
 
+    @action("mulexport", "Export", "Export dashboards?", "fa-database")
+    def mulexport(self, items):
+        ids = ''.join('&id={}'.format(d.id) for d in items)
+        return redirect(
+            '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
+
+    @expose("/export_dashboards_form")
+    def download_dashboards(self):
+        if request.args.get('action') == 'go':
+            ids = request.args.getlist('id')
+            return Response(
+                models.Dashboard.export_dashboards(ids),
+                headers=generate_download_headers("pickle"),
+                mimetype="application/text")
+        return self.render_template(
+            'caravel/export_dashboards.html',
+            dashboards_url='/dashboardmodelview/list'
+        )
+
 
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
     label=__("Dashboards"),
     icon="fa-dashboard",
-    category="",
+    category='',
     category_icon='',)
 
 
@@ -1053,9 +1085,8 @@ class Caravel(BaseCaravelView):
         role_to_extend = request.args.get('role_to_extend')
 
         session = db.session
-        datasource_class = SourceRegistry.sources[datasource_type]
-        datasource = session.query(datasource_class).filter_by(
-            id=datasource_id).first()
+        datasource = SourceRegistry.get_datasource(
+            datasource_type, datasource_id, session)
 
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
@@ -1148,6 +1179,27 @@ class Caravel(BaseCaravelView):
             viz_obj.get_json(),
             status=200,
             mimetype="application/json")
+
+    @expose("/import_dashboards", methods=['GET', 'POST'])
+    @log_this
+    def import_dashboards(self):
+        """Overrides the dashboards using pickled instances from the file."""
+        f = request.files.get('file')
+        if request.method == 'POST' and f:
+            filename = secure_filename(f.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            f.save(filepath)
+            current_tt = int(time.time())
+            data = pickle.load(open(filepath, 'rb'))
+            for table in data['datasources']:
+                models.SqlaTable.import_obj(table, import_time=current_tt)
+            for dashboard in data['dashboards']:
+                models.Dashboard.import_obj(
+                    dashboard, import_time=current_tt)
+            os.remove(filepath)
+            db.session.commit()
+            return redirect('/dashboardmodelview/list/')
+        return self.render_template('caravel/import_dashboards.html')
 
     @log_this
     @has_access
@@ -1478,7 +1530,7 @@ class Caravel(BaseCaravelView):
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
         dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
-        md = dash.metadata_dejson
+        md = dash.params_dict
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
