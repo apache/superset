@@ -20,6 +20,7 @@ class ImportExportTests(CaravelTestCase):
 
     def __init__(self, *args, **kwargs):
         super(ImportExportTests, self).__init__(*args, **kwargs)
+        db.session.commit()
 
     @classmethod
     def delete_imports(cls):
