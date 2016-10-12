@@ -16,8 +16,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import inspect
 from collections import namedtuple
+import inspect
+import textwrap
+
 from flask_babel import lazy_gettext as _
 
 Grain = namedtuple('Grain', 'name label function')
@@ -36,7 +38,7 @@ class BaseEngineSpec(object):
         return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
 
     @classmethod
-    def extra_table_metadata(cls, table):
+    def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
 
@@ -109,6 +111,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         Grain("month", _('month'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
     )
+
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         if target_type.upper() in ('DATETIME', 'DATE'):
@@ -158,6 +161,46 @@ class PrestoEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+    @staticmethod
+    def show_partition_pql(
+            table_name, schema_name=None, order_by=None, limit=100):
+        if schema_name:
+            table_name = schema_name + '.' + table_name
+        order_by = order_by or []
+        order_by_clause = ''
+        if order_by:
+            order_by_clause = "ORDER BY " + ', '.join(order_by) + " DESC"
+
+        limit_clause = ''
+        if limit:
+            limit_clause = "LIMIT {}".format(limit)
+
+        return textwrap.dedent("""\
+        SHOW PARTITIONS
+        FROM {table_name}
+        {order_by_clause}
+        {limit_clause}
+        """).format(**locals())
+
+    @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        cols = indexes[0].get('column_names', [])
+        pql = cls.show_partition_pql(table_name, schema_name, cols)
+        df = database.get_df(pql, schema_name)
+        latest_part = df.to_dict(orient='records')[0] if not df.empty else None
+
+        partition_query = cls.show_partition_pql(table_name, schema_name, cols)
+        return {
+            'partitions': {
+                'cols': cols,
+                'latest': latest_part,
+                'partitionQuery': partition_query,
+            }
+        }
+
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
@@ -189,7 +232,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
-        return "CONVERT(DATETIME, '{}', 126)".format(iso)
+        return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
 
 class RedshiftEngineSpec(PostgresEngineSpec):

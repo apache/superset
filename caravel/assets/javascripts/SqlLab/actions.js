@@ -2,7 +2,7 @@ export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
 export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
-export const ADD_TABLE = 'ADD_TABLE';
+export const MERGE_TABLE = 'MERGE_TABLE';
 export const REMOVE_TABLE = 'REMOVE_TABLE';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
@@ -86,8 +86,8 @@ export function queryEditorSetSql(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
-export function addTable(table) {
-  return { type: ADD_TABLE, table };
+export function mergeTable(table) {
+  return { type: MERGE_TABLE, table };
 }
 
 export function expandTable(table) {

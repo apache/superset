@@ -28,7 +28,7 @@ import shortid from 'shortid';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 
-import SqlEditorTopToolbar from './SqlEditorTopToolbar';
+import SqlEditorLeftBar from './SqlEditorLeftBar';
 
 class SqlEditor extends React.Component {
   constructor(props) {
@@ -252,7 +252,7 @@ class SqlEditor extends React.Component {
       <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
         <Row>
           <Col md={3}>
-            <SqlEditorTopToolbar queryEditor={this.props.queryEditor} />
+            <SqlEditorLeftBar queryEditor={this.props.queryEditor} />
           </Col>
           <Col md={9}>
             <AceEditor

@@ -4,7 +4,7 @@ import cx from 'classnames';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
-  modalTitle: PropTypes.string.isRequired,
+  modalTitle: PropTypes.node.isRequired,
   modalBody: PropTypes.node.isRequired,
   beforeOpen: PropTypes.func,
   isButton: PropTypes.bool,

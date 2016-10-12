@@ -72,8 +72,23 @@ export const sqlLabReducer = function (state, action) {
     [actions.RESET_STATE]() {
       return Object.assign({}, initialState);
     },
-    [actions.ADD_TABLE]() {
-      return addToArr(state, 'tables', action.table);
+    [actions.MERGE_TABLE]() {
+      const at = Object.assign({}, action.table);
+      let existingTable;
+      state.tables.forEach((t) => {
+        if (
+            t.dbId === at.dbId &&
+            t.queryEditorId === at.queryEditorId &&
+            t.schema === at.schema &&
+            t.name === at.name) {
+          existingTable = t;
+        }
+      });
+      if (existingTable) {
+        return alterInArr(state, 'tables', existingTable, at);
+      }
+      at.id = shortid.generate();
+      return addToArr(state, 'tables', at);
     },
     [actions.EXPAND_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: true });
