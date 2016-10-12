@@ -73,6 +73,7 @@ class QueryTable extends React.PureComponent {
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
+      q.date = moment(q.startDttm).format('MMM Do YYYY');
       q.user = (
         <button
           className="btn btn-link btn-xs"

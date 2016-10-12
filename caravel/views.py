@@ -2251,13 +2251,14 @@ class Caravel(BaseCaravelView):
                 .filter(models.Query.sql.like('%{}%'.format(search_text)))
 
         if from_time != 'null':
-            query = query.filter(models.Query.start_time > from_time)
+            query = query.filter(models.Query.start_time > int(from_time))
 
         if to_time != 'null':
-            query = query.filter(models.Query.start_time < to_time)
+            query = query.filter(models.Query.start_time < int(to_time))
 
         sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+
         return Response(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser),
             status=200,
