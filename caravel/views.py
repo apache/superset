@@ -599,13 +599,14 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, table):
-        existing_tables = db.session.query(models.SqlaTable).filter_by(
-            table_name=table.table_name,
-            schema=table.schema,
-            database_id=table.database.id,
-        ).all()
+        number_of_existing_tables = db.session.query(
+            sqla.func.count('*')).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database.id
+        ).scalar()
         # table object is already added to the session
-        if len(existing_tables) > 1:
+        if number_of_existing_tables > 1:
             raise Exception(get_datasource_exist_error_mgs(table.full_name))
 
         # Fail before adding if the table can't be found
@@ -948,15 +949,15 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, datasource):
-        existing_datasources = (
-            db.session.query(models.DruidDatasource)
-            .filter_by(
-                datasource_name=datasource.datasource_name,
-                cluster_name=datasource.cluster.cluster_name,
-            ).all()
-        )
+        number_of_existing_datasources = db.session.query(
+            sqla.func.count('*')).filter(
+            models.DruidDatasource.datasource_name ==
+                datasource.datasource_name,
+            models.DruidDatasource.cluster_name == datasource.cluster.id
+        ).scalar()
+
         # table object is already added to the session
-        if len(existing_datasources) > 1:
+        if number_of_existing_datasources > 1:
             raise Exception(get_datasource_exist_error_mgs(
                 datasource.full_name))
 
