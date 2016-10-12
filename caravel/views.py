@@ -90,6 +90,10 @@ def get_datasource_access_error_msg(datasource_name):
               "`all_datasource_access` permission", name=datasource_name)
 
 
+def get_datasource_exist_error_mgs(full_name):
+    return __("Datasource %(name)s already exists", name=full_name)
+
+
 def get_error_msg():
     if config.get("SHOW_STACKTRACE"):
         error_msg = traceback.format_exc()
@@ -616,6 +620,16 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, table):
+        number_of_existing_tables = db.session.query(
+            sqla.func.count('*')).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database.id
+        ).scalar()
+        # table object is already added to the session
+        if number_of_existing_tables > 1:
+            raise Exception(get_datasource_exist_error_mgs(table.full_name))
+
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
@@ -972,6 +986,19 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'offset': _("Time Offset"),
         'cache_timeout': _("Cache Timeout"),
     }
+
+    def pre_add(self, datasource):
+        number_of_existing_datasources = db.session.query(
+            sqla.func.count('*')).filter(
+            models.DruidDatasource.datasource_name ==
+                datasource.datasource_name,
+            models.DruidDatasource.cluster_name == datasource.cluster.id
+        ).scalar()
+
+        # table object is already added to the session
+        if number_of_existing_datasources > 1:
+            raise Exception(get_datasource_exist_error_mgs(
+                datasource.full_name))
 
     def post_add(self, datasource):
         datasource.generate_metrics()
