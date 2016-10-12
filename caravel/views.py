@@ -2226,29 +2226,37 @@ class Caravel(BaseCaravelView):
     def search_queries(self):
         """Search for queries."""
         query = db.session.query(models.Query)
-        userId = request.args.get('userId')
-        databaseId = request.args.get('databaseId')
-        searchText = request.args.get('searchText')
+        user_id = request.args.get('userId')
+        database_id = request.args.get('databaseId')
+        search_text = request.args.get('searchText')
         status = request.args.get('status')
+        from_time = request.args.get('from')
+        to_time = request.args.get('to')
 
-        if userId != 'null':
+        if user_id != 'null':
             # Filter on db Id
-            query = query.filter(models.Query.user_id == userId)
+            query = query.filter(models.Query.user_id == user_id)
 
-        if databaseId != 'null':
+        if database_id != 'null':
             # Filter on db Id
-            query = query.filter(models.Query.database_id == databaseId)
+            query = query.filter(models.Query.database_id == database_id)
 
         if status != 'null':
             # Filter on status
             query = query.filter(models.Query.status == status)
 
-        if searchText != 'null':
+        if search_text != 'null':
             # Filter on search text
-            query = query.filter(models.Query.sql.like('%{}%'.format(searchText)))
+            query = query \
+                .filter(models.Query.sql.like('%{}%'.format(search_text)))
+
+        if from_time != 'null':
+            query = query.filter(models.Query.start_time > from_time)
+
+        if to_time != 'null':
+            query = query.filter(models.Query.start_time < to_time)
 
         sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
-
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
         return Response(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser),

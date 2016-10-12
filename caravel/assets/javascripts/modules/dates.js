@@ -85,3 +85,27 @@ export const now = function () {
   return moment().utc().valueOf();
 };
 
+export const hoursAgo = function (h) {
+  // seconds from EPOCH as a float
+  return moment()
+    .subtract(h, 'hours')
+    .utc()
+    .valueOf();
+};
+
+export const daysAgo = function (d) {
+  // seconds from EPOCH as a float
+  return moment()
+    .subtract(d, 'days')
+    .utc()
+    .valueOf();
+};
+
+export const yearsAgo = function (y) {
+  // seconds from EPOCH as a float
+  return moment()
+    .subtract(y, 'years')
+    .utc()
+    .valueOf();
+};
+

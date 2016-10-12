@@ -7,4 +7,27 @@ export const STATE_BSSTYLE_MAP = {
   success: 'success',
 };
 
-export const STATUS_OPTIONS = ['success', 'failed', 'running'];
+export const STATUS_OPTIONS = [
+  'success',
+  'failed',
+  'running',
+];
+
+export const FROM_OPTIONS = [
+  '1 hour ago',
+  '1 day ago',
+  '7 days ago',
+  '28 days ago',
+  '90 days ago',
+  '1 year ago',
+];
+
+export const TO_OPTIONS = [
+  'now',
+  '1 hour ago',
+  '1 day ago',
+  '7 days ago',
+  '28 days ago',
+  '90 days ago',
+  '1 year ago',
+];
