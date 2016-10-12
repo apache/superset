@@ -358,7 +358,9 @@ class CoreTests(CaravelTestCase):
         databaseId = 'databaseId=null'
         searchText = 'searchText=null'
         status = 'status=success'
-        params = [userId, databaseId, searchText, status]
+        fromTime = 'from=null'
+        toTime = 'to=null'
+        params = [userId, databaseId, searchText, status, fromTime, toTime]
         resp = self.client.get('/caravel/search_queries?'+'&'.join(params))
         self.assertEquals(200, resp.status_code)
 
