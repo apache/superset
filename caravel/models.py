@@ -636,8 +636,6 @@ class Database(Model, AuditMixinNullable):
 
     __tablename__ = 'dbs'
 
-    type = "table"
-
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
@@ -1439,8 +1437,6 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
-
-    type = "druid"
 
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)

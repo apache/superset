@@ -109,10 +109,4 @@ module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
 SourceRegistry.register_sources(module_datasource_map)
 
-# Registering databases
-module_db_map = app.config.get("DEFAULT_MODULE_DB_MAP")
-module_db_map.update(app.config.get("ADDITIONAL_MODULE_DB_MAP"))
-SourceRegistry.register_databases(module_db_map)
-
-
 from caravel import views, config  # noqa

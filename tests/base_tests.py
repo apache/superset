@@ -21,8 +21,8 @@ cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
 
 
 class CaravelTestCase(unittest.TestCase):
-    requires_examples = True
-    examples_loaded = True
+    requires_examples = False
+    examples_loaded = False
 
     def __init__(self, *args, **kwargs):
         if (

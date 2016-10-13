@@ -1083,18 +1083,16 @@ class Caravel(BaseCaravelView):
         role_name = data['role_name']
         databases = data['database']
 
-        datasources = []
+        db_ds_names = set()
         for dbs in databases:
-            db_ds_names = set()
-            datasource_type = dbs['datasource_type']
             for schema in dbs['schema']:
                 for ds_name in schema['datasources']:
                     db_ds_names.add(utils.get_datasource_full_name(
                         dbs['name'], ds_name, schema=schema['name']))
-            db_datasources = SourceRegistry.get_dbs_datasources(
-                datasource_type, dbs['name'], db.session)
-            datasources.extend(
-                [d for d in db_datasources if d.full_name in db_ds_names])
+
+        existing_datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = [
+            d for d in existing_datasources if d.full_name in db_ds_names]
 
         role = sm.find_role(role_name)
         # remove all permissions
