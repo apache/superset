@@ -1241,10 +1241,14 @@ class Caravel(BaseCaravelView):
         datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
 
-        viz_obj = self.get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            args=request.args)
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=request.args)
+        except Exception as e:
+            flash('{}'.format(e), "alert")
+            return redirect(error_redirect)
 
         if not viz_obj.datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
