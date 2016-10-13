@@ -4,6 +4,7 @@ import { Panel } from 'react-bootstrap';
 import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
 import moment from 'moment';
 import nvd3Vis from '../../../visualizations/nvd3_vis';
+import visMap from '../../../visualizations/main';
 
 const propTypes = {
   data: PropTypes.array.isRequired,
@@ -51,7 +52,7 @@ class ChartContainer extends React.Component {
 
   renderVis() {
     const slice = this.getMockedSliceObject();
-    nvd3Vis(slice).render();
+    visMap[this.props.vizType](slice).render();
   }
 
   componentDidMount() {
