@@ -1224,17 +1224,13 @@ class Caravel(BaseCaravelView):
         """Overrides the dashboards using pickled instances from the file."""
         f = request.files.get('file')
         if request.method == 'POST' and f:
-            filename = secure_filename(f.filename)
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            f.save(filepath)
             current_tt = int(time.time())
-            data = pickle.load(open(filepath, 'rb'))
+            data = pickle.load(f)
             for table in data['datasources']:
                 models.SqlaTable.import_obj(table, import_time=current_tt)
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
-            os.remove(filepath)
             db.session.commit()
             return redirect('/dashboardmodelview/list/')
         return self.render_template('caravel/import_dashboards.html')

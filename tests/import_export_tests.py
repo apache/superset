@@ -142,7 +142,6 @@ class ImportExportTests(CaravelTestCase):
             set([m.metric_name for m in actual_ds.metrics]))
 
     def assert_slice_equals(self, expected_slc, actual_slc):
-        self.assertEquals(actual_slc.datasource.perm, actual_slc.perm)
         self.assertEquals(expected_slc.slice_name, actual_slc.slice_name)
         self.assertEquals(
             expected_slc.datasource_type, actual_slc.datasource_type)
@@ -201,7 +200,9 @@ class ImportExportTests(CaravelTestCase):
     def test_import_1_slice(self):
         expected_slice = self.create_slice('Import Me', id=10001);
         slc_id = models.Slice.import_obj(expected_slice, import_time=1989)
-        self.assert_slice_equals(expected_slice, self.get_slice(slc_id))
+        slc = self.get_slice(slc_id)
+        self.assertEquals(slc.datasource.perm, slc.perm)
+        self.assert_slice_equals(expected_slice, slc)
 
         table_id = self.get_table_by_name('wb_health_population').id
         self.assertEquals(table_id, self.get_slice(slc_id).datasource_id)
@@ -218,9 +219,12 @@ class ImportExportTests(CaravelTestCase):
         imported_slc_2 = self.get_slice(slc_id_2)
         self.assertEquals(table_id, imported_slc_1.datasource_id)
         self.assert_slice_equals(slc_1, imported_slc_1)
+        self.assertEquals(imported_slc_1.datasource.perm, imported_slc_1.perm)
+
 
         self.assertEquals(table_id, imported_slc_2.datasource_id)
         self.assert_slice_equals(slc_2, imported_slc_2)
+        self.assertEquals(imported_slc_2.datasource.perm, imported_slc_2.perm)
 
     def test_import_slices_for_non_existent_table(self):
         with self.assertRaises(IndexError):

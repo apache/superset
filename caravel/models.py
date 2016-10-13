@@ -342,7 +342,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
                     slc.params_dict['remote_id'] == slc_to_import.id):
                 slc_to_override = slc
 
-        slc_to_import.id = None
+        slc_to_import = slc_to_import.copy()
         params = slc_to_import.params_dict
         slc_to_import.datasource_id = SourceRegistry.get_datasource_by_name(
             session, slc_to_import.datasource_type, params['datasource_name'],
@@ -400,7 +400,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     owners = relationship("User", secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
-                     'description', 'css', 'slug', 'slices')
+                     'description', 'css', 'slug')
 
     def __repr__(self):
         return self.dashboard_title
