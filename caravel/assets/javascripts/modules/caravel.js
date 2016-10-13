@@ -150,15 +150,25 @@ const px = function () {
         return msg;
       },
       error(msg, xhr) {
+        let errorMsg = msg;
         token.find('img.loading').hide();
-        let err = msg ? '<div class="alert alert-danger">' + msg + '</div>' : '';
+        let errHtml = '';
+        try {
+          const o = JSON.parse(msg);
+          if (o.error) {
+            errorMsg = o.error;
+          }
+        } catch (e) {
+          // pass
+        }
+        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
         if (xhr) {
           const extendedMsg = this.getErrorMsg(xhr);
           if (extendedMsg) {
-            err += '<div class="alert alert-danger">' + extendedMsg + '</div>';
+            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
           }
         }
-        container.html(err);
+        container.html(errHtml);
         container.show();
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');

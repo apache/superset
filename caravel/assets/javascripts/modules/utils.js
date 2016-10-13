@@ -116,6 +116,7 @@ const controllerInterface = {
   getFilters: () => false,
   clearFilter: () => {},
   removeFilter: () => {},
+  filters: {},
 };
 
 module.exports = {
