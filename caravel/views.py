@@ -1192,18 +1192,29 @@ class Caravel(BaseCaravelView):
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
-        viz_obj = self.get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            args=request.args)
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=request.args)
+        except Exception as e:
+            return json_error_response(utils.error_msg_from_exception(e))
+
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
                     {'error': _("You don't have access to this datasource")}),
                 status=404,
                 mimetype="application/json")
+
+        payload = ""
+        try:
+            payload = viz_obj.get_json()
+        except Exception as e:
+            return json_error_response(utils.error_msg_from_exception(e))
+
         return Response(
-            viz_obj.get_json(),
+            payload,
             status=200,
             mimetype="application/json")
 
