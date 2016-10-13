@@ -18,7 +18,7 @@ describe('QuerySearch', () => {
 
   it('should have two Select', () => {
     const wrapper = shallow(<QuerySearch {...mockedProps} />);
-    expect(wrapper.find(Select)).to.have.length(2);
+    expect(wrapper.find(Select)).to.have.length(4);
   });
 
   it('should have one input for searchText', () => {
