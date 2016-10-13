@@ -171,9 +171,7 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # Modules and datasources to be registered
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = {'caravel.models': ['DruidDatasource', 'SqlaTable']}
-DEFAULT_MODULE_DB_MAP = {'caravel.models': ['DruidCluster', 'Database']}
 ADDITIONAL_MODULE_DS_MAP = {}
-ADDITIONAL_MODULE_DB_MAP = {}
 
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
