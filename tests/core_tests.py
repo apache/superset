@@ -10,7 +10,7 @@ import json
 import io
 import random
 import unittest
-
+from datetime import datetime
 
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
@@ -354,15 +354,30 @@ class CoreTests(CaravelTestCase):
         self.assertEquals(403, resp.status_code)
 
     def test_search_query_endpoint(self):
-        userId = 'userId=null'
-        databaseId = 'databaseId=null'
-        searchText = 'searchText=null'
+        self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
+        self.login('admin')
+        first_query = db.session.query(models.Query).filter_by(
+            sql='SELECT * FROM ab_user').first()
+        database_id = 'database_id=1'
         status = 'status=success'
-        fromTime = 'from=null'
-        toTime = 'to=null'
-        params = [userId, databaseId, searchText, status, fromTime, toTime]
-        resp = self.client.get('/caravel/search_queries?'+'&'.join(params))
-        self.assertEquals(200, resp.status_code)
+        params = [database_id, status]
+        resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
+        data = json.loads(resp)
+        self.assertEquals(1, len(data))
+
+        self.run_sql("SELECT * FROM ab_permission", 'admin', client_id='client_id_2')
+        second_query = db.session.query(models.Query).filter_by(
+            sql='SELECT * FROM ab_permission').first()
+
+        from_time = 'from=' + \
+            str(int(first_query.start_time))
+        to_time = 'to=' + \
+            str(int(second_query.start_time))
+        params = [from_time, to_time]
+        resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
+        data = json.loads(resp)
+        self.assertEquals(1, len(data))
+        self.logout()
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.

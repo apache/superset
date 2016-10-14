@@ -2226,34 +2226,34 @@ class Caravel(BaseCaravelView):
     def search_queries(self):
         """Search for queries."""
         query = db.session.query(models.Query)
-        user_id = request.args.get('userId')
-        database_id = request.args.get('databaseId')
-        search_text = request.args.get('searchText')
+        search_user_id = request.args.get('user_id')
+        database_id = request.args.get('database_id')
+        search_text = request.args.get('search_text')
         status = request.args.get('status')
         from_time = request.args.get('from')
         to_time = request.args.get('to')
 
-        if user_id != 'null':
+        if search_user_id:
             # Filter on db Id
-            query = query.filter(models.Query.user_id == user_id)
+            query = query.filter(models.Query.user_id == search_user_id)
 
-        if database_id != 'null':
+        if database_id:
             # Filter on db Id
             query = query.filter(models.Query.database_id == database_id)
 
-        if status != 'null':
+        if status:
             # Filter on status
             query = query.filter(models.Query.status == status)
 
-        if search_text != 'null':
+        if search_text:
             # Filter on search text
             query = query \
                 .filter(models.Query.sql.like('%{}%'.format(search_text)))
 
-        if from_time != 'null':
+        if from_time:
             query = query.filter(models.Query.start_time > int(from_time))
 
-        if to_time != 'null':
+        if to_time:
             query = query.filter(models.Query.start_time < int(to_time))
 
         sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()

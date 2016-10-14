@@ -5,7 +5,7 @@ import Select from 'react-select';
 import QueryTable from './QueryTable';
 import DatabaseSelect from './DatabaseSelect';
 import { now, hoursAgo, daysAgo, yearsAgo } from '../../modules/dates';
-import { STATUS_OPTIONS, FROM_OPTIONS, TO_OPTIONS } from '../common';
+import { STATUS_OPTIONS, TIME_OPTIONS } from '../common';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -73,7 +73,10 @@ class QuerySearch extends React.PureComponent {
     this.setState({ userId: val });
   }
   insertParams(baseUrl, params) {
-    return baseUrl + '?' + params.join('&');
+    const validParams = params.filter(
+      function (p) { return p !== ''; }
+    );
+    return baseUrl + '?' + validParams.join('&');
   }
   changeStatus(status) {
     const val = (status) ? status.value : null;
@@ -97,12 +100,18 @@ class QuerySearch extends React.PureComponent {
   }
   refreshQueries() {
     const params = [
-      `userId=${this.state.userId}`,
-      `databaseId=${this.state.databaseId}`,
-      `searchText=${this.state.searchText}`,
-      `status=${this.state.status}`,
-      `from=${this.getTimeFromSelection(this.state.from)}`,
-      `to=${this.getTimeFromSelection(this.state.to)}`,
+      this.state.userId ?
+        `user_id=${this.state.userId}` : '',
+      this.state.databaseId ?
+        `database_id=${this.state.databaseId}` : '',
+      this.state.searchText ?
+        `search_text=${this.state.searchText}` : '',
+      this.state.status ?
+        `status=${this.state.status}` : '',
+      this.state.from ?
+        `from=${this.getTimeFromSelection(this.state.from)}` : '',
+      this.state.to ?
+        `to=${this.getTimeFromSelection(this.state.to)}` : '',
     ];
 
     const url = this.insertParams('/caravel/search_queries', params);
@@ -148,8 +157,9 @@ class QuerySearch extends React.PureComponent {
           <div className="col-sm-1">
             <Select
               name="select-from"
-              placeholder="[From-]"
-              options={FROM_OPTIONS.map((t) => ({ value: t, label: t }))}
+              placeholder="[From]-"
+              options={TIME_OPTIONS.
+                slice(1, TIME_OPTIONS.length).map((t) => ({ value: t, label: t }))}
               value={this.state.from}
               autosize={false}
               onChange={this.changeFrom.bind(this)}
@@ -158,8 +168,8 @@ class QuerySearch extends React.PureComponent {
           <div className="col-sm-1">
             <Select
               name="select-to"
-              placeholder="[To-]"
-              options={TO_OPTIONS.map((t) => ({ value: t, label: t }))}
+              placeholder="[To]-"
+              options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
               value={this.state.to}
               autosize={false}
               onChange={this.changeTo.bind(this)}
@@ -167,7 +177,7 @@ class QuerySearch extends React.PureComponent {
           </div>
           <div className="col-sm-1">
             <Select
-              name="select-state"
+              name="select-status"
               placeholder="[Query Status]"
               options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
               value={this.state.status}
