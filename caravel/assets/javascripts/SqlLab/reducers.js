@@ -43,7 +43,7 @@ export const sqlLabReducer = function (state, action) {
         dbId: (action.query.dbId) ? action.query.dbId : null,
         schema: (action.query.schema) ? action.query.schema : null,
         autorun: true,
-        sql: `${action.query.sql}`,
+        sql: action.query.sql
       };
 
       const tabHistory = state.tabHistory.slice();
