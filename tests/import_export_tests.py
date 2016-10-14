@@ -20,6 +20,7 @@ class ImportExportTests(CaravelTestCase):
 
     def __init__(self, *args, **kwargs):
         super(ImportExportTests, self).__init__(*args, **kwargs)
+        db.session.commit()
 
     @classmethod
     def delete_imports(cls):
@@ -108,10 +109,6 @@ class ImportExportTests(CaravelTestCase):
     def get_table(self, table_id):
         return db.session.query(models.SqlaTable).filter_by(
             id=table_id).first()
-
-    def get_table_by_name(self, name):
-        return db.session.query(models.SqlaTable).filter_by(
-            table_name=name).first()
 
     def assert_dash_equals(self, expected_dash, actual_dash):
         self.assertEquals(expected_dash.slug, actual_dash.slug)
@@ -220,7 +217,6 @@ class ImportExportTests(CaravelTestCase):
         self.assertEquals(table_id, imported_slc_1.datasource_id)
         self.assert_slice_equals(slc_1, imported_slc_1)
         self.assertEquals(imported_slc_1.datasource.perm, imported_slc_1.perm)
-
 
         self.assertEquals(table_id, imported_slc_2.datasource_id)
         self.assert_slice_equals(slc_2, imported_slc_2)

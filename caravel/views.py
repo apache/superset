@@ -1062,6 +1062,53 @@ appbuilder.add_view_no_menu(R)
 
 class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
+    @has_access
+    @expose("/override_role_permissions/", methods=['POST'])
+    def override_role_permissions(self):
+        """Updates the role with the give datasource permissions.
+
+          Permissions not in the request will be revoked. This endpoint should
+          be available to admins only. Expects JSON in the format:
+           {
+            'role_name': '{role_name}',
+            'database': [{
+                'datasource_type': '{table|druid}',
+                'name': '{database_name}',
+                'schema': [{
+                    'name': '{schema_name}',
+                    'datasources': ['{datasource name}, {datasource name}']
+                }]
+            }]
+        }
+        """
+        data = request.get_json(force=True)
+        role_name = data['role_name']
+        databases = data['database']
+
+        db_ds_names = set()
+        for dbs in databases:
+            for schema in dbs['schema']:
+                for ds_name in schema['datasources']:
+                    db_ds_names.add(utils.get_datasource_full_name(
+                        dbs['name'], ds_name, schema=schema['name']))
+
+        existing_datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = [
+            d for d in existing_datasources if d.full_name in db_ds_names]
+
+        role = sm.find_role(role_name)
+        # remove all permissions
+        role.permissions = []
+        # grant permissions to the list of datasources
+        for ds_name in datasources:
+            role.permissions.append(
+                sm.find_permission_view_menu(
+                    view_menu_name=ds_name.perm,
+                    permission_name='datasource_access')
+            )
+        db.session.commit()
+        return Response(status=201)
+
     @log_this
     @has_access
     @expose("/request_access/")
