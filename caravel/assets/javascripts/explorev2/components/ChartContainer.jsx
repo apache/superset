@@ -1,30 +1,56 @@
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
-import TimeSeriesLineChart from './charts/TimeSeriesLineChart';
-import moment from 'moment';
+import visMap from '../../../visualizations/main';
 
 const propTypes = {
-  data: PropTypes.array.isRequired,
   sliceName: PropTypes.string.isRequired,
   vizType: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
+  sliceContainerId: PropTypes.string.isRequired,
+  jsonEndpoint: PropTypes.string.isRequired,
 };
 
 class ChartContainer extends React.Component {
-  formatDates(values) {
-    const newValues = values.map(function (val) {
-      return {
-        x: moment(new Date(val.x)).format('MMM D'),
-        y: val.y,
-      };
-    });
-    return newValues;
+  componentDidMount() {
+    this.renderVis();
   }
 
-  isLineViz() {
-    // todo(alanna) generalize this check and map to charts
-    return this.props.vizType === 'line';
+  componentDidUpdate() {
+    this.renderVis();
+  }
+
+  getMockedSliceObject() {
+    return {
+      jsonEndpoint: () => this.props.jsonEndpoint,
+
+      container: {
+        html: () => {
+          // this should be a callback to clear the contents of the slice container
+        },
+
+        css: () => {
+          // dimension can be 'height'
+          // pixel string can be '300px'
+          // should call callback to adjust height of chart
+        },
+      },
+
+      width: () => this.chartContainerRef.getBoundingClientRect().width,
+
+      height: () => parseInt(this.props.height, 10) - 100,
+
+      selector: `#${this.props.sliceContainerId}`,
+
+      done: () => {
+        // finished rendering callback
+      },
+    };
+  }
+
+  renderVis() {
+    const slice = this.getMockedSliceObject();
+    visMap[this.props.vizType](slice).render();
   }
 
   render() {
@@ -36,13 +62,10 @@ class ChartContainer extends React.Component {
             <div className="panel-title">{this.props.sliceName}</div>
           }
         >
-          {this.isLineViz() &&
-            <TimeSeriesLineChart
-              data={this.props.data}
-              xAxisLabel="xAxisLabel"
-              yAxisLabel="yAxisLabel"
-            />
-          }
+          <div
+            id={this.props.sliceContainerId}
+            ref={(ref) => { this.chartContainerRef = ref; }}
+          />
         </Panel>
       </div>
     );
@@ -53,9 +76,10 @@ ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
-    data: state.viz.data,
     sliceName: state.sliceName,
     vizType: state.viz.formData.vizType,
+    sliceContainerId: `slice-container-${state.viz.formData.sliceId}`,
+    jsonEndpoint: state.viz.jsonEndPoint,
   };
 }
 

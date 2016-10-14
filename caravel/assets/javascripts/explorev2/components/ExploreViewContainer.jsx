@@ -1,7 +1,7 @@
 import React from 'react';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
-import QueryAndSaveButtons from './QueryAndSaveButtons';
+import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 
 export default class ExploreViewContainer extends React.Component {
   constructor(props) {
@@ -27,11 +27,11 @@ export default class ExploreViewContainer extends React.Component {
       >
         <div className="row">
           <div className="col-sm-4">
-            <QueryAndSaveButtons
+            <QueryAndSaveBtns
               canAdd="True"
               onQuery={() => {}}
             />
-            <br />
+            <br /><br />
             <ControlPanelsContainer />
           </div>
           <div className="col-sm-8">
