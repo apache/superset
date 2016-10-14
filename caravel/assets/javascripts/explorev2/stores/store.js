@@ -37,6 +37,7 @@ export const initialState = {
   filters: [],
   filterColumnOpts: [],
   viz: {
+    column_formats: {},
     formData: defaultFormData,
   },
 };
