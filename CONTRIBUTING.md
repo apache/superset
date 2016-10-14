@@ -90,6 +90,8 @@ Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
 While these may be phased out over time, these packages are currently not
 managed with npm.
 
+### Node/npm versions
+Make sure you are using Node v6.2.2 and NPM v3.9.5.
 
 ### Using npm to generate bundled files
 
