@@ -112,7 +112,7 @@ function bigNumberVis(slice) {
         const c = scaleColor(vCompare);
 
         // Printing compare %
-        if (vCompare !== null) {
+        if (vCompare) {
           g.append('text')
           .attr('x', width / 2)
           .attr('y', (height / 16) * 12)
