@@ -9,6 +9,7 @@ import { Table } from 'reactable';
 import { ProgressBar } from 'react-bootstrap';
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
+import shortid from 'shortid';
 import SqlShrink from './SqlShrink';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
@@ -41,10 +42,20 @@ class QueryTable extends React.Component {
   restoreSql(query) {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
   }
-  notImplemented() {
-    /* eslint no-alert: 0 */
-    alert('Not implemented yet!');
+
+  openQueryInNewTab(query) {
+    const qe = {
+      id: shortid.generate(),
+      title: `${query.title}`,
+      dbId: (query.dbId) ? query.dbId : null,
+      schema: (query.schema) ? query.schema : null,
+      autorun: true,
+      sql: `${query.sql}`,
+    };
+    this.props.actions.addQueryEditor(qe);
+    this.props.actions.setActiveQueryEditor(qe);
   }
+
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
@@ -112,7 +123,7 @@ class QueryTable extends React.Component {
           />
           <Link
             className="fa fa-plus-circle m-r-3"
-            onClick={self.notImplemented}
+            onClick={this.openQueryInNewTab.bind(this, query)}
             tooltip="Run query in a new tab"
             placement="top"
           />
