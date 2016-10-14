@@ -229,7 +229,6 @@ def init(caravel):
 
     ADMIN_ONLY_PERMISSIONS = set([
         'can_sync_druid_source',
-        'can_override_role_permissions',
         'can_approve',
     ])
 
@@ -442,12 +441,6 @@ def generic_find_constraint_name(table, columns, referenced, db):
                 fk.referred_table.name == referenced and
                 set(fk.column_keys) == columns):
             return fk.name
-
-
-def get_datasource_full_name(database_name, datasource_name, schema=None):
-    if not schema:
-        return "[{}].[{}]".format(database_name, datasource_name)
-    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
 
 
 def validate_json(obj):

@@ -23,14 +23,6 @@ class SourceRegistry(object):
         )
 
     @classmethod
-    def get_all_datasources(cls, session):
-        datasources = []
-        for source_type in SourceRegistry.sources:
-            datasources.extend(
-                session.query(SourceRegistry.sources[source_type]).all())
-        return datasources
-
-    @classmethod
     def get_datasource_by_name(cls, session, datasource_type, datasource_name,
                                schema, database_name):
         datasource_class = SourceRegistry.sources[datasource_type]
