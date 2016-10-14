@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import json
 import unittest
 
 from caravel import db, models, sm
@@ -12,144 +11,16 @@ from caravel.source_registry import SourceRegistry
 
 from .base_tests import CaravelTestCase
 
-ROLE_TABLES_PERM_DATA = {
-    'role_name': 'override_me',
-    'database': [{
-        'datasource_type': 'table',
-        'name': 'main',
-        'schema': [{
-            'name': '',
-            'datasources': ['birth_names']
-        }]
-    }]
-}
-
-ROLE_ALL_PERM_DATA = {
-    'role_name': 'override_me',
-    'database': [{
-        'datasource_type': 'table',
-        'name': 'main',
-        'schema': [{
-            'name': '',
-            'datasources': ['birth_names']
-        }]
-    }, {
-        'datasource_type': 'druid',
-        'name': 'druid_test',
-        'schema': [{
-            'name': '',
-            'datasources': ['druid_ds_1', 'druid_ds_2']
-        }]
-    }
-    ]
-}
 
 class RequestAccessTests(CaravelTestCase):
 
-    requires_examples = False
-
-    @classmethod
-    def setUpClass(cls):
-        sm.add_role('override_me')
-        db.session.commit()
-
-    @classmethod
-    def tearDownClass(cls):
-        override_me = sm.find_role('override_me')
-        db.session.delete(override_me)
-        db.session.commit()
-
-    def setUp(self):
-        self.login('admin')
-
-    def tearDown(self):
-        self.logout()
-        override_me = sm.find_role('override_me')
-        override_me.permissions = []
-        db.session.commit()
-        db.session.close()
-
-    def test_override_role_permissions_is_admin_only(self):
-        self.logout()
-        self.login('alpha')
-        response = self.client.post(
-            '/caravel/override_role_permissions/',
-            data=json.dumps(ROLE_TABLES_PERM_DATA),
-            content_type='application/json',
-            follow_redirects=True)
-        self.assertNotEquals(405, response.status_code)
-
-    def test_override_role_permissions_1_table(self):
-        response = self.client.post(
-            '/caravel/override_role_permissions/',
-            data=json.dumps(ROLE_TABLES_PERM_DATA),
-            content_type='application/json')
-        self.assertEquals(201, response.status_code)
-
-        updated_override_me = sm.find_role('override_me')
-        self.assertEquals(1, len(updated_override_me.permissions))
-        birth_names = self.get_table_by_name('birth_names')
-        self.assertEquals(
-            birth_names.perm,
-            updated_override_me.permissions[0].view_menu.name)
-        self.assertEquals(
-            'datasource_access',
-            updated_override_me.permissions[0].permission.name)
-
-    def test_override_role_permissions_druid_and_table(self):
-        response = self.client.post(
-            '/caravel/override_role_permissions/',
-            data=json.dumps(ROLE_ALL_PERM_DATA),
-            content_type='application/json')
-        self.assertEquals(201, response.status_code)
-
-        updated_role = sm.find_role('override_me')
-        perms = sorted(
-            updated_role.permissions, key=lambda p: p.view_menu.name)
-        self.assertEquals(3, len(perms))
-        druid_ds_1 = self.get_druid_ds_by_name('druid_ds_1')
-        self.assertEquals(druid_ds_1.perm, perms[0].view_menu.name)
-        self.assertEquals('datasource_access', perms[0].permission.name)
-
-        druid_ds_2 = self.get_druid_ds_by_name('druid_ds_2')
-        self.assertEquals(druid_ds_2.perm, perms[1].view_menu.name)
-        self.assertEquals(
-            'datasource_access', updated_role.permissions[1].permission.name)
-
-        birth_names = self.get_table_by_name('birth_names')
-        self.assertEquals(birth_names.perm, perms[2].view_menu.name)
-        self.assertEquals(
-            'datasource_access', updated_role.permissions[2].permission.name)
-
-    def test_override_role_permissions_drops_absent_perms(self):
-        override_me = sm.find_role('override_me')
-        override_me.permissions.append(
-            sm.find_permission_view_menu(
-                view_menu_name=self.get_table_by_name('long_lat').perm,
-                permission_name='datasource_access')
-        )
-        db.session.flush()
-
-        response = self.client.post(
-            '/caravel/override_role_permissions/',
-            data=json.dumps(ROLE_TABLES_PERM_DATA),
-            content_type='application/json')
-        self.assertEquals(201, response.status_code)
-        updated_override_me = sm.find_role('override_me')
-        self.assertEquals(1, len(updated_override_me.permissions))
-        birth_names = self.get_table_by_name('birth_names')
-        self.assertEquals(
-            birth_names.perm,
-            updated_override_me.permissions[0].view_menu.name)
-        self.assertEquals(
-            'datasource_access',
-            updated_override_me.permissions[0].permission.name)
-
+    requires_examples = True
 
     def test_approve(self):
         session = db.session
         TEST_ROLE_NAME = 'table_role'
         sm.add_role(TEST_ROLE_NAME)
+        self.login('admin')
 
         def create_access_request(ds_type, ds_name, role_name):
             ds_class = SourceRegistry.sources[ds_type]
@@ -245,7 +116,6 @@ class RequestAccessTests(CaravelTestCase):
 
     def test_request_access(self):
         session = db.session
-        self.logout()
         self.login(username='gamma')
         gamma_user = sm.find_user(username='gamma')
         sm.add_role('dummy_role')
