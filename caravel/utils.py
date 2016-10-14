@@ -10,6 +10,7 @@ import decimal
 import functools
 import json
 import logging
+import pytz
 import numpy
 import signal
 import uuid
@@ -368,6 +369,9 @@ def json_iso_dttm_ser(obj):
 
 
 def datetime_to_epoch(dttm):
+    if dttm.tzinfo:
+        epoch_with_tz = pytz.utc.localize(EPOCH)
+        return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
 
 
