@@ -686,8 +686,6 @@ appbuilder.add_view(
     category_label=__("Security"),
     icon='fa-table',)
 
-appbuilder.add_separator("Sources")
-
 
 class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
@@ -2218,8 +2216,8 @@ appbuilder.add_view(
     "CSS Templates",
     label=__("CSS Templates"),
     icon="fa-css3",
-    category="Sources",
-    category_label=__("Sources"),
+    category="Manage",
+    category_label=__("Manage"),
     category_icon='')
 
 appbuilder.add_link(
