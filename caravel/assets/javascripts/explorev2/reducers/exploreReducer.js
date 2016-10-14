@@ -11,10 +11,11 @@ const setFormInViz = function (state, action) {
 const setVizInState = function (state, action) {
   switch (action.type) {
     case actions.SET_FORM_DATA:
-      return {
-        ...state,
-        formData: setFormInViz(state.formData, action),
-      };
+      return Object.assign(
+        {},
+        state,
+        { formData: setFormInViz(state.formData, action) }
+        );
     default:
       return state;
   }
@@ -74,10 +75,11 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { datasourceType: action.datasourceType });
     },
     [actions.SET_FORM_DATA]() {
-      return {
-        ...state,
-        viz: setVizInState(state.viz, action),
-      };
+      return Object.assign(
+        {},
+        state,
+        { viz: setVizInState(state.viz, action) }
+      );
     },
   };
   if (action.type in actionHandlers) {

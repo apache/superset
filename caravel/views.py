@@ -5,6 +5,8 @@ from __future__ import unicode_literals
 
 import json
 import logging
+import os
+import pickle
 import re
 import sys
 import time
@@ -15,7 +17,8 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, make_response, redirect, flash, Response, render_template,
+    Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -26,8 +29,9 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.routing import BaseConverter
+from werkzeug import secure_filename
 from werkzeug.datastructures import ImmutableMultiDict
+from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import caravel
@@ -84,6 +88,10 @@ def get_database_access_error_msg(database_name):
 def get_datasource_access_error_msg(datasource_name):
     return __("This endpoint requires the datasource %(name)s, database or "
               "`all_datasource_access` permission", name=datasource_name)
+
+
+def get_datasource_exist_error_mgs(full_name):
+    return __("Datasource %(name)s already exists", name=full_name)
 
 
 def get_error_msg():
@@ -533,6 +541,16 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         self.pre_add(db)
 
 
+appbuilder.add_link(
+    'Import Dashboards',
+    label=__("Import Dashboards"),
+    href='/caravel/import_dashboards',
+    icon="fa-cloud-upload",
+    category='Manage',
+    category_label=__("Manage"),
+    category_icon='fa-wrench',)
+
+
 appbuilder.add_view(
     DatabaseView,
     "Databases",
@@ -602,6 +620,16 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, table):
+        number_of_existing_tables = db.session.query(
+            sqla.func.count('*')).filter(
+            models.SqlaTable.table_name == table.table_name,
+            models.SqlaTable.schema == table.schema,
+            models.SqlaTable.database_id == table.database.id
+        ).scalar()
+        # table object is already added to the session
+        if number_of_existing_tables > 1:
+            raise Exception(get_datasource_exist_error_mgs(table.full_name))
+
         # Fail before adding if the table can't be found
         try:
             table.get_sqla_table_object()
@@ -657,9 +685,6 @@ appbuilder.add_view(
     category="Security",
     category_label=__("Security"),
     icon='fa-table',)
-
-
-appbuilder.add_separator("Sources")
 
 
 class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
@@ -867,13 +892,32 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
     def pre_delete(self, obj):
         check_ownership(obj)
 
+    @action("mulexport", "Export", "Export dashboards?", "fa-database")
+    def mulexport(self, items):
+        ids = ''.join('&id={}'.format(d.id) for d in items)
+        return redirect(
+            '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
+
+    @expose("/export_dashboards_form")
+    def download_dashboards(self):
+        if request.args.get('action') == 'go':
+            ids = request.args.getlist('id')
+            return Response(
+                models.Dashboard.export_dashboards(ids),
+                headers=generate_download_headers("pickle"),
+                mimetype="application/text")
+        return self.render_template(
+            'caravel/export_dashboards.html',
+            dashboards_url='/dashboardmodelview/list'
+        )
+
 
 appbuilder.add_view(
     DashboardModelView,
     "Dashboards",
     label=__("Dashboards"),
     icon="fa-dashboard",
-    category="",
+    category='',
     category_icon='',)
 
 
@@ -940,6 +984,19 @@ class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
         'offset': _("Time Offset"),
         'cache_timeout': _("Cache Timeout"),
     }
+
+    def pre_add(self, datasource):
+        number_of_existing_datasources = db.session.query(
+            sqla.func.count('*')).filter(
+            models.DruidDatasource.datasource_name ==
+                datasource.datasource_name,
+            models.DruidDatasource.cluster_name == datasource.cluster.id
+        ).scalar()
+
+        # table object is already added to the session
+        if number_of_existing_datasources > 1:
+            raise Exception(get_datasource_exist_error_mgs(
+                datasource.full_name))
 
     def post_add(self, datasource):
         datasource.generate_metrics()
@@ -1053,9 +1110,8 @@ class Caravel(BaseCaravelView):
         role_to_extend = request.args.get('role_to_extend')
 
         session = db.session
-        datasource_class = SourceRegistry.sources[datasource_type]
-        datasource = session.query(datasource_class).filter_by(
-            id=datasource_id).first()
+        datasource = SourceRegistry.get_datasource(
+            datasource_type, datasource_id, session)
 
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
@@ -1134,20 +1190,48 @@ class Caravel(BaseCaravelView):
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
-        viz_obj = self.get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            args=request.args)
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=request.args)
+        except Exception as e:
+            return json_error_response(utils.error_msg_from_exception(e))
+
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
                     {'error': _("You don't have access to this datasource")}),
                 status=404,
                 mimetype="application/json")
+
+        payload = ""
+        try:
+            payload = viz_obj.get_json()
+        except Exception as e:
+            return json_error_response(utils.error_msg_from_exception(e))
+
         return Response(
-            viz_obj.get_json(),
+            payload,
             status=200,
             mimetype="application/json")
+
+    @expose("/import_dashboards", methods=['GET', 'POST'])
+    @log_this
+    def import_dashboards(self):
+        """Overrides the dashboards using pickled instances from the file."""
+        f = request.files.get('file')
+        if request.method == 'POST' and f:
+            current_tt = int(time.time())
+            data = pickle.load(f)
+            for table in data['datasources']:
+                models.SqlaTable.import_obj(table, import_time=current_tt)
+            for dashboard in data['dashboards']:
+                models.Dashboard.import_obj(
+                    dashboard, import_time=current_tt)
+            db.session.commit()
+            return redirect('/dashboardmodelview/list/')
+        return self.render_template('caravel/import_dashboards.html')
 
     @log_this
     @has_access
@@ -1162,10 +1246,14 @@ class Caravel(BaseCaravelView):
         datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
 
-        viz_obj = self.get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            args=request.args)
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=request.args)
+        except Exception as e:
+            flash('{}'.format(e), "alert")
+            return redirect(error_redirect)
 
         if not viz_obj.datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
@@ -1478,7 +1566,7 @@ class Caravel(BaseCaravelView):
         dash.slices = [o for o in dash.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
         dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
-        md = dash.metadata_dejson
+        md = dash.params_dict
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
@@ -2128,8 +2216,8 @@ appbuilder.add_view(
     "CSS Templates",
     label=__("CSS Templates"),
     icon="fa-css3",
-    category="Sources",
-    category_label=__("Sources"),
+    category="Manage",
+    category_label=__("Manage"),
     category_icon='')
 
 appbuilder.add_link(

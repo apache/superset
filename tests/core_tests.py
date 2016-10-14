@@ -15,7 +15,11 @@ import unittest
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
-from caravel import db, models, utils, appbuilder, sm
+import caravel
+from caravel import app, db, models, utils, appbuilder, sm
+from caravel.source_registry import SourceRegistry
+from caravel.models import DruidDatasource
+from caravel.views import DatabaseView
 
 from .base_tests import CaravelTestCase
 
@@ -126,8 +130,7 @@ class CoreTests(CaravelTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
                 (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
                 (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
-                (slc.slice_name, 'slice_id_url',
-                    "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/".format(slc=slc)),
+                (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
@@ -176,6 +179,17 @@ class CoreTests(CaravelTestCase):
         response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
 
+    def test_databaseview_edit(self, username='admin'):
+        # validate that sending a password-masked uri does not over-write the decrypted uri
+        self.login(username=username)
+        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
+        url = 'databaseview/edit/{}'.format(database.id)
+        data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
+        data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
+        response = self.client.post(url, data=data)
+        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
@@ -386,7 +400,6 @@ class CoreTests(CaravelTestCase):
         resp = self.get_resp('/dashboardmodelview/list/')
         assert "/caravel/dashboard/births/" in resp
 
-        print(self.get_resp('/caravel/dashboard/births/'))
         assert 'Births' in self.get_resp('/caravel/dashboard/births/')
 
         # Confirm that public doesn't have access to other datasets.
@@ -436,7 +449,6 @@ class CoreTests(CaravelTestCase):
         db.session.merge(dash)
         db.session.commit()
         self.test_save_dash('alpha')
-
 
 if __name__ == '__main__':
     unittest.main()

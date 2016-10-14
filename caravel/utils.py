@@ -10,6 +10,7 @@ import decimal
 import functools
 import json
 import logging
+import pytz
 import numpy
 import signal
 import uuid
@@ -31,7 +32,7 @@ class CaravelException(Exception):
     pass
 
 
-class CaravelTimeoutException(Exception):
+class CaravelTimeoutException(CaravelException):
     pass
 
 
@@ -39,7 +40,11 @@ class CaravelSecurityException(CaravelException):
     pass
 
 
-class MetricPermException(Exception):
+class MetricPermException(CaravelException):
+    pass
+
+
+class NoDataException(CaravelException):
     pass
 
 
@@ -220,6 +225,7 @@ def init(caravel):
         'UserDBModelView',
         'SQL Lab',
         'AccessRequestsModelView',
+        'Manage',
     ])
 
     ADMIN_ONLY_PERMISSIONS = set([
@@ -363,6 +369,9 @@ def json_iso_dttm_ser(obj):
 
 
 def datetime_to_epoch(dttm):
+    if dttm.tzinfo:
+        epoch_with_tz = pytz.utc.localize(EPOCH)
+        return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
 
 

@@ -212,7 +212,7 @@ def load_world_bank_health_n_pop():
         "metrics": ["sum__SP_POP_TOTL"],
         "row_limit": config.get("ROW_LIMIT"),
         "since": "2014-01-01",
-        "until": "2014-01-01",
+        "until": "2014-01-02",
         "where": "",
         "markup_type": "markdown",
         "country_fieldtype": "cca3",
@@ -285,7 +285,7 @@ def load_world_bank_health_n_pop():
                 defaults,
                 viz_type='bubble',
                 since="2011-01-01",
-                until="2011-01-01",
+                until="2011-01-02",
                 series="region",
                 limit="0",
                 entity="country_name",
@@ -1058,7 +1058,7 @@ def load_multiformat_time_series_data():
         'string0': ['%Y-%m-%d %H:%M:%S.%f', None],
         'string3': ['%Y/%m/%d%H:%M:%S.%f', None],
     }
-    for col in obj.table_columns:
+    for col in obj.columns:
         dttm_and_expr = dttm_and_expr_dict[col.column_name]
         col.python_date_format = dttm_and_expr[0]
         col.dbatabase_expr = dttm_and_expr[1]
@@ -1069,7 +1069,7 @@ def load_multiformat_time_series_data():
     tbl = obj
 
     print("Creating some slices")
-    for i, col in enumerate(tbl.table_columns):
+    for i, col in enumerate(tbl.columns):
         slice_data = {
             "granularity_sqla": col.column_name,
             "datasource_id": "8",
