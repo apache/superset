@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 from collections import namedtuple
 import inspect
 import textwrap
+import time
 
 from flask_babel import lazy_gettext as _
 
@@ -45,6 +46,15 @@ class BaseEngineSpec(object):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def handle_cursor(cls, cursor, query):
+        """Handle a live cursor between the execute and fetchall calls
+
+        The flow works without this method doing anything, but it allows
+        for handling the cursor and updating progress information in the
+        query object"""
+        pass
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -200,6 +210,28 @@ class PrestoEngineSpec(BaseEngineSpec):
                 'partitionQuery': partition_query,
             }
         }
+
+    @classmethod
+    def handle_cursor(cls, cursor, query, session):
+        """Updates progress information"""
+        polled = cursor.poll()
+        # poll returns dict -- JSON status information or ``None``
+        # if the query is done
+        # https://github.com/dropbox/PyHive/blob/
+        # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
+        while polled:
+            # Update the object and wait for the kill signal.
+            stats = polled.get('stats', {})
+            if stats:
+                completed_splits = float(stats.get('completedSplits'))
+                total_splits = float(stats.get('totalSplits'))
+                if total_splits and completed_splits:
+                    progress = 100 * (completed_splits / total_splits)
+                    if progress > query.progress:
+                        query.progress = progress
+                    session.commit()
+            time.sleep(1)
+            polled = cursor.poll()
 
 
 class MssqlEngineSpec(BaseEngineSpec):

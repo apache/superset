@@ -25,7 +25,7 @@ class SouthPane extends React.Component {
     if (latestQuery) {
       if (['running', 'pending'].includes(latestQuery.state)) {
         results = (
-          <img className="loading" alt="Loading.." src="/static/assets/images/loading.gif" />
+          <img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />
         );
       } else if (latestQuery.state === 'failed') {
         results = <Alert bsStyle="danger">{latestQuery.errorMessage}</Alert>;

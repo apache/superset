@@ -15,6 +15,8 @@ import numpy
 import signal
 import uuid
 
+import pandas as pd
+import numpy as np
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse

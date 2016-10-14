@@ -238,3 +238,19 @@ div.tablePopover:hover {
     margin-bottom: 5px;
     padding: 5px 10px;
 }
+
+.QueryTable .label {
+    margin-top: 5px;
+}
+
+.ResultsModal .modal-body {
+    min-height: 600px;
+}
+
+.modal-body {
+    overflow: auto;
+}
+
+a.Link {
+    cursor: pointer;
+}

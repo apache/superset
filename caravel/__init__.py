@@ -103,6 +103,7 @@ appbuilder = AppBuilder(
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
+results_backend = app.config.get("RESULTS_BACKEND")
 
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")

@@ -2,19 +2,20 @@ import celery
 from datetime import datetime
 import pandas as pd
 import logging
-import numpy
-import time
+import json
+import uuid
+import zlib
 
-from caravel import app, db, models, utils, dataframe
+from caravel import app, db, models, utils, dataframe, results_backend
 
 QueryStatus = models.QueryStatus
-
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
 
 def is_query_select(sql):
     return sql.upper().startswith('SELECT')
+
 
 def create_table_as(sql, table_name, schema=None, override=False):
     """Reformats the query into the create table as query.
@@ -44,7 +45,7 @@ def create_table_as(sql, table_name, schema=None, override=False):
 
 
 @celery_app.task
-def get_sql_results(query_id, return_results=True):
+def get_sql_results(query_id, return_results=True, store_results=False):
     """Executes the sql query returns the results."""
     session = db.session()
     session.commit()  # HACK
@@ -94,25 +95,8 @@ def get_sql_results(query_id, return_results=True):
     cursor = result_proxy.cursor
     query.status = QueryStatus.RUNNING
     session.flush()
-    if database.backend == 'presto':
-        polled = cursor.poll()
-        # poll returns dict -- JSON status information or ``None``
-        # if the query is done
-        # https://github.com/dropbox/PyHive/blob/
-        # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
-        while polled:
-            # Update the object and wait for the kill signal.
-            stats = polled.get('stats', {})
-            if stats:
-                completed_splits = float(stats.get('completedSplits'))
-                total_splits = float(stats.get('totalSplits'))
-                if total_splits and completed_splits:
-                    progress = 100 * (completed_splits / total_splits)
-                    if progress > query.progress:
-                        query.progress = progress
-                    session.commit()
-            time.sleep(1)
-            polled = cursor.poll()
+
+    database.db_engine_spec.handle_cursor(cursor, query)
 
     cdf = None
     if result_proxy.cursor:
@@ -135,23 +119,32 @@ def get_sql_results(query_id, return_results=True):
         query.select_sql = '{}'.format(database.select_star(
             query.tmp_table_name, limit=query.limit))
     query.end_time = utils.now_as_float()
+    session.flush()
+
+    payload = {
+        'query_id': query.id,
+        'status': query.status,
+        'data': [],
+    }
+    if query.status == models.QueryStatus.SUCCESS:
+        payload['data'] = cdf.data if cdf else []
+        payload['columns'] = cdf.columns_dict if cdf else []
+        query.state = 'success'
+    else:
+        payload['error'] = query.error_message
+        query.state = 'error'
+
+    payload['query'] = query.to_dict()
+    payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+
+    if store_results and results_backend:
+        key = '{}'.format(uuid.uuid4())
+        logging.info("Storing results in results backend, key: {}".format(key))
+        results_backend.set(key, zlib.compress(payload))
+        query.results_key = key
+        session.flush()
+
     session.commit()
 
     if return_results:
-        payload = {
-            'query_id': query.id,
-            'status': query.status,
-            'data': [],
-        }
-        if query.status == models.QueryStatus.SUCCESS:
-            payload['data'] = cdf.data if cdf else []
-            payload['columns'] = cdf.columns_dict if cdf else []
-        else:
-            payload['error'] = query.error_message
         return payload
-    '''
-    # Hack testing using a kv store for results
-    key = "query_id={}".format(query.id)
-    logging.info("Storing results in key=[{}]".format(key))
-    cache.set(key, json.dumps(payload, default=utils.json_iso_dttm_ser))
-    '''
