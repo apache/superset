@@ -1,5 +1,6 @@
 export const RESET_STATE = 'RESET_STATE';
 export const ADD_QUERY_EDITOR = 'ADD_QUERY_EDITOR';
+export const CLONE_QUERY_TO_NEW_TAB = 'CLONE_QUERY_TO_NEW_TAB';
 export const REMOVE_QUERY_EDITOR = 'REMOVE_QUERY_EDITOR';
 export const ADD_TABLE = 'ADD_TABLE';
 export const REMOVE_TABLE = 'REMOVE_TABLE';
@@ -35,6 +36,10 @@ export function setDatabases(databases) {
 
 export function addQueryEditor(queryEditor) {
   return { type: ADD_QUERY_EDITOR, queryEditor };
+}
+
+export function cloneQueryToNewTab(query) {
+  return { type: CLONE_QUERY_TO_NEW_TAB, query };
 }
 
 export function setNetworkStatus(networkOn) {

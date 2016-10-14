@@ -9,7 +9,6 @@ import { Table } from 'reactable';
 import { ProgressBar } from 'react-bootstrap';
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
-import shortid from 'shortid';
 import SqlShrink from './SqlShrink';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
@@ -44,16 +43,7 @@ class QueryTable extends React.Component {
   }
 
   openQueryInNewTab(query) {
-    const qe = {
-      id: shortid.generate(),
-      title: `${query.title}`,
-      dbId: (query.dbId) ? query.dbId : null,
-      schema: (query.schema) ? query.schema : null,
-      autorun: true,
-      sql: `${query.sql}`,
-    };
-    this.props.actions.addQueryEditor(qe);
-    this.props.actions.setActiveQueryEditor(qe);
+    this.props.actions.cloneQueryToNewTab(query);
   }
 
   render() {
