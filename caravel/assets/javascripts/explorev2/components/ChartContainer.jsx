@@ -2,6 +2,7 @@ import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
+require('../../../visualizations/directed_force.css');
 
 const propTypes = {
   sliceName: PropTypes.string.isRequired,
@@ -65,6 +66,7 @@ class ChartContainer extends React.Component {
           <div
             id={this.props.sliceContainerId}
             ref={(ref) => { this.chartContainerRef = ref; }}
+            className={this.props.vizType}
           />
         </Panel>
       </div>
