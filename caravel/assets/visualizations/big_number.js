@@ -75,7 +75,8 @@ function bigNumberVis(slice) {
       .style('cursor', 'pointer')
       .text(f(v))
       .style('font-size', d3.min([height, width]) / 3.5)
-      .attr('fill', 'white');
+      .style('text-anchor', 'middle')
+      .attr('fill', 'black');
 
       // Printing big number subheader text
       if (json.subheader !== null) {
