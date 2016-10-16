@@ -11,7 +11,7 @@ require('./heatmap.css');
 function heatmapVis(slice) {
   function refresh() {
     const margin = {
-      top: 10,
+      top: 50,
       right: 10,
       bottom: 35,
       left: 35,
