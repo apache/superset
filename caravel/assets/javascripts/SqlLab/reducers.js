@@ -34,6 +34,20 @@ export const sqlLabReducer = function (state, action) {
       const newState = Object.assign({}, state, { tabHistory });
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
+    [actions.CLONE_QUERY_TO_NEW_TAB]() {
+      const progenitor = state.queryEditors.find((qe) =>
+          qe.id === state.tabHistory[state.tabHistory.length - 1]);
+      const qe = {
+        id: shortid.generate(),
+        title: `Copy of ${progenitor.title}`,
+        dbId: (action.query.dbId) ? action.query.dbId : null,
+        schema: (action.query.schema) ? action.query.schema : null,
+        autorun: true,
+        sql: action.query.sql,
+      };
+
+      return sqlLabReducer(state, actions.addQueryEditor(qe));
+    },
     [actions.REMOVE_QUERY_EDITOR]() {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
