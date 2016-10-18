@@ -56,6 +56,7 @@ class PostgresEngineSpec(BaseEngineSpec):
         Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
         Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
         Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
+        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', {col})"),
         Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
     )
 
