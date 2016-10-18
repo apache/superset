@@ -867,8 +867,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             from_dttm, to_dttm,
             filter=None,  # noqa
             is_timeseries=True,
-            timeseries_limit=15, row_limit=None,
-            inner_from_dttm=None, inner_to_dttm=None,
+            timeseries_limit=15,
+            timeseries_limit_metric=None,
+            row_limit=None,
+            inner_from_dttm=None,
+            inner_to_dttm=None,
             orderby=None,
             extras=None,
             columns=None):
@@ -887,7 +890,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 "and is required by this type of chart"))
 
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
-
+        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
+        timeseries_limit_metric_expr = None
+        if timeseries_limit_metric:
+            timeseries_limit_metric_expr = \
+                timeseries_limit_metric.sqla_col
         if metrics:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -1023,7 +1030,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
-            subq = subq.order_by(desc(main_metric_expr))
+            ob = main_metric_expr
+            if timeseries_limit_metric_expr is not None:
+                ob = timeseries_limit_metric_expr
+            subq = subq.order_by(desc(ob))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
@@ -1689,6 +1699,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             filter=None,  # noqa
             is_timeseries=True,
             timeseries_limit=None,
+            timeseries_limit_metric=None,
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
@@ -1794,6 +1805,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
         if timeseries_limit and is_timeseries:
+            order_by = metrics[0] if metrics else self.metrics[0]
+            if timeseries_limit_metric:
+                order_by = timeseries_limit_metric
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
             pre_qry['granularity'] = "all"
@@ -1804,7 +1818,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     inner_from_dttm.isoformat() + '/' +
                     inner_to_dttm.isoformat()),
                 "columns": [{
-                    "dimension": metrics[0] if metrics else self.metrics[0],
+                    "dimension": order_by,
                     "direction": "descending",
                 }],
             }

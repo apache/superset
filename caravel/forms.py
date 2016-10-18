@@ -544,6 +544,11 @@ class FormFactory(object):
                 "description": _(
                     "Limits the number of time series that get displayed")
             }),
+            'timeseries_limit_metric': (SelectField, {
+                "label": _("Sort By"),
+                "choices": datasource.metrics_combo,
+                "description": _("Metric used to define the top series")
+            }),
             'rolling_type': (SelectField, {
                 "label": _("Rolling"),
                 "default": 'None',
