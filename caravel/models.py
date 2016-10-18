@@ -988,7 +988,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
-            tbl = text('(' + self.sql + ') as expr_qry ')
+            tbl = TextAsFrom(sqla.text(self.sql), []).alias('expr_qry')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)

@@ -1849,6 +1849,8 @@ class Caravel(BaseCaravelView):
             'groupby': dims[0].column_name if dims else '',
             'metrics': metrics[0].metric_name if metrics else '',
             'metric': metrics[0].metric_name if metrics else '',
+            'since': '100 years ago',
+            'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items()])
         url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
