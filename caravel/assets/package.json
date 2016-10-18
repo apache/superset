@@ -57,7 +57,7 @@
     "immutability-helper": "^2.0.0",
     "jquery": "^2.2.1",
     "jquery-ui": "1.10.5",
-    "mapbox-gl": "^0.26.0",
+    "mapbox-gl": "^0.20.0",
     "moment": "^2.14.1",
     "moments": "0.0.2",
     "mustache": "^2.2.1",
