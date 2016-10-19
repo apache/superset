@@ -41,10 +41,11 @@ class QueryTable extends React.Component {
   restoreSql(query) {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
   }
-  notImplemented() {
-    /* eslint no-alert: 0 */
-    alert('Not implemented yet!');
+
+  openQueryInNewTab(query) {
+    this.props.actions.cloneQueryToNewTab(query);
   }
+
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
@@ -112,7 +113,7 @@ class QueryTable extends React.Component {
           />
           <Link
             className="fa fa-plus-circle m-r-3"
-            onClick={self.notImplemented}
+            onClick={this.openQueryInNewTab.bind(this, query)}
             tooltip="Run query in a new tab"
             placement="top"
           />

@@ -1849,6 +1849,8 @@ class Caravel(BaseCaravelView):
             'groupby': dims[0].column_name if dims else '',
             'metrics': metrics[0].metric_name if metrics else '',
             'metric': metrics[0].metric_name if metrics else '',
+            'since': '100 years ago',
+            'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items()])
         url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
@@ -1893,6 +1895,10 @@ class Caravel(BaseCaravelView):
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
                 mimetype="application/json")
+        indexed_columns = set()
+        for index in indexes:
+            indexed_columns |= set(index.get('column_names', []))
+
         for col in t:
             dtype = ""
             try:
@@ -1903,6 +1909,7 @@ class Caravel(BaseCaravelView):
                 'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
+                'indexed': col['name'] in indexed_columns,
             })
         tbl = {
             'name': table_name,
@@ -1910,6 +1917,16 @@ class Caravel(BaseCaravelView):
             'indexes': indexes,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
+
+    @has_access
+    @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
+    @log_this
+    def extra_table_metadata(self, database_id, table_name, schema):
+        schema = None if schema in ('null', 'undefined') else schema
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        payload = mydb.db_engine_spec.extra_table_metadata(
+            mydb, table_name, schema)
+        return Response(json.dumps(payload), mimetype="application/json")
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")

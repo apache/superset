@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import imp
+import json
 import os
 import unittest
 
@@ -123,6 +124,18 @@ class CaravelTestCase(unittest.TestCase):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.client.get(url, follow_redirects=True)
         return resp.data.decode('utf-8')
+
+    def get_json_resp(self, url):
+        """Shortcut to get the parsed results while following redirects"""
+        resp = self.get_resp(url)
+        return json.loads(resp)
+
+    def get_main_database(self, session):
+        return (
+            db.session.query(models.Database)
+            .filter_by(database_name='main')
+            .first()
+        )
 
     def get_access_requests(self, username, ds_type, ds_id):
             DAR = models.DatasourceAccessRequest

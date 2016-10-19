@@ -34,6 +34,20 @@ export const sqlLabReducer = function (state, action) {
       const newState = Object.assign({}, state, { tabHistory });
       return addToArr(newState, 'queryEditors', action.queryEditor);
     },
+    [actions.CLONE_QUERY_TO_NEW_TAB]() {
+      const progenitor = state.queryEditors.find((qe) =>
+          qe.id === state.tabHistory[state.tabHistory.length - 1]);
+      const qe = {
+        id: shortid.generate(),
+        title: `Copy of ${progenitor.title}`,
+        dbId: (action.query.dbId) ? action.query.dbId : null,
+        schema: (action.query.schema) ? action.query.schema : null,
+        autorun: true,
+        sql: action.query.sql,
+      };
+
+      return sqlLabReducer(state, actions.addQueryEditor(qe));
+    },
     [actions.REMOVE_QUERY_EDITOR]() {
       let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
       // List of remaining queryEditor ids
@@ -58,8 +72,23 @@ export const sqlLabReducer = function (state, action) {
     [actions.RESET_STATE]() {
       return Object.assign({}, initialState);
     },
-    [actions.ADD_TABLE]() {
-      return addToArr(state, 'tables', action.table);
+    [actions.MERGE_TABLE]() {
+      const at = Object.assign({}, action.table);
+      let existingTable;
+      state.tables.forEach((t) => {
+        if (
+            t.dbId === at.dbId &&
+            t.queryEditorId === at.queryEditorId &&
+            t.schema === at.schema &&
+            t.name === at.name) {
+          existingTable = t;
+        }
+      });
+      if (existingTable) {
+        return alterInArr(state, 'tables', existingTable, at);
+      }
+      at.id = shortid.generate();
+      return addToArr(state, 'tables', at);
     },
     [actions.EXPAND_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: true });

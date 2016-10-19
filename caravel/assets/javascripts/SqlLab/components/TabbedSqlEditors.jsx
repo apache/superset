@@ -116,7 +116,6 @@ class TabbedSqlEditors extends React.Component {
           key={qe.id}
           title={tabTitle}
           eventKey={qe.id}
-          id={`a11y-query-editor-${qe.id}`}
         >
           <div className="panel panel-default">
             <div className="panel-body">

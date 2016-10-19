@@ -76,9 +76,11 @@ export default class CopyToClipboard extends React.Component {
     return (
       <span>
         {this.props.shouldShowText &&
-          <span>{this.props.text}</span>
+          <span>
+            {this.props.text}
+            &nbsp;&nbsp;&nbsp;&nbsp;
+          </span>
         }
-        &nbsp;&nbsp;&nbsp;&nbsp;
         <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
           <Button
             bsStyle="link"

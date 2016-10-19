@@ -232,3 +232,9 @@ div.tablePopover:hover {
 .SouthPane .tab-content {
     padding-top: 10px;
 }
+
+.TableElement .well {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    padding: 5px 10px;
+}
