@@ -115,7 +115,7 @@ class CoreTests(CaravelTestCase):
             "datasource_id=1&datasource_type=table&previous_viz_type=sankey")
 
         db.session.commit()
-        resp = self.get_resp(url.format(tbl_id, slice_id, copy_name, 'save'))
+        resp = self.get_resp(url.format(tbl_id, slice_id, copy_name, 'saveas'))
         assert copy_name in resp
         assert 'Energy' in self.get_resp(
             url.format(tbl_id, slice_id, copy_name, 'overwrite'))
@@ -201,7 +201,7 @@ class CoreTests(CaravelTestCase):
         resp = self.get_resp(
             '/caravel/warm_up_cache?table_name=energy_usage&db_name=main')
         data = json.loads(resp)
-        assert len(data) == 3
+        assert len(data) == 4
 
     def test_shortner(self):
         self.login(username='admin')
