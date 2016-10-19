@@ -55,7 +55,7 @@ class SouthPane extends React.Component {
     return (
       <div className="SouthPane">
         <Tabs bsStyle="tabs" id={shortid.generate()}>
-          <Tab title="Results" eventKey={1} id={shortid.generate()}>
+          <Tab title="Results" eventKey={1}>
             <div style={{ overflow: 'auto' }}>
               {results}
             </div>
