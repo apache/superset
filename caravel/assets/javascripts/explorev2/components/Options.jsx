@@ -4,9 +4,10 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { timestampOptions, rowLimitOptions } from '../constants';
+import { formatSelectOptions } from '../../../utils/common';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   timeStampFormat: React.PropTypes.string,
   rowLimit: React.PropTypes.number,
 };
@@ -21,14 +22,14 @@ const Options = (props) => {
     {
       key: 'timeStampFormat',
       title: 'Timestamp Format',
-      options: timestampOptions.map((t) => ({ value: t[0], label: t[1] })),
+      options: formatSelectOptions(timestampOptions),
       value: props.timeStampFormat,
       width: '12',
     },
     {
       key: 'rowLimit',
       title: 'Row Limit',
-      options: rowLimitOptions.map((r) => ({ value: r, label: r })),
+      options: formatSelectOptions(rowLimitOptions),
       value: props.rowLimit,
       width: '12',
     }];

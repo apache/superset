@@ -5,7 +5,7 @@ import { connect } from 'react-redux';
 import SelectArray from './SelectArray';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   metricsOpts: React.PropTypes.array,
   metrics: React.PropTypes.array,
   groupByColumnOpts: React.PropTypes.array,

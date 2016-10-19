@@ -8,7 +8,7 @@ import * as actions from '../actions/exploreActions';
 import shortid from 'shortid';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   filterColumnOpts: React.PropTypes.array,
   filters: React.PropTypes.array,
 };

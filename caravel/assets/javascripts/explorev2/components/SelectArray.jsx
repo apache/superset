@@ -5,7 +5,7 @@ import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   selectArray: React.PropTypes.arrayOf(
     React.PropTypes.shape({
       key: React.PropTypes.string.isRequired,
@@ -14,6 +14,7 @@ const propTypes = {
       value: React.PropTypes.oneOfType([
         React.PropTypes.string,
         React.PropTypes.array,
+        React.PropTypes.number,
       ]),
       width: React.PropTypes.string,
       multi: React.PropTypes.bool,
