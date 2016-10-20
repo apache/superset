@@ -509,8 +509,8 @@ def wrap_clause_in_parens(sql):
     return sa.text(sql)
 
 
-def pessimistic_connection_handling():
-    @event.listens_for(Pool, "checkout")
+def pessimistic_connection_handling(target):
+    @event.listens_for(target, "checkout")
     def ping_connection(dbapi_connection, connection_record, connection_proxy):
         """
         Disconnect Handling - Pessimistic, taken from:

@@ -7,7 +7,7 @@ import { Modal } from 'react-bootstrap';
 import ResultSet from './ResultSet';
 
 const propTypes = {
-  queries: React.PropTypes.array,
+  queries: React.PropTypes.object,
   actions: React.PropTypes.object,
   showDataPreviewModal: React.PropTypes.bool,
   dataPreviewQueryId: React.PropTypes.string,

@@ -130,7 +130,7 @@ class SqlEditor extends React.Component {
         {runButtons}
       </ButtonGroup>
     );
-    if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
+    if (this.props.latestQuery && ['running', 'pending'].includes(this.props.latestQuery.state)) {
       runButtons = (
         <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
           <Button

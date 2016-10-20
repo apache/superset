@@ -26,9 +26,16 @@ from flask_babel import lazy_gettext as _
 Grain = namedtuple('Grain', 'name label function')
 
 
+class LimitMethod(object):
+    """Enum the ways that limits can be applied"""
+    FETCH_MANY = 'fetch_many'
+    WRAP_SQL = 'wrap_sql'
+
+
 class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     time_grains = tuple()
+    limit_method = LimitMethod.FETCH_MANY
 
     @classmethod
     def epoch_to_dttm(cls):

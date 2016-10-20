@@ -6,8 +6,9 @@ import json
 import uuid
 import zlib
 
-from caravel import app, db, models, utils, dataframe, results_backend
-
+from caravel import (
+    app, db, models, utils, dataframe, results_backend)
+from caravel.db_engine_specs import LimitMethod
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -52,7 +53,7 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     query = session.query(models.Query).filter_by(id=query_id).one()
     database = query.database
     executed_sql = query.sql.strip().strip(';')
-
+    db_engine_spec = database.db_engine_spec
 
     def handle_error(msg):
         """Local method handling error while processing the SQL"""
@@ -80,7 +81,9 @@ def get_sql_results(query_id, return_results=True, store_results=False):
         executed_sql = create_table_as(
             executed_sql, query.tmp_table_name, database.force_ctas_schema)
         query.select_as_cta_used = True
-    elif query.limit and is_select:
+    elif (
+            query.limit and is_select and
+            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     engine = database.get_sqla_engine(schema=query.schema)
@@ -95,19 +98,18 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     cursor = result_proxy.cursor
     query.status = QueryStatus.RUNNING
     session.flush()
-
-    database.db_engine_spec.handle_cursor(cursor, query)
+    print('here1')
+    db_engine_spec.handle_cursor(cursor, query)
 
     cdf = None
     if result_proxy.cursor:
         column_names = [col[0] for col in result_proxy.cursor.description]
-        data = result_proxy.fetchall()
+        if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
+            data = result_proxy.fetchmany(query.limit)
+        else:
+            data = result_proxy.fetchall()
         cdf = dataframe.CaravelDataFrame(
             pd.DataFrame(data, columns=column_names))
-    # TODO consider generating tuples instead of dicts to send
-    # less data through the wire. The command bellow does that,
-    # but we'd need to align on the client side.
-    # data = df.values.tolist()
 
     query.rows = result_proxy.rowcount
     query.progress = 100
@@ -130,6 +132,7 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     payload['columns'] = cdf.columns_dict if cdf else []
     payload['query'] = query.to_dict()
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
+    logging.info([store_results, results_backend])
 
     if store_results and results_backend:
         key = '{}'.format(uuid.uuid4())
