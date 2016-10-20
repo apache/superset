@@ -81,11 +81,9 @@ export function fetchQueryResults(query) {
       dataType: 'json',
       url: sqlJsonUrl,
       success(results) {
-        // console.log(results);
         dispatch(querySuccess(query, results));
       },
       error() {
-        // console.log(err);
         dispatch(queryFailed(query, 'Failed at retrieving results from the results backend'));
       },
     });
@@ -105,7 +103,7 @@ export function runQuery(query) {
       sql: query.sql,
       sql_editor_id: query.sqlEditorId,
       tab: query.tab,
-      // tmp_table_name: this.state.ctas,
+      tmp_table_name: query.tempTableName,
       select_as_cta: query.ctas,
     };
     $.ajax({

@@ -6,6 +6,7 @@ import * as Actions from '../actions';
 import { ButtonGroup, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 
+import { DATA_PREVIEW_ROW_COUNT } from '../common';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -77,7 +78,7 @@ class TableElement extends React.Component {
   dataPreviewModal() {
     const query = {
       dbId: this.props.queryEditor.dbId,
-      sql: this.selectStar(true, 100),
+      sql: this.selectStar(true, DATA_PREVIEW_ROW_COUNT),
       tableName: this.props.table.name,
       sqlEditorId: null,
       tab: '',

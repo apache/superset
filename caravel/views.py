@@ -2021,7 +2021,7 @@ class Caravel(BaseCaravelView):
             obj = json.loads(json_payload)
             db_id = obj['query']['dbId']
             session = db.session()
-            mydb = session.query(models.Database).filter_by(id=db_id).first()
+            mydb = session.query(models.Database).filter_by(id=db_id).one()
 
             if not self.database_access(mydb):
                 json_error_response(
@@ -2029,7 +2029,7 @@ class Caravel(BaseCaravelView):
 
             return Response(
                 json_payload,
-                status=202,
+                status=200,
                 mimetype="application/json")
         else:
             return Response(
@@ -2039,7 +2039,7 @@ class Caravel(BaseCaravelView):
                         "re-run the query."
                     )
                 }),
-                status=202,
+                status=410,
                 mimetype="application/json")
 
     @has_access_api

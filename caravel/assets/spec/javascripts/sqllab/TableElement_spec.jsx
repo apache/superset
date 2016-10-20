@@ -149,7 +149,7 @@ describe('TableElement', () => {
   });
   it('has 3 Link elements', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
-    expect(wrapper.find(Link)).to.have.length(3);
+    expect(wrapper.find(Link)).to.have.length(2);
   });
   it('has 14 columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);

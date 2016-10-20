@@ -56,6 +56,7 @@ class SqlEditor extends React.Component {
       sql: this.props.queryEditor.sql,
       sqlEditorId: this.props.queryEditor.id,
       tab: this.props.queryEditor.title,
+      tempTableName: this.state.ctas,
       runAsync,
       ctas,
     };

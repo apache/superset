@@ -126,14 +126,8 @@ def get_sql_results(query_id, return_results=True, store_results=False):
         'status': query.status,
         'data': [],
     }
-    if query.status == models.QueryStatus.SUCCESS:
-        payload['data'] = cdf.data if cdf else []
-        payload['columns'] = cdf.columns_dict if cdf else []
-        query.state = 'success'
-    else:
-        payload['error'] = query.error_message
-        query.state = 'error'
-
+    payload['data'] = cdf.data if cdf else []
+    payload['columns'] = cdf.columns_dict if cdf else []
     payload['query'] = query.to_dict()
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
 
