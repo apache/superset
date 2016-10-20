@@ -120,6 +120,15 @@ class CaravelTestCase(unittest.TestCase):
         session.expunge_all()
         return slc
 
+    def get_table_by_name(self, name):
+        return db.session.query(models.SqlaTable).filter_by(
+            table_name=name).first()
+
+    def get_druid_ds_by_name(self, name):
+        return db.session.query(models.DruidDatasource).filter_by(
+            datasource_name=name).first()
+
+
     def get_resp(self, url):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.client.get(url, follow_redirects=True)

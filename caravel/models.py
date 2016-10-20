@@ -635,6 +635,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
+
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
@@ -859,7 +860,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def full_name(self):
-        return "[{obj.database}].[{obj.table_name}]".format(obj=self)
+        return utils.get_datasource_full_name(
+            self.database, self.table_name, schema=self.schema)
 
     @property
     def dttm_cols(self):
@@ -1435,6 +1437,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
+
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
@@ -1547,9 +1550,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def full_name(self):
-        return (
-            "[{obj.cluster_name}]."
-            "[{obj.datasource_name}]").format(obj=self)
+        return utils.get_datasource_full_name(
+            self.cluster_name, self.datasource_name)
 
     @property
     def time_column_grains(self):
