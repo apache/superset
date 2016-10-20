@@ -1,10 +1,6 @@
 import React from 'react';
 import { Alert, Button, Col, Modal } from 'react-bootstrap';
 
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
-
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
@@ -15,6 +11,16 @@ const CHART_TYPES = [
   { value: 'line', label: 'Time Series - Line Chart', requiresTime: true },
   { value: 'bar', label: 'Time Series - Bar Chart', requiresTime: true },
 ];
+
+const propTypes = {
+  onHide: React.PropTypes.func,
+  query: React.PropTypes.object,
+  show: React.PropTypes.bool,
+};
+const defaultProps = {
+  show: false,
+  onHide: () => {},
+};
 
 class VisualizeModal extends React.Component {
   constructor(props) {
@@ -34,7 +40,10 @@ class VisualizeModal extends React.Component {
     this.validate();
   }
   setStateFromProps() {
-    if (!this.props.query || !this.props.query.results.columns) {
+    if (
+        !this.props.query ||
+        !this.props.query.results ||
+        !this.props.query.results.columns) {
       return;
     }
     const columns = {};
@@ -204,22 +213,7 @@ class VisualizeModal extends React.Component {
     return modal;
   }
 }
-VisualizeModal.propTypes = {
-  query: React.PropTypes.object,
-  show: React.PropTypes.bool,
-  onHide: React.PropTypes.func,
-};
-VisualizeModal.defaultProps = {
-  show: false,
-  onHide: () => {},
-};
+VisualizeModal.propTypes = propTypes;
+VisualizeModal.defaultProps = defaultProps;
 
-function mapStateToProps() {
-  return {};
-}
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(mapStateToProps, mapDispatchToProps)(VisualizeModal);
+export default VisualizeModal;

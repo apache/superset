@@ -14,10 +14,13 @@ const propTypes = {
   queries: React.PropTypes.object,
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array,
+  tables: React.PropTypes.array,
+  networkOn: React.PropTypes.bool,
 };
 const defaultProps = {
   tabHistory: [],
   queryEditors: [],
+  networkOn: true,
 };
 
 let queryCount = 1;
@@ -88,10 +91,19 @@ class TabbedSqlEditors extends React.Component {
       this.props.actions.setActiveQueryEditor({ id: key });
     }
   }
+  removeQueryEditor(qe) {
+    this.props.actions.removeQueryEditor(qe);
+  }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      let latestQuery = this.props.queries[qe.latestQueryId];
-      const database = this.props.databases[qe.dbId];
+      let latestQuery;
+      if (qe.latestQueryId) {
+        latestQuery = this.props.queries[qe.latestQueryId];
+      }
+      let database;
+      if (qe.dbId) {
+        database = this.props.databases[qe.dbId];
+      }
       const state = (latestQuery) ? latestQuery.state : '';
       const tabTitle = (
         <div>
@@ -101,7 +113,7 @@ class TabbedSqlEditors extends React.Component {
             id={'ddbtn-tab-' + i}
             title=""
           >
-            <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
+            <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> close tab
             </MenuItem>
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
@@ -122,9 +134,12 @@ class TabbedSqlEditors extends React.Component {
           <div className="panel panel-default">
             <div className="panel-body">
               <SqlEditor
+                tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
                 queryEditor={qe}
                 latestQuery={latestQuery}
                 database={database}
+                actions={this.props.actions}
+                networkOn={this.props.networkOn}
               />
             </div>
           </div>
@@ -152,6 +167,7 @@ function mapStateToProps(state) {
     queryEditors: state.queryEditors,
     queries: state.queries,
     tabHistory: state.tabHistory,
+    networkOn: state.networkOn,
   };
 }
 function mapDispatchToProps(dispatch) {
@@ -160,4 +176,5 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
+export { TabbedSqlEditors };
 export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);

@@ -18,15 +18,26 @@ import 'brace/mode/sql';
 import 'brace/theme/github';
 import 'brace/ext/language_tools';
 
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from '../actions';
-
 import shortid from 'shortid';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 
 import SqlEditorLeftBar from './SqlEditorLeftBar';
+
+const propTypes = {
+  actions: React.PropTypes.object,
+  database: React.PropTypes.object,
+  latestQuery: React.PropTypes.object,
+  tables: React.PropTypes.array,
+  queryEditor: React.PropTypes.object,
+  networkOn: React.PropTypes.bool,
+};
+
+const defaultProps = {
+  tables: [],
+  networkOn: true,
+};
+
 
 class SqlEditor extends React.Component {
   constructor(props) {
@@ -71,15 +82,6 @@ class SqlEditor extends React.Component {
   textChange(text) {
     this.setState({ sql: text });
     this.props.actions.queryEditorSetSql(this.props.queryEditor, text);
-  }
-  addWorkspaceQuery() {
-    this.props.actions.addWorkspaceQuery({
-      id: shortid.generate(),
-      sql: this.state.sql,
-      dbId: this.props.queryEditor.dbId,
-      schema: this.props.queryEditor.schema,
-      title: this.props.queryEditor.title,
-    });
   }
   ctasChange() {}
   visualize() {}
@@ -130,7 +132,9 @@ class SqlEditor extends React.Component {
         {runButtons}
       </ButtonGroup>
     );
-    if (this.props.latestQuery && ['running', 'pending'].includes(this.props.latestQuery.state)) {
+    if (
+        this.props.latestQuery &&
+        ['running', 'pending'].indexOf(this.props.latestQuery.state) > -1) {
       runButtons = (
         <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
           <Button
@@ -202,7 +206,12 @@ class SqlEditor extends React.Component {
       <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
         <Row>
           <Col md={3}>
-            <SqlEditorLeftBar queryEditor={this.props.queryEditor} />
+            <SqlEditorLeftBar
+              queryEditor={this.props.queryEditor}
+              tables={this.props.tables}
+              networkOn={this.props.networkOn}
+              actions={this.props.actions}
+            />
           </Col>
           <Col md={9}>
             <AceEditor
@@ -227,25 +236,7 @@ class SqlEditor extends React.Component {
     );
   }
 }
+SqlEditor.defaultProps = defaultProps;
+SqlEditor.propTypes = propTypes;
 
-SqlEditor.propTypes = {
-  actions: React.PropTypes.object,
-  database: React.PropTypes.object,
-  latestQuery: React.PropTypes.object,
-  queryEditor: React.PropTypes.object,
-};
-
-SqlEditor.defaultProps = {
-};
-
-function mapStateToProps() {
-  return {};
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
+export default SqlEditor;

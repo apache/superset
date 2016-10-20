@@ -3,16 +3,13 @@ import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
 import React from 'react';
 
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
 import shortid from 'shortid';
 
 const SouthPane = function (props) {
   let results = <div />;
   const latestQuery = props.latestQuery;
   if (latestQuery) {
-    results = <ResultSet showControls search query={latestQuery} />;
+    results = <ResultSet showControls search query={latestQuery} actions={this.props.actions} />;
   } else {
     results = <Alert bsStyle="info">Run a query to display results here</Alert>;
   }
@@ -40,9 +37,4 @@ SouthPane.propTypes = {
 SouthPane.defaultProps = {
 };
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(null, mapDispatchToProps)(SouthPane);
+export default SouthPane;

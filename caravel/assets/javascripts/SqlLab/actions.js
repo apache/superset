@@ -18,8 +18,6 @@ export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const SET_DATABASES = 'SET_DATABASES';
-export const ADD_WORKSPACE_QUERY = 'ADD_WORKSPACE_QUERY';
-export const REMOVE_WORKSPACE_QUERY = 'REMOVE_WORKSPACE_QUERY';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
@@ -153,7 +151,9 @@ export function setNetworkStatus(networkOn) {
 }
 
 export function addAlert(alert) {
-  return { type: ADD_ALERT, alert };
+  const o = Object.assign({}, alert);
+  o.id = shortid.generate();
+  return { type: ADD_ALERT, o };
 }
 
 export function removeAlert(alert) {
@@ -208,13 +208,6 @@ export function removeTable(table) {
   return { type: REMOVE_TABLE, table };
 }
 
-export function addWorkspaceQuery(query) {
-  return { type: ADD_WORKSPACE_QUERY, query };
-}
-
-export function removeWorkspaceQuery(query) {
-  return { type: REMOVE_WORKSPACE_QUERY, query };
-}
 export function refreshQueries(alteredQueries) {
   return { type: REFRESH_QUERIES, alteredQueries };
 }

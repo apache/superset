@@ -3,10 +3,6 @@ import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import { Table } from 'reactable';
 import shortid from 'shortid';
 
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
-
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
 
@@ -116,7 +112,7 @@ class ResultSet extends React.Component {
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
-    if (['running', 'pending', 'fetching'].includes(query.state)) {
+    if (['running', 'pending', 'fetching'].indexOf(query.state) > -1) {
       let progressBar;
       if (query.progress > 0 && query.state === 'running') {
         progressBar = (
@@ -191,12 +187,4 @@ class ResultSet extends React.Component {
 ResultSet.propTypes = propTypes;
 ResultSet.defaultProps = defaultProps;
 
-function mapStateToProps() {
-  return {};
-}
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(mapStateToProps, mapDispatchToProps)(ResultSet);
+export default ResultSet;

@@ -7,6 +7,16 @@ import * as Actions from '../actions';
 import QueryTable from './QueryTable';
 import { Alert } from 'react-bootstrap';
 
+const propTypes = {
+  queries: React.PropTypes.object,
+  tabHistory: React.PropTypes.array,
+  actions: React.PropTypes.object,
+};
+
+const defaultProps = {
+  queries: {},
+};
+
 const QueryHistory = (props) => {
   const activeQeId = props.tabHistory[props.tabHistory.length - 1];
   const queriesArray = [];
@@ -23,6 +33,7 @@ const QueryHistory = (props) => {
           'rows', 'sql', 'output', 'actions',
         ]}
         queries={queriesArray}
+        actions={this.props.actions}
       />
     );
   }
@@ -32,16 +43,8 @@ const QueryHistory = (props) => {
     </Alert>
   );
 };
-
-QueryHistory.defaultProps = {
-  queries: {},
-};
-
-QueryHistory.propTypes = {
-  queries: React.PropTypes.object,
-  tabHistory: React.PropTypes.array,
-  actions: React.PropTypes.object,
-};
+QueryHistory.propTypes = propTypes;
+QueryHistory.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
