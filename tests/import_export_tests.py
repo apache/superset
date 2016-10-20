@@ -97,6 +97,10 @@ class ImportExportTests(CaravelTestCase):
     def get_slice(self, slc_id):
         return db.session.query(models.Slice).filter_by(id=slc_id).first()
 
+    def get_slice_by_name(self, name):
+        return db.session.query(models.Slice).filter_by(
+            slice_name=name).first()
+
     def get_dash(self, dash_id):
         return db.session.query(models.Dashboard).filter_by(
             id=dash_id).first()
@@ -285,6 +289,12 @@ class ImportExportTests(CaravelTestCase):
         b_slc = self.create_slice('b_slc', id=10008, table_name='birth_names')
         dash_with_2_slices = self.create_dashboard(
             'dash_with_2_slices', slcs=[e_slc, b_slc], id=10003)
+        dash_with_2_slices.json_metadata = json.dumps({
+            "remote_id": 10003,
+            "filter_immune_slices": [e_slc.id],
+            "expanded_slices": {e_slc.id: True, b_slc.id: False}
+        })
+
         imported_dash_id = models.Dashboard.import_obj(
             dash_with_2_slices, import_time=1991)
         imported_dash = self.get_dash(imported_dash_id)
@@ -294,7 +304,18 @@ class ImportExportTests(CaravelTestCase):
         make_transient(expected_dash)
         self.assert_dash_equals(
             imported_dash, expected_dash, check_position=False)
-        self.assertEquals({"remote_id": 10003, "import_time": 1991},
+        i_e_slc = self.get_slice_by_name('e_slc')
+        i_b_slc = self.get_slice_by_name('b_slc')
+        expected_json_metadata = {
+            "remote_id": 10003,
+            "import_time": 1991,
+            "filter_immune_slices": [i_e_slc.id],
+            "expanded_slices": {
+                '{}'.format(i_e_slc.id): True,
+                '{}'.format(i_b_slc.id): False
+            }
+        }
+        self.assertEquals(expected_json_metadata,
                           json.loads(imported_dash.json_metadata))
 
     def test_import_override_dashboard_2_slices(self):

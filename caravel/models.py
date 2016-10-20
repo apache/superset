@@ -497,11 +497,24 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
         old_to_new_slc_id_dict = {}
+        new_filter_immune_slices = []
+        new_expanded_slices = {}
+        i_params_dict = dashboard_to_import.params_dict
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            old_to_new_slc_id_dict[slc.id] = (
-                Slice.import_obj(slc, import_time=import_time))
+            new_slc_id = Slice.import_obj(slc, import_time=import_time)
+            old_to_new_slc_id_dict[slc.id] = new_slc_id
+            # update json metadata that deals with slice ids
+            if ('filter_immune_slices' in i_params_dict and
+                    slc.id in i_params_dict['filter_immune_slices']):
+                new_filter_immune_slices.append(new_slc_id)
+            new_slc_id_str = '{}'.format(new_slc_id)
+            old_slc_id_str = '{}'.format(slc.id)
+            if ('expanded_slices' in i_params_dict and
+                    old_slc_id_str in i_params_dict['expanded_slices']):
+                new_expanded_slices[new_slc_id_str] = (
+                    i_params_dict['expanded_slices'][old_slc_id_str])
 
         # override the dashboard
         existing_dashboard = None
@@ -514,6 +527,13 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         dashboard_to_import.id = None
         alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
+        if new_expanded_slices:
+            dashboard_to_import.alter_params(
+                expanded_slices=new_expanded_slices)
+        if new_filter_immune_slices:
+            dashboard_to_import.alter_params(
+                filter_immune_slices=new_filter_immune_slices)
+
         new_slices = session.query(Slice).filter(
             Slice.id.in_(old_to_new_slc_id_dict.values())).all()
 
