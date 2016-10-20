@@ -491,3 +491,10 @@ class timeout(object):
         except ValueError as e:
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
+
+
+def wrap_clause_in_parens(sql):
+    """Wrap where/having clause with parenthesis if necessary"""
+    if sql.strip():
+        sql = '({})'.format(sql)
+    return sa.text(sql)

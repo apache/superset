@@ -55,7 +55,9 @@ import caravel
 from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
-from caravel.utils import flasher, MetricPermException, DimSelector
+from caravel.utils import (
+    flasher, MetricPermException, DimSelector, wrap_clause_in_parens
+)
 
 config = app.config
 
@@ -1005,9 +1007,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where_clause_and += [text(extras['where'])]
+            where_clause_and += [wrap_clause_in_parens(extras['where'])]
         if extras and 'having' in extras:
-            having_clause_and += [text(extras['having'])]
+            having_clause_and += [wrap_clause_in_parens(extras['having'])]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
