@@ -291,8 +291,11 @@ class ImportExportTests(CaravelTestCase):
             'dash_with_2_slices', slcs=[e_slc, b_slc], id=10003)
         dash_with_2_slices.json_metadata = json.dumps({
             "remote_id": 10003,
-            "filter_immune_slices": [e_slc.id],
-            "expanded_slices": {e_slc.id: True, b_slc.id: False}
+            "filter_immune_slices": ["{}".format(e_slc.id)],
+            "expanded_slices": {
+                "{}".format(e_slc.id): True,
+                "{}".format(b_slc.id): False
+            }
         })
 
         imported_dash_id = models.Dashboard.import_obj(
@@ -309,7 +312,7 @@ class ImportExportTests(CaravelTestCase):
         expected_json_metadata = {
             "remote_id": 10003,
             "import_time": 1991,
-            "filter_immune_slices": [i_e_slc.id],
+            "filter_immune_slices": ["{}".format(i_e_slc.id)],
             "expanded_slices": {
                 '{}'.format(i_e_slc.id): True,
                 '{}'.format(i_b_slc.id): False

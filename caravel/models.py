@@ -506,11 +506,11 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             new_slc_id = Slice.import_obj(slc, import_time=import_time)
             old_to_new_slc_id_dict[slc.id] = new_slc_id
             # update json metadata that deals with slice ids
-            if ('filter_immune_slices' in i_params_dict and
-                    slc.id in i_params_dict['filter_immune_slices']):
-                new_filter_immune_slices.append(new_slc_id)
             new_slc_id_str = '{}'.format(new_slc_id)
             old_slc_id_str = '{}'.format(slc.id)
+            if ('filter_immune_slices' in i_params_dict and
+                    old_slc_id_str in i_params_dict['filter_immune_slices']):
+                new_filter_immune_slices.append(new_slc_id_str)
             if ('expanded_slices' in i_params_dict and
                     old_slc_id_str in i_params_dict['expanded_slices']):
                 new_expanded_slices[new_slc_id_str] = (
