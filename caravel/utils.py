@@ -15,8 +15,8 @@ import numpy
 import signal
 import uuid
 
-import pandas as pd
-import numpy as np
+from sqlalchemy import event, exc
+from sqlalchemy.pool import Pool
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
@@ -507,3 +507,18 @@ def wrap_clause_in_parens(sql):
     if sql.strip():
         sql = '({})'.format(sql)
     return sa.text(sql)
+
+
+def pessimistic_connection_handling():
+    @event.listens_for(Pool, "checkout")
+    def ping_connection(dbapi_connection, connection_record, connection_proxy):
+        """
+        Disconnect Handling - Pessimistic, taken from:
+        http://docs.sqlalchemy.org/en/rel_0_9/core/pooling.html
+        """
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT 1")
+        except:
+            raise exc.DisconnectionError()
+        cursor.close()
