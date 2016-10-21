@@ -2272,6 +2272,8 @@ class Query(Model):
     # # of rows in the result set or rows modified.
     rows = Column(Integer)
     error_message = Column(Text)
+    # key used to store the results in the results backend
+    results_key = Column(String(64))
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
@@ -2320,6 +2322,7 @@ class Query(Model):
             'userId': self.user_id,
             'user': self.user.username,
             'limit_reached': self.limit_reached,
+            'resultsKey': self.results_key,
         }
 
     @property

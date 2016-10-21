@@ -234,6 +234,11 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
 
+# An instantiated derivative of werkzeug.contrib.cache.BaseCache
+# if enabled, it can be used to store the results of long-running queries
+# in SQL Lab by using the "Run Async" button/feature
+RESULTS_BACKEND = None
+
 try:
     from caravel_config import *  # noqa
 except ImportError:

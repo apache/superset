@@ -1,12 +1,15 @@
 import React from 'react';
-import { ButtonGroup, Well } from 'react-bootstrap';
-import Link from './Link';
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
+
+import { ButtonGroup, Well } from 'react-bootstrap';
 import shortid from 'shortid';
-import ModalTrigger from '../../components/ModalTrigger';
+
+import { DATA_PREVIEW_ROW_COUNT } from '../common';
 import CopyToClipboard from '../../components/CopyToClipboard';
+import Link from './Link';
+import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   table: React.PropTypes.object,
@@ -24,7 +27,7 @@ class TableElement extends React.Component {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
   }
 
-  selectStar() {
+  selectStar(useStar = false, limit = 0) {
     let cols = '';
     this.props.table.columns.forEach((col, i) => {
       cols += col.name;
@@ -36,7 +39,16 @@ class TableElement extends React.Component {
     if (this.props.table.schema) {
       tableName = this.props.table.schema + '.' + tableName;
     }
-    return `SELECT ${cols}\nFROM ${tableName}`;
+    let sql;
+    if (useStar) {
+      sql = `SELECT * FROM ${tableName}`;
+    } else {
+      sql = `SELECT ${cols}\nFROM ${tableName}`;
+    }
+    if (limit > 0) {
+      sql += `\nLIMIT ${limit}`;
+    }
+    return sql;
   }
 
   popSelectStar() {
@@ -62,6 +74,18 @@ class TableElement extends React.Component {
 
   removeTable() {
     this.props.actions.removeTable(this.props.table);
+  }
+  dataPreviewModal() {
+    const query = {
+      dbId: this.props.queryEditor.dbId,
+      sql: this.selectStar(true, DATA_PREVIEW_ROW_COUNT),
+      tableName: this.props.table.name,
+      sqlEditorId: null,
+      tab: '',
+      runAsync: false,
+      ctas: false,
+    };
+    this.props.actions.runQuery(query);
   }
 
   render() {
@@ -175,16 +199,18 @@ class TableElement extends React.Component {
             <ButtonGroup className="ws-el-controls pull-right">
               {keyLink}
               <Link
-                className="fa fa-pencil pull-left m-l-2"
-                onClick={this.setSelectStar.bind(this)}
-                tooltip="Run query in this tab"
+                className="fa fa-search-plus pull-left m-l-2"
+                onClick={this.dataPreviewModal.bind(this)}
+                tooltip="Data preview"
                 href="#"
               />
-              <Link
-                className="fa fa-plus-circle pull-left  m-l-2"
-                onClick={this.popSelectStar.bind(this)}
-                tooltip="Run query in a new tab"
-                href="#"
+              <CopyToClipboard
+                copyNode={
+                  <a className="fa fa-clipboard pull-left m-l-2" />
+                }
+                text={this.selectStar()}
+                shouldShowText={false}
+                tooltipText="Copy SELECT statement to clipboard"
               />
               <Link
                 className="fa fa-trash pull-left m-l-2"

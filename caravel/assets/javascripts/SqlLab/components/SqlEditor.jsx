@@ -1,5 +1,3 @@
-const $ = require('jquery');
-import { now } from '../../modules/dates';
 import React from 'react';
 import {
   Button,
@@ -53,64 +51,16 @@ class SqlEditor extends React.Component {
     this.startQuery(runAsync);
   }
   startQuery(runAsync = false, ctas = false) {
-    const that = this;
     const query = {
       dbId: this.props.queryEditor.dbId,
-      id: shortid.generate(),
-      progress: 0,
       sql: this.props.queryEditor.sql,
       sqlEditorId: this.props.queryEditor.id,
-      startDttm: now(),
-      state: 'running',
       tab: this.props.queryEditor.title,
-    };
-    if (runAsync) {
-      query.state = 'pending';
-    }
-
-    // Execute the Query
-    that.props.actions.startQuery(query);
-
-    const sqlJsonUrl = '/caravel/sql_json/';
-    const sqlJsonRequest = {
-      client_id: query.id,
-      database_id: this.props.queryEditor.dbId,
-      json: true,
+      tempTableName: this.state.ctas,
       runAsync,
-      schema: this.props.queryEditor.schema,
-      select_as_cta: ctas,
-      sql: this.props.queryEditor.sql,
-      sql_editor_id: this.props.queryEditor.id,
-      tab: this.props.queryEditor.title,
-      tmp_table_name: this.state.ctas,
+      ctas,
     };
-    $.ajax({
-      type: 'POST',
-      dataType: 'json',
-      url: sqlJsonUrl,
-      data: sqlJsonRequest,
-      success(results) {
-        if (!runAsync) {
-          that.props.actions.querySuccess(query, results);
-        }
-      },
-      error(err, textStatus, errorThrown) {
-        let msg;
-        try {
-          msg = err.responseJSON.error;
-        } catch (e) {
-          if (err.responseText !== undefined) {
-            msg = err.responseText;
-          }
-        }
-        if (textStatus === 'error' && errorThrown === '') {
-          msg = 'Could not connect to server';
-        } else if (msg === null) {
-          msg = `[${textStatus}] ${errorThrown}`;
-        }
-        that.props.actions.queryFailed(query, msg);
-      },
-    });
+    this.props.actions.runQuery(query);
   }
   stopQuery() {
     this.props.actions.stopQuery(this.props.latestQuery);
@@ -180,7 +130,7 @@ class SqlEditor extends React.Component {
         {runButtons}
       </ButtonGroup>
     );
-    if (this.props.latestQuery && this.props.latestQuery.state === 'running') {
+    if (this.props.latestQuery && ['running', 'pending'].includes(this.props.latestQuery.state)) {
       runButtons = (
         <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
           <Button

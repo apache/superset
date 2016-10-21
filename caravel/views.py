@@ -5,20 +5,19 @@ from __future__ import unicode_literals
 
 import json
 import logging
-import os
 import pickle
 import re
 import sys
 import time
 import traceback
+import zlib
 from datetime import datetime, timedelta
 
 import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, make_response, redirect, flash, Response, render_template,
-    Markup, url_for)
+    g, request, redirect, flash, Response, render_template, Markup)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,7 +28,6 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug import secure_filename
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
@@ -37,7 +35,7 @@ from wtforms.validators import ValidationError
 import caravel
 from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab
+    sm, ascii_art, sql_lab, results_backend
 )
 from caravel.source_registry import SourceRegistry
 from caravel.models import DatasourceAccessRequest as DAR
@@ -78,6 +76,7 @@ DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 
 def get_database_access_error_msg(database_name):
@@ -660,6 +659,8 @@ appbuilder.add_view(
     category="Sources",
     category_label=__("Sources"),
     icon='fa-table',)
+
+appbuilder.add_separator("Sources")
 
 
 class AccessRequestsModelView(CaravelModelView, DeleteMixin):
@@ -1248,7 +1249,7 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
-                    {'error': _("You don't have access to this datasource")}),
+                    {'error': DATASOURCE_ACCESS_ERR}),
                 status=404,
                 mimetype="application/json")
 
@@ -2011,6 +2012,38 @@ class Caravel(BaseCaravelView):
         return "nope"
 
     @has_access_api
+    @expose("/results/<key>/")
+    @log_this
+    def results(self, key):
+        """Serves a key off of the results backend"""
+        blob = results_backend.get(key)
+        if blob:
+            json_payload = zlib.decompress(blob)
+            obj = json.loads(json_payload)
+            db_id = obj['query']['dbId']
+            session = db.session()
+            mydb = session.query(models.Database).filter_by(id=db_id).one()
+
+            if not self.database_access(mydb):
+                json_error_response(
+                    get_database_access_error_msg(mydb.database_name))
+
+            return Response(
+                json_payload,
+                status=200,
+                mimetype="application/json")
+        else:
+            return Response(
+                json.dumps({
+                    'error': (
+                        "Data could not be retrived. You may want to "
+                        "re-run the query."
+                    )
+                }),
+                status=410,
+                mimetype="application/json")
+
+    @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
@@ -2052,7 +2085,8 @@ class Caravel(BaseCaravelView):
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            sql_lab.get_sql_results.delay(query_id, return_results=False)
+            sql_lab.get_sql_results.delay(
+                query_id, return_results=False, store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,
@@ -2077,9 +2111,8 @@ class Caravel(BaseCaravelView):
                 json.dumps({'error': "{}".format(e)}),
                 status=500,
                 mimetype="application/json")
-        data['query'] = query.to_dict()
         return Response(
-            json.dumps(data, default=utils.json_iso_dttm_ser),
+            data,
             status=200,
             mimetype="application/json")
 

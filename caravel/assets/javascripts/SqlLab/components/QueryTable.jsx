@@ -6,13 +6,29 @@ import * as Actions from '../actions';
 
 import moment from 'moment';
 import { Table } from 'reactable';
-import { ProgressBar } from 'react-bootstrap';
+import { Label, ProgressBar } from 'react-bootstrap';
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
-import SqlShrink from './SqlShrink';
+import ResultSet from './ResultSet';
+import ModalTrigger from '../../components/ModalTrigger';
+import HighlightedSql from './HighlightedSql';
 import { STATE_BSSTYLE_MAP } from '../common';
 import { fDuration } from '../../modules/dates';
 import { getLink } from '../../../utils/common';
+
+const propTypes = {
+  columns: React.PropTypes.array,
+  actions: React.PropTypes.object,
+  queries: React.PropTypes.array,
+  onUserClicked: React.PropTypes.func,
+  onDbClicked: React.PropTypes.func,
+};
+const defaultProps = {
+  columns: ['started', 'duration', 'rows'],
+  queries: [],
+  onUserClicked: () => {},
+  onDbClicked: () => {},
+};
 
 
 class QueryTable extends React.Component {
@@ -45,6 +61,12 @@ class QueryTable extends React.Component {
   openQueryInNewTab(query) {
     this.props.actions.cloneQueryToNewTab(query);
   }
+  openAsyncResults(query) {
+    this.props.actions.fetchQueryResults(query);
+  }
+  clearQueryResults(query) {
+    this.props.actions.clearQueryResults(query);
+  }
 
   render() {
     const data = this.props.queries.map((query) => {
@@ -71,9 +93,30 @@ class QueryTable extends React.Component {
       q.started = moment(q.startDttm).format('HH:mm:ss');
       const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
-        <SqlShrink sql={source} maxWidth={100} />
+        <HighlightedSql sql={source} shrink maxWidth={100} />
       );
-      q.output = q.tempTable;
+      if (q.resultsKey) {
+        q.output = (
+          <ModalTrigger
+            bsSize="large"
+            className="ResultsModal"
+            triggerNode={(
+              <Label
+                bsStyle="info"
+                style={{ cursor: 'pointer' }}
+              >
+                view results
+              </Label>
+            )}
+            modalTitle={'Data preview'}
+            beforeOpen={this.openAsyncResults.bind(this, query)}
+            onExit={this.clearQueryResults.bind(this, query)}
+            modalBody={<ResultSet showSql query={query} />}
+          />
+        );
+      } else {
+        q.output = q.tempTable;
+      }
       q.progress = (
         <ProgressBar
           style={{ width: '75px' }}
@@ -137,7 +180,7 @@ class QueryTable extends React.Component {
       return q;
     }).reverse();
     return (
-      <div>
+      <div className="QueryTable">
         <VisualizeModal
           show={this.state.showVisualizeModal}
           query={this.state.activeQuery}
@@ -152,19 +195,8 @@ class QueryTable extends React.Component {
     );
   }
 }
-QueryTable.propTypes = {
-  columns: React.PropTypes.array,
-  actions: React.PropTypes.object,
-  queries: React.PropTypes.array,
-  onUserClicked: React.PropTypes.func,
-  onDbClicked: React.PropTypes.func,
-};
-QueryTable.defaultProps = {
-  columns: ['started', 'duration', 'rows'],
-  queries: [],
-  onUserClicked: () => {},
-  onDbClicked: () => {},
-};
+QueryTable.propTypes = propTypes;
+QueryTable.defaultProps = defaultProps;
 
 function mapStateToProps() {
   return {};
@@ -174,4 +206,5 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
+export { QueryTable };
 export default connect(mapStateToProps, mapDispatchToProps)(QueryTable);

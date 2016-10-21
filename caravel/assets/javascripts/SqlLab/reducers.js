@@ -13,9 +13,10 @@ const defaultQueryEditor = {
   dbId: null,
 };
 
-// TODO(bkyryliuk): document the object schemas
 export const initialState = {
   alerts: [],
+  showDataPreviewModal: false,
+  dataPreviewQueryId: null,
   networkOn: true,
   queries: {},
   databases: {},
@@ -93,6 +94,12 @@ export const sqlLabReducer = function (state, action) {
     [actions.EXPAND_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: true });
     },
+    [actions.HIDE_DATA_PREVIEW]() {
+      const queries = Object.assign({}, state.queries);
+      delete queries[state.dataPreviewQueryId];
+      return Object.assign(
+        {}, state, { showDataPreviewModal: false, queries, dataPreviewQueryId: null });
+    },
     [actions.COLLAPSE_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: false });
     },
@@ -100,12 +107,17 @@ export const sqlLabReducer = function (state, action) {
       return removeFromArr(state, 'tables', action.table);
     },
     [actions.START_QUERY]() {
-      const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
       let newState = Object.assign({}, state);
-      if (qe.latestQueryId) {
-        const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null });
-        const queries = Object.assign({}, state.queries, { [q.id]: q });
-        newState = Object.assign({}, state, { queries });
+      if (action.query.sqlEditorId) {
+        const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
+        if (qe.latestQueryId) {
+          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null });
+          const queries = Object.assign({}, state.queries, { [q.id]: q });
+          newState = Object.assign({}, state, { queries });
+        }
+      } else {
+        newState.dataPreviewQueryId = action.query.id;
+        newState.showDataPreviewModal = true;
       }
       newState = addToObject(newState, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };
@@ -113,6 +125,12 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.STOP_QUERY]() {
       return alterInObject(state, 'queries', action.query, { state: 'stopped' });
+    },
+    [actions.CLEAR_QUERY_RESULTS]() {
+      return alterInObject(state, 'queries', action.query, { results: [] });
+    },
+    [actions.REQUEST_QUERY_RESULTS]() {
+      return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
       let rows;
@@ -125,6 +143,7 @@ export const sqlLabReducer = function (state, action) {
         results: action.results,
         rows,
         state: 'success',
+        errorMessage: null,
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
