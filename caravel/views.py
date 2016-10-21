@@ -76,6 +76,7 @@ DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 
 def get_database_access_error_msg(database_name):
@@ -1248,7 +1249,7 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
-                    {'error': _("You don't have access to this datasource")}),
+                    {'error': DATASOURCE_ACCESS_ERR}),
                 status=404,
                 mimetype="application/json")
 
@@ -2085,7 +2086,7 @@ class Caravel(BaseCaravelView):
         if async:
             # Ignore the celery future object and the request may time out.
             sql_lab.get_sql_results.delay(
-                query_id, return_results=False, store_results=True)
+                query_id, return_results=False, store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,

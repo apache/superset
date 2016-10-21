@@ -206,4 +206,5 @@ function mapDispatchToProps(dispatch) {
     actions: bindActionCreators(Actions, dispatch),
   };
 }
+export { QueryTable };
 export default connect(mapStateToProps, mapDispatchToProps)(QueryTable);

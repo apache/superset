@@ -98,7 +98,6 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     cursor = result_proxy.cursor
     query.status = QueryStatus.RUNNING
     session.flush()
-    print('here1')
     db_engine_spec.handle_cursor(cursor, query)
 
     cdf = None
@@ -132,15 +131,14 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     payload['columns'] = cdf.columns_dict if cdf else []
     payload['query'] = query.to_dict()
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
-    logging.info([store_results, results_backend])
 
     if store_results and results_backend:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
         results_backend.set(key, zlib.compress(payload))
         query.results_key = key
-        session.flush()
 
+    session.flush()
     session.commit()
 
     if return_results:

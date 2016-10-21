@@ -31,8 +31,7 @@ if not app.debug:
 db = SQLA(app)
 
 
-utils.pessimistic_connection_handling(db.engine)
-
+utils.pessimistic_connection_handling(db.engine.pool)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 

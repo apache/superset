@@ -1,6 +1,7 @@
 import React from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
 import { Table } from 'reactable';
+import shortid from 'shortid';
 
 import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -86,6 +87,16 @@ class ResultSet extends React.Component {
     }
     return <div className="noControls" />;
   }
+  popSelectStar() {
+    const qe = {
+      id: shortid.generate(),
+      title: this.props.query.tempTable,
+      autorun: false,
+      dbId: this.props.query.dbId,
+      sql: `SELECT * FROM ${this.props.query.tempTable}`,
+    };
+    this.props.actions.addQueryEditor(qe);
+  }
   showModal() {
     this.setState({ showModal: true });
   }
@@ -127,9 +138,8 @@ class ResultSet extends React.Component {
       return (
         <div>
           <Alert bsStyle="info">
-            Table [<strong>{query.tempTable}</strong>] was created
-          </Alert>
-          <p>
+            Table [<strong>{query.tempTable}</strong>] was
+            created &nbsp;
             <Button
               bsSize="small"
               className="m-r-5"
@@ -137,8 +147,7 @@ class ResultSet extends React.Component {
             >
               Query in a new tab
             </Button>
-            <Button bsSize="small">Visualize</Button>
-          </p>
+          </Alert>
         </div>);
     } else if (query.state === 'success') {
       if (results && results.data && results.data.length > 0) {
@@ -167,10 +176,11 @@ class ResultSet extends React.Component {
       } else if (query.resultsKey) {
         return (
           <div>
-            <Alert bsStyle="warning">This query was run asynchronously</Alert>
-            <Button bsSize="sm" bsStyle="primary" onClick={this.fetchResults.bind(this, query)}>
-              Fetch results
-            </Button>
+            <Alert bsStyle="warning">This query was run asynchronously &nbsp;
+              <Button bsSize="sm" onClick={this.fetchResults.bind(this, query)}>
+                Fetch results
+              </Button>
+            </Alert>
           </div>
         );
       }
