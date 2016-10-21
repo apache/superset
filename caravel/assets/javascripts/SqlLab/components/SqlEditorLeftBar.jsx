@@ -82,15 +82,12 @@ class SqlEditorLeftBar extends React.Component {
 
     this.setState({ tableLoading: true });
     $.get(url, (data) => {
-      this.props.actions.mergeTable({
+      this.props.actions.mergeTable(Object.assign(data, {
         dbId: this.props.queryEditor.dbId,
         queryEditorId: this.props.queryEditor.id,
-        name: data.name,
-        indexes: data.indexes,
         schema: qe.schema,
-        columns: data.columns,
         expanded: true,
-      });
+      }));
       this.setState({ tableLoading: false });
     })
     .fail(() => {
