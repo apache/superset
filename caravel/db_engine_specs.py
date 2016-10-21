@@ -55,7 +55,7 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    def handle_cursor(cls, cursor, query):
+    def handle_cursor(cls, cursor, query, session):
         """Handle a live cursor between the execute and fetchall calls
 
         The flow works without this method doing anything, but it allows

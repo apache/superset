@@ -98,7 +98,7 @@ def get_sql_results(query_id, return_results=True, store_results=False):
     cursor = result_proxy.cursor
     query.status = QueryStatus.RUNNING
     session.flush()
-    db_engine_spec.handle_cursor(cursor, query)
+    db_engine_spec.handle_cursor(cursor, query, session)
 
     cdf = None
     if result_proxy.cursor:
