@@ -27,6 +27,9 @@ TIMESTAMP_CHOICES = [
      '"%Y-%m-%d %H:%M:%S" | 2019-01-14 01:32:10'),
     ("%H:%M:%S", '"%H:%M:%S" | 01:32:10'),
 ]
+D3_FORMAT_DOCS = _(
+    "D3 format syntax "
+    "https://github.com/d3/d3-format")
 
 
 class BetterBooleanField(BooleanField):
@@ -527,9 +530,7 @@ class FormFactory(object):
                     ('+,', '"+," | +12,345.4321'),
                     ('$,.2f', '"$,.2f" | $12,345.43'),
                 ],
-                "description": _("D3 format syntax for numbers "
-                            "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting")
+                "description": D3_FORMAT_DOCS,
             }),
             'row_limit': (FreeFormSelectField, {
                 "label": _('Row limit'),
@@ -657,9 +658,7 @@ class FormFactory(object):
                 "label": _("X axis format"),
                 "default": 'smart_date',
                 "choices": TIMESTAMP_CHOICES,
-                "description": _("D3 format syntax for y axis "
-                            "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting")
+                "description": D3_FORMAT_DOCS,
             }),
             'y_axis_format': (FreeFormSelectField, {
                 "label": _("Y axis format"),
@@ -672,9 +671,7 @@ class FormFactory(object):
                     ('+,', '"+," | +12,345.4321'),
                     ('$,.2f', '"$,.2f" | $12,345.43'),
                 ],
-                "description": _("D3 format syntax for y axis "
-                            "https: //github.com/mbostock/\n"
-                            "d3/wiki/Formatting")
+                "description": D3_FORMAT_DOCS,
             }),
             'markup_type': (SelectField, {
                 "label": _("Markup Type"),
