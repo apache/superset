@@ -127,6 +127,11 @@ class SqlEditorLeftBar extends React.Component {
           <DatabaseSelect
             onChange={this.onChange.bind(this)}
             databaseId={this.props.queryEditor.dbId}
+            valueRenderer={(o) => (
+              <div>
+                <span className="text-muted">Database:</span> {o.label}
+              </div>
+            )}
           />
         </div>
         <div className="m-t-5">
@@ -135,6 +140,11 @@ class SqlEditorLeftBar extends React.Component {
             placeholder={`Select a schema (${this.state.schemaOptions.length})`}
             options={this.state.schemaOptions}
             value={this.props.queryEditor.schema}
+            valueRenderer={(o) => (
+              <div>
+                <span className="text-muted">Schema:</span> {o.label}
+              </div>
+            )}
             isLoading={this.state.schemaLoading}
             autosize={false}
             onChange={this.changeSchema.bind(this)}
