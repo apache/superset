@@ -689,6 +689,12 @@ class Database(Model, AuditMixinNullable):
             url.database = schema
         return create_engine(url, **params)
 
+    def get_reserved_words(self):
+        return self.get_sqla_engine().dialect.preparer.reserved_words
+
+    def get_quoter(self):
+        return self.get_sqla_engine().dialect.identifier_preparer.quote
+
     def get_df(self, sql, schema):
         eng = self.get_sqla_engine(schema=schema)
         cur = eng.execute(sql, schema=schema)
@@ -701,12 +707,26 @@ class Database(Model, AuditMixinNullable):
         compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
         return '{}'.format(compiled)
 
-    def select_star(self, table_name, schema=None, limit=1000):
+    def select_star(
+            self, table_name, schema=None, limit=100, show_cols=False,
+            indent=True):
         """Generates a ``select *`` statement in the proper dialect"""
-        qry = select('*').select_from(text(table_name))
+        for i in range(10):
+            print(schema)
+        quote = self.get_quoter()
+        fields = '*'
+        table = self.get_table(table_name, schema=schema)
+        if show_cols:
+            fields = [quote(c.name) for c in table.columns]
+        if schema:
+            table_name = schema + '.' + table_name
+        qry = select(fields).select_from(text(table_name))
         if limit:
             qry = qry.limit(limit)
-        return self.compile_sqla_query(qry)
+        sql = self.compile_sqla_query(qry)
+        if indent:
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (

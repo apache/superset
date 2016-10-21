@@ -6,7 +6,6 @@ import * as Actions from '../actions';
 import { ButtonGroup, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 
-import { DATA_PREVIEW_ROW_COUNT } from '../common';
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -23,33 +22,6 @@ const defaultProps = {
 };
 
 class TableElement extends React.Component {
-  setSelectStar() {
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, this.selectStar());
-  }
-
-  selectStar(useStar = false, limit = 0) {
-    let cols = '';
-    this.props.table.columns.forEach((col, i) => {
-      cols += col.name;
-      if (i < this.props.table.columns.length - 1) {
-        cols += ', ';
-      }
-    });
-    let tableName = this.props.table.name;
-    if (this.props.table.schema) {
-      tableName = this.props.table.schema + '.' + tableName;
-    }
-    let sql;
-    if (useStar) {
-      sql = `SELECT * FROM ${tableName}`;
-    } else {
-      sql = `SELECT ${cols}\nFROM ${tableName}`;
-    }
-    if (limit > 0) {
-      sql += `\nLIMIT ${limit}`;
-    }
-    return sql;
-  }
 
   popSelectStar() {
     const qe = {
@@ -57,7 +29,7 @@ class TableElement extends React.Component {
       title: this.props.table.name,
       dbId: this.props.table.dbId,
       autorun: true,
-      sql: this.selectStar(),
+      sql: this.props.table.selectStar,
     };
     this.props.actions.addQueryEditor(qe);
   }
@@ -78,7 +50,7 @@ class TableElement extends React.Component {
   dataPreviewModal() {
     const query = {
       dbId: this.props.queryEditor.dbId,
-      sql: this.selectStar(true, DATA_PREVIEW_ROW_COUNT),
+      sql: this.props.table.selectStar,
       tableName: this.props.table.name,
       sqlEditorId: null,
       tab: '',
@@ -208,7 +180,7 @@ class TableElement extends React.Component {
                 copyNode={
                   <a className="fa fa-clipboard pull-left m-l-2" />
                 }
-                text={this.selectStar()}
+                text={table.selectStar}
                 shouldShowText={false}
                 tooltipText="Copy SELECT statement to clipboard"
               />

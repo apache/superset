@@ -1968,6 +1968,8 @@ class Caravel(BaseCaravelView):
         tbl = {
             'name': table_name,
             'columns': cols,
+            'selectStar': mydb.select_star(
+                table_name, schema=schema, show_cols=True, indent=True),
             'indexes': indexes,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
@@ -1988,6 +1990,7 @@ class Caravel(BaseCaravelView):
     def select_star(self, database_id, table_name):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
+        quote = mydb.get_quoter()
         t = mydb.get_table(table_name)
 
         # Prevent exposing column fields to users that cannot access DB.
@@ -1996,7 +1999,7 @@ class Caravel(BaseCaravelView):
             return redirect("/tablemodelview/list/")
 
         fields = ", ".join(
-            [c.name for c in t.columns] or "*")
+            [quote(c.name) for c in t.columns] or "*")
         s = "SELECT\n{}\nFROM {}".format(fields, table_name)
         return self.render_template(
             "caravel/ajah.html",
