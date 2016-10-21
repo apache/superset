@@ -44,6 +44,7 @@ ROLE_ALL_PERM_DATA = {
     ]
 }
 
+
 class RequestAccessTests(CaravelTestCase):
 
     requires_examples = False
