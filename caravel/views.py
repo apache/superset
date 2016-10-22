@@ -1172,7 +1172,7 @@ class Caravel(BaseCaravelView):
             datasource_type=None,
             datasource_id=None):
 
-        slice_id = slice_id or request.args.get('slice_id')
+        slice_id = slice_id or args.get('slice_id')
 
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
