@@ -1,7 +1,6 @@
 import React from 'react';
 import CopyQueryTabUrl from '../../../javascripts/SqlLab/components/CopyQueryTabUrl';
-import { Tab } from 'react-bootstrap';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { initialState } from './common';
@@ -19,7 +18,6 @@ describe('CopyQueryTabUrl', () => {
     ).to.equal(true);
   });
   it('shallow mounts', () => {
-    const wrapper = shallow(<CopyQueryTabUrl {...mockedProps} />);
-    //expect(wrapper.find(Tab)).to.have.length(2);
+    shallow(<CopyQueryTabUrl {...mockedProps} />);
   });
 });

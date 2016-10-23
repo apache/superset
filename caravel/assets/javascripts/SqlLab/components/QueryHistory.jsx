@@ -33,7 +33,7 @@ const QueryHistory = (props) => {
           'rows', 'sql', 'output', 'actions',
         ]}
         queries={queriesArray}
-        actions={this.props.actions}
+        actions={props.actions}
       />
     );
   }

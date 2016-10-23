@@ -9,7 +9,7 @@ const SouthPane = function (props) {
   let results = <div />;
   const latestQuery = props.latestQuery;
   if (latestQuery) {
-    results = <ResultSet showControls search query={latestQuery} actions={this.props.actions} />;
+    results = <ResultSet showControls search query={latestQuery} actions={props.actions} />;
   } else {
     results = <Alert bsStyle="info">Run a query to display results here</Alert>;
   }

@@ -120,7 +120,7 @@ class TabbedSqlEditors extends React.Component {
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
             <MenuItem eventKey="3">
-              <i className="fa fa-clipboard" /> <CopyQueryTabUrl qe={qe} />
+              <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
             </MenuItem>
           </DropdownButton>
         </div>
@@ -168,6 +168,7 @@ function mapStateToProps(state) {
     queries: state.queries,
     tabHistory: state.tabHistory,
     networkOn: state.networkOn,
+    tables: state.tables,
   };
 }
 function mapDispatchToProps(dispatch) {

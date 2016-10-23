@@ -1,18 +1,16 @@
 import React from 'react';
 import Link from '../../../javascripts/SqlLab/components/Link';
 import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-import { table } from './common'
-import { Button } from 'react-bootstrap';
+import { table } from './common';
 import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 
 describe('TableElement', () => {
-
   const mockedProps = {
-    'table': table,
-  }
+    table,
+  };
   it('should just render', () => {
     expect(
       React.isValidElement(<TableElement />)
@@ -32,6 +30,6 @@ describe('TableElement', () => {
     expect(wrapper.find('div.table-column')).to.have.length(14);
   });
   it('mounts', () => {
-    const wrapper = mount(<TableElement {...mockedProps} />);
+    mount(<TableElement {...mockedProps} />);
   });
 });

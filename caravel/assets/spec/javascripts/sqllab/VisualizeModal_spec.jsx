@@ -1,5 +1,4 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import VisualizeModal from '../../../javascripts/SqlLab/components/VisualizeModal';
 import { queries } from './common';
 import { Modal } from 'react-bootstrap';
@@ -12,7 +11,7 @@ describe('VisualizeModal', () => {
   const mockedProps = {
     show: true,
     query: queries[0],
-  }
+  };
   it('should just render', () => {
     expect(React.isValidElement(<VisualizeModal />)).to.equal(true);
   });

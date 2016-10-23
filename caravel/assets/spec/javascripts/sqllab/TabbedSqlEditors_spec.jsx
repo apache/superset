@@ -1,8 +1,7 @@
 import React from 'react';
 import { TabbedSqlEditors } from '../../../javascripts/SqlLab/components/TabbedSqlEditors';
-import AceEditor from 'react-ace';
 import { Tab } from 'react-bootstrap';
-import { mount, shallow } from 'enzyme';
+import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 import { initialState } from './common';

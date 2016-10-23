@@ -7,7 +7,6 @@ import { alert, table, initialState, query } from './common';
 describe('sqlLabReducer', () => {
   describe('CLONE_QUERY_TO_NEW_TAB', () => {
     const testQuery = { sql: 'SELECT * FROM...', dbId: 1, id: 'flasj233' };
-    //let newState = r.sqlLabReducer(newState, actions.startQuery(query));
     let newState = Object.assign({}, initialState, { queries: { [testQuery.id]: testQuery } });
     newState = r.sqlLabReducer(newState, actions.cloneQueryToNewTab(testQuery));
 
@@ -75,18 +74,17 @@ describe('sqlLabReducer', () => {
       table.extra = true;
       newState = r.sqlLabReducer(newState, actions.mergeTable(table));
       expect(newState.tables).to.have.lengthOf(1);
-      expect(newState.tables[0].extra).to.be.true;
+      expect(newState.tables[0].extra).to.equal(true);
       newState = r.sqlLabReducer(newState, actions.collapseTable(table));
-      expect(newState.tables[0].expanded).to.be.false;
+      expect(newState.tables[0].expanded).to.equal(false);
       newState = r.sqlLabReducer(newState, actions.expandTable(table));
-      expect(newState.tables[0].expanded).to.be.true;
+      expect(newState.tables[0].expanded).to.equal(true);
       newState = r.sqlLabReducer(newState, actions.removeTable(table));
       expect(newState.tables).to.have.lengthOf(0);
     });
   });
   describe('Run Query', () => {
     let newState = Object.assign({}, initialState);
-    const qe = newState.queryEditors[0];
     it('should start', () => {
       newState = r.sqlLabReducer(newState, actions.runQuery(query));
       newState = r.sqlLabReducer(newState, actions.startQuery(query));

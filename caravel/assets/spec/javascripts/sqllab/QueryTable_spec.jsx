@@ -1,17 +1,15 @@
 import React from 'react';
 import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
 import { queries } from './common';
-import { Button } from 'react-bootstrap';
-import { mount, shallow } from 'enzyme';
+import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 
 describe('QueryTable', () => {
-
   const mockedProps = {
-    queries: queries,
-  }
+    queries,
+  };
   it('should just render', () => {
     expect(React.isValidElement(<QueryTable />)).to.equal(true);
   });

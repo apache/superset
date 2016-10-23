@@ -1,8 +1,8 @@
 import React from 'react';
 import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
 import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-import { mount, shallow } from 'enzyme';
-import { initialSate, table, defaultQueryEditor } from './common'
+import { mount } from 'enzyme';
+import { table, defaultQueryEditor } from './common';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
@@ -11,7 +11,7 @@ describe('SqlEditorLeftBar', () => {
   const mockedProps = {
     tables: [table],
     queryEditor: defaultQueryEditor,
-  }
+  };
   it('should just render', () => {
     expect(
       React.isValidElement(<SqlEditorLeftBar />)
