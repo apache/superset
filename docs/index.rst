@@ -33,6 +33,7 @@ Contents
     installation
     tutorial
     security
+    sqllab
     videos
     gallery
     druid
