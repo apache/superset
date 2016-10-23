@@ -1186,6 +1186,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     metric_type='sum',
                     expression="SUM({})".format(quoted)
                 ))
+            if dbcol.sum:
+                metrics.append(M(
+                    metric_name='avg__' + dbcol.column_name,
+                    verbose_name='avg__' + dbcol.column_name,
+                    metric_type='avg',
+                    expression="AVG({})".format(quoted)
+                ))
             if dbcol.max:
                 metrics.append(M(
                     metric_name='max__' + dbcol.column_name,
