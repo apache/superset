@@ -4,14 +4,13 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import * as Actions from '../actions';
-import shortid from 'shortid';
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import DatabaseSelect from './DatabaseSelect';
 
 
-class SqlEditorTopToolbar extends React.Component {
+class SqlEditorLeftBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -79,20 +78,16 @@ class SqlEditorTopToolbar extends React.Component {
   changeTable(tableOpt) {
     const tableName = tableOpt.value;
     const qe = this.props.queryEditor;
-    const url = `/caravel/table/${qe.dbId}/${tableName}/${qe.schema}/`;
+    let url = `/caravel/table/${qe.dbId}/${tableName}/${qe.schema}/`;
 
     this.setState({ tableLoading: true });
     $.get(url, (data) => {
-      this.props.actions.addTable({
-        id: shortid.generate(),
+      this.props.actions.mergeTable(Object.assign(data, {
         dbId: this.props.queryEditor.dbId,
         queryEditorId: this.props.queryEditor.id,
-        name: data.name,
-        indexes: data.indexes,
         schema: qe.schema,
-        columns: data.columns,
         expanded: true,
-      });
+      }));
       this.setState({ tableLoading: false });
     })
     .fail(() => {
@@ -101,6 +96,18 @@ class SqlEditorTopToolbar extends React.Component {
         bsStyle: 'danger',
       });
       this.setState({ tableLoading: false });
+    });
+
+    url = `/caravel/extra_table_metadata/${qe.dbId}/${tableName}/${qe.schema}/`;
+    $.get(url, (data) => {
+      const table = {
+        dbId: this.props.queryEditor.dbId,
+        queryEditorId: this.props.queryEditor.id,
+        schema: qe.schema,
+        name: tableName,
+      };
+      Object.assign(table, data);
+      this.props.actions.mergeTable(table);
     });
   }
   render() {
@@ -117,6 +124,11 @@ class SqlEditorTopToolbar extends React.Component {
           <DatabaseSelect
             onChange={this.onChange.bind(this)}
             databaseId={this.props.queryEditor.dbId}
+            valueRenderer={(o) => (
+              <div>
+                <span className="text-muted">Database:</span> {o.label}
+              </div>
+            )}
           />
         </div>
         <div className="m-t-5">
@@ -125,6 +137,11 @@ class SqlEditorTopToolbar extends React.Component {
             placeholder={`Select a schema (${this.state.schemaOptions.length})`}
             options={this.state.schemaOptions}
             value={this.props.queryEditor.schema}
+            valueRenderer={(o) => (
+              <div>
+                <span className="text-muted">Schema:</span> {o.label}
+              </div>
+            )}
             isLoading={this.state.schemaLoading}
             autosize={false}
             onChange={this.changeSchema.bind(this)}
@@ -158,14 +175,14 @@ class SqlEditorTopToolbar extends React.Component {
   }
 }
 
-SqlEditorTopToolbar.propTypes = {
+SqlEditorLeftBar.propTypes = {
   queryEditor: React.PropTypes.object,
   tables: React.PropTypes.array,
   actions: React.PropTypes.object,
   networkOn: React.PropTypes.bool,
 };
 
-SqlEditorTopToolbar.defaultProps = {
+SqlEditorLeftBar.defaultProps = {
   tables: [],
 };
 
@@ -182,4 +199,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditorTopToolbar);
+export default connect(mapStateToProps, mapDispatchToProps)(SqlEditorLeftBar);

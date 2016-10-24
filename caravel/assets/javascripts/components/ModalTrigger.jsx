@@ -4,15 +4,21 @@ import cx from 'classnames';
 
 const propTypes = {
   triggerNode: PropTypes.node.isRequired,
-  modalTitle: PropTypes.string.isRequired,
+  modalTitle: PropTypes.node.isRequired,
   modalBody: PropTypes.node.isRequired,
   beforeOpen: PropTypes.func,
+  onExit: PropTypes.func,
   isButton: PropTypes.bool,
+  bsSize: PropTypes.string,
+  className: PropTypes.string,
 };
 
 const defaultProps = {
   beforeOpen: () => {},
+  onExit: () => {},
   isButton: false,
+  bsSize: null,
+  className: '',
 };
 
 export default class ModalTrigger extends React.Component {
@@ -42,7 +48,13 @@ export default class ModalTrigger extends React.Component {
     return (
       <a href="#" className={classNames} onClick={this.open}>
         {this.props.triggerNode}
-        <Modal show={this.state.showModal} onHide={this.close}>
+        <Modal
+          show={this.state.showModal}
+          onHide={this.close}
+          onExit={this.props.onExit}
+          bsSize={this.props.bsSize}
+          className={this.props.className}
+        >
           <Modal.Header closeButton>
             <Modal.Title>{this.props.modalTitle}</Modal.Title>
           </Modal.Header>

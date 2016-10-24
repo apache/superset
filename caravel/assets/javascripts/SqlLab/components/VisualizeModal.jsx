@@ -26,8 +26,6 @@ class VisualizeModal extends React.Component {
       columns: {},
       hints: [],
     };
-    // update columns if possible
-    this.setStateFromProps();
   }
   componentWillMount() {
     this.setStateFromProps();

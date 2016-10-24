@@ -10,10 +10,13 @@ import decimal
 import functools
 import json
 import logging
+import pytz
 import numpy
 import signal
 import uuid
 
+from sqlalchemy import event, exc
+from sqlalchemy.pool import Pool
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
@@ -31,7 +34,7 @@ class CaravelException(Exception):
     pass
 
 
-class CaravelTimeoutException(Exception):
+class CaravelTimeoutException(CaravelException):
     pass
 
 
@@ -39,7 +42,11 @@ class CaravelSecurityException(CaravelException):
     pass
 
 
-class MetricPermException(Exception):
+class MetricPermException(CaravelException):
+    pass
+
+
+class NoDataException(CaravelException):
     pass
 
 
@@ -220,10 +227,12 @@ def init(caravel):
         'UserDBModelView',
         'SQL Lab',
         'AccessRequestsModelView',
+        'Manage',
     ])
 
     ADMIN_ONLY_PERMISSIONS = set([
         'can_sync_druid_source',
+        'can_override_role_permissions',
         'can_approve',
     ])
 
@@ -363,6 +372,9 @@ def json_iso_dttm_ser(obj):
 
 
 def datetime_to_epoch(dttm):
+    if dttm.tzinfo:
+        epoch_with_tz = pytz.utc.localize(EPOCH)
+        return (dttm - epoch_with_tz).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
 
 
@@ -438,6 +450,12 @@ def generic_find_constraint_name(table, columns, referenced, db):
             return fk.name
 
 
+def get_datasource_full_name(database_name, datasource_name, schema=None):
+    if not schema:
+        return "[{}].[{}]".format(database_name, datasource_name)
+    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
+
+
 def validate_json(obj):
     if obj:
         try:
@@ -482,3 +500,25 @@ class timeout(object):
         except ValueError as e:
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
+
+
+def wrap_clause_in_parens(sql):
+    """Wrap where/having clause with parenthesis if necessary"""
+    if sql.strip():
+        sql = '({})'.format(sql)
+    return sa.text(sql)
+
+
+def pessimistic_connection_handling(target):
+    @event.listens_for(target, "checkout")
+    def ping_connection(dbapi_connection, connection_record, connection_proxy):
+        """
+        Disconnect Handling - Pessimistic, taken from:
+        http://docs.sqlalchemy.org/en/rel_0_9/core/pooling.html
+        """
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT 1")
+        except:
+            raise exc.DisconnectionError()
+        cursor.close()

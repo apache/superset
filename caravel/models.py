@@ -52,10 +52,12 @@ from sqlalchemy_utils import EncryptedType
 from werkzeug.datastructures import ImmutableMultiDict
 
 import caravel
-from caravel import app, db, get_session, utils, sm
+from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
-from caravel.utils import flasher, MetricPermException, DimSelector
+from caravel.utils import (
+    flasher, MetricPermException, DimSelector, wrap_clause_in_parens
+)
 
 config = app.config
 
@@ -278,6 +280,12 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return href(slice_params)
 
     @property
+    def slice_id_url(self):
+        return (
+            "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
+        ).format(slc=self)
+
+    @property
     def edit_url(self):
         return "/slicemodelview/edit/{}".format(self.id)
 
@@ -336,7 +344,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
                     slc.params_dict['remote_id'] == slc_to_import.id):
                 slc_to_override = slc
 
-        slc_to_import.id = None
+        slc_to_import = slc_to_import.copy()
         params = slc_to_import.params_dict
         slc_to_import.datasource_id = SourceRegistry.get_datasource_by_name(
             session, slc_to_import.datasource_type, params['datasource_name'],
@@ -394,7 +402,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     owners = relationship("User", secondary=dashboard_user)
 
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
-                     'description', 'css', 'slug', 'slices')
+                     'description', 'css', 'slug')
 
     def __repr__(self):
         return self.dashboard_title
@@ -441,6 +449,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     def params(self, value):
         self.json_metadata = value
 
+    @property
+    def position_array(self):
+        if self.position_json:
+            return json.loads(self.position_json)
+        return []
+
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
         """Imports the dashboard from the object to the database.
@@ -452,6 +466,28 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
          to import/export dashboards between multiple caravel instances.
          Audit metadata isn't copies over.
         """
+        def alter_positions(dashboard, old_to_new_slc_id_dict):
+            """ Updates slice_ids in the position json.
+
+            Sample position json:
+            [{
+                "col": 5,
+                "row": 10,
+                "size_x": 4,
+                "size_y": 2,
+                "slice_id": "3610"
+            }]
+            """
+            position_array = dashboard.position_array
+            for position in position_array:
+                if 'slice_id' not in position:
+                    continue
+                old_slice_id = int(position['slice_id'])
+                if old_slice_id in old_to_new_slc_id_dict:
+                    position['slice_id'] = '{}'.format(
+                        old_to_new_slc_id_dict[old_slice_id])
+            dashboard.position_json = json.dumps(position_array)
+
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
         session = db.session
@@ -460,11 +496,25 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
-        slice_ids = set()
+        old_to_new_slc_id_dict = {}
+        new_filter_immune_slices = []
+        new_expanded_slices = {}
+        i_params_dict = dashboard_to_import.params_dict
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            slice_ids.add(Slice.import_obj(slc, import_time=import_time))
+            new_slc_id = Slice.import_obj(slc, import_time=import_time)
+            old_to_new_slc_id_dict[slc.id] = new_slc_id
+            # update json metadata that deals with slice ids
+            if ('filter_immune_slices' in i_params_dict and
+                    slc.id in i_params_dict['filter_immune_slices']):
+                new_filter_immune_slices.append(new_slc_id)
+            new_slc_id_str = '{}'.format(new_slc_id)
+            old_slc_id_str = '{}'.format(slc.id)
+            if ('expanded_slices' in i_params_dict and
+                    old_slc_id_str in i_params_dict['expanded_slices']):
+                new_expanded_slices[new_slc_id_str] = (
+                    i_params_dict['expanded_slices'][old_slc_id_str])
 
         # override the dashboard
         existing_dashboard = None
@@ -475,8 +525,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
+        alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
-        new_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        if new_expanded_slices:
+            dashboard_to_import.alter_params(
+                expanded_slices=new_expanded_slices)
+        if new_filter_immune_slices:
+            dashboard_to_import.alter_params(
+                filter_immune_slices=new_filter_immune_slices)
+
+        new_slices = session.query(Slice).filter(
+            Slice.id.in_(old_to_new_slc_id_dict.values())).all()
 
         if existing_dashboard:
             existing_dashboard.override(dashboard_to_import)
@@ -576,6 +635,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
+
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
@@ -629,6 +689,12 @@ class Database(Model, AuditMixinNullable):
             url.database = schema
         return create_engine(url, **params)
 
+    def get_reserved_words(self):
+        return self.get_sqla_engine().dialect.preparer.reserved_words
+
+    def get_quoter(self):
+        return self.get_sqla_engine().dialect.identifier_preparer.quote
+
     def get_df(self, sql, schema):
         eng = self.get_sqla_engine(schema=schema)
         cur = eng.execute(sql, schema=schema)
@@ -641,12 +707,26 @@ class Database(Model, AuditMixinNullable):
         compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
         return '{}'.format(compiled)
 
-    def select_star(self, table_name, schema=None, limit=1000):
+    def select_star(
+            self, table_name, schema=None, limit=100, show_cols=False,
+            indent=True):
         """Generates a ``select *`` statement in the proper dialect"""
-        qry = select('*').select_from(text(table_name))
+        for i in range(10):
+            print(schema)
+        quote = self.get_quoter()
+        fields = '*'
+        table = self.get_table(table_name, schema=schema)
+        if show_cols:
+            fields = [quote(c.name) for c in table.columns]
+        if schema:
+            table_name = schema + '.' + table_name
+        qry = select(fields).select_from(text(table_name))
         if limit:
             qry = qry.limit(limit)
-        return self.compile_sqla_query(qry)
+        sql = self.compile_sqla_query(qry)
+        if indent:
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
@@ -678,6 +758,12 @@ class Database(Model, AuditMixinNullable):
     def all_schema_names(self):
         return sorted(self.inspector.get_schema_names())
 
+    @property
+    def db_engine_spec(self):
+        engine_name = self.get_sqla_engine().name or 'base'
+        return db_engine_specs.engines.get(
+            engine_name, db_engine_specs.BaseEngineSpec)
+
     def grains(self):
         """Defines time granularity database-specific expressions.
 
@@ -687,112 +773,10 @@ class Database(Model, AuditMixinNullable):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        Grain = namedtuple('Grain', 'name label function')
-        db_time_grains = {
-            'presto': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('second', _('second'),
-                      "date_trunc('second', CAST({col} AS TIMESTAMP))"),
-                Grain('minute', _('minute'),
-                      "date_trunc('minute', CAST({col} AS TIMESTAMP))"),
-                Grain('hour', _('hour'),
-                      "date_trunc('hour', CAST({col} AS TIMESTAMP))"),
-                Grain('day', _('day'),
-                      "date_trunc('day', CAST({col} AS TIMESTAMP))"),
-                Grain('week', _('week'),
-                      "date_trunc('week', CAST({col} AS TIMESTAMP))"),
-                Grain('month', _('month'),
-                      "date_trunc('month', CAST({col} AS TIMESTAMP))"),
-                Grain('quarter', _('quarter'),
-                      "date_trunc('quarter', CAST({col} AS TIMESTAMP))"),
-                Grain("week_ending_saturday", _('week_ending_saturday'),
-                      "date_add('day', 5, date_trunc('week', date_add('day', 1, "
-                      "CAST({col} AS TIMESTAMP))))"),
-                Grain("week_start_sunday", _('week_start_sunday'),
-                      "date_add('day', -1, date_trunc('week', "
-                      "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
-            ),
-            'mysql': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain("second", _('second'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL (HOUR({col})*60*60 + MINUTE({col})*60"
-                      " + SECOND({col})) SECOND)"),
-                Grain("minute", _('minute'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL (HOUR({col})*60 + MINUTE({col})) MINUTE)"),
-                Grain("hour", _('hour'), "DATE_ADD(DATE({col}), "
-                      "INTERVAL HOUR({col}) HOUR)"),
-                Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'), "DATE(DATE_SUB({col}, "
-                      "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
-                Grain("month", _('month'), "DATE(DATE_SUB({col}, "
-                      "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
-            ),
-            'sqlite': (
-                Grain('Time Column', _('Time Column'), '{col}'),
-                Grain('day', _('day'), 'DATE({col})'),
-                Grain("week", _('week'),
-                      "DATE({col}, -strftime('%w', {col}) || ' days')"),
-                Grain("month", _('month'),
-                      "DATE({col}, -strftime('%d', {col}) || ' days')"),
-            ),
-            'postgresql': (
-                Grain("Time Column", _('Time Column'), "{col}"),
-                Grain("second", _('second'), "DATE_TRUNC('second', {col})"),
-                Grain("minute", _('minute'), "DATE_TRUNC('minute', {col})"),
-                Grain("hour", _('hour'), "DATE_TRUNC('hour', {col})"),
-                Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
-                Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
-                Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
-                Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
-            ),
-            'mssql': (
-                Grain("Time Column", _('Time Column'), "{col}"),
-                Grain("second", _('second'), "DATEADD(second, "
-                      "DATEDIFF(second, '2000-01-01', {col}), '2000-01-01')"),
-                Grain("minute", _('minute'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}), 0)"),
-                Grain("5 minute", _('5 minute'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}) / 5 * 5, 0)"),
-                Grain("half hour", _('half hour'), "DATEADD(minute, "
-                      "DATEDIFF(minute, 0, {col}) / 30 * 30, 0)"),
-                Grain("hour", _('hour'), "DATEADD(hour, "
-                      "DATEDIFF(hour, 0, {col}), 0)"),
-                Grain("day", _('day'), "DATEADD(day, "
-                      "DATEDIFF(day, 0, {col}), 0)"),
-                Grain("week", _('week'), "DATEADD(week, "
-                      "DATEDIFF(week, 0, {col}), 0)"),
-                Grain("month", _('month'), "DATEADD(month, "
-                      "DATEDIFF(month, 0, {col}), 0)"),
-                Grain("quarter", _('quarter'), "DATEADD(quarter, "
-                      "DATEDIFF(quarter, 0, {col}), 0)"),
-                Grain("year", _('year'), "DATEADD(year, "
-                      "DATEDIFF(year, 0, {col}), 0)"),
-            ),
-        }
-        db_time_grains['redshift'] = db_time_grains['postgresql']
-        db_time_grains['vertica'] = db_time_grains['postgresql']
-        for db_type, grains in db_time_grains.items():
-            if self.sqlalchemy_uri.startswith(db_type):
-                return grains
+        return self.db_engine_spec.time_grains
 
     def grains_dict(self):
         return {grain.name: grain for grain in self.grains()}
-
-    def epoch_to_dttm(self, ms=False):
-        """Database-specific SQL to convert unix timestamp to datetime
-        """
-        ts2date_exprs = {
-            'sqlite': "datetime({col}, 'unixepoch')",
-            'postgresql': "(timestamp 'epoch' + {col} * interval '1 second')",
-            'mysql': "from_unixtime({col})",
-            'mssql': "dateadd(S, {col}, '1970-01-01')"
-        }
-        ts2date_exprs['redshift'] = ts2date_exprs['postgresql']
-        ts2date_exprs['vertica'] = ts2date_exprs['postgresql']
-        for db_type, expr in ts2date_exprs.items():
-            if self.sqlalchemy_uri.startswith(db_type):
-                return expr.replace('{col}', '({col}/1000.0)') if ms else expr
-        raise Exception(_("Unable to convert unix epoch to datetime"))
 
     def get_extra(self):
         extra = {}
@@ -896,7 +880,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def full_name(self):
-        return "[{obj.database}].[{obj.table_name}]".format(obj=self)
+        return utils.get_datasource_full_name(
+            self.database, self.table_name, schema=self.schema)
 
     @property
     def dttm_cols(self):
@@ -957,8 +942,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             from_dttm, to_dttm,
             filter=None,  # noqa
             is_timeseries=True,
-            timeseries_limit=15, row_limit=None,
-            inner_from_dttm=None, inner_to_dttm=None,
+            timeseries_limit=15,
+            timeseries_limit_metric=None,
+            row_limit=None,
+            inner_from_dttm=None,
+            inner_to_dttm=None,
             orderby=None,
             extras=None,
             columns=None):
@@ -977,7 +965,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 "and is required by this type of chart"))
 
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
-
+        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
+        timeseries_limit_metric_expr = None
+        if timeseries_limit_metric:
+            timeseries_limit_metric_expr = \
+                timeseries_limit_metric.sqla_col
         if metrics:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -1028,12 +1020,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             # Transforming time grain into an expression based on configuration
             time_grain_sqla = extras.get('time_grain_sqla')
             if time_grain_sqla:
+                db_engine_spec = self.database.db_engine_spec
                 if dttm_col.python_date_format == 'epoch_s':
-                    dttm_expr = self.database.epoch_to_dttm().format(
-                        col=dttm_expr)
+                    dttm_expr = \
+                        db_engine_spec.epoch_to_dttm().format(col=dttm_expr)
                 elif dttm_col.python_date_format == 'epoch_ms':
-                    dttm_expr = self.database.epoch_to_dttm(ms=True).format(
-                        col=dttm_expr)
+                    dttm_expr = \
+                        db_engine_spec.epoch_ms_to_dttm().format(col=dttm_expr)
                 udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
                 timestamp_grain = literal_column(
                     udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
@@ -1070,7 +1063,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
-            tbl = text('(' + self.sql + ') as expr_qry ')
+            tbl = TextAsFrom(sqla.text(self.sql), []).alias('expr_qry')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
@@ -1087,9 +1080,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where_clause_and += [text(extras['where'])]
+            where_clause_and += [wrap_clause_in_parens(extras['where'])]
         if extras and 'having' in extras:
-            having_clause_and += [text(extras['having'])]
+            having_clause_and += [wrap_clause_in_parens(extras['having'])]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
@@ -1112,7 +1105,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
-            subq = subq.order_by(desc(main_metric_expr))
+            ob = main_metric_expr
+            if timeseries_limit_metric_expr is not None:
+                ob = timeseries_limit_metric_expr
+            subq = subq.order_by(desc(ob))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
@@ -1434,7 +1430,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         return column_to_import
 
     def dttm_sql_literal(self, dttm):
-        """Convert datetime object to string
+        """Convert datetime object to a SQL expression string
 
         If database_expression is empty, the internal dttm
         will be parsed as the string with the pattern that
@@ -1442,6 +1438,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         If database_expression is not empty, the internal dttm
         will be parsed as the sql sentence for the database to convert
         """
+
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
         if self.database_expression:
             return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
@@ -1450,21 +1447,9 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         elif tf == 'epoch_ms':
             return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
-            default = "'{}'".format(dttm.strftime(tf))
-            iso = dttm.isoformat()
-            d = {
-                'mssql': "CONVERT(DATETIME, '{}', 126)".format(iso),  # untested
-                'mysql': default,
-                'oracle':
-                    """TO_TIMESTAMP('{}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""".format(
-                        dttm.isoformat()),
-                'presto': default,
-                'sqlite': default,
-            }
-            for k, v in d.items():
-                if self.table.database.sqlalchemy_uri.startswith(k):
-                    return v
-            return default
+            s = self.table.database.db_engine_spec.convert_dttm(
+                self.type, dttm)
+            return s or "'{}'".format(dttm.strftime(tf))
 
 
 class DruidCluster(Model, AuditMixinNullable):
@@ -1472,6 +1457,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
+
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
@@ -1584,9 +1570,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def full_name(self):
-        return (
-            "[{obj.cluster_name}]."
-            "[{obj.datasource_name}]").format(obj=self)
+        return utils.get_datasource_full_name(
+            self.cluster_name, self.datasource_name)
 
     @property
     def time_column_grains(self):
@@ -1789,6 +1774,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             filter=None,  # noqa
             is_timeseries=True,
             timeseries_limit=None,
+            timeseries_limit_metric=None,
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
@@ -1894,6 +1880,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
         if timeseries_limit and is_timeseries:
+            order_by = metrics[0] if metrics else self.metrics[0]
+            if timeseries_limit_metric:
+                order_by = timeseries_limit_metric
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
             pre_qry['granularity'] = "all"
@@ -1904,7 +1893,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     inner_from_dttm.isoformat() + '/' +
                     inner_to_dttm.isoformat()),
                 "columns": [{
-                    "dimension": metrics[0] if metrics else self.metrics[0],
+                    "dimension": order_by,
                     "direction": "descending",
                 }],
             }
@@ -2303,6 +2292,8 @@ class Query(Model):
     # # of rows in the result set or rows modified.
     rows = Column(Integer)
     error_message = Column(Text)
+    # key used to store the results in the results backend
+    results_key = Column(String(64))
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
@@ -2351,6 +2342,7 @@ class Query(Model):
             'userId': self.user_id,
             'user': self.user.username,
             'limit_reached': self.limit_reached,
+            'resultsKey': self.results_key,
         }
 
     @property

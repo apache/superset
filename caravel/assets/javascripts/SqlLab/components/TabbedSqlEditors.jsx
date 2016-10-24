@@ -8,6 +8,18 @@ import shortid from 'shortid';
 import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 
+const propTypes = {
+  actions: React.PropTypes.object,
+  databases: React.PropTypes.object,
+  queries: React.PropTypes.object,
+  queryEditors: React.PropTypes.array,
+  tabHistory: React.PropTypes.array,
+};
+const defaultProps = {
+  tabHistory: [],
+  queryEditors: [],
+};
+
 let queryCount = 1;
 
 class TabbedSqlEditors extends React.Component {
@@ -106,7 +118,6 @@ class TabbedSqlEditors extends React.Component {
           key={qe.id}
           title={tabTitle}
           eventKey={qe.id}
-          id={`a11y-query-editor-${qe.id}`}
         >
           <div className="panel panel-default">
             <div className="panel-body">
@@ -132,17 +143,8 @@ class TabbedSqlEditors extends React.Component {
     );
   }
 }
-TabbedSqlEditors.propTypes = {
-  actions: React.PropTypes.object,
-  databases: React.PropTypes.object,
-  queries: React.PropTypes.object,
-  queryEditors: React.PropTypes.array,
-  tabHistory: React.PropTypes.array,
-};
-TabbedSqlEditors.defaultProps = {
-  tabHistory: [],
-  queryEditors: [],
-};
+TabbedSqlEditors.propTypes = propTypes;
+TabbedSqlEditors.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
