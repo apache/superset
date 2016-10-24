@@ -10,7 +10,7 @@ const propTypes = {
   height: PropTypes.string.isRequired,
   sliceContainerId: PropTypes.string.isRequired,
   jsonEndpoint: PropTypes.string.isRequired,
-  column_formats: PropTypes.object,
+  columnFormats: PropTypes.object,
 };
 
 class ChartContainer extends React.Component {
@@ -50,7 +50,7 @@ class ChartContainer extends React.Component {
       },
       d3format: (col, number) => {
         // mock d3format function in Slice object in caravel.js
-        const format = this.props.column_formats[col];
+        const format = this.props.columnFormats[col];
         return d3format(format, number);
       },
     };
@@ -88,7 +88,7 @@ function mapStateToProps(state) {
     vizType: state.viz.formData.vizType,
     sliceContainerId: `slice-container-${state.viz.formData.sliceId}`,
     jsonEndpoint: state.viz.jsonEndPoint,
-    column_formats: state.viz.column_formats,
+    columnFormats: state.viz.columnFormats,
   };
 }
 
