@@ -1,4 +1,4 @@
-export const alert = { bsStyle: 'danger', msg: 'Ooops' };
+export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',

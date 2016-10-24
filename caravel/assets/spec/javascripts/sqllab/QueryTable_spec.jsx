@@ -10,10 +10,10 @@ describe('QueryTable', () => {
   const mockedProps = {
     queries,
   };
-  it('renders', () => {
+  it('is valid', () => {
     expect(React.isValidElement(<QueryTable />)).to.equal(true);
   });
-  it('renders with props', () => {
+  it('is valid with props', () => {
     expect(
       React.isValidElement(<QueryTable {...mockedProps} />)
     ).to.equal(true);

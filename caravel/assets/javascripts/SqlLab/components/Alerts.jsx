@@ -8,6 +8,7 @@ class Alerts extends React.Component {
   render() {
     const alerts = this.props.alerts.map((alert) =>
       <Alert
+        key={alert.id}
         bsStyle={alert.bsStyle}
         style={{ width: '500px', textAlign: 'midddle', margin: '10px auto' }}
       >

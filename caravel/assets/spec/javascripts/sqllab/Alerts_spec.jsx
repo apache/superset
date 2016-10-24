@@ -11,13 +11,11 @@ describe('Alerts', () => {
   const mockedProps = {
     alerts: [alert],
   };
-  it('renders', () => {
-    expect(React.isValidElement(<Alerts>TEST</Alerts>)).to.equal(true);
+  it('is valid', () => {
+    expect(React.isValidElement(<Alerts />)).to.equal(true);
   });
-  it('renders with props', () => {
-    expect(
-      React.isValidElement(<Alerts {...mockedProps}>TEST</Alerts>)
-    ).to.equal(true);
+  it('is valid with props', () => {
+    expect(React.isValidElement(<Alerts {...mockedProps} />)).to.equal(true);
   });
   it('renders an Alert', () => {
     const wrapper = shallow(<Alerts {...mockedProps} />);

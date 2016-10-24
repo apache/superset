@@ -4,7 +4,7 @@ import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLe
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { initialState, queries, tables } from './fixtures';
+import { initialState, queries, table } from './fixtures';
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -12,10 +12,10 @@ describe('SqlEditor', () => {
     database: {},
     queryEditor: initialState.queryEditors[0],
     latestQuery: queries[0],
-    tables,
+    tables: [table],
     queries,
   };
-  it('be valid', () => {
+  it('is valid', () => {
     expect(
       React.isValidElement(<SqlEditor {...mockedProps} />)
     ).to.equal(true);
