@@ -2,7 +2,6 @@ import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
-require('../../../visualizations/directed_force.css');
 
 const propTypes = {
   sliceName: PropTypes.string.isRequired,
