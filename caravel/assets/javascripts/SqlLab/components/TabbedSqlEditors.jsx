@@ -8,16 +8,15 @@ import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 
 const propTypes = {
-  actions: React.PropTypes.object,
-  databases: React.PropTypes.object,
-  queries: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
+  databases: React.PropTypes.object.isRequired,
+  queries: React.PropTypes.object.isRequired,
   queryEditors: React.PropTypes.array,
-  tabHistory: React.PropTypes.array,
-  tables: React.PropTypes.array,
+  tabHistory: React.PropTypes.array.isRequired,
+  tables: React.PropTypes.array.isRequired,
   networkOn: React.PropTypes.bool,
 };
 const defaultProps = {
-  tabHistory: [],
   queryEditors: [],
   networkOn: true,
 };
@@ -137,7 +136,7 @@ class TabbedSqlEditors extends React.Component {
         >
           <div className="panel panel-default">
             <div className="panel-body">
-              {isSelected ?
+              {isSelected &&
                 <SqlEditor
                   tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
@@ -147,7 +146,6 @@ class TabbedSqlEditors extends React.Component {
                   actions={this.props.actions}
                   networkOn={this.props.networkOn}
                 />
-                : null
               }
             </div>
           </div>

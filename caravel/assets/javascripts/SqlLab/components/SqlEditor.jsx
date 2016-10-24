@@ -25,19 +25,19 @@ import Timer from './Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
   networkOn: React.PropTypes.bool,
-  tables: React.PropTypes.array,
-  queries: React.PropTypes.array,
-  queryEditor: React.PropTypes.object,
+  tables: React.PropTypes.array.isRequired,
+  queries: React.PropTypes.array.isRequired,
+  queryEditor: React.PropTypes.object.isRequired,
 };
 
 const defaultProps = {
-  tables: [],
   networkOn: true,
-  queries: [],
+  database: null,
+  latestQuery: null,
 };
 
 

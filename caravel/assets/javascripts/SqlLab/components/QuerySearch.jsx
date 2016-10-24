@@ -8,7 +8,7 @@ import DatabaseSelect from './DatabaseSelect';
 import { STATUS_OPTIONS } from '../common';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
 };
 
 class QuerySearch extends React.Component {

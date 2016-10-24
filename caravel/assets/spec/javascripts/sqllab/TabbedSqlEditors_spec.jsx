@@ -9,15 +9,13 @@ import { initialState } from './fixtures';
 describe('TabbedSqlEditors', () => {
   const mockedProps = {
     actions: {},
-    database: {},
+    databases: {},
     tables: [],
+    queries: {},
     queryEditors: initialState.queryEditors,
     tabHistory: initialState.tabHistory,
   };
-  it('should be valid', () => {
-    expect(React.isValidElement(<TabbedSqlEditors />)).to.equal(true);
-  });
-  it('renders with props', () => {
+  it('is valid', () => {
     expect(
       React.isValidElement(<TabbedSqlEditors {...mockedProps} />)
     ).to.equal(true);

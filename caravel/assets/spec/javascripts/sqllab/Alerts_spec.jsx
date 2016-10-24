@@ -16,7 +16,7 @@ describe('Alerts', () => {
   });
   it('renders with props', () => {
     expect(
-      React.isValidElement(<Alerts {...mockedProps}k>TEST</Alerts>)
+      React.isValidElement(<Alerts {...mockedProps}>TEST</Alerts>)
     ).to.equal(true);
   });
   it('renders an Alert', () => {

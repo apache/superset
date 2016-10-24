@@ -7,7 +7,7 @@ import shortid from 'shortid';
 
 const propTypes = {
   queries: React.PropTypes.array.isRequired,
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
 };
 
 const SouthPane = function (props) {

@@ -12,12 +12,7 @@ describe('SqlEditorLeftBar', () => {
     tables: [table],
     queryEditor: defaultQueryEditor,
   };
-  it('renders', () => {
-    expect(
-      React.isValidElement(<SqlEditorLeftBar />)
-    ).to.equal(true);
-  });
-  it('renders with props', () => {
+  it('is valid', () => {
     expect(
       React.isValidElement(<SqlEditorLeftBar {...mockedProps} />)
     ).to.equal(true);

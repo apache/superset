@@ -7,9 +7,6 @@ const propTypes = {
   queries: React.PropTypes.array.isRequired,
   actions: React.PropTypes.object.isRequired,
 };
-const defaultProps = {
-  actions: {},
-};
 
 const QueryHistory = (props) => {
   if (props.queries.length > 0) {
@@ -31,6 +28,5 @@ const QueryHistory = (props) => {
   );
 };
 QueryHistory.propTypes = propTypes;
-QueryHistory.defaultProps = defaultProps;
 
 export default QueryHistory;

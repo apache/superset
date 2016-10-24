@@ -18,7 +18,7 @@ describe('CopyQueryTabUrl', () => {
       React.isValidElement(<CopyQueryTabUrl {...mockedProps} />)
     ).to.equal(true);
   });
-  it('shallow mounts', () => {
+  it('renders a CopyToClipboard', () => {
     const wrapper = shallow(<CopyQueryTabUrl {...mockedProps} />);
     expect(wrapper.find(CopyToClipboard)).to.have.length(1);
   });

@@ -1,5 +1,6 @@
 import React from 'react';
 import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
+import SqlEditorLeftBar from '../../../javascripts/SqlLab/components/SqlEditorLeftBar';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
@@ -12,16 +13,15 @@ describe('SqlEditor', () => {
     queryEditor: initialState.queryEditors[0],
     latestQuery: queries[0],
     tables,
+    queries,
   };
-  it('should be valid', () => {
-    expect(React.isValidElement(<SqlEditor />)).to.equal(true);
-  });
-  it('renders with props', () => {
+  it('be valid', () => {
     expect(
       React.isValidElement(<SqlEditor {...mockedProps} />)
     ).to.equal(true);
   });
-  it('shallow mounts', () => {
-    shallow(<SqlEditor {...mockedProps} />);
+  it('render a SqlEditorLeftBar', () => {
+    const wrapper = shallow(<SqlEditor {...mockedProps} />);
+    expect(wrapper.find(SqlEditorLeftBar)).to.have.length(1);
   });
 });

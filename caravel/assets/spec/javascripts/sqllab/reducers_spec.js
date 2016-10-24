@@ -1,7 +1,6 @@
-/* global beforeEach */
 import * as r from '../../../javascripts/SqlLab/reducers';
 import * as actions from '../../../javascripts/SqlLab/actions';
-import { describe, it } from 'mocha';
+import { beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { alert, table, initialState } from './fixtures';
 
