@@ -15,10 +15,7 @@ import unittest
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
-import caravel
-from caravel import app, db, models, utils, appbuilder, sm
-from caravel.source_registry import SourceRegistry
-from caravel.models import DruidDatasource
+from caravel import db, models, utils, appbuilder, sm
 from caravel.views import DatabaseView
 
 from .base_tests import CaravelTestCase
@@ -156,12 +153,7 @@ class CoreTests(CaravelTestCase):
         assert self.get_resp('/ping') == "OK"
 
     def test_testconn(self):
-        database = (
-            db.session
-            .query(models.Database)
-            .filter_by(database_name='main')
-            .first()
-        )
+        database = self.get_main_database(db.session)
 
         # validate that the endpoint works with the password-masked sqlalchemy uri
         data = json.dumps({
@@ -182,25 +174,23 @@ class CoreTests(CaravelTestCase):
     def test_databaseview_edit(self, username='admin'):
         # validate that sending a password-masked uri does not over-write the decrypted uri
         self.login(username=username)
-        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        database = self.get_main_database(db.session)
         sqlalchemy_uri_decrypted = database.sqlalchemy_uri_decrypted
         url = 'databaseview/edit/{}'.format(database.id)
         data = {k: database.__getattribute__(k) for k in DatabaseView.add_columns}
         data['sqlalchemy_uri'] = database.safe_sqlalchemy_uri()
-        response = self.client.post(url, data=data)
-        database = db.session.query(models.Database).filter_by(database_name='main').first()
+        self.client.post(url, data=data)
+        database = self.get_main_database(db.session)
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
-        resp = self.get_resp(
+        data = self.get_json_resp(
             '/caravel/warm_up_cache?slice_id={}'.format(slice.id))
-        data = json.loads(resp)
         assert data == [{'slice_id': slice.id, 'slice_name': slice.slice_name}]
 
-        resp = self.get_resp(
+        data = self.get_json_resp(
             '/caravel/warm_up_cache?table_name=energy_usage&db_name=main')
-        data = json.loads(resp)
         assert len(data) == 3
 
     def test_shortner(self):
@@ -275,11 +265,7 @@ class CoreTests(CaravelTestCase):
 
     def run_sql(self, sql, user_name, client_id):
         self.login(username=user_name)
-        dbid = (
-            db.session.query(models.Database)
-            .filter_by(database_name='main')
-            .first().id
-        )
+        dbid = self.get_main_database(db.session).id
         resp = self.client.post(
             '/caravel/sql_json/',
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
@@ -296,9 +282,7 @@ class CoreTests(CaravelTestCase):
         assert len(data['error']) > 0
 
     def test_sql_json_has_access(self):
-        main_db = (
-            db.session.query(models.Database).filter_by(database_name="main").first()
-        )
+        main_db = self.get_main_database(db.session)
         utils.merge_perm(sm, 'database_access', main_db.perm)
         db.session.commit()
         main_db_permission_view = (
@@ -347,16 +331,14 @@ class CoreTests(CaravelTestCase):
         self.assertEquals(403, resp.status_code)
 
         self.login('admin')
-        resp = self.get_resp('/caravel/queries/{}'.format(0))
-        data = json.loads(resp)
+        data = self.get_json_resp('/caravel/queries/{}'.format(0))
         self.assertEquals(0, len(data))
         self.logout()
 
         self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
         self.run_sql("SELECT * FROM ab_user1", 'admin', client_id='client_id_2')
         self.login('admin')
-        resp = self.get_resp('/caravel/queries/{}'.format(0))
-        data = json.loads(resp)
+        data = self.get_json_resp('/caravel/queries/{}'.format(0))
         self.assertEquals(2, len(data))
 
         query = db.session.query(models.Query).filter_by(
@@ -364,8 +346,7 @@ class CoreTests(CaravelTestCase):
         query.changed_on = utils.EPOCH
         db.session.commit()
 
-        resp = self.get_resp('/caravel/queries/{}'.format(123456000))
-        data = json.loads(resp)
+        data = self.get_json_resp('/caravel/queries/{}'.format(123456000))
         self.assertEquals(1, len(data))
 
         self.logout()
@@ -449,6 +430,13 @@ class CoreTests(CaravelTestCase):
         db.session.merge(dash)
         db.session.commit()
         self.test_save_dash('alpha')
+
+    def test_extra_table_metadata(self):
+        self.login('admin')
+        dbid = self.get_main_database(db.session).id
+        self.get_json_resp(
+            '/caravel/extra_table_metadata/{dbid}/'
+            'ab_permission_view/panoramix/'.format(**locals()))
 
 if __name__ == '__main__':
     unittest.main()

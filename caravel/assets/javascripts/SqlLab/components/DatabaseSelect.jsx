@@ -39,6 +39,7 @@ class DatabaseSelect extends React.Component {
           isLoading={this.state.databaseLoading}
           autosize={false}
           onChange={this.changeDb.bind(this)}
+          valueRenderer={this.props.valueRenderer}
         />
       </div>
     );
@@ -49,6 +50,7 @@ DatabaseSelect.propTypes = {
   onChange: React.PropTypes.func,
   actions: React.PropTypes.object,
   databaseId: React.PropTypes.number,
+  valueRenderer: React.PropTypes.func,
 };
 
 DatabaseSelect.defaultProps = {

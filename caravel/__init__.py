@@ -10,12 +10,12 @@ from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
-from sqlalchemy import event, exc
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
 from caravel.source_registry import SourceRegistry
 from werkzeug.contrib.fixers import ProxyFix
+from caravel import utils
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -31,33 +31,7 @@ if not app.debug:
 db = SQLA(app)
 
 
-@event.listens_for(db.engine, 'checkout')
-def checkout(dbapi_con, con_record, con_proxy):
-    """
-    Making sure the connection is live, and preventing against:
-    'MySQL server has gone away'
-
-    Copied from:
-    http://stackoverflow.com/questions/30630120/mysql-keeps-losing-connection-during-celery-tasks
-    """
-    try:
-        try:
-            if hasattr(dbapi_con, 'ping'):
-                dbapi_con.ping(False)
-            else:
-                cursor = dbapi_con.cursor()
-                cursor.execute("SELECT 1")
-        except TypeError:
-            app.logger.debug('MySQL connection died. Restoring...')
-            dbapi_con.ping()
-    except dbapi_con.OperationalError as e:
-        app.logger.warning(e)
-        if e.args[0] in (2006, 2013, 2014, 2045, 2055):
-            raise exc.DisconnectionError()
-        else:
-            raise
-    return db
-
+utils.pessimistic_connection_handling(db.engine.pool)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 
@@ -103,6 +77,7 @@ appbuilder = AppBuilder(
 sm = appbuilder.sm
 
 get_session = appbuilder.get_session
+results_backend = app.config.get("RESULTS_BACKEND")
 
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
