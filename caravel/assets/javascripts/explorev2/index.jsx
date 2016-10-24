@@ -20,6 +20,7 @@ const bootstrappedState = Object.assign(initialState, {
   viz: {
     jsonEndPoint: bootstrapData.viz.json_endpoint,
     data: bootstrapData.viz.data,
+    columnFormats: bootstrapData.viz.column_formats,
     formData: {
       sliceId: bootstrapData.viz.form_data.slice_id,
       vizType: bootstrapData.viz.form_data.viz_type,

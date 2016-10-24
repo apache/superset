@@ -2,6 +2,7 @@ import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
+import { d3format } from '../../modules/utils';
 
 const propTypes = {
   sliceName: PropTypes.string.isRequired,
@@ -9,6 +10,7 @@ const propTypes = {
   height: PropTypes.string.isRequired,
   sliceContainerId: PropTypes.string.isRequired,
   jsonEndpoint: PropTypes.string.isRequired,
+  columnFormats: PropTypes.object,
 };
 
 class ChartContainer extends React.Component {
@@ -34,6 +36,7 @@ class ChartContainer extends React.Component {
           // pixel string can be '300px'
           // should call callback to adjust height of chart
         },
+        height: () => parseInt(this.props.height, 10) - 100,
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
@@ -44,6 +47,11 @@ class ChartContainer extends React.Component {
 
       done: () => {
         // finished rendering callback
+      },
+      d3format: (col, number) => {
+        // mock d3format function in Slice object in caravel.js
+        const format = this.props.columnFormats[col];
+        return d3format(format, number);
       },
     };
   }
@@ -80,6 +88,7 @@ function mapStateToProps(state) {
     vizType: state.viz.formData.vizType,
     sliceContainerId: `slice-container-${state.viz.formData.sliceId}`,
     jsonEndpoint: state.viz.jsonEndPoint,
+    columnFormats: state.viz.columnFormats,
   };
 }
 
