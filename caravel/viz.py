@@ -326,6 +326,7 @@ class BaseViz(object):
                 'json_endpoint': self.json_endpoint,
                 'query': self.query,
                 'standalone_endpoint': self.standalone_endpoint,
+                'column_formats': self.data['column_formats'],
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
