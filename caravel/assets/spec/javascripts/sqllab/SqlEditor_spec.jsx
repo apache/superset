@@ -3,7 +3,7 @@ import SqlEditor from '../../../javascripts/SqlLab/components/SqlEditor';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { initialState, queries, tables } from './common';
+import { initialState, queries, tables } from './fixtures';
 
 describe('SqlEditor', () => {
   const mockedProps = {
@@ -16,7 +16,7 @@ describe('SqlEditor', () => {
   it('should be valid', () => {
     expect(React.isValidElement(<SqlEditor />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<SqlEditor {...mockedProps} />)
     ).to.equal(true);

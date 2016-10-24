@@ -1,9 +1,10 @@
 import React from 'react';
 import CopyQueryTabUrl from '../../../javascripts/SqlLab/components/CopyQueryTabUrl';
+import CopyToClipboard from '../../../javascripts/components/CopyToClipboard';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { initialState } from './common';
+import { initialState } from './fixtures';
 
 describe('CopyQueryTabUrl', () => {
   const mockedProps = {
@@ -12,12 +13,13 @@ describe('CopyQueryTabUrl', () => {
   it('should be valid', () => {
     expect(React.isValidElement(<CopyQueryTabUrl />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<CopyQueryTabUrl {...mockedProps} />)
     ).to.equal(true);
   });
   it('shallow mounts', () => {
-    shallow(<CopyQueryTabUrl {...mockedProps} />);
+    const wrapper = shallow(<CopyQueryTabUrl {...mockedProps} />);
+    expect(wrapper.find(CopyToClipboard)).to.have.length(1);
   });
 });

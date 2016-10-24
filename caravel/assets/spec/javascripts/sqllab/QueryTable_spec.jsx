@@ -1,6 +1,6 @@
 import React from 'react';
 import QueryTable from '../../../javascripts/SqlLab/components/QueryTable';
-import { queries } from './common';
+import { queries } from './fixtures';
 import { mount } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
@@ -10,15 +10,15 @@ describe('QueryTable', () => {
   const mockedProps = {
     queries,
   };
-  it('should just render', () => {
+  it('renders', () => {
     expect(React.isValidElement(<QueryTable />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<QueryTable {...mockedProps} />)
     ).to.equal(true);
   });
-  it('has a table that looks right', () => {
+  it('renders a proper table', () => {
     const wrapper = mount(<QueryTable {...mockedProps} />);
     expect(wrapper.find('table')).to.have.length(1);
     expect(wrapper.find('tr')).to.have.length(3);

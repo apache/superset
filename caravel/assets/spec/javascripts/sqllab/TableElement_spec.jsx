@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from '../../../javascripts/SqlLab/components/Link';
 import TableElement from '../../../javascripts/SqlLab/components/TableElement';
-import { table } from './common';
+import { table } from './fixtures';
 import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
@@ -11,12 +11,12 @@ describe('TableElement', () => {
   const mockedProps = {
     table,
   };
-  it('should just render', () => {
+  it('renders', () => {
     expect(
       React.isValidElement(<TableElement />)
     ).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<TableElement {...mockedProps} />)
     ).to.equal(true);

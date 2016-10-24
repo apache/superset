@@ -5,9 +5,17 @@ import React from 'react';
 
 import shortid from 'shortid';
 
+const propTypes = {
+  queries: React.PropTypes.array.isRequired,
+  actions: React.PropTypes.object,
+};
+
 const SouthPane = function (props) {
-  let results = <div />;
-  const latestQuery = props.latestQuery;
+  let latestQuery;
+  if (props.queries.length > 0) {
+    latestQuery = props.queries[props.queries.length - 1];
+  }
+  let results;
   if (latestQuery) {
     results = <ResultSet showControls search query={latestQuery} actions={props.actions} />;
   } else {
@@ -22,19 +30,12 @@ const SouthPane = function (props) {
           </div>
         </Tab>
         <Tab title="Query History" eventKey={2}>
-          <QueryHistory />
+          <QueryHistory queries={props.queries} actions={props.actions} />
         </Tab>
       </Tabs>
     </div>
   );
 };
-
-SouthPane.propTypes = {
-  latestQuery: React.PropTypes.object,
-  actions: React.PropTypes.object,
-};
-
-SouthPane.defaultProps = {
-};
+SouthPane.propTypes = propTypes;
 
 export default SouthPane;

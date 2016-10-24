@@ -28,14 +28,16 @@ const propTypes = {
   actions: React.PropTypes.object,
   database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
-  tables: React.PropTypes.array,
-  queryEditor: React.PropTypes.object,
   networkOn: React.PropTypes.bool,
+  tables: React.PropTypes.array,
+  queries: React.PropTypes.array,
+  queryEditor: React.PropTypes.object,
 };
 
 const defaultProps = {
   tables: [],
   networkOn: true,
+  queries: [],
 };
 
 
@@ -229,7 +231,10 @@ class SqlEditor extends React.Component {
             />
             {editorBottomBar}
             <br />
-            <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
+            <SouthPane
+              queries={this.props.queries}
+              actions={this.props.actions}
+            />
           </Col>
         </Row>
       </div>

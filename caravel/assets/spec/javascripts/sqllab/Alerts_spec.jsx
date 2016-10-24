@@ -4,22 +4,22 @@ import { Alert } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { alert } from './common';
+import { alert } from './fixtures';
 
 
 describe('Alerts', () => {
   const mockedProps = {
     alerts: [alert],
   };
-  it('should just render', () => {
+  it('renders', () => {
     expect(React.isValidElement(<Alerts>TEST</Alerts>)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<Alerts {...mockedProps}k>TEST</Alerts>)
     ).to.equal(true);
   });
-  it('has an anchor tag', () => {
+  it('renders an Alert', () => {
     const wrapper = shallow(<Alerts {...mockedProps} />);
     expect(wrapper.find(Alert)).to.have.length(1);
   });

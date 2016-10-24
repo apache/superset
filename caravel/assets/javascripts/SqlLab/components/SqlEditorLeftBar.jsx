@@ -7,7 +7,7 @@ import TableElement from './TableElement';
 import DatabaseSelect from './DatabaseSelect';
 
 const propTypes = {
-  queryEditor: React.PropTypes.object,
+  queryEditor: React.PropTypes.object.isRequired,
   tables: React.PropTypes.array,
   actions: React.PropTypes.object,
   networkOn: React.PropTypes.bool,

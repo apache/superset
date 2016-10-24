@@ -1,3 +1,4 @@
+/* global beforeEach */
 import React from 'react';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';

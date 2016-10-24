@@ -4,7 +4,7 @@ import { Tab } from 'react-bootstrap';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { initialState } from './common';
+import { initialState } from './fixtures';
 
 describe('TabbedSqlEditors', () => {
   const mockedProps = {
@@ -12,11 +12,12 @@ describe('TabbedSqlEditors', () => {
     database: {},
     tables: [],
     queryEditors: initialState.queryEditors,
+    tabHistory: initialState.tabHistory,
   };
   it('should be valid', () => {
     expect(React.isValidElement(<TabbedSqlEditors />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<TabbedSqlEditors {...mockedProps} />)
     ).to.equal(true);

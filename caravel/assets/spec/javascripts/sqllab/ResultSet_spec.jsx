@@ -3,23 +3,23 @@ import ResultSet from '../../../javascripts/SqlLab/components/ResultSet';
 import { shallow } from 'enzyme';
 import { describe, it } from 'mocha';
 import { expect } from 'chai';
-import { queries } from './common';
-
+import { queries } from './fixtures';
+import { Table } from 'reactable';
 
 describe('ResultSet', () => {
   const mockedProps = {
     query: queries[0],
   };
-  it('should just render', () => {
+  it('renders', () => {
     expect(React.isValidElement(<ResultSet />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<ResultSet />)
     ).to.equal(true);
   });
-  it('has an anchor tag', () => {
+  it('renders a Table', () => {
     const wrapper = shallow(<ResultSet {...mockedProps} />);
-    // expect(wrapper.find('a')).to.have.length(1);
+    expect(wrapper.find(Table)).to.have.length(1);
   });
 });

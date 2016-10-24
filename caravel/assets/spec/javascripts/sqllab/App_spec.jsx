@@ -7,10 +7,10 @@ import { expect } from 'chai';
 describe('App', () => {
   const mockedProps = {
   };
-  it('should just render', () => {
+  it('renders', () => {
     expect(React.isValidElement(<App />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(
       React.isValidElement(<App {...mockedProps} />)
     ).to.equal(true);

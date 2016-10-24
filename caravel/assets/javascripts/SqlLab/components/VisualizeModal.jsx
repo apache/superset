@@ -14,7 +14,7 @@ const CHART_TYPES = [
 
 const propTypes = {
   onHide: React.PropTypes.func,
-  query: React.PropTypes.object,
+  query: React.PropTypes.object.isRequired,
   show: React.PropTypes.bool,
 };
 const defaultProps = {

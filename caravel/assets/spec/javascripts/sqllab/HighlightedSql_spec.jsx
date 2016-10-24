@@ -8,17 +8,19 @@ import { expect } from 'chai';
 
 describe('HighlightedSql', () => {
   const sql = "SELECT * FROM test WHERE something='fkldasjfklajdslfkjadlskfjkldasjfkladsjfkdjsa'";
-  it('should just render', () => {
+  it('renders', () => {
     expect(React.isValidElement(<HighlightedSql />)).to.equal(true);
   });
-  it('should render with props', () => {
+  it('renders with props', () => {
     expect(React.isValidElement(<HighlightedSql sql={sql} />))
     .to.equal(true);
   });
-  it('has a SyntaxHighlighter', () => {
-    let wrapper = shallow(<HighlightedSql sql={sql} />);
+  it('renders a SyntaxHighlighter', () => {
+    const wrapper = shallow(<HighlightedSql sql={sql} />);
     expect(wrapper.find(SyntaxHighlighter)).to.have.length(1);
-    wrapper = shallow(<HighlightedSql sql={sql} shrink maxWidth={20} />);
+  });
+  it('renders a SyntaxHighlighter while using shrink', () => {
+    const wrapper = shallow(<HighlightedSql sql={sql} shrink maxWidth={20} />);
     expect(wrapper.find(SyntaxHighlighter)).to.have.length(1);
   });
 });
