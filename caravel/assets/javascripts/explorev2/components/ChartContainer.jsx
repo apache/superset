@@ -73,6 +73,7 @@ class ChartContainer extends React.Component {
           <div
             id={this.props.sliceContainerId}
             ref={(ref) => { this.chartContainerRef = ref; }}
+            className={this.props.vizType}
           />
         </Panel>
       </div>
