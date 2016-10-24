@@ -7,14 +7,20 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 
 describe('DatabaseSelect', () => {
-  it('should render', () => {
-    const wrapper = shallow(<DatabaseSelect />);
+  it('is valid element', () => {
     expect(
       React.isValidElement(<DatabaseSelect />)
     ).to.equal(true);
   });
 
-  it('should call onChange', () => {
+  it('has one select', () => {
+    const wrapper = shallow(
+      <DatabaseSelect />
+    );
+    expect(wrapper.find(Select)).to.have.length(1);
+  });
+
+  it('calls onChange on select change', () => {
     const onChange = sinon.spy();
     const wrapper = shallow(
       <DatabaseSelect onChange={onChange} />

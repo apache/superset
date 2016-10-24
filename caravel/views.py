@@ -2230,6 +2230,7 @@ class Caravel(BaseCaravelView):
         database_id = request.args.get('database_id')
         search_text = request.args.get('search_text')
         status = request.args.get('status')
+        # From and To time stamp should be Epoch timestamp in seconds
         from_time = request.args.get('from')
         to_time = request.args.get('to')
 
@@ -2256,7 +2257,8 @@ class Caravel(BaseCaravelView):
         if to_time:
             query = query.filter(models.Query.start_time < int(to_time))
 
-        sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
+        query_limit = config.get('QUERY_SEARCH_LIMIT', 5000)
+        sql_queries = query.limit(query_limit).all()
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
 
         return Response(

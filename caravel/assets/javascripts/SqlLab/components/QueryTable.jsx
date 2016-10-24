@@ -8,7 +8,7 @@ import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
-import { STATE_BSSTYLE_MAP } from '../common';
+import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
 import { getLink } from '../../../utils/common';
 

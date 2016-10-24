@@ -4,8 +4,9 @@ import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import QueryTable from './QueryTable';
 import DatabaseSelect from './DatabaseSelect';
-import { now, hoursAgo, daysAgo, yearsAgo } from '../../modules/dates';
-import { STATUS_OPTIONS, TIME_OPTIONS } from '../common';
+import { now, epochTimeXHoursAgo,
+  epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
+import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -45,17 +46,17 @@ class QuerySearch extends React.PureComponent {
       case 'now':
         return now();
       case '1 hour ago':
-        return hoursAgo(1);
+        return epochTimeXHoursAgo(1);
       case '1 day ago':
-        return daysAgo(1);
+        return epochTimeXDaysAgo(1);
       case '7 days ago':
-        return daysAgo(7);
+        return epochTimeXDaysAgo(7);
       case '28 days ago':
-        return daysAgo(28);
+        return epochTimeXDaysAgo(28);
       case '90 days ago':
-        return daysAgo(90);
+        return epochTimeXDaysAgo(90);
       case '1 year ago':
-        return yearsAgo(1);
+        return epochTimeXYearsAgo(1);
       default:
         return null;
     }
@@ -100,18 +101,12 @@ class QuerySearch extends React.PureComponent {
   }
   refreshQueries() {
     const params = [
-      this.state.userId ?
-        `user_id=${this.state.userId}` : '',
-      this.state.databaseId ?
-        `database_id=${this.state.databaseId}` : '',
-      this.state.searchText ?
-        `search_text=${this.state.searchText}` : '',
-      this.state.status ?
-        `status=${this.state.status}` : '',
-      this.state.from ?
-        `from=${this.getTimeFromSelection(this.state.from)}` : '',
-      this.state.to ?
-        `to=${this.getTimeFromSelection(this.state.to)}` : '',
+      this.state.userId ? `user_id=${this.state.userId}` : '',
+      this.state.databaseId ? `database_id=${this.state.databaseId}` : '',
+      this.state.searchText ? `search_text=${this.state.searchText}` : '',
+      this.state.status ? `status=${this.state.status}` : '',
+      this.state.from ? `from=${this.getTimeFromSelection(this.state.from)}` : '',
+      this.state.to ? `to=${this.getTimeFromSelection(this.state.to)}` : '',
     ];
 
     const url = this.insertParams('/caravel/search_queries', params);

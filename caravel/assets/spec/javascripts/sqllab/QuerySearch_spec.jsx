@@ -22,25 +22,25 @@ describe('QuerySearch', () => {
     expect(wrapper.find(Select)).to.have.length(4);
   });
 
-  it('should update userId', () => {
+  it('updates userId on user selects change', () => {
     wrapper.find('[name="select-user"]')
       .simulate('change', { value: 1 });
     expect(wrapper.state().userId).to.equal(1);
   });
 
-  it('should update from time', () => {
+  it('updates fromTime on user selects from time', () => {
     wrapper.find('[name="select-from"]')
       .simulate('change', { value: 0 });
     expect(wrapper.state().from).to.equal(0);
   });
 
-  it('should update to time', () => {
+  it('updates toTime on user selects to time', () => {
     wrapper.find('[name="select-to"]')
       .simulate('change', { value: 0 });
     expect(wrapper.state().to).to.equal(0);
   });
 
-  it('should update status', () => {
+  it('updates status on user selects status', () => {
     wrapper.find('[name="select-status"]')
       .simulate('change', { value: 'success' });
     expect(wrapper.state().status).to.equal('success');
@@ -50,7 +50,7 @@ describe('QuerySearch', () => {
     expect(wrapper.find('input')).to.have.length(1);
   });
 
-  it('should update search text', () => {
+  it('updates search text on user inputs search text', () => {
     wrapper.find('input').simulate('change', { target: { value: 'text' } });
     expect(wrapper.state().searchText).to.equal('text');
   });
@@ -59,7 +59,7 @@ describe('QuerySearch', () => {
     expect(wrapper.find(Button)).to.have.length(1);
   });
 
-  it('should refresh queries when clicked', () => {
+  it('refreshes queries when clicked', () => {
     const search = sinon.spy(QuerySearch.prototype, 'refreshQueries');
     wrapper.find(Button).simulate('click');
     expect(search).to.have.been.called;
