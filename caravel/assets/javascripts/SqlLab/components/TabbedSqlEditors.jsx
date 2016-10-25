@@ -5,7 +5,7 @@ import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import shortid from 'shortid';
-import { getParamFromQuery, getLink } from '../../../utils/common';
+import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 
 const propTypes = {
@@ -41,7 +41,7 @@ class TabbedSqlEditors extends React.Component {
       const queryEditorProps = {
         id: shortid.generate(),
         title: getParamFromQuery(this.state.query, 'title'),
-        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
         schema: getParamFromQuery(this.state.query, 'schema'),
         autorun: getParamFromQuery(this.state.query, 'autorun'),
         sql: getParamFromQuery(this.state.query, 'sql'),
@@ -50,16 +50,6 @@ class TabbedSqlEditors extends React.Component {
       // Clean the url in browser history
       window.history.replaceState({}, document.title, this.state.cleanUri);
     }
-  }
-  getQueryLink(qe) {
-    const params = [];
-    if (qe.dbId) params.push('dbid=' + qe.dbId);
-    if (qe.title) params.push('title=' + qe.title);
-    if (qe.schema) params.push('schema=' + qe.schema);
-    if (qe.autorun) params.push('autorun=' + qe.autorun);
-    if (qe.sql) params.push('sql=' + qe.sql);
-
-    return getLink(this.state.cleanUri, params);
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */

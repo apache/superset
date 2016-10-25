@@ -1,5 +1,6 @@
 import React from 'react';
 import CopyToClipboard from '../../components/CopyToClipboard';
+import { getShortUrl } from '../../../utils/common';
 
 const propTypes = {
   qe: React.PropTypes.object,
@@ -12,18 +13,12 @@ const defaultProps = {
 export default class CopyQueryTabUrl extends React.Component {
   constructor(props) {
     super(props);
-    const uri = window.location.toString();
-    const search = window.location.search;
-    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
-    const query = search.substring(1);
     this.state = {
-      uri,
-      cleanUri,
-      query,
+      shortUrl: '',
     };
   }
 
-  getQueryLink() {
+  componentWillMount() {
     const params = [];
     const qe = this.props.qe;
     if (qe.dbId) params.push('dbid=' + qe.dbId);
@@ -33,16 +28,21 @@ export default class CopyQueryTabUrl extends React.Component {
     if (qe.sql) params.push('sql=' + encodeURIComponent(qe.sql));
 
     const queryString = params.join('&');
-    const queryLink = this.state.cleanUri + '?' + queryString;
+    const queryLink = window.location.pathname + '?' + queryString;
+    getShortUrl(queryLink, this.onShortUrlSuccess.bind(this));
+  }
 
-    return queryLink;
+  onShortUrlSuccess(data) {
+    this.setState({
+      shortUrl: data,
+    });
   }
 
   render() {
     return (
       <CopyToClipboard
         inMenu
-        text={this.getQueryLink()}
+        text={this.state.shortUrl}
         copyNode={<span>share query</span>}
         tooltipText="copy URL to clipboard"
         shouldShowText={false}
