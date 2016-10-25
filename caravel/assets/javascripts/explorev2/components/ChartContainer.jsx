@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
@@ -14,6 +15,13 @@ const propTypes = {
 };
 
 class ChartContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selector: `#${this.props.sliceContainerId}`,
+    };
+  }
+
   componentDidMount() {
     this.renderVis();
   }
@@ -27,8 +35,9 @@ class ChartContainer extends React.Component {
       jsonEndpoint: () => this.props.jsonEndpoint,
 
       container: {
-        html: () => {
+        html: (data) => {
           // this should be a callback to clear the contents of the slice container
+          $(this.state.selector).html(data);
         },
 
         css: () => {
@@ -37,17 +46,25 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
         },
         height: () => parseInt(this.props.height, 10) - 100,
+
+        find: (classname) => ($(this.state.selector).find(classname)),
+
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
       height: () => parseInt(this.props.height, 10) - 100,
 
-      selector: `#${this.props.sliceContainerId}`,
+      selector: this.state.selector,
 
       done: () => {
         // finished rendering callback
       },
+
+      error: () => {
+        // rendering error callback
+      },
+
       d3format: (col, number) => {
         // mock d3format function in Slice object in caravel.js
         const format = this.props.columnFormats[col];
