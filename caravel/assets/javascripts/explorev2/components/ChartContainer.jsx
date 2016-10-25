@@ -67,7 +67,12 @@ class ChartContainer extends React.Component {
         <Panel
           style={{ height: this.props.height }}
           header={
-            <div className="panel-title">{this.props.sliceName}</div>
+            <div
+              id="slice-header"
+              className="panel-title"
+            >
+              {this.props.sliceName}
+            </div>
           }
         >
           <div
