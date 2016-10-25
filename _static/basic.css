@@ -85,10 +85,6 @@ div.sphinxsidebar #searchbox input[type="text"] {
     width: 170px;
 }
 
-div.sphinxsidebar #searchbox input[type="submit"] {
-    width: 30px;
-}
-
 img {
     border: 0;
     max-width: 100%;
@@ -496,6 +492,13 @@ abbr, acronym {
 pre {
     overflow: auto;
     overflow-y: hidden;  /* fixes display issues on Chrome browsers */
+}
+
+span.pre {
+    -moz-hyphens: none;
+    -ms-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
 }
 
 td.linenos pre {

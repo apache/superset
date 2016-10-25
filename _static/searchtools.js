@@ -324,7 +324,7 @@ var Search = {
     var searchterms = [];
     var excluded = [];
     var hlterms = [];
-    var tmp = query.split(/\s+/);
+    var tmp = query.split(/\W+/);
     var objectterms = [];
     for (i = 0; i < tmp.length; i++) {
       if (tmp[i] !== "") {
