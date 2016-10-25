@@ -12,7 +12,7 @@ function heatmapVis(slice) {
   function refresh() {
     // Header for panel in explore v2
     const header = document.getElementsByClassName('panel-title');
-    const headerHeight = header ? header[0].offsetHeight : 0;
+    const headerHeight = header ? header[0].getBoundingClientRect().height : 0;
     const margin = {
       top: 20 + headerHeight,
       right: 10,
