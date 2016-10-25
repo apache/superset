@@ -38,13 +38,14 @@ class App extends React.Component {
           </div>
         </div>
       );
+    } else {
+      content = (
+        <div>
+          <QueryAutoRefresh />
+          <TabbedSqlEditors />
+        </div>
+      );
     }
-    content = (
-      <div>
-        <QueryAutoRefresh />
-        <TabbedSqlEditors />
-      </div>
-    );
     return (
       <div className="App SqlLab">
         <Alerts alerts={this.props.alerts} />
