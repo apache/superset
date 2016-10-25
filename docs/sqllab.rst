@@ -18,14 +18,14 @@ Feature Overview
   - supports defining a "results backend" to persist query results
 - A search engine to find queries executed in the past
 - Supports templating using the
-  `Jinja templating language <http://jinja.pocoo.org/docs/dev/>`
+  `Jinja templating language <http://jinja.pocoo.org/docs/dev/>`_
   which allows for using macros in your SQL code
 
 
 Templating with Jinja
 ---------------------
 
-.code ::
+.. code-block:: sql
 
     SELECT *
     FROM some_table
@@ -49,4 +49,8 @@ Caravel's Jinja context:
 - ``random``: ``random``
 - more to come!
 
-`Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/#builtin-filters>_` can be also be applied where needed.
+`Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
+
+
+.. autoclass:: caravel.jinja_context.PrestoContext
+    :members:

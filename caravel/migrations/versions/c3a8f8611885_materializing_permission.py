@@ -27,7 +27,7 @@ class Slice(Base):
     druid_datasource_id = Column(Integer, ForeignKey('datasources.id'))
     table_id = Column(Integer, ForeignKey('tables.id'))
     perm = Column(String(2000))
-    
+
 def upgrade():
     bind = op.get_bind()
     op.add_column('slices', sa.Column('perm', sa.String(length=2000), nullable=True))
