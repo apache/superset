@@ -8,6 +8,10 @@ import inspect
 import jinja2
 
 from datetime import datetime
+import time
+import uuid
+import random
+
 from caravel import app
 
 config = app.config
@@ -25,7 +29,7 @@ class BaseContext(object):
     knows about the database it is operating in.
 
     This means that object methods are only available for the active database
-    and are given access the ``models.Database`` object and schema
+    and are given access to the ``models.Database`` object and schema
     name. For globally available methods use ``@classmethod``.
     """
     engine = None
@@ -36,8 +40,8 @@ class BaseContext(object):
         self.schema = query.schema
 
 
-class MySQLContext(BaseContext):
-    engine = 'mysql'
+class PrestoContext(BaseContext):
+    engine = 'presto'
 
 db_contexes = {
     o.engine: o for o in globals().values()
@@ -47,9 +51,13 @@ db_contexes = {
 def get_context(engine_name=None):
     context = {
         'datetime': datetime,
+        'time': time,
+        'uuid': uuid,
+        'random': random,
     }
-    if engine_name and db_contexes[engine_name]:
-        context[engine_name] = db_contexes[engine_name]
+    db_context = db_contexes.get(engine_name)
+    if engine_name and db_context:
+        context[engine_name] = db_context
     return context
 
 

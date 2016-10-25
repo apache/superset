@@ -1,7 +1,8 @@
 SQL Lab
 =======
 
-SQL Lab is a modern, feature-rich SQL IDE written in React.
+SQL Lab is a modern, feature-rich SQL IDE written in
+`React <https://facebook.github.io/react/>`_.
 
 
 Feature Overview
@@ -12,10 +13,12 @@ Feature Overview
   visualization capabilities
 - Browse database metadata: tables, columns, indexes, partitions
 - Support for long-running queries
-  - uses the Celery async framework to dispatch query handling to workers
-  - supports defining a "result backend" to persist query results
+  - uses the `Celery distributed queue <http://www.python.org/>`_
+    to dispatch query handling to workers
+  - supports defining a "results backend" to persist query results
 - A search engine to find queries executed in the past
-- Supports templating using the ``jinja`` templating language,
+- Supports templating using the
+  `Jinja templating language <http://jinja.pocoo.org/docs/dev/>`
   which allows for using macros in your SQL code
 
 
@@ -26,10 +29,24 @@ Templating with Jinja
 
     SELECT *
     FROM some_table
-    WHERE partition_key = '{{ hive.latest_partition('some_table') }}'
+    WHERE partition_key = '{{ preto.latest_partition('some_table') }}'
 
-Templating allows for getting the power and capabilities of a
-programming language inside your SQL.
+Templating unleashes the power and capabilities of a
+programming language within your SQL code.
 
-It also enables for writing generic queries as templates that can be
-parameterized and re-used more flexibly.
+Templates can also be used to write generic queries that are
+parameterized so they can be re-used easily.
+
+
+Available macros
+''''''''''''''''
+
+We expose certain modules from Python's standard library in
+Caravel's Jinja context:
+- ``time``: ``time``
+- ``datetime``: ``datetime.datetime``
+- ``uuid``: ``uuid``
+- ``random``: ``random``
+- more to come!
+
+`Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/#builtin-filters>_` can be also be applied where needed.
