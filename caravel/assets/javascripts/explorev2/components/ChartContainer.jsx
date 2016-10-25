@@ -38,7 +38,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(this.props.height, 10),
+      height: () => parseInt(this.props.height, 10) - 100,
 
       selector: `#${this.props.sliceContainerId}`,
 
