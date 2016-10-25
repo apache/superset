@@ -1,9 +1,6 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import { bindActionCreators } from 'redux';
 import Select from 'react-select';
-import { connect } from 'react-redux';
-import * as Actions from '../actions';
 
 class DatabaseSelect extends React.Component {
   constructor(props) {
@@ -53,15 +50,4 @@ DatabaseSelect.propTypes = {
   valueRenderer: React.PropTypes.func,
 };
 
-DatabaseSelect.defaultProps = {
-  onChange: () => {},
-  databaseId: null,
-};
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(null, mapDispatchToProps)(DatabaseSelect);
+export default DatabaseSelect;

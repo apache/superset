@@ -1,14 +1,23 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
 
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from '../actions';
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import DatabaseSelect from './DatabaseSelect';
 
+const propTypes = {
+  queryEditor: React.PropTypes.object.isRequired,
+  tables: React.PropTypes.array,
+  actions: React.PropTypes.object,
+  networkOn: React.PropTypes.bool,
+};
+
+const defaultProps = {
+  tables: [],
+  networkOn: true,
+  actions: {},
+};
 
 class SqlEditorLeftBar extends React.Component {
   constructor(props) {
@@ -115,7 +124,6 @@ class SqlEditorLeftBar extends React.Component {
     if (!this.props.networkOn) {
       networkAlert = <p><Label bsStyle="danger">OFFLINE</Label></p>;
     }
-    const tables = this.props.tables.filter((t) => (t.queryEditorId === this.props.queryEditor.id));
     const shouldShowReset = window.location.search === '?reset=1';
     return (
       <div className="clearfix sql-toolbar">
@@ -124,6 +132,7 @@ class SqlEditorLeftBar extends React.Component {
           <DatabaseSelect
             onChange={this.onChange.bind(this)}
             databaseId={this.props.queryEditor.dbId}
+            actions={this.props.actions}
             valueRenderer={(o) => (
               <div>
                 <span className="text-muted">Database:</span> {o.label}
@@ -161,8 +170,13 @@ class SqlEditorLeftBar extends React.Component {
         </div>
         <hr />
         <div className="m-t-5">
-          {tables.map((table) => (
-            <TableElement table={table} queryEditor={this.props.queryEditor} key={table.id} />
+          {this.props.tables.map((table) => (
+            <TableElement
+              table={table}
+              queryEditor={this.props.queryEditor}
+              key={table.id}
+              actions={this.props.actions}
+            />
           ))}
         </div>
         {shouldShowReset &&
@@ -174,29 +188,7 @@ class SqlEditorLeftBar extends React.Component {
     );
   }
 }
+SqlEditorLeftBar.propTypes = propTypes;
+SqlEditorLeftBar.defaultProps = defaultProps;
 
-SqlEditorLeftBar.propTypes = {
-  queryEditor: React.PropTypes.object,
-  tables: React.PropTypes.array,
-  actions: React.PropTypes.object,
-  networkOn: React.PropTypes.bool,
-};
-
-SqlEditorLeftBar.defaultProps = {
-  tables: [],
-};
-
-function mapStateToProps(state) {
-  return {
-    tables: state.tables,
-    networkOn: state.networkOn,
-  };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditorLeftBar);
+export default SqlEditorLeftBar;

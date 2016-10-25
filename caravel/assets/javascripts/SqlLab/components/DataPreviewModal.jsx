@@ -32,7 +32,7 @@ class DataPreviewModal extends React.Component {
             </Modal.Title>
           </Modal.Header>
           <Modal.Body>
-            <ResultSet query={query} visualize={false} csv={false} />
+            <ResultSet query={query} visualize={false} csv={false} actions={this.props.actions} />
           </Modal.Body>
         </Modal>
       );

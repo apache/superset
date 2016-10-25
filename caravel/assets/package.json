@@ -8,7 +8,7 @@
     "test": "spec"
   },
   "scripts": {
-    "test": "npm run lint && mocha --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
+    "test": "mocha --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "cover": "babel-node ./node_modules/.bin/istanbul cover _mocha -- --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "dev": "NODE_ENV=dev webpack -d --watch --colors --progress",
     "prod": "NODE_ENV=production node --max_old_space_size=8192 ./node_modules/webpack/bin/webpack.js -p --colors --progress",

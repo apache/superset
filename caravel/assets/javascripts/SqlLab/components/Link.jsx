@@ -1,6 +1,24 @@
 import React from 'react';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 
+const propTypes = {
+  children: React.PropTypes.node,
+  className: React.PropTypes.string,
+  href: React.PropTypes.string,
+  onClick: React.PropTypes.func,
+  placement: React.PropTypes.string,
+  style: React.PropTypes.object,
+  tooltip: React.PropTypes.string,
+};
+const defaultProps = {
+  className: '',
+  href: '#',
+  onClick: () => {},
+  placement: 'top',
+  style: {},
+  tooltip: null,
+};
+
 
 class Link extends React.Component {
   render() {
@@ -34,21 +52,7 @@ class Link extends React.Component {
     return link;
   }
 }
-Link.propTypes = {
-  children: React.PropTypes.object,
-  className: React.PropTypes.string,
-  href: React.PropTypes.string,
-  onClick: React.PropTypes.func,
-  placement: React.PropTypes.string,
-  style: React.PropTypes.object,
-  tooltip: React.PropTypes.string,
-};
-Link.defaultProps = {
-  disabled: false,
-  href: '#',
-  tooltip: null,
-  placement: 'top',
-  onClick: () => {},
-};
+Link.propTypes = propTypes;
+Link.defaultProps = defaultProps;
 
 export default Link;
