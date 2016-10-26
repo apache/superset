@@ -48,7 +48,7 @@ class App extends React.Component {
     }
     return (
       <div className="App SqlLab">
-        <Alerts alerts={this.props.alerts} />
+        <Alerts alerts={this.props.alerts} actions={this.props.actions} />
         <DataPreviewModal />
         <div className="container-fluid">
           {content}
@@ -60,6 +60,7 @@ class App extends React.Component {
 
 App.propTypes = {
   alerts: React.PropTypes.array,
+  actions: React.PropTypes.object,
 };
 
 function mapStateToProps(state) {
@@ -73,4 +74,5 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
+export { App };
 export default connect(mapStateToProps, mapDispatchToProps)(App);

@@ -1,7 +1,4 @@
 import React from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
 
 import { ButtonGroup, Well } from 'react-bootstrap';
 import shortid from 'shortid';
@@ -187,7 +184,7 @@ class TableElement extends React.Component {
               <Link
                 className="fa fa-trash pull-left m-l-2"
                 onClick={this.removeTable.bind(this)}
-                tooltip="Remove from workspace"
+                tooltip="Remove from panel"
                 href="#"
               />
             </ButtonGroup>
@@ -203,10 +200,4 @@ class TableElement extends React.Component {
 TableElement.propTypes = propTypes;
 TableElement.defaultProps = defaultProps;
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(null, mapDispatchToProps)(TableElement);
-export { TableElement };
+export default TableElement;

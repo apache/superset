@@ -30,14 +30,10 @@ class QueryAutoRefresh extends React.Component {
       if (Object.keys(data).length > 0) {
         this.props.actions.refreshQueries(data);
       }
-      if (!this.props.networkOn) {
-        this.props.actions.setNetworkStatus(true);
-      }
+      this.props.actions.setNetworkStatus(true);
     })
     .fail(() => {
-      if (this.props.networkOn) {
-        this.props.actions.setNetworkStatus(false);
-      }
+      this.props.actions.setNetworkStatus(false);
     });
   }
   render() {
@@ -47,7 +43,6 @@ class QueryAutoRefresh extends React.Component {
 QueryAutoRefresh.propTypes = {
   actions: React.PropTypes.object,
   queriesLastUpdate: React.PropTypes.number,
-  networkOn: React.PropTypes.bool,
 };
 QueryAutoRefresh.defaultProps = {
   // queries: null,
@@ -56,7 +51,6 @@ QueryAutoRefresh.defaultProps = {
 function mapStateToProps(state) {
   return {
     queriesLastUpdate: state.queriesLastUpdate,
-    networkOn: state.networkOn,
   };
 }
 

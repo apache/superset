@@ -5,6 +5,5 @@ dist/*
 images/*
 node_modules/*
 node_modules*/*
-spec/*
 stylesheets/*
 vendor/*
