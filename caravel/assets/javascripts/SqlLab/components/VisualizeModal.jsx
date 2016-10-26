@@ -23,7 +23,7 @@ const defaultProps = {
   onHide: () => {},
 };
 
-class VisualizeModal extends React.Component {
+class VisualizeModal extends React.PureComponent {
   constructor(props) {
     super(props);
     const uniqueId = shortid.generate();

@@ -74,3 +74,22 @@ export function enhancer() {
   }
   return enhancerWithPersistState;
 }
+
+export function areArrayDifferent(arr1, arr2) {
+  // used in shouldComponentUpdate when denormalizing arrays
+  // where the array object is different every time, but the content might
+  // be the same
+  if (!arr1 || !arr2) {
+    return true;
+  }
+  if (arr1.length !== arr2.length) {
+    return true;
+  }
+  const length = arr1.length;
+  for (let i = 0; i < length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return true;
+    }
+  }
+  return false;
+}

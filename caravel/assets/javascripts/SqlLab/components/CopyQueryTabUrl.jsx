@@ -10,7 +10,7 @@ const defaultProps = {
   queryEditor: null,
 };
 
-export default class CopyQueryTabUrl extends React.Component {
+export default class CopyQueryTabUrl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

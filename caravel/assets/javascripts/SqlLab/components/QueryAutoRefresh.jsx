@@ -7,7 +7,7 @@ const $ = require('jquery');
 const QUERY_UPDATE_FREQ = 1000;
 const QUERY_UPDATE_BUFFER_MS = 5000;
 
-class QueryAutoRefresh extends React.Component {
+class QueryAutoRefresh extends React.PureComponent {
   componentWillMount() {
     this.startTimer();
   }

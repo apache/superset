@@ -25,7 +25,7 @@ const defaultProps = {
 };
 
 
-class ResultSet extends React.Component {
+class ResultSet extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

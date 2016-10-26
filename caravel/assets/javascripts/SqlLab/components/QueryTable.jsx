@@ -27,7 +27,7 @@ const defaultProps = {
 };
 
 
-class QueryTable extends React.Component {
+class QueryTable extends React.PureComponent {
   constructor(props) {
     super(props);
     const uri = window.location.toString();

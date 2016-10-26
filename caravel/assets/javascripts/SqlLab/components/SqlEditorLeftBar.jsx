@@ -1,6 +1,5 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
@@ -19,7 +18,7 @@ const defaultProps = {
   actions: {},
 };
 
-class SqlEditorLeftBar extends React.Component {
+class SqlEditorLeftBar extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -27,6 +26,7 @@ class SqlEditorLeftBar extends React.Component {
       schemaOptions: [],
       tableLoading: false,
       tableOptions: [],
+      networkOn: true,
     };
   }
   componentWillMount() {
@@ -92,8 +92,8 @@ class SqlEditorLeftBar extends React.Component {
     this.setState({ tableLoading: true });
     $.get(url, (data) => {
       this.props.actions.mergeTable(Object.assign(data, {
-        dbId: this.props.queryEditor.dbId,
-        queryEditorId: this.props.queryEditor.id,
+        dbId: qe.dbId,
+        queryEditorId: qe.id,
         schema: qe.schema,
         expanded: true,
       }));
@@ -163,7 +163,6 @@ class SqlEditorLeftBar extends React.Component {
             isLoading={this.state.tableLoading}
             placeholder={`Add a table (${this.state.tableOptions.length})`}
             autosize={false}
-            value={this.state.tableName}
             onChange={this.changeTable.bind(this)}
             options={this.state.tableOptions}
           />
@@ -173,7 +172,6 @@ class SqlEditorLeftBar extends React.Component {
           {this.props.tables.map((table) => (
             <TableElement
               table={table}
-              queryEditor={this.props.queryEditor}
               key={table.id}
               actions={this.props.actions}
             />

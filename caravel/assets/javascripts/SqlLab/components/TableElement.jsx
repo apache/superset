@@ -9,7 +9,6 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   table: React.PropTypes.object,
-  queryEditor: React.PropTypes.object,
   actions: React.PropTypes.object,
 };
 
@@ -18,7 +17,7 @@ const defaultProps = {
   actions: {},
 };
 
-class TableElement extends React.Component {
+class TableElement extends React.PureComponent {
 
   popSelectStar() {
     const qe = {
@@ -46,7 +45,7 @@ class TableElement extends React.Component {
   }
   dataPreviewModal() {
     const query = {
-      dbId: this.props.queryEditor.dbId,
+      dbId: this.props.table.dbId,
       sql: this.props.table.selectStar,
       tableName: this.props.table.name,
       sqlEditorId: null,
