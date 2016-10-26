@@ -201,6 +201,10 @@ function dashboardContainer(dashboardData) {
       this.slices.forEach(function (slice) {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
+          $(`#${slice.data.token}-header`).addClass('slice-highlight');
+          setTimeout(function () {
+            $(`#${slice.data.token}-header`).removeClass('slice-highlight');
+          }, 2000);
         }
       });
     },

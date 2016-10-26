@@ -9,7 +9,7 @@ const propTypes = {
 function SliceCell({ expandedSlices, removeSlice, slice }) {
   return (
     <div>
-      <div className="chart-header">
+      <div className="chart-header" id={`${slice.token}-header`}>
         <div className="row">
           <div className="col-md-12 header">
             <span>{slice.slice_name}</span>
