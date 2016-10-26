@@ -90,7 +90,6 @@ class QueryTable extends React.Component {
         </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
-      const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
         <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
       );

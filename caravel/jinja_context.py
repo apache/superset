@@ -7,10 +7,8 @@ from __future__ import unicode_literals
 import inspect
 import jinja2
 
-from copy import copy
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
-import logging
 import time
 import textwrap
 import uuid
@@ -93,8 +91,6 @@ class PrestoContext(BaseContext):
 
     @staticmethod
     def _schema_table(table_name, schema):
-        for i in range(10):
-            print([table_name, schema])
         if '.' in table_name:
             schema, table_name = table_name.split('.')
         return table_name, schema

@@ -443,6 +443,11 @@ class CoreTests(CaravelTestCase):
         rendered = jinja_context.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
+    def test_templated_sql_json(self):
+        sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
+        data = self.run_sql(sql, "admin", "fdaklj3ws")
+        self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
+
 
 if __name__ == '__main__':
     unittest.main()

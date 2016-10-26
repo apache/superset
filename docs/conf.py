@@ -16,7 +16,6 @@ import sys
 import os
 import shlex
 import sphinx_rtd_theme
-# import sphinx_bootstrap_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -114,8 +113,6 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-# html_theme = 'bootstrap'
-# html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 html_theme = "sphinx_rtd_theme"
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -123,17 +120,8 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    # 'bootswatch_theme': 'cosmo',
-    #'navbar_title': 'Caravel Documentation',
-    #'navbar_fixed_top': "false",
-    #'navbar_sidebarrel': False,
-    #'navbar_site_name': "Topics",
-    #'navbar_class': "navbar navbar-left",
-}
-html_theme_options = {
     'collapse_navigation': False,
     'display_version': False,
-    #'navigation_depth': 3,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
