@@ -71,7 +71,7 @@
       </div>
     </div>
   </div>
-  {% if not dash_standalone %}
+  {% if not standalone_mode %}
     <div id="add-slice-container"></div>
   {% endif %}
 
@@ -85,7 +85,7 @@
           <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
         </h1>
       </div>
-      {% if not dash_standalone %}
+      {% if not standalone_mode %}
         <div class="col-md-4">
           <div class="btn-group pull-right" role="group" >
             <button type="button" id="refresh_dash" class="btn btn-default btn-sm" data-toggle="tooltip" title="Force refresh the whole dashboard">

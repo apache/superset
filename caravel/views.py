@@ -1346,7 +1346,7 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
-            return self.render_template("caravel/standalone.html", viz=viz_obj)
+            return self.render_template("caravel/standalone.html", viz=viz_obj, standalone_mode=True)
         else:
             return self.render_template(
                 "caravel/explore.html",
@@ -1803,7 +1803,7 @@ class Caravel(BaseCaravelView):
             templates=templates,
             dash_save_perm=dash_save_perm,
             dash_edit_perm=dash_edit_perm,
-            dash_standalone=standalone)
+            standalone_mode=standalone)
 
     @has_access
     @expose("/sync_druid/", methods=['POST'])
