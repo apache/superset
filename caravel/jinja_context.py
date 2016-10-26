@@ -9,6 +9,7 @@ import jinja2
 
 from copy import copy
 from datetime import datetime, timedelta
+from dateutil.relativedelta import relativedelta
 import logging
 import time
 import textwrap
@@ -181,6 +182,7 @@ def get_context(engine_name=None):
     context = {
         'datetime': datetime,
         'random': random,
+        'relativedelta': relativedelta,
         'time': time,
         'timedelta': timedelta,
         'uuid': uuid,

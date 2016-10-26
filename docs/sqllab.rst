@@ -47,6 +47,7 @@ Caravel's Jinja context:
 - ``datetime``: ``datetime.datetime``
 - ``uuid``: ``uuid``
 - ``random``: ``random``
+- ``relativedelta``: ``dateutil.relativedelta.relativedelta``
 - more to come!
 
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.

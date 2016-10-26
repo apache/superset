@@ -46,8 +46,10 @@ export default class ModalTrigger extends React.Component {
       'btn btn-default btn-sm': this.props.isButton,
     });
     return (
-      <a href="#" className={classNames} onClick={this.open}>
-        {this.props.triggerNode}
+      <div>
+        <span className={classNames} onClick={this.open} style={{ cursor: 'pointer' }}>
+          {this.props.triggerNode}
+        </span>
         <Modal
           show={this.state.showModal}
           onHide={this.close}
@@ -62,7 +64,7 @@ export default class ModalTrigger extends React.Component {
             {this.props.modalBody}
           </Modal.Body>
         </Modal>
-      </a>
+      </div>
     );
   }
 }
