@@ -1169,6 +1169,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.isnum
+                dbcol.avg = dbcol.isnum
                 dbcol.is_dttm = dbcol.is_time
 
             db.session.merge(self)
@@ -1185,6 +1186,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
                     expression="SUM({})".format(quoted)
+                ))
+            if dbcol.avg:
+                metrics.append(M(
+                    metric_name='avg__' + dbcol.column_name,
+                    verbose_name='avg__' + dbcol.column_name,
+                    metric_type='avg',
+                    expression="AVG({})".format(quoted)
                 ))
             if dbcol.max:
                 metrics.append(M(
@@ -1366,6 +1374,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     groupby = Column(Boolean, default=False)
     count_distinct = Column(Boolean, default=False)
     sum = Column(Boolean, default=False)
+    avg = Column(Boolean, default=False)
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
@@ -1379,7 +1388,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
-        'type', 'groupby', 'count_distinct', 'sum', 'max', 'min',
+        'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression'
     )
@@ -2137,6 +2146,7 @@ class DruidColumn(Model, AuditMixinNullable):
     groupby = Column(Boolean, default=False)
     count_distinct = Column(Boolean, default=False)
     sum = Column(Boolean, default=False)
+    avg = Column(Boolean, default=False)
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
@@ -2175,6 +2185,18 @@ class DruidColumn(Model, AuditMixinNullable):
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
+
+        if self.avg and self.isnum:
+            mt = corrected_type.lower() + 'Avg'
+            name = 'avg__' + self.column_name
+            metrics.append(DruidMetric(
+                metric_name=name,
+                metric_type='avg',
+                verbose_name='AVG({})'.format(self.column_name),
+                json=json.dumps({
+                    'type': mt, 'name': name, 'fieldName': self.column_name})
+            ))
+
         if self.min and self.isnum:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
