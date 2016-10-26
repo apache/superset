@@ -1793,21 +1793,17 @@ class Caravel(BaseCaravelView):
         def dashboard(**kwargs):  # noqa
             pass
         dashboard(dashboard_id=dash.id)
-        if request.args.get("standalone") == "true":
-            return self.render_template(
-                "caravel/dashboard_standalone.html",
-                dashboard=dash,
-                user_id=g.user.get_id(),
-                templates=templates)
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
+        standalone = request.args.get("standalone") == "true"
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             user_id=g.user.get_id(),
             templates=templates,
             dash_save_perm=dash_save_perm,
-            dash_edit_perm=dash_edit_perm)
+            dash_edit_perm=dash_edit_perm,
+            dash_standalone=standalone)
 
     @has_access
     @expose("/sync_druid/", methods=['POST'])
