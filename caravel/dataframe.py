@@ -18,8 +18,6 @@ INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
 
 
-# http://pandas.pydata.org/pandas-docs/stable/internals.html#
-# subclassing-pandas-data-structures
 class CaravelDataFrame(object):
     def __init__(self, df):
         self.__df = df.where((pd.notnull(df)), None)
@@ -91,13 +89,14 @@ def datetime_conversion_rate(data_series):
 
 
 def is_date(dtype):
-    return dtype.name.startswith('datetime')
+    if dtype.name:
+        return dtype.name.startswith('datetime')
 
 
 def is_dimension(dtype, column_name):
     if is_id(column_name):
         return False
-    return dtype == np.object or dtype == np.bool
+    return dtype.name in ('object', 'bool')
 
 
 def is_id(column_name):

@@ -90,9 +90,8 @@ class QueryTable extends React.Component {
         </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
-      const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
-        <HighlightedSql sql={source} shrink maxWidth={100} />
+        <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
       );
       if (q.resultsKey) {
         q.output = (
@@ -169,7 +168,7 @@ class QueryTable extends React.Component {
       q.querylink = (
         <div style={{ width: '100px' }}>
           <a
-            href={this.getQueryLink(q.dbId, source)}
+            href={this.getQueryLink(q.dbId, q.sql)}
             className="btn btn-primary btn-xs"
           >
             <i className="fa fa-external-link" />Open in SQL Editor
