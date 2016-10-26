@@ -46,32 +46,32 @@
       </div>
     </div>
   </div>
-  {% if not dash_standalone %}
-    <div class="modal fade" id="refresh_modal" tabindex="-1" role="dialog">
-      <div class="modal-dialog" role="document">
-        <div class="modal-content">
-          <div class="modal-header">
-              <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-              <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
-              <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
-          </div>
-          <div class="modal-body">
-              <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
-                  <option value="0">Don't refresh</option>
-                  <option value="10">10 seconds</option>
-                  <option value="30">30 seconds</option>
-                  <option value="60">1 minute</option>
-                  <option value="300">5 minutes</option>
-              </select><br>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-default" data-dismiss="modal">
-                Close
-            </button>
-          </div>
+  <div class="modal fade" id="refresh_modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
+            <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
+        </div>
+        <div class="modal-body">
+            <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
+                <option value="0">Don't refresh</option>
+                <option value="10">10 seconds</option>
+                <option value="30">30 seconds</option>
+                <option value="60">1 minute</option>
+                <option value="300">5 minutes</option>
+            </select><br>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">
+              Close
+          </button>
         </div>
       </div>
     </div>
+  </div>
+  {% if not dash_standalone %}
     <div id="add-slice-container"></div>
   {% endif %}
 
