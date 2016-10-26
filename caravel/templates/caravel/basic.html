@@ -21,7 +21,7 @@
 
   <body>
     {% block navbar %}
-      {% if not viz or viz.request.args.get("standalone") != "true" %}
+      {% if not standalone_mode %}
         <header class="top" role="header">
           {% include 'appbuilder/navbar.html' %}
         </header>
