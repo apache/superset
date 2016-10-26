@@ -205,7 +205,7 @@ function dashboardContainer(dashboardData) {
           sliceSeletor.addClass('slice-highlight');
           setTimeout(function () {
             sliceSeletor.removeClass('slice-highlight');
-          }, 2000);
+          }, 1200);
         }
       });
     },
