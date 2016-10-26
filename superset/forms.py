@@ -332,6 +332,12 @@ class FormFactory(object):
                 "default": datasource.column_names[0],
                 "description": _("Columns to display")
             }),
+            'json_blob': (SelectField, {
+                "label": _("JSON"),
+                "choices": self.choicify(datasource.column_names),
+                "default": datasource.column_names[0],
+                "description": _("Columns to display")
+            }),
             'all_columns_y': (SelectField, {
                 "label": _("Y"),
                 "choices": self.choicify(datasource.column_names),

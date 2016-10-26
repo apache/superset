@@ -2036,6 +2036,51 @@ class HorizonViz(NVD3TimeSeriesViz):
         ), }]
 
 
+class EventsViz(BaseViz):
+
+    """Events chart
+
+    Displays sets of events in time
+    """
+
+    viz_type = "events"
+    verbose_name = _("Events Chart")
+    credits = "a Caravel original"
+    is_timeseries = True
+    fieldsets = [{
+        'label': _('Chart Options'),
+        'fields': (
+            ('all_columns_x'),
+            ('all_columns_y'),
+            ('json_blob'),
+            ('row_limit'),
+        ),
+    }]
+    def query_obj(self):
+        d = super(EventsViz, self).query_obj()
+        fd = self.form_data
+        granularity = d.get('granularity')
+        if not granularity:
+            raise Exception("Pick a time column")
+        d['columns'] = [
+            granularity,
+            fd.get('all_columns_x'),
+            fd.get('all_columns_y'),
+            fd.get('json_blob'),
+        ]
+        d['groupby'] = []
+        d['granularity'] = None
+        d['is_timeseries'] = False
+        return d
+
+    def get_data(self):
+        df = self.get_df()
+        df.columns = ['ts', 'category', 'other', 'blob']
+        df = df.sort_values('ts')
+        df.ts = pd.to_datetime(df.ts, utc=False)
+        return df.to_dict(orient='records')
+
+
 class MapboxViz(BaseViz):
 
     """Rich maps made with Mapbox"""
@@ -2237,6 +2282,7 @@ viz_types_list = [
     MapboxViz,
     HistogramViz,
     SeparatorViz,
+    EventsViz,
 ]
 
 viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list

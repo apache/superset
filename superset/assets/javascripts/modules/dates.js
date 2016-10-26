@@ -35,7 +35,7 @@ export const tickMultiFormat = d3.time.format.multi([
   ],
   // If there are non-zero minutes, show Date, Hour:Minute [AM/PM]
   [
-    '%a %b %d, %I %p',
+    '%I %p',
     function (d) {
       return d.getHours() !== 0;
     },
