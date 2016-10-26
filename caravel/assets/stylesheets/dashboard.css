@@ -83,7 +83,7 @@ div.widget .chart-controls {
 }
 
 .slice-highlight {
-  background-color:  #FFFF00 !important;
+  box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.2) !important;
 }
 
 .dashboard .separator.widget .slice_container {
