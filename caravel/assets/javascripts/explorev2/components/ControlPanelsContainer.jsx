@@ -1,7 +1,7 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
-import { visTypes } from '../stores/store';
+import { visTypes, commonControlPanelSections } from '../stores/store';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
@@ -13,17 +13,21 @@ const defaultProps = {
   vizType: null,
 };
 
+function getSectionsToRender(vizSections) {
+  const { defaultSection, datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const sectionsToRender = [datasourceAndVizType, defaultSection].concat(vizSections, sqlClause);
+  return sectionsToRender;
+}
+
 function ControlPanelsContainer({ vizType }) {
   const viz = visTypes[vizType];
+  const sectionsToRender = getSectionsToRender(viz.controlPanelSections);
+  console.log('sectionsToRender', sectionsToRender)
   return (
     <Panel>
       <div className="scrollbar-container">
         <div className="scrollbar-content">
-
-          {/* before all sections render default section (data source and vis type) */}
-          {/* and other defaults */}
-
-          {viz.controlPanelSections.map((section) => {
+          {sectionsToRender.map((section) => {
             return (
               <ControlPanelSection
                 label={section.label}
@@ -35,10 +39,6 @@ function ControlPanelsContainer({ vizType }) {
               </ControlPanelSection>
             );
           })}
-
-          {/* after rendering all other sections */}
-          {/* render SqlClause section */}
-          {/* render Filters section */}
         </div>
       </div>
     </Panel>

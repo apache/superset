@@ -6,7 +6,7 @@ export const FIELD_TYPES = [
   'SelectMultipleSortableField',
   'CheckboxField',
   'FreeFormSelectField',
-  'IntegerField',
+  'IntegerField', // can be same as text field, with integer validation
   'TextAreaField',
   'TextField'
 ];

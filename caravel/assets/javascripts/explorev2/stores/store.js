@@ -95,7 +95,7 @@ export const FIELD_CHOICES_OPTIONS = {
 }
 
 export const commonControlPanelSections = {
-  druidTimeSeriesControlPanelSection: {
+  druidTimeSeries: {
     label: 'Time',
     description: 'Time related form attributes',
     fieldSetRows: [
@@ -103,14 +103,14 @@ export const commonControlPanelSections = {
       ['since', 'until']
     ]
   },
-  datasourceAndVizTypeControlPabelSection: {
+  datasourceAndVizType: {
     label: 'Datasource & Chart Type',
     fieldSetRows: [
       ['datasource'],
       ['viz_type'],
     ],
   },
-  sqlaTimeSeriesControlPanelSection: {
+  sqlaTimeSeries: {
     label: 'Time',
     description: 'Time related form attributes',
     fieldSetRows: [
@@ -118,20 +118,20 @@ export const commonControlPanelSections = {
       ['since', 'until']
     ]
   },
-  sqlControlPanelSection: {
+  sqlClause: {
     label: 'SQL',
     fieldSetRows: [
       ['where', 'having']
     ],
     description: 'This section exposes ways to include snippets of SQL in your query',
   },
-  defaultControlPanelSection: {
+  defaultSection: {
     label: null,
     fieldSetRows: [
       ['metrics', 'groupby']
     ],
   },
-}
+};
 
 // todo: add fieldSetRows and fieldSetOverrides from viz.py for the rest of the viz types
 export const visTypes = {

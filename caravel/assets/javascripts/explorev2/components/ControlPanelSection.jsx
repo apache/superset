@@ -5,7 +5,7 @@ import FieldSet from './FieldSet';
 const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
-}
+};
 
 export default class ControlPanelSection extends React.Component {
   constructor(props) {
