@@ -2,7 +2,7 @@ const $ = window.$ = require('jquery');
 import React from 'react';
 import Select from 'react-select';
 
-class DatabaseSelect extends React.Component {
+class DatabaseSelect extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

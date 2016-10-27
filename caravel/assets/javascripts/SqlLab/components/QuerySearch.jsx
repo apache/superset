@@ -11,7 +11,7 @@ const propTypes = {
   actions: React.PropTypes.object.isRequired,
 };
 
-class QuerySearch extends React.Component {
+class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

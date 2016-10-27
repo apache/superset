@@ -13,7 +13,7 @@ const propTypes = {
   dataPreviewQueryId: React.PropTypes.string,
 };
 
-class DataPreviewModal extends React.Component {
+class DataPreviewModal extends React.PureComponent {
   hide() {
     this.props.actions.hideDataPreview();
   }

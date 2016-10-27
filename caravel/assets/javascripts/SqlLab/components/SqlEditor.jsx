@@ -13,16 +13,11 @@ import {
   Tooltip,
 } from 'react-bootstrap';
 
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/github';
-import 'brace/ext/language_tools';
-
-import shortid from 'shortid';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 
 import SqlEditorLeftBar from './SqlEditorLeftBar';
+import AceEditorWrapper from './AceEditorWrapper';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -41,12 +36,11 @@ const defaultProps = {
 };
 
 
-class SqlEditor extends React.Component {
+class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       autorun: props.queryEditor.autorun,
-      sql: props.queryEditor.sql,
       ctas: '',
     };
   }
@@ -82,16 +76,12 @@ class SqlEditor extends React.Component {
   createTableAs() {
     this.startQuery(true, true);
   }
-  textChange(text) {
-    this.setState({ sql: text });
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, text);
+  setQueryEditorSql(sql) {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
-  ctasChange() {}
-  visualize() {}
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
-
   sqlEditorHeight() {
     // quick hack to make the white bg of the tab stretch full height.
     const tabNavHeight = 40;
@@ -110,7 +100,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, false)}
           disabled={!(this.props.queryEditor.dbId)}
-          key={shortid.generate()}
+          key="run-btn"
         >
           <i className="fa fa-table" /> Run Query
         </Button>
@@ -124,7 +114,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, true)}
           disabled={!(this.props.queryEditor.dbId)}
-          key={shortid.generate()}
+          key="run-async-btn"
         >
           <i className="fa fa-table" /> Run Async
         </Button>
@@ -217,18 +207,9 @@ class SqlEditor extends React.Component {
             />
           </Col>
           <Col md={9}>
-            <AceEditor
-              mode="sql"
-              name={this.props.queryEditor.id}
-              theme="github"
-              minLines={7}
-              maxLines={30}
-              onChange={this.textChange.bind(this)}
-              height="200px"
-              width="100%"
-              editorProps={{ $blockScrolling: true }}
-              enableBasicAutocompletion
-              value={this.props.queryEditor.sql}
+            <AceEditorWrapper
+              sql={this.props.queryEditor.sql}
+              onBlur={this.setQueryEditorSql.bind(this)}
             />
             {editorBottomBar}
             <br />

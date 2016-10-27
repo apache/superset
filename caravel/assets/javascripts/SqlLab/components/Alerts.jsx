@@ -1,7 +1,7 @@
 import React from 'react';
 import { Alert } from 'react-bootstrap';
 
-class Alerts extends React.Component {
+class Alerts extends React.PureComponent {
   removeAlert(alert) {
     this.props.actions.removeAlert(alert);
   }
