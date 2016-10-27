@@ -54,10 +54,10 @@ export const defaultOpts = {
   orderingOpts: [],
 };
 
-
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
-export const D3_TIME_FORMAT_OPTIONS = [
+// input choices & options
+const D3_TIME_FORMAT_OPTIONS = [
   ['.3s', '.3s | 12.3k'],
   ['.3%', '.3% | 1234543.210%'],
   ['.4r', '.4r | 12350'],
@@ -66,11 +66,11 @@ export const D3_TIME_FORMAT_OPTIONS = [
   ['$,.2f', '$,.2f | $12,345.43'],
 ];
 
-export const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
+const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
-export const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
+const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
-export const TIME_STAMP_OPTIONS = [
+const TIME_STAMP_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
@@ -78,10 +78,60 @@ export const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
-export const defaultControlPanelSection = {
-  title: null,
-  fields: ['metrics', 'groupby'],
-};
+const SQLA_FILTER_OPTIONS = ['in', 'not in', 'regex'];
+
+const DRUID_FILTER_OPTIONS = SQLA_FILTER_OPTIONS.push('regex');
+
+const DRUID_HAVING_OPTIONS = ['==', '!=', '>', '<', '>=', '<=']
+
+export const FIELD_CHOICES_OPTIONS = {
+  D3_TIME_FORMAT_OPTIONS,
+  ROW_LIMIT_OPTIONS,
+  SERIES_LIMITS,
+  TIME_STAMP_OPTIONS,
+  SQLA_FILTER_OPTIONS,
+  DRUID_FILTER_OPTIONS,
+  DRUID_HAVING_OPTIONS
+}
+
+export const commonControlPanelSections = {
+  druidTimeSeriesControlPanelSection: {
+    label: 'Time',
+    description: 'Time related form attributes',
+    fieldSetRows: [
+      ['granularity', 'druid_time_origin']
+      ['since', 'until']
+    ]
+  },
+  datasourceAndVizTypeControlPabelSection: {
+    label: 'Datasource & Chart Type',
+    fieldSetRows: [
+      ['datasource'],
+      ['viz_type'],
+    ],
+  },
+  sqlaTimeSeriesControlPanelSection: {
+    label: 'Time',
+    description: 'Time related form attributes',
+    fieldSetRows: [
+      ['granularity_sqla', 'time_grain_sqla']
+      ['since', 'until']
+    ]
+  },
+  sqlControlPanelSection: {
+    label: 'SQL',
+    fieldSetRows: [
+      ['where', 'having']
+    ],
+    description: 'This section exposes ways to include snippets of SQL in your query',
+  },
+  defaultControlPanelSection: {
+    label: null,
+    fieldSetRows: [
+      ['metrics', 'groupby']
+    ],
+  },
+}
 
 // todo: add fieldSetRows and fieldSetOverrides from viz.py for the rest of the viz types
 export const visTypes = {
@@ -542,6 +592,17 @@ export const fieldSets = {
                  'column in the table editor. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
+  },
+
+  time_grain: {
+    label: 'Time Grain',
+    choices: ['grains-choices'],
+    default:'Time Column',
+    description: 'The time granularity for the visualization. This ' +
+                 'applies a date transformation to alter ' +
+                 'your time column and defines a new time granularity. ' +
+                 'The options here are defined on a per database ' +
+                 'engine basis in the Caravel source code.',
   },
 
   resample_rule: {
