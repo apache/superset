@@ -201,6 +201,11 @@ function dashboardContainer(dashboardData) {
       this.slices.forEach(function (slice) {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
+          const sliceSeletor = $(`#${slice.data.token}-cell`);
+          sliceSeletor.addClass('slice-cell-highlight');
+          setTimeout(function () {
+            sliceSeletor.removeClass('slice-cell-highlight');
+          }, 1200);
         }
       });
     },

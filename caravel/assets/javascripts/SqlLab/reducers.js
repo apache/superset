@@ -4,7 +4,7 @@ import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
   from '../reduxUtils.js';
 
-const defaultQueryEditor = {
+export const defaultQueryEditor = {
   id: shortid.generate(),
   title: 'Untitled Query',
   sql: 'SELECT *\nFROM\nWHERE',
@@ -23,7 +23,6 @@ export const initialState = {
   queryEditors: [defaultQueryEditor],
   tabHistory: [defaultQueryEditor.id],
   tables: [],
-  workspaceQueries: [],
   queriesLastUpdate: 0,
 };
 
@@ -56,12 +55,12 @@ export const sqlLabReducer = function (state, action) {
       const queries = {};
       Object.keys(state.queries).forEach((k) => {
         const query = state.queries[k];
-        if (qeIds.includes(query.sqlEditorId)) {
+        if (qeIds.indexOf(query.sqlEditorId) > -1) {
           queries[k] = query;
         }
       });
       let tabHistory = state.tabHistory.slice();
-      tabHistory = tabHistory.filter((id) => qeIds.includes(id));
+      tabHistory = tabHistory.filter((id) => qeIds.indexOf(id) > -1);
       newState = Object.assign({}, newState, { tabHistory, queries });
       return newState;
     },
@@ -153,7 +152,7 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.SET_ACTIVE_QUERY_EDITOR]() {
       const qeIds = state.queryEditors.map((qe) => qe.id);
-      if (qeIds.includes(action.queryEditor.id)) {
+      if (qeIds.indexOf(action.queryEditor.id) > -1) {
         const tabHistory = state.tabHistory.slice();
         tabHistory.push(action.queryEditor.id);
         return Object.assign({}, state, { tabHistory });

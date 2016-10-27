@@ -1,7 +1,4 @@
 import React from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
 
 import { ButtonGroup, Well } from 'react-bootstrap';
 import shortid from 'shortid';
@@ -12,7 +9,6 @@ import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
   table: React.PropTypes.object,
-  queryEditor: React.PropTypes.object,
   actions: React.PropTypes.object,
 };
 
@@ -21,7 +17,7 @@ const defaultProps = {
   actions: {},
 };
 
-class TableElement extends React.Component {
+class TableElement extends React.PureComponent {
 
   popSelectStar() {
     const qe = {
@@ -49,7 +45,7 @@ class TableElement extends React.Component {
   }
   dataPreviewModal() {
     const query = {
-      dbId: this.props.queryEditor.dbId,
+      dbId: this.props.table.dbId,
       sql: this.props.table.selectStar,
       tableName: this.props.table.name,
       sqlEditorId: null,
@@ -198,7 +194,7 @@ class TableElement extends React.Component {
               <Link
                 className="fa fa-trash pull-left m-l-2"
                 onClick={this.removeTable.bind(this)}
-                tooltip="Remove from workspace"
+                tooltip="Remove from panel"
                 href="#"
               />
             </ButtonGroup>
@@ -214,10 +210,4 @@ class TableElement extends React.Component {
 TableElement.propTypes = propTypes;
 TableElement.defaultProps = defaultProps;
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(null, mapDispatchToProps)(TableElement);
-export { TableElement };
+export default TableElement;

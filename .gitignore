@@ -1,4 +1,5 @@
 *.pyc
+caravel/assets/coverage/*
 changelog.sh
 .DS_Store
 .coverage

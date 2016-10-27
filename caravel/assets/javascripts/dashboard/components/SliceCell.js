@@ -8,7 +8,7 @@ const propTypes = {
 
 function SliceCell({ expandedSlices, removeSlice, slice }) {
   return (
-    <div>
+    <div className="slice-cell" id={`${slice.token}-cell`}>
       <div className="chart-header">
         <div className="row">
           <div className="col-md-12 header">

@@ -13,27 +13,34 @@ import {
   Tooltip,
 } from 'react-bootstrap';
 
-import AceEditor from 'react-ace';
-import 'brace/mode/sql';
-import 'brace/theme/github';
-import 'brace/ext/language_tools';
-
-import { bindActionCreators } from 'redux';
-import { connect } from 'react-redux';
-import * as Actions from '../actions';
-
-import shortid from 'shortid';
 import SouthPane from './SouthPane';
 import Timer from './Timer';
 
 import SqlEditorLeftBar from './SqlEditorLeftBar';
+import AceEditorWrapper from './AceEditorWrapper';
 
-class SqlEditor extends React.Component {
+const propTypes = {
+  actions: React.PropTypes.object.isRequired,
+  database: React.PropTypes.object,
+  latestQuery: React.PropTypes.object,
+  networkOn: React.PropTypes.bool,
+  tables: React.PropTypes.array.isRequired,
+  queries: React.PropTypes.array.isRequired,
+  queryEditor: React.PropTypes.object.isRequired,
+};
+
+const defaultProps = {
+  networkOn: true,
+  database: null,
+  latestQuery: null,
+};
+
+
+class SqlEditor extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
       autorun: props.queryEditor.autorun,
-      sql: props.queryEditor.sql,
       ctas: '',
     };
   }
@@ -56,6 +63,7 @@ class SqlEditor extends React.Component {
       sql: this.props.queryEditor.sql,
       sqlEditorId: this.props.queryEditor.id,
       tab: this.props.queryEditor.title,
+      schema: this.props.queryEditor.schema,
       tempTableName: this.state.ctas,
       runAsync,
       ctas,
@@ -68,25 +76,12 @@ class SqlEditor extends React.Component {
   createTableAs() {
     this.startQuery(true, true);
   }
-  textChange(text) {
-    this.setState({ sql: text });
-    this.props.actions.queryEditorSetSql(this.props.queryEditor, text);
+  setQueryEditorSql(sql) {
+    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
-  addWorkspaceQuery() {
-    this.props.actions.addWorkspaceQuery({
-      id: shortid.generate(),
-      sql: this.state.sql,
-      dbId: this.props.queryEditor.dbId,
-      schema: this.props.queryEditor.schema,
-      title: this.props.queryEditor.title,
-    });
-  }
-  ctasChange() {}
-  visualize() {}
   ctasChanged(event) {
     this.setState({ ctas: event.target.value });
   }
-
   sqlEditorHeight() {
     // quick hack to make the white bg of the tab stretch full height.
     const tabNavHeight = 40;
@@ -105,7 +100,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, false)}
           disabled={!(this.props.queryEditor.dbId)}
-          key={shortid.generate()}
+          key="run-btn"
         >
           <i className="fa fa-table" /> Run Query
         </Button>
@@ -119,7 +114,7 @@ class SqlEditor extends React.Component {
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, true)}
           disabled={!(this.props.queryEditor.dbId)}
-          key={shortid.generate()}
+          key="run-async-btn"
         >
           <i className="fa fa-table" /> Run Async
         </Button>
@@ -130,7 +125,9 @@ class SqlEditor extends React.Component {
         {runButtons}
       </ButtonGroup>
     );
-    if (this.props.latestQuery && ['running', 'pending'].includes(this.props.latestQuery.state)) {
+    if (
+        this.props.latestQuery &&
+        ['running', 'pending'].indexOf(this.props.latestQuery.state) > -1) {
       runButtons = (
         <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
           <Button
@@ -202,50 +199,31 @@ class SqlEditor extends React.Component {
       <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
         <Row>
           <Col md={3}>
-            <SqlEditorLeftBar queryEditor={this.props.queryEditor} />
+            <SqlEditorLeftBar
+              queryEditor={this.props.queryEditor}
+              tables={this.props.tables}
+              networkOn={this.props.networkOn}
+              actions={this.props.actions}
+            />
           </Col>
           <Col md={9}>
-            <AceEditor
-              mode="sql"
-              name={this.props.queryEditor.id}
-              theme="github"
-              minLines={7}
-              maxLines={30}
-              onChange={this.textChange.bind(this)}
-              height="200px"
-              width="100%"
-              editorProps={{ $blockScrolling: true }}
-              enableBasicAutocompletion
-              value={this.props.queryEditor.sql}
+            <AceEditorWrapper
+              sql={this.props.queryEditor.sql}
+              onBlur={this.setQueryEditorSql.bind(this)}
             />
             {editorBottomBar}
             <br />
-            <SouthPane latestQuery={this.props.latestQuery} sqlEditor={this} />
+            <SouthPane
+              queries={this.props.queries}
+              actions={this.props.actions}
+            />
           </Col>
         </Row>
       </div>
     );
   }
 }
+SqlEditor.defaultProps = defaultProps;
+SqlEditor.propTypes = propTypes;
 
-SqlEditor.propTypes = {
-  actions: React.PropTypes.object,
-  database: React.PropTypes.object,
-  latestQuery: React.PropTypes.object,
-  queryEditor: React.PropTypes.object,
-};
-
-SqlEditor.defaultProps = {
-};
-
-function mapStateToProps() {
-  return {};
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(SqlEditor);
+export default SqlEditor;

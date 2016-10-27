@@ -7,7 +7,11 @@ import QueryTable from './QueryTable';
 import DatabaseSelect from './DatabaseSelect';
 import { STATUS_OPTIONS } from '../common';
 
-class QuerySearch extends React.Component {
+const propTypes = {
+  actions: React.PropTypes.object.isRequired,
+};
+
+class QuerySearch extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -132,11 +136,11 @@ class QuerySearch extends React.Component {
           onUserClicked={this.onUserClicked.bind(this)}
           onDbClicked={this.onDbClicked.bind(this)}
           queries={this.state.queriesArray}
+          actions={this.props.actions}
         />
       </div>
     );
   }
 }
-
-
+QuerySearch.propTypes = propTypes;
 export default QuerySearch;

@@ -1,9 +1,5 @@
 import React from 'react';
 
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
-
 import moment from 'moment';
 import { Table } from 'reactable';
 import { Label, ProgressBar } from 'react-bootstrap';
@@ -31,7 +27,7 @@ const defaultProps = {
 };
 
 
-class QueryTable extends React.Component {
+class QueryTable extends React.PureComponent {
   constructor(props) {
     super(props);
     const uri = window.location.toString();
@@ -67,6 +63,9 @@ class QueryTable extends React.Component {
   clearQueryResults(query) {
     this.props.actions.clearQueryResults(query);
   }
+  removeQuery(query) {
+    this.props.actions.removeQuery(query);
+  }
 
   render() {
     const data = this.props.queries.map((query) => {
@@ -91,9 +90,8 @@ class QueryTable extends React.Component {
         </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
-      const source = (q.ctas) ? q.executedSql : q.sql;
       q.sql = (
-        <HighlightedSql sql={source} shrink maxWidth={100} />
+        <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
       );
       if (q.resultsKey) {
         q.output = (
@@ -111,7 +109,7 @@ class QueryTable extends React.Component {
             modalTitle={'Data preview'}
             beforeOpen={this.openAsyncResults.bind(this, query)}
             onExit={this.clearQueryResults.bind(this, query)}
-            modalBody={<ResultSet showSql query={query} />}
+            modalBody={<ResultSet showSql query={query} actions={this.props.actions} />}
           />
         );
       } else {
@@ -163,14 +161,14 @@ class QueryTable extends React.Component {
           <Link
             className="fa fa-trash m-r-3"
             tooltip="Remove query from log"
-            onClick={this.props.actions.removeQuery.bind(this, query)}
+            onClick={this.removeQuery.bind(this, query)}
           />
         </div>
       );
       q.querylink = (
         <div style={{ width: '100px' }}>
           <a
-            href={this.getQueryLink(q.dbId, source)}
+            href={this.getQueryLink(q.dbId, q.sql)}
             className="btn btn-primary btn-xs"
           >
             <i className="fa fa-external-link" />Open in SQL Editor
@@ -198,13 +196,4 @@ class QueryTable extends React.Component {
 QueryTable.propTypes = propTypes;
 QueryTable.defaultProps = defaultProps;
 
-function mapStateToProps() {
-  return {};
-}
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export { QueryTable };
-export default connect(mapStateToProps, mapDispatchToProps)(QueryTable);
+export default QueryTable;
