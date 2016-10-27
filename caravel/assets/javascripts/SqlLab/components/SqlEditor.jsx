@@ -76,7 +76,7 @@ class SqlEditor extends React.PureComponent {
   createTableAs() {
     this.startQuery(true, true);
   }
-  sqlToStore(sql) {
+  setQueryEditorSql(sql) {
     this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);
   }
   ctasChanged(event) {
@@ -209,7 +209,7 @@ class SqlEditor extends React.PureComponent {
           <Col md={9}>
             <AceEditorWrapper
               sql={this.props.queryEditor.sql}
-              onBlur={this.sqlToStore.bind(this)}
+              onBlur={this.setQueryEditorSql.bind(this)}
             />
             {editorBottomBar}
             <br />

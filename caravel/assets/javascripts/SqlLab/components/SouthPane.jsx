@@ -1,7 +1,7 @@
 import { Alert, Tab, Tabs } from 'react-bootstrap';
 import QueryHistory from './QueryHistory';
 import ResultSet from './ResultSet';
-import { areArrayDifferent } from '../../reduxUtils';
+import { areArraysShallowEqual } from '../../reduxUtils';
 import React from 'react';
 
 import shortid from 'shortid';
@@ -13,7 +13,7 @@ const propTypes = {
 
 class SouthPane extends React.PureComponent {
   shouldComponentUpdate(nextProps) {
-    return areArrayDifferent(this.props.queries, nextProps.queries);
+    return !areArraysShallowEqual(this.props.queries, nextProps.queries);
   }
   render() {
     let latestQuery;
