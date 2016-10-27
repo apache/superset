@@ -18,9 +18,18 @@ from caravel import app
 from caravel.utils import CaravelTemplateException
 
 config = app.config
+BASE_CONTEXT = {
+    'datetime': datetime,
+    'random': random,
+    'relativedelta': relativedelta,
+    'time': time,
+    'timedelta': timedelta,
+    'uuid': uuid,
+}
+BASE_CONTEXT.update(config.get('JINJA_CONTEXT_ADDONS', {}))
 
 
-class BaseContext(object):
+class BaseTemplateProcessor(object):
 
     """Base class for database-specific jinja context
 
@@ -37,7 +46,7 @@ class BaseContext(object):
     """
     engine = None
 
-    def __init__(self, database, query, table):
+    def __init__(self, database=None, query=None, table=None):
         self.database = database
         self.query = query
         self.schema = None
@@ -45,9 +54,22 @@ class BaseContext(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
+        self.context = {}
+        self.context.update(BASE_CONTEXT)
+        self.context[self.engine] = self
+
+    def process_template(self, sql):
+        """Processes a sql template
+
+        >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
+        >>> process_template(sql)
+        "SELECT '2017-01-01T00:00:00'"
+        """
+        template = jinja2.Template(sql)
+        return template.render(self.context)
 
 
-class PrestoContext(BaseContext):
+class PrestoTemplateProcessor(BaseTemplateProcessor):
     """Presto Jinja context
 
     The methods described here are namespaced under ``presto`` in the
@@ -170,43 +192,14 @@ class PrestoContext(BaseContext):
         return df.to_dict()[field_to_return][0]
 
 
-db_contexes = {}
+template_processors = {}
 keys = tuple(globals().keys())
 for k in keys:
     o = globals()[k]
-    if o and inspect.isclass(o) and issubclass(o, BaseContext):
-        db_contexes[o.engine] = o
+    if o and inspect.isclass(o) and issubclass(o, BaseTemplateProcessor):
+        template_processors[o.engine] = o
 
 
-def get_context(engine_name=None):
-    context = {
-        'datetime': datetime,
-        'random': random,
-        'relativedelta': relativedelta,
-        'time': time,
-        'timedelta': timedelta,
-        'uuid': uuid,
-    }
-    db_context = db_contexes.get(engine_name)
-    if engine_name and db_context:
-        context[engine_name] = db_context
-    return context
-
-
-def process_template(sql, database=None, query=None, table=None):
-    """Processes a sql template
-
-    >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
-    >>> process_template(sql)
-    "SELECT '2017-01-01T00:00:00'"
-    """
-
-    context = get_context(database.backend if database else None)
-    template = jinja2.Template(sql)
-    backend = database.backend if database else None
-
-    # instantiating only the context for the active database
-    if context and backend in context:
-        context[backend] = context[backend](database, query, table)
-    context.update(config.get('JINJA_CONTEXT_ADDONS', {}))
-    return template.render(context)
+def get_template_processor(database, table=None, query=None):
+    TP = template_processors.get(database.backend, BaseTemplateProcessor)
+    return TP(database=database, table=table, query=query)
