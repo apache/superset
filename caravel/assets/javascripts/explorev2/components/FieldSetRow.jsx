@@ -1,6 +1,6 @@
 import React, { PropTypes } from 'react';
 import FieldSet from './FieldSet';
-import { fieldSets } from '../controlPanelMappings';
+import { fieldSets } from '../stores/store';
 
 const propTypes = {
   fieldSets: PropTypes.array.isRequired,

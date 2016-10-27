@@ -3,8 +3,7 @@ import { Panel } from 'react-bootstrap';
 import FieldSet from './FieldSet';
 
 const propTypes = {
-  title: PropTypes.string,
-  fieldSetNames: PropTypes.array,
+  label: PropTypes.string,
   description: PropTypes.string,
 }
 
@@ -14,11 +13,11 @@ export default class ControlPanelSection extends React.Component {
   }
 
   render() {
+    {/* add tooltip if present to header, this.props.description */}
+    const header = <div className="panel-title">{this.props.label}</div>;
+
     return (
-      <Panel
-          style={{ height: this.props.height }}
-          header={<div className="panel-title">{this.props.label}</div>}
-        >
+      <Panel header={header}>
         {this.props.children}
       </Panel>
     );
