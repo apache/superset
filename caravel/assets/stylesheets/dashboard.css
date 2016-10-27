@@ -87,7 +87,7 @@ div.widget .chart-controls {
   transition: box-shadow 1s ease-in;
 }
 
-.slice-highlight {
+.slice-cell-highlight {
   box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.2);
 }
 
