@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import { Panel } from 'react-bootstrap';
+import { Panel, Tooltip, OverlayTrigger } from 'react-bootstrap';
 import FieldSet from './FieldSet';
 
 const propTypes = {
@@ -8,16 +8,29 @@ const propTypes = {
 };
 
 export default class ControlPanelSection extends React.Component {
-  constructor(props) {
-    super(props);
+  header() {
+    const { label, tooltip } = this.props;
+    console.log('this.props', this.props)
+    if (label) {
+      return (
+        <div className="panel-title">
+          {label} &nbsp;
+          {tooltip &&
+            <OverlayTrigger
+              placement="right"
+              overlay={<Tooltip id={`${label}-tooltip`}>{tooltip}</Tooltip>}
+            >
+              <i className="fa fa-question-circle-o" />
+            </OverlayTrigger>
+          }
+        </div>
+      );
+    }
   }
 
   render() {
-    {/* add tooltip if present to header, this.props.description */}
-    const header = <div className="panel-title">{this.props.label}</div>;
-
     return (
-      <Panel header={header}>
+      <Panel header={this.header()}>
         {this.props.children}
       </Panel>
     );
