@@ -37,14 +37,14 @@ class BaseContext(object):
     """
     engine = None
 
-    def __init__(self, database, query):
+    def __init__(self, database, query, table):
         self.database = database
         self.query = query
         self.schema = None
         if query and query.schema:
             self.schema = query.schema
-        elif database:
-            self.schema = database.schema
+        elif table:
+            self.schema = table.schema
 
 
 class PrestoContext(BaseContext):
@@ -193,7 +193,7 @@ def get_context(engine_name=None):
     return context
 
 
-def process_template(sql, database=None, query=None):
+def process_template(sql, database=None, query=None, table=None):
     """Processes a sql template
 
     >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
@@ -207,6 +207,6 @@ def process_template(sql, database=None, query=None):
 
     # instantiating only the context for the active database
     if context and backend in context:
-        context[backend] = context[backend](database, query)
+        context[backend] = context[backend](database, query, table)
     context.update(config.get('JINJA_CONTEXT_ADDONS', {}))
     return template.render(context)

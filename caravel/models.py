@@ -1088,10 +1088,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where = wrap_clause_in_parens(process_template(extras['where'], self.database))
+            where = wrap_clause_in_parens(
+                process_template(extras['where'], self.database))
             where_clause_and += [where]
         if extras and 'having' in extras:
-            having = wrap_clause_in_parens(process_template(extras['having'], self.database))
+            having = wrap_clause_in_parens(
+                process_template(extras['having'], self.database))
             having_clause_and += [having]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
