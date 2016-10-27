@@ -2367,4 +2367,13 @@ def panoramix(url):  # noqa
 @app.route('/<regex("dashed\/.*"):url>')
 def dashed(url):  # noqa
     return redirect(request.full_path.replace('dashed', 'caravel'))
+
+
 # ---------------------------------------------------------------------
+# Force https when using this decorator
+@app.before_request
+def force_https():
+    if not config.get("DEBUG") and request.url.startswith('http://'):
+        url = request.url.replace('http://', 'https://', 1)
+        return redirect(url, code=301)
+
