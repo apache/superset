@@ -10,7 +10,6 @@ const propTypes = {
 export default class ControlPanelSection extends React.Component {
   header() {
     const { label, tooltip } = this.props;
-    console.log('this.props', this.props)
     if (label) {
       return (
         <div className="panel-title">
