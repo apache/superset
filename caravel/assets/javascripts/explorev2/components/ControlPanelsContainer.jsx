@@ -1,7 +1,9 @@
 import React from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
-import { DefaultControls, VIZ_CONTROL_MAPPING } from '../constants';
+import { visTypes } from '../controlPanelMappings';
+import ControlPanelSection from './ControlPanelSection';
+import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
   vizType: React.PropTypes.string,
@@ -11,13 +13,24 @@ const defaultProps = {
   vizType: null,
 };
 
-function ControlPanelsContainer(props) {
+function ControlPanelsContainer({ vizType }) {
+  const viz = visTypes[vizType];
   return (
     <Panel>
       <div className="scrollbar-container">
         <div className="scrollbar-content">
-          {DefaultControls}
-          {VIZ_CONTROL_MAPPING[props.vizType]}
+          {viz.controlPanelSections.map((section) => {
+            return (
+              <ControlPanelSection
+                label={section.label}
+                tooltip={section.description}
+              >
+                {section.fieldSetRows.map((fieldSets) => {
+                  return <FieldSetRow fieldSets={fieldSets} />;
+                })}
+              </ControlPanelSection>
+            );
+          })}
         </div>
       </div>
     </Panel>
