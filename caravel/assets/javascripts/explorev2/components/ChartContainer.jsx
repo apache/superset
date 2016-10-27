@@ -9,7 +9,7 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   vizType: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
-  sliceContainerId: PropTypes.string.isRequired,
+  containerId: PropTypes.string.isRequired,
   jsonEndpoint: PropTypes.string.isRequired,
   columnFormats: PropTypes.object,
 };
@@ -18,7 +18,7 @@ class ChartContainer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      selector: `#${this.props.sliceContainerId}`,
+      selector: `#${this.props.containerId}`,
     };
   }
 
@@ -61,8 +61,28 @@ class ChartContainer extends React.Component {
         // finished rendering callback
       },
 
-      error: () => {
-        // rendering error callback
+      error(msg, xhr) {
+        let errorMsg = msg;
+        let errHtml = '';
+        try {
+          const o = JSON.parse(msg);
+          if (o.error) {
+            errorMsg = o.error;
+          }
+        } catch (e) {
+          // pass
+        }
+        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
+        if (xhr) {
+          const extendedMsg = this.getErrorMsg(xhr);
+          if (extendedMsg) {
+            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+          }
+        }
+        $(this.state.selector).html(errHtml);
+        this.render();
+        $('span.query').removeClass('disabled');
+        $('.query-and-save button').removeAttr('disabled');
       },
 
       d3format: (col, number) => {
@@ -88,7 +108,7 @@ class ChartContainer extends React.Component {
           }
         >
           <div
-            id={this.props.sliceContainerId}
+            id={this.props.containerId}
             ref={(ref) => { this.chartContainerRef = ref; }}
             className={this.props.vizType}
           />
@@ -104,7 +124,7 @@ function mapStateToProps(state) {
   return {
     sliceName: state.sliceName,
     vizType: state.viz.formData.vizType,
-    sliceContainerId: `slice-container-${state.viz.formData.sliceId}`,
+    containerId: `slice-container-${state.viz.formData.sliceId}`,
     jsonEndpoint: state.viz.jsonEndPoint,
     columnFormats: state.viz.columnFormats,
   };
