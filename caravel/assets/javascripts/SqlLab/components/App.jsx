@@ -5,7 +5,6 @@ import TabbedSqlEditors from './TabbedSqlEditors';
 import QueryAutoRefresh from './QueryAutoRefresh';
 import QuerySearch from './QuerySearch';
 import Alerts from './Alerts';
-import DataPreviewModal from './DataPreviewModal';
 
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
@@ -49,7 +48,6 @@ class App extends React.PureComponent {
     return (
       <div className="App SqlLab">
         <Alerts alerts={this.props.alerts} actions={this.props.actions} />
-        <DataPreviewModal />
         <div className="container-fluid">
           {content}
         </div>

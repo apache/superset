@@ -20,6 +20,7 @@ export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
+export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
@@ -32,6 +33,7 @@ export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const HIDE_DATA_PREVIEW = 'HIDE_DATA_PREVIEW';
+export const CLOSE_DATA_PREVIEW = 'CLOSE_DATA_PREVIEW';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -43,6 +45,7 @@ export function startQuery(query) {
     progress: 0,
     startDttm: now(),
     state: (query.runAsync) ? 'pending' : 'running',
+    cached: false,
   });
   return { type: START_QUERY, query };
 }
@@ -65,6 +68,10 @@ export function clearQueryResults(query) {
 
 export function hideDataPreview() {
   return { type: HIDE_DATA_PREVIEW };
+}
+
+export function closeDataPreview(dataPreviewQueryId) {
+  return { type: CLOSE_DATA_PREVIEW, dataPreviewQueryId };
 }
 
 export function requestQueryResults(query) {
@@ -164,6 +171,10 @@ export function removeAlert(alert) {
 
 export function setActiveQueryEditor(queryEditor) {
   return { type: SET_ACTIVE_QUERY_EDITOR, queryEditor };
+}
+
+export function setActiveSouthPaneTab(tabId) {
+  return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
 }
 
 export function removeQueryEditor(queryEditor) {

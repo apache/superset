@@ -70,6 +70,7 @@ class SqlEditor extends React.PureComponent {
       ctas,
     };
     this.props.actions.runQuery(query);
+    this.props.actions.setActiveSouthPaneTab('Results');
   }
   stopQuery() {
     this.props.actions.stopQuery(this.props.latestQuery);
@@ -224,7 +225,7 @@ class SqlEditor extends React.PureComponent {
             {editorBottomBar}
             <br />
             <SouthPane
-              queries={this.props.queries}
+              editorQueries={this.props.queries}
               actions={this.props.actions}
             />
           </Col>
