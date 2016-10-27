@@ -1346,7 +1346,7 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
-            return self.render_template("caravel/standalone.html", viz=viz_obj)
+            return self.render_template("caravel/standalone.html", viz=viz_obj, standalone_mode=True)
         else:
             return self.render_template(
                 "caravel/explore.html",
@@ -1796,12 +1796,14 @@ class Caravel(BaseCaravelView):
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
+        standalone = request.args.get("standalone") == "true"
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             user_id=g.user.get_id(),
             templates=templates,
             dash_save_perm=dash_save_perm,
-            dash_edit_perm=dash_edit_perm)
+            dash_edit_perm=dash_edit_perm,
+            standalone_mode=standalone)
 
     @has_access
     @expose("/sync_druid/", methods=['POST'])

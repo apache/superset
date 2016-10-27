@@ -239,6 +239,12 @@ SQLLAB_TIMEOUT = 30
 # in SQL Lab by using the "Run Async" button/feature
 RESULTS_BACKEND = None
 
+# A dictionary of items that gets merged into the Jinja context for
+# SQL Lab. The existing context gets updated with this dictionary,
+# meaning values for existing keys get overwritten by the content of this
+# dictionary.
+JINJA_CONTEXT_ADDONS = {}
+
 try:
     from caravel_config import *  # noqa
 except ImportError:

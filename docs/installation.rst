@@ -331,6 +331,12 @@ It's also preferable to setup an async result backend as a key value store
 that can hold the long-running query results for a period of time. More
 details to come as to how to set this up here soon.
 
+SQL Lab supports templating in queries, and it's possible to override
+the default Jinja context in your environment by defining the
+``JINJA_CONTEXT_ADDONS`` in your caravel configuration. Objects referenced
+in this dictionary are made available for users to use in their SQL.
+
+
 Making your own build
 ---------------------
 

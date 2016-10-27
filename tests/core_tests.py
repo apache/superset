@@ -15,7 +15,7 @@ import unittest
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
-from caravel import db, models, utils, appbuilder, sm
+from caravel import db, models, utils, appbuilder, sm, jinja_context
 from caravel.views import DatabaseView
 
 from .base_tests import CaravelTestCase
@@ -437,6 +437,17 @@ class CoreTests(CaravelTestCase):
         self.get_json_resp(
             '/caravel/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/'.format(**locals()))
+
+    def test_process_template(self):
+        sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
+        rendered = jinja_context.process_template(sql)
+        self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
+
+    def test_templated_sql_json(self):
+        sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
+        data = self.run_sql(sql, "admin", "fdaklj3ws")
+        self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
+
 
 if __name__ == '__main__':
     unittest.main()

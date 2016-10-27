@@ -9,6 +9,7 @@ import zlib
 from caravel import (
     app, db, models, utils, dataframe, results_backend)
 from caravel.db_engine_specs import LimitMethod
+from caravel.jinja_context import process_template
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -87,6 +88,12 @@ def get_sql_results(query_id, return_results=True, store_results=False):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     engine = database.get_sqla_engine(schema=query.schema)
+    try:
+        executed_sql = process_template(executed_sql, database, query)
+    except Exception as e:
+        logging.exception(e)
+        msg = "Template rendering failed: " + utils.error_msg_from_exception(e)
+        handle_error(msg)
     try:
         query.executed_sql = executed_sql
         logging.info("Running query: \n{}".format(executed_sql))

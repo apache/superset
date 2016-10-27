@@ -50,6 +50,10 @@ class NoDataException(CaravelException):
     pass
 
 
+class CaravelTemplateException(CaravelException):
+    pass
+
+
 def can_access(security_manager, permission_name, view_name):
     """Protecting from has_access failing from missing perms/view"""
     try:

@@ -32,3 +32,4 @@ exclude_paths:
 - "caravel/assets/node_modules/"
 - "caravel/assets/javascripts/dist/"
 - "caravel/migrations"
+- "docs/"

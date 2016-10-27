@@ -81,6 +81,16 @@ div.widget .chart-controls {
 .slice-grid div.separator.widget h1,h2,h3,h4 {
   margin-top: 0px;
 }
+
+.slice-cell {
+  box-shadow: 0px 0px 20px 5px rgba(0,0,0,0);
+  transition: box-shadow 1s ease-in;
+}
+
+.slice-cell-highlight {
+  box-shadow: 0px 0px 20px 5px rgba(0,0,0,0.2);
+}
+
 .dashboard .separator.widget .slice_container {
   padding: 0px;
   overflow: visible;

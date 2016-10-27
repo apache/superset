@@ -254,3 +254,7 @@ div.tablePopover:hover {
 a.Link {
     cursor: pointer;
 }
+.QueryTable .well {
+    padding: 3px 5px;
+    margin: 3px 5px;
+}
