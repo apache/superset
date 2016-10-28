@@ -159,7 +159,17 @@ function nvd3Vis(slice) {
 
             stacked = fd.bar_stacked;
             chart.stacked(stacked);
-
+            if (fd.order_bars) {
+              payload.data.forEach((d) => {
+                d.values.sort(
+                  function compare(a, b) {
+                    if (a.x < b.x) return -1;
+                    if (a.x > b.x) return 1;
+                    return 0;
+                  }
+                );
+              });
+            }
             if (fd.show_bar_value) {
               setTimeout(function () {
                 addTotalBarValues(chart, payload.data, stacked);

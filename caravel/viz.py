@@ -1320,7 +1320,7 @@ class DistributionBarViz(DistributionPieViz):
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
-            ('show_controls', None),
+            ('show_controls', 'order_bars'),
         )
     },)
     form_overrides = {
