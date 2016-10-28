@@ -18,6 +18,12 @@ const defaultProps = {
 };
 
 class TableElement extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state = {
+      sortColumns: false,
+    };
+  }
 
   popSelectStar() {
     const qe = {
@@ -54,6 +60,9 @@ class TableElement extends React.PureComponent {
       ctas: false,
     };
     this.props.actions.runQuery(query);
+  }
+  toggleSortColumns() {
+    this.setState({ sortColumns: !this.state.sortColumns });
   }
 
   render() {
@@ -102,18 +111,22 @@ class TableElement extends React.PureComponent {
           <small className="m-l-5"><i className="fa fa-minus" /></small>
         </a>
       );
+      const cols = table.columns.slice();
+      if (this.state.sortColumns) {
+        cols.sort((a, b) => a.name.toUpperCase() > b.name.toUpperCase());
+      }
       metadata = (
         <div>
           {header}
           <div className="table-columns">
-            {table.columns.map((col) => {
+            {cols.map((col) => {
               let name = col.name;
               if (col.indexed) {
                 name = <strong>{col.name}</strong>;
               }
               return (
                 <div className="clearfix table-column" key={shortid.generate()}>
-                  <div className="pull-left m-l-10">
+                  <div className="pull-left m-l-10 col-name">
                     {name}
                   </div>
                   <div className="pull-right text-muted">
@@ -166,6 +179,17 @@ class TableElement extends React.PureComponent {
           <div className="pull-right">
             <ButtonGroup className="ws-el-controls pull-right">
               {keyLink}
+              <Link
+                className={
+                  `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+                  'pull-left sort-cols m-l-2'}
+                onClick={this.toggleSortColumns.bind(this)}
+                tooltip={
+                  !this.state.sortColumns ?
+                  'Sort columns alphabetically' :
+                  'Original table column order'}
+                href="#"
+              />
               <Link
                 className="fa fa-search-plus pull-left m-l-2"
                 onClick={this.dataPreviewModal.bind(this)}
