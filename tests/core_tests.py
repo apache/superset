@@ -43,7 +43,7 @@ class CoreTests(CaravelTestCase):
         db.session.query(models.DatasourceAccessRequest).delete()
         self.login('admin')
         self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
-        self.run_sql("This query should fail", 'admin', client_id='client_id_3')
+        self.run_sql("SELECT * FROM NO_TABLE", 'admin', client_id='client_id_3')
         self.logout()
 
         self.login('gamma')
@@ -367,8 +367,8 @@ class CoreTests(CaravelTestCase):
       resp = self.get_resp('/caravel/search_queries?database_id=1')
       data = json.loads(resp)
       self.assertEquals(3, len(data))
-      for k, v in data.items():
-        assert data[k]['dbId'] == 1
+      db_ids = [data[k]['dbId'] for k in data]
+      self.assertEquals([1, 1, 1], db_ids)
 
       resp = self.get_resp('/caravel/search_queries?database_id=-1')
       data = json.loads(resp)
@@ -382,15 +382,14 @@ class CoreTests(CaravelTestCase):
       resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
       data = json.loads(resp)
       self.assertEquals(2, len(data))
-      for k, v in data.items():
-          self.assertEquals(v['userId'], user.id)
+      user_ids = [data[k]['userId'] for k in data]
+      self.assertEquals([user.id, user.id], user_ids)
 
       user = appbuilder.sm.find_user('gamma')
       resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
       data = json.loads(resp)
       self.assertEquals(1, len(data))
-      for (k, v) in data.items():
-          self.assertEquals(v['userId'], user.id)
+      self.assertEquals(list(data.values())[0]['userId'] , user.id)
       self.logout()
 
     def test_search_query_on_status(self):
@@ -399,14 +398,13 @@ class CoreTests(CaravelTestCase):
       resp = self.get_resp('/caravel/search_queries?status=success')
       data = json.loads(resp)
       self.assertEquals(2, len(data))
-      for k, v in data.items():
-          self.assertEquals(v['state'], "success")
+      states = [data[k]['state'] for k in data]
+      self.assertEquals(['success', 'success'], states)
 
       resp = self.get_resp('/caravel/search_queries?status=failed')
       data = json.loads(resp)
       self.assertEquals(1, len(data))
-      for k, v in data.items():
-          self.assertEquals(v['state'], "failed")
+      self.assertEquals(list(data.values())[0]['state'], 'failed')
       self.logout()
 
     def test_search_query_on_text(self):
@@ -414,8 +412,7 @@ class CoreTests(CaravelTestCase):
       resp = self.get_resp('/caravel/search_queries?search_text=permission')
       data = json.loads(resp)
       self.assertEquals(1, len(data))
-      for k, v in data.items():
-          assert 'permission' in v['sql']
+      self.assertIn('permission', list(data.values())[0]['sql'])
       self.logout()
 
     def test_search_query_on_time(self):
@@ -431,9 +428,9 @@ class CoreTests(CaravelTestCase):
       resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
       data = json.loads(resp)
       self.assertEquals(2, len(data))
-      for k, v in data.items():
-          assert v['startDttm'] > int(first_query_time) \
-            and v['startDttm'] < int(second_query_time)
+      for _, v in data.items():
+        self.assertLess(int(first_query_time), v['startDttm'])
+        self.assertLess(v['startDttm'], int(second_query_time))
       self.logout()
 
     def test_public_user_dashboard_access(self):
