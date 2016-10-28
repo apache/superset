@@ -1,6 +1,7 @@
 import React, { PropTypes } from 'react';
-import { Panel, Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { Panel } from 'react-bootstrap';
 import FieldSet from './FieldSet';
+import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   label: PropTypes.string,
@@ -14,14 +15,7 @@ export default class ControlPanelSection extends React.Component {
       return (
         <div className="panel-title">
           {label} &nbsp;
-          {tooltip &&
-            <OverlayTrigger
-              placement="right"
-              overlay={<Tooltip id={`${label}-tooltip`}>{tooltip}</Tooltip>}
-            >
-              <i className="fa fa-question-circle-o" />
-            </OverlayTrigger>
-          }
+          {tooltip && <InfoTooltipWithTrigger label={label} tooltip={tooltip} />}
         </div>
       );
     }
