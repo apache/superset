@@ -122,9 +122,10 @@ class TabbedSqlEditors extends React.PureComponent {
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
-            {qe && <MenuItem eventKey="3">
-              <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
-            </MenuItem>
+            {qe &&
+              <MenuItem eventKey="3">
+                <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
+              </MenuItem>
             }
           </DropdownButton>
         </div>

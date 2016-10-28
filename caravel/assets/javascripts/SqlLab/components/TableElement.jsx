@@ -67,7 +67,7 @@ class TableElement extends React.PureComponent {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
 
-  getHeader() {
+  renderHeader() {
     const table = this.props.table;
     let header;
     if (table.partitions) {
@@ -102,7 +102,7 @@ class TableElement extends React.PureComponent {
     }
     return header;
   }
-  getMetadata() {
+  renderMetadata() {
     const table = this.props.table;
     let cols;
     if (table.columns) {
@@ -117,7 +117,7 @@ class TableElement extends React.PureComponent {
         timeout={this.props.timeout}
       >
         <div>
-          {this.getHeader()}
+          {this.renderHeader()}
           <div className="table-columns">
             {cols && cols.map((col) => {
               let name = col.name;
@@ -210,14 +210,15 @@ class TableElement extends React.PureComponent {
                   tooltip="Data preview"
                   href="#"
                 />
-                {table.selectStar && <CopyToClipboard
-                  copyNode={
-                    <a className="fa fa-clipboard pull-left m-l-2" />
-                  }
-                  text={table.selectStar}
-                  shouldShowText={false}
-                  tooltipText="Copy SELECT statement to clipboard"
-                />
+                {table.selectStar &&
+                  <CopyToClipboard
+                    copyNode={
+                      <a className="fa fa-clipboard pull-left m-l-2" />
+                    }
+                    text={table.selectStar}
+                    shouldShowText={false}
+                    tooltipText="Copy SELECT statement to clipboard"
+                  />
                 }
                 <Link
                   className="fa fa-trash table-remove pull-left m-l-2"
@@ -229,7 +230,7 @@ class TableElement extends React.PureComponent {
             </div>
           </div>
           <div>
-            {this.getMetadata()}
+            {this.renderMetadata()}
           </div>
         </div>
       </Collapse>

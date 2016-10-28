@@ -8,7 +8,7 @@ describe('CopyQueryTabUrl', () => {
   const mockedProps = {
     queryEditor: initialState.queryEditors[0],
   };
-  it('be valid with props', () => {
+  it('is valid with props', () => {
     expect(
       React.isValidElement(<CopyQueryTabUrl {...mockedProps} />)
     ).to.equal(true);
