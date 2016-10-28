@@ -5,20 +5,19 @@ from __future__ import unicode_literals
 
 import json
 import logging
-import os
 import pickle
 import re
 import sys
 import time
 import traceback
+import zlib
 from datetime import datetime, timedelta
 
 import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, make_response, redirect, flash, Response, render_template,
-    Markup, url_for)
+    g, request, redirect, flash, Response, render_template, Markup)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -29,7 +28,6 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug import secure_filename
 from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
@@ -37,7 +35,7 @@ from wtforms.validators import ValidationError
 import caravel
 from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab
+    sm, ascii_art, sql_lab, results_backend
 )
 from caravel.source_registry import SourceRegistry
 from caravel.models import DatasourceAccessRequest as DAR
@@ -78,6 +76,7 @@ DATASOURCE_MISSING_ERR = __("The datasource seems to have been deleted")
 ACCESS_REQUEST_MISSING_ERR = __(
     "The access requests seem to have been deleted")
 USER_MISSING_ERR = __("The user seems to have been deleted")
+DATASOURCE_ACCESS_ERR = __("You don't have access to this datasource")
 
 
 def get_database_access_error_msg(database_name):
@@ -661,6 +660,8 @@ appbuilder.add_view(
     category_label=__("Sources"),
     icon='fa-table',)
 
+appbuilder.add_separator("Sources")
+
 
 class AccessRequestsModelView(CaravelModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
@@ -1060,6 +1061,59 @@ appbuilder.add_view_no_menu(R)
 
 class Caravel(BaseCaravelView):
     """The base views for Caravel!"""
+    @has_access
+    @expose("/override_role_permissions/", methods=['POST'])
+    def override_role_permissions(self):
+        """Updates the role with the give datasource permissions.
+
+          Permissions not in the request will be revoked. This endpoint should
+          be available to admins only. Expects JSON in the format:
+           {
+            'role_name': '{role_name}',
+            'database': [{
+                'datasource_type': '{table|druid}',
+                'name': '{database_name}',
+                'schema': [{
+                    'name': '{schema_name}',
+                    'datasources': ['{datasource name}, {datasource name}']
+                }]
+            }]
+        }
+        """
+        data = request.get_json(force=True)
+        role_name = data['role_name']
+        databases = data['database']
+
+        db_ds_names = set()
+        for dbs in databases:
+            for schema in dbs['schema']:
+                for ds_name in schema['datasources']:
+                    fullname = utils.get_datasource_full_name(
+                        dbs['name'], ds_name, schema=schema['name'])
+                    db_ds_names.add(fullname)
+
+        existing_datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = [
+            d for d in existing_datasources if d.full_name in db_ds_names]
+        role = sm.find_role(role_name)
+        # remove all permissions
+        role.permissions = []
+        # grant permissions to the list of datasources
+        granted_perms = []
+        for datasource in datasources:
+            view_menu_perm = sm.find_permission_view_menu(
+                    view_menu_name=datasource.perm,
+                    permission_name='datasource_access')
+            # prevent creating empty permissions
+            if view_menu_perm and view_menu_perm.view_menu:
+                role.permissions.append(view_menu_perm)
+                granted_perms.append(view_menu_perm.view_menu.name)
+        db.session.commit()
+        return Response(json.dumps({
+            'granted': granted_perms,
+            'requested': list(db_ds_names)
+        }), status=201)
+
     @log_this
     @has_access
     @expose("/request_access/")
@@ -1201,7 +1255,7 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(viz_obj.datasource):
             return Response(
                 json.dumps(
-                    {'error': _("You don't have access to this datasource")}),
+                    {'error': DATASOURCE_ACCESS_ERR}),
                 status=404,
                 mimetype="application/json")
 
@@ -1292,7 +1346,7 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
-            return self.render_template("caravel/standalone.html", viz=viz_obj)
+            return self.render_template("caravel/standalone.html", viz=viz_obj, standalone_mode=True)
         else:
             return self.render_template(
                 "caravel/explore.html",
@@ -1742,12 +1796,14 @@ class Caravel(BaseCaravelView):
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
+        standalone = request.args.get("standalone") == "true"
         return self.render_template(
             "caravel/dashboard.html", dashboard=dash,
             user_id=g.user.get_id(),
             templates=templates,
             dash_save_perm=dash_save_perm,
-            dash_edit_perm=dash_edit_perm)
+            dash_edit_perm=dash_edit_perm,
+            standalone_mode=standalone)
 
     @has_access
     @expose("/sync_druid/", methods=['POST'])
@@ -1849,6 +1905,8 @@ class Caravel(BaseCaravelView):
             'groupby': dims[0].column_name if dims else '',
             'metrics': metrics[0].metric_name if metrics else '',
             'metric': metrics[0].metric_name if metrics else '',
+            'since': '100 years ago',
+            'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items()])
         url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
@@ -1893,6 +1951,10 @@ class Caravel(BaseCaravelView):
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
                 mimetype="application/json")
+        indexed_columns = set()
+        for index in indexes:
+            indexed_columns |= set(index.get('column_names', []))
+
         for col in t:
             dtype = ""
             try:
@@ -1903,13 +1965,26 @@ class Caravel(BaseCaravelView):
                 'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
+                'indexed': col['name'] in indexed_columns,
             })
         tbl = {
             'name': table_name,
             'columns': cols,
+            'selectStar': mydb.select_star(
+                table_name, schema=schema, show_cols=True, indent=True),
             'indexes': indexes,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
+
+    @has_access
+    @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
+    @log_this
+    def extra_table_metadata(self, database_id, table_name, schema):
+        schema = None if schema in ('null', 'undefined') else schema
+        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        payload = mydb.db_engine_spec.extra_table_metadata(
+            mydb, table_name, schema)
+        return Response(json.dumps(payload), mimetype="application/json")
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -1917,6 +1992,7 @@ class Caravel(BaseCaravelView):
     def select_star(self, database_id, table_name):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
+        quote = mydb.get_quoter()
         t = mydb.get_table(table_name)
 
         # Prevent exposing column fields to users that cannot access DB.
@@ -1925,7 +2001,7 @@ class Caravel(BaseCaravelView):
             return redirect("/tablemodelview/list/")
 
         fields = ", ".join(
-            [c.name for c in t.columns] or "*")
+            [quote(c.name) for c in t.columns] or "*")
         s = "SELECT\n{}\nFROM {}".format(fields, table_name)
         return self.render_template(
             "caravel/ajah.html",
@@ -1945,6 +2021,38 @@ class Caravel(BaseCaravelView):
         if resp:
             return resp
         return "nope"
+
+    @has_access_api
+    @expose("/results/<key>/")
+    @log_this
+    def results(self, key):
+        """Serves a key off of the results backend"""
+        blob = results_backend.get(key)
+        if blob:
+            json_payload = zlib.decompress(blob)
+            obj = json.loads(json_payload)
+            db_id = obj['query']['dbId']
+            session = db.session()
+            mydb = session.query(models.Database).filter_by(id=db_id).one()
+
+            if not self.database_access(mydb):
+                json_error_response(
+                    get_database_access_error_msg(mydb.database_name))
+
+            return Response(
+                json_payload,
+                status=200,
+                mimetype="application/json")
+        else:
+            return Response(
+                json.dumps({
+                    'error': (
+                        "Data could not be retrived. You may want to "
+                        "re-run the query."
+                    )
+                }),
+                status=410,
+                mimetype="application/json")
 
     @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
@@ -1988,7 +2096,8 @@ class Caravel(BaseCaravelView):
         # Async request.
         if async:
             # Ignore the celery future object and the request may time out.
-            sql_lab.get_sql_results.delay(query_id, return_results=False)
+            sql_lab.get_sql_results.delay(
+                query_id, return_results=False, store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,
@@ -2013,9 +2122,8 @@ class Caravel(BaseCaravelView):
                 json.dumps({'error': "{}".format(e)}),
                 status=500,
                 mimetype="application/json")
-        data['query'] = query.to_dict()
         return Response(
-            json.dumps(data, default=utils.json_iso_dttm_ser),
+            data,
             status=200,
             mimetype="application/json")
 

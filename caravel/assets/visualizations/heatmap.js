@@ -10,8 +10,11 @@ require('./heatmap.css');
 // https://jsfiddle.net/cyril123/h0reyumq/
 function heatmapVis(slice) {
   function refresh() {
+    // Header for panel in explore v2
+    const header = document.getElementById('slice-header');
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
     const margin = {
-      top: 10,
+      top: 20 + headerHeight,
       right: 10,
       bottom: 35,
       left: 35,

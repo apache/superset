@@ -3,7 +3,7 @@ import { now, fDuration } from '../../modules/dates';
 
 import { STATE_BSSTYLE_MAP } from '../common.js';
 
-class Timer extends React.Component {
+class Timer extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {

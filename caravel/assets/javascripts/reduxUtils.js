@@ -74,3 +74,23 @@ export function enhancer() {
   }
   return enhancerWithPersistState;
 }
+
+export function areArraysShallowEqual(arr1, arr2) {
+  // returns whether 2 arrays are shallow equal
+  // used in shouldComponentUpdate when denormalizing arrays
+  // where the array object is different every time, but the content might
+  // be the same
+  if (!arr1 || !arr2) {
+    return false;
+  }
+  if (arr1.length !== arr2.length) {
+    return false;
+  }
+  const length = arr1.length;
+  for (let i = 0; i < length; i++) {
+    if (arr1[i] !== arr2[i]) {
+      return false;
+    }
+  }
+  return true;
+}

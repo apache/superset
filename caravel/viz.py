@@ -240,6 +240,7 @@ class BaseViz(object):
             form_data.get("granularity") or form_data.get("granularity_sqla")
         )
         limit = int(form_data.get("limit", 0))
+        timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
             form_data.get("row_limit", config.get("ROW_LIMIT")))
         since = (
@@ -275,6 +276,7 @@ class BaseViz(object):
             'filter': self.query_filters(),
             'timeseries_limit': limit,
             'extras': extras,
+            'timeseries_limit_metric': timeseries_limit_metric,
         }
         return d
 
@@ -324,6 +326,7 @@ class BaseViz(object):
                 'json_endpoint': self.json_endpoint,
                 'query': self.query,
                 'standalone_endpoint': self.standalone_endpoint,
+                'column_formats': self.data['column_formats'],
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
@@ -999,7 +1002,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
         'label': None,
         'fields': (
             'metrics',
-            'groupby', 'limit',
+            'groupby',
+            ('limit', 'timeseries_limit_metric'),
         ),
     }, {
         'label': _('Chart Options'),

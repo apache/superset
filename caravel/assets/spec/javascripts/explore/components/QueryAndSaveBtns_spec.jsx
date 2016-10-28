@@ -1,13 +1,14 @@
 import React from 'react';
+import { beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
 
 import QueryAndSaveButtons from '../../../../javascripts/explore/components/QueryAndSaveBtns';
 
 describe('QueryAndSaveButtons', () => {
-  let defaultProps = {
+  const defaultProps = {
     canAdd: 'True',
-    onQuery: () => {}
+    onQuery: () => {},
   };
 
   // It must render

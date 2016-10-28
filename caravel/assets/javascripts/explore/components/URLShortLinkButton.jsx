@@ -1,7 +1,7 @@
 import React, { PropTypes } from 'react';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
-import $ from 'jquery';
+import { getShortUrl } from '../../../utils/common';
 
 const propTypes = {
   slice: PropTypes.object.isRequired,
@@ -15,26 +15,15 @@ export default class URLShortLinkButton extends React.Component {
     };
   }
 
-  getShortUrl() {
-    $.ajax({
-      type: 'POST',
-      url: '/r/shortner/',
-      data: {
-        data: '/' + window.location.pathname + window.location.search,
-      },
-      success: (data) => {
-        this.setState({
-          shortUrl: data,
-        });
-      },
-      error: (error) => {
-        /* eslint no-console: 0 */
-        if (console && console.warn) {
-          console.warn('Something went wrong...');
-          console.warn(error);
-        }
-      },
+  onShortUrlSuccess(data) {
+    this.setState({
+      shortUrl: data,
     });
+  }
+
+  getCopyUrl() {
+    const longUrl = window.location.pathname + window.location.search;
+    getShortUrl(longUrl, this.onShortUrlSuccess.bind(this));
   }
 
   renderPopover() {
@@ -54,7 +43,7 @@ export default class URLShortLinkButton extends React.Component {
         trigger="click"
         rootClose
         placement="left"
-        onEnter={this.getShortUrl.bind(this)}
+        onEnter={this.getCopyUrl.bind(this)}
         overlay={this.renderPopover()}
       >
         <span className="btn btn-default btn-sm">

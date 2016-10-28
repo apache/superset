@@ -4,13 +4,26 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
-import shortid from 'shortid';
-import { getParamFromQuery, getLink } from '../../../utils/common';
+import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
+
+const propTypes = {
+  actions: React.PropTypes.object.isRequired,
+  databases: React.PropTypes.object.isRequired,
+  queries: React.PropTypes.object.isRequired,
+  queryEditors: React.PropTypes.array,
+  tabHistory: React.PropTypes.array.isRequired,
+  tables: React.PropTypes.array.isRequired,
+  networkOn: React.PropTypes.bool,
+};
+const defaultProps = {
+  queryEditors: [],
+  networkOn: true,
+};
 
 let queryCount = 1;
 
-class TabbedSqlEditors extends React.Component {
+class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
     const uri = window.location.toString();
@@ -27,9 +40,8 @@ class TabbedSqlEditors extends React.Component {
     if (this.state.query) {
       queryCount++;
       const queryEditorProps = {
-        id: shortid.generate(),
         title: getParamFromQuery(this.state.query, 'title'),
-        dbId: getParamFromQuery(this.state.query, 'dbid'),
+        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
         schema: getParamFromQuery(this.state.query, 'schema'),
         autorun: getParamFromQuery(this.state.query, 'autorun'),
         sql: getParamFromQuery(this.state.query, 'sql'),
@@ -38,16 +50,6 @@ class TabbedSqlEditors extends React.Component {
       // Clean the url in browser history
       window.history.replaceState({}, document.title, this.state.cleanUri);
     }
-  }
-  getQueryLink(qe) {
-    const params = [];
-    if (qe.dbId) params.push('dbid=' + qe.dbId);
-    if (qe.title) params.push('title=' + qe.title);
-    if (qe.schema) params.push('schema=' + qe.schema);
-    if (qe.autorun) params.push('autorun=' + qe.autorun);
-    if (qe.sql) params.push('sql=' + qe.sql);
-
-    return getLink(this.state.cleanUri, params);
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */
@@ -70,7 +72,6 @@ class TabbedSqlEditors extends React.Component {
     queryCount++;
     const activeQueryEditor = this.activeQueryEditor();
     const qe = {
-      id: shortid.generate(),
       title: `Untitled Query ${queryCount}`,
       dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
       schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
@@ -86,10 +87,26 @@ class TabbedSqlEditors extends React.Component {
       this.props.actions.setActiveQueryEditor({ id: key });
     }
   }
+  removeQueryEditor(qe) {
+    this.props.actions.removeQueryEditor(qe);
+  }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
-      let latestQuery = this.props.queries[qe.latestQueryId];
-      const database = this.props.databases[qe.dbId];
+      const isSelected = (qe.id === this.activeQueryEditor().id);
+      const queriesArray = [];
+      for (const id in this.props.queries) {
+        if (this.props.queries[id].sqlEditorId === qe.id) {
+          queriesArray.push(this.props.queries[id]);
+        }
+      }
+      let latestQuery;
+      if (qe.latestQueryId) {
+        latestQuery = this.props.queries[qe.latestQueryId];
+      }
+      let database;
+      if (qe.dbId) {
+        database = this.props.databases[qe.dbId];
+      }
       const state = (latestQuery) ? latestQuery.state : '';
       const tabTitle = (
         <div>
@@ -99,14 +116,14 @@ class TabbedSqlEditors extends React.Component {
             id={'ddbtn-tab-' + i}
             title=""
           >
-            <MenuItem eventKey="1" onClick={this.props.actions.removeQueryEditor.bind(this, qe)}>
+            <MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}>
               <i className="fa fa-close" /> close tab
             </MenuItem>
             <MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}>
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
             <MenuItem eventKey="3">
-              <i className="fa fa-clipboard" /> <CopyQueryTabUrl qe={qe} />
+              <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
             </MenuItem>
           </DropdownButton>
         </div>
@@ -116,15 +133,20 @@ class TabbedSqlEditors extends React.Component {
           key={qe.id}
           title={tabTitle}
           eventKey={qe.id}
-          id={`a11y-query-editor-${qe.id}`}
         >
           <div className="panel panel-default">
             <div className="panel-body">
-              <SqlEditor
-                queryEditor={qe}
-                latestQuery={latestQuery}
-                database={database}
-              />
+              {isSelected &&
+                <SqlEditor
+                  tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
+                  queryEditor={qe}
+                  queries={queriesArray}
+                  latestQuery={latestQuery}
+                  database={database}
+                  actions={this.props.actions}
+                  networkOn={this.props.networkOn}
+                />
+              }
             </div>
           </div>
         </Tab>);
@@ -137,22 +159,19 @@ class TabbedSqlEditors extends React.Component {
         id="a11y-query-editor-tabs"
       >
         {editors}
-        <Tab title={<div><i className="fa fa-plus-circle" />&nbsp;</div>} eventKey="add_tab" />
+        <Tab
+          title={
+            <div>
+              <i className="fa fa-plus-circle" />&nbsp;
+            </div>}
+          eventKey="add_tab"
+        />
       </Tabs>
     );
   }
 }
-TabbedSqlEditors.propTypes = {
-  actions: React.PropTypes.object,
-  databases: React.PropTypes.object,
-  queries: React.PropTypes.object,
-  queryEditors: React.PropTypes.array,
-  tabHistory: React.PropTypes.array,
-};
-TabbedSqlEditors.defaultProps = {
-  tabHistory: [],
-  queryEditors: [],
-};
+TabbedSqlEditors.propTypes = propTypes;
+TabbedSqlEditors.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -160,6 +179,8 @@ function mapStateToProps(state) {
     queryEditors: state.queryEditors,
     queries: state.queries,
     tabHistory: state.tabHistory,
+    networkOn: state.networkOn,
+    tables: state.tables,
   };
 }
 function mapDispatchToProps(dispatch) {
@@ -168,4 +189,5 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
+export { TabbedSqlEditors };
 export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);

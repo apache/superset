@@ -55,7 +55,9 @@ import caravel
 from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
-from caravel.utils import flasher, MetricPermException, DimSelector
+from caravel.utils import (
+    flasher, MetricPermException, DimSelector, wrap_clause_in_parens
+)
 
 config = app.config
 
@@ -447,6 +449,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     def params(self, value):
         self.json_metadata = value
 
+    @property
+    def position_array(self):
+        if self.position_json:
+            return json.loads(self.position_json)
+        return []
+
     @classmethod
     def import_obj(cls, dashboard_to_import, import_time=None):
         """Imports the dashboard from the object to the database.
@@ -458,6 +466,28 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
          to import/export dashboards between multiple caravel instances.
          Audit metadata isn't copies over.
         """
+        def alter_positions(dashboard, old_to_new_slc_id_dict):
+            """ Updates slice_ids in the position json.
+
+            Sample position json:
+            [{
+                "col": 5,
+                "row": 10,
+                "size_x": 4,
+                "size_y": 2,
+                "slice_id": "3610"
+            }]
+            """
+            position_array = dashboard.position_array
+            for position in position_array:
+                if 'slice_id' not in position:
+                    continue
+                old_slice_id = int(position['slice_id'])
+                if old_slice_id in old_to_new_slc_id_dict:
+                    position['slice_id'] = '{}'.format(
+                        old_to_new_slc_id_dict[old_slice_id])
+            dashboard.position_json = json.dumps(position_array)
+
         logging.info('Started import of the dashboard: {}'
                      .format(dashboard_to_import.to_json()))
         session = db.session
@@ -466,11 +496,25 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         # copy slices object as Slice.import_slice will mutate the slice
         # and will remove the existing dashboard - slice association
         slices = copy(dashboard_to_import.slices)
-        slice_ids = set()
+        old_to_new_slc_id_dict = {}
+        new_filter_immune_slices = []
+        new_expanded_slices = {}
+        i_params_dict = dashboard_to_import.params_dict
         for slc in slices:
             logging.info('Importing slice {} from the dashboard: {}'.format(
                 slc.to_json(), dashboard_to_import.dashboard_title))
-            slice_ids.add(Slice.import_obj(slc, import_time=import_time))
+            new_slc_id = Slice.import_obj(slc, import_time=import_time)
+            old_to_new_slc_id_dict[slc.id] = new_slc_id
+            # update json metadata that deals with slice ids
+            new_slc_id_str = '{}'.format(new_slc_id)
+            old_slc_id_str = '{}'.format(slc.id)
+            if ('filter_immune_slices' in i_params_dict and
+                    old_slc_id_str in i_params_dict['filter_immune_slices']):
+                new_filter_immune_slices.append(new_slc_id_str)
+            if ('expanded_slices' in i_params_dict and
+                    old_slc_id_str in i_params_dict['expanded_slices']):
+                new_expanded_slices[new_slc_id_str] = (
+                    i_params_dict['expanded_slices'][old_slc_id_str])
 
         # override the dashboard
         existing_dashboard = None
@@ -481,8 +525,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                 existing_dashboard = dash
 
         dashboard_to_import.id = None
+        alter_positions(dashboard_to_import, old_to_new_slc_id_dict)
         dashboard_to_import.alter_params(import_time=import_time)
-        new_slices = session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+        if new_expanded_slices:
+            dashboard_to_import.alter_params(
+                expanded_slices=new_expanded_slices)
+        if new_filter_immune_slices:
+            dashboard_to_import.alter_params(
+                filter_immune_slices=new_filter_immune_slices)
+
+        new_slices = session.query(Slice).filter(
+            Slice.id.in_(old_to_new_slc_id_dict.values())).all()
 
         if existing_dashboard:
             existing_dashboard.override(dashboard_to_import)
@@ -582,6 +635,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
+
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
@@ -635,6 +689,12 @@ class Database(Model, AuditMixinNullable):
             url.database = schema
         return create_engine(url, **params)
 
+    def get_reserved_words(self):
+        return self.get_sqla_engine().dialect.preparer.reserved_words
+
+    def get_quoter(self):
+        return self.get_sqla_engine().dialect.identifier_preparer.quote
+
     def get_df(self, sql, schema):
         eng = self.get_sqla_engine(schema=schema)
         cur = eng.execute(sql, schema=schema)
@@ -647,12 +707,26 @@ class Database(Model, AuditMixinNullable):
         compiled = qry.compile(eng, compile_kwargs={"literal_binds": True})
         return '{}'.format(compiled)
 
-    def select_star(self, table_name, schema=None, limit=1000):
+    def select_star(
+            self, table_name, schema=None, limit=100, show_cols=False,
+            indent=True):
         """Generates a ``select *`` statement in the proper dialect"""
-        qry = select('*').select_from(text(table_name))
+        for i in range(10):
+            print(schema)
+        quote = self.get_quoter()
+        fields = '*'
+        table = self.get_table(table_name, schema=schema)
+        if show_cols:
+            fields = [quote(c.name) for c in table.columns]
+        if schema:
+            table_name = schema + '.' + table_name
+        qry = select(fields).select_from(text(table_name))
         if limit:
             qry = qry.limit(limit)
-        return self.compile_sqla_query(qry)
+        sql = self.compile_sqla_query(qry)
+        if indent:
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
@@ -806,7 +880,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def full_name(self):
-        return "[{obj.database}].[{obj.table_name}]".format(obj=self)
+        return utils.get_datasource_full_name(
+            self.database, self.table_name, schema=self.schema)
 
     @property
     def dttm_cols(self):
@@ -867,8 +942,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             from_dttm, to_dttm,
             filter=None,  # noqa
             is_timeseries=True,
-            timeseries_limit=15, row_limit=None,
-            inner_from_dttm=None, inner_to_dttm=None,
+            timeseries_limit=15,
+            timeseries_limit_metric=None,
+            row_limit=None,
+            inner_from_dttm=None,
+            inner_to_dttm=None,
             orderby=None,
             extras=None,
             columns=None):
@@ -887,7 +965,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 "and is required by this type of chart"))
 
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
-
+        timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
+        timeseries_limit_metric_expr = None
+        if timeseries_limit_metric:
+            timeseries_limit_metric_expr = \
+                timeseries_limit_metric.sqla_col
         if metrics:
             main_metric_expr = metrics_exprs[0]
         else:
@@ -981,7 +1063,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
-            tbl = text('(' + self.sql + ') as expr_qry ')
+            tbl = TextAsFrom(sqla.text(self.sql), []).alias('expr_qry')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
@@ -998,9 +1080,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where_clause_and += [text(extras['where'])]
+            where_clause_and += [wrap_clause_in_parens(extras['where'])]
         if extras and 'having' in extras:
-            having_clause_and += [text(extras['having'])]
+            having_clause_and += [wrap_clause_in_parens(extras['having'])]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
@@ -1023,7 +1105,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             subq = subq.select_from(tbl)
             subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
             subq = subq.group_by(*inner_groupby_exprs)
-            subq = subq.order_by(desc(main_metric_expr))
+            ob = main_metric_expr
+            if timeseries_limit_metric_expr is not None:
+                ob = timeseries_limit_metric_expr
+            subq = subq.order_by(desc(ob))
             subq = subq.limit(timeseries_limit)
             on_clause = []
             for i, gb in enumerate(groupby):
@@ -1084,6 +1169,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
                 dbcol.sum = dbcol.isnum
+                dbcol.avg = dbcol.isnum
                 dbcol.is_dttm = dbcol.is_time
 
             db.session.merge(self)
@@ -1100,6 +1186,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     verbose_name='sum__' + dbcol.column_name,
                     metric_type='sum',
                     expression="SUM({})".format(quoted)
+                ))
+            if dbcol.avg:
+                metrics.append(M(
+                    metric_name='avg__' + dbcol.column_name,
+                    verbose_name='avg__' + dbcol.column_name,
+                    metric_type='avg',
+                    expression="AVG({})".format(quoted)
                 ))
             if dbcol.max:
                 metrics.append(M(
@@ -1281,6 +1374,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     groupby = Column(Boolean, default=False)
     count_distinct = Column(Boolean, default=False)
     sum = Column(Boolean, default=False)
+    avg = Column(Boolean, default=False)
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
@@ -1294,7 +1388,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
-        'type', 'groupby', 'count_distinct', 'sum', 'max', 'min',
+        'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression'
     )
@@ -1372,6 +1466,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
+
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
@@ -1484,9 +1579,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @property
     def full_name(self):
-        return (
-            "[{obj.cluster_name}]."
-            "[{obj.datasource_name}]").format(obj=self)
+        return utils.get_datasource_full_name(
+            self.cluster_name, self.datasource_name)
 
     @property
     def time_column_grains(self):
@@ -1689,6 +1783,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             filter=None,  # noqa
             is_timeseries=True,
             timeseries_limit=None,
+            timeseries_limit_metric=None,
             row_limit=None,
             inner_from_dttm=None, inner_to_dttm=None,
             orderby=None,
@@ -1794,6 +1889,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
         if timeseries_limit and is_timeseries:
+            order_by = metrics[0] if metrics else self.metrics[0]
+            if timeseries_limit_metric:
+                order_by = timeseries_limit_metric
             # Limit on the number of timeseries, doing a two-phases query
             pre_qry = deepcopy(qry)
             pre_qry['granularity'] = "all"
@@ -1804,7 +1902,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     inner_from_dttm.isoformat() + '/' +
                     inner_to_dttm.isoformat()),
                 "columns": [{
-                    "dimension": metrics[0] if metrics else self.metrics[0],
+                    "dimension": order_by,
                     "direction": "descending",
                 }],
             }
@@ -2048,6 +2146,7 @@ class DruidColumn(Model, AuditMixinNullable):
     groupby = Column(Boolean, default=False)
     count_distinct = Column(Boolean, default=False)
     sum = Column(Boolean, default=False)
+    avg = Column(Boolean, default=False)
     max = Column(Boolean, default=False)
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
@@ -2086,6 +2185,18 @@ class DruidColumn(Model, AuditMixinNullable):
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
+
+        if self.avg and self.isnum:
+            mt = corrected_type.lower() + 'Avg'
+            name = 'avg__' + self.column_name
+            metrics.append(DruidMetric(
+                metric_name=name,
+                metric_type='avg',
+                verbose_name='AVG({})'.format(self.column_name),
+                json=json.dumps({
+                    'type': mt, 'name': name, 'fieldName': self.column_name})
+            ))
+
         if self.min and self.isnum:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
@@ -2203,6 +2314,8 @@ class Query(Model):
     # # of rows in the result set or rows modified.
     rows = Column(Integer)
     error_message = Column(Text)
+    # key used to store the results in the results backend
+    results_key = Column(String(64))
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
@@ -2251,6 +2364,7 @@ class Query(Model):
             'userId': self.user_id,
             'user': self.user.username,
             'limit_reached': self.limit_reached,
+            'resultsKey': self.results_key,
         }
 
     @property

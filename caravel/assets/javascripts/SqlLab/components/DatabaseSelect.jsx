@@ -1,11 +1,8 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import { bindActionCreators } from 'redux';
 import Select from 'react-select';
-import { connect } from 'react-redux';
-import * as Actions from '../actions';
 
-class DatabaseSelect extends React.Component {
+class DatabaseSelect extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -39,6 +36,7 @@ class DatabaseSelect extends React.Component {
           isLoading={this.state.databaseLoading}
           autosize={false}
           onChange={this.changeDb.bind(this)}
+          valueRenderer={this.props.valueRenderer}
         />
       </div>
     );
@@ -49,17 +47,7 @@ DatabaseSelect.propTypes = {
   onChange: React.PropTypes.func,
   actions: React.PropTypes.object,
   databaseId: React.PropTypes.number,
+  valueRenderer: React.PropTypes.func,
 };
 
-DatabaseSelect.defaultProps = {
-  onChange: () => {},
-  databaseId: null,
-};
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-
-export default connect(null, mapDispatchToProps)(DatabaseSelect);
+export default DatabaseSelect;

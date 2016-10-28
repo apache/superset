@@ -15,6 +15,8 @@ import numpy
 import signal
 import uuid
 
+from sqlalchemy import event, exc
+from sqlalchemy.pool import Pool
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
@@ -45,6 +47,10 @@ class MetricPermException(CaravelException):
 
 
 class NoDataException(CaravelException):
+    pass
+
+
+class CaravelTemplateException(CaravelException):
     pass
 
 
@@ -230,6 +236,7 @@ def init(caravel):
 
     ADMIN_ONLY_PERMISSIONS = set([
         'can_sync_druid_source',
+        'can_override_role_permissions',
         'can_approve',
     ])
 
@@ -447,6 +454,12 @@ def generic_find_constraint_name(table, columns, referenced, db):
             return fk.name
 
 
+def get_datasource_full_name(database_name, datasource_name, schema=None):
+    if not schema:
+        return "[{}].[{}]".format(database_name, datasource_name)
+    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
+
+
 def validate_json(obj):
     if obj:
         try:
@@ -491,3 +504,25 @@ class timeout(object):
         except ValueError as e:
             logging.warning("timeout can't be used in the current context")
             logging.exception(e)
+
+
+def wrap_clause_in_parens(sql):
+    """Wrap where/having clause with parenthesis if necessary"""
+    if sql.strip():
+        sql = '({})'.format(sql)
+    return sa.text(sql)
+
+
+def pessimistic_connection_handling(target):
+    @event.listens_for(target, "checkout")
+    def ping_connection(dbapi_connection, connection_record, connection_proxy):
+        """
+        Disconnect Handling - Pessimistic, taken from:
+        http://docs.sqlalchemy.org/en/rel_0_9/core/pooling.html
+        """
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("SELECT 1")
+        except:
+            raise exc.DisconnectionError()
+        cursor.close()

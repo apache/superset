@@ -75,7 +75,8 @@ function bigNumberVis(slice) {
       .style('cursor', 'pointer')
       .text(f(v))
       .style('font-size', d3.min([height, width]) / 3.5)
-      .attr('fill', 'white');
+      .style('text-anchor', 'middle')
+      .attr('fill', 'black');
 
       // Printing big number subheader text
       if (json.subheader !== null) {
@@ -112,7 +113,7 @@ function bigNumberVis(slice) {
         const c = scaleColor(vCompare);
 
         // Printing compare %
-        if (vCompare !== null) {
+        if (vCompare) {
           g.append('text')
           .attr('x', width / 2)
           .attr('y', (height / 16) * 12)

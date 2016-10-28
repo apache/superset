@@ -16,16 +16,26 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import inspect
 from collections import namedtuple
+import inspect
+import textwrap
+import time
+
 from flask_babel import lazy_gettext as _
 
 Grain = namedtuple('Grain', 'name label function')
 
 
+class LimitMethod(object):
+    """Enum the ways that limits can be applied"""
+    FETCH_MANY = 'fetch_many'
+    WRAP_SQL = 'wrap_sql'
+
+
 class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
     time_grains = tuple()
+    limit_method = LimitMethod.FETCH_MANY
 
     @classmethod
     def epoch_to_dttm(cls):
@@ -36,13 +46,22 @@ class BaseEngineSpec(object):
         return cls.epoch_to_dttm().replace('{col}', '({col}/1000.0)')
 
     @classmethod
-    def extra_table_metadata(cls, table):
+    def extra_table_metadata(cls, database, table_name, schema_name):
         """Returns engine-specific table metadata"""
         return {}
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    def handle_cursor(cls, cursor, query, session):
+        """Handle a live cursor between the execute and fetchall calls
+
+        The flow works without this method doing anything, but it allows
+        for handling the cursor and updating progress information in the
+        query object"""
+        pass
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -56,6 +75,7 @@ class PostgresEngineSpec(BaseEngineSpec):
         Grain("day", _('day'), "DATE_TRUNC('day', {col})"),
         Grain("week", _('week'), "DATE_TRUNC('week', {col})"),
         Grain("month", _('month'), "DATE_TRUNC('month', {col})"),
+        Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', {col})"),
         Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
     )
 
@@ -108,6 +128,7 @@ class MySQLEngineSpec(BaseEngineSpec):
         Grain("month", _('month'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
     )
+
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         if target_type.upper() in ('DATETIME', 'DATE'):
@@ -157,6 +178,68 @@ class PrestoEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
+    @staticmethod
+    def show_partition_pql(
+            table_name, schema_name=None, order_by=None, limit=100):
+        if schema_name:
+            table_name = schema_name + '.' + table_name
+        order_by = order_by or []
+        order_by_clause = ''
+        if order_by:
+            order_by_clause = "ORDER BY " + ', '.join(order_by) + " DESC"
+
+        limit_clause = ''
+        if limit:
+            limit_clause = "LIMIT {}".format(limit)
+
+        return textwrap.dedent("""\
+        SHOW PARTITIONS
+        FROM {table_name}
+        {order_by_clause}
+        {limit_clause}
+        """).format(**locals())
+
+    @classmethod
+    def extra_table_metadata(cls, database, table_name, schema_name):
+        indexes = database.get_indexes(table_name, schema_name)
+        if not indexes:
+            return {}
+        cols = indexes[0].get('column_names', [])
+        pql = cls.show_partition_pql(table_name, schema_name, cols)
+        df = database.get_df(pql, schema_name)
+        latest_part = df.to_dict(orient='records')[0] if not df.empty else None
+
+        partition_query = cls.show_partition_pql(table_name, schema_name, cols)
+        return {
+            'partitions': {
+                'cols': cols,
+                'latest': latest_part,
+                'partitionQuery': partition_query,
+            }
+        }
+
+    @classmethod
+    def handle_cursor(cls, cursor, query, session):
+        """Updates progress information"""
+        polled = cursor.poll()
+        # poll returns dict -- JSON status information or ``None``
+        # if the query is done
+        # https://github.com/dropbox/PyHive/blob/
+        # b34bdbf51378b3979eaf5eca9e956f06ddc36ca0/pyhive/presto.py#L178
+        while polled:
+            # Update the object and wait for the kill signal.
+            stats = polled.get('stats', {})
+            if stats:
+                completed_splits = float(stats.get('completedSplits'))
+                total_splits = float(stats.get('totalSplits'))
+                if total_splits and completed_splits:
+                    progress = 100 * (completed_splits / total_splits)
+                    if progress > query.progress:
+                        query.progress = progress
+                    session.commit()
+            time.sleep(1)
+            polled = cursor.poll()
+
 
 class MssqlEngineSpec(BaseEngineSpec):
     engine = 'mssql'
@@ -188,7 +271,7 @@ class MssqlEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
-        return "CONVERT(DATETIME, '{}', 126)".format(iso)
+        return "CONVERT(DATETIME, '{}', 126)".format(dttm.isoformat())
 
 
 class RedshiftEngineSpec(PostgresEngineSpec):

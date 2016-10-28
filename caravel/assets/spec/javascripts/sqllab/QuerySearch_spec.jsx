@@ -7,24 +7,27 @@ import { describe, it } from 'mocha';
 import { expect } from 'chai';
 
 describe('QuerySearch', () => {
-  it('should render', () => {
+  const mockedProps = {
+    actions: {},
+  };
+  it('is valid', () => {
     expect(
-      React.isValidElement(<QuerySearch />)
+      React.isValidElement(<QuerySearch {...mockedProps} />)
     ).to.equal(true);
   });
 
   it('should have two Select', () => {
-    const wrapper = shallow(<QuerySearch />);
+    const wrapper = shallow(<QuerySearch {...mockedProps} />);
     expect(wrapper.find(Select)).to.have.length(2);
   });
 
   it('should have one input for searchText', () => {
-    const wrapper = shallow(<QuerySearch />);
+    const wrapper = shallow(<QuerySearch {...mockedProps} />);
     expect(wrapper.find('input')).to.have.length(1);
   });
 
   it('should have one Button', () => {
-    const wrapper = shallow(<QuerySearch />);
+    const wrapper = shallow(<QuerySearch {...mockedProps} />);
     expect(wrapper.find(Button)).to.have.length(1);
   });
 });

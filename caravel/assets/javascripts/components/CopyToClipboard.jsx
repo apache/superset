@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import { Button, Tooltip, OverlayTrigger } from 'react-bootstrap';
+import { Tooltip, OverlayTrigger } from 'react-bootstrap';
 
 const propTypes = {
   copyNode: PropTypes.node,
@@ -76,17 +76,21 @@ export default class CopyToClipboard extends React.Component {
     return (
       <span>
         {this.props.shouldShowText &&
-          <span>{this.props.text}</span>
+          <span>
+            {this.props.text}
+            &nbsp;&nbsp;&nbsp;&nbsp;
+          </span>
         }
-        &nbsp;&nbsp;&nbsp;&nbsp;
-        <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
-          <Button
-            bsStyle="link"
-            onClick={this.copyToClipboard}
-            onMouseOut={this.onMouseOut}
-          >
+        <OverlayTrigger
+          placement="top"
+          style={{ cursor: 'pointer' }}
+          overlay={this.renderTooltip()}
+          trigger={['hover']}
+          bsStyle="link"
+          onClick={this.copyToClipboard}
+          onMouseOut={this.onMouseOut}
+        >
             {this.props.copyNode}
-          </Button>
         </OverlayTrigger>
       </span>
     );

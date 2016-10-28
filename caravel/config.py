@@ -173,7 +173,6 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 DEFAULT_MODULE_DS_MAP = {'caravel.models': ['DruidDatasource', 'SqlaTable']}
 ADDITIONAL_MODULE_DS_MAP = {}
 
-
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/
 2) https://docs.python.org/2/library/logging.config.html
@@ -234,6 +233,17 @@ DEFAULT_DB_ID = None
 
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
+
+# An instantiated derivative of werkzeug.contrib.cache.BaseCache
+# if enabled, it can be used to store the results of long-running queries
+# in SQL Lab by using the "Run Async" button/feature
+RESULTS_BACKEND = None
+
+# A dictionary of items that gets merged into the Jinja context for
+# SQL Lab. The existing context gets updated with this dictionary,
+# meaning values for existing keys get overwritten by the content of this
+# dictionary.
+JINJA_CONTEXT_ADDONS = {}
 
 try:
     from caravel_config import *  # noqa

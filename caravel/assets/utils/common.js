@@ -1,4 +1,5 @@
 /* eslint global-require: 0 */
+import $ from 'jquery';
 const d3 = window.d3 || require('d3');
 
 export const EARTH_CIRCUMFERENCE_KM = 40075.16;
@@ -52,4 +53,24 @@ export function getParamsFromUrl() {
     newParams[key] = value;
   });
   return newParams;
+}
+
+export function getShortUrl(longUrl, callBack) {
+  $.ajax({
+    type: 'POST',
+    url: '/r/shortner/',
+    data: {
+      data: '/' + longUrl,
+    },
+    success: (data) => {
+      callBack(data);
+    },
+    error: (error) => {
+      /* eslint no-console: 0 */
+      if (console && console.warn) {
+        console.warn('Something went wrong...');
+        console.warn(error);
+      }
+    },
+  });
 }

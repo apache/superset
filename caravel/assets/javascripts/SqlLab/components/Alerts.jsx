@@ -1,16 +1,14 @@
 import React from 'react';
 import { Alert } from 'react-bootstrap';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as Actions from '../actions';
 
-class Alerts extends React.Component {
+class Alerts extends React.PureComponent {
   removeAlert(alert) {
     this.props.actions.removeAlert(alert);
   }
   render() {
     const alerts = this.props.alerts.map((alert) =>
       <Alert
+        key={alert.id}
         bsStyle={alert.bsStyle}
         style={{ width: '500px', textAlign: 'midddle', margin: '10px auto' }}
       >
@@ -33,9 +31,4 @@ Alerts.propTypes = {
   actions: React.PropTypes.object,
 };
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(Actions, dispatch),
-  };
-}
-export default connect(null, mapDispatchToProps)(Alerts);
+export default Alerts;
