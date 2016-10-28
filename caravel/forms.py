@@ -250,6 +250,11 @@ class FormFactory(object):
                 "default": False,
                 "description": "Show the value on top of the bars or not"
             }),
+            'order_bars': (BetterBooleanField, {
+                "label": _("Sort Bars"),
+                "default": False,
+                "description": _("Sort bars by x labels."),
+            }),
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,
