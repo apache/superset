@@ -23,7 +23,7 @@ function ControlPanelsContainer({ vizType }) {
   const viz = visTypes[vizType];
   const sectionsToRender = getSectionsToRender(viz.controlPanelSections);
   return (
-    <Panel>
+    <div className="panel panel-default">
       <div className="scrollbar-container">
         <div className="scrollbar-content">
           {sectionsToRender.map((section) => {
@@ -41,7 +41,7 @@ function ControlPanelsContainer({ vizType }) {
          {/* TODO: add filters section */}
         </div>
       </div>
-    </Panel>
+    </div>
   );
 }
 
