@@ -71,6 +71,17 @@ class TableElement extends React.PureComponent {
     let buttonToggle;
 
     let header;
+    table.columns.sort(function (a, b) {
+      if (a.name > b.name) {
+        return 1;
+      }
+      if (a.name < b.name) {
+        return -1;
+      }
+      // a must be equal to b
+      return 0;
+    });
+
     if (table.partitions) {
       let partitionQuery;
       let partitionClipBoard;
