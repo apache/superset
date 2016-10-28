@@ -8,7 +8,7 @@ import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
 import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
-import { STATE_BSSTYLE_MAP } from '../common';
+import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
 import { getLink } from '../../../utils/common';
 
@@ -73,6 +73,7 @@ class QueryTable extends React.PureComponent {
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
+      q.date = moment(q.startDttm).format('MMM Do YYYY');
       q.user = (
         <button
           className="btn btn-link btn-xs"

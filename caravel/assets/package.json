@@ -116,6 +116,7 @@
     "less-loader": "^2.2.2",
     "mocha": "^2.4.5",
     "react-addons-test-utils": "^15.3.2",
+    "sinon": "^1.17.6",
     "style-loader": "^0.13.0",
     "transform-loader": "^0.2.3",
     "url-loader": "^0.5.7",
