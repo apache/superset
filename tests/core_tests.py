@@ -41,6 +41,14 @@ class CoreTests(CaravelTestCase):
     def setUp(self):
         db.session.query(models.Query).delete()
         db.session.query(models.DatasourceAccessRequest).delete()
+        self.login('admin')
+        self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
+        self.run_sql("This query should fail", 'admin', client_id='client_id_3')
+        self.logout()
+
+        self.login('gamma')
+        self.run_sql("SELECT * FROM ab_permission", 'gamma', client_id='client_id_2')
+        self.logout()
 
     def tearDown(self):
         pass
@@ -332,79 +340,101 @@ class CoreTests(CaravelTestCase):
 
         self.login('admin')
         data = self.get_json_resp('/caravel/queries/{}'.format(0))
-        self.assertEquals(0, len(data))
+        self.assertEquals(2, len(data))
         self.logout()
 
-        self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
-        self.run_sql("SELECT * FROM ab_user1", 'admin', client_id='client_id_2')
+        self.run_sql("SELECT * FROM ab_user1", 'admin', client_id='client_id_4')
+        self.run_sql("SELECT * FROM ab_user2", 'admin', client_id='client_id_5')
         self.login('admin')
         data = self.get_json_resp('/caravel/queries/{}'.format(0))
-        self.assertEquals(2, len(data))
+        self.assertEquals(4, len(data))
 
         query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_user').first()
+            sql='SELECT * FROM ab_user1').first()
         query.changed_on = utils.EPOCH
         db.session.commit()
 
         data = self.get_json_resp('/caravel/queries/{}'.format(123456000))
-        self.assertEquals(1, len(data))
+        self.assertEquals(3, len(data))
 
         self.logout()
         resp = self.client.get('/caravel/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
-    def test_search_query_endpoint(self):
-        self.login('admin')
-        self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
-        first_query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_user').first()
-        # Test search queries on database Id
-        resp = self.get_resp('/caravel/search_queries?database_id=1')
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
-        resp = self.get_resp('/caravel/search_queries?database_id=2')
-        data = json.loads(resp)
-        self.assertEquals(0, len(data))
+    def test_search_query_on_db_id(self):
+      self.login('admin')
+      # Test search queries on database Id
+      resp = self.get_resp('/caravel/search_queries?database_id=1')
+      data = json.loads(resp)
+      self.assertEquals(3, len(data))
+      for k, v in data.items():
+        assert data[k]['dbId'] == 1
 
-        self.login('gamma')
-        self.run_sql("SELECT * FROM ab_permission", 'gamma', client_id='client_id_2')
-        second_query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_permission').first()
-        # Test search queries on time filter
-        from_time = 'from={}'.format(int(first_query.start_time))
-        to_time = 'to={}'.format(int(second_query.start_time))
-        params = [from_time, to_time]
-        resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
-        self.logout()
+      resp = self.get_resp('/caravel/search_queries?database_id=-1')
+      data = json.loads(resp)
+      self.assertEquals(0, len(data))
+      self.logout()
 
-        self.login('admin')
-        # Test search queries on user Id
-        user = appbuilder.sm.find_user('admin')
-        resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
-        user = appbuilder.sm.find_user('gamma')
-        resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
+    def test_search_query_on_user(self):
+      self.login('admin')
+      # Test search queries on user Id
+      user = appbuilder.sm.find_user('admin')
+      resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
+      data = json.loads(resp)
+      self.assertEquals(2, len(data))
+      for k, v in data.items():
+          self.assertEquals(v['userId'], user.id)
 
-        self.run_sql("This query should fail", 'admin', client_id='client_id_3')
-        # Test search queries on status
-        resp = self.get_resp('/caravel/search_queries?status=success')
-        data = json.loads(resp)
-        self.assertEquals(2, len(data))
-        resp = self.get_resp('/caravel/search_queries?status=failed')
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
+      user = appbuilder.sm.find_user('gamma')
+      resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
+      data = json.loads(resp)
+      self.assertEquals(1, len(data))
+      for (k, v) in data.items():
+          self.assertEquals(v['userId'], user.id)
+      self.logout()
 
-        # Test search queries on text
-        resp = self.get_resp('/caravel/search_queries?search_text=permission')
-        data = json.loads(resp)
-        self.assertEquals(1, len(data))
+    def test_search_query_on_status(self):
+      self.login('admin')
+      # Test search queries on status
+      resp = self.get_resp('/caravel/search_queries?status=success')
+      data = json.loads(resp)
+      self.assertEquals(2, len(data))
+      for k, v in data.items():
+          self.assertEquals(v['state'], "success")
 
-        self.logout()
+      resp = self.get_resp('/caravel/search_queries?status=failed')
+      data = json.loads(resp)
+      self.assertEquals(1, len(data))
+      for k, v in data.items():
+          self.assertEquals(v['state'], "failed")
+      self.logout()
+
+    def test_search_query_on_text(self):
+      self.login('admin')
+      resp = self.get_resp('/caravel/search_queries?search_text=permission')
+      data = json.loads(resp)
+      self.assertEquals(1, len(data))
+      for k, v in data.items():
+          assert 'permission' in v['sql']
+      self.logout()
+
+    def test_search_query_on_time(self):
+      self.login('admin')
+      first_query_time = db.session.query(models.Query).filter_by(
+          sql='SELECT * FROM ab_user').first().start_time
+      second_query_time = db.session.query(models.Query).filter_by(
+          sql='SELECT * FROM ab_permission').first().start_time
+      # Test search queries on time filter
+      from_time = 'from={}'.format(int(first_query_time))
+      to_time = 'to={}'.format(int(second_query_time))
+      params = [from_time, to_time]
+      resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
+      data = json.loads(resp)
+      self.assertEquals(2, len(data))
+      for k, v in data.items():
+          assert v['startDttm'] > int(first_query_time) \
+            and v['startDttm'] < int(second_query_time)
+      self.logout()
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
@@ -492,6 +522,6 @@ class CoreTests(CaravelTestCase):
         data = self.run_sql(sql, "admin", "fdaklj3ws")
         self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
 
-
 if __name__ == '__main__':
     unittest.main()
+
