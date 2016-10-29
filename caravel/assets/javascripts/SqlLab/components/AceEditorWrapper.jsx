@@ -31,24 +31,25 @@ class AceEditorWrapper extends React.PureComponent {
   onBlur() {
     this.props.onBlur(this.state.sql);
   }
+  getCompletions(aceEditor, session, pos, prefix, callback) {
+    let words = [];
+    const columns = {};
+    const tables = this.props.tables || [];
+    tables.forEach(t => {
+      words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
+      t.columns.forEach(col => {
+        columns[col.name] = null;  // using an object as a unique set
+      });
+    });
+    words = words.concat(Object.keys(columns).map(col => (
+      { name: col, value: col, score: 50, meta: 'column' }
+    )));
+    callback(null, words);
+  }
   setAutoCompleter() {
     // Loading table and column names as auto-completable words
     const completer = {
-      getCompletions: (aceEditor, session, pos, prefix, callback) => {
-        let words = [];
-        const columns = {};
-        const tables = this.props.tables || [];
-        tables.forEach(t => {
-          words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
-          t.columns.forEach(col => {
-            columns[col.name] = null;  // using an object as a unique set
-          });
-        });
-        words = words.concat(Object.keys(columns).map(col => (
-          { name: col, value: col, score: 50, meta: 'column' }
-        )));
-        callback(null, words);
-      },
+      getCompletions: this.getCompletions.bind(this),
     };
     if (langTools) {
       langTools.setCompleters([completer, langTools.keyWordCompleter]);
