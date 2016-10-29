@@ -138,11 +138,12 @@ export const table = {
 };
 export const defaultQueryEditor = {
   id: 'dfsadfs',
-  title: 'Untitled Query',
-  sql: 'SELECT *\nFROM\nWHERE',
-  latestQueryId: null,
   autorun: false,
   dbId: null,
+  latestQueryId: null,
+  selectedText: null,
+  sql: 'SELECT *\nFROM\nWHERE',
+  title: 'Untitled Query',
 };
 export const queries = [
   {

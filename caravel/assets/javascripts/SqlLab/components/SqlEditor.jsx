@@ -58,12 +58,13 @@ class SqlEditor extends React.PureComponent {
     this.startQuery(runAsync);
   }
   startQuery(runAsync = false, ctas = false) {
+    const qe = this.props.queryEditor;
     const query = {
-      dbId: this.props.queryEditor.dbId,
-      sql: this.props.queryEditor.sql,
-      sqlEditorId: this.props.queryEditor.id,
-      tab: this.props.queryEditor.title,
-      schema: this.props.queryEditor.schema,
+      dbId: qe.dbId,
+      sql: qe.selectedText ? qe.selectedText : qe.sql,
+      sqlEditorId: qe.id,
+      tab: qe.title,
+      schema: qe.schema,
       tempTableName: this.state.ctas,
       runAsync,
       ctas,
@@ -92,17 +93,23 @@ class SqlEditor extends React.PureComponent {
 
   render() {
     let runButtons = [];
+    let runText = 'Run Query';
+    let btnStyle = 'primary';
+    if (this.props.queryEditor.selectedText) {
+      runText = 'Run Selection';
+      btnStyle = 'warning';
+    }
     if (this.props.database && this.props.database.allow_run_sync) {
       runButtons.push(
         <Button
           bsSize="small"
-          bsStyle="primary"
+          bsStyle={btnStyle}
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, false)}
           disabled={!(this.props.queryEditor.dbId)}
           key="run-btn"
         >
-          <i className="fa fa-table" /> Run Query
+          <i className="fa fa-table" /> {runText}
         </Button>
       );
     }
@@ -110,7 +117,7 @@ class SqlEditor extends React.PureComponent {
       runButtons.push(
         <Button
           bsSize="small"
-          bsStyle="primary"
+          bsStyle={btnStyle}
           style={{ width: '100px' }}
           onClick={this.runQuery.bind(this, true)}
           disabled={!(this.props.queryEditor.dbId)}
@@ -209,6 +216,8 @@ class SqlEditor extends React.PureComponent {
           <Col md={9}>
             <AceEditorWrapper
               tables={this.props.tables}
+              actions={this.props.actions}
+              queryEditor={this.props.queryEditor}
               sql={this.props.queryEditor.sql}
               onBlur={this.setQueryEditorSql.bind(this)}
             />
