@@ -213,7 +213,7 @@ WARNING_MSG = None
 # Example:
 class CeleryConfig(object):
   BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
-  CELERY_IMPORTS = ('caravel.tasks', )
+  CELERY_IMPORTS = ('caravel.sql_lab', )
   CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
