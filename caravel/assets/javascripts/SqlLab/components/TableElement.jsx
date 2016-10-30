@@ -136,7 +136,6 @@ class TableElement extends React.PureComponent {
 
   render() {
     const table = this.props.table;
-
     let keyLink;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
@@ -146,13 +145,13 @@ class TableElement extends React.PureComponent {
               Keys for table <strong>{table.name}</strong>
             </div>
           }
-          modalBody={
-            <pre>{JSON.stringify(table.indexes, null, 4)}</pre>
-          }
+          modalBody={table.indexes.map((ix, i) => (
+            <pre key={i}>{JSON.stringify(ix, null, '  ')}</pre>
+          ))}
           triggerNode={
             <Link
               className="fa fa-key pull-left m-l-2"
-              tooltip={`View indexes (${table.indexes.length})`}
+              tooltip={`View keys & indexes (${table.indexes.length})`}
             />
           }
         />

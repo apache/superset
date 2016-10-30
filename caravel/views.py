@@ -1953,19 +1953,20 @@ class Caravel(BaseCaravelView):
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
                 mimetype="application/json")
-        indexed_columns = set()
-        for index in indexes:
-            indexed_columns |= set(index.get('column_names', []))
-        pk_cols = []
-        if primary_key:
-            pk_cols = set(primary_key.get('constrained_columns', []))
-            indexed_columns |= pk_cols
+        keys = []
+        if primary_key and primary_key.get('constrained_columns'):
+            primary_key['column_names'] = primary_key.pop('constrained_columns')
+            primary_key['type'] = 'pk'
+            keys += [primary_key]
+        for fk in foreign_keys:
+            fk['column_names'] = fk.pop('constrained_columns')
+            fk['type'] = 'fk'
+        keys += foreign_keys
+        for idx in indexes:
+            idx['type'] = 'index'
+        keys += indexes
 
         for col in t:
-            keys = []
-            col_name = col['name']
-            if primary_key and col_name in pk_cols:
-                keys.append({ 'type': 'pk', 'columns': pk_cols })
             dtype = ""
             try:
                 dtype = '{}'.format(col['type'])
@@ -1975,17 +1976,19 @@ class Caravel(BaseCaravelView):
                 'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
-                'indexed': col['name'] in indexed_columns,
-                'pk': col['name'] in pk_cols,
+                'keys': [
+                    k for k in keys
+                    if col['name'] in k.get('column_names')
+                ],
             })
         tbl = {
             'name': table_name,
             'columns': cols,
             'selectStar': mydb.select_star(
                 table_name, schema=schema, show_cols=True, indent=True),
-            'indexes': indexes,
             'primaryKey': primary_key,
             'foreignKeys': foreign_keys,
+            'indexes': keys,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
 

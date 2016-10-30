@@ -54,12 +54,42 @@ export const table = {
       longType: 'INTEGER(11)',
       type: 'INTEGER',
       name: 'id',
+      keys: [
+        {
+          column_names: ['id'],
+          type: 'pk',
+          name: null,
+        },
+      ],
     },
     {
       indexed: false,
       longType: 'VARCHAR(64)',
       type: 'VARCHAR',
       name: 'first_name',
+      keys: [
+        {
+          column_names: [
+            'first_name',
+          ],
+          name: 'slices_ibfk_1',
+          referred_columns: [
+            'id',
+          ],
+          referred_table: 'datasources',
+          type: 'fk',
+          referred_schema: 'carapal',
+          options: {},
+        },
+        {
+          unique: false,
+          column_names: [
+            'druid_datasource_id',
+          ],
+          type: 'index',
+          name: 'druid_datasource_id',
+        },
+      ],
     },
     {
       indexed: false,

@@ -519,6 +519,15 @@ class CoreTests(CaravelTestCase):
         data = self.run_sql(sql, "admin", "fdaklj3ws")
         self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
 
+    def test_table_metadata(self):
+        dbid = self.get_main_database(db.session).id
+        data = self.get_json_resp(
+            "/caravel/table/{}/ab_user/null/".format(dbid))
+        self.assertEqual(data['name'], 'ab_user')
+        assert len(data['columns']) > 5
+        assert data.get('selectStar').startswith('SELECT')
+
+
 if __name__ == '__main__':
     unittest.main()
 
