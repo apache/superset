@@ -208,6 +208,7 @@ class SqlEditor extends React.PureComponent {
           </Col>
           <Col md={9}>
             <AceEditorWrapper
+              tables={this.props.tables}
               sql={this.props.queryEditor.sql}
               onBlur={this.setQueryEditorSql.bind(this)}
             />
