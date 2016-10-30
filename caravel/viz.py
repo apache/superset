@@ -652,7 +652,7 @@ class CalHeatmapViz(BaseViz):
     """Calendar heatmap."""
 
     viz_type = "cal_heatmap"
-    verbose_name = _("Calender Heatmap")
+    verbose_name = _("Calendar Heatmap")
     credits = (
         '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
     is_timeseries = True

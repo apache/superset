@@ -180,7 +180,7 @@ class DruidTests(CaravelTestCase):
         # checking twice to make sure a second sync yields the same results
         check()
 
-        # datasource exists, add new metrics and dimentions
+        # datasource exists, add new metrics and dimensions
         cfg = {
             "user": "admin",
             "cluster": CLUSTER_NAME,

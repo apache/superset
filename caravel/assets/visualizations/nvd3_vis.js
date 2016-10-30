@@ -71,7 +71,7 @@ function nvd3Vis(slice) {
       function calculateStretchMargins(payloadData) {
         let stretchMargin = 0;
         const pixelsPerCharX = 4.5; // approx, depends on font size
-        let maxLabelSize = 10; // accomodate for shorter labels
+        let maxLabelSize = 10; // accommodate for shorter labels
         payloadData.data.forEach((d) => {
           const axisLabels = d.values;
           for (let i = 0; i < axisLabels.length; i++) {
