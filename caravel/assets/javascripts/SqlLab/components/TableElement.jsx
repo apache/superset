@@ -5,6 +5,7 @@ import shortid from 'shortid';
 
 import CopyToClipboard from '../../components/CopyToClipboard';
 import Link from './Link';
+import ColumnElement from './ColumnElement';
 import ModalTrigger from '../../components/ModalTrigger';
 
 const propTypes = {
@@ -119,21 +120,9 @@ class TableElement extends React.PureComponent {
         <div>
           {this.renderHeader()}
           <div className="table-columns">
-            {cols && cols.map((col) => {
-              let name = col.name;
-              if (col.indexed) {
-                name = <strong>{col.name}</strong>;
-              }
-              return (
-                <div className="clearfix table-column" key={shortid.generate()}>
-                  <div className="pull-left m-l-10 col-name">
-                    {name}
-                  </div>
-                  <div className="pull-right text-muted">
-                    <small> {col.type}</small>
-                  </div>
-                </div>);
-            })}
+            {cols && cols.map(col => (
+              <ColumnElement column={col} key={col.name} />
+            ))}
             <hr />
           </div>
         </div>
