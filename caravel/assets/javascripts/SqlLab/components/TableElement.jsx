@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { ButtonGroup, Well } from 'react-bootstrap';
+import { ButtonGroup, Collapse, Well } from 'react-bootstrap';
 import shortid from 'shortid';
 
 import CopyToClipboard from '../../components/CopyToClipboard';
@@ -10,11 +10,13 @@ import ModalTrigger from '../../components/ModalTrigger';
 const propTypes = {
   table: React.PropTypes.object,
   actions: React.PropTypes.object,
+  timeout: React.PropTypes.integer,  // used for tests
 };
 
 const defaultProps = {
-  table: null,
   actions: {},
+  table: null,
+  timeout: 500,
 };
 
 class TableElement extends React.PureComponent {
@@ -22,6 +24,7 @@ class TableElement extends React.PureComponent {
     super(props);
     this.state = {
       sortColumns: false,
+      expanded: true,
     };
   }
 
@@ -36,18 +39,17 @@ class TableElement extends React.PureComponent {
     this.props.actions.addQueryEditor(qe);
   }
 
-  collapseTable(e) {
+  toggleTable(e) {
     e.preventDefault();
-    this.props.actions.collapseTable(this.props.table);
-  }
-
-  expandTable(e) {
-    e.preventDefault();
-    this.props.actions.expandTable(this.props.table);
+    if (this.props.table.expanded) {
+      this.props.actions.collapseTable(this.props.table);
+    } else {
+      this.props.actions.expandTable(this.props.table);
+    }
   }
 
   removeTable() {
-    this.props.actions.removeTable(this.props.table);
+    this.setState({ expanded: false });
   }
   dataPreviewModal() {
     const query = {
@@ -65,11 +67,8 @@ class TableElement extends React.PureComponent {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
 
-  render() {
+  renderHeader() {
     const table = this.props.table;
-    let metadata = null;
-    let buttonToggle;
-
     let header;
     if (table.partitions) {
       let partitionQuery;
@@ -101,25 +100,26 @@ class TableElement extends React.PureComponent {
         </Well>
       );
     }
-    if (table.expanded) {
-      buttonToggle = (
-        <a
-          href="#"
-          onClick={(e) => { this.collapseTable(e); }}
-        >
-          <strong>{table.name}</strong>
-          <small className="m-l-5"><i className="fa fa-minus" /></small>
-        </a>
-      );
-      const cols = table.columns.slice();
+    return header;
+  }
+  renderMetadata() {
+    const table = this.props.table;
+    let cols;
+    if (table.columns) {
+      cols = table.columns.slice();
       if (this.state.sortColumns) {
         cols.sort((a, b) => a.name.toUpperCase() > b.name.toUpperCase());
       }
-      metadata = (
+    }
+    const metadata = (
+      <Collapse
+        in={table.expanded}
+        timeout={this.props.timeout}
+      >
         <div>
-          {header}
+          {this.renderHeader()}
           <div className="table-columns">
-            {cols.map((col) => {
+            {cols && cols.map((col) => {
               let name = col.name;
               if (col.indexed) {
                 name = <strong>{col.name}</strong>;
@@ -137,18 +137,17 @@ class TableElement extends React.PureComponent {
             <hr />
           </div>
         </div>
-      );
-    } else {
-      buttonToggle = (
-        <a
-          href="#"
-          onClick={(e) => { this.expandTable(e); }}
-        >
-          {table.name}
-          <small className="m-l-5"><i className="fa fa-plus" /></small>
-        </a>
-      );
-    }
+      </Collapse>
+    );
+    return metadata;
+  }
+  removeFromStore() {
+    this.props.actions.removeTable(this.props.table);
+  }
+
+  render() {
+    const table = this.props.table;
+
     let keyLink;
     if (table.indexes && table.indexes.length > 0) {
       keyLink = (
@@ -171,52 +170,70 @@ class TableElement extends React.PureComponent {
       );
     }
     return (
-      <div className="TableElement">
-        <div className="clearfix">
-          <div className="pull-left">
-            {buttonToggle}
-          </div>
-          <div className="pull-right">
-            <ButtonGroup className="ws-el-controls pull-right">
-              {keyLink}
-              <Link
-                className={
-                  `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
-                  'pull-left sort-cols m-l-2'}
-                onClick={this.toggleSortColumns.bind(this)}
-                tooltip={
-                  !this.state.sortColumns ?
-                  'Sort columns alphabetically' :
-                  'Original table column order'}
+      <Collapse
+        in={this.state.expanded}
+        timeout={this.props.timeout}
+        transitionAppear
+        onExited={this.removeFromStore.bind(this)}
+      >
+        <div className="TableElement">
+          <div className="clearfix">
+            <div className="pull-left">
+              <a
                 href="#"
-              />
-              <Link
-                className="fa fa-search-plus pull-left m-l-2"
-                onClick={this.dataPreviewModal.bind(this)}
-                tooltip="Data preview"
-                href="#"
-              />
-              <CopyToClipboard
-                copyNode={
-                  <a className="fa fa-clipboard pull-left m-l-2" />
+                className="table-name"
+                onClick={(e) => { this.toggleTable(e); }}
+              >
+                <strong>{table.name}</strong>
+                <small className="m-l-5">
+                  <i className={`fa fa-${table.expanded ? 'minus' : 'plus'}-square-o`} />
+                </small>
+              </a>
+            </div>
+            <div className="pull-right">
+              <ButtonGroup className="ws-el-controls pull-right">
+                {keyLink}
+                <Link
+                  className={
+                    `fa fa-sort-${!this.state.sortColumns ? 'alpha' : 'numeric'}-asc ` +
+                    'pull-left sort-cols m-l-2'}
+                  onClick={this.toggleSortColumns.bind(this)}
+                  tooltip={
+                    !this.state.sortColumns ?
+                    'Sort columns alphabetically' :
+                    'Original table column order'}
+                  href="#"
+                />
+                <Link
+                  className="fa fa-search-plus pull-left m-l-2"
+                  onClick={this.dataPreviewModal.bind(this)}
+                  tooltip="Data preview"
+                  href="#"
+                />
+                {table.selectStar &&
+                  <CopyToClipboard
+                    copyNode={
+                      <a className="fa fa-clipboard pull-left m-l-2" />
+                    }
+                    text={table.selectStar}
+                    shouldShowText={false}
+                    tooltipText="Copy SELECT statement to clipboard"
+                  />
                 }
-                text={table.selectStar}
-                shouldShowText={false}
-                tooltipText="Copy SELECT statement to clipboard"
-              />
-              <Link
-                className="fa fa-trash pull-left m-l-2"
-                onClick={this.removeTable.bind(this)}
-                tooltip="Remove from panel"
-                href="#"
-              />
-            </ButtonGroup>
+                <Link
+                  className="fa fa-trash table-remove pull-left m-l-2"
+                  onClick={this.removeTable.bind(this)}
+                  tooltip="Remove from panel"
+                  href="#"
+                />
+              </ButtonGroup>
+            </div>
+          </div>
+          <div>
+            {this.renderMetadata()}
           </div>
         </div>
-        <div>
-          {metadata}
-        </div>
-      </div>
+      </Collapse>
     );
   }
 }

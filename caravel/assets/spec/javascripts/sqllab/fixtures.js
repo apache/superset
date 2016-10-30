@@ -1,3 +1,8 @@
+import * as actions from '../../../javascripts/SqlLab/actions';
+import sinon from 'sinon';
+
+export const mockedActions = sinon.stub(Object.assign({}, actions));
+
 export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
@@ -6,6 +11,11 @@ export const table = {
   schema: 'caravel',
   name: 'ab_user',
   id: 'r11Vgt60',
+  partitions: {
+    cols: ['username'],
+    latest: 'bob',
+    partitionQuery: 'SHOW PARTITIONS FROM ab_user',
+  },
   indexes: [
     {
       unique: true,

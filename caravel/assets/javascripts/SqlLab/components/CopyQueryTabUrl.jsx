@@ -3,11 +3,7 @@ import CopyToClipboard from '../../components/CopyToClipboard';
 import { getShortUrl } from '../../../utils/common';
 
 const propTypes = {
-  queryEditor: React.PropTypes.object,
-};
-
-const defaultProps = {
-  queryEditor: null,
+  queryEditor: React.PropTypes.object.isRequired,
 };
 
 export default class CopyQueryTabUrl extends React.PureComponent {
@@ -19,8 +15,8 @@ export default class CopyQueryTabUrl extends React.PureComponent {
   }
 
   componentWillMount() {
-    const params = [];
     const qe = this.props.queryEditor;
+    const params = [];
     if (qe.dbId) params.push('dbid=' + qe.dbId);
     if (qe.title) params.push('title=' + encodeURIComponent(qe.title));
     if (qe.schema) params.push('schema=' + encodeURIComponent(qe.schema));
@@ -52,4 +48,3 @@ export default class CopyQueryTabUrl extends React.PureComponent {
 }
 
 CopyQueryTabUrl.propTypes = propTypes;
-CopyQueryTabUrl.defaultProps = defaultProps;

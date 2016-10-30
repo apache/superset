@@ -65,7 +65,7 @@ class BaseEngineSpec(object):
 
 
 class PostgresEngineSpec(BaseEngineSpec):
-    engine = 'postgres'
+    engine = 'postgresql'
 
     time_grains = (
         Grain("Time Column", _('Time Column'), "{col}"),
