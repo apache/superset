@@ -23,9 +23,9 @@ function getSectionsToRender(vizSections) {
 
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
-    this.props.state.datasourceId
-    if (this.props.state.datasourceId) {
-      this.props.actions.setFormOpts(this.props.state.datasourceId, this.props.state.datasourceType);
+    const { datasourceId, datasourceType, actions } = this.props;
+    if (datasourceId) {
+      actions.setFormOpts(datasourceId, datasourceType);
     }
   }
 
@@ -33,7 +33,7 @@ class ControlPanelsContainer extends React.Component {
     const viz = visTypes[this.props.vizType];
     const sectionsToRender = getSectionsToRender(viz.controlPanelSections);
     return (
-      <div className="panel panel-default">
+      <Panel>
         <div className="scrollbar-container">
           <div className="scrollbar-content">
             {sectionsToRender.map((section) => {
@@ -51,7 +51,7 @@ class ControlPanelsContainer extends React.Component {
            {/* TODO: add filters section */}
           </div>
         </div>
-      </div>
+      </Panel>
     );
   }
 }
@@ -61,7 +61,8 @@ ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    state: state,
+    datasourceId: state.datasourceId,
+    datasourceType: state.datasourceType,
     vizType: state.viz.formData.vizType,
   };
 }

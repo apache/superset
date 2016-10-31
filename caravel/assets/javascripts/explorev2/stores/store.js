@@ -153,19 +153,21 @@ export const commonControlPanelSections = {
 export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
-    controlPanelSections: [{
-      label: 'Chart Options',
-      description: 'tooltip text here',
-      fieldSetRows: [
-        ['columns'],
-        ['row_limit'],
-        ['show_legend', 'show_bar_value', 'bar_stacked'],
-        ['y_axis_format', 'bottom_margin'],
-        ['x_axis_label', 'y_axis_label'],
-        ['reduce_x_ticks', 'contribution'],
-        ['show_controls'],
-      ],
-    }],
+    controlPanelSections: [
+      {
+        label: 'Chart Options',
+        description: 'tooltip text here',
+        fieldSetRows: [
+          ['columns'],
+          ['row_limit'],
+          ['show_legend', 'show_bar_value', 'bar_stacked'],
+          ['y_axis_format', 'bottom_margin'],
+          ['x_axis_label', 'y_axis_label'],
+          ['reduce_x_ticks', 'contribution'],
+          ['show_controls'],
+        ],
+      }
+    ],
     fieldSetOverrides: {
       groupby: {
         label: 'Series'
