@@ -32,8 +32,7 @@ export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
-export const HIDE_DATA_PREVIEW = 'HIDE_DATA_PREVIEW';
-export const CLOSE_DATA_PREVIEW = 'CLOSE_DATA_PREVIEW';
+export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -66,12 +65,8 @@ export function clearQueryResults(query) {
   return { type: CLEAR_QUERY_RESULTS, query };
 }
 
-export function hideDataPreview() {
-  return { type: HIDE_DATA_PREVIEW };
-}
-
-export function closeDataPreview(dataPreviewQueryId) {
-  return { type: CLOSE_DATA_PREVIEW, dataPreviewQueryId };
+export function removeDataPreview(table) {
+  return { type: REMOVE_DATA_PREVIEW, table };
 }
 
 export function requestQueryResults(query) {
@@ -209,21 +204,33 @@ export function queryEditorSetSelectedText(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
 
-export function mergeTable(table) {
-  return { type: MERGE_TABLE, table };
+export function mergeTable(table, query) {
+  return { type: MERGE_TABLE, table, query };
 }
 
 export function addTable(query, tableName) {
   return function (dispatch) {
     let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
     $.get(url, (data) => {
-      dispatch(
-        mergeTable(Object.assign(data, {
+      const dataPreviewQuery = {
+        dbId: query.dbId,
+        sql: data.selectStar,
+        tableName,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: false,
+        ctas: false,
+      };
+      // Run query to get preview data for table
+      dispatch(runQuery(dataPreviewQuery));
+      // Merge table to tables in state
+      dispatch(mergeTable(
+        Object.assign(data, {
           dbId: query.dbId,
           queryEditorId: query.id,
           schema: query.schema,
           expanded: true,
-        }))
+        }), dataPreviewQuery)
       );
     })
     .fail(() => {

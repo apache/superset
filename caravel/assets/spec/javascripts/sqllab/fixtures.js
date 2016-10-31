@@ -11,6 +11,7 @@ export const table = {
   schema: 'caravel',
   name: 'ab_user',
   id: 'r11Vgt60',
+  dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
     latest: 'bob',
@@ -255,8 +256,8 @@ export const initialState = {
   queryEditors: [defaultQueryEditor],
   tabHistory: [defaultQueryEditor.id],
   tables: [],
+  workspaceQueries: [],
   queriesLastUpdate: 0,
-  dataPreviewQueryIds: [],
   activeSouthPaneTab: 'Results',
 };
 

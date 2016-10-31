@@ -5,32 +5,33 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import React from 'react';
+import { areArraysShallowEqual } from '../../reduxUtils';
 
 import shortid from 'shortid';
 
-// editorQueries are queries executed by users
-// passed from SqlEditor component
-// queries are all queries executed
-// passed from global state for the purpose of data preview tabs
+/*
+    editorQueries are queries executed by users passed from SqlEditor component
+    dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
+*/
 const propTypes = {
   editorQueries: React.PropTypes.array.isRequired,
-  queries: React.PropTypes.object.isRequired,
+  dataPreviewQueries: React.PropTypes.array.isRequired,
   actions: React.PropTypes.object.isRequired,
-  dataPreviewQueryIds: React.PropTypes.array,
   activeSouthPaneTab: React.PropTypes.string,
 };
 
 const defaultProps = {
-  dataPreviewQueryIds: [],
   activeSouthPaneTab: 'Results',
 };
 
 class SouthPane extends React.PureComponent {
-  closeDataPreviewTab(id) {
-    this.props.actions.closeDataPreview(id);
-  }
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
+  }
+  shouldComponentUpdate(nextProps) {
+    return !areArraysShallowEqual(this.props.editorQueries, nextProps.editorQueries)
+      || !areArraysShallowEqual(this.props.dataPreviewQueries, nextProps.dataPreviewQueries)
+      || this.props.activeSouthPaneTab !== nextProps.activeSouthPaneTab;
   }
   render() {
     let latestQuery;
@@ -47,24 +48,15 @@ class SouthPane extends React.PureComponent {
       results = <Alert bsStyle="info">Run a query to display results here</Alert>;
     }
 
-    const dataPreviewTabs = props.dataPreviewQueryIds.map((id) => {
-      const query = props.queries[id];
-      const tabTitle = (
-        <div>
-          {query.tableName}
-          <i className="fa fa-close" onClick={this.closeDataPreviewTab.bind(this, id)} />
-        </div>
-      );
-      return (
-        <Tab
-          title={tabTitle}
-          eventKey={id}
-          key={id}
-        >
-          <ResultSet query={query} visualize={false} csv={false} actions={props.actions} />
-        </Tab>
-      );
-    });
+    const dataPreviewTabs = props.dataPreviewQueries.map((query) => (
+      <Tab
+        title={query.tableName}
+        eventKey={query.id}
+        key={query.id}
+      >
+        <ResultSet query={query} visualize={false} csv={false} actions={props.actions} />
+      </Tab>
+    ));
 
     return (
       <div className="SouthPane">
@@ -97,9 +89,7 @@ class SouthPane extends React.PureComponent {
 
 function mapStateToProps(state) {
   return {
-    dataPreviewQueryIds: state.dataPreviewQueryIds,
     activeSouthPaneTab: state.activeSouthPaneTab,
-    queries: state.queries,
   };
 }
 

@@ -23,7 +23,6 @@ export const initialState = {
   tabHistory: [defaultQueryEditor.id],
   tables: [],
   queriesLastUpdate: 0,
-  dataPreviewQueryIds: [],
   activeSouthPaneTab: 'Results',
 };
 
@@ -86,29 +85,29 @@ export const sqlLabReducer = function (state, action) {
         }
       });
       if (existingTable) {
+        if (action.query) {
+          at.dataPreviewQueryId = action.query.id;
+        }
         return alterInArr(state, 'tables', existingTable, at);
       }
       at.id = shortid.generate();
-      return addToArr(state, 'tables', at);
+      // for new table, associate Id of query for data preview
+      at.dataPreviewQueryId = null;
+      let newState = addToArr(state, 'tables', at);
+      if (action.query) {
+        newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });
+      }
+      return newState;
     },
     [actions.EXPAND_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: true });
     },
-    [actions.CLOSE_DATA_PREVIEW]() {
+    [actions.REMOVE_DATA_PREVIEW]() {
       const queries = Object.assign({}, state.queries);
-      const newDataPreviewQueryIds = [];
-      delete queries[action.dataPreviewQueryId];
-      state.dataPreviewQueryIds.forEach((id) => {
-        if (action.dataPreviewQueryId !== id) {
-          newDataPreviewQueryIds.push(id);
-        }
-      });
+      delete queries[action.table.dataPreviewQueryId];
+      const newState = alterInArr(state, 'tables', action.table, { dataPreviewQueryId: null });
       return Object.assign(
-        {}, state, {
-          queries,
-          dataPreviewQueryIds: newDataPreviewQueryIds,
-          activeSouthPaneTab: 'Results',
-        });
+       {}, newState, { queries });
     },
     [actions.COLLAPSE_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: false });
@@ -126,9 +125,6 @@ export const sqlLabReducer = function (state, action) {
           newState = Object.assign({}, state, { queries });
         }
       } else {
-        const newIds = state.dataPreviewQueryIds;
-        newIds.push(action.query.id);
-        newState.dataPreviewQueryIds = newIds;
         newState.activeSouthPaneTab = action.query.id;
       }
       newState = addToObject(newState, 'queries', action.query);

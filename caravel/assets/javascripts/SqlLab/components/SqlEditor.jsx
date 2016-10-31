@@ -25,7 +25,8 @@ const propTypes = {
   latestQuery: React.PropTypes.object,
   networkOn: React.PropTypes.bool,
   tables: React.PropTypes.array.isRequired,
-  queries: React.PropTypes.array.isRequired,
+  editorQueries: React.PropTypes.array.isRequired,
+  dataPreviewQueries: React.PropTypes.array.isRequired,
   queryEditor: React.PropTypes.object.isRequired,
 };
 
@@ -225,7 +226,8 @@ class SqlEditor extends React.PureComponent {
             {editorBottomBar}
             <br />
             <SouthPane
-              editorQueries={this.props.queries}
+              editorQueries={this.props.editorQueries}
+              dataPreviewQueries={this.props.dataPreviewQueries}
               actions={this.props.actions}
             />
           </Col>
