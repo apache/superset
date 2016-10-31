@@ -1599,7 +1599,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             "time_columns": [
                 'all', '5 seconds', '30 seconds', '1 minute',
                 '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
-                'week_ending_saturday',
+                'week', 'week_starting_sunday', 'week_ending_saturday',
             ],
             "time_grains": ['now']
         }
@@ -1806,21 +1806,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
         This query interface is common to SqlAlchemy and Druid
         """
-        def get_sunday_dttm(dt):
-            idx = (dt.weekday() + 1) % 7
-            return dt - timedelta(idx)
-
         # TODO refactor into using a TBD Query object
         qry_start_dttm = datetime.now()
 
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
-
-        time_offset = 0
-        if granularity == "week_ending_saturday":
-            time_offset = utils.parse_human_timedelta(
-                "6 days").total_seconds() * 1000
-            granularity = "week"
 
         # add tzinfo to native datetime with config
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
@@ -1879,6 +1869,15 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
             )
 
+        time_offset = 0
+
+        period_granularies = {
+            'week', 'week_ending_saturday', 'week_starting_sunday'}
+
+        if granularity != "all" and granularity not in period_granularies:
+            granularity = utils.parse_human_timedelta(
+                granularity).total_seconds() * 1000
+
         granularity = granularity or "all"
         if not isinstance(granularity, string_types):
             granularity = {"type": "duration", "duration": granularity}
@@ -1886,11 +1885,15 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             if origin:
                 dttm = utils.parse_human_datetime(origin)
                 granularity['origin'] = dttm.isoformat()
-        elif granularity == 'week':
-            granularity = 'week'
-        elif granularity != "all":
-            granularity = utils.parse_human_timedelta(
-                granularity).total_seconds() * 1000
+        elif granularity in period_granularies:
+            origin = None
+            if granularity in ('week_ending_saturday', 'week_starting_sunday'):
+                origin = "2016-01-03T00:00:00"
+            if granularity == "week_ending_saturday":
+                time_offset = 6 * 24 * 3600 * 1000  # 6 days
+            granularity = {"type": "period", "period": "P1W"}
+            if origin:
+                granularity['origin'] = origin
 
         qry = dict(
             datasource=self.datasource_name,
@@ -2003,12 +2006,18 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         cols += [col for col in metrics if col in df.columns]
         df = df[cols]
 
+        print(df.columns)
+        print('time_offset: {}'.format(time_offset))
+        print('before')
+        print(df['timestamp'])
         if 'timestamp' in df.columns and time_offset:
             for i in range(len(df['timestamp'])):
                 dt = utils.parse_human_datetime(df['timestamp'][i])
                 dt = dt + timedelta(milliseconds=time_offset)
                 print(dt.weekday())
                 df.set_value(i, 'timestamp', dt.isoformat())
+        print('after')
+        print(df['timestamp'])
 
         return QueryResult(
             df=df,
