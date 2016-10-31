@@ -82,7 +82,7 @@ const SQLA_FILTER_OPTIONS = ['in', 'not in', 'regex'];
 
 const DRUID_FILTER_OPTIONS = SQLA_FILTER_OPTIONS.push('regex');
 
-const DRUID_HAVING_OPTIONS = ['==', '!=', '>', '<', '>=', '<=']
+const DRUID_HAVING_OPTIONS = ['==', '!=', '>', '<', '>=', '<='];
 
 export const FIELD_CHOICES_OPTIONS = {
   D3_TIME_FORMAT_OPTIONS,
@@ -92,7 +92,7 @@ export const FIELD_CHOICES_OPTIONS = {
   SQLA_FILTER_OPTIONS,
   DRUID_FILTER_OPTIONS,
   DRUID_HAVING_OPTIONS
-}
+};
 
 export const commonControlPanelSections = {
   druidTimeSeries: {
@@ -134,18 +134,18 @@ export const commonControlPanelSections = {
   NVD3TimeSeries: [
     {
       label: null,
-      fieldsSetRows: [
+      fieldSetRows: [
         ['metrics'],
         ['groupby'],
         ['limit', 'timeseries_limit_metric'],
       ],
     },
     {
-      label: 'Advanced Analytics'),
+      label: 'Advanced Analytics',
       description: 'This section contains options ' +
                    'that allow for advanced analytical post processing ' +
                     'of query results',
-      fieldsSetRows: [
+      fieldSetRows: [
           ['rolling_type', 'rolling_periods'],
           ['time_compare'],
           ['num_period_compare', 'period_ratio_type'],
@@ -156,7 +156,6 @@ export const commonControlPanelSections = {
   ],
 };
 
-// todo: add fieldSetRows and fieldSetOverrides from viz.py for the rest of the viz types
 export const visTypes = {
   dist_bar: {
     label: 'Distribution - Bar Chart',
@@ -204,10 +203,10 @@ export const visTypes = {
     label: 'Time Series - Line Chart',
     requiresTime: true,
     controlPanelSections: [
-      commonControlPanelSections[NVD3TimeSeries][0],
+      commonControlPanelSections.NVD3TimeSeries[0],
       {
         label: 'Chart Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['show_brush', 'show_legend'],
           ['rich_tooltip', 'y_axis_zero'],
           ['y_log_scale', 'contribution'],
@@ -217,7 +216,7 @@ export const visTypes = {
           ['x_axis_label', 'y_axis_label'],
         ],
       },
-      commonControlPanelSections[NVD3TimeSeries][1],
+      commonControlPanelSections.NVD3TimeSeries[1],
     ],
   },
 
@@ -225,10 +224,10 @@ export const visTypes = {
     label: 'Time Series - Bar Chart',
     requiresTime: true,
     controlPanelSections: [
-      commonControlPanelSections[NVD3TimeSeries][0],
+      commonControlPanelSections.NVD3TimeSeries[0],
       {
         label: 'Chart Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['show_brush', 'show_legend', 'show_bar_value'],
           ['rich_tooltip', 'y_axis_zero'],
           ['y_log_scale', 'contribution'],
@@ -239,7 +238,7 @@ export const visTypes = {
           ['reduce_x_ticks', 'show_controls'],
         ],
       },
-      commonControlPanelSections[NVD3TimeSeries][1],
+      commonControlPanelSections.NVD3TimeSeries[1],
     ],
   },
 
@@ -247,8 +246,8 @@ export const visTypes = {
     label: 'Time Series - Percent Change',
     requiresTime: true,
     controlPanelSections: [
-      commonControlPanelSections[NVD3TimeSeries][0],
-      commonControlPanelSections[NVD3TimeSeries][1],
+      commonControlPanelSections.NVD3TimeSeries[0],
+      commonControlPanelSections.NVD3TimeSeries[1],
     ],
   },
 
@@ -256,10 +255,10 @@ export const visTypes = {
     label: 'Time Series - Stacked',
     requiresTime: true,
     controlPanelSections: [
-      commonControlPanelSections[NVD3TimeSeries][0],
+      commonControlPanelSections.NVD3TimeSeries[0],
       {
         label: 'Chart Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['show_brush', 'show_legend'],
           ['rich_tooltip', 'y_axis_zero'],
           ['y_log_scale', 'contribution'],
@@ -268,7 +267,7 @@ export const visTypes = {
           ['line_interpolation', 'stacked_style'],
         ],
       },
-      commonControlPanelSections[NVD3TimeSeries][1],
+      commonControlPanelSections.NVD3TimeSeries[1],
     ],
   },
 
@@ -284,14 +283,14 @@ export const visTypes = {
       },
       {
         label: 'NOT GROUPED BY',
-        description: 'Use this section if you want to query atomic rows'),
+        description: 'Use this section if you want to query atomic rows',
         fieldSetRows: [
           ['all_columns', 'order_by_cols'],
         ],
       },
       {
         label: 'Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['table_timestamp_format'],
           ['row_limit'],
           ['include_search'],
@@ -305,8 +304,8 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
-          ['markup_type', 'code']
+        fieldSetRows: [
+          ['markup_type', 'code'],
         ],
       },
     ]
@@ -320,9 +319,9 @@ export const visTypes = {
         'fieldSetRows': [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
-        ]
-      }
-    ]
+        ],
+      },
+    ],
   },
 
   separator: {
@@ -332,17 +331,18 @@ export const visTypes = {
         'label': null,
         'fieldSetRows': [
           ['code'],
-        ]
-      }
+        ],
+      },
     ],
-    feildOverrides: {
+    fieldOverrides: {
       code: {
         default: '####Section Title\n' +
                  'A paragraph describing the section' +
                  'of the dashboard, right before the separator line ' +
                  '\n\n' +
                  '---------------',
-      }
+      },
+    },
   },
 
   word_cloud: {
@@ -350,10 +350,10 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
-            ['series', 'metric', 'limit'],
-            ['size_from', 'size_to'],
-            ['rotation'],
+        fieldSetRows: [
+          ['series', 'metric', 'limit'],
+          ['size_from', 'size_to'],
+          ['rotation'],
         ],
       },
     ],
@@ -364,16 +364,16 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['metrics'],
           ['groupby'],
         ],
       },
       {
         label: 'Chart Options',
-        fieldsSetRows: [
-            ['treemap_ratio'],
-            ['number_format'],
+        fieldSetRows: [
+          ['treemap_ratio'],
+          ['number_format'],
         ],
       },
     ],
@@ -385,10 +385,10 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fields: [
-            ['metric'],
-            ['domain_granularity'],
-            ['subdomain_granularity'],
+        fieldSetRows: [
+          ['metric'],
+          ['domain_granularity'],
+          ['subdomain_granularity'],
         ],
       },
     ],
@@ -406,9 +406,9 @@ export const visTypes = {
       },
       {
         label: 'Chart Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['whisker_options'],
-        ]
+        ],
       },
     ],
   },
@@ -418,7 +418,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['series', 'entity'],
           ['x', 'y'],
           ['size', 'limit'],
@@ -426,11 +426,11 @@ export const visTypes = {
       },
       {
         label: 'Chart Options',
-        fieldsSetRows: [
-            ['x_log_scale', 'y_log_scale'],
-            ['show_legend'],
-            ['max_bubble_size'],
-            ['x_axis_label', 'y_axis_label'],
+        fieldSetRows: [
+          ['x_log_scale', 'y_log_scale'],
+          ['show_legend'],
+          ['max_bubble_size'],
+          ['x_axis_label', 'y_axis_label'],
         ],
       },
     ],
@@ -441,21 +441,19 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['metric'],
           ['compare_lag'],
           ['compare_suffix'],
           ['y_axis_format'],
         ],
       },
-    ]
-    fieldOverrides: [
-      {
-        y_axis_format: {
-          label: 'Number format',
-        },
-      },
     ],
+    fieldOverrides: {
+      y_axis_format: {
+        label: 'Number format',
+      },
+    },
   },
 
   bubble: {
@@ -463,36 +461,36 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['metric'],
           ['subheader'],
           ['y_axis_format'],
         ],
       },
-    ]
+    ],
     fieldOverrides: {
       y_axis_format: {
         label: 'Number format',
       },
-    }
+    },
   },
 
   histogram: {
     label: 'Histogram',
     controlPanelSections: [
       {
-        'label': null,
-        'fields': [
+        label: null,
+        fieldSetRows: [
           ['all_columns_x'],
           ['row_limit'],
         ],
       },
       {
         label: 'Histogram Options',
-        fields: [
+        fieldSetRows: [
           ['link_length'],
-        ]
-      }
+        ],
+      },
     ],
     fieldOverrides: {
       all_columns_x: {
@@ -504,7 +502,7 @@ export const visTypes = {
         description: 'Select number of bins for the histogram',
         default: 5,
       },
-    }
+    },
   },
 
   sunburst: {
@@ -512,12 +510,12 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['groupby'],
           ['metric', 'secondary_metric'],
           ['row_limit'],
         ],
-      }
+      },
     ],
     fieldOverrides: {
       metric: {
@@ -542,7 +540,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['groupby'],
           ['metric'],
           ['row_limit'],
@@ -562,7 +560,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fields: [
+        fieldSetRows: [
           ['groupby'],
           ['metric'],
           ['row_limit'],
@@ -570,7 +568,7 @@ export const visTypes = {
       },
       {
         label: 'Force Layout',
-        fields: [
+        fieldSetRows: [
           ['link_length'],
           ['charge'],
         ],
@@ -581,6 +579,7 @@ export const visTypes = {
         label: 'Source / Target',
         description: 'Choose a source and a target',
       },
+    },
   },
 
   world_map: {
@@ -588,7 +587,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['entity'],
           ['country_fieldtype'],
           ['metric'],
@@ -596,13 +595,13 @@ export const visTypes = {
       },
       {
         label: 'Bubbles',
-        fields: [
+        fieldSetRows: [
           ['show_bubbles'],
           ['secondary_metric'],
           ['max_bubble_size'],
         ],
       },
-    ].
+    ],
     fieldOverrides: {
       entity: {
         label: 'Country Field',
@@ -624,19 +623,20 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fields: [
+        fieldSetRows: [
           ['date_filter'],
           ['groupby'],
           ['metric'],
         ],
       },
     ],
-    feildOverrides: {
+    fieldOverrides: {
       groupby: {
         label: 'Filter fields',
         description: 'The fields you want to filter on',
         default: [],
-      }
+      },
+    },
   },
 
   iframe: {
@@ -644,9 +644,9 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['url'],
-        ]
+        ],
       },
     ],
   },
@@ -656,7 +656,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['series'],
           ['metrics'],
           ['secondary_metric'],
@@ -672,15 +672,15 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fieldsSetRows: [
+        fieldSetRows: [
           ['all_columns_x'],
           ['all_columns_y'],
           ['metric'],
-        ]
+        ],
       },
       {
         label: 'Heatmap Options',
-        fieldsSetRows: [
+        fieldSetRows: [
           ['linear_color_scheme'],
           ['xscale_interval', 'yscale_interval'],
           ['canvas_image_rendering'],
@@ -693,11 +693,11 @@ export const visTypes = {
   horizon: {
     label: 'Horizon',
     controlPanelSections: [
-      commonControlPanelSections[NVD3TimeSeries][0],
+      commonControlPanelSections.NVD3TimeSeries[0],
       {
         label: 'Chart Options',
-        fieldsSetRows: [
-         ['series_height', 'horizon_color_scale'],
+        fieldSetRows: [
+          ['series_height', 'horizon_color_scale'],
         ],
       },
     ],
