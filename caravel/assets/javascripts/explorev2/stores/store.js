@@ -125,12 +125,6 @@ export const commonControlPanelSections = {
     ],
     description: 'This section exposes ways to include snippets of SQL in your query',
   },
-  defaultSection: {
-    label: null,
-    fieldSetRows: [
-      ['metrics', 'groupby']
-    ],
-  },
   NVD3TimeSeries: [
     {
       label: null,

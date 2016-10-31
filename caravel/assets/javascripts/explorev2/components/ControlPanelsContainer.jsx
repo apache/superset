@@ -16,8 +16,8 @@ const defaultProps = {
 };
 
 function getSectionsToRender(vizSections) {
-  const { defaultSection, datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const sectionsToRender = [datasourceAndVizType, defaultSection].concat(vizSections, sqlClause);
+  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const sectionsToRender = [datasourceAndVizType].concat(vizSections, sqlClause);
   return sectionsToRender;
 }
 
