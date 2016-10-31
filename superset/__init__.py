@@ -48,12 +48,12 @@ def cached_cls_func(timeout=5 * 60, key=None):
     def wrap(f):
         def wrapped_f(cls, *args, **kwargs):
             cache_key = key(*args)
-            rv = cache.get(cache_key)
-            if rv is not None:
-                return rv
-            rv = f(cls, *args, **kwargs)
-            cache.set(cache_key, rv, timeout=timeout)
-            return rv
+            o = cache.get(cache_key)
+            if o is not None:
+                return o
+            o = f(cls, *args, **kwargs)
+            cache.set(cache_key, o, timeout=timeout)
+            return o
         return wrapped_f
     return wrap
 
@@ -68,12 +68,12 @@ def cached_view(timeout=5 * 60, key='view/{}/{}'):
         def wrapped_f(self, *args, **kwargs):
             cache_key = key.format(
                 request.path, hash(frozenset(request.args.items())))
-            rv = cache.get(cache_key)
-            if rv is not None:
-                return rv
-            rv = f(self, *args, **kwargs)
-            cache.set(cache_key, rv, timeout=timeout)
-            return rv
+            o = cache.get(cache_key)
+            if o is not None:
+                return o
+            o = f(self, *args, **kwargs)
+            cache.set(cache_key, o, timeout=timeout)
+            return o
         return wrapped_f
     return wrap
 
