@@ -2,8 +2,17 @@ import React, { PropTypes } from 'react';
 import { Checkbox, FormGroup, ControlLabel, FieldGroup, FormControl } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
+const fieldTypes = [
+  'CheckboxField',
+  'SelectField',
+  'SelectCustomMultiField',
+  'SelectMultipleSortableField',
+  'TextField',
+  'IntegerField',
+];
+
 const propTypes = {
-  type: PropTypes.oneOf(FIELD_TYPES).isRequired,
+  type: PropTypes.oneOf(fieldTypes).isRequired,
   label: PropTypes.string.isRequired,
   defaultChoice: PropTypes.string.isRequired,
   choices: PropTypes.arrayOf(PropTypes.array),
