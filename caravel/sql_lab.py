@@ -10,7 +10,6 @@ from caravel import (
     app, db, models, utils, dataframe, results_backend)
 from caravel.db_engine_specs import LimitMethod
 from caravel.jinja_context import process_template
-from sqlalchemy.pool import NullPool
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -47,15 +46,9 @@ def create_table_as(sql, table_name, schema=None, override=False):
     return exec_sql.format(**locals())
 
 
-@celery_app.task(bind=True)
-def get_sql_results(self, query_id, return_results=True, store_results=False):
+@celery_app.task
+def get_sql_results(query_id, return_results=True, store_results=False):
     """Executes the sql query returns the results."""
-
-    # disable pooling for the celery task to prevent
-    # MySQL server gone issue.
-    if not self.request.called_directly:
-        db.engine.pool = NullPool(db.engine.create)
-
     session = db.session()
     session.commit()  # HACK
     query = session.query(models.Query).filter_by(id=query_id).one()
