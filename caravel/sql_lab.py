@@ -62,7 +62,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         session = session_class()
     else:
         session = db.session()
-    session.commit()  # HACK
+        session.commit()  # HACK
     query = session.query(models.Query).filter_by(id=query_id).one()
     database = query.database
     executed_sql = query.sql.strip().strip(';')
