@@ -271,6 +271,21 @@ class CoreTests(CaravelTestCase):
         assert "List Slice" in self.get_resp('/slicemodelview/list/')
         assert "List Dashboard" in self.get_resp('/dashboardmodelview/list/')
 
+    def test_gamma_slice_only_available_datasources(self):
+        self.login(username='gamma')
+        role = appbuilder.sm.find_role('Gamma')
+        self.add_table_permission_to_role(role, 'energy_usage')
+
+        table_id = self.table_ids.get('energy_usage')
+        url = '/caravel/explore/table/{}/'.format(table_id)
+        resp = self.client.get(url)
+        resp_data = resp.data.decode('utf-8')
+        assert 'birth_names' not in resp_data
+        assert 'energy_usage' in resp_data
+        assert url in resp_data
+
+        self.del_table_permission_to_role(role, 'energy_usage')
+
     def run_sql(self, sql, user_name, client_id):
         self.login(username=user_name)
         dbid = self.get_main_database(db.session).id

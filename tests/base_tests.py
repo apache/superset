@@ -176,3 +176,21 @@ class CaravelTestCase(unittest.TestCase):
             if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table_name in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
+
+    def find_table_access_perm(self, table_name):
+        perms = db.session.query(ab_models.PermissionView).all()
+        for perm in perms:
+            if (perm.permission.name == 'datasource_access' and
+                    perm.view_menu and table_name in perm.view_menu.name):
+                return perm
+        return None
+
+    def add_table_permission_to_role(self, role, table_name):
+        perm = self.find_table_access_perm(table_name)
+        if perm:
+            appbuilder.sm.add_permission_role(role, perm)
+
+    def del_table_permission_to_role(self, role, table_name):
+        perm = self.find_table_access_perm(table_name)
+        if perm:
+            appbuilder.sm.del_permission_role(role, perm)

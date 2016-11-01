@@ -1298,6 +1298,13 @@ class Caravel(BaseCaravelView):
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = db.session.query(datasource_class).all()
+        if not self.all_datasource_access():
+            available_datasources = [
+                d.id for d in datasources if self.datasource_access(d)
+            ]
+            datasources = db.session.query(datasource_class).filter(
+                datasource_class.id.in_(available_datasources)
+            )
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
 
         try:
