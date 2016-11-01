@@ -138,7 +138,7 @@ export function formatSelectOptionsForRange(start, end) {
 }
 
 export function formatSelectOptions(options) {
-  return options.map((opt) => {
-    return [opt, opt];
-  });
+  return options.map((opt) =>
+     [opt, opt]
+  );
 }

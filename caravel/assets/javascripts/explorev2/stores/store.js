@@ -91,7 +91,7 @@ export const FIELD_CHOICES_OPTIONS = {
   TIME_STAMP_OPTIONS,
   SQLA_FILTER_OPTIONS,
   DRUID_FILTER_OPTIONS,
-  DRUID_HAVING_OPTIONS
+  DRUID_HAVING_OPTIONS,
 };
 
 export const commonControlPanelSections = {
@@ -99,9 +99,9 @@ export const commonControlPanelSections = {
     label: 'Time',
     description: 'Time related form attributes',
     fieldSetRows: [
-      ['granularity', 'druid_time_origin']
-      ['since', 'until']
-    ]
+      ['granularity', 'druid_time_origin'],
+      ['since', 'until'],
+    ],
   },
   datasourceAndVizType: {
     label: 'Datasource & Chart Type',
@@ -114,14 +114,14 @@ export const commonControlPanelSections = {
     label: 'Time',
     description: 'Time related form attributes',
     fieldSetRows: [
-      ['granularity_sqla', 'time_grain_sqla']
-      ['since', 'until']
-    ]
+      ['granularity_sqla', 'time_grain_sqla'],
+      ['since', 'until'],
+    ],
   },
   sqlClause: {
     label: 'SQL',
     fieldSetRows: [
-      ['where', 'having']
+      ['where', 'having'],
     ],
     description: 'This section exposes ways to include snippets of SQL in your query',
   },
@@ -166,17 +166,17 @@ export const visTypes = {
           ['reduce_x_ticks', 'contribution'],
           ['show_controls'],
         ],
-      }
+      },
     ],
     fieldSetOverrides: {
       groupby: {
-        label: 'Series'
+        label: 'Series',
       },
       columns: {
         label: 'Breakdowns',
         description: 'Defines how each series is broken down',
       },
-    }
+    },
   },
 
   pie: {
@@ -271,7 +271,7 @@ export const visTypes = {
     label: 'Table View',
     controlPanelSections: [
       {
-        label:'GROUP BY',
+        label: 'GROUP BY',
         description: 'Use this section if you want a query that aggregates',
         fieldSetRows: [
           ['groupby', 'metrics'],
@@ -291,7 +291,7 @@ export const visTypes = {
           ['row_limit'],
           ['include_search'],
         ],
-      }
+      },
     ],
   },
 
@@ -304,15 +304,15 @@ export const visTypes = {
           ['markup_type', 'code'],
         ],
       },
-    ]
+    ],
   },
 
   pivot_table: {
     label: 'Pivot Table',
     controlPanelSections: [
       {
-        'label': null,
-        'fieldSetRows': [
+        label: null,
+        fieldSetRows: [
           ['groupby', 'columns'],
           ['metrics', 'pandas_aggfunc'],
         ],
@@ -324,8 +324,8 @@ export const visTypes = {
     label: 'Separator',
     controlPanelSections: [
       {
-        'label': null,
-        'fieldSetRows': [
+        label: null,
+        fieldSetRows: [
           ['code'],
         ],
       },
@@ -774,14 +774,14 @@ export const fieldSets = {
     label: 'Metrics',
     choices: ['todo'],
     default: ['todo'],
-    description: 'One or many metrics to display'
+    description: 'One or many metrics to display',
   },
 
   order_by_cols: {
     type: 'SelectMultipleSortableField',
     label: 'Ordering',
     choices: 'todo: order_by_choices',
-    description: 'One or many metrics to display'
+    description: 'One or many metrics to display',
   },
 
   metric: {
@@ -877,7 +877,7 @@ export const fieldSets = {
     type: 'CheckboxField',
     label: 'Stacked Bars',
     default: false,
-    description: ''
+    description: '',
   },
 
   show_markers: {
@@ -926,7 +926,7 @@ export const fieldSets = {
     label: 'Color Metric',
     choices: [],
     default: '',
-    description: 'A metric to use for color'
+    description: 'A metric to use for color',
   },
 
   country_fieldtype: {
@@ -947,21 +947,21 @@ export const fieldSets = {
     type: 'SelectMultipleSortableField',
     label: 'Group by',
     choices: [],
-    description: 'One or many fields to group by'
+    description: 'One or many fields to group by',
   },
 
   columns: {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
-    choices: [[1,1]],
-    description: 'One or many fields to pivot as columns'
+    choices: [[1, 1]],
+    description: 'One or many fields to pivot as columns',
   },
 
   all_columns: {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
     choices: [['all_columns', 'all_columns']],
-    description: 'Columns to display'
+    description: 'Columns to display',
   },
 
   all_columns_x: {
@@ -969,7 +969,7 @@ export const fieldSets = {
     label: 'X',
     choices: [['all_columns_x', 'all_columns_x']],
     default: '',
-    description: 'Columns to display'
+    description: 'Columns to display',
   },
 
   all_columns_y: {
@@ -977,7 +977,7 @@ export const fieldSets = {
     label: 'Y',
     choices: [['all_columns_y', 'all_columns_y']],
     default: '',
-    description: 'Columns to display'
+    description: 'Columns to display',
   },
 
   druid_time_origin: {
@@ -1025,7 +1025,7 @@ export const fieldSets = {
     label: 'Domain',
     default: 'month',
     choices: formatSelectOptions(['hour', 'day', 'week', 'month', 'year']),
-    description: 'The time unit used for the grouping of blocks'
+    description: 'The time unit used for the grouping of blocks',
   },
 
   subdomain_granularity: {
@@ -1079,7 +1079,7 @@ export const fieldSets = {
   time_grain: {
     label: 'Time Grain',
     choices: ['grains-choices'],
-    default:'Time Column',
+    default: 'Time Column',
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +
@@ -1122,7 +1122,7 @@ export const fieldSets = {
       '7 days ago',
       '28 days ago',
       '90 days ago',
-      '1 year ago'
+      '1 year ago',
     ]),
     description: 'Timestamp from filter. This supports free form typing and ' +
                  'natural language as in `1 day ago`, `28 days` or `3 years`',
@@ -1146,7 +1146,7 @@ export const fieldSets = {
     type: 'SelectField',
     label: 'Max Bubble Size',
     default: '25',
-    choices: formatSelectOptions(['5', '10', '15', '25', '50', '75','100'])
+    choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   whisker_options: {
@@ -1158,8 +1158,8 @@ export const fieldSets = {
       'Tukey',
       'Min/max (no outliers)',
       '2/98 percentiles',
-      '9/91 percentiles'
-    ])
+      '9/91 percentiles',
+    ]),
   },
 
   treemap_ratio: {
@@ -1181,7 +1181,7 @@ export const fieldSets = {
     type: 'SelectField',
     label: 'Row limit',
     default: '',
-    choices: formatSelectOptions(ROW_LIMIT_OPTIONS)
+    choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
   limit: {
@@ -1189,15 +1189,15 @@ export const fieldSets = {
     label: 'Series limit',
     choices: formatSelectOptions(SERIES_LIMITS),
     default: 50,
-    description: 'Limits the number of time series that get displayed'
+    description: 'Limits the number of time series that get displayed',
   },
 
   timeseries_limit_metric: {
     type: 'SelectField',
     label: 'Sort By',
-    choices: [['', ''],['timeseries_limit_metric', 'timeseries_limit_metric']],
+    choices: [['', ''], ['timeseries_limit_metric', 'timeseries_limit_metric']],
     default: '',
-    description: 'Metric used to define the top series'
+    description: 'Metric used to define the top series',
   },
 
   rolling_type: {
@@ -1232,7 +1232,7 @@ export const fieldSets = {
     label: 'Entity',
     choices: formatSelectOptions(['', 'entity']),
     default: '',
-    description: 'This define the element to be plotted on the chart'
+    description: 'This define the element to be plotted on the chart',
   },
 
   x: {
@@ -1240,7 +1240,7 @@ export const fieldSets = {
     label: 'X Axis',
     choices: formatSelectOptions(['', 'metrics assigned to x']),
     default: '',
-    description: 'Metric assigned to the [X] axis'
+    description: 'Metric assigned to the [X] axis',
   },
 
   y: {
@@ -1248,14 +1248,14 @@ export const fieldSets = {
     label: 'Y Axis',
     choices: formatSelectOptions(['', 'metrics assigned to x']),
     default: '',
-    description: 'Metric assigned to the [Y] axis'
+    description: 'Metric assigned to the [Y] axis',
   },
 
   size: {
     type: 'SelectField',
     label: 'Bubble Size',
     default: '',
-    choices: formatSelectOptions(['', 'bubble-size'])
+    choices: formatSelectOptions(['', 'bubble-size']),
   },
 
   url: {
@@ -1307,7 +1307,7 @@ export const fieldSets = {
   compare_suffix: {
     type: 'TextField',
     label: 'Comparison suffix',
-    description: 'Suffix to apply after the percentage display'
+    description: 'Suffix to apply after the percentage display',
   },
 
   table_timestamp_format: {
@@ -1315,7 +1315,7 @@ export const fieldSets = {
     label: 'Table Timestamp Format',
     default: 'smart_date',
     choices: formatSelectOptions(TIME_STAMP_OPTIONS),
-    description: 'Timestamp Format'
+    description: 'Timestamp Format',
   },
 
   series_height: {
@@ -1323,7 +1323,7 @@ export const fieldSets = {
     label: 'Series Height',
     default: 25,
     choices: formatSelectOptions([10, 25, 40, 50, 75, 100, 150, 200]),
-    description: 'Pixel height of each series'
+    description: 'Pixel height of each series',
   },
 
   x_axis_format: {
@@ -1347,7 +1347,7 @@ export const fieldSets = {
     label: 'Markup Type',
     choices: formatSelectOptions(['markdown', 'html']),
     default: 'markdown',
-    description: 'Pick your favorite markup language'
+    description: 'Pick your favorite markup language',
   },
 
   rotation: {
@@ -1362,7 +1362,7 @@ export const fieldSets = {
     type: 'SelectField',
     label: 'Line Style',
     choices: formatSelectOptions(['linear', 'basis', 'cardinal',
-                                  'monotone', 'step-before', 'step-after']),
+      'monotone', 'step-before', 'step-after']),
     default: 'linear',
     description: 'Line interpolation as defined by d3.js',
   },
@@ -1376,14 +1376,14 @@ export const fieldSets = {
       ['value', 'Value'],
       ['percent', 'Percentage'],
     ],
-    description: 'What should be shown on the label?'
+    description: 'What should be shown on the label?',
   },
 
   code: {
     type: 'TextAreaField',
     label: 'Code',
     description: 'Put your code here',
-    default: ''
+    default: '',
   },
 
   pandas_aggfunc: {
@@ -1407,63 +1407,63 @@ export const fieldSets = {
     type: 'TextField',
     label: 'Font Size From',
     default: '20',
-    description: 'Font size for the smallest value in the list'
+    description: 'Font size for the smallest value in the list',
   },
 
   size_to: {
     type: 'TextField',
     label: 'Font Size To',
     default: '150',
-    description: 'Font size for the biggest value in the list'
+    description: 'Font size for the biggest value in the list',
   },
 
   show_brush: {
     type: 'CheckboxField',
     label: 'Range Filter',
     default: false,
-    description: 'Whether to display the time range interactive selector'
+    description: 'Whether to display the time range interactive selector',
   },
 
   date_filter: {
     type: 'CheckboxField',
     label: 'Date Filter',
     default: false,
-    description: 'Whether to include a time filter'
+    description: 'Whether to include a time filter',
   },
 
   show_datatable: {
     type: 'CheckboxField',
     label: 'Data Table',
     default: false,
-    description: 'Whether to display the interactive data table'
+    description: 'Whether to display the interactive data table',
   },
 
   include_search: {
     type: 'CheckboxField',
     label: 'Search Box',
     default: false,
-    description: 'Whether to include a client side search box'
+    description: 'Whether to include a client side search box',
   },
 
   show_bubbles: {
     type: 'CheckboxField',
     label: 'Show Bubbles',
     default: false,
-    description: 'Whether to display bubbles on top of countries'
+    description: 'Whether to display bubbles on top of countries',
   },
 
   show_legend: {
     type: 'CheckboxField',
     label: 'Legend',
     default: true,
-    description: 'Whether to display the legend (toggles)'
+    description: 'Whether to display the legend (toggles)',
   },
 
   x_axis_showminmax: {
     type: 'CheckboxField',
     label: 'X bounds',
     default: true,
-    description: 'Whether to display the min and max values of the X axis'
+    description: 'Whether to display the min and max values of the X axis',
   },
 
   rich_tooltip: {
@@ -1471,7 +1471,7 @@ export const fieldSets = {
     label: 'Rich Tooltip',
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
-                 'point in time'
+                 'point in time',
   },
 
   y_axis_zero: {
@@ -1485,35 +1485,35 @@ export const fieldSets = {
     type: 'CheckboxField',
     label: 'Y Log Scale',
     default: false,
-    description: 'Use a log scale for the Y axis'
+    description: 'Use a log scale for the Y axis',
   },
 
   x_log_scale: {
     type: 'CheckboxField',
     label: 'X Log Scale',
     default: false,
-    description: 'Use a log scale for the X axis'
+    description: 'Use a log scale for the X axis',
   },
 
   donut: {
     type: 'CheckboxField',
     label: 'Donut',
     default: false,
-    description: 'Do you want a donut or a pie?'
+    description: 'Do you want a donut or a pie?',
   },
 
   labels_outside: {
     type: 'CheckboxField',
     label: 'Put labels outside',
     default: true,
-    description: 'Put the labels outside the pie?'
+    description: 'Put the labels outside the pie?',
   },
 
   contribution: {
     type: 'CheckboxField',
     label: 'Contribution',
     default: false,
-    description: 'Compute the contribution to the total'
+    description: 'Compute the contribution to the total',
   },
 
   num_period_compare: {
@@ -1572,7 +1572,7 @@ export const fieldSets = {
         ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
     ],
     default: 'mapbox://styles/mapbox/streets-v9',
-    description: 'Base layer map style'
+    description: 'Base layer map style',
   },
 
   clustering_radius: {
@@ -1610,7 +1610,7 @@ export const fieldSets = {
     label: 'Point Radius Unit',
     default: 'Pixels',
     choices: formatSelectOptions(['Pixels', 'Miles', 'Kilometers']),
-    description: 'The unit of measure for the specified point radius'
+    description: 'The unit of measure for the specified point radius',
   },
 
   global_opacity: {
@@ -1665,6 +1665,6 @@ export const fieldSets = {
       ['rgb(220, 20, 60)', 'Crimson'],
       ['rgb(34, 139, 34)', 'Forest Green'],
     ],
-    description: 'The color for points and clusters in RGB'
+    description: 'The color for points and clusters in RGB',
   },
 };

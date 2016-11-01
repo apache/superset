@@ -9,6 +9,7 @@ import vizMap from '../../visualizations/main.js';
 const px = function () {
   let slice;
   function getParam(name) {
+    /* eslint no-useless-escape: 0 */
     const formattedName = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
     const regex = new RegExp('[\\?&]' + formattedName + '=([^&#]*)');
     const results = regex.exec(location.search);
