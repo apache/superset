@@ -11,7 +11,7 @@ describe('ModalTrigger', () => {
     modalBody: <div>Modal Body</div>,
   };
 
-  it('renders', () => {
+  it('is a valid element', () => {
     expect(
       React.isValidElement(<ModalTrigger {...defaultProps} />)
     ).to.equal(true);
