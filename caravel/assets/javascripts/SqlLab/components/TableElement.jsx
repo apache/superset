@@ -10,7 +10,7 @@ import ModalTrigger from '../../components/ModalTrigger';
 const propTypes = {
   table: React.PropTypes.object,
   actions: React.PropTypes.object,
-  timeout: React.PropTypes.integer,  // used for tests
+  timeout: React.PropTypes.number,  // used for tests
 };
 
 const defaultProps = {
