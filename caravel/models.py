@@ -697,6 +697,7 @@ class Database(Model, AuditMixinNullable):
         return self.get_sqla_engine().dialect.identifier_preparer.quote
 
     def get_df(self, sql, schema):
+        sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
         cur = eng.execute(sql, schema=schema)
         cols = [col[0] for col in cur.cursor.description]
