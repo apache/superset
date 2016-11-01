@@ -6,10 +6,10 @@ const propTypes = {
   fieldSets: PropTypes.array.isRequired,
 };
 
-export default function FieldSetRow() {
+export default function FieldSetRow({ fieldSets }) {
   return (
     <ul className="list-unstyled">
-      {this.props.fieldSets.map((fs) => <li key={fs}><FieldSet {...fields[fs]} /></li>)}
+      {fieldSets.map((fs) => <li key={fs}><FieldSet {...fields[fs]} /></li>)}
     </ul>
   );
 }
