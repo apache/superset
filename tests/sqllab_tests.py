@@ -27,14 +27,14 @@ class SqlLabTests(CaravelTestCase):
         self.run_sql("SELECT * FROM ab_permission", 'gamma', client_id='client_id_2')
 
     def tearDown(self):
-        pass
+        db.session.query(models.Query).delete()
 
     def test_sql_json(self):
         data = self.run_sql('SELECT * FROM ab_user', 'admin', "1")
-        assert len(data['data']) > 0
+        self.assertLess(0, len(data['data']))
 
         data = self.run_sql('SELECT * FROM unexistant_table', 'admin', "2")
-        assert len(data['error']) > 0
+        self.assertLess(0, len(data['error']))
 
     def test_sql_json_has_access(self):
         main_db = self.get_main_database(db.session)
@@ -61,7 +61,7 @@ class SqlLabTests(CaravelTestCase):
         data = self.run_sql('SELECT * FROM ab_user', 'gagarin', "3")
         db.session.query(models.Query).delete()
         db.session.commit()
-        assert len(data['data']) > 0
+        self.assertLess(0, len(data['data']))
 
     def test_queries_endpoint(self):
         resp = self.client.get('/caravel/queries/{}'.format(0))

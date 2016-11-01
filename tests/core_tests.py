@@ -43,7 +43,7 @@ class CoreTests(CaravelTestCase):
         db.session.query(models.DatasourceAccessRequest).delete()
 
     def tearDown(self):
-        pass
+        db.session.query(models.Query).delete()
 
     def test_welcome(self):
         self.login()

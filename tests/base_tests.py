@@ -178,7 +178,7 @@ class CaravelTestCase(unittest.TestCase):
                 appbuilder.sm.del_permission_role(public_role, perm)
 
     def run_sql(self, sql, user_name, client_id):
-        self.login(username=user_name)
+        self.login(username=(user_name if user_name else 'admin'))
         dbid = self.get_main_database(db.session).id
         resp = self.client.post(
             '/caravel/sql_json/',
