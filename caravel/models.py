@@ -1090,14 +1090,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
-        if extras and 'where' in extras:
-            where = wrap_clause_in_parens(template_processor.process_template(
-                extras['where']))
-            where_clause_and += [where]
-        if extras and 'having' in extras:
-            having = wrap_clause_in_parens(template_processor.process_template(
-                extras['having']))
-            having_clause_and += [having]
+        if extras:
+            where = extras.get('where')
+            if where:
+                where_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(where))]
+            having = extras.get('having')
+            if having:
+                having_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(having))]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:

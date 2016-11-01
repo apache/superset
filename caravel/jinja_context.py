@@ -56,7 +56,8 @@ class BaseTemplateProcessor(object):
             self.schema = table.schema
         self.context = {}
         self.context.update(BASE_CONTEXT)
-        self.context[self.engine] = self
+        if self.engine:
+            self.context[self.engine] = self
 
     def process_template(self, sql):
         """Processes a sql template

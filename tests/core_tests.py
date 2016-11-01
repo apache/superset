@@ -358,8 +358,10 @@ class CoreTests(CaravelTestCase):
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
+        maindb = self.get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
-        rendered = jinja_context.process_template(sql)
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_templated_sql_json(self):
