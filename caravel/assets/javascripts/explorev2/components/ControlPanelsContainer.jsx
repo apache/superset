@@ -9,9 +9,9 @@ import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
   vizType: PropTypes.string,
-  datasourceId: PropTypes.string.isRequired,
+  datasourceId: PropTypes.number.isRequired,
   datasourceType: PropTypes.string.isRequired,
-  actions: PropTypes.array.isRequired,
+  actions: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -35,16 +35,20 @@ class ControlPanelsContainer extends React.Component {
   render() {
     const viz = visTypes[this.props.vizType];
     const sectionsToRender = getSectionsToRender(viz.controlPanelSections);
+
     return (
       <Panel>
         <div className="scrollbar-container">
           <div className="scrollbar-content">
             {sectionsToRender.map((section) => (
               <ControlPanelSection
+                key={section.label}
                 label={section.label}
                 tooltip={section.description}
               >
-                {section.fieldSetRows.map((fieldSets) => <FieldSetRow fieldSets={fieldSets} />)}
+                {section.fieldSetRows.map((fieldSets, i) => (
+                  <FieldSetRow key={`${section.label}-fieldSetRow-${i}`} fieldSets={fieldSets} />
+                ))}
               </ControlPanelSection>
             ))}
            {/* TODO: add filters section */}

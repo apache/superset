@@ -12,7 +12,7 @@ const defaultProps = {
   description: null,
 };
 
-export function TextField({ label, description }) {
+export default function TextField({ label, description }) {
   return (
     <FormGroup controlId="formInlineName">
       <ControlLabelWithTooltip label={label} description={description} />

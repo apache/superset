@@ -752,7 +752,7 @@ export const visTypes = {
 };
 
 // todo: complete the choices and default keys from forms.py
-export const fieldSets = {
+export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',

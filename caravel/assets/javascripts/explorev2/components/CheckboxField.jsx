@@ -12,9 +12,9 @@ const defaultProps = {
   description: null,
 };
 
-function CheckboxField({ label, description }) {
+export default function CheckboxField({ label, description }) {
   return (
-    <Checkbox name="" value="">
+    <Checkbox>
       <ControlLabelWithTooltip label={label} description={description} />
     </Checkbox>
   );

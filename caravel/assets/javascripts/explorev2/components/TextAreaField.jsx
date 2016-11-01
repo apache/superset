@@ -12,7 +12,7 @@ const defaultProps = {
   description: null,
 };
 
-function TextAreaField({ label, description }) {
+export default function TextAreaField({ label, description }) {
   return (
     <FormGroup controlId="formControlsTextarea">
       <ControlLabelWithTooltip label={label} description={description} />

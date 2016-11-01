@@ -12,7 +12,7 @@ const defaultProps = {
   description: null,
 };
 
-function ControlLabelWithTooltip({ label, description }) {
+export default function ControlLabelWithTooltip({ label, description }) {
   return (
     <ControlLabel>
       {label} &nbsp;

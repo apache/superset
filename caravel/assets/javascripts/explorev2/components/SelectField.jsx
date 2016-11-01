@@ -12,9 +12,9 @@ const defaultProps = {
   description: null,
 };
 
-function SelectField({ label, description }) {
+export default function SelectField({ label, description }) {
   return (
-    <FormGroup controlId="formControlsSelect">
+    <FormGroup controlId={`formControlsSelect-${label}`}>
       <ControlLabelWithTooltip label={label} description={description} />
       <FormControl componentClass="select" placeholder="select">
         <option value="select">select</option>
