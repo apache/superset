@@ -76,4 +76,6 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
+export { ControlPanelsContainer };
+
 export default connect(mapStateToProps, mapDispatchToProps)(ControlPanelsContainer);
