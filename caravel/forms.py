@@ -359,6 +359,7 @@ class FormFactory(object):
                     ('week', _('week')),
                     ('week_starting_sunday', _('week_starting_sunday')),
                     ('week_ending_saturday', _('week_ending_saturday')),
+                    ('month', _('month')),
                 ),
                 "description": _(
                     "The time granularity for the visualization. Note that you "
