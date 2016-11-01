@@ -16,14 +16,14 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import inspect
 import textwrap
 import time
 
 from flask_babel import lazy_gettext as _
 
-from caravel import cached_cls_func
+from caravel import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -57,16 +57,44 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
-    @cached_cls_func(timeout=120, key=lambda x: 'db:{}:tables'.format(x.id))
-    def all_table_full_names(cls, database):
-        schemas = database.all_schema_names()
-        if not schemas:
-            return database.all_table_names()
-        table_names = []
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:tables'.format(args[0].id))
+    def fetch_tables(cls, database):
+        """ Returns the dictionary with schemas and table list.
+
+        Empty schema corresponds to the list of all tables that are names
+        <schema>.<table>.
+        """
+        schemas = database.inspector.get_schema_names()
+        tables = {}
+        all_tables = []
         for schema in schemas:
-            table_names += ['{}.{}'.format(schema, t) for t in
-                            database.all_table_names(schema=schema)]
-        return table_names
+            tables[schema] = sorted(database.inspector.get_table_names(schema))
+            all_tables += ['{}.{}'.format(schema, t) for t in tables[schema]]
+        if all_tables:
+            tables[""] = all_tables
+        return tables
+
+    @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:views'.format(args[0].id))
+    def fetch_views(cls, database):
+        schemas = database.inspector.get_schema_names()
+        views = {}
+        all_views = []
+        for schema in schemas:
+            try:
+                views[schema] = sorted(
+                    database.inspector.get_view_names(schema))
+                all_views += [
+                    '{}.{}'.format(schema, t) for t in tables[schema]]
+            except Exception as e:
+                pass
+        if all_views:
+            views[""] = all_views
+        return views
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -240,13 +268,19 @@ class PrestoEngineSpec(BaseEngineSpec):
         return "from_unixtime({col})"
 
     @classmethod
-    @cached_cls_func(timeout=120, key=lambda x: 'db:{}:tables'.format(x.id))
-    def all_table_full_names(cls, database):
-        return database.get_df("""
-            SELECT concat(table_schema, '.', table_name) as fullname
-            FROM INFORMATION_SCHEMA.TABLES
-            ORDER BY concat(table_schema, '.', table_name)
-        """, None)['fullname'].tolist()
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:tables'.format(args[0].id))
+    def fetch_tables(cls, database):
+        tables_df = database.get_df(
+            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.TABLES
+               ORDER BY concat(table_schema, '.', table_name)""", None)
+        tables = defaultdict(list)
+        for _, row in tables_df.iterrows():
+            tables[row['table_schema']].append(row['table_name'])
+            tables[""].append('{}.{}'.format(
+                row['table_schema'], row['table_name']))
+        return tables
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):

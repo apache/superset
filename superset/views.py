@@ -1782,8 +1782,28 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+<<<<<<< 309bede63194423bdeb2341fa959da0e19a6b75c
     @expose("/schemas/<db_id>")
     @cached_view(timeout=600)
+=======
+    @expose("/all_tables/<db_id>")
+    def all_tables(self, db_id):
+        """Endpoint that returns all tables and views from the database"""
+        all_tables = []
+        all_views = []
+        schemas = database.all_schema_names()
+        for schema in schemas:
+            all_tables.extend(database.all_table_names(schema=schema))
+            all_views.extend(database.all_view_names(schema=schema))
+        if not schemas:
+            all_tables.extend(database.all_table_names())
+            all_views.extend(database.all_view_names())
+
+        return Response(
+            json.dumps({"tables": all_tables, "views": all_views}),
+
+    @expose("/schemas/<db_id>")
+>>>>>>> Address comments.
     def schemas(self, db_id):
         # db_id = request.args.get('db_id')
         database = (
@@ -1804,18 +1824,14 @@ class Superset(BaseSupersetView):
         """endpoint to power the calendar heatmap on the welcome page"""
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(request.args.get('substr'))
-        database = (
-            db.session
-            .query(models.Database)
-            .filter_by(id=db_id)
-            .one()
-        )
+        database = db.session.query(models.Database).filter_by(id=db_id).one()
         table_names = [
             t for t in database.all_table_names(schema) if
             self.datasource_access_by_name(database, t, schema=schema)]
         view_names = [
-            v for v in database.all_view_names(schema) if
+            v for v in database.all_table_names(schema) if
             self.datasource_access_by_name(database, v, schema=schema)]
+
         if substr:
             table_names = [tn for tn in table_names if substr in tn]
             view_names = [vn for vn in view_names if substr in vn]

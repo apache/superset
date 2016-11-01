@@ -152,7 +152,8 @@ IMG_UPLOAD_URL = '/static/uploads/'
 # IMG_SIZE = (300, 200, True)
 
 CACHE_DEFAULT_TIMEOUT = None
-CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
+CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+IN_MEMORY_CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
 
 # CORS Options
 ENABLE_CORS = False
@@ -210,7 +211,7 @@ SQL_MAX_ROW = 1000000
 DISPLAY_SQL_MAX_ROW = 1000
 
 # Maximum number of tables/views displayed in the dropdown window in SQL Lab.
-MAX_TABLE_NAMES = 100
+MAX_TABLE_NAMES = 3000
 
 # If defined, shows this text in an alert-warning box in the navbar
 # one example use case may be "STAGING" to make it clear that this is

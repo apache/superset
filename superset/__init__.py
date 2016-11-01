@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import functools
 import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
@@ -38,44 +37,8 @@ utils.pessimistic_connection_handling(db.engine.pool)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
 
+simple_cache = Cache(app, config=app.config.get('IN_MEMORY_CACHE_CONFIG'))
 
-def cached_cls_func(timeout=5 * 60, key=None):
-    """Use this decorator to cache class functions.
-
-    Key is a callable function that takes function arguments and
-    returns the caching key.
-    """
-    def wrap(f):
-        def wrapped_f(cls, *args, **kwargs):
-            cache_key = key(*args)
-            o = cache.get(cache_key)
-            if o is not None:
-                return o
-            o = f(cls, *args, **kwargs)
-            cache.set(cache_key, o, timeout=timeout)
-            return o
-        return wrapped_f
-    return wrap
-
-
-def cached_view(timeout=5 * 60, key='view/{}/{}'):
-    """Use this decorator to cache the view functions.
-
-    Function uses the request context to generate key form the
-    uri and get attributes.
-    """
-    def wrap(f):
-        def wrapped_f(self, *args, **kwargs):
-            cache_key = key.format(
-                request.path, hash(frozenset(request.args.items())))
-            o = cache.get(cache_key)
-            if o is not None:
-                return o
-            o = f(self, *args, **kwargs)
-            cache.set(cache_key, o, timeout=timeout)
-            return o
-        return wrapped_f
-    return wrap
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 

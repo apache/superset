@@ -845,24 +845,23 @@ class Database(Model, AuditMixinNullable):
         return sqla.inspect(engine)
 
     def all_table_names(self, schema=None):
-        if schema:
-            return sorted(self.inspector.get_table_names(schema))
-        try:
-            return self.db_engine_spec.all_table_full_names(self)
-        except NotImplementedError:
-            return sorted(self.inspector.get_table_names(schema))
+        if not schema:
+            schema = ""
+        return self.db_engine_spec.fetch_tables(self).get(schema, [])
 
     def all_view_names(self, schema=None):
-        views = []
-        try:
-            views = self.inspector.get_view_names(schema)
-        except Exception as e:
-            pass
-        return views
+        if not schema:
+            schema = ""
+        views_dict = self.db_engine_spec.fetch_views(self)
+        return views_dict.get(schema, [])
 
-    @utils.memoized
     def all_schema_names(self):
-        return sorted(self.inspector.get_schema_names())
+        schema_names = sorted(self.db_engine_spec.fetch_tables(self).keys())
+        # first element in schema names is empty that contains all table names
+        if schema_names:
+            return schema_names[1:]
+        else:
+            return []
 
     @property
     def db_engine_spec(self):
