@@ -43,8 +43,6 @@ class BaseContext(object):
         self.schema = None
         if query and query.schema:
             self.schema = query.schema
-        elif database:
-            self.schema = database.schema
 
 
 class PrestoContext(BaseContext):
