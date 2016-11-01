@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from '../../../javascripts/SqlLab/components/Link';
 import TableElement from '../../../javascripts/SqlLab/components/TableElement';
+import ColumnElement from '../../../javascripts/SqlLab/components/ColumnElement';
 import { mockedActions, table } from './fixtures';
 import { mount, shallow } from 'enzyme';
 import { describe, it } from 'mocha';
@@ -29,7 +30,7 @@ describe('TableElement', () => {
   });
   it('has 14 columns', () => {
     const wrapper = shallow(<TableElement {...mockedProps} />);
-    expect(wrapper.find('div.table-column')).to.have.length(14);
+    expect(wrapper.find(ColumnElement)).to.have.length(14);
   });
   it('mounts', () => {
     mount(<TableElement {...mockedProps} />);
@@ -37,10 +38,10 @@ describe('TableElement', () => {
   it('sorts columns', () => {
     const wrapper = mount(<TableElement {...mockedProps} />);
     expect(wrapper.state().sortColumns).to.equal(false);
-    expect(wrapper.find('.col-name').first().text()).to.equal('id');
+    expect(wrapper.find(ColumnElement).first().props().column.name).to.equal('id');
     wrapper.find('.sort-cols').simulate('click');
     expect(wrapper.state().sortColumns).to.equal(true);
-    expect(wrapper.find('.col-name').first().text()).to.equal('last_login');
+    expect(wrapper.find(ColumnElement).first().props().column.name).to.equal('last_login');
   });
   it('calls the collapseTable action', () => {
     const wrapper = mount(<TableElement {...mockedProps} />);

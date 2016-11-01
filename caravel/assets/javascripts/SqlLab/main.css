@@ -258,3 +258,13 @@ a.Link {
     padding: 3px 5px;
     margin: 3px 5px;
 }
+.tooltip pre {
+    background: transparent;
+    border: none;
+    text-align: left;
+    color: white;
+    font-size: 10px;
+}
+.tooltip-inner {
+    max-width: 500px;
+}

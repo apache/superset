@@ -802,6 +802,12 @@ class Database(Model, AuditMixinNullable):
     def get_indexes(self, table_name, schema=None):
         return self.inspector.get_indexes(table_name, schema)
 
+    def get_pk_constraint(self, table_name, schema=None):
+        return self.inspector.get_pk_constraint(table_name, schema)
+
+    def get_foreign_keys(self, table_name, schema=None):
+        return self.inspector.get_foreign_keys(table_name, schema)
+
     @property
     def sqlalchemy_uri_decrypted(self):
         conn = sqla.engine.url.make_url(self.sqlalchemy_uri)

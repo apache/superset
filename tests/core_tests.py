@@ -519,6 +519,28 @@ class CoreTests(CaravelTestCase):
         data = self.run_sql(sql, "admin", "fdaklj3ws")
         self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
 
+    def test_table_metadata(self):
+        maindb = self.get_main_database(db.session)
+        data = self.get_json_resp(
+            "/caravel/table/{}/ab_user/null/".format(maindb.id))
+        self.assertEqual(data['name'], 'ab_user')
+        assert len(data['columns']) > 5
+        assert data.get('selectStar').startswith('SELECT')
+
+        # Engine specific tests
+        backend = maindb.backend
+        if backend in ('mysql', 'postgresql'):
+            self.assertEqual(data.get('primaryKey').get('type'), 'pk')
+            self.assertEqual(
+                data.get('primaryKey').get('column_names')[0], 'id')
+            self.assertEqual(len(data.get('foreignKeys')), 2)
+            if backend == 'mysql':
+                self.assertEqual(len(data.get('indexes')), 7)
+            elif backend == 'postgresql':
+                self.assertEqual(len(data.get('indexes')), 5)
+
+
+
 if __name__ == '__main__':
     unittest.main()
 
