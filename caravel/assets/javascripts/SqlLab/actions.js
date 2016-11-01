@@ -202,6 +202,42 @@ export function mergeTable(table) {
   return { type: MERGE_TABLE, table };
 }
 
+export function addTable(query, tableName) {
+  return function (dispatch) {
+    let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
+    $.get(url, (data) => {
+      dispatch(
+        mergeTable(Object.assign(data, {
+          dbId: query.dbId,
+          queryEditorId: query.id,
+          schema: query.schema,
+          expanded: true,
+        }))
+      );
+    })
+    .fail(() => {
+      dispatch(
+        addAlert({
+          msg: 'Error occurred while fetching metadata',
+          bsStyle: 'danger',
+        })
+      );
+    });
+
+    url = `/caravel/extra_table_metadata/${query.dbId}/${tableName}/${query.schema}/`;
+    $.get(url, (data) => {
+      const table = {
+        dbId: query.dbId,
+        queryEditorId: query.id,
+        schema: query.schema,
+        name: tableName,
+      };
+      Object.assign(table, data);
+      dispatch(mergeTable(table));
+    });
+  };
+}
+
 export function expandTable(table) {
   return { type: EXPAND_TABLE, table };
 }
