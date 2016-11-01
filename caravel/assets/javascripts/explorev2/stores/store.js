@@ -452,25 +452,6 @@ export const visTypes = {
     },
   },
 
-  bubble: {
-    label: 'Bubble Chart',
-    controlPanelSections: [
-      {
-        label: null,
-        fieldSetRows: [
-          ['metric'],
-          ['subheader'],
-          ['y_axis_format'],
-        ],
-      },
-    ],
-    fieldOverrides: {
-      y_axis_format: {
-        label: 'Number format',
-      },
-    },
-  },
-
   histogram: {
     label: 'Histogram',
     controlPanelSections: [

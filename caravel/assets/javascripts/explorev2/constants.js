@@ -14,7 +14,7 @@ export const sinceOptions = [
   '7 days ago',
   '28 days ago',
   '90 days ago',
-  '1 year ago'
+  '1 year ago',
 ];
 
 export const untilOptions = [
@@ -23,7 +23,7 @@ export const untilOptions = [
   '7 days ago',
   '28 days ago',
   '90 days ago',
-  '1 year ago'
+  '1 year ago',
 ];
 
 export const DefaultControls = (

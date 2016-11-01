@@ -81,7 +81,8 @@ function showApiMessage(resp) {
   $(template).addClass('alert-' + severity)
              .append(resp.message)
              .appendTo($('#alert-container'));
-};
+}
+
 export function toggleCheckbox(apiUrlPrefix, selector) {
   const apiUrl = apiUrlPrefix + $(selector)[0].checked;
   $.get(apiUrl).fail(function (xhr) {
@@ -90,7 +91,7 @@ export function toggleCheckbox(apiUrlPrefix, selector) {
       showApiMessage(resp);
     }
   });
-};
+}
 
 /**
  * Fix the height of the table body of a DataTable with scrollY set
@@ -130,7 +131,7 @@ export function formatSelectOptionsForRange(start, end) {
   // formatSelectOptionsForRange(1, 5)
   // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
   const options = [];
-  for(let i = start; i <= end; i++) {
+  for (let i = start; i <= end; i++) {
     options.push([i, i]);
   }
   return options;
