@@ -115,7 +115,7 @@ class DruidTests(CaravelTestCase):
 
         resp = self.get_resp('/caravel/explore/druid/{}/'.format(
             datasource_id))
-        assert "[test_cluster].[test_datasource]" in resp
+        self.assertIn("[test_cluster].[test_datasource]", resp)
 
         # One groupby
         url = (
@@ -155,6 +155,8 @@ class DruidTests(CaravelTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual(
             "2012-01-01T00:00:00", resp['data']['records'][0]['timestamp'])
+        resp = self.get_resp(url)
+        self.assertIn("Canada", resp)
 
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'
