@@ -1,24 +1,33 @@
 import React, { PropTypes } from 'react';
 import { Panel } from 'react-bootstrap';
-import FieldSet from './FieldSet';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
+  tooltip: PropTypes.string,
+  children: PropTypes.node.isRequired,
+};
+
+const defaultProps = {
+  label: null,
+  description: null,
+  tooltip: null,
 };
 
 export default class ControlPanelSection extends React.Component {
   header() {
     const { label, tooltip } = this.props;
+    let header;
     if (label) {
-      return (
+      header = (
         <div className="panel-title">
           {label} &nbsp;
           {tooltip && <InfoTooltipWithTrigger label={label} tooltip={tooltip} />}
         </div>
       );
     }
+    return header;
   }
 
   render() {
@@ -30,3 +39,5 @@ export default class ControlPanelSection extends React.Component {
   }
 }
 
+ControlPanelSection.propTypes = propTypes;
+ControlPanelSection.defaultProps = defaultProps;

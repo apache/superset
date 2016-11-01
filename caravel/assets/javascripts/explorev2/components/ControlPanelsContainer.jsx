@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
@@ -8,7 +8,10 @@ import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
-  vizType: React.PropTypes.string,
+  vizType: PropTypes.string,
+  datasourceId: PropTypes.string.isRequired,
+  datasourceType: PropTypes.string.isRequired,
+  actions: PropTypes.array.isRequired,
 };
 
 const defaultProps = {
@@ -23,9 +26,9 @@ function getSectionsToRender(vizSections) {
 
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
-    const { datasourceId, datasourceType, actions } = this.props;
+    const { datasourceId, datasourceType } = this.props;
     if (datasourceId) {
-      actions.setFormOpts(datasourceId, datasourceType);
+      this.props.actions.setFormOpts(datasourceId, datasourceType);
     }
   }
 
@@ -36,18 +39,14 @@ class ControlPanelsContainer extends React.Component {
       <Panel>
         <div className="scrollbar-container">
           <div className="scrollbar-content">
-            {sectionsToRender.map((section) => {
-              return (
-                <ControlPanelSection
-                  label={section.label}
-                  tooltip={section.description}
-                >
-                  {section.fieldSetRows.map((fieldSets) => {
-                    return <FieldSetRow fieldSets={fieldSets} />;
-                  })}
-                </ControlPanelSection>
-              );
-            })}
+            {sectionsToRender.map((section) => (
+              <ControlPanelSection
+                label={section.label}
+                tooltip={section.description}
+              >
+                {section.fieldSetRows.map((fieldSets) => <FieldSetRow fieldSets={fieldSets} />)}
+              </ControlPanelSection>
+            ))}
            {/* TODO: add filters section */}
           </div>
         </div>
