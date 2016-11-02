@@ -11,7 +11,7 @@ const propTypes = {
   choices: PropTypes.arrayOf(PropTypes.array),
   description: PropTypes.string,
   places: PropTypes.number,
-  validators: PropTypes.array,
+  validators: PropTypes.any,
 };
 
 const defaultProps = {
@@ -46,7 +46,8 @@ export default class FieldSet extends React.Component {
       html = this.renderCheckBoxField();
     } else if (type === 'SelectField' ||
                type === 'SelectCustomMultiField' ||
-               type === 'SelectMultipleSortableField') {
+               type === 'SelectMultipleSortableField' ||
+               type === 'FreeFormSelectField') {
       html = this.renderSelectField();
     } else if (type === 'TextField' || type === 'IntegerField') {
       html = this.renderTextField();

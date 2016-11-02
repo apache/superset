@@ -2,12 +2,13 @@ import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/
 
 export const fieldTypes = [
   'CheckboxField',
-  'SelectField',
-  'SelectCustomMultiField',
-  'SelectMultipleSortableField',
-  'TextField',
+  'FreeFormSelectField',
   'IntegerField',
+  'SelectCustomMultiField',
+  'SelectField',
+  'SelectMultipleSortableField',
   'TextAreaFeild',
+  'TextField',
 ];
 
 // TODO: add datasource_type here after druid support is added
