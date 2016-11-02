@@ -8,6 +8,7 @@ Organizations
  - [Maieutical Labs] (https://cloudschooling.it)
  - [Shopkick] (https://www.shopkick.com)
  - [Amino] (https://amino.com)
+ - [Faasos] (http://faasos.com/)
 
 Projects
 ----------
