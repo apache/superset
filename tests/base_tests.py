@@ -176,3 +176,14 @@ class CaravelTestCase(unittest.TestCase):
             if (perm.permission.name == 'datasource_access' and
                     perm.view_menu and table_name in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
+
+    def run_sql(self, sql, user_name, client_id):
+        self.login(username=(user_name if user_name else 'admin'))
+        dbid = self.get_main_database(db.session).id
+        resp = self.client.post(
+            '/caravel/sql_json/',
+            data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
+                      client_id=client_id),
+        )
+        self.logout()
+        return json.loads(resp.data.decode('utf-8'))
