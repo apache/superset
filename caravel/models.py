@@ -1907,7 +1907,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             qry['threshold'] = timeseries_limit
             qry['dimension'] = qry.get('dimensions')[0]
             del qry['dimensions']
-            qry['metric'] = qry['aggregations'].keys()[0]
+            qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
         elif len(groupby) > 1:
             if timeseries_limit and is_timeseries:
@@ -1931,8 +1931,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 client.groupby(**pre_qry)
                 query_str += "// Two phase query\n// Phase 1\n"
                 query_str += json.dumps(
-                    client.query_builder.last_query.query_dict, indent=2) + "\n"
-                query_str += "//\nPhase 2 (built based on phase one's results)\n"
+                    client.query_builder.last_query.query_dict, indent=2)
+                query_str += "\n"
+                query_str += (
+                    "//\nPhase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
                 if df is not None and not df.empty:
                     dims = qry['dimensions']
@@ -1962,7 +1964,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     "type": "default",
                     "limit": row_limit,
                     "columns": [{
-                        "dimension": metrics[0] if metrics else self.metrics[0],
+                        "dimension": (
+                            metrics[0] if metrics else self.metrics[0]),
                         "direction": "descending",
                     }],
                 }
