@@ -1250,6 +1250,7 @@ class Caravel(BaseCaravelView):
                 datasource_id=datasource_id,
                 args=request.args)
         except Exception as e:
+            logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
 
         if not self.datasource_access(viz_obj.datasource):
@@ -1263,6 +1264,7 @@ class Caravel(BaseCaravelView):
         try:
             payload = viz_obj.get_json()
         except Exception as e:
+            logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
 
         return Response(
