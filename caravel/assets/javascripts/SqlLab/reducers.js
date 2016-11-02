@@ -8,6 +8,7 @@ export const defaultQueryEditor = {
   id: shortid.generate(),
   title: 'Untitled Query',
   sql: 'SELECT *\nFROM\nWHERE',
+  selectedText: null,
   latestQueryId: null,
   autorun: false,
   dbId: null,
@@ -170,6 +171,9 @@ export const sqlLabReducer = function (state, action) {
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
+    },
+    [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { selectedText: action.sql });
     },
     [actions.QUERY_EDITOR_SET_AUTORUN]() {
       return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });

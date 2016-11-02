@@ -87,37 +87,10 @@ class SqlEditorLeftBar extends React.PureComponent {
   changeTable(tableOpt) {
     const tableName = tableOpt.value;
     const qe = this.props.queryEditor;
-    let url = `/caravel/table/${qe.dbId}/${tableName}/${qe.schema}/`;
 
     this.setState({ tableLoading: true });
-    $.get(url, (data) => {
-      this.props.actions.mergeTable(Object.assign(data, {
-        dbId: qe.dbId,
-        queryEditorId: qe.id,
-        schema: qe.schema,
-        expanded: true,
-      }));
-      this.setState({ tableLoading: false });
-    })
-    .fail(() => {
-      this.props.actions.addAlert({
-        msg: 'Error occurred while fetching metadata',
-        bsStyle: 'danger',
-      });
-      this.setState({ tableLoading: false });
-    });
-
-    url = `/caravel/extra_table_metadata/${qe.dbId}/${tableName}/${qe.schema}/`;
-    $.get(url, (data) => {
-      const table = {
-        dbId: this.props.queryEditor.dbId,
-        queryEditorId: this.props.queryEditor.id,
-        schema: qe.schema,
-        name: tableName,
-      };
-      Object.assign(table, data);
-      this.props.actions.mergeTable(table);
-    });
+    this.props.actions.addTable(qe, tableName);
+    this.setState({ tableLoading: false });
   }
   render() {
     let networkAlert = null;

@@ -40,7 +40,11 @@ class BaseContext(object):
     def __init__(self, database, query):
         self.database = database
         self.query = query
-        self.schema = query.schema
+        self.schema = None
+        if query and query.schema:
+            self.schema = query.schema
+        elif database:
+            self.schema = database.schema
 
 
 class PrestoContext(BaseContext):
