@@ -46,20 +46,19 @@ export default class FieldSet extends React.Component {
       'SelectMultipleSortableField',
       'FreeFormSelectField',
     ];
-
-    let html;
+    let field;
 
     if (type === 'CheckboxField') {
-      html = this.renderCheckBoxField();
+      field = this.renderCheckBoxField();
     } else if (selectTypes.includes(type)) {
-      html = this.renderSelectField();
+      field = this.renderSelectField();
     } else if (['TextField', 'IntegerField'].includes(type)) {
-      html = this.renderTextField();
+      field = this.renderTextField();
     } else if (type === 'TextAreaField') {
-      html = this.renderTextAreaField();
+      field = this.renderTextAreaField();
     }
 
-    return html;
+    return field;
   }
 }
 
