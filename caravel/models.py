@@ -56,7 +56,7 @@ import caravel
 from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
-from caravel.jinja_context import process_template
+from caravel.jinja_context import get_template_processor
 from caravel.utils import (
     flasher, MetricPermException, DimSelector, wrap_clause_in_parens
 )
@@ -960,6 +960,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             extras=None,
             columns=None):
         """Querying any sqla table from this common interface"""
+        template_processor = get_template_processor(
+            table=self, database=self.database)
+
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
@@ -1088,12 +1091,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
-        if extras and 'where' in extras:
-            where = wrap_clause_in_parens(process_template(extras['where'], self.database))
-            where_clause_and += [where]
-        if extras and 'having' in extras:
-            having = wrap_clause_in_parens(process_template(extras['having'], self.database))
-            having_clause_and += [having]
+        if extras:
+            where = extras.get('where')
+            if where:
+                where_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(where))]
+            having = extras.get('having')
+            if having:
+                having_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(having))]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
