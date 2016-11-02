@@ -88,6 +88,13 @@ describe('sqlLabReducer', () => {
       newState = r.sqlLabReducer(newState, actions.queryEditorSetSql(qe, sql));
       expect(newState.queryEditors[1].sql).to.equal(sql);
     });
+    it('should set selectedText', () => {
+      const selectedText = 'TEST';
+      expect(newState.queryEditors[0].selectedText).to.equal(null);
+      newState = r.sqlLabReducer(
+        newState, actions.queryEditorSetSelectedText(newState.queryEditors[0], 'TEST'));
+      expect(newState.queryEditors[0].selectedText).to.equal(selectedText);
+    });
   });
   describe('Tables', () => {
     let newState;

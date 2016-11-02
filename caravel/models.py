@@ -55,6 +55,7 @@ import caravel
 from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
+from caravel.jinja_context import process_template
 from caravel.utils import (
     flasher, MetricPermException, DimSelector, wrap_clause_in_parens
 )
@@ -696,6 +697,7 @@ class Database(Model, AuditMixinNullable):
         return self.get_sqla_engine().dialect.identifier_preparer.quote
 
     def get_df(self, sql, schema):
+        sql = sql.strip().strip(';')
         eng = self.get_sqla_engine(schema=schema)
         cur = eng.execute(sql, schema=schema)
         cols = [col[0] for col in cur.cursor.description]
@@ -801,6 +803,12 @@ class Database(Model, AuditMixinNullable):
 
     def get_indexes(self, table_name, schema=None):
         return self.inspector.get_indexes(table_name, schema)
+
+    def get_pk_constraint(self, table_name, schema=None):
+        return self.inspector.get_pk_constraint(table_name, schema)
+
+    def get_foreign_keys(self, table_name, schema=None):
+        return self.inspector.get_foreign_keys(table_name, schema)
 
     @property
     def sqlalchemy_uri_decrypted(self):
@@ -1080,9 +1088,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     cond = ~cond
                 where_clause_and.append(cond)
         if extras and 'where' in extras:
-            where_clause_and += [wrap_clause_in_parens(extras['where'])]
+            where = wrap_clause_in_parens(process_template(extras['where'], self.database))
+            where_clause_and += [where]
         if extras and 'having' in extras:
-            having_clause_and += [wrap_clause_in_parens(extras['having'])]
+            having = wrap_clause_in_parens(process_template(extras['having'], self.database))
+            having_clause_and += [having]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
