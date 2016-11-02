@@ -6,6 +6,7 @@ import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
+import { areObjectsEqual } from '../../reduxUtils';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -34,6 +35,7 @@ class TabbedSqlEditors extends React.PureComponent {
       uri,
       cleanUri,
       query,
+      queriesArray: [],
     };
   }
   componentWillMount() {
@@ -49,6 +51,19 @@ class TabbedSqlEditors extends React.PureComponent {
       this.props.actions.addQueryEditor(queryEditorProps);
       // Clean the url in browser history
       window.history.replaceState({}, document.title, this.state.cleanUri);
+    }
+  }
+  componentWillReceiveProps(nextProps) {
+    const activeQeId = this.props.tabHistory[this.props.tabHistory.length - 1];
+    const newActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
+    if (activeQeId !== newActiveQeId || !areObjectsEqual(this.props.queries, nextProps.queries)) {
+      const queriesArray = [];
+      for (const id in this.props.queries) {
+        if (this.props.queries[id].sqlEditorId === newActiveQeId) {
+          queriesArray.push(this.props.queries[id]);
+        }
+      }
+      this.setState({ queriesArray });
     }
   }
   renameTab(qe) {
@@ -93,12 +108,7 @@ class TabbedSqlEditors extends React.PureComponent {
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
       const isSelected = (qe.id === this.activeQueryEditor().id);
-      const queriesArray = [];
-      for (const id in this.props.queries) {
-        if (this.props.queries[id].sqlEditorId === qe.id) {
-          queriesArray.push(this.props.queries[id]);
-        }
-      }
+
       let latestQuery;
       if (qe.latestQueryId) {
         latestQuery = this.props.queries[qe.latestQueryId];
@@ -142,7 +152,7 @@ class TabbedSqlEditors extends React.PureComponent {
                 <SqlEditor
                   tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
-                  queries={queriesArray}
+                  queries={this.state.queriesArray}
                   latestQuery={latestQuery}
                   database={database}
                   actions={this.props.actions}
