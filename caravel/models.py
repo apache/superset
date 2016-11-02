@@ -1797,6 +1797,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     # uses https://en.wikipedia.org/wiki/ISO_8601
     # http://druid.io/docs/0.8.0/querying/granularities.html
+    # TODO: pass origin from the UI
     @staticmethod
     def granularity(period_name, timezone=None):
         if not period_name or period_name == 'all':
@@ -1817,12 +1818,25 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             'month': 'P1M',
         }
 
-        granularity = {'type': 'period', 'period': iso_8601_dict[period_name]}
+        granularity = {'type': 'period'}
         if timezone:
             granularity['timezone'] = timezone
-        if period_name in ('week_ending_saturday', 'week_starting_sunday'):
-            # use Sunday as start of the week
-            granularity['origin'] = '2016-01-03T00:00:00'
+
+        if period_name in iso_8601_dict:
+            granularity['period'] = iso_8601_dict[period_name]
+            if period_name in ('week_ending_saturday', 'week_starting_sunday'):
+                # use Sunday as start of the week
+                granularity['origin'] = '2016-01-03T00:00:00'
+        elif not isinstance(period_name, string_types):
+            granularity['type'] = 'duration'
+            granularity['duration'] = period_name
+        elif period_name.startswith('P'):
+            # identify if the string is the iso_8601 period
+            granularity['period'] = period_name
+        else:
+            granularity['type'] = 'duration'
+            granularity['duration'] = utils.parse_human_timedelta(
+                period_name).total_seconds() * 1000
         return granularity
 
     def query(  # druid
@@ -2019,11 +2033,13 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         df = df[cols]
 
         time_offset = DruidDatasource.time_offset(granularity)
+
+        def increment_timestamp(ts):
+            dt = utils.parse_human_datetime(ts).replace(
+                tzinfo=config.get("DRUID_TZ"))
+            return dt + timedelta(milliseconds=time_offset)
         if 'timestamp' in df.columns and time_offset:
-            for i in range(len(df['timestamp'])):
-                dt = utils.parse_human_datetime(df['timestamp'][i])
-                dt = dt + timedelta(milliseconds=time_offset)
-                df.set_value(i, 'timestamp', dt.isoformat())
+            df.timestamp = df.timestamp.apply(increment_timestamp)
 
         return QueryResult(
             df=df,
