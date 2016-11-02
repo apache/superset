@@ -4,15 +4,18 @@ import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Panel } from 'react-bootstrap';
 
-import { ControlPanelsContainer }
-  from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
+import {
+  ControlPanelsContainer,
+} from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
 
 const defaultProps = {
   vizType: 'dist_bar',
   datasourceId: 1,
   datasourceType: 'type',
   actions: {
-    setFormOpts: () => {},
+    setFormOpts: () => {
+      // noop
+    },
   },
 };
 
