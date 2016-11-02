@@ -40,19 +40,23 @@ export default class FieldSet extends React.Component {
 
   render() {
     const type = this.props.type;
+    const selectTypes = [
+      'SelectField',
+      'SelectCustomMultiField',
+      'SelectMultipleSortableField',
+      'FreeFormSelectField',
+    ];
+
     let html;
 
     if (type === 'CheckboxField') {
       html = this.renderCheckBoxField();
-    } else if (type === 'SelectField' ||
-               type === 'SelectCustomMultiField' ||
-               type === 'SelectMultipleSortableField' ||
-               type === 'FreeFormSelectField') {
+    } else if (selectTypes.includes(type)) {
       html = this.renderSelectField();
-    } else if (type === 'TextField' || type === 'IntegerField') {
+    } else if (['TextField', 'IntegerField'].includes(type)) {
       html = this.renderTextField();
     } else if (type === 'TextAreaField') {
-      this.renderTextAreaField();
+      html = this.renderTextAreaField();
     }
 
     return html;
