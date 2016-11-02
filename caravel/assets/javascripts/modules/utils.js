@@ -142,3 +142,13 @@ export function formatSelectOptions(options) {
      [opt, opt]
   );
 }
+
+export function slugify(string) {
+  // slugify('My Neat Label! '); returns 'my-neat-label'
+  return string
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
+          .replace(/-$/, ''); // remove last floating dash
+}
