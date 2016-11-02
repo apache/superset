@@ -6,7 +6,7 @@ import { shallow } from 'enzyme';
 import FieldSetRow from '../../../../javascripts/explorev2/components/FieldSetRow';
 
 const defaultProps = {
-  fieldSets: ['columns', 'otherField'],
+  fieldSets: ['columns', 'metrics'],
 };
 
 describe('FieldSetRow', () => {

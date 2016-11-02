@@ -1,5 +1,15 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 
+export const fieldTypes = [
+  'CheckboxField',
+  'SelectField',
+  'SelectCustomMultiField',
+  'SelectMultipleSortableField',
+  'TextField',
+  'IntegerField',
+  'TextAreaFeild',
+];
+
 // TODO: add datasource_type here after druid support is added
 export const defaultFormData = {
   sliceId: null,
@@ -772,7 +782,7 @@ export const fields = {
   metrics: {
     type: 'SelectMultipleSortableField',
     label: 'Metrics',
-    choices: ['todo'],
+    choices: [[1, 1]],
     default: ['todo'],
     description: 'One or many metrics to display',
   },

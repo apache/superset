@@ -3,15 +3,7 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
-
-const fieldTypes = [
-  'CheckboxField',
-  'SelectField',
-  'SelectCustomMultiField',
-  'SelectMultipleSortableField',
-  'TextField',
-  'IntegerField',
-];
+import { fieldTypes } from '../stores/store';
 
 const propTypes = {
   type: PropTypes.oneOf(fieldTypes).isRequired,
@@ -58,6 +50,8 @@ export default class FieldSet extends React.Component {
       html = this.renderSelectField();
     } else if (type === 'TextField' || type === 'IntegerField') {
       html = this.renderTextField();
+    } else if (type === 'TextAreaField') {
+      this.renderTextAreaField();
     }
 
     return html;
