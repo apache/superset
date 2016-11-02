@@ -1,12 +1,13 @@
 const d3 = require('d3');
 const $ = require('jquery');
-/*
-    Utility function that takes a d3 svg:text selection and a max width, and splits the
-    text's text across multiple tspan lines such that any given line does not exceed max width
 
-    If text does not span multiple lines AND adjustedY is passed,
-    will set the text to the passed val
- */
+/*
+  Utility function that takes a d3 svg:text selection and a max width, and splits the
+  text's text across multiple tspan lines such that any given line does not exceed max width
+
+  If text does not span multiple lines AND adjustedY is passed,
+  will set the text to the passed val
+*/
 export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
@@ -46,6 +47,7 @@ export function wrapSvgText(text, width, adjustedY) {
     }
   });
 }
+
 /**
  * Sets the body and title content of a modal, and shows it. Assumes HTML for modal exists and that
  * it handles closing (i.e., works with bootstrap)
@@ -59,7 +61,7 @@ export function wrapSvgText(text, width, adjustedY) {
  *    bodySelector:  {string, default: '.misc-modal .modal-body' },
  *   }
  */
-function showModal(options) {
+export function showModal(options) {
   /* eslint no-param-reassign: 0 */
   options.modalSelector = options.modalSelector || '.misc-modal';
   options.titleSelector = options.titleSelector || '.misc-modal .modal-title';
@@ -68,7 +70,9 @@ function showModal(options) {
   $(options.bodySelector).html(options.body || '');
   $(options.modalSelector).modal('show');
 }
-const showApiMessage = function (resp) {
+
+
+function showApiMessage(resp) {
   const template =
     '<div class="alert"> ' +
     '<button type="button" class="close" ' +
@@ -77,8 +81,9 @@ const showApiMessage = function (resp) {
   $(template).addClass('alert-' + severity)
              .append(resp.message)
              .appendTo($('#alert-container'));
-};
-const toggleCheckbox = function (apiUrlPrefix, selector) {
+}
+
+export function toggleCheckbox(apiUrlPrefix, selector) {
   const apiUrl = apiUrlPrefix + $(selector)[0].checked;
   $.get(apiUrl).fail(function (xhr) {
     const resp = xhr.responseJSON;
@@ -86,16 +91,18 @@ const toggleCheckbox = function (apiUrlPrefix, selector) {
       showApiMessage(resp);
     }
   });
-};
+}
+
 /**
  * Fix the height of the table body of a DataTable with scrollY set
  */
-const fixDataTableBodyHeight = function ($tableDom, height) {
+export const fixDataTableBodyHeight = function ($tableDom, height) {
   const headHeight = $tableDom.find('.dataTables_scrollHead').height();
   $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight);
 };
-const formatters = {};
-function d3format(format, number) {
+
+export function d3format(format, number) {
+  const formatters = {};
   // Formats a number and memoizes formatters to be reused
   format = format || '.3s';
   if (!(format in formatters)) {
@@ -106,7 +113,7 @@ function d3format(format, number) {
 
 // Slice objects interact with their context through objects that implement
 // this controllerInterface (dashboard, explore, standalone)
-const controllerInterface = {
+export const controllerInterface = {
   type: null,
   done: () => {},
   error: () => {},
@@ -119,11 +126,19 @@ const controllerInterface = {
   filters: {},
 };
 
-module.exports = {
-  controllerInterface,
-  d3format,
-  fixDataTableBodyHeight,
-  showModal,
-  toggleCheckbox,
-  wrapSvgText,
-};
+export function formatSelectOptionsForRange(start, end) {
+  // outputs array of arrays
+  // formatSelectOptionsForRange(1, 5)
+  // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
+  const options = [];
+  for (let i = start; i <= end; i++) {
+    options.push([i, i]);
+  }
+  return options;
+}
+
+export function formatSelectOptions(options) {
+  return options.map((opt) =>
+     [opt, opt]
+  );
+}
