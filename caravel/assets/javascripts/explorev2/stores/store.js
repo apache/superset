@@ -179,7 +179,7 @@ export const visTypes = {
         ],
       },
     ],
-    fieldSetOverrides: {
+    fieldOverrides: {
       groupby: {
         label: 'Series',
       },
