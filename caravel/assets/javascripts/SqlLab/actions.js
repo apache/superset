@@ -33,6 +33,7 @@ export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
+export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -40,7 +41,7 @@ export function resetState() {
 
 export function startQuery(query) {
   Object.assign(query, {
-    id: shortid.generate(),
+    id: query.id ? query.id : shortid.generate(),
     progress: 0,
     startDttm: now(),
     state: (query.runAsync) ? 'pending' : 'running',
@@ -213,6 +214,7 @@ export function addTable(query, tableName) {
     let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
     $.get(url, (data) => {
       const dataPreviewQuery = {
+        id: shortid.generate(),
         dbId: query.dbId,
         sql: data.selectStar,
         tableName,
@@ -221,8 +223,6 @@ export function addTable(query, tableName) {
         runAsync: false,
         ctas: false,
       };
-      // Run query to get preview data for table
-      dispatch(runQuery(dataPreviewQuery));
       // Merge table to tables in state
       dispatch(mergeTable(
         Object.assign(data, {
@@ -232,6 +232,8 @@ export function addTable(query, tableName) {
           expanded: true,
         }), dataPreviewQuery)
       );
+      // Run query to get preview data for table
+      dispatch(runQuery(dataPreviewQuery));
     })
     .fail(() => {
       dispatch(
@@ -253,6 +255,27 @@ export function addTable(query, tableName) {
       Object.assign(table, data);
       dispatch(mergeTable(table));
     });
+  };
+}
+
+export function changeDataPreviewId(oldQueryId, newQuery) {
+  return { type: CHANGE_DATA_PREVIEW_ID, oldQueryId, newQuery };
+}
+
+export function reFetchQueryResults(query) {
+  return function (dispatch) {
+    const newQuery = {
+      id: shortid.generate(),
+      dbId: query.dbId,
+      sql: query.sql,
+      tableName: query.tableName,
+      sqlEditorId: null,
+      tab: '',
+      runAsync: false,
+      ctas: false,
+    };
+    dispatch(runQuery(newQuery));
+    dispatch(changeDataPreviewId(query.id, newQuery));
   };
 }
 

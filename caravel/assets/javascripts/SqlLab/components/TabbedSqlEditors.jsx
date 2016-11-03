@@ -122,7 +122,7 @@ class TabbedSqlEditors extends React.PureComponent {
       const dataPreviewQueries = [];
       this.props.tables.forEach((table) => {
         const queryId = table.dataPreviewQueryId;
-        if (queryId) {
+        if (queryId && this.props.queries[queryId]) {
           dataPreviewQueries.push(this.props.queries[queryId]);
         }
       });

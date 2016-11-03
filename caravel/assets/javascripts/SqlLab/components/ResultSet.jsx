@@ -120,6 +120,9 @@ class ResultSet extends React.PureComponent {
   fetchResults(query) {
     this.props.actions.fetchQueryResults(query);
   }
+  reFetchQueryResults(query) {
+    this.props.actions.reFetchQueryResults(query);
+  }
   render() {
     const query = this.props.query;
     const results = (this.props.query.cached) ? this.state.results : query.results;
@@ -196,6 +199,16 @@ class ResultSet extends React.PureComponent {
           </div>
         );
       }
+    }
+    if (query.cached) {
+      return (
+        <a
+          href="#"
+          onClick={this.reFetchQueryResults.bind(this, query)}
+        >
+          click to retrieve results
+        </a>
+      );
     }
     return (<Alert bsStyle="warning">The query returned no data</Alert>);
   }

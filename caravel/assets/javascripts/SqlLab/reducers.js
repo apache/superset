@@ -109,6 +109,21 @@ export const sqlLabReducer = function (state, action) {
       return Object.assign(
        {}, newState, { queries });
     },
+    [actions.CHANGE_DATA_PREVIEW_ID]() {
+      const queries = Object.assign({}, state.queries);
+      delete queries[action.oldQueryId];
+
+      const newTables = [];
+      state.tables.forEach((t) => {
+        if (t.dataPreviewQueryId === action.oldQueryId) {
+          newTables.push(Object.assign({}, t, { dataPreviewQueryId: action.newQuery.id }));
+        } else {
+          newTables.push(t);
+        }
+      });
+      return Object.assign(
+       {}, state, { queries, tables: newTables, activeSouthPaneTab: action.newQuery.id });
+    },
     [actions.COLLAPSE_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: false });
     },
@@ -152,6 +167,7 @@ export const sqlLabReducer = function (state, action) {
         rows,
         state: 'success',
         errorMessage: null,
+        cached: false,
       };
       return alterInObject(state, 'queries', action.query, alts);
     },
