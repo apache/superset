@@ -1,4 +1,7 @@
 import React, { PropTypes } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import * as actions from '../actions/exploreActions';
 import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
@@ -24,7 +27,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class FieldSet extends React.Component {
+export class FieldSet extends React.Component {
   renderCheckBoxField() {
     return (
       <CheckboxField
@@ -79,3 +82,15 @@ export default class FieldSet extends React.Component {
 
 FieldSet.propTypes = propTypes;
 FieldSet.defaultProps = defaultProps;
+
+function mapStateToProps() {
+  return {};
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+  };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(FieldSet);
