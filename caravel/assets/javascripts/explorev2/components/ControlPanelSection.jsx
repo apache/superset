@@ -16,12 +16,12 @@ const defaultProps = {
 };
 
 export default class ControlPanelSection extends React.Component {
-  header() {
+  renderHeader() {
     const { label, tooltip } = this.props;
     let header;
     if (label) {
       header = (
-        <div className="panel-title">
+        <div>
           {label} &nbsp;
           {tooltip && <InfoTooltipWithTrigger label={label} tooltip={tooltip} />}
         </div>
@@ -32,7 +32,7 @@ export default class ControlPanelSection extends React.Component {
 
   render() {
     return (
-      <Panel header={this.header()}>
+      <Panel header={this.renderHeader()}>
         {this.props.children}
       </Panel>
     );

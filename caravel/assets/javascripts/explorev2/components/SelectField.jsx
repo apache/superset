@@ -1,6 +1,7 @@
 import React, { PropTypes } from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
 import ControlLabelWithTooltip from './ControlLabelWithTooltip';
+import { slugify } from '../../modules/utils';
 
 const propTypes = {
   label: PropTypes.string,
@@ -14,7 +15,7 @@ const defaultProps = {
 
 export default function SelectField({ label, description }) {
   return (
-    <FormGroup controlId={`formControlsSelect-${label}`}>
+    <FormGroup controlId={`formControlsSelect-${slugify(label)}`}>
       <ControlLabelWithTooltip label={label} description={description} />
       <FormControl componentClass="select" placeholder="select">
         <option value="select">select</option>

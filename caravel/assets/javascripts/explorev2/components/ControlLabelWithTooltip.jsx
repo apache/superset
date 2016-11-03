@@ -3,12 +3,11 @@ import { ControlLabel } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
-  label: PropTypes.string,
+  label: PropTypes.string.isRequired,
   description: PropTypes.string,
 };
 
 const defaultProps = {
-  label: null,
   description: null,
 };
 
