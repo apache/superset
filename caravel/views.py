@@ -1333,19 +1333,6 @@ class Caravel(BaseCaravelView):
         slice_edit_perm = check_ownership(slc, raise_if_false=False)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
-        # bootstrap data for explore V2
-        bootstrap_data = {
-            "can_add": slice_add_perm,
-            "can_download": slice_download_perm,
-            "can_edit": slice_edit_perm,
-            # TODO: separate endpoint for fetching datasources
-            "datasources": [(d.id, d.full_name) for d in datasources],
-            "datasource_id": datasource_id,
-            "datasource_type": datasource_type,
-            "user_id": g.user.get_id() if g.user else None,
-            "viz": json.loads(viz_obj.get_json())
-        }
-
         # handle save or overwrite
         action = request.args.get('action')
         if action in ('saveas', 'overwrite'):
@@ -1363,6 +1350,18 @@ class Caravel(BaseCaravelView):
         elif request.args.get("standalone") == "true":
             return self.render_template("caravel/standalone.html", viz=viz_obj, standalone_mode=True)
         elif request.args.get("V2") == "true":
+            # bootstrap data for explore V2
+            bootstrap_data = {
+                "can_add": slice_add_perm,
+                "can_download": slice_download_perm,
+                "can_edit": slice_edit_perm,
+                # TODO: separate endpoint for fetching datasources
+                "datasources": [(d.id, d.full_name) for d in datasources],
+                "datasource_id": datasource_id,
+                "datasource_type": datasource_type,
+                "user_id": g.user.get_id() if g.user else None,
+                "viz": json.loads(viz_obj.get_json())
+            }
             return self.render_template(
                 "caravel/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data))
