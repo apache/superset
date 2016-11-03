@@ -1,4 +1,7 @@
 import React, { PropTypes } from 'react';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import * as actions from '../actions/exploreActions';
 import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
@@ -6,12 +9,14 @@ import SelectField from './SelectField';
 import { fieldTypes } from '../stores/store';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
   type: PropTypes.oneOf(fieldTypes).isRequired,
   label: PropTypes.string.isRequired,
   choices: PropTypes.arrayOf(PropTypes.array),
   description: PropTypes.string,
   places: PropTypes.number,
   validators: PropTypes.any,
+  actions: React.PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -21,21 +26,41 @@ const defaultProps = {
   validators: null,
 };
 
-export default class FieldSet extends React.Component {
+export class FieldSet extends React.Component {
+  onChange(value) {
+    this.props.actions.setFormData(this.props.name, value);
+  }
+
   renderCheckBoxField() {
-    return <CheckboxField {...this.props} />;
+    return (
+      <CheckboxField
+        onChange={this.onChange.bind(this)}
+        {...this.props}
+      />);
   }
 
   renderTextAreaField() {
-    return <TextAreaField {...this.props} />;
+    return (
+      <TextAreaField
+        onChange={this.onChange.bind(this)}
+        {...this.props}
+      />);
   }
 
   renderSelectField() {
-    return <SelectField {...this.props} />;
+    return (
+      <SelectField
+        onChange={this.onChange.bind(this)}
+        {...this.props}
+      />);
   }
 
   renderTextField() {
-    return <TextField {...this.props} />;
+    return (
+      <TextField
+        onChange={this.onChange.bind(this)}
+        {...this.props}
+      />);
   }
 
   render() {
@@ -64,3 +89,15 @@ export default class FieldSet extends React.Component {
 
 FieldSet.propTypes = propTypes;
 FieldSet.defaultProps = defaultProps;
+
+function mapStateToProps() {
+  return {};
+}
+
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: bindActionCreators(actions, dispatch),
+  };
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(FieldSet);

@@ -2,30 +2,28 @@ import { defaultFormData, defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
-const setFormInViz = function (state, action) {
-  const newFormData = Object.assign({}, state);
-  newFormData[action.key] = action.value;
+const setFormInViz = function (oldFd, action) {
+  const newFormData = Object.assign({}, oldFd);
+  // flip the value for checkbox where action.value is undefined
+  newFormData[action.key] = action.value ? action.value : (!oldFd[action.key]);
   return newFormData;
 };
 
-const setVizInState = function (state, action) {
+const setVizInState = function (oldViz, action) {
   switch (action.type) {
     case actions.SET_FORM_DATA:
       return Object.assign(
         {},
-        state,
-        { formData: setFormInViz(state.formData, action) }
+        oldViz,
+        { form_data: setFormInViz(oldViz.form_data, action) }
         );
     default:
-      return state;
+      return oldViz;
   }
 };
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasourceId: action.datasourceId });
-    },
     [actions.SET_TIME_COLUMN_OPTS]() {
       return Object.assign({}, state, { timeColumnOpts: action.timeColumnOpts });
     },
@@ -43,9 +41,6 @@ export const exploreReducer = function (state, action) {
     },
     [actions.SET_ORDERING_OPTS]() {
       return Object.assign({}, state, { orderingOpts: action.orderingOpts });
-    },
-    [actions.TOGGLE_SEARCHBOX]() {
-      return Object.assign({}, state, { searchBox: action.searchBox });
     },
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
@@ -70,9 +65,6 @@ export const exploreReducer = function (state, action) {
     },
     [actions.CLEAR_ALL_OPTS]() {
       return Object.assign({}, state, defaultOpts);
-    },
-    [actions.SET_DATASOURCE_TYPE]() {
-      return Object.assign({}, state, { datasourceType: action.datasourceType });
     },
     [actions.SET_FORM_DATA]() {
       return Object.assign(

@@ -5,20 +5,30 @@ import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
   label: null,
   description: null,
+  onChange: () => {},
 };
 
-export default function TextField({ label, description }) {
-  return (
-    <FormGroup controlId="formInlineName">
-      <ControlLabelWithTooltip label={label} description={description} />
-      <FormControl type="text" placeholder="" />
-    </FormGroup>
-  );
+export default class TextField extends React.Component {
+  onChange(event) {
+    this.props.onChange(event.target.value);
+  }
+  render() {
+    return (
+      <FormGroup controlId="formInlineName">
+        <ControlLabelWithTooltip
+          label={this.props.label}
+          description={this.props.description}
+        />
+        <FormControl type="text" placeholder="" onChange={this.onChange.bind(this)} />
+      </FormGroup>
+    );
+  }
 }
 
 TextField.propTypes = propTypes;

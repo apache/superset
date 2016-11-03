@@ -5,19 +5,26 @@ import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
   label: null,
   description: null,
+  onChange: () => {},
 };
 
-export default function CheckboxField({ label, description }) {
-  return (
-    <Checkbox>
-      <ControlLabelWithTooltip label={label} description={description} />
-    </Checkbox>
-  );
+export default class CheckboxField extends React.Component {
+  onToggle() {
+    this.props.onChange();
+  }
+  render() {
+    return (
+      <Checkbox onChange={this.onToggle.bind(this)}>
+        <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
+      </Checkbox>
+    );
+  }
 }
 
 CheckboxField.propTypes = propTypes;

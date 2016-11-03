@@ -48,16 +48,12 @@ export function setFilterColumnOpts(filterColumnOpts) {
 }
 
 export function resetFormData() {
-  // Clear all form data when switching datasource
+  // Clear all form data when switching datasource or viz_type
   return { type: RESET_FORM_DATA };
 }
 
 export function clearAllOpts() {
   return { type: CLEAR_ALL_OPTS };
-}
-
-export function setDatasourceType(datasourceType) {
-  return { type: SET_DATASOURCE_TYPE, datasourceType };
 }
 
 export function setFormOpts(datasourceId, datasourceType) {
@@ -114,15 +110,6 @@ export function setFormOpts(datasourceId, datasourceType) {
     }
   };
 }
-
-export function setDatasource(datasourceId) {
-  return { type: SET_DATASOURCE, datasourceId };
-}
-
-export function toggleSearchBox(searchBox) {
-  return { type: TOGGLE_SEARCHBOX, searchBox };
-}
-
 export function addFilter(filter) {
   return { type: ADD_FILTER, filter };
 }
