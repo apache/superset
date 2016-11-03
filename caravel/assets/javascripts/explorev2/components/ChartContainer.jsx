@@ -40,12 +40,17 @@ class ChartContainer extends React.Component {
           $(this.state.selector).html(data);
         },
 
-        css: () => {
+        css: (dim, size) => {
           // dimension can be 'height'
           // pixel string can be '300px'
           // should call callback to adjust height of chart
+          $(this.state.selector).css(dim, size);
         },
         height: () => parseInt(this.props.height, 10) - 100,
+
+        show: () => { this.render(); },
+
+        get: (n) => ($(this.state.selector).get(n)),
 
         find: (classname) => ($(this.state.selector).find(classname)),
 
