@@ -356,6 +356,10 @@ class FormFactory(object):
                     ('6 hour', _('6 hour')),
                     ('1 day', _('1 day')),
                     ('7 days', _('7 days')),
+                    ('week', _('week')),
+                    ('week_starting_sunday', _('week_starting_sunday')),
+                    ('week_ending_saturday', _('week_ending_saturday')),
+                    ('month', _('month')),
                 ),
                 "description": _(
                     "The time granularity for the visualization. Note that you "

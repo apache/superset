@@ -128,7 +128,6 @@ class CaravelTestCase(unittest.TestCase):
         return db.session.query(models.DruidDatasource).filter_by(
             datasource_name=name).first()
 
-
     def get_resp(self, url):
         """Shortcut to get the parsed results while following redirects"""
         resp = self.client.get(url, follow_redirects=True)

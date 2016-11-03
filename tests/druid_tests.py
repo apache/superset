@@ -115,7 +115,7 @@ class DruidTests(CaravelTestCase):
 
         resp = self.get_resp('/caravel/explore/druid/{}/'.format(
             datasource_id))
-        assert "[test_cluster].[test_datasource]" in resp
+        self.assertIn("[test_cluster].[test_datasource]", resp)
 
         # One groupby
         url = (
