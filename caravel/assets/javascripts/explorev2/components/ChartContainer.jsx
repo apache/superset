@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
@@ -8,12 +9,19 @@ const propTypes = {
   sliceName: PropTypes.string.isRequired,
   vizType: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
-  sliceContainerId: PropTypes.string.isRequired,
+  containerId: PropTypes.string.isRequired,
   jsonEndpoint: PropTypes.string.isRequired,
   columnFormats: PropTypes.object,
 };
 
 class ChartContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      selector: `#${this.props.containerId}`,
+    };
+  }
+
   componentDidMount() {
     this.renderVis();
   }
@@ -27,8 +35,9 @@ class ChartContainer extends React.Component {
       jsonEndpoint: () => this.props.jsonEndpoint,
 
       container: {
-        html: () => {
+        html: (data) => {
           // this should be a callback to clear the contents of the slice container
+          $(this.state.selector).html(data);
         },
 
         css: () => {
@@ -37,17 +46,45 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
         },
         height: () => parseInt(this.props.height, 10) - 100,
+
+        find: (classname) => ($(this.state.selector).find(classname)),
+
       },
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
       height: () => parseInt(this.props.height, 10) - 100,
 
-      selector: `#${this.props.sliceContainerId}`,
+      selector: this.state.selector,
 
       done: () => {
         // finished rendering callback
       },
+
+      error(msg, xhr) {
+        let errorMsg = msg;
+        let errHtml = '';
+        try {
+          const o = JSON.parse(msg);
+          if (o.error) {
+            errorMsg = o.error;
+          }
+        } catch (e) {
+          // pass
+        }
+        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
+        if (xhr) {
+          const extendedMsg = this.getErrorMsg(xhr);
+          if (extendedMsg) {
+            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
+          }
+        }
+        $(this.state.selector).html(errHtml);
+        this.render();
+        $('span.query').removeClass('disabled');
+        $('.query-and-save button').removeAttr('disabled');
+      },
+
       d3format: (col, number) => {
         // mock d3format function in Slice object in caravel.js
         const format = this.props.columnFormats[col];
@@ -76,7 +113,7 @@ class ChartContainer extends React.Component {
           }
         >
           <div
-            id={this.props.sliceContainerId}
+            id={this.props.containerId}
             ref={(ref) => { this.chartContainerRef = ref; }}
             className={this.props.vizType}
           />
@@ -92,7 +129,7 @@ function mapStateToProps(state) {
   return {
     sliceName: state.sliceName,
     vizType: state.viz.formData.vizType,
-    sliceContainerId: `slice-container-${state.viz.formData.sliceId}`,
+    containerId: `slice-container-${state.viz.formData.sliceId}`,
     jsonEndpoint: state.viz.jsonEndPoint,
     columnFormats: state.viz.columnFormats,
   };
