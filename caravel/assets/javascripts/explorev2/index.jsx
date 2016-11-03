@@ -14,27 +14,9 @@ import { exploreReducer } from './reducers/exploreReducer';
 
 const bootstrappedState = Object.assign(initialState, {
   datasources: bootstrapData.datasources,
-  datasourceId: parseInt(bootstrapData.datasource_id, 10),
-  datasourceType: bootstrapData.datasource_type,
-  sliceName: bootstrapData.viz.form_data.slice_name,
-  viz: {
-    jsonEndPoint: bootstrapData.viz.json_endpoint,
-    data: bootstrapData.viz.data,
-    columnFormats: bootstrapData.viz.column_formats,
-    formData: {
-      sliceId: bootstrapData.viz.form_data.slice_id,
-      vizType: bootstrapData.viz.form_data.viz_type,
-      timeColumn: bootstrapData.viz.form_data.granularity_sqla,
-      timeGrain: bootstrapData.viz.form_data.time_grain_sqla,
-      metrics: [bootstrapData.viz.form_data.metrics].map((m) => ({ value: m, label: m })),
-      since: bootstrapData.viz.form_data.since,
-      until: bootstrapData.viz.form_data.until,
-      having: bootstrapData.viz.form_data.having,
-      where: bootstrapData.viz.form_data.where,
-      rowLimit: bootstrapData.viz.form_data.row_limit,
-      timeStampFormat: bootstrapData.viz.form_data.table_timestamp_format,
-    },
-  },
+  datasource_id: parseInt(bootstrapData.datasource_id, 10),
+  datasource_type: bootstrapData.datasource_type,
+  viz: bootstrapData.viz,
 });
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
