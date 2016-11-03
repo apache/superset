@@ -14,7 +14,6 @@ const propTypes = {
   searchText: React.PropTypes.string,
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
-  cache: React.PropTypes.bool,
 };
 const defaultProps = {
   search: true,
@@ -23,7 +22,6 @@ const defaultProps = {
   csv: true,
   searchText: '',
   actions: {},
-  cache: false,
 };
 
 
@@ -38,8 +36,9 @@ class ResultSet extends React.PureComponent {
   }
   componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
-    if (this.props.cache && (!nextProps.query.cached)
-      && nextProps.query.results && nextProps.query.results.data.length > 0) {
+    if ((!nextProps.query.cached)
+      && nextProps.query.results
+      && nextProps.query.results.data.length > 0) {
       this.setState(
         { results: nextProps.query.results },
         this.clearQueryResults(nextProps.query)
@@ -123,9 +122,9 @@ class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const results =
-      (this.props.cache && this.props.query.cached) ? this.state.results : query.results;
+    const results = (this.props.query.cached) ? this.state.results : query.results;
     let sql;
+
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
@@ -198,9 +197,7 @@ class ResultSet extends React.PureComponent {
         );
       }
     }
-    const alertMessage = query.cached ?
-      'click on preview in left bar to fetch table data' : 'The query returned no data';
-    return (<Alert bsStyle="warning">{alertMessage}</Alert>);
+    return (<Alert bsStyle="warning">The query returned no data</Alert>);
   }
 }
 ResultSet.propTypes = propTypes;

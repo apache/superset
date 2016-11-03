@@ -85,11 +85,19 @@ export const sqlLabReducer = function (state, action) {
         }
       });
       if (existingTable) {
+        if (action.query) {
+          at.dataPreviewQueryId = action.query.id;
+        }
         return alterInArr(state, 'tables', existingTable, at);
       }
       at.id = shortid.generate();
+      // for new table, associate Id of query for data preview
       at.dataPreviewQueryId = null;
-      return addToArr(state, 'tables', at);
+      let newState = addToArr(state, 'tables', at);
+      if (action.query) {
+        newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });
+      }
+      return newState;
     },
     [actions.EXPAND_TABLE]() {
       return alterInArr(state, 'tables', action.table, { expanded: true });
@@ -118,8 +126,6 @@ export const sqlLabReducer = function (state, action) {
         }
       } else {
         newState.activeSouthPaneTab = action.query.id;
-        newState = alterInArr(
-          newState, 'tables', action.table, { dataPreviewQueryId: action.query.id });
       }
       newState = addToObject(newState, 'queries', action.query);
       const sqlEditor = { id: action.query.sqlEditorId };

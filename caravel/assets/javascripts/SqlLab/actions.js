@@ -38,7 +38,7 @@ export function resetState() {
   return { type: RESET_STATE };
 }
 
-export function startQuery(query, table) {
+export function startQuery(query) {
   Object.assign(query, {
     id: shortid.generate(),
     progress: 0,
@@ -46,7 +46,7 @@ export function startQuery(query, table) {
     state: (query.runAsync) ? 'pending' : 'running',
     cached: false,
   });
-  return { type: START_QUERY, query, table };
+  return { type: START_QUERY, query };
 }
 
 export function querySuccess(query, results) {
@@ -91,9 +91,9 @@ export function fetchQueryResults(query) {
   };
 }
 
-export function runQuery(query, table) {
+export function runQuery(query) {
   return function (dispatch) {
-    dispatch(startQuery(query, table));
+    dispatch(startQuery(query));
     const sqlJsonUrl = '/caravel/sql_json/';
     const sqlJsonRequest = {
       client_id: query.id,
@@ -204,21 +204,33 @@ export function queryEditorSetSelectedText(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
 
-export function mergeTable(table) {
-  return { type: MERGE_TABLE, table };
+export function mergeTable(table, query) {
+  return { type: MERGE_TABLE, table, query };
 }
 
 export function addTable(query, tableName) {
   return function (dispatch) {
     let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
     $.get(url, (data) => {
-      dispatch(
-        mergeTable(Object.assign(data, {
+      const dataPreviewQuery = {
+        dbId: query.dbId,
+        sql: data.selectStar,
+        tableName,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: false,
+        ctas: false,
+      };
+      // Run query to get preview data for table
+      dispatch(runQuery(dataPreviewQuery));
+      // Merge table to tables in state
+      dispatch(mergeTable(
+        Object.assign(data, {
           dbId: query.dbId,
           queryEditorId: query.id,
           schema: query.schema,
           expanded: true,
-        }))
+        }), dataPreviewQuery)
       );
     })
     .fail(() => {
