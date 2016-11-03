@@ -18,12 +18,6 @@ const defaultProps = {
   vizType: null,
 };
 
-function getSectionsToRender(vizSections) {
-  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const sectionsToRender = [datasourceAndVizType].concat(vizSections, sqlClause);
-  return sectionsToRender;
-}
-
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
     const { datasourceId, datasourceType } = this.props;
@@ -32,22 +26,36 @@ class ControlPanelsContainer extends React.Component {
     }
   }
 
-  render() {
+  sectionsToRender() {
     const viz = visTypes[this.props.vizType];
-    const sectionsToRender = getSectionsToRender(viz.controlPanelSections);
+    const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+    const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
 
+    return sectionsToRender;
+  }
+
+  fieldOverrides() {
+    const viz = visTypes[this.props.vizType];
+    return viz.fieldOverrides;
+  }
+
+  render() {
     return (
       <Panel>
         <div className="scrollbar-container">
           <div className="scrollbar-content">
-            {sectionsToRender.map((section) => (
+            {this.sectionsToRender().map((section) => (
               <ControlPanelSection
                 key={section.label}
                 label={section.label}
                 tooltip={section.description}
               >
                 {section.fieldSetRows.map((fieldSets, i) => (
-                  <FieldSetRow key={`${section.label}-fieldSetRow-${i}`} fieldSets={fieldSets} />
+                  <FieldSetRow
+                    key={`${section.label}-fieldSetRow-${i}`}
+                    fieldSets={fieldSets}
+                    fieldOverrides={this.fieldOverrides()}
+                  />
                 ))}
               </ControlPanelSection>
             ))}
