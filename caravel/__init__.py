@@ -84,4 +84,6 @@ module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
 SourceRegistry.register_sources(module_datasource_map)
 
+default_datasource = app.config.get("DEFAULT_DATASOURCE")
+
 from caravel import views, config  # noqa
