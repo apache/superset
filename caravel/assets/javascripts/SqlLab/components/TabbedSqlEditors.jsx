@@ -152,7 +152,8 @@ class TabbedSqlEditors extends React.PureComponent {
             }
             <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
               <i className="fa fa-cogs" />
-                {this.state.hideLeftBar ? 'expand tool bar' : 'hide tool bar'}
+              &nbsp;
+              {this.state.hideLeftBar ? 'expand tool bar' : 'hide tool bar'}
             </MenuItem>
           </DropdownButton>
         </div>
