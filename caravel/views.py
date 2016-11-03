@@ -782,9 +782,12 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
             return redirect(self.get_redirect())
 
         src_cls = SourceRegistry.sources[default_datasource]
-        ds = db.session.query(SourceRegistry.sources[default_datasource]).first()
+        ds = db.session.query(
+            SourceRegistry.sources[default_datasource]).first()
         url = "/{}/list/".format(src_cls.baselink)
-        msg = _("Click on a {} link to create a Slice".format(default_datasource))
+        msg = _(
+            "Click on a {} link to create a Slice"
+            .format(default_datasource))
 
         if ds is None:
             sources = SourceRegistry.sources
@@ -792,7 +795,9 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
                 ds = db.session.query(SourceRegistry.sources[source]).first()
                 if ds is not None:
                     url = "/{}/list/".format(ds.baselink)
-                    msg = _("Click on a {} link to create a Slice".format(source))
+                    msg = _(
+                        "Click on a {} link to create a Slice"
+                        .format(source))
                     break
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)

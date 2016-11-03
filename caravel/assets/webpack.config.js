@@ -23,7 +23,7 @@ const config = {
   },
   output: {
     path: BUILD_DIR,
-    filename: `[name].${VERSION_STRING}.entry.js`,
+    filename: '[name].' + VERSION_STRING + '.entry.js',
   },
   resolve: {
     extensions: [
