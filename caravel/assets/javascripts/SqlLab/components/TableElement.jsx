@@ -53,6 +53,18 @@ class TableElement extends React.PureComponent {
     this.setState({ expanded: false });
     this.props.actions.removeDataPreview(this.props.table);
   }
+  previewData() {
+    const query = {
+      dbId: this.props.table.dbId,
+      sql: this.props.table.selectStar,
+      tableName: this.props.table.name,
+      sqlEditorId: null,
+      tab: '',
+      runAsync: false,
+      ctas: false,
+    };
+    this.props.actions.runQuery(query, this.props.table);
+  }
   toggleSortColumns() {
     this.setState({ sortColumns: !this.state.sortColumns });
   }
@@ -179,6 +191,12 @@ class TableElement extends React.PureComponent {
                     !this.state.sortColumns ?
                     'Sort columns alphabetically' :
                     'Original table column order'}
+                  href="#"
+                />
+                <Link
+                  className="fa fa-search-plus pull-left m-l-2"
+                  onClick={this.previewData.bind(this)}
+                  tooltip="Data preview"
                   href="#"
                 />
                 {table.selectStar &&
