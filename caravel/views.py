@@ -1375,7 +1375,6 @@ class Caravel(BaseCaravelView):
                 userid=g.user.get_id() if g.user else ''
             )
 
-
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
         """Save or overwrite a slice"""
