@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from collections import OrderedDict
 import functools
 import json
 import logging
@@ -55,7 +56,7 @@ import caravel
 from caravel import app, db, db_engine_specs, get_session, utils, sm
 from caravel.source_registry import SourceRegistry
 from caravel.viz import viz_types
-from caravel.jinja_context import process_template
+from caravel.jinja_context import get_template_processor
 from caravel.utils import (
     flasher, MetricPermException, DimSelector, wrap_clause_in_parens
 )
@@ -959,6 +960,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             extras=None,
             columns=None):
         """Querying any sqla table from this common interface"""
+        template_processor = get_template_processor(
+            table=self, database=self.database)
+
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
@@ -1087,12 +1091,15 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 if op == 'not in':
                     cond = ~cond
                 where_clause_and.append(cond)
-        if extras and 'where' in extras:
-            where = wrap_clause_in_parens(process_template(extras['where'], self.database))
-            where_clause_and += [where]
-        if extras and 'having' in extras:
-            having = wrap_clause_in_parens(process_template(extras['having'], self.database))
-            having_clause_and += [having]
+        if extras:
+            where = extras.get('where')
+            if where:
+                where_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(where))]
+            having = extras.get('having')
+            if having:
+                having_clause_and += [wrap_clause_in_parens(
+                    template_processor.process_template(having))]
         if granularity:
             qry = qry.where(and_(*(time_filter + where_clause_and)))
         else:
@@ -1597,7 +1604,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return {
             "time_columns": [
                 'all', '5 seconds', '30 seconds', '1 minute',
-                '5 minutes', '1 hour', '6 hour', '1 day', '7 days'
+                '5 minutes', '1 hour', '6 hour', '1 day', '7 days',
+                'week', 'week_starting_sunday', 'week_ending_saturday',
+                'month',
             ],
             "time_grains": ['now']
         }
@@ -1786,6 +1795,56 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             col_obj.generate_metrics()
             session.flush()
 
+    @staticmethod
+    def time_offset(granularity):
+        if granularity == 'week_ending_saturday':
+            return 6 * 24 * 3600 * 1000  # 6 days
+        return 0
+
+    # uses https://en.wikipedia.org/wiki/ISO_8601
+    # http://druid.io/docs/0.8.0/querying/granularities.html
+    # TODO: pass origin from the UI
+    @staticmethod
+    def granularity(period_name, timezone=None):
+        if not period_name or period_name == 'all':
+            return 'all'
+        iso_8601_dict = {
+            '5 seconds': 'PT5S',
+            '30 seconds': 'PT30S',
+            '1 minute': 'PT1M',
+            '5 minutes': 'PT5M',
+            '1 hour': 'PT1H',
+            '6 hour': 'PT6H',
+            'one day': 'P1D',
+            '1 day': 'P1D',
+            '7 days': 'P7D',
+            'week': 'P1W',
+            'week_starting_sunday': 'P1W',
+            'week_ending_saturday': 'P1W',
+            'month': 'P1M',
+        }
+
+        granularity = {'type': 'period'}
+        if timezone:
+            granularity['timezone'] = timezone
+
+        if period_name in iso_8601_dict:
+            granularity['period'] = iso_8601_dict[period_name]
+            if period_name in ('week_ending_saturday', 'week_starting_sunday'):
+                # use Sunday as start of the week
+                granularity['origin'] = '2016-01-03T00:00:00'
+        elif not isinstance(period_name, string_types):
+            granularity['type'] = 'duration'
+            granularity['duration'] = period_name
+        elif period_name.startswith('P'):
+            # identify if the string is the iso_8601 period
+            granularity['period'] = period_name
+        else:
+            granularity['type'] = 'duration'
+            granularity['duration'] = utils.parse_human_timedelta(
+                period_name).total_seconds() * 1000
+        return granularity
+
     def query(  # druid
             self, groupby, metrics,
             granularity,
@@ -1813,6 +1872,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         # add tzinfo to native datetime with config
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        timezone = from_dttm.tzname()
 
         query_str = ""
         metrics_dict = {m.metric_name: m for m in self.metrics}
@@ -1828,7 +1888,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                     field_names.append(_f.get('fieldName'))
                 elif _type == 'arithmetic':
                     field_names += recursive_get_fields(_f)
-
             return list(set(field_names))
 
         for metric_name in metrics:
@@ -1850,11 +1909,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                         conf.get('fields', []),
                         conf.get('name', ''))
 
-        aggregations = {
-            m.metric_name: m.json_obj
-            for m in self.metrics
-            if m.metric_name in all_metrics
-        }
+        aggregations = OrderedDict()
+        for m in self.metrics:
+            if m.metric_name in all_metrics:
+                aggregations[m.metric_name] = m.json_obj
 
         rejected_metrics = [
             m.metric_name for m in self.metrics
@@ -1868,22 +1926,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
             )
 
-        granularity = granularity or "all"
-        if granularity != "all":
-            granularity = utils.parse_human_timedelta(
-                granularity).total_seconds() * 1000
-        if not isinstance(granularity, string_types):
-            granularity = {"type": "duration", "duration": granularity}
-            origin = extras.get('druid_time_origin')
-            if origin:
-                dttm = utils.parse_human_datetime(origin)
-                granularity['origin'] = dttm.isoformat()
-
         qry = dict(
             datasource=self.datasource_name,
             dimensions=groupby,
             aggregations=aggregations,
-            granularity=granularity,
+            granularity=DruidDatasource.granularity(
+                granularity, timezone=timezone),
             post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
@@ -1898,63 +1946,78 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
         client = self.cluster.get_pydruid_client()
         orig_filters = filters
-        if timeseries_limit and is_timeseries:
-            order_by = metrics[0] if metrics else self.metrics[0]
-            if timeseries_limit_metric:
-                order_by = timeseries_limit_metric
-            # Limit on the number of timeseries, doing a two-phases query
-            pre_qry = deepcopy(qry)
-            pre_qry['granularity'] = "all"
-            pre_qry['limit_spec'] = {
-                "type": "default",
-                "limit": timeseries_limit,
-                'intervals': (
-                    inner_from_dttm.isoformat() + '/' +
-                    inner_to_dttm.isoformat()),
-                "columns": [{
-                    "dimension": order_by,
-                    "direction": "descending",
-                }],
-            }
-            client.groupby(**pre_qry)
-            query_str += "// Two phase query\n// Phase 1\n"
-            query_str += json.dumps(
-                client.query_builder.last_query.query_dict, indent=2) + "\n"
-            query_str += "//\nPhase 2 (built based on phase one's results)\n"
-            df = client.export_pandas()
-            if df is not None and not df.empty:
-                dims = qry['dimensions']
-                filters = []
-                for unused, row in df.iterrows():
-                    fields = []
-                    for dim in dims:
-                        f = Dimension(dim) == row[dim]
-                        fields.append(f)
-                    if len(fields) > 1:
-                        filt = Filter(type="and", fields=fields)
-                        filters.append(filt)
-                    elif fields:
-                        filters.append(fields[0])
+        if len(groupby) == 0:
+            del qry['dimensions']
+            client.timeseries(**qry)
+        if len(groupby) == 1:
+            if not timeseries_limit:
+                timeseries_limit = 10000
+            qry['threshold'] = timeseries_limit
+            qry['dimension'] = qry.get('dimensions')[0]
+            del qry['dimensions']
+            qry['metric'] = list(qry['aggregations'].keys())[0]
+            client.topn(**qry)
+        elif len(groupby) > 1:
+            if timeseries_limit and is_timeseries:
+                order_by = metrics[0] if metrics else self.metrics[0]
+                if timeseries_limit_metric:
+                    order_by = timeseries_limit_metric
+                # Limit on the number of timeseries, doing a two-phases query
+                pre_qry = deepcopy(qry)
+                pre_qry['granularity'] = "all"
+                pre_qry['limit_spec'] = {
+                    "type": "default",
+                    "limit": timeseries_limit,
+                    'intervals': (
+                        inner_from_dttm.isoformat() + '/' +
+                        inner_to_dttm.isoformat()),
+                    "columns": [{
+                        "dimension": order_by,
+                        "direction": "descending",
+                    }],
+                }
+                client.groupby(**pre_qry)
+                query_str += "// Two phase query\n// Phase 1\n"
+                query_str += json.dumps(
+                    client.query_builder.last_query.query_dict, indent=2)
+                query_str += "\n"
+                query_str += (
+                    "//\nPhase 2 (built based on phase one's results)\n")
+                df = client.export_pandas()
+                if df is not None and not df.empty:
+                    dims = qry['dimensions']
+                    filters = []
+                    for unused, row in df.iterrows():
+                        fields = []
+                        for dim in dims:
+                            f = Dimension(dim) == row[dim]
+                            fields.append(f)
+                        if len(fields) > 1:
+                            filt = Filter(type="and", fields=fields)
+                            filters.append(filt)
+                        elif fields:
+                            filters.append(fields[0])
 
-                if filters:
-                    ff = Filter(type="or", fields=filters)
-                    if not orig_filters:
-                        qry['filter'] = ff
-                    else:
-                        qry['filter'] = Filter(type="and", fields=[
-                            ff,
-                            orig_filters])
-                qry['limit_spec'] = None
-        if row_limit:
-            qry['limit_spec'] = {
-                "type": "default",
-                "limit": row_limit,
-                "columns": [{
-                    "dimension": metrics[0] if metrics else self.metrics[0],
-                    "direction": "descending",
-                }],
-            }
-        client.groupby(**qry)
+                    if filters:
+                        ff = Filter(type="or", fields=filters)
+                        if not orig_filters:
+                            qry['filter'] = ff
+                        else:
+                            qry['filter'] = Filter(type="and", fields=[
+                                ff,
+                                orig_filters])
+                    qry['limit_spec'] = None
+            if row_limit:
+                qry['limit_spec'] = {
+                    "type": "default",
+                    "limit": row_limit,
+                    "columns": [{
+                        "dimension": (
+                            metrics[0] if metrics else self.metrics[0]),
+                        "direction": "descending",
+                    }],
+                }
+            client.groupby(**qry)
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
         df = client.export_pandas()
@@ -1974,6 +2037,16 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
         df = df[cols]
+
+        time_offset = DruidDatasource.time_offset(granularity)
+
+        def increment_timestamp(ts):
+            dt = utils.parse_human_datetime(ts).replace(
+                tzinfo=config.get("DRUID_TZ"))
+            return dt + timedelta(milliseconds=time_offset)
+        if 'timestamp' in df.columns and time_offset:
+            df.timestamp = df.timestamp.apply(increment_timestamp)
+
         return QueryResult(
             df=df,
             query=query_str,

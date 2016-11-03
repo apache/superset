@@ -13,8 +13,7 @@ from sqlalchemy.orm import sessionmaker
 from caravel import (
     app, db, models, utils, dataframe, results_backend)
 from caravel.db_engine_specs import LimitMethod
-from caravel.jinja_context import process_template
-
+from caravel.jinja_context import get_template_processor
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -101,7 +100,9 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         query.limit_used = True
     engine = database.get_sqla_engine(schema=query.schema)
     try:
-        executed_sql = process_template(executed_sql, database, query)
+        template_processor = get_template_processor(
+            database=database, query=query)
+        executed_sql = template_processor.process_template(executed_sql)
     except Exception as e:
         logging.exception(e)
         msg = "Template rendering failed: " + utils.error_msg_from_exception(e)

@@ -1,5 +1,6 @@
 codeclimate-test-reporter
 coveralls
+flake8
 mock
 mysqlclient
 nose
