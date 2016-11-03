@@ -652,7 +652,7 @@ class CalHeatmapViz(BaseViz):
     """Calendar heatmap."""
 
     viz_type = "cal_heatmap"
-    verbose_name = _("Calender Heatmap")
+    verbose_name = _("Calendar Heatmap")
     credits = (
         '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
     is_timeseries = True
@@ -1320,7 +1320,7 @@ class DistributionBarViz(DistributionPieViz):
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
-            ('show_controls', None),
+            ('show_controls', 'order_bars'),
         )
     },)
     form_overrides = {

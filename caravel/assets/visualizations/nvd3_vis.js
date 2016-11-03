@@ -71,7 +71,7 @@ function nvd3Vis(slice) {
       function calculateStretchMargins(payloadData) {
         let stretchMargin = 0;
         const pixelsPerCharX = 4.5; // approx, depends on font size
-        let maxLabelSize = 10; // accomodate for shorter labels
+        let maxLabelSize = 10; // accommodate for shorter labels
         payloadData.data.forEach((d) => {
           const axisLabels = d.values;
           for (let i = 0; i < axisLabels.length; i++) {
@@ -159,7 +159,17 @@ function nvd3Vis(slice) {
 
             stacked = fd.bar_stacked;
             chart.stacked(stacked);
-
+            if (fd.order_bars) {
+              payload.data.forEach((d) => {
+                d.values.sort(
+                  function compare(a, b) {
+                    if (a.x < b.x) return -1;
+                    if (a.x > b.x) return 1;
+                    return 0;
+                  }
+                );
+              });
+            }
             if (fd.show_bar_value) {
               setTimeout(function () {
                 addTotalBarValues(chart, payload.data, stacked);

@@ -1,3 +1,8 @@
+import * as actions from '../../../javascripts/SqlLab/actions';
+import sinon from 'sinon';
+
+export const mockedActions = sinon.stub(Object.assign({}, actions));
+
 export const alert = { bsStyle: 'danger', msg: 'Ooops', id: 'lksvmcx32' };
 export const table = {
   dbId: 1,
@@ -6,6 +11,11 @@ export const table = {
   schema: 'caravel',
   name: 'ab_user',
   id: 'r11Vgt60',
+  partitions: {
+    cols: ['username'],
+    latest: 'bob',
+    partitionQuery: 'SHOW PARTITIONS FROM ab_user',
+  },
   indexes: [
     {
       unique: true,
@@ -44,12 +54,42 @@ export const table = {
       longType: 'INTEGER(11)',
       type: 'INTEGER',
       name: 'id',
+      keys: [
+        {
+          column_names: ['id'],
+          type: 'pk',
+          name: null,
+        },
+      ],
     },
     {
       indexed: false,
       longType: 'VARCHAR(64)',
       type: 'VARCHAR',
       name: 'first_name',
+      keys: [
+        {
+          column_names: [
+            'first_name',
+          ],
+          name: 'slices_ibfk_1',
+          referred_columns: [
+            'id',
+          ],
+          referred_table: 'datasources',
+          type: 'fk',
+          referred_schema: 'carapal',
+          options: {},
+        },
+        {
+          unique: false,
+          column_names: [
+            'druid_datasource_id',
+          ],
+          type: 'index',
+          name: 'druid_datasource_id',
+        },
+      ],
     },
     {
       indexed: false,
@@ -128,11 +168,12 @@ export const table = {
 };
 export const defaultQueryEditor = {
   id: 'dfsadfs',
-  title: 'Untitled Query',
-  sql: 'SELECT *\nFROM\nWHERE',
-  latestQueryId: null,
   autorun: false,
   dbId: null,
+  latestQueryId: null,
+  selectedText: null,
+  sql: 'SELECT *\nFROM\nWHERE',
+  title: 'Untitled Query',
 };
 export const queries = [
   {

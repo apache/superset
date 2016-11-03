@@ -65,7 +65,7 @@ class BaseEngineSpec(object):
 
 
 class PostgresEngineSpec(BaseEngineSpec):
-    engine = 'postgres'
+    engine = 'postgresql'
 
     time_grains = (
         Grain("Time Column", _('Time Column'), "{col}"),
@@ -127,6 +127,10 @@ class MySQLEngineSpec(BaseEngineSpec):
               "INTERVAL DAYOFWEEK({col}) - 1 DAY))"),
         Grain("month", _('month'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFMONTH({col}) - 1 DAY))"),
+        Grain("quarter", _('quarter'), "MAKEDATE(YEAR({col}), 1) "
+              "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER"),
+        Grain("year", _('year'), "DATE(DATE_SUB({col}, "
+              "INTERVAL DAYOFYEAR({col}) - 1 DAY))"),
     )
 
     @classmethod

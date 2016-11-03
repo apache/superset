@@ -1470,7 +1470,7 @@ msgid "Chart Options"
 msgstr ""
 
 #: caravel/viz.py:595
-msgid "Calender Heatmap"
+msgid "Calendar Heatmap"
 msgstr ""
 
 #: caravel/viz.py:666

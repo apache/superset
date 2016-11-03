@@ -1250,6 +1250,7 @@ class Caravel(BaseCaravelView):
                 datasource_id=datasource_id,
                 args=request.args)
         except Exception as e:
+            logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
 
         if not self.datasource_access(viz_obj.datasource):
@@ -1263,6 +1264,7 @@ class Caravel(BaseCaravelView):
         try:
             payload = viz_obj.get_json()
         except Exception as e:
+            logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
 
         return Response(
@@ -1947,13 +1949,24 @@ class Caravel(BaseCaravelView):
         try:
             t = mydb.get_columns(table_name, schema)
             indexes = mydb.get_indexes(table_name, schema)
+            primary_key = mydb.get_pk_constraint(table_name, schema)
+            foreign_keys = mydb.get_foreign_keys(table_name, schema)
         except Exception as e:
             return Response(
                 json.dumps({'error': utils.error_msg_from_exception(e)}),
                 mimetype="application/json")
-        indexed_columns = set()
-        for index in indexes:
-            indexed_columns |= set(index.get('column_names', []))
+        keys = []
+        if primary_key and primary_key.get('constrained_columns'):
+            primary_key['column_names'] = primary_key.pop('constrained_columns')
+            primary_key['type'] = 'pk'
+            keys += [primary_key]
+        for fk in foreign_keys:
+            fk['column_names'] = fk.pop('constrained_columns')
+            fk['type'] = 'fk'
+        keys += foreign_keys
+        for idx in indexes:
+            idx['type'] = 'index'
+        keys += indexes
 
         for col in t:
             dtype = ""
@@ -1965,14 +1978,19 @@ class Caravel(BaseCaravelView):
                 'name': col['name'],
                 'type': dtype.split('(')[0] if '(' in dtype else dtype,
                 'longType': dtype,
-                'indexed': col['name'] in indexed_columns,
+                'keys': [
+                    k for k in keys
+                    if col['name'] in k.get('column_names')
+                ],
             })
         tbl = {
             'name': table_name,
             'columns': cols,
             'selectStar': mydb.select_star(
                 table_name, schema=schema, show_cols=True, indent=True),
-            'indexes': indexes,
+            'primaryKey': primary_key,
+            'foreignKeys': foreign_keys,
+            'indexes': keys,
         }
         return Response(json.dumps(tbl), mimetype="application/json")
 
@@ -2226,30 +2244,41 @@ class Caravel(BaseCaravelView):
     def search_queries(self):
         """Search for queries."""
         query = db.session.query(models.Query)
-        userId = request.args.get('userId')
-        databaseId = request.args.get('databaseId')
-        searchText = request.args.get('searchText')
+        search_user_id = request.args.get('user_id')
+        database_id = request.args.get('database_id')
+        search_text = request.args.get('search_text')
         status = request.args.get('status')
+        # From and To time stamp should be Epoch timestamp in seconds
+        from_time = request.args.get('from')
+        to_time = request.args.get('to')
 
-        if userId != 'null':
+        if search_user_id:
             # Filter on db Id
-            query = query.filter(models.Query.user_id == userId)
+            query = query.filter(models.Query.user_id == search_user_id)
 
-        if databaseId != 'null':
+        if database_id:
             # Filter on db Id
-            query = query.filter(models.Query.database_id == databaseId)
+            query = query.filter(models.Query.database_id == database_id)
 
-        if status != 'null':
+        if status:
             # Filter on status
             query = query.filter(models.Query.status == status)
 
-        if searchText != 'null':
+        if search_text:
             # Filter on search text
-            query = query.filter(models.Query.sql.like('%{}%'.format(searchText)))
+            query = query \
+                .filter(models.Query.sql.like('%{}%'.format(search_text)))
 
-        sql_queries = query.limit(config.get("QUERY_SEARCH_LIMIT")).all()
+        if from_time:
+            query = query.filter(models.Query.start_time > int(from_time))
 
+        if to_time:
+            query = query.filter(models.Query.start_time < int(to_time))
+
+        query_limit = config.get('QUERY_SEARCH_LIMIT', 5000)
+        sql_queries = query.limit(query_limit).all()
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+
         return Response(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser),
             status=200,

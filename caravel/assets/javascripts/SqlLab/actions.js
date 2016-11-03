@@ -17,6 +17,7 @@ export const QUERY_EDITOR_SET_SCHEMA = 'QUERY_EDITOR_SET_SCHEMA';
 export const QUERY_EDITOR_SET_TITLE = 'QUERY_EDITOR_SET_TITLE';
 export const QUERY_EDITOR_SET_AUTORUN = 'QUERY_EDITOR_SET_AUTORUN';
 export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
+export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
 export const ADD_ALERT = 'ADD_ALERT';
@@ -193,8 +194,48 @@ export function queryEditorSetSql(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SQL, queryEditor, sql };
 }
 
+export function queryEditorSetSelectedText(queryEditor, sql) {
+  return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
+}
+
 export function mergeTable(table) {
   return { type: MERGE_TABLE, table };
+}
+
+export function addTable(query, tableName) {
+  return function (dispatch) {
+    let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
+    $.get(url, (data) => {
+      dispatch(
+        mergeTable(Object.assign(data, {
+          dbId: query.dbId,
+          queryEditorId: query.id,
+          schema: query.schema,
+          expanded: true,
+        }))
+      );
+    })
+    .fail(() => {
+      dispatch(
+        addAlert({
+          msg: 'Error occurred while fetching metadata',
+          bsStyle: 'danger',
+        })
+      );
+    });
+
+    url = `/caravel/extra_table_metadata/${query.dbId}/${tableName}/${query.schema}/`;
+    $.get(url, (data) => {
+      const table = {
+        dbId: query.dbId,
+        queryEditorId: query.id,
+        schema: query.schema,
+        name: tableName,
+      };
+      Object.assign(table, data);
+      dispatch(mergeTable(table));
+    });
+  };
 }
 
 export function expandTable(table) {

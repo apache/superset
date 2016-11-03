@@ -250,6 +250,11 @@ class FormFactory(object):
                 "default": False,
                 "description": "Show the value on top of the bars or not"
             }),
+            'order_bars': (BetterBooleanField, {
+                "label": _("Sort Bars"),
+                "default": False,
+                "description": _("Sort bars by x labels."),
+            }),
             'show_controls': (BetterBooleanField, {
                 "label": _("Extra Controls"),
                 "default": False,
@@ -351,6 +356,10 @@ class FormFactory(object):
                     ('6 hour', _('6 hour')),
                     ('1 day', _('1 day')),
                     ('7 days', _('7 days')),
+                    ('week', _('week')),
+                    ('week_starting_sunday', _('week_starting_sunday')),
+                    ('week_ending_saturday', _('week_ending_saturday')),
+                    ('month', _('month')),
                 ),
                 "description": _(
                     "The time granularity for the visualization. Note that you "

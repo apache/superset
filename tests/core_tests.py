@@ -10,7 +10,7 @@ import json
 import io
 import random
 import unittest
-
+from datetime import datetime
 
 from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
@@ -43,7 +43,7 @@ class CoreTests(CaravelTestCase):
         db.session.query(models.DatasourceAccessRequest).delete()
 
     def tearDown(self):
-        pass
+        db.session.query(models.Query).delete()
 
     def test_welcome(self):
         self.login()
@@ -263,51 +263,6 @@ class CoreTests(CaravelTestCase):
         assert "List Slice" in self.get_resp('/slicemodelview/list/')
         assert "List Dashboard" in self.get_resp('/dashboardmodelview/list/')
 
-    def run_sql(self, sql, user_name, client_id):
-        self.login(username=user_name)
-        dbid = self.get_main_database(db.session).id
-        resp = self.client.post(
-            '/caravel/sql_json/',
-            data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
-                      client_id=client_id),
-        )
-        self.logout()
-        return json.loads(resp.data.decode('utf-8'))
-
-    def test_sql_json(self):
-        data = self.run_sql('SELECT * FROM ab_user', 'admin', "1")
-        assert len(data['data']) > 0
-
-        data = self.run_sql('SELECT * FROM unexistant_table', 'admin', "2")
-        assert len(data['error']) > 0
-
-    def test_sql_json_has_access(self):
-        main_db = self.get_main_database(db.session)
-        utils.merge_perm(sm, 'database_access', main_db.perm)
-        db.session.commit()
-        main_db_permission_view = (
-            db.session.query(ab_models.PermissionView)
-            .join(ab_models.ViewMenu)
-            .filter(ab_models.ViewMenu.name == '[main].(id:1)')
-            .first()
-        )
-        astronaut = sm.add_role("Astronaut")
-        sm.add_permission_role(astronaut, main_db_permission_view)
-        # Astronaut role is Gamma + main db permissions
-        for gamma_perm in sm.find_role('Gamma').permissions:
-            sm.add_permission_role(astronaut, gamma_perm)
-
-        gagarin = appbuilder.sm.find_user('gagarin')
-        if not gagarin:
-            appbuilder.sm.add_user(
-                'gagarin', 'Iurii', 'Gagarin', 'gagarin@cosmos.ussr',
-                appbuilder.sm.find_role('Astronaut'),
-                password='general')
-        data = self.run_sql('SELECT * FROM ab_user', 'gagarin', "3")
-        db.session.query(models.Query).delete()
-        db.session.commit()
-        assert len(data['data']) > 0
-
     def test_csv_endpoint(self):
         sql = """
             SELECT first_name, last_name
@@ -325,42 +280,6 @@ class CoreTests(CaravelTestCase):
 
         self.assertEqual(list(expected_data), list(data))
         self.logout()
-
-    def test_queries_endpoint(self):
-        resp = self.client.get('/caravel/queries/{}'.format(0))
-        self.assertEquals(403, resp.status_code)
-
-        self.login('admin')
-        data = self.get_json_resp('/caravel/queries/{}'.format(0))
-        self.assertEquals(0, len(data))
-        self.logout()
-
-        self.run_sql("SELECT * FROM ab_user", 'admin', client_id='client_id_1')
-        self.run_sql("SELECT * FROM ab_user1", 'admin', client_id='client_id_2')
-        self.login('admin')
-        data = self.get_json_resp('/caravel/queries/{}'.format(0))
-        self.assertEquals(2, len(data))
-
-        query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_user').first()
-        query.changed_on = utils.EPOCH
-        db.session.commit()
-
-        data = self.get_json_resp('/caravel/queries/{}'.format(123456000))
-        self.assertEquals(1, len(data))
-
-        self.logout()
-        resp = self.client.get('/caravel/queries/{}'.format(0))
-        self.assertEquals(403, resp.status_code)
-
-    def test_search_query_endpoint(self):
-        userId = 'userId=null'
-        databaseId = 'databaseId=null'
-        searchText = 'searchText=null'
-        status = 'status=success'
-        params = [userId, databaseId, searchText, status]
-        resp = self.client.get('/caravel/search_queries?'+'&'.join(params))
-        self.assertEquals(200, resp.status_code)
 
     def test_public_user_dashboard_access(self):
         # Try access before adding appropriate permissions.
@@ -439,8 +358,10 @@ class CoreTests(CaravelTestCase):
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
+        maindb = self.get_main_database(db.session)
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
-        rendered = jinja_context.process_template(sql)
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_templated_sql_json(self):
@@ -448,6 +369,28 @@ class CoreTests(CaravelTestCase):
         data = self.run_sql(sql, "admin", "fdaklj3ws")
         self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
 
+    def test_table_metadata(self):
+        maindb = self.get_main_database(db.session)
+        data = self.get_json_resp(
+            "/caravel/table/{}/ab_user/null/".format(maindb.id))
+        self.assertEqual(data['name'], 'ab_user')
+        assert len(data['columns']) > 5
+        assert data.get('selectStar').startswith('SELECT')
+
+        # Engine specific tests
+        backend = maindb.backend
+        if backend in ('mysql', 'postgresql'):
+            self.assertEqual(data.get('primaryKey').get('type'), 'pk')
+            self.assertEqual(
+                data.get('primaryKey').get('column_names')[0], 'id')
+            self.assertEqual(len(data.get('foreignKeys')), 2)
+            if backend == 'mysql':
+                self.assertEqual(len(data.get('indexes')), 7)
+            elif backend == 'postgresql':
+                self.assertEqual(len(data.get('indexes')), 5)
+
+
 
 if __name__ == '__main__':
     unittest.main()
+

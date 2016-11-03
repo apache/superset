@@ -1,11 +1,12 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import QueryTable from './QueryTable';
 import DatabaseSelect from './DatabaseSelect';
-import { STATUS_OPTIONS } from '../common';
+import { now, epochTimeXHoursAgo,
+  epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
+import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -20,6 +21,8 @@ class QuerySearch extends React.PureComponent {
       databaseId: null,
       userId: null,
       searchText: null,
+      from: null,
+      to: null,
       status: 'success',
       queriesArray: [],
     };
@@ -38,12 +41,43 @@ class QuerySearch extends React.PureComponent {
     const val = (db) ? db.value : null;
     this.setState({ databaseId: val });
   }
-  insertParams(baseUrl, params) {
-    return baseUrl + '?' + params.join('&');
+  getTimeFromSelection(selection) {
+    switch (selection) {
+      case 'now':
+        return now();
+      case '1 hour ago':
+        return epochTimeXHoursAgo(1);
+      case '1 day ago':
+        return epochTimeXDaysAgo(1);
+      case '7 days ago':
+        return epochTimeXDaysAgo(7);
+      case '28 days ago':
+        return epochTimeXDaysAgo(28);
+      case '90 days ago':
+        return epochTimeXDaysAgo(90);
+      case '1 year ago':
+        return epochTimeXYearsAgo(1);
+      default:
+        return null;
+    }
+  }
+  changeFrom(user) {
+    const val = (user) ? user.value : null;
+    this.setState({ from: val });
+  }
+  changeTo(status) {
+    const val = (status) ? status.value : null;
+    this.setState({ to: val });
   }
   changeUser(user) {
     const val = (user) ? user.value : null;
     this.setState({ userId: val });
+  }
+  insertParams(baseUrl, params) {
+    const validParams = params.filter(
+      function (p) { return p !== ''; }
+    );
+    return baseUrl + '?' + validParams.join('&');
   }
   changeStatus(status) {
     const val = (status) ? status.value : null;
@@ -67,10 +101,12 @@ class QuerySearch extends React.PureComponent {
   }
   refreshQueries() {
     const params = [
-      `userId=${this.state.userId}`,
-      `databaseId=${this.state.databaseId}`,
-      `searchText=${this.state.searchText}`,
-      `status=${this.state.status}`,
+      this.state.userId ? `user_id=${this.state.userId}` : '',
+      this.state.databaseId ? `database_id=${this.state.databaseId}` : '',
+      this.state.searchText ? `search_text=${this.state.searchText}` : '',
+      this.state.status ? `status=${this.state.status}` : '',
+      this.state.from ? `from=${this.getTimeFromSelection(this.state.from)}` : '',
+      this.state.to ? `to=${this.getTimeFromSelection(this.state.to)}` : '',
     ];
 
     const url = this.insertParams('/caravel/search_queries', params);
@@ -113,9 +149,30 @@ class QuerySearch extends React.PureComponent {
               placeholder="Search Results"
             />
           </div>
-          <div className="col-sm-2">
+          <div className="col-sm-1">
             <Select
-              name="select-state"
+              name="select-from"
+              placeholder="[From]-"
+              options={TIME_OPTIONS.
+                slice(1, TIME_OPTIONS.length).map((t) => ({ value: t, label: t }))}
+              value={this.state.from}
+              autosize={false}
+              onChange={this.changeFrom.bind(this)}
+            />
+          </div>
+          <div className="col-sm-1">
+            <Select
+              name="select-to"
+              placeholder="[To]-"
+              options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+              value={this.state.to}
+              autosize={false}
+              onChange={this.changeTo.bind(this)}
+            />
+          </div>
+          <div className="col-sm-1">
+            <Select
+              name="select-status"
               placeholder="[Query Status]"
               options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
               value={this.state.status}
@@ -130,7 +187,7 @@ class QuerySearch extends React.PureComponent {
         </div>
         <QueryTable
           columns={[
-            'state', 'db', 'user',
+            'state', 'db', 'user', 'date',
             'progress', 'rows', 'sql', 'querylink',
           ]}
           onUserClicked={this.onUserClicked.bind(this)}

@@ -94,3 +94,21 @@ export function areArraysShallowEqual(arr1, arr2) {
   }
   return true;
 }
+
+export function areObjectsEqual(obj1, obj2) {
+  if (!obj1 || !obj2) {
+    return false;
+  }
+  if (! Object.keys(obj1).length !== Object.keys(obj2).length) {
+    return false;
+  }
+  for (const id in obj1) {
+    if (!obj2.hasOwnProperty(id)) {
+      return false;
+    }
+    if (obj1[id] !== obj2[id]) {
+      return false;
+    }
+  }
+  return true;
+}
