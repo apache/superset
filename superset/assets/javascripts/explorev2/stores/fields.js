@@ -46,17 +46,6 @@ export const fields = {
     description: 'The type of visualization to display',
   },
 
-  metrics: {
-    type: 'SelectField',
-    multi: true,
-    label: 'Metrics',
-    mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
-    }),
-    default: [],
-    description: 'One or many metrics to display',
-  },
-
   order_by_cols: {
     type: 'SelectField',
     multi: true,
@@ -69,13 +58,24 @@ export const fields = {
   },
 
   metric: {
-    type: 'SelectField',
+    type: 'MetricField',
     label: 'Metric',
     default: null,
     description: 'Choose the metric',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      datasource: state.datasource,
     }),
+  },
+
+  metrics: {
+    type: 'MetricList',
+    multi: true,
+    label: 'Metrics',
+    mapStateToProps: (state) => ({
+      datasource: state.datasource,
+    }),
+    default: [],
+    description: 'One or many metrics to display',
   },
 
   metric_2: {

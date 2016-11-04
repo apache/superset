@@ -684,6 +684,8 @@ class Queryable(object):
 
         d = {
             'id': self.id,
+            'columns': [col.data for col in self.columns],
+            'metrics': [m.data for m in self.metrics],
             'type': self.type,
             'name': self.name,
             'metrics_combo': self.metrics_combo,
@@ -1426,24 +1428,70 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 sqla.event.listen(SqlaTable, 'after_insert', set_perm)
 sqla.event.listen(SqlaTable, 'after_update', set_perm)
 
+class MetricAbstract(object):
+    metric_name = Column(String(512))
+    verbose_name = Column(String(1024))
+    metric_type = Column(String(32))
+    expression = Column(Text)
+    description = Column(Text)
+    is_restricted = Column(Boolean, default=False, nullable=True)
 
-class SqlMetric(Model, AuditMixinNullable, ImportMixin):
+    @property
+    def data(self):
+        attrs = (
+            'metric_name', 'metric_type', 'description',
+        )
+        d = {s: getattr(self, s) for s in attrs}
+        return d
+
+
+class DruidMetric(Model, AuditMixinNullable, MetricAbstract):
+
+    """ORM object referencing Druid metrics for a datasource"""
+
+    __tablename__ = 'metrics'
+    id = Column(Integer, primary_key=True)
+    datasource_name = Column(
+        String(255),
+        ForeignKey('datasources.datasource_name'))
+    # Setting enable_typechecks=False disables polymorphic inheritance.
+    datasource = relationship(
+        'DruidDatasource',
+        backref=backref('metrics', cascade='all, delete-orphan'),
+        enable_typechecks=False)
+    json = Column(Text)
+    d3format = Column(String(128))
+
+    @property
+    def json_obj(self):
+        try:
+            obj = json.loads(self.json)
+        except Exception:
+            obj = {}
+        return obj
+
+    @property
+    def perm(self):
+        return (
+            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
+        ).format(obj=self,
+                 parent_name=self.datasource.full_name
+                 ) if self.datasource else None
+
+
+
+
+class SqlMetric(Model, AuditMixinNullable, ImportMixin, MetricAbstract):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = 'sql_metrics'
     id = Column(Integer, primary_key=True)
-    metric_name = Column(String(512))
-    verbose_name = Column(String(1024))
-    metric_type = Column(String(32))
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable',
         backref=backref('metrics', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
-    expression = Column(Text)
-    description = Column(Text)
-    is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
 
     export_fields = (
@@ -1483,7 +1531,18 @@ class SqlMetric(Model, AuditMixinNullable, ImportMixin):
         return metric_to_import
 
 
-class TableColumn(Model, AuditMixinNullable, ImportMixin):
+class ColumnAbstract(object):
+    """Incomplete placeholder for things common to Column fields"""
+    @property
+    def data(self):
+        attrs = (
+            'column_name', 'verbose_name', 'is_dttm', 'type',
+        )
+        d = {s: getattr(self, s) for s in attrs}
+        return d
+
+
+class TableColumn(Model, AuditMixinNullable, ImportMixin, ColumnAbstract):
 
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -2415,46 +2474,7 @@ class Log(Model):
         return wrapper
 
 
-class DruidMetric(Model, AuditMixinNullable):
-
-    """ORM object referencing Druid metrics for a datasource"""
-
-    __tablename__ = 'metrics'
-    id = Column(Integer, primary_key=True)
-    metric_name = Column(String(512))
-    verbose_name = Column(String(1024))
-    metric_type = Column(String(32))
-    datasource_name = Column(
-        String(255),
-        ForeignKey('datasources.datasource_name'))
-    # Setting enable_typechecks=False disables polymorphic inheritance.
-    datasource = relationship(
-        'DruidDatasource',
-        backref=backref('metrics', cascade='all, delete-orphan'),
-        enable_typechecks=False)
-    json = Column(Text)
-    description = Column(Text)
-    is_restricted = Column(Boolean, default=False, nullable=True)
-    d3format = Column(String(128))
-
-    @property
-    def json_obj(self):
-        try:
-            obj = json.loads(self.json)
-        except Exception:
-            obj = {}
-        return obj
-
-    @property
-    def perm(self):
-        return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
-        ).format(obj=self,
-                 parent_name=self.datasource.full_name
-                 ) if self.datasource else None
-
-
-class DruidColumn(Model, AuditMixinNullable):
+class DruidColumn(Model, AuditMixinNullable, ColumnAbstract):
 
     """ORM model for storing Druid datasource column metadata"""
 

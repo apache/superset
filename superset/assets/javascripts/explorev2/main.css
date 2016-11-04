@@ -25,3 +25,9 @@
     margin-top: 0px;
     margin-right: 3px;
 }
+#popover-positioned-right {
+    width: 400px;
+}
+.popover {
+    max-width: 100%; 
+}

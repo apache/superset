@@ -3,14 +3,18 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
+import MetricList from './MetricList';
+import MetricField from './MetricField';
 
 import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const fieldMap = {
-  TextField,
   CheckboxField,
-  TextAreaField,
+  MetricField,
+  MetricList,
   SelectField,
+  TextAreaField,
+  TextField,
 };
 const fieldTypes = Object.keys(fieldMap);
 

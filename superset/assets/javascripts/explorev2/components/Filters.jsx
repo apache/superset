@@ -1,5 +1,4 @@
 import React from 'react';
-// import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
 import Filter from './Filter';
 import { Button } from 'react-bootstrap';
 import { connect } from 'react-redux';

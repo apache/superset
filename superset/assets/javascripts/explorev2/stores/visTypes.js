@@ -307,7 +307,9 @@ const visTypes = {
       {
         label: null,
         fieldSetRows: [
-          ['series', 'metric', 'limit'],
+          ['series'],
+          ['metric'],
+          ['limit'],
           ['size_from', 'size_to'],
           ['rotation'],
         ],
