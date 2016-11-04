@@ -61,6 +61,7 @@ class ControlPanelsContainer extends React.Component {
                     fieldSets={fieldSets}
                     fieldOverrides={this.fieldOverrides()}
                     onChange={this.onChange.bind(this)}
+                    fields={this.props.fields}
                   />
                 ))}
               </ControlPanelSection>
@@ -78,6 +79,7 @@ ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
+    fields: state.fields,
     datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
     viz_type: state.viz.form_data.viz_type,
