@@ -16,6 +16,7 @@ from flask import escape
 from flask_appbuilder.security.sqla import models as ab_models
 
 from caravel import db, models, utils, appbuilder, sm, jinja_context
+from caravel.models import DruidDatasource
 from caravel.views import DatabaseView
 
 from .base_tests import CaravelTestCase
@@ -132,6 +133,16 @@ class CoreTests(CaravelTestCase):
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
+
+
+    def test_add_slice_redirects_to_default(self):
+        self.login(username='admin')
+        url = '/slicemodelview/add'
+        resp = self.client.get(url, follow_redirects=True)
+        assert (
+            "Click on a table link to create a Slice" in
+            resp.data.decode('utf-8')
+        )
 
     def test_dashboard(self):
         self.login(username='admin')
