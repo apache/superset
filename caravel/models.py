@@ -1951,9 +1951,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             client.timeseries(**qry)
         if len(groupby) == 1:
             if not timeseries_limit:
-                timeseries_limit = 10000
+                timeseries_limit = 1000
+
             qry['threshold'] = timeseries_limit
-            qry['dimension'] = qry.get('dimensions')[0]
+            qry['dimension'] = list(qry.get('dimensions'))[0]
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
