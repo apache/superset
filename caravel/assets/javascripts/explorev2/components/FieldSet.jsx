@@ -1,7 +1,4 @@
 import React, { PropTypes } from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
@@ -16,7 +13,7 @@ const propTypes = {
   description: PropTypes.string,
   places: PropTypes.number,
   validators: PropTypes.any,
-  actions: React.PropTypes.object.isRequired,
+  onChange: React.PropTypes.func,
 };
 
 const defaultProps = {
@@ -24,17 +21,13 @@ const defaultProps = {
   description: null,
   places: null,
   validators: null,
+  onChange: () => {},
 };
 
-export class FieldSet extends React.Component {
-  onChange(value) {
-    this.props.actions.setFormData(this.props.name, value);
-  }
-
+export default class FieldSet extends React.Component {
   renderCheckBoxField() {
     return (
       <CheckboxField
-        onChange={this.onChange.bind(this)}
         {...this.props}
       />);
   }
@@ -42,7 +35,6 @@ export class FieldSet extends React.Component {
   renderTextAreaField() {
     return (
       <TextAreaField
-        onChange={this.onChange.bind(this)}
         {...this.props}
       />);
   }
@@ -50,7 +42,6 @@ export class FieldSet extends React.Component {
   renderSelectField() {
     return (
       <SelectField
-        onChange={this.onChange.bind(this)}
         {...this.props}
       />);
   }
@@ -58,7 +49,6 @@ export class FieldSet extends React.Component {
   renderTextField() {
     return (
       <TextField
-        onChange={this.onChange.bind(this)}
         {...this.props}
       />);
   }
@@ -89,15 +79,3 @@ export class FieldSet extends React.Component {
 
 FieldSet.propTypes = propTypes;
 FieldSet.defaultProps = defaultProps;
-
-function mapStateToProps() {
-  return {};
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(FieldSet);

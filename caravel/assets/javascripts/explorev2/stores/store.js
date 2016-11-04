@@ -11,149 +11,6 @@ export const fieldTypes = [
   'TextField',
 ];
 
-export const defaultFormData = {
-  slice_name: null,
-  slice_id: null,
-  viz_type: 'table',
-  metrics: [],
-  order_by_cols: [],
-  metric: null,
-  stacked_style: 'stack',
-  linear_color_scheme: 'blue_white_yellow',
-  normalize_across: 'heatmap',
-  horizon_color_scale: 'series',
-  canvas_image_rendering: 'pixelated',
-  xscale_interval: '1',
-  yscale_interval: '1',
-  bar_stacked: false,
-  show_markers: false,
-  show_bar_value: false,
-  order_bars: false,
-  show_controls: false,
-  reduce_x_ticks: false,
-  include_series: false,
-  secondary_metric: null,
-  country_fieldtype: 'cca2',
-  groupby: [],
-  columns: [],
-  all_columns: [],
-  all_columns_x: null,
-  all_columns_y: null,
-  druid_time_origin: null,
-  bottom_margin: 'auto',
-  granularity: '1 day',
-  domain_granularity: 'month',
-  subdomain_granularity: 'day',
-  link_length: '200',
-  charge: '-500',
-  granularity_sqla: null,
-  resample_rule: null,
-  resample_how: null,
-  resample_fillmethod: null,
-  since: '7 days ago',
-  until: 'now',
-  max_bubble_size: '25',
-  whisker_options: 'Tukey',
-  treemap_ratio: 0.5 * (1 + Math.sqrt(5)),
-  number_format: '.3s',
-  row_limit: 50000,
-  limit: 50,
-  timeseries_limit_metric: null,
-  rolling_type: 'None',
-  rolling_periods: null,
-  series: null,
-  entity: null,
-  x: null,
-  y: null,
-  size: null,
-  url: 'https: //www.youtube.com/embed/JkI5rg_VcQ4',
-  x_axis_label: null,
-  y_axis_label: null,
-  where: '',
-  having: '',
-  compare_lag: null,
-  compare_suffix: null,
-  table_timestamp_format: 'smart_date',
-  series_height: 25,
-  x_axis_format: 'smart_date',
-  y_axis_format: '.3s',
-  markup_type: 'markdown',
-  rotation: 'random',
-  line_interpolation: 'linear',
-  pie_label_type: 'key',
-  code: null,
-  pandas_aggfunc: 'sum',
-  size_from: '20',
-  size_to: '150',
-  show_brush: false,
-  date_filter: false,
-  show_datatable: false,
-  include_search: false,
-  show_bubbles: false,
-  show_legend: false,
-  x_axis_showminmax: true,
-  rich_tooltip: true,
-  y_axis_zero: false,
-  y_log_scale: false,
-  x_log_scale: false,
-  donut: false,
-  labels_outside: true,
-  contribution: false,
-  num_period_compare: null,
-  period_ratio_type: 'growth',
-  time_compare: null,
-  subheader: null,
-  mapbox_label: null,
-  mapbox_style: 'mapbox://styles/mapbox/streets-v9',
-  clustering_radius: '60',
-  point_radius: 'Auto',
-  point_radius_unit: 'Pixels',
-  global_opacity: 1,
-  viewport_zoom: 11,
-  viewport_latitude: 37.772123,
-  viewport_longitude: -122.405293,
-  render_while_dragging: true,
-  mapbox_color: 'rgb(0, 122, 135)',
-};
-
-export const defaultViz = {
-  cached_key: null,
-  cached_timeout: null,
-  cached_dttm: null,
-  column_formats: null,
-  csv_endpoint: null,
-  is_cached: false,
-  data: [],
-  form_data: defaultFormData,
-  json_endpoint: null,
-  query: null,
-  standalone_endpoint: null,
-};
-
-export const initialState = {
-  datasources: null,
-  datasource_id: null,
-  datasource_type: null,
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
-  filterColumnOpts: [],
-  viz: defaultViz,
-};
-
-export const defaultOpts = {
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  filterColumnOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
-};
-
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
@@ -1171,7 +1028,7 @@ export const fields = {
     choices: [['granularity_sqla', 'granularity_sqla']],
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
-                 'column in the table editor. Also note that the ' +
+                 'column in the table or. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
   },
@@ -1768,3 +1625,47 @@ export const fields = {
     description: 'The color for points and clusters in RGB',
   },
 };
+
+const defaultFormData = {};
+defaultFormData.slice_name = null;
+defaultFormData.slice_id = null;
+Object.keys(fields).forEach((k) => { defaultFormData[k] = fields[k].default; });
+
+export const defaultViz = {
+  cached_key: null,
+  cached_timeout: null,
+  cached_dttm: null,
+  column_formats: null,
+  csv_endpoint: null,
+  is_cached: false,
+  data: [],
+  form_data: defaultFormData,
+  json_endpoint: null,
+  query: null,
+  standalone_endpoint: null,
+};
+
+export const initialState = {
+  datasources: null,
+  datasource_id: null,
+  datasource_type: null,
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  columnOpts: [],
+  orderingOpts: [],
+  filterColumnOpts: [],
+  viz: defaultViz,
+};
+
+export const defaultOpts = {
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  filterColumnOpts: [],
+  columnOpts: [],
+  orderingOpts: [],
+};
+

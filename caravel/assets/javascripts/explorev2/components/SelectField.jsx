@@ -4,6 +4,7 @@ import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 import { slugify } from '../../modules/utils';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
@@ -17,7 +18,7 @@ const defaultProps = {
 
 export default class SelectField extends React.Component {
   onChange(opt) {
-    this.props.onChange(opt.target.value);
+    this.props.onChange(this.props.name, opt.target.value);
   }
   render() {
     return (

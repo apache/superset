@@ -3,6 +3,7 @@ import { Checkbox } from 'react-bootstrap';
 import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
@@ -16,7 +17,7 @@ const defaultProps = {
 
 export default class CheckboxField extends React.Component {
   onToggle() {
-    this.props.onChange();
+    this.props.onChange(this.props.name);
   }
   render() {
     return (

@@ -27,6 +27,10 @@ class ControlPanelsContainer extends React.Component {
     }
   }
 
+  onChange(name, value) {
+    this.props.actions.setFormData(name, value);
+  }
+
   sectionsToRender() {
     const viz = visTypes[this.props.viz_type];
     const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
@@ -56,6 +60,7 @@ class ControlPanelsContainer extends React.Component {
                     key={`${section.label}-fieldSetRow-${i}`}
                     fieldSets={fieldSets}
                     fieldOverrides={this.fieldOverrides()}
+                    onChange={this.onChange.bind(this)}
                   />
                 ))}
               </ControlPanelSection>

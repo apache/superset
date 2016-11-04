@@ -3,6 +3,7 @@ import { FormGroup, FormControl } from 'react-bootstrap';
 import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
@@ -16,7 +17,7 @@ const defaultProps = {
 
 export default class TextAreaField extends React.Component {
   onChange(event) {
-    this.props.onChange(event.target.value);
+    this.props.onChange(this.props.name, event.target.value);
   }
   render() {
     return (
