@@ -223,20 +223,22 @@ class SqlEditor extends React.PureComponent {
             </Col>
           </Collapse>
           <Col md={this.props.hideLeftBar ? 12 : 9}>
-            <AceEditorWrapper
-              tables={this.props.tables}
-              actions={this.props.actions}
-              queryEditor={this.props.queryEditor}
-              sql={this.props.queryEditor.sql}
-              onBlur={this.setQueryEditorSql.bind(this)}
-            />
-            {editorBottomBar}
-            <br />
-            <SouthPane
-              editorQueries={this.props.editorQueries}
-              dataPreviewQueries={this.props.dataPreviewQueries}
-              actions={this.props.actions}
-            />
+            <div className="scrollbar">
+              <AceEditorWrapper
+                tables={this.props.tables}
+                actions={this.props.actions}
+                queryEditor={this.props.queryEditor}
+                sql={this.props.queryEditor.sql}
+                onBlur={this.setQueryEditorSql.bind(this)}
+              />
+              {editorBottomBar}
+              <br />
+              <SouthPane
+                editorQueries={this.props.editorQueries}
+                dataPreviewQueries={this.props.dataPreviewQueries}
+                actions={this.props.actions}
+              />
+            </div>
           </Col>
         </Row>
       </div>
