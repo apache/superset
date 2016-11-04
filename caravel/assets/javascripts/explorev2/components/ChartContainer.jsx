@@ -32,8 +32,6 @@ class ChartContainer extends React.Component {
 
   getMockedSliceObject() {
     return {
-      containerId: this.props.containerId,
-
       jsonEndpoint: () => this.props.jsonEndpoint,
 
       container: {
@@ -63,16 +61,6 @@ class ChartContainer extends React.Component {
       height: () => parseInt(this.props.height, 10) - 100,
 
       selector: this.state.selector,
-
-      setFilter: () => {
-        // set filter according to data in store
-        // used in FilterBox.onChange()
-      },
-
-      getFilters: () => (
-        // return filter objects from viz.formData
-        {}
-      ),
 
       done: () => {
         // finished rendering callback
