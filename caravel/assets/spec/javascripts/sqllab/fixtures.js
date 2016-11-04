@@ -11,6 +11,7 @@ export const table = {
   schema: 'caravel',
   name: 'ab_user',
   id: 'r11Vgt60',
+  dataPreviewQueryId: null,
   partitions: {
     cols: ['username'],
     latest: 'bob',
@@ -183,6 +184,7 @@ export const queries = [
     tab: 'Demo',
     runAsync: false,
     ctas: false,
+    cached: false,
     id: 'BkA1CLrJg',
     progress: 100,
     startDttm: 1476910566092.96,
@@ -217,6 +219,7 @@ export const queries = [
     tab: 'Demo',
     runAsync: true,
     ctas: false,
+    cached: false,
     id: 'S1zeAISkx',
     progress: 100,
     startDttm: 1476910570802.2,
@@ -247,8 +250,6 @@ export const queries = [
 
 export const initialState = {
   alerts: [],
-  showDataPreviewModal: false,
-  dataPreviewQueryId: null,
   networkOn: true,
   queries: {},
   databases: {},
@@ -257,6 +258,7 @@ export const initialState = {
   tables: [],
   workspaceQueries: [],
   queriesLastUpdate: 0,
+  activeSouthPaneTab: 'Results',
 };
 
 export const query = {
@@ -267,4 +269,5 @@ export const query = {
   tempTableName: null,
   runAsync: false,
   ctas: false,
+  cached: false,
 };
