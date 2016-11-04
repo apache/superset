@@ -318,34 +318,7 @@ class BaseViz(object):
             is_cached = False
             cache_timeout = self.cache_timeout
 
-            gb_cols = self.datasource.groupby_column_names
-            default_groupby = gb_cols[0] if gb_cols else None
-            order_by_choices = []
-            for s in sorted(self.datasource.num_cols):
-                order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
-                order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-
             payload = {
-                'field_options': {
-                    'metrics': self.datasource.metrics_combo,
-                    'order_by_cols': order_by_choices,
-                    'metric':  self.datasource.metrics_combo,
-                    'secondary_metric': self.datasource.metrics_combo,
-                    'groupby': self.datasource.groupby_column_names,
-                    'columns': self.datasource.groupby_column_names,
-                    'all_columns': self.datasource.column_names,
-                    'all_columns_x': self.datasource.column_names,
-                    'all_columns_y': self.datasource.column_names,
-                    'granularity_sqla': self.datasource.dttm_cols,
-                    'timeseries_limit_metric': [('', '')] + self.datasource.metrics_combo,
-                    'series': gb_cols,
-                    'entity': gb_cols,
-                    'x': self.datasource.metrics_combo,
-                    'y': self.datasource.metrics_combo,
-                    'size': self.datasource.metrics_combo,
-                    'mapbox_label': self.datasource.column_names,
-                    'point_radius': ["Auto"] + self.datasource.column_names,
-                },
                 'cache_timeout': cache_timeout,
                 'cache_key': cache_key,
                 'csv_endpoint': self.csv_endpoint,

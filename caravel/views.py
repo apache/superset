@@ -2113,23 +2113,38 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
+        gb_cols = datasource.groupby_column_names
+        default_groupby = gb_cols[0] if gb_cols else None
         order_by_choices = []
         for s in sorted(datasource.num_cols):
-            order_by_choices.append(s + ' [asc]')
-            order_by_choices.append(s + ' [desc]')
-        column_opts = {
-            "groupby_cols": datasource.groupby_column_names,
-            "metrics": datasource.metrics_combo,
-            "filter_cols": datasource.filterable_column_names,
-            "columns": datasource.column_names,
-            "ordering_cols": order_by_choices
+            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
+            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
+
+        field_options = {
+            'metrics': datasource.metrics_combo,
+            'order_by_cols': order_by_choices,
+            'metric':  datasource.metrics_combo,
+            'secondary_metric': datasource.metrics_combo,
+            'groupby': datasource.groupby_column_names,
+            'columns': datasource.groupby_column_names,
+            'all_columns': datasource.column_names,
+            'all_columns_x': datasource.column_names,
+            'all_columns_y': datasource.column_names,
+            'granularity_sqla': datasource.dttm_cols,
+            'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
+            'series': gb_cols,
+            'entity': gb_cols,
+            'x': datasource.metrics_combo,
+            'y': datasource.metrics_combo,
+            'size': datasource.metrics_combo,
+            'mapbox_label': datasource.column_names,
+            'point_radius': ["Auto"] + datasource.column_names,
         }
-        form_data = dict(
-            column_opts.items() + datasource.time_column_grains.items()
-        )
 
         return Response(
-            json.dumps(form_data), mimetype="application/json")
+            json.dumps({ 'field_options': field_options }),
+            mimetype="application/json"
+        )
 
     @has_access
     @expose("/queries/<last_updated_ms>")
