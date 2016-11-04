@@ -1869,7 +1869,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         """
         # TODO refactor into using a TBD Query object
         qry_start_dttm = datetime.now()
-
+        if not is_timeseries:
+            granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
 
@@ -1957,10 +1958,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             del qry['dimensions']
             client.timeseries(**qry)
         if len(groupby) == 1:
-            if not timeseries_limit:
-                timeseries_limit = 1000
 
-            qry['threshold'] = timeseries_limit
+            qry['threshold'] = timeseries_limit or 1000
+            if row_limit and granularity == 'all':
+                qry['threshold'] = row_limit
             qry['dimension'] = list(qry.get('dimensions'))[0]
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
