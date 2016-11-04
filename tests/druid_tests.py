@@ -142,20 +142,6 @@ class DruidTests(CaravelTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual("Canada", resp['data']['records'][0]['name'])
 
-        # no groupby
-        url = (
-            '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
-            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&'
-            'flt_col_0=dim1&'
-            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
-            'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&'
-            'force=true'.format(datasource_id, datasource_id))
-        resp = self.get_json_resp(url)
-        self.assertEqual(
-            "2012-01-01T00:00:00", resp['data']['records'][0]['timestamp'])
-
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'
         self.login()

@@ -1805,7 +1805,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     # http://druid.io/docs/0.8.0/querying/granularities.html
     # TODO: pass origin from the UI
     @staticmethod
-    def granularity(period_name, timezone=None):
+    def granularity(period_name, timezone=None, origin=None):
         if not period_name or period_name == 'all':
             return 'all'
         iso_8601_dict = {
@@ -1827,6 +1827,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         granularity = {'type': 'period'}
         if timezone:
             granularity['timezone'] = timezone
+
+        if origin:
+            dttm = utils.parse_human_datetime(origin)
+            granularity['origin'] = dttm.isoformat()
 
         if period_name in iso_8601_dict:
             granularity['period'] = iso_8601_dict[period_name]
@@ -1865,7 +1869,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         """
         # TODO refactor into using a TBD Query object
         qry_start_dttm = datetime.now()
-
+        if not is_timeseries:
+            granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
         inner_to_dttm = inner_to_dttm or to_dttm
 
@@ -1931,7 +1936,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             dimensions=groupby,
             aggregations=aggregations,
             granularity=DruidDatasource.granularity(
-                granularity, timezone=timezone),
+                granularity,
+                timezone=timezone,
+                origin=extras.get('druid_time_origin'),
+            ),
             post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
@@ -1950,10 +1958,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             del qry['dimensions']
             client.timeseries(**qry)
         if len(groupby) == 1:
-            if not timeseries_limit:
-                timeseries_limit = 10000
-            qry['threshold'] = timeseries_limit
-            qry['dimension'] = qry.get('dimensions')[0]
+            qry['threshold'] = timeseries_limit or 1000
+            if row_limit and granularity == 'all':
+                qry['threshold'] = row_limit
+            qry['dimension'] = list(qry.get('dimensions'))[0]
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
