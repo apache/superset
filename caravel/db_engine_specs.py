@@ -285,6 +285,24 @@ class RedshiftEngineSpec(PostgresEngineSpec):
 class OracleEngineSpec(PostgresEngineSpec):
     engine = 'oracle'
 
+    time_grains = (
+        Grain('Time Column', _('Time Column'), '{col}'),
+        Grain('minute', _('minute'),
+              "TRUNC(TO_DATE({col}), 'MI')"),
+        Grain('hour', _('hour'),
+              "TRUNC(TO_DATE({col}), 'HH')"),
+        Grain('day', _('day'),
+              "TRUNC(TO_DATE({col}), 'DDD')"),
+        Grain('week', _('week'),
+              "TRUNC(TO_DATE({col}), 'WW')"),
+        Grain('month', _('month'),
+              "TRUNC(TO_DATE({col}), 'MONTH')"),
+        Grain('quarter', _('quarter'),
+              "TRUNC(TO_DATE({col}), 'Q')"),
+        Grain('year', _('year'),
+              "TRUNC(TO_DATE({col}), 'YEAR')"),
+    )
+
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return (
