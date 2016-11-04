@@ -2,6 +2,8 @@ import React, { PropTypes } from 'react';
 import FieldSet from './FieldSet';
 import { fields } from '../stores/store';
 
+const NUM_COLUMNS = 12;
+
 const propTypes = {
   fieldSets: PropTypes.array.isRequired,
   fieldOverrides: PropTypes.object,
@@ -23,16 +25,18 @@ function getFieldData(fs, fieldOverrides) {
 }
 
 export default function FieldSetRow({ fieldSets, fieldOverrides, onChange }) {
+  const colSize = NUM_COLUMNS / fieldSets.length;
   return (
-    <ul className="list-unstyled">
+    <div className="row">
       {fieldSets.map((fs) => {
         const fieldData = getFieldData(fs, fieldOverrides);
         return (
-          <li key={fs}>
+          <div className={`col-lg-${colSize} col-xs-12`} key={fs}>
             <FieldSet name={fs} onChange={onChange} {...fieldData} />
-          </li>);
+          </div>
+        );
       })}
-    </ul>
+    </div>
   );
 }
 

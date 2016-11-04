@@ -21,7 +21,7 @@ export default class CheckboxField extends React.Component {
   }
   render() {
     return (
-      <Checkbox onChange={this.onToggle.bind(this)}>
+      <Checkbox onChange={this.onToggle.bind(this)} inline>
         <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
       </Checkbox>
     );
