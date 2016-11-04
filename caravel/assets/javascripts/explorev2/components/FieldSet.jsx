@@ -23,19 +23,19 @@ const defaultProps = {
 
 export default class FieldSet extends React.Component {
   renderCheckBoxField() {
-    return <CheckboxField label={this.props.label} description={this.props.description} />;
+    return <CheckboxField {...this.props} />;
   }
 
   renderTextAreaField() {
-    return <TextAreaField label={this.props.label} description={this.props.description} />;
+    return <TextAreaField {...this.props} />;
   }
 
   renderSelectField() {
-    return <SelectField label={this.props.label} description={this.props.description} />;
+    return <SelectField {...this.props} />;
   }
 
   renderTextField() {
-    return <TextField label={this.props.label} description={this.props.description} />;
+    return <TextField {...this.props} />;
   }
 
   render() {
