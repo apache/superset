@@ -31,7 +31,19 @@ class ResultSet extends React.PureComponent {
     this.state = {
       searchText: '',
       showModal: false,
+      results: null,
     };
+  }
+  componentWillReceiveProps(nextProps) {
+    // when new results comes in, save them locally and clear in store
+    if ((!nextProps.query.cached)
+      && nextProps.query.results
+      && nextProps.query.results.data.length > 0) {
+      this.setState(
+        { results: nextProps.query.results },
+        this.clearQueryResults(nextProps.query)
+      );
+    }
   }
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
@@ -83,6 +95,9 @@ class ResultSet extends React.PureComponent {
     }
     return <div className="noControls" />;
   }
+  clearQueryResults(query) {
+    this.props.actions.clearQueryResults(query);
+  }
   popSelectStar() {
     const qe = {
       id: shortid.generate(),
@@ -105,10 +120,14 @@ class ResultSet extends React.PureComponent {
   fetchResults(query) {
     this.props.actions.fetchQueryResults(query);
   }
+  reFetchQueryResults(query) {
+    this.props.actions.reFetchQueryResults(query);
+  }
   render() {
     const query = this.props.query;
-    const results = query.results;
+    const results = (this.props.query.cached) ? this.state.results : query.results;
     let sql;
+
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
@@ -180,6 +199,16 @@ class ResultSet extends React.PureComponent {
           </div>
         );
       }
+    }
+    if (query.cached) {
+      return (
+        <a
+          href="#"
+          onClick={this.reFetchQueryResults.bind(this, query)}
+        >
+          click to retrieve results
+        </a>
+      );
     }
     return (<Alert bsStyle="warning">The query returned no data</Alert>);
   }

@@ -51,18 +51,7 @@ class TableElement extends React.PureComponent {
 
   removeTable() {
     this.setState({ expanded: false });
-  }
-  dataPreviewModal() {
-    const query = {
-      dbId: this.props.table.dbId,
-      sql: this.props.table.selectStar,
-      tableName: this.props.table.name,
-      sqlEditorId: null,
-      tab: '',
-      runAsync: false,
-      ctas: false,
-    };
-    this.props.actions.runQuery(query);
+    this.props.actions.removeDataPreview(this.props.table);
   }
   toggleSortColumns() {
     this.setState({ sortColumns: !this.state.sortColumns });
@@ -192,12 +181,6 @@ class TableElement extends React.PureComponent {
                     'Original table column order'}
                   href="#"
                 />
-                <Link
-                  className="fa fa-search-plus pull-left m-l-2"
-                  onClick={this.dataPreviewModal.bind(this)}
-                  tooltip="Data preview"
-                  href="#"
-                />
                 {table.selectStar &&
                   <CopyToClipboard
                     copyNode={
@@ -211,7 +194,7 @@ class TableElement extends React.PureComponent {
                 <Link
                   className="fa fa-trash table-remove pull-left m-l-2"
                   onClick={this.removeTable.bind(this)}
-                  tooltip="Remove from panel"
+                  tooltip="Remove table preview"
                   href="#"
                 />
               </ButtonGroup>

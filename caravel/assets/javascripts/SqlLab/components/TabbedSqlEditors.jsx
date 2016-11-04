@@ -118,6 +118,15 @@ class TabbedSqlEditors extends React.PureComponent {
         database = this.props.databases[qe.dbId];
       }
       const state = (latestQuery) ? latestQuery.state : '';
+
+      const dataPreviewQueries = [];
+      this.props.tables.forEach((table) => {
+        const queryId = table.dataPreviewQueryId;
+        if (queryId && this.props.queries[queryId]) {
+          dataPreviewQueries.push(this.props.queries[queryId]);
+        }
+      });
+
       const tabTitle = (
         <div>
           <div className={'circle ' + state} /> {qe.title} {' '}
@@ -152,7 +161,8 @@ class TabbedSqlEditors extends React.PureComponent {
                 <SqlEditor
                   tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
-                  queries={this.state.queriesArray}
+                  editorQueries={this.state.queriesArray}
+                  dataPreviewQueries={dataPreviewQueries}
                   latestQuery={latestQuery}
                   database={database}
                   actions={this.props.actions}

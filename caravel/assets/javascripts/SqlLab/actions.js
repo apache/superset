@@ -20,6 +20,7 @@ export const QUERY_EDITOR_SET_SQL = 'QUERY_EDITOR_SET_SQL';
 export const QUERY_EDITOR_SET_SELECTED_TEXT = 'QUERY_EDITOR_SET_SELECTED_TEXT';
 export const SET_DATABASES = 'SET_DATABASES';
 export const SET_ACTIVE_QUERY_EDITOR = 'SET_ACTIVE_QUERY_EDITOR';
+export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
@@ -31,7 +32,8 @@ export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
-export const HIDE_DATA_PREVIEW = 'HIDE_DATA_PREVIEW';
+export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
+export const CHANGE_DATA_PREVIEW_ID = 'CHANGE_DATA_PREVIEW_ID';
 
 export function resetState() {
   return { type: RESET_STATE };
@@ -39,10 +41,11 @@ export function resetState() {
 
 export function startQuery(query) {
   Object.assign(query, {
-    id: shortid.generate(),
+    id: query.id ? query.id : shortid.generate(),
     progress: 0,
     startDttm: now(),
     state: (query.runAsync) ? 'pending' : 'running',
+    cached: false,
   });
   return { type: START_QUERY, query };
 }
@@ -63,8 +66,8 @@ export function clearQueryResults(query) {
   return { type: CLEAR_QUERY_RESULTS, query };
 }
 
-export function hideDataPreview() {
-  return { type: HIDE_DATA_PREVIEW };
+export function removeDataPreview(table) {
+  return { type: REMOVE_DATA_PREVIEW, table };
 }
 
 export function requestQueryResults(query) {
@@ -166,6 +169,10 @@ export function setActiveQueryEditor(queryEditor) {
   return { type: SET_ACTIVE_QUERY_EDITOR, queryEditor };
 }
 
+export function setActiveSouthPaneTab(tabId) {
+  return { type: SET_ACTIVE_SOUTHPANE_TAB, tabId };
+}
+
 export function removeQueryEditor(queryEditor) {
   return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
@@ -198,22 +205,35 @@ export function queryEditorSetSelectedText(queryEditor, sql) {
   return { type: QUERY_EDITOR_SET_SELECTED_TEXT, queryEditor, sql };
 }
 
-export function mergeTable(table) {
-  return { type: MERGE_TABLE, table };
+export function mergeTable(table, query) {
+  return { type: MERGE_TABLE, table, query };
 }
 
 export function addTable(query, tableName) {
   return function (dispatch) {
     let url = `/caravel/table/${query.dbId}/${tableName}/${query.schema}/`;
     $.get(url, (data) => {
-      dispatch(
-        mergeTable(Object.assign(data, {
+      const dataPreviewQuery = {
+        id: shortid.generate(),
+        dbId: query.dbId,
+        sql: data.selectStar,
+        tableName,
+        sqlEditorId: null,
+        tab: '',
+        runAsync: false,
+        ctas: false,
+      };
+      // Merge table to tables in state
+      dispatch(mergeTable(
+        Object.assign(data, {
           dbId: query.dbId,
           queryEditorId: query.id,
           schema: query.schema,
           expanded: true,
-        }))
+        }), dataPreviewQuery)
       );
+      // Run query to get preview data for table
+      dispatch(runQuery(dataPreviewQuery));
     })
     .fail(() => {
       dispatch(
@@ -235,6 +255,27 @@ export function addTable(query, tableName) {
       Object.assign(table, data);
       dispatch(mergeTable(table));
     });
+  };
+}
+
+export function changeDataPreviewId(oldQueryId, newQuery) {
+  return { type: CHANGE_DATA_PREVIEW_ID, oldQueryId, newQuery };
+}
+
+export function reFetchQueryResults(query) {
+  return function (dispatch) {
+    const newQuery = {
+      id: shortid.generate(),
+      dbId: query.dbId,
+      sql: query.sql,
+      tableName: query.tableName,
+      sqlEditorId: null,
+      tab: '',
+      runAsync: false,
+      ctas: false,
+    };
+    dispatch(runQuery(newQuery));
+    dispatch(changeDataPreviewId(query.id, newQuery));
   };
 }
 
