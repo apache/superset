@@ -1632,6 +1632,7 @@ const defaultFormData = {};
 defaultFormData.slice_name = null;
 defaultFormData.slice_id = null;
 Object.keys(fields).forEach((k) => { defaultFormData[k] = fields[k].default; });
+exports.defaultFormData = defaultFormData;
 
 export const defaultViz = {
   cached_key: null,

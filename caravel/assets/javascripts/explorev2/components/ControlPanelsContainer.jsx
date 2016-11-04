@@ -9,16 +9,12 @@ import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
-  viz_type: PropTypes.string,
   datasource_id: PropTypes.number.isRequired,
   datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
   fields: PropTypes.object.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
-};
-
-const defaultProps = {
-  viz_type: null,
+  form_data: PropTypes.object.isRequired,
 };
 
 class ControlPanelsContainer extends React.Component {
@@ -34,7 +30,7 @@ class ControlPanelsContainer extends React.Component {
   }
 
   sectionsToRender() {
-    const viz = visTypes[this.props.viz_type];
+    const viz = visTypes[this.props.form_data.viz_type];
     const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
     const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
 
@@ -42,7 +38,7 @@ class ControlPanelsContainer extends React.Component {
   }
 
   fieldOverrides() {
-    const viz = visTypes[this.props.viz_type];
+    const viz = visTypes[this.props.form_data.viz_type];
     return viz.fieldOverrides;
   }
 
@@ -65,6 +61,7 @@ class ControlPanelsContainer extends React.Component {
                       fieldOverrides={this.fieldOverrides()}
                       onChange={this.onChange.bind(this)}
                       fields={this.props.fields}
+                      form_data={this.props.form_data}
                     />
                   ))}
                 </ControlPanelSection>
@@ -79,7 +76,6 @@ class ControlPanelsContainer extends React.Component {
 }
 
 ControlPanelsContainer.propTypes = propTypes;
-ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
@@ -87,7 +83,7 @@ function mapStateToProps(state) {
     fields: state.fields,
     datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
-    viz_type: state.viz.form_data.viz_type,
+    form_data: state.viz.form_data,
   };
 }
 

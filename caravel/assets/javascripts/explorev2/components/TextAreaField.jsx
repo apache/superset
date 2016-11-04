@@ -7,12 +7,14 @@ const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
+  value: PropTypes.string,
 };
 
 const defaultProps = {
   label: null,
   description: null,
   onChange: () => {},
+  value: '',
 };
 
 export default class TextAreaField extends React.Component {
@@ -27,6 +29,7 @@ export default class TextAreaField extends React.Component {
           componentClass="textarea"
           placeholder="textarea"
           onChange={this.onChange.bind(this)}
+          value={this.props.value}
         />
       </FormGroup>
     );
