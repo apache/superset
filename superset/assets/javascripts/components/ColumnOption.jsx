@@ -5,11 +5,15 @@ import InfoTooltipWithTrigger from './InfoTooltipWithTrigger';
 
 const propTypes = {
   column: PropTypes.object.isRequired,
+  prefix: PropTypes.string,
 };
 
-export default function ColumnOption({ column }) {
+export default function ColumnOption({ column, prefix }) {
   return (
     <span>
+      {prefix &&
+        <span className="m-r-5 text-muted">{prefix}</span>
+      }
       <span className="m-r-5 option-label">
         {column.verbose_name || column.column_name}
       </span>

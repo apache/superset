@@ -85,21 +85,6 @@ export const controls = {
     description: t('The type of visualization to display'),
   },
 
-  metrics: {
-    type: 'SelectControl',
-    multi: true,
-    label: t('Metrics'),
-    validators: [v.nonEmpty],
-    valueKey: 'metric_name',
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? [c.options[0].metric_name] : null,
-    mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
-    }),
-    description: t('One or many metrics to display'),
-  },
-
   percent_metrics: {
     type: 'SelectControl',
     multi: true,
@@ -153,18 +138,26 @@ export const controls = {
   },
 
   metric: {
-    type: 'SelectControl',
-    label: t('Metric'),
-    clearable: false,
-    description: t('Choose the metric'),
-    validators: [v.nonEmpty],
-    optionRenderer: m => <MetricOption metric={m} />,
-    valueRenderer: m => <MetricOption metric={m} />,
-    default: c => c.options && c.options.length > 0 ? c.options[0].metric_name : null,
-    valueKey: 'metric_name',
+    type: 'MetricControl',
+    label: 'Metric',
+    description: 'Choose a metric',
+    default: control =>
+      control.choices && control.choices.length > 0 ? control.choices[0][0] : null,
     mapStateToProps: state => ({
-      options: (state.datasource) ? state.datasource.metrics : [],
+      choices: (state.datasource) ? state.datasource.metrics_combo : null,
+      datasource: state.datasource,
     }),
+  },
+
+  metrics: {
+    type: 'MetricList',
+    multi: true,
+    label: 'Metrics',
+    mapStateToProps: state => ({
+      datasource: state.datasource,
+    }),
+    default: [],
+    description: 'One or many metrics to display',
   },
 
   metric_2: {

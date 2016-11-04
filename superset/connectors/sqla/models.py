@@ -277,12 +277,11 @@ class SqlaTable(Model, BaseDatasource):
     @property
     def data(self):
         d = super(SqlaTable, self).data
-        if self.type == 'table':
-            grains = self.database.grains() or []
-            if grains:
-                grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
-            d['time_grain_sqla'] = grains
+        grains = self.database.grains() or []
+        if grains:
+            grains = [(g.name, g.name) for g in grains]
+        d['granularity_sqla'] = utils.choicify(self.dttm_cols)
+        d['time_grain_sqla'] = grains
         return d
 
     def values_for_column(self, column_name, limit=10000):
