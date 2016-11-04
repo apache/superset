@@ -28,6 +28,14 @@
     padding-top: 5px;
     padding-bottom: 5px;
 }
+
+.scrollbar {
+    position: relative;
+    width: 100%;
+    overflow-y: auto;
+    height: 100%;
+}
+
 .Workspace .btn-sm {
     box-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
     margin-top: 2px;
@@ -231,6 +239,10 @@ div.tablePopover:hover {
 
 .SouthPane .tab-content {
     padding-top: 10px;
+}
+
+.TableElement {
+    margin-right: 10px;
 }
 
 .TableElement .well {
