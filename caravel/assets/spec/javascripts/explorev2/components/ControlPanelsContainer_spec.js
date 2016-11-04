@@ -9,9 +9,9 @@ import {
 } from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
 
 const defaultProps = {
-  vizType: 'dist_bar',
-  datasourceId: 1,
-  datasourceType: 'type',
+  viz_type: 'dist_bar',
+  datasource_id: 1,
+  datasource_type: 'type',
   actions: {
     setFormOpts: () => {
       // noop
