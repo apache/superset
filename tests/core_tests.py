@@ -10,10 +10,8 @@ import json
 import io
 import random
 import unittest
-from datetime import datetime
 
 from flask import escape
-from flask_appbuilder.security.sqla import models as ab_models
 
 from caravel import db, models, utils, appbuilder, sm, jinja_context
 from caravel.views import DatabaseView
