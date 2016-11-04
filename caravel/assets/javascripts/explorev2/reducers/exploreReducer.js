@@ -2,26 +2,34 @@ import { defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
+const setFormInViz = function (state, action) {
+  const newFormData = Object.assign({}, state);
+  newFormData[action.key] = action.value;
+  return newFormData;
+};
+
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
-    [actions.SET_TIME_COLUMN_OPTS]() {
-      return Object.assign({}, state, { timeColumnOpts: action.timeColumnOpts });
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasourceId: action.datasourceId });
     },
-    [actions.SET_TIME_GRAIN_OPTS]() {
-      return Object.assign({}, state, { timeGrainOpts: action.timeGrainOpts });
+
+    [actions.SET_FIELD_OPTIONS]() {
+      const newState = Object.assign({}, state);
+      const optionsByFieldName = action.options;
+      const fieldNames = Object.keys(optionsByFieldName);
+
+      fieldNames.forEach((fieldName) => {
+        newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+      });
+
+      return Object.assign({}, state, newState);
     },
-    [actions.SET_GROUPBY_COLUMN_OPTS]() {
-      return Object.assign({}, state, { groupByColumnOpts: action.groupByColumnOpts });
+
+    [actions.TOGGLE_SEARCHBOX]() {
+      return Object.assign({}, state, { searchBox: action.searchBox });
     },
-    [actions.SET_METRICS_OPTS]() {
-      return Object.assign({}, state, { metricsOpts: action.metricsOpts });
-    },
-    [actions.SET_COLUMN_OPTS]() {
-      return Object.assign({}, state, { columnOpts: action.columnOpts });
-    },
-    [actions.SET_ORDERING_OPTS]() {
-      return Object.assign({}, state, { orderingOpts: action.orderingOpts });
-    },
+
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },

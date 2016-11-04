@@ -23,7 +23,7 @@ class ControlPanelsContainer extends React.Component {
   componentWillMount() {
     const { datasource_id, datasource_type } = this.props;
     if (datasource_id) {
-      this.props.actions.setFormOpts(datasource_id, datasource_type);
+      this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
     }
   }
 
