@@ -1805,7 +1805,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     # http://druid.io/docs/0.8.0/querying/granularities.html
     # TODO: pass origin from the UI
     @staticmethod
-    def granularity(period_name, timezone=None):
+    def granularity(period_name, timezone=None, origin=None):
         if not period_name or period_name == 'all':
             return 'all'
         iso_8601_dict = {
@@ -1827,6 +1827,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         granularity = {'type': 'period'}
         if timezone:
             granularity['timezone'] = timezone
+
+        if origin:
+            dttm = utils.parse_human_datetime(origin)
+            granularity['origin'] = dttm.isoformat()
 
         if period_name in iso_8601_dict:
             granularity['period'] = iso_8601_dict[period_name]
@@ -1931,7 +1935,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             dimensions=groupby,
             aggregations=aggregations,
             granularity=DruidDatasource.granularity(
-                granularity, timezone=timezone),
+                granularity,
+                timezone=timezone,
+                origin=extras.get('druid_time_origin'),
+            ),
             post_aggregations=post_aggs,
             intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
         )
