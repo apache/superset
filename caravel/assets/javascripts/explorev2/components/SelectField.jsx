@@ -6,7 +6,7 @@ import { slugify } from '../../modules/utils';
 const propTypes = {
   name: PropTypes.string.isRequired,
   choices: PropTypes.array,
-  value: PropTypes.string,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]).isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,

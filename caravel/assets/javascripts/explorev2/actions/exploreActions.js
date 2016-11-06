@@ -12,6 +12,7 @@ export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
+export const UPDATE_VIZ = 'UPDATE_VIZ';
 
 export function setFieldOptions(options) {
   return { type: SET_FIELD_OPTIONS, options };
@@ -84,4 +85,8 @@ export function changeFilterValue(filter, value) {
 
 export function setFieldValue(key, value) {
   return { type: SET_FIELD_VALUE, key, value };
+}
+
+export function updateViz(viz) {
+  return { type: UPDATE_VIZ, viz };
 }

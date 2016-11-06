@@ -68,6 +68,17 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
+    [actions.UPDATE_VIZ]() {
+      const vizUpdates = {
+        column_formats: action.viz.column_formats,
+        json_endpoint: action.viz.json_endpoint,
+        csv_endpoint: action.viz.csv_endpoint,
+        standalone_endpoint: action.viz.standalone_endpoint,
+        query: action.viz.query,
+        data: action.viz.data,
+      };
+      return Object.assign({}, state, { viz: Object.assign({}, state.viz, vizUpdates) });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
