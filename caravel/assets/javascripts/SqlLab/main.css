@@ -1,3 +1,6 @@
+body {
+    overflow: hidden;
+}
 .inlineBlock {
     display: inline-block;
 }
