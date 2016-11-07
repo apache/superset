@@ -54,7 +54,7 @@ class SouthPane extends React.PureComponent {
         eventKey={query.id}
         key={query.id}
       >
-        <ResultSet query={query} visualize={false} csv={false} actions={props.actions} />
+        <ResultSet query={query} visualize={false} csv={false} actions={props.actions} cache />
       </Tab>
     ));
 

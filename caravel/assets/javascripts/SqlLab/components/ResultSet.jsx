@@ -14,6 +14,7 @@ const propTypes = {
   searchText: React.PropTypes.string,
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
+  cache: React.PropTypes.bool,
 };
 const defaultProps = {
   search: true,
@@ -22,6 +23,7 @@ const defaultProps = {
   csv: true,
   searchText: '',
   actions: {},
+  cache: false,
 };
 
 
@@ -36,7 +38,7 @@ class ResultSet extends React.PureComponent {
   }
   componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
-    if ((!nextProps.query.cached)
+    if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results
       && nextProps.query.results.data.length > 0) {
       this.setState(
@@ -125,7 +127,8 @@ class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const results = (this.props.query.cached) ? this.state.results : query.results;
+    const results =
+      (this.props.cache && this.props.query.cached) ? this.state.results : query.results;
     let sql;
 
     if (this.props.showSql) {
