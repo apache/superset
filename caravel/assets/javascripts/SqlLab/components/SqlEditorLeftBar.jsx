@@ -99,7 +99,7 @@ class SqlEditorLeftBar extends React.PureComponent {
     }
     const shouldShowReset = window.location.search === '?reset=1';
     return (
-      <div className="clearfix sql-toolbar">
+      <div className="clearfix sql-toolbar scrollbar">
         {networkAlert}
         <div>
           <DatabaseSelect

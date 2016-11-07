@@ -36,6 +36,7 @@ class TabbedSqlEditors extends React.PureComponent {
       cleanUri,
       query,
       queriesArray: [],
+      hideLeftBar: false,
     };
   }
   componentWillMount() {
@@ -105,6 +106,9 @@ class TabbedSqlEditors extends React.PureComponent {
   removeQueryEditor(qe) {
     this.props.actions.removeQueryEditor(qe);
   }
+  toggleLeftBar() {
+    this.setState({ hideLeftBar: !this.state.hideLeftBar });
+  }
   render() {
     const editors = this.props.queryEditors.map((qe, i) => {
       const isSelected = (qe.id === this.activeQueryEditor().id);
@@ -146,6 +150,11 @@ class TabbedSqlEditors extends React.PureComponent {
                 <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
               </MenuItem>
             }
+            <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
+              <i className="fa fa-cogs" />
+              &nbsp;
+              {this.state.hideLeftBar ? 'expand tool bar' : 'hide tool bar'}
+            </MenuItem>
           </DropdownButton>
         </div>
       );
@@ -167,6 +176,7 @@ class TabbedSqlEditors extends React.PureComponent {
                   database={database}
                   actions={this.props.actions}
                   networkOn={this.props.networkOn}
+                  hideLeftBar={this.state.hideLeftBar}
                 />
               }
             </div>
