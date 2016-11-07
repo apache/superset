@@ -15,30 +15,33 @@ const defaultProps = {
   onChange: () => {},
 };
 
-function getFieldData(fs, fieldOverrides, fields) {
-  console.log('fields', fields)
-  let fieldData = fields[fs];
-  if (fieldOverrides.hasOwnProperty(fs)) {
-    const overrideData = fieldOverrides[fs];
-    fieldData = Object.assign({}, fieldData, overrideData);
+export default class FieldSetRow extends React.component {
+  getFieldData(fs) {
+    const { fields, fieldOverrides } = this.props;
+    let fieldData = fields[fs];
+    if (fieldOverrides.hasOwnProperty(fs)) {
+      const overrideData = fieldOverrides[fs];
+      fieldData = Object.assign({}, fieldData, overrideData);
+    }
+    return fieldData;
   }
-  return fieldData;
-}
 
-export default function FieldSetRow({ fieldSets, fieldOverrides, fields, onChange }) {
-  const colSize = NUM_COLUMNS / fieldSets.length;
-  return (
-    <div className="row">
-      {fieldSets.map((fs) => {
-        const fieldData = getFieldData(fs, fieldOverrides, fields);
-        return (
-          <div className={`col-lg-${colSize} col-xs-12`} key={fs}>
-            <FieldSet name={fs} onChange={onChange} {...fieldData} />
-          </div>
-        );
-      })}
-    </div>
-  );
+  render() {
+    const colSize = NUM_COLUMNS / this.props.fieldSets.length;
+    const { onChange } = this.props;
+    return (
+      <div className="row">
+        {this.props.fieldSets.map((fs) => {
+          const fieldData = this.getFieldData(fs);
+          return (
+            <div className={`col-lg-${colSize} col-xs-12`} key={fs}>
+              <FieldSet name={fs} onChange={onChange} {...fieldData} />
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
 }
 
 FieldSetRow.propTypes = propTypes;
