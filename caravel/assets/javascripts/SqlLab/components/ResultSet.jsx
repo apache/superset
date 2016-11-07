@@ -128,7 +128,7 @@ class ResultSet extends React.PureComponent {
   render() {
     const query = this.props.query;
     const results =
-      (this.props.cache && this.props.query.cached) ? this.state.results : query.results;
+      (this.props.cache && query.cached) ? this.state.results : query.results;
     let sql;
 
     if (this.props.showSql) {
