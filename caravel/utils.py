@@ -16,15 +16,16 @@ import signal
 import uuid
 
 from sqlalchemy import event, exc
-from sqlalchemy.pool import Pool
 import parsedatetime
 import sqlalchemy as sa
 from dateutil.parser import parse
 from flask import flash, Markup
 from flask_appbuilder.security.sqla import models as ab_models
-from markdown import markdown as md
+import markdown as md
 from sqlalchemy.types import TypeDecorator, TEXT
 from pydruid.utils.having import Having
+
+logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
 
 EPOCH = datetime(1970, 1, 1)
@@ -426,8 +427,7 @@ def error_msg_from_exception(e):
 
 
 def markdown(s, markup_wrap=False):
-    s = s or ''
-    s = md(s, [
+    s = md.markdown(s or '', [
         'markdown.extensions.tables',
         'markdown.extensions.fenced_code',
         'markdown.extensions.codehilite',

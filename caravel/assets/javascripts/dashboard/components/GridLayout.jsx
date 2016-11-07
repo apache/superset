@@ -1,24 +1,24 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { Responsive, WidthProvider } from 'react-grid-layout';
-const ResponsiveReactGridLayout = WidthProvider(Responsive);
 import SliceCell from './SliceCell';
 
-require('../../../node_modules/react-grid-layout/css/styles.css');
-require('../../../node_modules/react-resizable/css/styles.css');
+require('react-grid-layout/css/styles.css');
+require('react-resizable/css/styles.css');
+
+const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {
   dashboard: PropTypes.object.isRequired,
-  slices: PropTypes.arrayOf(PropTypes.object).isRequired,
-  posDict: PropTypes.object.isRequired,
 };
 
 class GridLayout extends React.Component {
   componentWillMount() {
     const layout = [];
 
-    this.props.slices.forEach((slice, index) => {
-      let pos = this.props.posDict[slice.slice_id];
+    this.props.dashboard.slices.forEach((slice, index) => {
+      const sliceId = slice.slice_id;
+      let pos = this.props.dashboard.posDict[sliceId];
       if (!pos) {
         pos = {
           col: (index * 4 + 1) % 12,
@@ -29,7 +29,7 @@ class GridLayout extends React.Component {
       }
 
       layout.push({
-        i: String(slice.slice_id),
+        i: String(sliceId),
         x: pos.col - 1,
         y: pos.row,
         w: pos.size_x,
@@ -40,7 +40,7 @@ class GridLayout extends React.Component {
 
     this.setState({
       layout,
-      slices: this.props.slices,
+      slices: this.props.dashboard.slices,
     });
   }
 
@@ -68,15 +68,13 @@ class GridLayout extends React.Component {
   }
 
   serialize() {
-    return this.state.layout.map(function (reactPos) {
-      return {
-        slice_id: reactPos.i,
-        col: reactPos.x + 1,
-        row: reactPos.y,
-        size_x: reactPos.w,
-        size_y: reactPos.h,
-      };
-    });
+    return this.state.layout.map(reactPos => ({
+      slice_id: reactPos.i,
+      col: reactPos.x + 1,
+      row: reactPos.y,
+      size_x: reactPos.w,
+      size_y: reactPos.h,
+    }));
   }
 
   render() {
@@ -93,25 +91,20 @@ class GridLayout extends React.Component {
         useCSSTransforms
         draggableHandle=".drag"
       >
-        {
-          /* eslint arrow-body-style: 0 */
-          this.state.slices.map((slice) => {
-            return (
-              <div
-                id={'slice_' + slice.slice_id}
-                key={slice.slice_id}
-                data-slice-id={slice.slice_id}
-                className={`widget ${slice.viz_name}`}
-              >
-                <SliceCell
-                  slice={slice}
-                  removeSlice={(sliceId) => this.removeSlice(sliceId)}
-                  expandedSlices={this.props.dashboard.metadata.expanded_slices}
-                />
-              </div>
-            );
-          })
-        }
+        {this.state.slices.map(slice => (
+          <div
+            id={'slice_' + slice.slice_id}
+            key={slice.slice_id}
+            data-slice-id={slice.slice_id}
+            className={`widget ${slice.viz_name}`}
+          >
+            <SliceCell
+              slice={slice}
+              removeSlice={this.removeSlice.bind(this, slice.slice_id)}
+              expandedSlices={this.props.dashboard.metadata.expanded_slices}
+            />
+          </div>
+        ))}
       </ResponsiveReactGridLayout>
     );
   }

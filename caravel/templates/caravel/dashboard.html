@@ -12,108 +12,11 @@
 <div
   class="dashboard container-fluid"
   data-dashboard="{{ dashboard.json_data }}"
-  data-css="{{ dashboard.css }}"
-  data-user="{{ user_id }}"
+  data-context="{{ context }}"
 >
   {% include 'caravel/flash_wrapper.html' %}
 
-  <!-- Modal -->
-  <div class="modal fade" id="css_modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content css">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-          <h4 class="modal-title" id="myModalLabel">Dashboard CSS</h4>
-          <h6><strong>Styling applies to this dashboard only</strong></h6>
-        </div>
-        <div class="modal-body">
-          <select id="css_template" class="select2" style="margin-bottom: 5px;">
-            <option value="" data-css="">CSS template</option>
-            {% for t in templates %}
-              <option value="{{ t.id }}" data-css="{{t.css}}">
-                {{ t.template_name }}
-              </option>
-            {% endfor %}
-          </select><br>
-          <textarea id="dash_css" rows="30" cols="60">{{ dashboard.css }}</textarea>
-          <input type="hidden" id="dashboard_id" value="{{ dashboard.id }}" />
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="refresh_modal" tabindex="-1" role="dialog">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-            <h4 class="modal-title" id="myModalLabel">Refresh Interval</h4>
-            <h6><strong>Choose how frequent should the dashboard refresh</strong></h6>
-        </div>
-        <div class="modal-body">
-            <select id="refresh_dash_interval" class="select2" style="margin-bottom: 5px;">
-                <option value="0">Don't refresh</option>
-                <option value="10">10 seconds</option>
-                <option value="30">30 seconds</option>
-                <option value="60">1 minute</option>
-                <option value="300">5 minutes</option>
-            </select><br>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">
-              Close
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-  {% if not standalone_mode %}
-    <div id="add-slice-container"></div>
-  {% endif %}
-
-  <div class="title">
-    <div class="row">
-      <div class="col-md-8">
-        <h1>
-          <strong>
-            {{ dashboard.dashboard_title }}
-          </strong>
-          <span class="favstar" class_name="Dashboard" obj_id="{{ dashboard.id }}"></span>
-        </h1>
-      </div>
-      {% if not standalone_mode %}
-        <div class="col-md-4">
-          <div class="btn-group pull-right" role="group" >
-            <button type="button" id="refresh_dash" class="btn btn-default btn-sm" data-toggle="tooltip" title="Force refresh the whole dashboard">
-              <i class="fa fa-refresh"></i>
-            </button>
-            <button type="button" id="add-slice" class="btn btn-default btn-sm {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="modal" data-target="#add_slice_modal">
-                <i class="fa fa-plus" data-toggle="tooltip" title="Add a new slice to the dashboard"></i>
-            </button>
-            <button type="button" id="refresh_dash_periodic" class="btn btn-default btn-sm" data-toggle="modal" data-target="#refresh_modal">
-                <i class="fa fa-clock-o" data-toggle="tooltip" title="Decide how frequent should the dashboard refresh"></i>
-            </button>
-            <button type="button" id="filters" class="btn btn-default btn-sm" data-toggle="tooltip" title="View the list of active filters">
-              <i class="fa fa-filter"></i>
-            </button>
-            <button type="button" id="css" class="btn btn-default  btn-sm{{ "disabled disabledButton" if not dash_edit_perm }} " data-toggle="modal" data-target="#css_modal">
-              <i class="fa fa-css3" data-toggle="tooltip" title="Edit the dashboard's CSS"></i>
-            </button>
-            <a id="editdash" class="btn btn-default  btn-sm{{ "disabled disabledButton" if not dash_edit_perm }} " href="/dashboardmodelview/edit/{{ dashboard.id }}" title="Edit this dashboard's property" data-toggle="tooltip" >
-                <i class="fa fa-edit"></i>
-            </a>
-            <button type="button" id="savedash" class="btn btn-default btn-sm {{ "disabled disabledButton" if not dash_save_perm }}" data-toggle="tooltip" title="Save the current positioning and CSS">
-              <i class="fa fa-save"></i>
-            </button>
-          </div>
-        </div>
-      {% endif %}
-    </div>
-  </div>
+  <div id="dashboard-header"></div>
 
   <!-- gridster class used for backwards compatibility -->
   <div id="grid-container" class="slice-grid gridster"></div>

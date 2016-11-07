@@ -4,9 +4,8 @@ import { formatDate } from '../javascripts/modules/dates';
 require('./big_number.css');
 
 function bigNumberVis(slice) {
-  const div = d3.select(slice.selector);
-
   function render() {
+    const div = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       // Define the percentage bounds that define color from red to green
       if (error !== null) {

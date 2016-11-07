@@ -1,69 +1,95 @@
 const $ = window.$ = require('jquery');
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-const px = require('../modules/caravel.js');
+const px = require('../modules/caravel');
 const d3 = require('d3');
 const urlLib = require('url');
-const utils = require('../modules/utils.js');
+const utils = require('../modules/utils');
 
 import React from 'react';
 import { render } from 'react-dom';
-import SliceAdder from './components/SliceAdder.jsx';
-import GridLayout from './components/GridLayout.jsx';
+import GridLayout from './components/GridLayout';
+import Header from './components/Header';
 
-const ace = require('brace');
 require('bootstrap');
-require('brace/mode/css');
-require('brace/theme/crimson_editor');
 require('../../stylesheets/dashboard.css');
 require('../caravel-select2.js');
 
-// Injects the passed css string into a style sheet with the specified className
-// If a stylesheet doesn't exist with the passed className, one will be injected into <head>
-function injectCss(className, css) {
-  const head = document.head || document.getElementsByTagName('head')[0];
-  let style = document.querySelector('.' + className);
+export function getInitialState(dashboardData, context) {
+  const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
+  dashboard.firstLoad = true;
 
-  if (!style) {
-    if (className.split(' ').length > 1) {
-      throw new Error('This method only supports selections with a single class name.');
-    }
-    style = document.createElement('style');
-    style.className = className;
-    style.type = 'text/css';
-    head.appendChild(style);
-  }
+  dashboard.posDict = {};
+  dashboard.position_json.forEach(position => {
+    dashboard.posDict[position.slice_id] = position;
+  });
+  dashboard.curUserId = dashboard.context.user_id;
+  dashboard.refreshTimer = null;
 
-  if (style.styleSheet) {
-    style.styleSheet.cssText = css;
-  } else {
-    style.innerHTML = css;
-  }
+  const state = {
+    dashboard,
+  };
+  return state;
 }
 
-function dashboardContainer(dashboardData) {
-  let dashboard = Object.assign({}, utils.controllerInterface, dashboardData, {
+function initDashboardView(dashboard) {
+  render(
+    <Header dashboard={dashboard} />,
+    document.getElementById('dashboard-header')
+  );
+  // eslint-disable-next-line no-param-reassign
+  dashboard.reactGridLayout = render(
+    <GridLayout dashboard={dashboard} />,
+    document.getElementById('grid-container')
+  );
+
+  // Displaying widget controls on hover
+  $('.react-grid-item').hover(
+    function () {
+      $(this).find('.chart-controls').fadeIn(300);
+    },
+    function () {
+      $(this).find('.chart-controls').fadeOut(300);
+    }
+  );
+  $('div.grid-container').css('visibility', 'visible');
+
+  $('.select2').select2({
+    dropdownAutoWidth: true,
+  });
+  $('div.widget').click(function (e) {
+    const $this = $(this);
+    const $target = $(e.target);
+
+    if ($target.hasClass('slice_info')) {
+      $this.find('.slice_description').slideToggle(0, function () {
+        $this.find('.refresh').click();
+      });
+    } else if ($target.hasClass('controls-toggle')) {
+      $this.find('.chart-controls').toggle();
+    }
+  });
+  px.initFavStars();
+  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
+}
+
+function dashboardContainer(dashboard) {
+  return Object.assign({}, dashboard, {
     type: 'dashboard',
     filters: {},
     init() {
-      this.initDashboardView();
-      this.firstLoad = true;
-      px.initFavStars();
-      const sliceObjects = [];
-      const dash = this;
+      this.sliceObjects = [];
       dashboard.slices.forEach((data) => {
         if (data.error) {
           const html = '<div class="alert alert-danger">' + data.error + '</div>';
           $('#slice_' + data.slice_id).find('.token').html(html);
         } else {
-          const slice = px.Slice(data, dash);
+          const slice = px.Slice(data, this);
           $('#slice_' + data.slice_id).find('a.refresh').click(() => {
             slice.render(true);
           });
-          sliceObjects.push(slice);
+          this.sliceObjects.push(slice);
         }
       });
-      this.slices = sliceObjects;
-      this.refreshTimer = null;
       this.loadPreSelectFilters();
       this.startPeriodicRender(0);
       this.bindResizeToWindowResize();
@@ -143,7 +169,7 @@ function dashboardContainer(dashboardData) {
     },
     readFilters() {
       // Returns a list of human readable active filters
-      return JSON.stringify(this.filters, null, 4);
+      return JSON.stringify(this.filters, null, '  ');
     },
     updateFilterParamsInUrl() {
       const urlObj = urlLib.parse(location.href, true);
@@ -158,7 +184,7 @@ function dashboardContainer(dashboardData) {
       $(window).on('resize', () => {
         clearTimeout(resizeTimer);
         resizeTimer = setTimeout(() => {
-          dash.slices.forEach((slice) => {
+          dash.sliceObjects.forEach((slice) => {
             slice.resize();
           });
         }, 500);
@@ -173,11 +199,11 @@ function dashboardContainer(dashboardData) {
     startPeriodicRender(interval) {
       this.stopPeriodicRender();
       const dash = this;
-      const maxRandomDelay = Math.min(interval * 0.2, 5000);
-      const refreshAll = function () {
-        dash.slices.forEach(function (slice) {
+      const maxRandomDelay = Math.max(interval * 0.2, 5000);
+      const refreshAll = () => {
+        dash.sliceObjects.forEach(slice => {
           const force = !dash.firstLoad;
-          setTimeout(function () {
+          setTimeout(() => {
             slice.render(force);
           },
           // Randomize to prevent all widgets refreshing at the same time
@@ -198,7 +224,7 @@ function dashboardContainer(dashboardData) {
     },
     refreshExcept(sliceId) {
       const immune = this.metadata.filter_immune_slices || [];
-      this.slices.forEach(function (slice) {
+      this.sliceObjects.forEach(slice => {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
           const sliceSeletor = $(`#${slice.data.token}-cell`);
@@ -243,17 +269,6 @@ function dashboardContainer(dashboardData) {
       }
       return slice;
     },
-    showAddSlice() {
-      const slicesOnDashMap = {};
-      const layoutPositions = this.reactGridLayout.serialize();
-      layoutPositions.forEach((position) => {
-        slicesOnDashMap[position.slice_id] = true;
-      });
-      render(
-        <SliceAdder dashboard={dashboard} slicesOnDashMap={slicesOnDashMap} caravel={px} />,
-        document.getElementById('add-slice-container')
-      );
-    },
     getAjaxErrorMsg(error) {
       const respJSON = error.responseJSON;
       return (respJSON && respJSON.message) ? respJSON.message :
@@ -263,7 +278,7 @@ function dashboardContainer(dashboardData) {
       const getAjaxErrorMsg = this.getAjaxErrorMsg;
       $.ajax({
         type: 'POST',
-        url: '/caravel/add_slices/' + dashboard.id + '/',
+        url: `/caravel/add_slices/${dashboard.id}/`,
         data: {
           data: JSON.stringify({ slice_ids: sliceIds }),
         },
@@ -280,137 +295,16 @@ function dashboardContainer(dashboardData) {
         },
       });
     },
-    saveDashboard() {
-      const expandedSlices = {};
-      $.each($('.slice_info'), function () {
-        const widget = $(this).parents('.widget');
-        const sliceDescription = widget.find('.slice_description');
-        if (sliceDescription.is(':visible')) {
-          expandedSlices[$(widget).attr('data-slice-id')] = true;
-        }
-      });
-      const positions = this.reactGridLayout.serialize();
-      const data = {
-        positions,
-        css: this.editor.getValue(),
-        expanded_slices: expandedSlices,
-      };
-      $.ajax({
-        type: 'POST',
-        url: '/caravel/save_dash/' + dashboard.id + '/',
-        data: {
-          data: JSON.stringify(data),
-        },
-        success() {
-          utils.showModal({
-            title: 'Success',
-            body: 'This dashboard was saved successfully.',
-          });
-        },
-        error(error) {
-          const errorMsg = this.getAjaxErrorMsg(error);
-          utils.showModal({
-            title: 'Error',
-            body: 'Sorry, there was an error saving this dashboard: </ br>' + errorMsg,
-          });
-        },
-      });
-    },
-    initDashboardView() {
-      this.posDict = {};
-      this.position_json.forEach(function (position) {
-        this.posDict[position.slice_id] = position;
-      }, this);
-
-      this.reactGridLayout = render(
-        <GridLayout slices={this.slices} posDict={this.posDict} dashboard={dashboard} />,
-        document.getElementById('grid-container')
-      );
-
-      this.curUserId = $('.dashboard').data('user');
-
-      dashboard = this;
-
-      // Displaying widget controls on hover
-      $('.react-grid-item').hover(
-        function () {
-          $(this).find('.chart-controls').fadeIn(300);
-        },
-        function () {
-          $(this).find('.chart-controls').fadeOut(300);
-        }
-      );
-      $('div.grid-container').css('visibility', 'visible');
-      $('#savedash').click(this.saveDashboard.bind(this));
-      $('#add-slice').click(this.showAddSlice.bind(this));
-
-      const editor = ace.edit('dash_css');
-      this.editor = editor;
-      editor.$blockScrolling = Infinity;
-
-      editor.setTheme('ace/theme/crimson_editor');
-      editor.setOptions({
-        minLines: 16,
-        maxLines: Infinity,
-        useWorker: false,
-      });
-      editor.getSession().setMode('ace/mode/css');
-
-      $('.select2').select2({
-        dropdownAutoWidth: true,
-      });
-      $('#css_template').on('change', function () {
-        const css = $(this).find('option:selected').data('css');
-        editor.setValue(css);
-
-        $('#dash_css').val(css);
-        injectCss('dashboard-template', css);
-      });
-      $('#filters').click(() => {
-        utils.showModal({
-          title: '<span class="fa fa-info-circle"></span> Current Global Filters',
-          body: 'The following global filters are currently applied:<br/>' +
-                dashboard.readFilters(),
-        });
-      });
-      $('#refresh_dash_interval').on('change', function () {
-        const interval = $(this).find('option:selected').val() * 1000;
-        dashboard.startPeriodicRender(interval);
-      });
-      $('#refresh_dash').click(() => {
-        dashboard.slices.forEach((slice) => {
-          slice.render(true);
-        });
-      });
-
-      $('div.widget').click(function (e) {
-        const $this = $(this);
-        const $target = $(e.target);
-
-        if ($target.hasClass('slice_info')) {
-          $this.find('.slice_description').slideToggle(0, function () {
-            $this.find('.refresh').click();
-          });
-        } else if ($target.hasClass('controls-toggle')) {
-          $this.find('.chart-controls').toggle();
-        }
-      });
-
-      editor.on('change', function () {
-        const css = editor.getValue();
-        $('#dash_css').val(css);
-        injectCss('dashboard-template', css);
-      });
-
-      const css = $('.dashboard').data('css');
-      injectCss('dashboard-template', css);
-    },
   });
-  dashboard.init();
-  return dashboard;
 }
 
 $(document).ready(() => {
-  dashboardContainer($('.dashboard').data('dashboard'));
-  $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
+  // Getting bootstrapped data from the DOM
+  const dashboardData = $('.dashboard').data('dashboard');
+  const contextData = $('.dashboard').data('context');
+
+  const state = getInitialState(dashboardData, contextData);
+  const dashboard = dashboardContainer(state.dashboard);
+  initDashboardView(dashboard);
+  dashboard.init();
 });
