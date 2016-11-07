@@ -21,6 +21,9 @@ Feature Overview
   `Jinja templating language <http://jinja.pocoo.org/docs/dev/>`_
   which allows for using macros in your SQL code
 
+Extra features
+--------------
+- Hit ``alt + enter`` as a keyboard shortcut to run your query
 
 Templating with Jinja
 ---------------------
