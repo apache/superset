@@ -2106,6 +2106,9 @@ class Caravel(BaseCaravelView):
             .first()
         )
 
+        datasources = db.session.query(datasource_class).all()
+        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+
         # Check if datasource exists
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -2113,19 +2116,20 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        gb_cols = datasource.groupby_column_names
+        gb_cols = [(col, col) for col in datasource.groupby_column_names]
         order_by_choices = []
         for s in sorted(datasource.num_cols):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         field_options = {
+            'datasource': [(d.id, d.full_name) for d in datasources],
             'metrics': datasource.metrics_combo,
             'order_by_cols': order_by_choices,
             'metric':  datasource.metrics_combo,
             'secondary_metric': datasource.metrics_combo,
-            'groupby': datasource.groupby_column_names,
-            'columns': datasource.groupby_column_names,
+            'groupby': gb_cols,
+            'columns': gb_cols,
             'all_columns': datasource.column_names,
             'all_columns_x': datasource.column_names,
             'all_columns_y': datasource.column_names,
