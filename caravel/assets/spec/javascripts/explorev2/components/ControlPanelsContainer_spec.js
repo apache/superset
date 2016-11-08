@@ -13,7 +13,7 @@ const defaultProps = {
   datasource_id: 1,
   datasource_type: 'type',
   actions: {
-    setFormOpts: () => {
+    fetchFieldOptions: () => {
       // noop
     },
   },
