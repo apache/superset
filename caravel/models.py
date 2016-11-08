@@ -1884,6 +1884,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         all_metrics = []
         post_aggs = {}
 
+        columns_dict = {c.column_name: c for c in self.columns}
+
         def recursive_get_fields(_conf):
             _fields = _conf.get('fields', [])
             field_names = []
@@ -1931,9 +1933,19 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 "Access to the metrics denied: " + ', '.join(rejected_metrics)
             )
 
+        # the dimensions list with dimensionSpecs expanded
+        dimensions = []
+        groupby = [gb for gb in groupby if gb in columns_dict]
+        for column_name in groupby:
+            col = columns_dict.get(column_name)
+            dim_spec = col.dimension_spec
+            if dim_spec:
+                dimensions.append(dim_spec)
+            else:
+                dimensions.append(column_name)
         qry = dict(
             datasource=self.datasource_name,
-            dimensions=groupby,
+            dimensions=dimensions,
             aggregations=aggregations,
             granularity=DruidDatasource.granularity(
                 granularity,
@@ -2242,6 +2254,7 @@ class DruidColumn(Model, AuditMixinNullable):
     min = Column(Boolean, default=False)
     filterable = Column(Boolean, default=False)
     description = Column(Text)
+    dimension_spec_json = Column(Text)
 
     def __repr__(self):
         return self.column_name
@@ -2249,6 +2262,11 @@ class DruidColumn(Model, AuditMixinNullable):
     @property
     def isnum(self):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT', 'INT')
+
+    @property
+    def dimension_spec(self):
+        if self.dimension_spec_json:
+            return json.loads(self.dimension_spec_json)
 
     def generate_metrics(self):
         """Generate metrics based on the column metadata"""
