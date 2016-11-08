@@ -1664,8 +1664,5 @@ export const initialState = {
   filters: [],
   filterColumnOpts: [],
   fields,
-  viz: {
-    columnFormats: {},
-    formData: defaultFormData,
-  },
+  viz: defaultViz,
 };
