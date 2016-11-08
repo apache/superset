@@ -17,7 +17,7 @@ export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const RESET_FORM_DATA = 'RESET_FORM_DATA';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
-export const SET_FORM_DATA = 'SET_FORM_DATA';
+export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 
 export function setTimeColumnOpts(timeColumnOpts) {
   return { type: SET_TIME_COLUMN_OPTS, timeColumnOpts };
@@ -125,6 +125,6 @@ export function changeFilterValue(filter, value) {
   return { type: CHANGE_FILTER_VALUE, filter, value };
 }
 
-export function setFormData(key, value) {
-  return { type: SET_FORM_DATA, key, value };
+export function setFieldValue(key, value) {
+  return { type: SET_FIELD_VALUE, key, value };
 }

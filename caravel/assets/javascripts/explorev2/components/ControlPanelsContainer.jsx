@@ -28,7 +28,7 @@ class ControlPanelsContainer extends React.Component {
   }
 
   onChange(name, value) {
-    this.props.actions.setFormData(name, value);
+    this.props.actions.setFieldValue(name, value);
   }
 
   sectionsToRender() {
