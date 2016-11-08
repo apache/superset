@@ -2142,7 +2142,7 @@ class Caravel(BaseCaravelView):
         }
 
         return Response(
-            json.dumps({ 'field_options': field_options }),
+            json.dumps({'field_options': field_options}),
             mimetype="application/json"
         )
 
