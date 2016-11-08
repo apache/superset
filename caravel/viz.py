@@ -317,6 +317,7 @@ class BaseViz(object):
         if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
+
             payload = {
                 'cache_timeout': cache_timeout,
                 'cache_key': cache_key,

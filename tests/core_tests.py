@@ -387,6 +387,11 @@ class CoreTests(CaravelTestCase):
             elif backend == 'postgresql':
                 self.assertEqual(len(data.get('indexes')), 5)
 
+    def test_fetch_datasource_metadata(self):
+        self.login(username='admin')
+        url = '/caravel/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
+        resp = json.loads(self.get_resp(url))
+        self.assertEqual(len(resp['field_options']), 19)
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import { shallow } from 'enzyme';
 import SelectField from '../../../../javascripts/explorev2/components/SelectField';
 
 const defaultProps = {
+  choices: [[10, 10], [20, 20]],
   name: 'row_limit',
   label: 'Row Limit',
   onChange: sinon.spy(),

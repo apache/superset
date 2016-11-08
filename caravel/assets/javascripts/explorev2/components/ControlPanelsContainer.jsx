@@ -13,6 +13,8 @@ const propTypes = {
   datasource_id: PropTypes.number.isRequired,
   datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
+  fields: PropTypes.object.isRequired,
+  isDatasourceMetaLoading: PropTypes.bool.isRequired,
 };
 
 const defaultProps = {
@@ -23,7 +25,7 @@ class ControlPanelsContainer extends React.Component {
   componentWillMount() {
     const { datasource_id, datasource_type } = this.props;
     if (datasource_id) {
-      this.props.actions.setFormOpts(datasource_id, datasource_type);
+      this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
     }
   }
 
@@ -47,27 +49,30 @@ class ControlPanelsContainer extends React.Component {
   render() {
     return (
       <Panel>
-        <div className="scrollbar-container">
-          <div className="scrollbar-content">
-            {this.sectionsToRender().map((section) => (
-              <ControlPanelSection
-                key={section.label}
-                label={section.label}
-                tooltip={section.description}
-              >
-                {section.fieldSetRows.map((fieldSets, i) => (
-                  <FieldSetRow
-                    key={`${section.label}-fieldSetRow-${i}`}
-                    fieldSets={fieldSets}
-                    fieldOverrides={this.fieldOverrides()}
-                    onChange={this.onChange.bind(this)}
-                  />
-                ))}
-              </ControlPanelSection>
-            ))}
-           {/* TODO: add filters section */}
+        {!this.props.isDatasourceMetaLoading &&
+          <div className="scrollbar-container">
+            <div className="scrollbar-content">
+              {this.sectionsToRender().map((section) => (
+                <ControlPanelSection
+                  key={section.label}
+                  label={section.label}
+                  tooltip={section.description}
+                >
+                  {section.fieldSetRows.map((fieldSets, i) => (
+                    <FieldSetRow
+                      key={`${section.label}-fieldSetRow-${i}`}
+                      fieldSets={fieldSets}
+                      fieldOverrides={this.fieldOverrides()}
+                      onChange={this.onChange.bind(this)}
+                      fields={this.props.fields}
+                    />
+                  ))}
+                </ControlPanelSection>
+              ))}
+              {/* TODO: add filters section */}
+            </div>
           </div>
-        </div>
+        }
       </Panel>
     );
   }
@@ -78,6 +83,8 @@ ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
+    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
+    fields: state.fields,
     datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
     viz_type: state.viz.form_data.viz_type,

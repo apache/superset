@@ -10,7 +10,6 @@ export const fieldTypes = [
   'TextAreaFeild',
   'TextField',
 ];
-
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
@@ -708,13 +707,12 @@ export const visTypes = {
   },
 };
 
-// todo: complete the choices and default keys from forms.py
 export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
-    default: '',
-    choices: [['datasource', 'datasource']],
+    default: null,
+    choices: [],
     description: '',
   },
 
@@ -729,23 +727,23 @@ export const fields = {
   metrics: {
     type: 'SelectMultipleSortableField',
     label: 'Metrics',
-    choices: [[1, 1]],
-    default: ['todo'],
+    choices: [],
+    default: null,
     description: 'One or many metrics to display',
   },
 
   order_by_cols: {
     type: 'SelectMultipleSortableField',
     label: 'Ordering',
-    choices: 'todo: order_by_choices',
+    choices: [],
     description: 'One or many metrics to display',
   },
 
   metric: {
     type: 'SelectField',
     label: 'Metric',
-    choices: 'todo: ',
-    default: 'todo: ',
+    choices: [],
+    default: null,
     description: 'Choose the metric',
   },
 
@@ -825,7 +823,7 @@ export const fields = {
     type: 'SelectField',
     label: 'YScale Interval',
     choices: formatSelectOptionsForRange(1, 50),
-    default: '1',
+    default: null,
     description: 'Number of steps to take between ticks when ' +
                  'displaying the Y scale',
   },
@@ -834,7 +832,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Stacked Bars',
     default: false,
-    description: '',
+    description: null,
   },
 
   show_markers: {
@@ -882,7 +880,7 @@ export const fields = {
     type: 'SelectField',
     label: 'Color Metric',
     choices: [],
-    default: '',
+    default: null,
     description: 'A metric to use for color',
   },
 
@@ -910,30 +908,30 @@ export const fields = {
   columns: {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
-    choices: [[1, 1]],
+    choices: [],
     description: 'One or many fields to pivot as columns',
   },
 
   all_columns: {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
-    choices: [['all_columns', 'all_columns']],
+    choices: [],
     description: 'Columns to display',
   },
 
   all_columns_x: {
     type: 'SelectField',
     label: 'X',
-    choices: [['all_columns_x', 'all_columns_x']],
-    default: '',
+    choices: [],
+    default: null,
     description: 'Columns to display',
   },
 
   all_columns_y: {
     type: 'SelectField',
     label: 'Y',
-    choices: [['all_columns_y', 'all_columns_y']],
-    default: '',
+    choices: [],
+    default: null,
     description: 'Columns to display',
   },
 
@@ -944,7 +942,7 @@ export const fields = {
       ['', 'default'],
       ['now', 'now'],
     ],
-    default: '',
+    default: null,
     description: 'Defines the origin where time buckets start, ' +
                  'accepts natural dates as in `now`, `sunday` or `1970-01-01`',
   },
@@ -971,6 +969,10 @@ export const fields = {
       '6 hour',
       '1 day',
       '7 days',
+      'week',
+      'week_starting_sunday',
+      'week_ending_saturday',
+      'month',
     ]),
     description: 'The time granularity for the visualization. Note that you ' +
                  'can type and use simple natural language as in `10 seconds`, ' +
@@ -1024,8 +1026,8 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: 'granularity_sqla',
-    choices: [['granularity_sqla', 'granularity_sqla']],
+    default: null,
+    choices: [],
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
@@ -1035,7 +1037,7 @@ export const fields = {
 
   time_grain: {
     label: 'Time Grain',
-    choices: ['grains-choices'],
+    choices: [],
     default: 'Time Column',
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
@@ -1047,7 +1049,7 @@ export const fields = {
   resample_rule: {
     type: 'FreeFormSelectField',
     label: 'Resample Rule',
-    default: '',
+    default: null,
     choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
     description: 'Pandas resample rule',
   },
@@ -1055,7 +1057,7 @@ export const fields = {
   resample_how: {
     type: 'SelectField',
     label: 'Resample How',
-    default: '',
+    default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
     description: 'Pandas resample how',
   },
@@ -1063,7 +1065,7 @@ export const fields = {
   resample_fillmethod: {
     type: 'SelectField',
     label: 'Resample Fill Method',
-    default: '',
+    default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
     description: 'Pandas resample fill method',
   },
@@ -1129,7 +1131,7 @@ export const fields = {
   number_format: {
     type: 'SelectField',
     label: 'Number format',
-    default: '.3s',
+    default: D3_TIME_FORMAT_OPTIONS[0],
     choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
@@ -1137,7 +1139,7 @@ export const fields = {
   row_limit: {
     type: 'SelectField',
     label: 'Row limit',
-    default: '',
+    default: null,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
@@ -1152,8 +1154,8 @@ export const fields = {
   timeseries_limit_metric: {
     type: 'SelectField',
     label: 'Sort By',
-    choices: [['', ''], ['timeseries_limit_metric', 'timeseries_limit_metric']],
-    default: '',
+    choices: [],
+    default: null,
     description: 'Metric used to define the top series',
   },
 
@@ -1169,7 +1171,7 @@ export const fields = {
   rolling_periods: {
     type: 'IntegerField',
     label: 'Periods',
-    validators: ['todo: [validators.optional()]'],
+    validators: [],
     description: 'Defines the size of the rolling window function, ' +
                  'relative to the time granularity selected',
   },
@@ -1177,8 +1179,8 @@ export const fields = {
   series: {
     type: 'SelectField',
     label: 'Series',
-    choices: formatSelectOptions(['', 'series']),
-    default: '',
+    choices: [],
+    default: null,
     description: 'Defines the grouping of entities. ' +
                  'Each series is shown as a specific color on the chart and ' +
                  'has a legend toggle',
@@ -1187,32 +1189,32 @@ export const fields = {
   entity: {
     type: 'SelectField',
     label: 'Entity',
-    choices: formatSelectOptions(['', 'entity']),
-    default: '',
+    choices: [],
+    default: null,
     description: 'This define the element to be plotted on the chart',
   },
 
   x: {
     type: 'SelectField',
     label: 'X Axis',
-    choices: formatSelectOptions(['', 'metrics assigned to x']),
-    default: '',
+    choices: [],
+    default: null,
     description: 'Metric assigned to the [X] axis',
   },
 
   y: {
     type: 'SelectField',
     label: 'Y Axis',
-    choices: formatSelectOptions(['', 'metrics assigned to x']),
-    default: '',
+    choices: [],
+    default: null,
     description: 'Metric assigned to the [Y] axis',
   },
 
   size: {
     type: 'SelectField',
     label: 'Bubble Size',
-    default: '',
-    choices: formatSelectOptions(['', 'bubble-size']),
+    default: null,
+    choices: [],
   },
 
   url: {
@@ -1271,7 +1273,7 @@ export const fields = {
     type: 'SelectField',
     label: 'Table Timestamp Format',
     default: 'smart_date',
-    choices: formatSelectOptions(TIME_STAMP_OPTIONS),
+    choices: TIME_STAMP_OPTIONS,
     description: 'Timestamp Format',
   },
 
@@ -1287,7 +1289,7 @@ export const fields = {
     type: 'SelectCustomMultiField',
     label: 'X axis format',
     default: 'smart_date',
-    choices: formatSelectOptions(TIME_STAMP_OPTIONS),
+    choices: TIME_STAMP_OPTIONS,
     description: D3_FORMAT_DOCS,
   },
 
@@ -1477,7 +1479,7 @@ export const fields = {
     type: 'IntegerField',
     label: 'Period Ratio',
     default: '',
-    validators: 'todo: [validators.optional()]',
+    validators: [],
     description: '[integer] Number of period to compare against, ' +
                  'this is relative to the granularity selected',
   },
@@ -1494,7 +1496,7 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
-    default: '',
+    default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
                  'in natural language (example:  24 hours, 7 days, ' +
@@ -1510,7 +1512,7 @@ export const fields = {
   mapbox_label: {
     type: 'SelectMultipleSortableField',
     label: 'label',
-    choices: "todo: formatSelectOptions(['count'] + datasource.column_names)",
+    choices: [],
     description: '`count` is COUNT(*) if a group by is used. ' +
                  'Numerical columns will be aggregated with the aggregator. ' +
                  'Non-numerical columns will be used to label points. ' +
@@ -1555,8 +1557,8 @@ export const fields = {
   point_radius: {
     type: 'SelectField',
     label: 'Point Radius',
-    default: 'Auto',
-    choices: "todo: formatSelectOptions(['Auto'] + datasource.column_names)",
+    default: null,
+    choices: [],
     description: 'The radius of individual points (ones that are not in a cluster). ' +
                  'Either a numerical column or `Auto`, which scales the point based ' +
                  'on the largest cluster',
@@ -1582,7 +1584,7 @@ export const fields = {
     type: 'IntegerField',
     label: 'Zoom',
     default: 11,
-    validators: 'todo: [validators.optional()]',
+    validators: [],
     description: 'Zoom level of the map',
     places: 8,
   },
@@ -1646,25 +1648,10 @@ export const defaultViz = {
 };
 
 export const initialState = {
+  isDatasourceMetaLoading: false,
   datasources: null,
   datasource_id: null,
   datasource_type: null,
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
-  filterColumnOpts: [],
+  fields,
   viz: defaultViz,
-};
-
-export const defaultOpts = {
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  filterColumnOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
 };

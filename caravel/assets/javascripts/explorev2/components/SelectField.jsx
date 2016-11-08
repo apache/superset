@@ -5,6 +5,7 @@ import { slugify } from '../../modules/utils';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
+  choices: PropTypes.array,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
@@ -20,6 +21,7 @@ export default class SelectField extends React.Component {
   onChange(opt) {
     this.props.onChange(this.props.name, opt.target.value);
   }
+
   render() {
     return (
       <FormGroup controlId={`formControlsSelect-${slugify(this.props.label)}`}>
@@ -32,8 +34,7 @@ export default class SelectField extends React.Component {
           placeholder="select"
           onChange={this.onChange.bind(this)}
         >
-          <option value="select">select</option>
-          <option value="other">...</option>
+          {this.props.choices.map((c) => <option key={c[0]} value={c[0]}>{c[1]}</option>)}
         </FormControl>
       </FormGroup>
     );
