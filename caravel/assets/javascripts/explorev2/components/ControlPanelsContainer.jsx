@@ -13,6 +13,7 @@ const propTypes = {
   datasource_id: PropTypes.number.isRequired,
   datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
+  fields: PropTypes.object.isRequired,
 };
 
 const defaultProps = {

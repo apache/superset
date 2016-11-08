@@ -742,7 +742,7 @@ export const fields = {
   metric: {
     type: 'SelectField',
     label: 'Metric',
-    choices:[],
+    choices: [],
     default: null,
     description: 'Choose the metric',
   },
@@ -923,7 +923,7 @@ export const fields = {
     type: 'SelectField',
     label: 'X',
     choices: [],
-    default:null,
+    default: null,
     description: 'Columns to display',
   },
 
