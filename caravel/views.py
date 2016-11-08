@@ -2114,7 +2114,6 @@ class Caravel(BaseCaravelView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         gb_cols = datasource.groupby_column_names
-        default_groupby = gb_cols[0] if gb_cols else None
         order_by_choices = []
         for s in sorted(datasource.num_cols):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
