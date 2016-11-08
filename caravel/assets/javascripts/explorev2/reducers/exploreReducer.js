@@ -2,12 +2,6 @@ import { defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
-const setFormInViz = function (state, action) {
-  const newFormData = Object.assign({}, state);
-  newFormData[action.key] = action.value;
-  return newFormData;
-};
-
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
     [actions.SET_DATASOURCE]() {
