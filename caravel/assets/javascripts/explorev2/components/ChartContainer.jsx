@@ -4,13 +4,18 @@ import { connect } from 'react-redux';
 import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
+import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
 
 const propTypes = {
+  can_download: PropTypes.bool.isRequired,
   slice_name: PropTypes.string.isRequired,
   viz_type: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
   containerId: PropTypes.string.isRequired,
   json_endpoint: PropTypes.string.isRequired,
+  csv_endpoint: PropTypes.string.isRequired,
+  standalone_endpoint: PropTypes.string.isRequired,
+  query: PropTypes.string.isRequired,
   column_formats: PropTypes.object,
 };
 
@@ -18,8 +23,13 @@ class ChartContainer extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      selector: `#${this.props.containerId}`,
+      selector: `#${props.containerId}`,
+      mockSlice: {},
     };
+  }
+
+  componentWillMount() {
+    this.setState({ mockSlice: this.getMockedSliceObject() });
   }
 
   componentDidMount() {
@@ -32,7 +42,16 @@ class ChartContainer extends React.Component {
 
   getMockedSliceObject() {
     return {
+      viewSqlQuery: this.props.query,
+
+      data: {
+        csv_endpoint: this.props.csv_endpoint,
+        json_endpoint: this.props.json_endpoint,
+        standalone_endpoint: this.props.standalone_endpoint,
+      },
+
       containerId: this.props.containerId,
+
       jsonEndpoint: () => this.props.json_endpoint,
 
       container: {
@@ -110,8 +129,7 @@ class ChartContainer extends React.Component {
   }
 
   renderVis() {
-    const slice = this.getMockedSliceObject();
-    visMap[this.props.viz_type](slice).render();
+    visMap[this.props.viz_type](this.state.mockSlice).render();
   }
 
   render() {
@@ -125,6 +143,12 @@ class ChartContainer extends React.Component {
               className="panel-title"
             >
               {this.props.slice_name}
+              <div className="pull-right">
+                <ExploreActionButtons
+                  slice={this.state.mockSlice}
+                  canDownload={this.props.can_download}
+                />
+              </div>
             </div>
           }
         >
@@ -146,7 +170,11 @@ function mapStateToProps(state) {
     containerId: `slice-container-${state.viz.form_data.slice_id}`,
     slice_name: state.viz.form_data.slice_name,
     viz_type: state.viz.form_data.viz_type,
+    can_download: state.can_download,
+    csv_endpoint: state.viz.csv_endpoint,
     json_endpoint: state.viz.json_endpoint,
+    standalone_endpoint: state.viz.standalone_endpoint,
+    query: state.viz.query,
     column_formats: state.viz.column_formats,
   };
 }

@@ -5,7 +5,7 @@ import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
 
 const propTypes = {
-  canDownload: PropTypes.string.isRequired,
+  canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object.isRequired,
 };
 
