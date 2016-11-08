@@ -48,16 +48,16 @@ GB_RESULT_SET = [
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'Canada',
-      "sum__num": 12345678,
+      "dim1": 'Canada',
+      "metric1": 12345678,
     }
   },
   {
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'USA',
-      "sum__num": 12345678 / 2,
+      "dim1": 'USA',
+      "metric1": 12345678 / 2,
     }
   },
 ]
@@ -121,26 +121,26 @@ class DruidTests(CaravelTestCase):
         url = (
             '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=name&flt_col_0=dim1&'
+            'include_search=false&metrics=count&groupby=dim1&flt_col_0=dim1&'
             'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
             'action=&datasource_name=test_datasource&datasource_id={}&'
             'datasource_type=druid&previous_viz_type=table&'
             'force=true'.format(datasource_id, datasource_id))
         resp = self.get_json_resp(url)
-        self.assertEqual("Canada", resp['data']['records'][0]['name'])
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
         # two groupby
         url = (
             '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=name&'
-            'flt_col_0=dim1&groupby=second&'
+            'include_search=false&metrics=count&groupby=dim1&'
+            'flt_col_0=dim1&groupby=dim2d&'
             'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
             'action=&datasource_name=test_datasource&datasource_id={}&'
             'datasource_type=druid&previous_viz_type=table&'
             'force=true'.format(datasource_id, datasource_id))
         resp = self.get_json_resp(url)
-        self.assertEqual("Canada", resp['data']['records'][0]['name'])
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'

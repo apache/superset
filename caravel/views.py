@@ -356,8 +356,9 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
-        'column_name', 'description', 'datasource', 'groupby',
-        'count_distinct', 'sum', 'min', 'max']
+        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'groupby', 'count_distinct', 'sum', 'min', 'max']
+    add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
@@ -374,9 +375,23 @@ class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'min': _("Min"),
         'max': _("Max"),
     }
+    description_columns = {
+        'dimension_spec_json': utils.markdown(
+            "this field can be used to specify  "
+            "a `dimensionSpec` as documented [here]"
+            "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
+            "Make sure to input valid JSON and that the "
+            "`outputName` matches the `column_name` defined "
+            "above.",
+            True),
+    }
 
     def post_update(self, col):
         col.generate_metrics()
+        utils.validate_json(col.dimension_spec_json)
+
+    def post_add(self, col):
+        self.post_update(col)
 
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
@@ -707,11 +722,11 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'broker_endpoint': _("Broker Endpoint"),
     }
 
-    def pre_add(self, db):
-        utils.merge_perm(sm, 'database_access', db.perm)
+    def pre_add(self, cluster):
+        utils.merge_perm(sm, 'database_access', cluster.perm)
 
-    def pre_update(self, db):
-        self.pre_add(db)
+    def pre_update(self, cluster):
+        self.pre_add(cluster)
 
 
 if config['DRUID_IS_ACTIVE']:
