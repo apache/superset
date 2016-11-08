@@ -1,31 +1,9 @@
-import { defaultFormData, defaultOpts } from '../stores/store';
+import { defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
-const setFormInViz = function (state, action) {
-  const newFormData = Object.assign({}, state);
-  newFormData[action.key] = action.value;
-  return newFormData;
-};
-
-const setVizInState = function (state, action) {
-  switch (action.type) {
-    case actions.SET_FORM_DATA:
-      return Object.assign(
-        {},
-        state,
-        { formData: setFormInViz(state.formData, action) }
-        );
-    default:
-      return state;
-  }
-};
-
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasourceId: action.datasourceId });
-    },
     [actions.SET_TIME_COLUMN_OPTS]() {
       return Object.assign({}, state, { timeColumnOpts: action.timeColumnOpts });
     },
@@ -43,9 +21,6 @@ export const exploreReducer = function (state, action) {
     },
     [actions.SET_ORDERING_OPTS]() {
       return Object.assign({}, state, { orderingOpts: action.orderingOpts });
-    },
-    [actions.TOGGLE_SEARCHBOX]() {
-      return Object.assign({}, state, { searchBox: action.searchBox });
     },
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
@@ -65,21 +40,14 @@ export const exploreReducer = function (state, action) {
     [actions.CHANGE_FILTER_VALUE]() {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
     },
-    [actions.RESET_FORM_DATA]() {
-      return Object.assign({}, state, defaultFormData);
-    },
     [actions.CLEAR_ALL_OPTS]() {
       return Object.assign({}, state, defaultOpts);
     },
-    [actions.SET_DATASOURCE_TYPE]() {
-      return Object.assign({}, state, { datasourceType: action.datasourceType });
-    },
-    [actions.SET_FORM_DATA]() {
-      return Object.assign(
-        {},
-        state,
-        { viz: setVizInState(state.viz, action) }
-      );
+    [actions.SET_FIELD_VALUE]() {
+      const newState = Object.assign({}, state);
+      newState.viz.form_data[action.key] =
+        action.value ? action.value : (!state.viz.form_data[action.key]);
+      return newState;
     },
   };
   if (action.type in actionHandlers) {

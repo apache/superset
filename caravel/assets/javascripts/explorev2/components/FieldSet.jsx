@@ -6,12 +6,14 @@ import SelectField from './SelectField';
 import { fieldTypes } from '../stores/store';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
   type: PropTypes.oneOf(fieldTypes).isRequired,
   label: PropTypes.string.isRequired,
   choices: PropTypes.arrayOf(PropTypes.array),
   description: PropTypes.string,
   places: PropTypes.number,
   validators: PropTypes.any,
+  onChange: React.PropTypes.func,
 };
 
 const defaultProps = {
@@ -19,23 +21,36 @@ const defaultProps = {
   description: null,
   places: null,
   validators: null,
+  onChange: () => {},
 };
 
 export default class FieldSet extends React.Component {
   renderCheckBoxField() {
-    return <CheckboxField {...this.props} />;
+    return (
+      <CheckboxField
+        {...this.props}
+      />);
   }
 
   renderTextAreaField() {
-    return <TextAreaField {...this.props} />;
+    return (
+      <TextAreaField
+        {...this.props}
+      />);
   }
 
   renderSelectField() {
-    return <SelectField {...this.props} />;
+    return (
+      <SelectField
+        {...this.props}
+      />);
   }
 
   renderTextField() {
-    return <TextField {...this.props} />;
+    return (
+      <TextField
+        {...this.props}
+      />);
   }
 
   render() {

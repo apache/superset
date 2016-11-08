@@ -11,60 +11,6 @@ export const fieldTypes = [
   'TextField',
 ];
 
-// TODO: add datasource_type here after druid support is added
-export const defaultFormData = {
-  sliceId: null,
-  vizType: null,
-  timeColumn: null,
-  timeGrain: null,
-  groupByColumns: [],
-  metrics: [],
-  since: null,
-  until: null,
-  having: null,
-  where: null,
-  columns: [],
-  orderings: [],
-  timeStampFormat: 'smart_date',
-  rowLimit: 50000,
-  searchBox: false,
-  whereClause: '',
-  havingClause: '',
-  filters: [],
-};
-
-export const initialState = {
-  datasources: null,
-  datasourceId: null,
-  datasourceType: null,
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  timeGrain: null,
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
-  searchBox: false,
-  whereClause: '',
-  havingClause: '',
-  filters: [],
-  filterColumnOpts: [],
-  viz: {
-    columnFormats: {},
-    formData: defaultFormData,
-  },
-};
-
-export const defaultOpts = {
-  timeColumnOpts: [],
-  timeGrainOpts: [],
-  groupByColumnOpts: [],
-  metricsOpts: [],
-  filterColumnOpts: [],
-  columnOpts: [],
-  orderingOpts: [],
-};
-
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
@@ -1082,7 +1028,7 @@ export const fields = {
     choices: [['granularity_sqla', 'granularity_sqla']],
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
-                 'column in the table editor. Also note that the ' +
+                 'column in the table or. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
   },
@@ -1678,4 +1624,47 @@ export const fields = {
     ],
     description: 'The color for points and clusters in RGB',
   },
+};
+
+const defaultFormData = {};
+defaultFormData.slice_name = null;
+defaultFormData.slice_id = null;
+Object.keys(fields).forEach((k) => { defaultFormData[k] = fields[k].default; });
+
+export const defaultViz = {
+  cached_key: null,
+  cached_timeout: null,
+  cached_dttm: null,
+  column_formats: null,
+  csv_endpoint: null,
+  is_cached: false,
+  data: [],
+  form_data: defaultFormData,
+  json_endpoint: null,
+  query: null,
+  standalone_endpoint: null,
+};
+
+export const initialState = {
+  datasources: null,
+  datasource_id: null,
+  datasource_type: null,
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  columnOpts: [],
+  orderingOpts: [],
+  filterColumnOpts: [],
+  viz: defaultViz,
+};
+
+export const defaultOpts = {
+  timeColumnOpts: [],
+  timeGrainOpts: [],
+  groupByColumnOpts: [],
+  metricsOpts: [],
+  filterColumnOpts: [],
+  columnOpts: [],
+  orderingOpts: [],
 };

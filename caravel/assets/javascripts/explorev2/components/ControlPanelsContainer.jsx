@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
@@ -8,26 +9,30 @@ import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
-  vizType: PropTypes.string,
-  datasourceId: PropTypes.number.isRequired,
-  datasourceType: PropTypes.string.isRequired,
+  viz_type: PropTypes.string,
+  datasource_id: PropTypes.number.isRequired,
+  datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
 };
 
 const defaultProps = {
-  vizType: null,
+  viz_type: null,
 };
 
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
-    const { datasourceId, datasourceType } = this.props;
-    if (datasourceId) {
-      this.props.actions.setFormOpts(datasourceId, datasourceType);
+    const { datasource_id, datasource_type } = this.props;
+    if (datasource_id) {
+      this.props.actions.setFormOpts(datasource_id, datasource_type);
     }
   }
 
+  onChange(name, value) {
+    this.props.actions.setFieldValue(name, value);
+  }
+
   sectionsToRender() {
-    const viz = visTypes[this.props.vizType];
+    const viz = visTypes[this.props.viz_type];
     const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
     const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
 
@@ -35,7 +40,7 @@ class ControlPanelsContainer extends React.Component {
   }
 
   fieldOverrides() {
-    const viz = visTypes[this.props.vizType];
+    const viz = visTypes[this.props.viz_type];
     return viz.fieldOverrides;
   }
 
@@ -55,6 +60,7 @@ class ControlPanelsContainer extends React.Component {
                     key={`${section.label}-fieldSetRow-${i}`}
                     fieldSets={fieldSets}
                     fieldOverrides={this.fieldOverrides()}
+                    onChange={this.onChange.bind(this)}
                   />
                 ))}
               </ControlPanelSection>
@@ -72,9 +78,9 @@ ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    datasourceId: state.datasourceId,
-    datasourceType: state.datasourceType,
-    vizType: state.viz.formData.vizType,
+    datasource_id: state.datasource_id,
+    datasource_type: state.datasource_type,
+    viz_type: state.viz.form_data.viz_type,
   };
 }
 

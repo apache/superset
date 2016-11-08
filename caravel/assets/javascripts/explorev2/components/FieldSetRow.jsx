@@ -5,10 +5,12 @@ import { fields } from '../stores/store';
 const propTypes = {
   fieldSets: PropTypes.array.isRequired,
   fieldOverrides: PropTypes.object,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
   fieldOverrides: {},
+  onChange: () => {},
 };
 
 function getFieldData(fs, fieldOverrides) {
@@ -20,12 +22,15 @@ function getFieldData(fs, fieldOverrides) {
   return fieldData;
 }
 
-export default function FieldSetRow({ fieldSets, fieldOverrides }) {
+export default function FieldSetRow({ fieldSets, fieldOverrides, onChange }) {
   return (
     <ul className="list-unstyled">
       {fieldSets.map((fs) => {
         const fieldData = getFieldData(fs, fieldOverrides);
-        return <li key={fs}><FieldSet name={fs} {...fieldData} /></li>;
+        return (
+          <li key={fs}>
+            <FieldSet name={fs} onChange={onChange} {...fieldData} />
+          </li>);
       })}
     </ul>
   );
