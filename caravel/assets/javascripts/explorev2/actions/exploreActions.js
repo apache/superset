@@ -48,7 +48,7 @@ export function setFilterColumnOpts(filterColumnOpts) {
 }
 
 export function resetFormData() {
-  // Clear all form data when switching datasource or viz_type
+  // Clear all form data when switching viz_type
   return { type: RESET_FORM_DATA };
 }
 
