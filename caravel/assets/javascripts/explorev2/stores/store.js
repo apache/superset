@@ -1668,4 +1668,3 @@ export const defaultOpts = {
   columnOpts: [],
   orderingOpts: [],
 };
-

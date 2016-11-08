@@ -47,11 +47,6 @@ export function setFilterColumnOpts(filterColumnOpts) {
   return { type: SET_FILTER_COLUMN_OPTS, filterColumnOpts };
 }
 
-export function resetFormData() {
-  // Clear all form data when switching viz_type
-  return { type: RESET_FORM_DATA };
-}
-
 export function clearAllOpts() {
   return { type: CLEAR_ALL_OPTS };
 }

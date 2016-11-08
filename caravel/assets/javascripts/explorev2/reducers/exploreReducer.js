@@ -1,21 +1,6 @@
-import { defaultFormData, defaultOpts } from '../stores/store';
+import { defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
-
-const setFormInViz = function (oldFd, action) {
-  const newFormData = Object.assign({}, oldFd);
-  // flip the value for checkbox where action.value is undefined
-  newFormData[action.key] = action.value ? action.value : (!oldFd[action.key]);
-  return newFormData;
-};
-
-const setVizInState = function (oldViz, action) {
-  return Object.assign(
-    {},
-    oldViz,
-    { form_data: setFormInViz(oldViz.form_data, action) }
-    );
-};
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -55,18 +40,14 @@ export const exploreReducer = function (state, action) {
     [actions.CHANGE_FILTER_VALUE]() {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
     },
-    [actions.RESET_FORM_DATA]() {
-      return Object.assign({}, state, defaultFormData);
-    },
     [actions.CLEAR_ALL_OPTS]() {
       return Object.assign({}, state, defaultOpts);
     },
     [actions.SET_FORM_DATA]() {
-      return Object.assign(
-        {},
-        state,
-        { viz: setVizInState(state.viz, action) }
-      );
+      const newViz = Object.assign({}, state.viz);
+      newViz.form_data[action.key] =
+        action.value ? action.value : (!state.viz.form_data[action.key]);
+      return Object.assign({}, state, { viz: newViz });
     },
   };
   if (action.type in actionHandlers) {
