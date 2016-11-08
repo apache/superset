@@ -15,7 +15,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class FieldSetRow extends React.component {
+export default class FieldSetRow extends React.Component {
   getFieldData(fs) {
     const { fields, fieldOverrides } = this.props;
     let fieldData = fields[fs];
