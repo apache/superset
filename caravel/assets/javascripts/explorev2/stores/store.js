@@ -1648,6 +1648,7 @@ export const defaultViz = {
 };
 
 export const initialState = {
+  isDatasourceMetaLoading: false,
   datasources: null,
   datasource_id: null,
   datasource_type: null,

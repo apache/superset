@@ -26,8 +26,25 @@ export function setDatasourceType(datasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };
 }
 
+export const FETCH_STARTED = 'FETCH_STARTED';
+export function fetchStarted() {
+  return { type: FETCH_STARTED };
+}
+
+export const FETCH_SUCCEEDED = 'FETCH_SUCCEEDED';
+export function fetchSucceeded() {
+  return { type: FETCH_SUCCEEDED };
+}
+
+export const FETCH_FAILED = 'FETCH_FAILED';
+export function fetchFailed() {
+  return { type: FETCH_FAILED };
+}
+
 export function fetchFieldOptions(datasourceId, datasourceType) {
   return function (dispatch) {
+    dispatch(fetchStarted());
+
     if (datasourceId) {
       const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
       const url = '/caravel/fetch_datasource_metadata?' + params.join('&');
@@ -36,6 +53,9 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
         if (status === 'success') {
           // populate options for select type fields
           dispatch(setFieldOptions(data.field_options));
+          dispatch(fetchSucceeded());
+        } else if (status === 'error') {
+          dispatch(fetchFailed());
         }
       });
     } else {

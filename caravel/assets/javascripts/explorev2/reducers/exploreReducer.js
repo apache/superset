@@ -14,6 +14,19 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { datasourceId: action.datasourceId });
     },
 
+    [actions.FETCH_STARTED]() {
+      return Object.assign({}, state, { isDatasourceMetaLoading: true });
+    },
+
+    [actions.FETCH_SUCCEEDED]() {
+      return Object.assign({}, state, { isDatasourceMetaLoading: false });
+    },
+
+    [actions.FETCH_FAILED]() {
+      // todo(alanna) handle failure/error state
+      return Object.assign({}, state, { isDatasourceMetaLoading: false });
+    },
+
     [actions.SET_FIELD_OPTIONS]() {
       const newState = Object.assign({}, state);
       const optionsByFieldName = action.options;
