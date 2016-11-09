@@ -5,7 +5,7 @@ import { Jumbotron } from 'react-bootstrap';
 function App() {
   return (
     <Jumbotron>
-      <h1>Caravel</h1>
+      <h1>Superset</h1>
       <p>Extensible visualization tool for exploring data from any database.</p>
     </Jumbotron>
   );

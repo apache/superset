@@ -14,15 +14,15 @@ revision = '3b626e2a6783'
 down_revision = 'eca4694defa7'
 
 from alembic import op
-from caravel import db
-from caravel.utils import generic_find_constraint_name, table_has_constraint
+from superset import db
+from superset.utils import generic_find_constraint_name, table_has_constraint
 import logging
 import sqlalchemy as sa
 from sqlalchemy.dialects import mysql
 
 
 def upgrade():
-    # cleanup after: https://github.com/airbnb/caravel/pull/1078
+    # cleanup after: https://github.com/airbnb/superset/pull/1078
     try:
         slices_ibfk_1 = generic_find_constraint_name(
             table='slices', columns={'druid_datasource_id'},
@@ -39,7 +39,7 @@ def upgrade():
     except Exception as e:
         logging.warning(str(e))
 
-    # fixed issue: https://github.com/airbnb/caravel/issues/466
+    # fixed issue: https://github.com/airbnb/superset/issues/466
     try:
         with op.batch_alter_table("columns") as batch_op:
             batch_op.create_foreign_key(

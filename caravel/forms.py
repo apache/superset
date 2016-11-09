@@ -15,7 +15,7 @@ from wtforms import (
     BooleanField, IntegerField, HiddenField, DecimalField)
 from wtforms import validators, widgets
 
-from caravel import app
+from superset import app
 
 config = app.config
 
@@ -95,7 +95,7 @@ class FreeFormSelectField(SelectField):
 
 class OmgWtForm(Form):
 
-    """Caravelification of the WTForm Form object"""
+    """Supersetification of the WTForm Form object"""
 
     fieldsets = {}
     css_classes = dict()
@@ -123,7 +123,7 @@ class FormFactory(object):
 
     def __init__(self, viz):
         self.viz = viz
-        from caravel.viz import viz_types
+        from superset.viz import viz_types
         viz = self.viz
         datasource = viz.datasource
         if not datasource.metrics_combo:
@@ -137,7 +137,7 @@ class FormFactory(object):
         for s in sorted(datasource.num_cols):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-        # Pool of all the fields that can be used in Caravel
+        # Pool of all the fields that can be used in Superset
         field_data = {
             'viz_type': (SelectField, {
                 "label": _("Viz"),
@@ -294,7 +294,7 @@ class FormFactory(object):
                     ('cca3', _('code ISO 3166-1 alpha-3 (cca3)')),
                 ),
                 "description": _(
-                    "The country code standard that Caravel should expect "
+                    "The country code standard that Superset should expect "
                     "to find in the [country] column")
             }),
             'groupby': (SelectMultipleSortableField, {
@@ -1055,7 +1055,7 @@ class FormFactory(object):
                         "applies a date transformation to alter "
                         "your time column and defines a new time granularity."
                         "The options here are defined on a per database "
-                        "engine basis in the Caravel source code"))
+                        "engine basis in the Superset source code"))
                 add_to_form(time_fields)
                 field_css_classes['time_grain_sqla'] = ['form-control', 'select2']
                 field_css_classes['granularity_sqla'] = ['form-control', 'select2']

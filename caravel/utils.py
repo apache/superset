@@ -1,4 +1,4 @@
-"""Utility functions used across Caravel"""
+"""Utility functions used across Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -31,27 +31,27 @@ logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 EPOCH = datetime(1970, 1, 1)
 
 
-class CaravelException(Exception):
+class SupersetException(Exception):
     pass
 
 
-class CaravelTimeoutException(CaravelException):
+class SupersetTimeoutException(SupersetException):
     pass
 
 
-class CaravelSecurityException(CaravelException):
+class SupersetSecurityException(SupersetException):
     pass
 
 
-class MetricPermException(CaravelException):
+class MetricPermException(SupersetException):
     pass
 
 
-class NoDataException(CaravelException):
+class NoDataException(SupersetException):
     pass
 
 
-class CaravelTemplateException(CaravelException):
+class SupersetTemplateException(SupersetException):
     pass
 
 
@@ -108,10 +108,10 @@ class memoized(object):  # noqa
         return functools.partial(self.__call__, obj)
 
 
-def get_or_create_main_db(caravel):
-    db = caravel.db
-    config = caravel.app.config
-    DB = caravel.models.Database
+def get_or_create_main_db(superset):
+    db = superset.db
+    config = superset.app.config
+    DB = superset.models.Database
     logging.info("Creating database reference")
     dbobj = db.session.query(DB).filter_by(database_name='main').first()
     if not dbobj:
@@ -223,8 +223,8 @@ class JSONEncodedDict(TypeDecorator):
         return value
 
 
-def init(caravel):
-    """Inits the Caravel application with security roles and such"""
+def init(superset):
+    """Inits the Superset application with security roles and such"""
     ADMIN_ONLY_VIEW_MENUES = set([
         'ResetPasswordView',
         'RoleModelView',
@@ -253,13 +253,13 @@ def init(caravel):
         'muldelete',
     ])
 
-    db = caravel.db
-    models = caravel.models
-    config = caravel.app.config
-    sm = caravel.appbuilder.sm
+    db = superset.db
+    models = superset.models
+    config = superset.app.config
+    sm = superset.appbuilder.sm
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
-    get_or_create_main_db(caravel)
+    get_or_create_main_db(superset)
 
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
 
@@ -306,19 +306,19 @@ def init(caravel):
     db_perms = [db.perm for db in session.query(models.Database).all()]
     for db_perm in db_perms:
         merge_perm(sm, 'database_access', db_perm)
-    init_metrics_perm(caravel)
+    init_metrics_perm(superset)
 
 
-def init_metrics_perm(caravel, metrics=None):
+def init_metrics_perm(superset, metrics=None):
     """Create permissions for restricted metrics
 
     :param metrics: a list of metrics to be processed, if not specified,
         all metrics are processed
     :type metrics: models.SqlMetric or models.DruidMetric
     """
-    db = caravel.db
-    models = caravel.models
-    sm = caravel.appbuilder.sm
+    db = superset.db
+    models = superset.models
+    sm = superset.appbuilder.sm
 
     if not metrics:
         metrics = []
@@ -465,7 +465,7 @@ def validate_json(obj):
         try:
             json.loads(obj)
         except Exception:
-            raise CaravelException("JSON is not valid")
+            raise SupersetException("JSON is not valid")
 
 
 def table_has_constraint(table, name, db):
@@ -488,7 +488,7 @@ class timeout(object):
 
     def handle_timeout(self, signum, frame):
         logging.error("Process timed out")
-        raise CaravelTimeoutException(self.error_message)
+        raise SupersetTimeoutException(self.error_message)
 
     def __enter__(self):
         try:

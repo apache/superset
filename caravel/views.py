@@ -32,13 +32,13 @@ from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
-import caravel
-from caravel import (
+import superset
+from superset import (
     appbuilder, cache, db, models, viz, utils, app,
     sm, ascii_art, sql_lab, results_backend
 )
-from caravel.source_registry import SourceRegistry
-from caravel.models import DatasourceAccessRequest as DAR
+from superset.source_registry import SourceRegistry
+from superset.models import DatasourceAccessRequest as DAR
 
 config = app.config
 log_this = models.Log.log_this
@@ -46,7 +46,7 @@ can_access = utils.can_access
 QueryStatus = models.QueryStatus
 
 
-class BaseCaravelView(BaseView):
+class BaseSupersetView(BaseView):
     def can_access(self, permission_name, view_name):
         return utils.can_access(appbuilder.sm, permission_name, view_name)
 
@@ -67,7 +67,7 @@ class ListWidgetWithCheckboxes(ListWidget):
     """An alternative to list view that renders Boolean fields as checkboxes
 
     Works in conjunction with the `checkbox` view."""
-    template = 'caravel/fab_overrides/list_with_checkboxes.html'
+    template = 'superset/fab_overrides/list_with_checkboxes.html'
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -144,7 +144,7 @@ def check_ownership(obj, raise_if_false=True):
     if not obj:
         return False
 
-    security_exception = utils.CaravelSecurityException(
+    security_exception = utils.SupersetSecurityException(
               "You don't have the rights to alter [{}]".format(obj))
 
     if g.user.is_anonymous():
@@ -180,7 +180,7 @@ def get_user_roles():
     return g.user.roles
 
 
-class CaravelFilter(BaseFilter):
+class SupersetFilter(BaseFilter):
     def get_perms(self):
         perms = []
         for role in get_user_roles():
@@ -190,7 +190,7 @@ class CaravelFilter(BaseFilter):
         return perms
 
 
-class TableSlice(CaravelFilter):
+class TableSlice(SupersetFilter):
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -203,7 +203,7 @@ class TableSlice(CaravelFilter):
         return qry
 
 
-class FilterSlice(CaravelFilter):
+class FilterSlice(SupersetFilter):
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -211,7 +211,7 @@ class FilterSlice(CaravelFilter):
         return qry
 
 
-class FilterDashboard(CaravelFilter):
+class FilterDashboard(SupersetFilter):
     """List dashboards for which users have access to at least one slice"""
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
@@ -234,7 +234,7 @@ class FilterDashboard(CaravelFilter):
         return query
 
 
-class FilterDashboardSlices(CaravelFilter):
+class FilterDashboardSlices(SupersetFilter):
     def apply(self, query, value):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -242,7 +242,7 @@ class FilterDashboardSlices(CaravelFilter):
         return qry
 
 
-class FilterDashboardOwners(CaravelFilter):
+class FilterDashboardOwners(SupersetFilter):
     def apply(self, query, value):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -250,7 +250,7 @@ class FilterDashboardOwners(CaravelFilter):
         return qry
 
 
-class FilterDruidDatasource(CaravelFilter):
+class FilterDruidDatasource(SupersetFilter):
     def apply(self, query, func):  # noqa
         if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
             return query
@@ -290,11 +290,11 @@ class DeleteMixin(object):
         return redirect(self.get_redirect())
 
 
-class CaravelModelView(ModelView):
+class SupersetModelView(ModelView):
     page_size = 500
 
 
-class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
+class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.TableColumn)
     can_delete = False
     list_widget = ListWidgetWithCheckboxes
@@ -331,7 +331,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
             "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
             "The string should be a python string formatter \n"
             "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle"
-            "Caravel uses default expression based on DB URI if this "
+            "Superset uses default expression based on DB URI if this "
             "field is blank.", True),
     }
     label_columns = {
@@ -353,7 +353,7 @@ class TableColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
 appbuilder.add_view_no_menu(TableColumnInlineView)
 
 
-class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
+class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
         'column_name', 'description', 'dimension_spec_json', 'datasource',
@@ -396,7 +396,7 @@ class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
 
-class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
+class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.SqlMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -430,15 +430,15 @@ class SqlMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(caravel, [metric])
+        utils.init_metrics_perm(superset, [metric])
 
     def post_update(self, metric):
-        utils.init_metrics_perm(caravel, [metric])
+        utils.init_metrics_perm(superset, [metric])
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
 
-class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
+class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     datamodel = SQLAInterface(models.DruidMetric)
     list_columns = ['metric_name', 'verbose_name', 'metric_type']
     edit_columns = [
@@ -470,16 +470,16 @@ class DruidMetricInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(caravel, [metric])
+        utils.init_metrics_perm(superset, [metric])
 
     def post_update(self, metric):
-        utils.init_metrics_perm(caravel, [metric])
+        utils.init_metrics_perm(superset, [metric])
 
 
 appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
-class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
+class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = ['database_name', 'creator', 'changed_on_']
     add_columns = [
@@ -499,8 +499,8 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
         'changed_by',
         'changed_on'
     ]
-    add_template = "caravel/models/database/add.html"
-    edit_template = "caravel/models/database/edit.html"
+    add_template = "superset/models/database/add.html"
+    edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
     description_columns = {
         'sqlalchemy_uri': utils.markdown(
@@ -560,7 +560,7 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
 appbuilder.add_link(
     'Import Dashboards',
     label=__("Import Dashboards"),
-    href='/caravel/import_dashboards',
+    href='/superset/import_dashboards',
     icon="fa-cloud-upload",
     category='Manage',
     category_label=__("Manage"),
@@ -593,7 +593,7 @@ class DatabaseTablesAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class TableModelView(CaravelModelView, DeleteMixin):  # noqa
+class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.SqlaTable)
     list_columns = [
         'link', 'database', 'is_featured',
@@ -618,7 +618,7 @@ class TableModelView(CaravelModelView, DeleteMixin):  # noqa
             "Supports <a href='https://daringfireball.net/projects/markdown/'>"
             "markdown</a>"),
         'sql': _(
-            "This fields acts a Caravel view, meaning that Caravel will "
+            "This fields acts a Superset view, meaning that Superset will "
             "run a query against this string as a subquery."
         ),
     }
@@ -680,7 +680,7 @@ appbuilder.add_view(
 appbuilder.add_separator("Sources")
 
 
-class AccessRequestsModelView(CaravelModelView, DeleteMixin):
+class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
     list_columns = [
         'username', 'user_roles', 'datasource_link',
@@ -705,7 +705,7 @@ appbuilder.add_view(
     icon='fa-table',)
 
 
-class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
+class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
     add_columns = [
         'cluster_name',
@@ -742,7 +742,7 @@ if config['DRUID_IS_ACTIVE']:
         category_icon='fa-database',)
 
 
-class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
+class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Slice)
     can_add = False
     label_columns = {
@@ -838,7 +838,7 @@ class SliceAddView(SliceModelView):  # noqa
 appbuilder.add_view_no_menu(SliceAddView)
 
 
-class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
+class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Dashboard)
     list_columns = ['dashboard_link', 'creator', 'modified']
     edit_columns = [
@@ -920,7 +920,7 @@ class DashboardModelView(CaravelModelView, DeleteMixin):  # noqa
                 headers=generate_download_headers("pickle"),
                 mimetype="application/text")
         return self.render_template(
-            'caravel/export_dashboards.html',
+            'superset/export_dashboards.html',
             dashboards_url='/dashboardmodelview/list'
         )
 
@@ -943,7 +943,7 @@ class DashboardModelViewAsync(DashboardModelView):  # noqa
 appbuilder.add_view_no_menu(DashboardModelViewAsync)
 
 
-class LogModelView(CaravelModelView):
+class LogModelView(SupersetModelView):
     datamodel = SQLAInterface(models.Log)
     list_columns = ('user', 'action', 'dttm')
     edit_columns = ('user', 'action', 'dttm', 'json')
@@ -964,7 +964,7 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
-class DruidDatasourceModelView(CaravelModelView, DeleteMixin):  # noqa
+class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
     list_columns = [
@@ -1038,7 +1038,7 @@ def ping():
     return "OK"
 
 
-class R(BaseCaravelView):
+class R(BaseSupersetView):
 
     """used for short urls"""
 
@@ -1071,8 +1071,8 @@ class R(BaseCaravelView):
 appbuilder.add_view_no_menu(R)
 
 
-class Caravel(BaseCaravelView):
-    """The base views for Caravel!"""
+class Superset(BaseSupersetView):
+    """The base views for Superset!"""
     @has_access
     @expose("/override_role_permissions/", methods=['POST'])
     def override_role_permissions(self):
@@ -1160,7 +1160,7 @@ class Caravel(BaseCaravelView):
             return redirect('/')
 
         return self.render_template(
-            'caravel/request_access.html',
+            'superset/request_access.html',
             datasources=datasources,
             datasource_names=", ".join([o.name for o in datasources]),
         )
@@ -1299,7 +1299,7 @@ class Caravel(BaseCaravelView):
                     dashboard, import_time=current_tt)
             db.session.commit()
             return redirect('/dashboardmodelview/list/')
-        return self.render_template('caravel/import_dashboards.html')
+        return self.render_template('superset/import_dashboards.html')
 
     @log_this
     @has_access
@@ -1332,7 +1332,7 @@ class Caravel(BaseCaravelView):
                 __(get_datasource_access_error_msg(viz_obj.datasource.name)),
                 "danger")
             return redirect(
-                'caravel/request_access/?'
+                'superset/request_access/?'
                 'datasource_type={datasource_type}&'
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
@@ -1360,7 +1360,7 @@ class Caravel(BaseCaravelView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
-            return self.render_template("caravel/standalone.html", viz=viz_obj, standalone_mode=True)
+            return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
         elif request.args.get("V2") == "true":
             # bootstrap data for explore V2
             bootstrap_data = {
@@ -1375,13 +1375,13 @@ class Caravel(BaseCaravelView):
                 "viz": json.loads(viz_obj.get_json())
             }
             return self.render_template(
-                "caravel/explorev2.html",
+                "superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
                 slice_name=slc.slice_name,
                 table_name=viz_obj.datasource.table_name)
         else:
             return self.render_template(
-                "caravel/explore.html",
+                "superset/explore.html",
                 viz=viz_obj, slice=slc, datasources=datasources,
                 can_add=slice_add_perm, can_edit=slice_edit_perm,
                 can_download=slice_download_perm,
@@ -1708,7 +1708,7 @@ class Caravel(BaseCaravelView):
                     __(get_datasource_access_error_msg(datasource.name)),
                     "danger")
                 return redirect(
-                    'caravel/request_access/?'
+                    'superset/request_access/?'
                     'dashboard_id={dash.id}&'
                     ''.format(**locals()))
 
@@ -1719,7 +1719,7 @@ class Caravel(BaseCaravelView):
         dashboard(dashboard_id=dash.id)
         dash_edit_perm = check_ownership(dash, raise_if_false=False)
         dash_save_perm = \
-            dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
+            dash_edit_perm and self.can_access('can_save_dash', 'Superset')
         standalone = request.args.get("standalone") == "true"
         context = dict(
             user_id=g.user.get_id(),
@@ -1728,7 +1728,7 @@ class Caravel(BaseCaravelView):
             standalone_mode=standalone,
         )
         return self.render_template(
-            "caravel/dashboard.html",
+            "superset/dashboard.html",
             dashboard=dash,
             context=json.dumps(context),
         )
@@ -1837,7 +1837,7 @@ class Caravel(BaseCaravelView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items()])
-        url = '/caravel/explore/table/{table.id}/?{params}'.format(**locals())
+        url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
         return redirect(url)
 
     @has_access
@@ -1858,7 +1858,7 @@ class Caravel(BaseCaravelView):
 
         table_name = request.args.get('table_name')
         return self.render_template(
-            "caravel/sql.html",
+            "superset/sql.html",
             tables=tables,
             table_name=table_name,
             db=mydb)
@@ -1948,13 +1948,13 @@ class Caravel(BaseCaravelView):
             [quote(c.name) for c in t.columns] or "*")
         s = "SELECT\n{}\nFROM {}".format(fields, table_name)
         return self.render_template(
-            "caravel/ajah.html",
+            "superset/ajah.html",
             content=s
         )
 
     @expose("/theme/")
     def theme(self):
-        return self.render_template('caravel/theme.html')
+        return self.render_template('superset/theme.html')
 
     @has_access_api
     @expose("/cached_key/<key>/")
@@ -2256,7 +2256,7 @@ class Caravel(BaseCaravelView):
     def show_traceback(self):
         error_msg = get_error_msg()
         return render_template(
-            'caravel/traceback.html',
+            'superset/traceback.html',
             error_msg=error_msg,
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
@@ -2265,27 +2265,27 @@ class Caravel(BaseCaravelView):
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
-        return self.render_template('caravel/welcome.html', utils=utils)
+        return self.render_template('superset/welcome.html', utils=utils)
 
     @has_access
     @expose("/sqllab")
     def sqlanvil(self):
         """SQL Editor"""
-        return self.render_template('caravel/sqllab.html')
+        return self.render_template('superset/sqllab.html')
 
-appbuilder.add_view_no_menu(Caravel)
+appbuilder.add_view_no_menu(Superset)
 
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
-        href='/caravel/refresh_datasources/',
+        href='/superset/refresh_datasources/',
         category='Sources',
         category_label=__("Sources"),
         category_icon='fa-database',
         icon="fa-cog")
 
 
-class CssTemplateModelView(CaravelModelView, DeleteMixin):
+class CssTemplateModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(models.CssTemplate)
     list_columns = ['template_name']
     edit_columns = ['template_name', 'css']
@@ -2309,13 +2309,13 @@ appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
     'SQL Editor',
-    href='/caravel/sqllab',
+    href='/superset/sqllab',
     category_icon="fa-flask",
     icon="fa-flask",
     category='SQL Lab')
 appbuilder.add_link(
     'Query Search',
-    href='/caravel/sqllab#search',
+    href='/superset/sqllab#search',
     icon="fa-search",
     category_icon="fa-flask",
     category='SQL Lab')
@@ -2340,5 +2340,5 @@ app.url_map.converters['regex'] = RegexConverter
 
 @app.route('/<regex("panoramix\/.*"):url>')
 def panoramix(url):  # noqa
-    return redirect(request.full_path.replace('panoramix', 'caravel'))
+    return redirect(request.full_path.replace('panoramix', 'superset'))
 # ---------------------------------------------------------------------

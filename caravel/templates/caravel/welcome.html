@@ -1,9 +1,9 @@
-{% extends "caravel/basic.html" %}
+{% extends "superset/basic.html" %}
 
 {% block head_js %}
   {{ super() }}
   {% with filename="welcome" %}
-    {% include "caravel/partials/_script_tag.html" %}
+    {% include "superset/partials/_script_tag.html" %}
   {% endwith %}
 {% endblock %}
 
@@ -11,7 +11,7 @@
 
 {% block body %}
 <div class="container welcome">
-  {% include 'caravel/flash_wrapper.html' %}
+  {% include 'superset/flash_wrapper.html' %}
   <div class="panel panel-default">
     <div class="panel-heading">
       <div class="panel-title">

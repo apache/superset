@@ -64,7 +64,7 @@
                           {{'checked' if item[value] }}
                           name="{{ '{}__{}'.format(pk, value) }}"
                           id="{{ '{}__{}'.format(pk, value) }}"
-                          data-checkbox-api-prefix="/caravel/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/">
+                          data-checkbox-api-prefix="/superset/checkbox/{{ modelview_name }}/{{ pk }}/{{ value }}/">
                     {% else %}
                       {{ item[value] }}
                     {% endif %}

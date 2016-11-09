@@ -59,7 +59,7 @@ class Controls extends React.PureComponent {
     };
     $.ajax({
       type: 'POST',
-      url: '/caravel/save_dash/' + dashboard.id + '/',
+      url: '/superset/save_dash/' + dashboard.id + '/',
       data: {
         data: JSON.stringify(data),
       },

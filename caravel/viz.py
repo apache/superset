@@ -1,7 +1,7 @@
 """This module contains the "Viz" objects
 
 These objects represent the backend of all the visualizations that
-Caravel can render.
+Superset can render.
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -28,9 +28,9 @@ from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
-from caravel import app, utils, cache
-from caravel.forms import FormFactory
-from caravel.utils import flasher
+from superset import app, utils, cache
+from superset.forms import FormFactory
+from superset.utils import flasher
 
 config = app.config
 
@@ -140,9 +140,9 @@ class BaseViz(object):
             for item in v:
                 od.add(key, item)
 
-        base_endpoint = '/caravel/explore'
+        base_endpoint = '/superset/explore'
         if json_endpoint:
-            base_endpoint = '/caravel/explore_json'
+            base_endpoint = '/superset/explore_json'
 
         href = Href(
             '{base_endpoint}/{self.datasource.type}/'
@@ -407,7 +407,7 @@ class TableViz(BaseViz):
 
     viz_type = "table"
     verbose_name = _("Table View")
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     fieldsets = ({
         'label': _("GROUP BY"),
         'description': _('Use this section if you want a query that aggregates'),
@@ -469,7 +469,7 @@ class PivotTableViz(BaseViz):
 
     viz_type = "pivot_table"
     verbose_name = _("Pivot Table")
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -901,7 +901,7 @@ class BigNumberViz(BaseViz):
 
     viz_type = "big_number"
     verbose_name = _("Big Number with Trendline")
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = True
     fieldsets = ({
         'label': None,
@@ -951,7 +951,7 @@ class BigNumberTotalViz(BaseViz):
 
     viz_type = "big_number_total"
     verbose_name = _("Big Number")
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,
@@ -1146,7 +1146,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             df2 = self.get_df(query_object)
             df2.index += delta
             chart_data += self.to_series(
-                df2, classed='caravel', title_suffix="---")
+                df2, classed='superset', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
         return chart_data
 
@@ -1606,7 +1606,7 @@ class WorldMapViz(BaseViz):
         return qry
 
     def get_data(self):
-        from caravel.data import countries
+        from superset.data import countries
         df = self.get_df()
         cols = [self.form_data.get('entity')]
         metric = self.form_data.get('metric')
@@ -1646,7 +1646,7 @@ class FilterBoxViz(BaseViz):
     viz_type = "filter_box"
     verbose_name = _("Filters")
     is_timeseries = False
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     fieldsets = ({
         'label': None,
         'fields': (
@@ -1695,7 +1695,7 @@ class IFrameViz(BaseViz):
 
     viz_type = "iframe"
     verbose_name = _("iFrame")
-    credits = 'a <a href="https://github.com/airbnb/caravel">Caravel</a> original'
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
     fieldsets = ({
         'label': None,

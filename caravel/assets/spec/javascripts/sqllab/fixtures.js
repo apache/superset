@@ -8,7 +8,7 @@ export const table = {
   dbId: 1,
   selectStar: 'SELECT * FROM ab_user',
   queryEditorId: 'rJ-KP47a',
-  schema: 'caravel',
+  schema: 'superset',
   name: 'ab_user',
   id: 'r11Vgt60',
   dataPreviewQueryId: null,
@@ -179,7 +179,7 @@ export const defaultQueryEditor = {
 export const queries = [
   {
     dbId: 1,
-    sql: 'SELECT *FROM caravel.slices',
+    sql: 'SELECT *FROM superset.slices',
     sqlEditorId: 'SJ8YO72R',
     tab: 'Demo',
     runAsync: false,
@@ -214,7 +214,7 @@ export const queries = [
   },
   {
     dbId: 1,
-    sql: 'SELECT *FROM caravel.slices',
+    sql: 'SELECT *FROM superset.slices',
     sqlEditorId: 'SJ8YO72R',
     tab: 'Demo',
     runAsync: true,
@@ -231,7 +231,7 @@ export const queries = [
       'SELECT * \nFROM (SELECT created_on, changed_on, id, slice_name, ' +
       'druid_datasource_id, table_id, datasource_type, datasource_name, ' +
       'viz_type, params, created_by_fk, changed_by_fk, description, ' +
-      'cache_timeout, perm\nFROM caravel.slices) AS inner_qry \n LIMIT 1000'
+      'cache_timeout, perm\nFROM superset.slices) AS inner_qry \n LIMIT 1000'
     ),
     changed_on: '2016-10-19T20:56:12',
     rows: 42,

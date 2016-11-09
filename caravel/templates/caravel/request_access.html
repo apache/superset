@@ -1,8 +1,8 @@
-{% extends "caravel/basic.html" %}
+{% extends "superset/basic.html" %}
 {% block title %}{{ _("No Access!") }}{% endblock %}
 {% block body %}
   <div class="container">
-    {% include "caravel/flash_wrapper.html" %}
+    {% include "superset/flash_wrapper.html" %}
     <h4>
       {{ _("You do not have permissions to access the datasource(s): %(name)s.",
       name=datasource_names)

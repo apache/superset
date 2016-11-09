@@ -10,10 +10,10 @@ import zlib
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
-from caravel import (
+from superset import (
     app, db, models, utils, dataframe, results_backend)
-from caravel.db_engine_specs import LimitMethod
-from caravel.jinja_context import get_template_processor
+from superset.db_engine_specs import LimitMethod
+from superset.jinja_context import get_template_processor
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
@@ -127,7 +127,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             data = result_proxy.fetchmany(query.limit)
         else:
             data = result_proxy.fetchall()
-        cdf = dataframe.CaravelDataFrame(
+        cdf = dataframe.SupersetDataFrame(
             pd.DataFrame(data, columns=column_names))
 
     query.rows = result_proxy.rowcount

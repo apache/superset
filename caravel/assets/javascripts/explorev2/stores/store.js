@@ -894,7 +894,7 @@ export const fields = {
         ['cca2', 'code ISO 3166-1 alpha-2 (cca2)'],
         ['cca3', 'code ISO 3166-1 alpha-3 (cca3)'],
     ],
-    description: 'The country code standard that Caravel should expect ' +
+    description: 'The country code standard that Superset should expect ' +
                  'to find in the [country] column',
   },
 
@@ -1043,7 +1043,7 @@ export const fields = {
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +
                  'The options here are defined on a per database ' +
-                 'engine basis in the Caravel source code.',
+                 'engine basis in the Superset source code.',
   },
 
   resample_rule: {

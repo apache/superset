@@ -11,7 +11,7 @@ revision = '27ae655e4247'
 down_revision = 'd8bc074f7aad'
 
 from alembic import op
-from caravel import db
+from superset import db
 from sqlalchemy.ext.declarative import declarative_base
 from flask_appbuilder.models.mixins import AuditMixin
 from sqlalchemy.orm import relationship

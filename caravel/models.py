@@ -1,4 +1,4 @@
-"""A collection of ORM sqlalchemy models for Caravel"""
+"""A collection of ORM sqlalchemy models for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -52,12 +52,12 @@ from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
 
-import caravel
-from caravel import app, db, db_engine_specs, get_session, utils, sm
-from caravel.source_registry import SourceRegistry
-from caravel.viz import viz_types
-from caravel.jinja_context import get_template_processor
-from caravel.utils import (
+import superset
+from superset import app, db, db_engine_specs, get_session, utils, sm
+from superset.source_registry import SourceRegistry
+from superset.viz import viz_types
+from superset.jinja_context import get_template_processor
+from superset.utils import (
     flasher, MetricPermException, DimSelector, wrap_clause_in_parens
 )
 
@@ -278,14 +278,14 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
         href = Href(
-            "/caravel/explore/{obj.datasource_type}/"
+            "/superset/explore/{obj.datasource_type}/"
             "{obj.datasource_id}/".format(obj=self))
         return href(slice_params)
 
     @property
     def slice_id_url(self):
         return (
-            "/caravel/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
+            "/superset/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
         ).format(slc=self)
 
     @property
@@ -416,7 +416,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
-        return "/caravel/dashboard/{}/".format(self.slug or self.id)
+        return "/superset/dashboard/{}/".format(self.slug or self.id)
 
     @property
     def datasources(self):
@@ -470,7 +470,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
          remote_id and import_time. It helps to decide if the dashboard has to
          be overridden or just copies over. Slices that belong to this
          dashboard will be wired to existing tables. This function can be used
-         to import/export dashboards between multiple caravel instances.
+         to import/export dashboards between multiple superset instances.
          Audit metadata isn't copies over.
         """
         def alter_positions(dashboard, old_to_new_slc_id_dict):
@@ -634,7 +634,7 @@ class Queryable(object):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
 
 class Database(Model, AuditMixinNullable):
@@ -822,7 +822,7 @@ class Database(Model, AuditMixinNullable):
 
     @property
     def sql_url(self):
-        return '/caravel/sql/{}/'.format(self.id)
+        return '/superset/sql/{}/'.format(self.id)
 
     @property
     def perm(self):
@@ -1265,7 +1265,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
          Metrics and columns and datasource will be overrided if exists.
          This function can be used to import/export dashboards between multiple
-         caravel instances. Audit metadata isn't copies over.
+         superset instances. Audit metadata isn't copies over.
         """
         session = db.session
         make_transient(datasource_to_import)
@@ -1619,7 +1619,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = "/caravel/explore/{obj.type}/{obj.id}/".format(obj=self)
+        url = "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
         name = escape(self.datasource_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
@@ -1758,7 +1758,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @classmethod
     def sync_to_db(cls, name, cluster):
-        """Fetches metadata for that datasource and merges the Caravel db"""
+        """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
@@ -2147,7 +2147,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
 class Log(Model):
 
-    """ORM object used to log Caravel actions to the database"""
+    """ORM object used to log Superset actions to the database"""
 
     __tablename__ = 'logs'
 
@@ -2369,7 +2369,7 @@ class DruidColumn(Model, AuditMixinNullable):
                 session.add(metric)
                 session.flush()
 
-        utils.init_metrics_perm(caravel, new_metrics)
+        utils.init_metrics_perm(superset, new_metrics)
 
 
 class FavStar(Model):
@@ -2415,7 +2415,7 @@ class Query(Model):
     # used only in case of select_as_cta_used is true.
     select_sql = Column(Text)
     executed_sql = Column(Text)
-    # Could be configured in the caravel config.
+    # Could be configured in the superset config.
     limit = Column(Integer)
     limit_used = Column(Boolean, default=False)
     limit_reached = Column(Boolean, default=False)
@@ -2530,7 +2530,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
             if r.name in self.ROLES_BLACKLIST:
                 continue
             url = (
-                '/caravel/approve?datasource_type={self.datasource_type}&'
+                '/superset/approve?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'
                 'created_by={self.created_by.username}&role_to_grant={r.name}'
                 .format(**locals())
@@ -2544,7 +2544,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         action_list = ''
         for r in self.created_by.roles:
             url = (
-                '/caravel/approve?datasource_type={self.datasource_type}&'
+                '/superset/approve?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'
                 'created_by={self.created_by.username}&role_to_extend={r.name}'
                 .format(**locals())

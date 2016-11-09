@@ -12,7 +12,7 @@ down_revision = '1226819ee0e3'
 
 from alembic import op
 import sqlalchemy as sa
-from caravel import db
+from superset import db
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import (
     Column, Integer, Boolean)

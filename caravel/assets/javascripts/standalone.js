@@ -1,7 +1,7 @@
 const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
 const jQuery = window.jQuery = $;
-const px = require('./modules/caravel.js');
+const px = require('./modules/superset.js');
 const utils = require('./modules/utils.js');
 
 require('bootstrap');

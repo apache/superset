@@ -105,7 +105,7 @@ class VisualizeModal extends React.PureComponent {
       sql: this.props.query.sql,
       dbId: this.props.query.dbId,
     };
-    window.open('/caravel/sqllab_viz/?data=' + JSON.stringify(vizOptions));
+    window.open('/superset/sqllab_viz/?data=' + JSON.stringify(vizOptions));
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });

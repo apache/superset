@@ -6,7 +6,7 @@ engines:
   eslint:
     enabled: true
     config:
-      config: caravel/assets/.eslintrc
+      config: superset/assets/.eslintrc
   pep8:
     enabled: true
   fixme:
@@ -19,17 +19,17 @@ engines:
 ratings:
   paths:
   - "**.py"
-  - "caravel/assets/**.js"
-  - "caravel/assets/**.jsx"
+  - "superset/assets/**.js"
+  - "superset/assets/**.jsx"
 exclude_paths:
 - ".*"
 - "**.pyc"
 - "**.gz"
 - "env/"
 - "tests/"
-- "caravel/assets/images/"
-- "caravel/assets/vendor/"
-- "caravel/assets/node_modules/"
-- "caravel/assets/javascripts/dist/"
-- "caravel/migrations"
+- "superset/assets/images/"
+- "superset/assets/vendor/"
+- "superset/assets/node_modules/"
+- "superset/assets/javascripts/dist/"
+- "superset/migrations"
 - "docs/"

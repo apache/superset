@@ -4,7 +4,7 @@
 //
 // js
 const $ = window.$ = require('jquery');
-const px = require('./../modules/caravel.js');
+const px = require('./../modules/superset.js');
 const utils = require('./../modules/utils.js');
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 
@@ -17,7 +17,7 @@ require('jquery-ui');
 $.widget.bridge('uitooltip', $.ui.tooltip); // Shutting down jq-ui tooltips
 require('bootstrap');
 
-require('./../caravel-select2.js');
+require('./../superset-select2.js');
 
 // css
 require('../../vendor/pygments.css');

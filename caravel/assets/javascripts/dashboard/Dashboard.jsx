@@ -1,6 +1,6 @@
 const $ = window.$ = require('jquery');
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
-const px = require('../modules/caravel');
+const px = require('../modules/superset');
 const d3 = require('d3');
 const urlLib = require('url');
 const utils = require('../modules/utils');
@@ -12,7 +12,7 @@ import Header from './components/Header';
 
 require('bootstrap');
 require('../../stylesheets/dashboard.css');
-require('../caravel-select2.js');
+require('../superset-select2.js');
 
 export function getInitialState(dashboardData, context) {
   const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
@@ -278,7 +278,7 @@ function dashboardContainer(dashboard) {
       const getAjaxErrorMsg = this.getAjaxErrorMsg;
       $.ajax({
         type: 'POST',
-        url: `/caravel/add_slices/${dashboard.id}/`,
+        url: `/superset/add_slices/${dashboard.id}/`,
         data: {
           data: JSON.stringify({ slice_ids: sliceIds }),
         },

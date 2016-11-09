@@ -1,4 +1,4 @@
-""" Caravel wrapper around pandas.DataFrame.
+""" Superset wrapper around pandas.DataFrame.
 
 TODO(bkyryliuk): add support for the conventions like: *_dim or dim_*
                  dimensions, *_ts, ts_*, ds_*, *_ds - datetime, etc.
@@ -18,7 +18,7 @@ INFER_COL_TYPES_THRESHOLD = 95
 INFER_COL_TYPES_SAMPLE_SIZE = 100
 
 
-class CaravelDataFrame(object):
+class SupersetDataFrame(object):
     def __init__(self, df):
         self.__df = df.where((pd.notnull(df)), None)
 

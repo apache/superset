@@ -1,7 +1,7 @@
 {
-  "name": "caravel",
+  "name": "superset",
   "version": "0.12.0",
-  "description": "Caravel is a data exploration platform designed to be visual, intuitive, and interactive.",
+  "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
     "doc": "docs",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/airbnb/caravel.git"
+    "url": "git+https://github.com/airbnb/superset.git"
   },
   "keywords": [
     "big",
@@ -33,9 +33,9 @@
   ],
   "author": "Airbnb",
   "bugs": {
-    "url": "https://github.com/airbnb/caravel/issues"
+    "url": "https://github.com/airbnb/superset/issues"
   },
-  "homepage": "https://github.com/airbnb/caravel#readme",
+  "homepage": "https://github.com/airbnb/superset#readme",
   "dependencies": {
     "autobind-decorator": "^1.3.3",
     "bootstrap": "^3.3.6",

@@ -11,8 +11,8 @@ revision = '1226819ee0e3'
 down_revision = '956a063c52b3'
 
 from alembic import op
-from caravel import db
-from caravel.utils import generic_find_constraint_name
+from superset import db
+from superset.utils import generic_find_constraint_name
 import logging
 
 naming_convention = {

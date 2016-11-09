@@ -56,7 +56,7 @@ export const category21 = (function () {
       return;
     }
     let stringifyS = String(s);
-    // next line is for caravel series that should have the same color
+    // next line is for superset series that should have the same color
     stringifyS = stringifyS.replace('---', '');
     if (seen[stringifyS] === undefined) {
       seen[stringifyS] = Object.keys(seen).length;

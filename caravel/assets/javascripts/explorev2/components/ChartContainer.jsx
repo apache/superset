@@ -121,7 +121,7 @@ class ChartContainer extends React.Component {
       },
 
       d3format: (col, number) => {
-        // mock d3format function in Slice object in caravel.js
+        // mock d3format function in Slice object in superset.js
         const format = this.props.column_formats[col];
         return d3format(format, number);
       },

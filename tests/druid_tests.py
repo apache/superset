@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -10,10 +10,10 @@ import unittest
 
 from mock import Mock, patch
 
-from caravel import db, sm, utils
-from caravel.models import DruidCluster, DruidDatasource
+from superset import db, sm, utils
+from superset.models import DruidCluster, DruidDatasource
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 
 SEGMENT_METADATA = [{
@@ -63,14 +63,14 @@ GB_RESULT_SET = [
 ]
 
 
-class DruidTests(CaravelTestCase):
+class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
 
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('caravel.models.PyDruid')
+    @patch('superset.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -113,13 +113,13 @@ class DruidTests(CaravelTestCase):
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
 
-        resp = self.get_resp('/caravel/explore/druid/{}/'.format(
+        resp = self.get_resp('/superset/explore/druid/{}/'.format(
             datasource_id))
         self.assertIn("[test_cluster].[test_datasource]", resp)
 
         # One groupby
         url = (
-            '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
+            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
             'include_search=false&metrics=count&groupby=dim1&flt_col_0=dim1&'
             'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
@@ -131,7 +131,7 @@ class DruidTests(CaravelTestCase):
 
         # two groupby
         url = (
-            '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
+            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
             'include_search=false&metrics=count&groupby=dim1&'
             'flt_col_0=dim1&groupby=dim2d&'
@@ -181,7 +181,7 @@ class DruidTests(CaravelTestCase):
             }
         }
         def check():
-            resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+            resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
             druid_ds = db.session.query(DruidDatasource).filter_by(
                 datasource_name="test_click").first()
             col_names = set([c.column_name for c in druid_ds.columns])
@@ -207,7 +207,7 @@ class DruidTests(CaravelTestCase):
                 ],
             }
         }
-        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+        resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
         druid_ds = db.session.query(DruidDatasource).filter_by(
             datasource_name="test_click").first()
         # columns and metrics are not deleted if config is changed as

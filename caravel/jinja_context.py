@@ -14,8 +14,8 @@ import textwrap
 import uuid
 import random
 
-from caravel import app
-from caravel.utils import CaravelTemplateException
+from superset import app
+from superset.utils import SupersetTemplateException
 
 config = app.config
 BASE_CONTEXT = {
@@ -134,10 +134,10 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         table_name, schema = self._schema_table(table_name, self.schema)
         indexes = self.database.get_indexes(table_name, schema)
         if len(indexes[0]['column_names']) < 1:
-            raise CaravelTemplateException(
+            raise SupersetTemplateException(
                 "The table should have one partitioned field")
         elif len(indexes[0]['column_names']) > 1:
-            raise CaravelTemplateException(
+            raise SupersetTemplateException(
                 "The table should have a single partitioned field "
                 "to use this function. You may want to use "
                 "`presto.latest_sub_partition`")
@@ -173,13 +173,13 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         for k in kwargs.keys():
             if k not in k in part_field:
                 msg = "Field [{k}] is not part of the partionning key"
-                raise CaravelTemplateException(msg)
+                raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (
                 "A filter needs to be specified for {} out of the "
                 "{} fields."
             ).format(len(part_fields)-1, len(part_fields))
-            raise CaravelTemplateException(msg)
+            raise SupersetTemplateException(msg)
 
         for field in part_fields:
             if field not in kwargs.keys():

@@ -46,7 +46,7 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
 
     if (datasourceId) {
       const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
-      const url = '/caravel/fetch_datasource_metadata?' + params.join('&');
+      const url = '/superset/fetch_datasource_metadata?' + params.join('&');
 
       $.get(url, (data, status) => {
         if (status === 'success') {

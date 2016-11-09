@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 import json
 import unittest
 
-from caravel import db, models, sm
-from caravel.source_registry import SourceRegistry
+from superset import db, models, sm
+from superset.source_registry import SourceRegistry
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 ROLE_TABLES_PERM_DATA = {
     'role_name': 'override_me',
@@ -45,7 +45,7 @@ ROLE_ALL_PERM_DATA = {
 }
 
 
-class RequestAccessTests(CaravelTestCase):
+class RequestAccessTests(SupersetTestCase):
 
     requires_examples = False
 
@@ -74,7 +74,7 @@ class RequestAccessTests(CaravelTestCase):
         self.logout()
         self.login('alpha')
         response = self.client.post(
-            '/caravel/override_role_permissions/',
+            '/superset/override_role_permissions/',
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type='application/json',
             follow_redirects=True)
@@ -82,7 +82,7 @@ class RequestAccessTests(CaravelTestCase):
 
     def test_override_role_permissions_1_table(self):
         response = self.client.post(
-            '/caravel/override_role_permissions/',
+            '/superset/override_role_permissions/',
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type='application/json')
         self.assertEquals(201, response.status_code)
@@ -99,7 +99,7 @@ class RequestAccessTests(CaravelTestCase):
 
     def test_override_role_permissions_druid_and_table(self):
         response = self.client.post(
-            '/caravel/override_role_permissions/',
+            '/superset/override_role_permissions/',
             data=json.dumps(ROLE_ALL_PERM_DATA),
             content_type='application/json')
         self.assertEquals(201, response.status_code)
@@ -132,7 +132,7 @@ class RequestAccessTests(CaravelTestCase):
         db.session.flush()
 
         response = self.client.post(
-            '/caravel/override_role_permissions/',
+            '/superset/override_role_permissions/',
             data=json.dumps(ROLE_TABLES_PERM_DATA),
             content_type='application/json')
         self.assertEquals(201, response.status_code)
@@ -174,10 +174,10 @@ class RequestAccessTests(CaravelTestCase):
             return access_request
 
         EXTEND_ROLE_REQUEST = (
-            '/caravel/approve?datasource_type={}&datasource_id={}&'
+            '/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_extend={}')
         GRANT_ROLE_REQUEST = (
-            '/caravel/approve?datasource_type={}&datasource_id={}&'
+            '/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_grant={}')
 
         # Case 1. Grant new role to the user.
@@ -254,15 +254,15 @@ class RequestAccessTests(CaravelTestCase):
         session.commit()
 
         ACCESS_REQUEST = (
-            '/caravel/request_access?'
+            '/superset/request_access?'
             'datasource_type={}&'
             'datasource_id={}&'
             'action={}&')
         ROLE_EXTEND_LINK = (
-            '<a href="/caravel/approve?datasource_type={}&datasource_id={}&'
+            '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_extend={}">Extend {} Role</a>')
         ROLE_GRANT_LINK = (
-            '<a href="/caravel/approve?datasource_type={}&datasource_id={}&'
+            '<a href="/superset/approve?datasource_type={}&datasource_id={}&'
             'created_by={}&role_to_grant={}">Grant {} Role</a>')
 
         # Request table access, there are no roles have this table.

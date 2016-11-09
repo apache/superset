@@ -13,8 +13,8 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-import caravel
-from caravel import app, ascii_art, db, data, utils
+import superset
+from superset import app, ascii_art, db, data, utils
 
 config = app.config
 
@@ -26,19 +26,19 @@ manager.add_command('db', MigrateCommand)
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
-    '-a', '--address', default=config.get("CARAVEL_WEBSERVER_ADDRESS"),
+    '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
     help="Specify the address to which to bind the web server")
 @manager.option(
-    '-p', '--port', default=config.get("CARAVEL_WEBSERVER_PORT"),
+    '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
     help="Specify the port on which to run the web server")
 @manager.option(
-    '-w', '--workers', default=config.get("CARAVEL_WORKERS", 2),
+    '-w', '--workers', default=config.get("SUPERSET_WORKERS", 2),
     help="Number of gunicorn web server workers to fire up")
 @manager.option(
-    '-t', '--timeout', default=config.get("CARAVEL_WEBSERVER_TIMEOUT"),
+    '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
 def runserver(debug, address, port, timeout, workers):
-    """Starts a Caravel web server"""
+    """Starts a Superset web server"""
     debug = debug or config.get("DEBUG")
     if debug:
         app.run(
@@ -54,14 +54,14 @@ def runserver(debug, address, port, timeout, workers):
             "-b {address}:{port} "
             "--limit-request-line 0 "
             "--limit-request-field_size 0 "
-            "caravel:app").format(**locals())
+            "superset:app").format(**locals())
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
 @manager.command
 def init():
-    """Inits the Caravel application"""
-    utils.init(caravel)
+    """Inits the Superset application"""
+    utils.init(superset)
 
 @manager.option(
     '-v', '--verbose', action='store_true',
@@ -71,7 +71,7 @@ def version(verbose):
     s = (
         "\n{boat}\n\n"
         "-----------------------\n"
-        "Caravel {version}\n"
+        "Superset {version}\n"
         "-----------------------").format(
         boat=ascii_art.boat, version=config.get('VERSION_STRING'))
     print(s)
@@ -116,7 +116,7 @@ def load_examples(load_test_data):
 def refresh_druid():
     """Refresh all druid datasources"""
     session = db.session()
-    from caravel import models
+    from superset import models
     for cluster in session.query(models.DruidCluster).all():
         try:
             cluster.refresh_datasources()
@@ -134,7 +134,7 @@ def refresh_druid():
 
 @manager.command
 def worker():
-    """Starts a Caravel worker for async SQL query execution."""
+    """Starts a Superset worker for async SQL query execution."""
     # celery -A tasks worker --loglevel=info
     print("Starting SQL Celery worker.")
     if config.get('CELERY_CONFIG'):

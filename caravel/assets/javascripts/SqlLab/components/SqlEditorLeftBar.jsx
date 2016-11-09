@@ -53,7 +53,7 @@ class SqlEditorLeftBar extends React.PureComponent {
       const actualSchema = schema || this.props.queryEditor.schema;
       this.setState({ tableLoading: true });
       this.setState({ tableOptions: [] });
-      const url = `/caravel/tables/${actualDbId}/${actualSchema}`;
+      const url = `/superset/tables/${actualDbId}/${actualSchema}`;
       $.get(url, (data) => {
         let tableOptions = data.tables.map((s) => ({ value: s, label: s }));
         const views = data.views.map((s) => ({ value: s, label: '[view] ' + s }));

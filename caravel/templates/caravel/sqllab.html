@@ -1,8 +1,8 @@
-{% extends "caravel/basic.html" %}
+{% extends "superset/basic.html" %}
 
 {% block tail_js %}
   {{ super() }}
   {% with filename="sqllab" %}
-    {% include "caravel/partials/_script_tag.html" %}
+    {% include "superset/partials/_script_tag.html" %}
   {% endwith %}
 {% endblock %}

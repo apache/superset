@@ -1,14 +1,14 @@
-"""The main config file for Caravel
+"""The main config file for Superset
 
-All configuration in this file can be overridden by providing a caravel_config
-in your PYTHONPATH as there is a ``from caravel_config import *``
+All configuration in this file can be overridden by providing a superset_config
+in your PYTHONPATH as there is a ``from superset_config import *``
 at the end of this file.
 """
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
-from caravel import app
+from superset import app
 
 import json
 import os
@@ -17,12 +17,12 @@ from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-DATA_DIR = os.path.join(os.path.expanduser('~'), '.caravel')
+DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
 if not os.path.exists(DATA_DIR):
     os.makedirs(DATA_DIR)
 
 # ---------------------------------------------------------
-# Caravel specific config
+# Superset specific config
 # ---------------------------------------------------------
 PACKAGE_DIR = os.path.join(BASE_DIR, 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
@@ -30,11 +30,11 @@ with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
 
 ROW_LIMIT = 50000
-CARAVEL_WORKERS = 2
+SUPERSET_WORKERS = 2
 
-CARAVEL_WEBSERVER_ADDRESS = '0.0.0.0'
-CARAVEL_WEBSERVER_PORT = 8088
-CARAVEL_WEBSERVER_TIMEOUT = 60
+SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
+SUPERSET_WEBSERVER_PORT = 8088
+SUPERSET_WEBSERVER_TIMEOUT = 60
 
 CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
@@ -43,7 +43,7 @@ CUSTOM_SECURITY_MANAGER = None
 SECRET_KEY = '\2\1thisismyscretkey\1\2\e\y\y\h'  # noqa
 
 # The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'caravel.db')
+SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
 # SQLALCHEMY_DATABASE_URI = 'mysql://myapp@localhost/myapp'
 # SQLALCHEMY_DATABASE_URI = 'postgresql://root:password@localhost/myapp'
 
@@ -66,10 +66,10 @@ ENABLE_PROXY_FIX = False
 # GLOBALS FOR APP Builder
 # ------------------------------
 # Uncomment to setup Your App name
-APP_NAME = "Caravel"
+APP_NAME = "Superset"
 
 # Uncomment to setup Setup an App icon
-APP_ICON = "/static/assets/images/caravel_logo.png"
+APP_ICON = "/static/assets/images/superset_logo.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -170,7 +170,7 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 # Modules and datasources to be registered
 # --------------------------------------------------
-DEFAULT_MODULE_DS_MAP = {'caravel.models': ['DruidDatasource', 'SqlaTable']}
+DEFAULT_MODULE_DS_MAP = {'superset.models': ['DruidDatasource', 'SqlaTable']}
 ADDITIONAL_MODULE_DS_MAP = {}
 
 """
@@ -190,7 +190,7 @@ LOG_LEVEL = 'DEBUG'
 
 ENABLE_TIME_ROTATE = False
 TIME_ROTATE_LOG_LEVEL = 'DEBUG'
-FILENAME = os.path.join(DATA_DIR, 'caravel.log')
+FILENAME = os.path.join(DATA_DIR, 'superset.log')
 ROLLOVER = 'midnight'
 INTERVAL = 1
 BACKUP_COUNT = 30
@@ -213,7 +213,7 @@ WARNING_MSG = None
 # Example:
 class CeleryConfig(object):
   BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
-  CELERY_IMPORTS = ('caravel.sql_lab', )
+  CELERY_IMPORTS = ('superset.sql_lab', )
   CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
@@ -222,7 +222,7 @@ CELERY_CONFIG = None
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
-# static http headers to be served by your Caravel server.
+# static http headers to be served by your Superset server.
 # The following example prevents iFrame from other domains
 # and "clickjacking" as a result
 # HTTP_HEADERS = {'X-Frame-Options': 'SAMEORIGIN'}
@@ -246,7 +246,7 @@ RESULTS_BACKEND = None
 JINJA_CONTEXT_ADDONS = {}
 
 try:
-    from caravel_config import *  # noqa
+    from superset_config import *  # noqa
 except ImportError:
     pass
 

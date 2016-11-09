@@ -1,15 +1,15 @@
-Caravel's documentation
+Superset's documentation
 '''''''''''''''''''''''
 
-Caravel is a data exploration platform designed to be visual, intuitive
+Superset is a data exploration platform designed to be visual, intuitive
 and interactive.
 
-.. image:: _static/img/caravel.jpg
+.. image:: _static/img/superset.jpg
 
 ----------------
 
 .. warning:: This project used to be named Panoramix and has been renamed
-    to Caravel in March 2016
+    to Superset in March 2016
 
 Overview
 =======================================

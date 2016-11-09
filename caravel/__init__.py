@@ -13,13 +13,13 @@ from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
 from flask_migrate import Migrate
-from caravel.source_registry import SourceRegistry
+from superset.source_registry import SourceRegistry
 from werkzeug.contrib.fixers import ProxyFix
-from caravel import utils
+from superset import utils
 
 
 APP_DIR = os.path.dirname(__file__)
-CONFIG_MODULE = os.environ.get('CARAVEL_CONFIG', 'caravel.config')
+CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
@@ -66,11 +66,11 @@ if app.config.get('UPLOAD_FOLDER'):
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
-        return redirect('/caravel/welcome')
+        return redirect('/superset/welcome')
 
 appbuilder = AppBuilder(
     app, db.session,
-    base_template='caravel/base.html',
+    base_template='superset/base.html',
     indexview=MyIndexView,
     security_manager_class=app.config.get("CUSTOM_SECURITY_MANAGER"))
 
@@ -84,4 +84,4 @@ module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
 SourceRegistry.register_sources(module_datasource_map)
 
-from caravel import views, config  # noqa
+from superset import views, config  # noqa

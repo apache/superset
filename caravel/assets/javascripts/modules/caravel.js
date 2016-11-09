@@ -16,7 +16,7 @@ const px = function () {
     return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
   }
   function initFavStars() {
-    const baseUrl = '/caravel/favstar/';
+    const baseUrl = '/superset/favstar/';
     // Init star behavihor for favorite
     function show() {
       if ($(this).hasClass('selected')) {

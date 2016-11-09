@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -11,16 +11,16 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-import caravel
-from caravel import app, db, models, utils, appbuilder, sm
+import superset
+from superset import app, db, models, utils, appbuilder, sm
 
-os.environ['CARAVEL_CONFIG'] = 'tests.caravel_test_config'
+os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
 BASE_DIR = app.config.get("BASE_DIR")
-cli = imp.load_source('cli', BASE_DIR + "/bin/caravel")
+cli = imp.load_source('cli', BASE_DIR + "/bin/superset")
 
 
-class CaravelTestCase(unittest.TestCase):
+class SupersetTestCase(unittest.TestCase):
     requires_examples = False
     examples_loaded = False
 
@@ -31,12 +31,12 @@ class CaravelTestCase(unittest.TestCase):
                 not os.environ.get('examples_loaded')
             ):
             cli.load_examples(load_test_data=True)
-            utils.init(caravel)
+            utils.init(superset)
             os.environ['examples_loaded'] = '1'
-        super(CaravelTestCase, self).__init__(*args, **kwargs)
+        super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
-        utils.init(caravel)
+        utils.init(superset)
 
         admin = appbuilder.sm.find_user('admin')
         if not admin:
@@ -80,7 +80,7 @@ class CaravelTestCase(unittest.TestCase):
             session.add(druid_datasource2)
             session.commit()
 
-        utils.init(caravel)
+        utils.init(superset)
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
@@ -180,7 +180,7 @@ class CaravelTestCase(unittest.TestCase):
         self.login(username=(user_name if user_name else 'admin'))
         dbid = self.get_main_database(db.session).id
         resp = self.client.post(
-            '/caravel/sql_json/',
+            '/superset/sql_json/',
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
                       client_id=client_id),
         )

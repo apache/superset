@@ -1,4 +1,4 @@
-"""Loads datasets, dashboards and slices in a new caravel instance"""
+"""Loads datasets, dashboards and slices in a new superset instance"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -14,8 +14,8 @@ import random
 import pandas as pd
 from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
-import caravel
-from caravel import app, db, models, utils
+import superset
+from superset import app, db, models, utils
 
 # Shortcuts
 DB = models.Database
@@ -67,7 +67,7 @@ def load_energy():
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.is_featured = True
-    tbl.database = utils.get_or_create_main_db(caravel)
+    tbl.database = utils.get_or_create_main_db(superset)
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -194,7 +194,7 @@ def load_world_bank_health_n_pop():
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
     tbl.is_featured = True
-    tbl.database = utils.get_or_create_main_db(caravel)
+    tbl.database = utils.get_or_create_main_db(superset)
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -586,7 +586,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(caravel)
+    obj.database = utils.get_or_create_main_db(superset)
     obj.is_featured = True
     db.session.merge(obj)
     db.session.commit()
@@ -834,7 +834,7 @@ def load_unicode_test_data():
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'date'
-    obj.database = utils.get_or_create_main_db(caravel)
+    obj.database = utils.get_or_create_main_db(superset)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -913,7 +913,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(caravel)
+    obj.database = utils.get_or_create_main_db(superset)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -981,7 +981,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'date'
-    obj.database = utils.get_or_create_main_db(caravel)
+    obj.database = utils.get_or_create_main_db(superset)
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -1046,7 +1046,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(caravel)
+    obj.database = utils.get_or_create_main_db(superset)
     obj.is_featured = False
     dttm_and_expr_dict = {
         'ds': [None, None],

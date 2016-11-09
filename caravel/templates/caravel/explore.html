@@ -1,4 +1,4 @@
-{% extends "caravel/basic.html" %}
+{% extends "superset/basic.html" %}
 
 {% block title %}
   {% if slice %}
@@ -191,7 +191,7 @@
             <div class="panel-title">
               <div class="clearfix">
                 <div class="pull-left">
-                  {% include 'caravel/partials/_explore_title.html' %}
+                  {% include 'superset/partials/_explore_title.html' %}
                 </div>
                 <div class="pull-right">
                   <div class="slice-meta-controls pull-right">
@@ -302,6 +302,6 @@
 {% block tail_js %}
   {{ super() }}
   {% with filename="explore" %}
-    {% include "caravel/partials/_script_tag.html" %}
+    {% include "superset/partials/_script_tag.html" %}
   {% endwith %}
 {% endblock %}
