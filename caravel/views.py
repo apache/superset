@@ -832,13 +832,8 @@ appbuilder.add_view_no_menu(SliceAsync)
 
 class SliceAddView(SliceModelView):  # noqa
     list_columns = [
-        'slice_link', 'viz_type',
-        'owners', 'modified', 'data', 'changed_on']
-    label_columns = {
-        'icons': ' ',
-        'slice_link': _('Slice'),
-        'viz_type': _('Visualization Type'),
-    }
+        'id', 'slice_name', 'slice_link', 'viz_type',
+        'owners', 'modified', 'changed_on']
 
 appbuilder.add_view_no_menu(SliceAddView)
 
@@ -1705,7 +1700,6 @@ class Caravel(BaseCaravelView):
         else:
             qry = qry.filter_by(slug=dashboard_id)
 
-        templates = session.query(models.CssTemplate).all()
         dash = qry.one()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
@@ -1727,13 +1721,17 @@ class Caravel(BaseCaravelView):
         dash_save_perm = \
             dash_edit_perm and self.can_access('can_save_dash', 'Caravel')
         standalone = request.args.get("standalone") == "true"
-        return self.render_template(
-            "caravel/dashboard.html", dashboard=dash,
+        context = dict(
             user_id=g.user.get_id(),
-            templates=templates,
             dash_save_perm=dash_save_perm,
             dash_edit_perm=dash_edit_perm,
-            standalone_mode=standalone)
+            standalone_mode=standalone,
+        )
+        return self.render_template(
+            "caravel/dashboard.html",
+            dashboard=dash,
+            context=json.dumps(context),
+        )
 
     @has_access
     @expose("/sync_druid/", methods=['POST'])
@@ -2293,6 +2291,10 @@ class CssTemplateModelView(CaravelModelView, DeleteMixin):
     edit_columns = ['template_name', 'css']
     add_columns = edit_columns
 
+
+class CssTemplateAsyncModelView(CssTemplateModelView):
+    list_columns = ['template_name', 'css']
+
 appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
@@ -2302,6 +2304,8 @@ appbuilder.add_view(
     category="Manage",
     category_label=__("Manage"),
     category_icon='')
+
+appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
     'SQL Editor',
@@ -2337,9 +2341,4 @@ app.url_map.converters['regex'] = RegexConverter
 @app.route('/<regex("panoramix\/.*"):url>')
 def panoramix(url):  # noqa
     return redirect(request.full_path.replace('panoramix', 'caravel'))
-
-
-@app.route('/<regex("dashed\/.*"):url>')
-def dashed(url):  # noqa
-    return redirect(request.full_path.replace('dashed', 'caravel'))
 # ---------------------------------------------------------------------

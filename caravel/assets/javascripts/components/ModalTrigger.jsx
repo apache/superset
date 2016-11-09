@@ -1,5 +1,6 @@
 import React, { PropTypes } from 'react';
 import { Modal } from 'react-bootstrap';
+import Button from './Button';
 import cx from 'classnames';
 
 const propTypes = {
@@ -11,6 +12,7 @@ const propTypes = {
   isButton: PropTypes.bool,
   bsSize: PropTypes.string,
   className: PropTypes.string,
+  tooltip: PropTypes.string,
 };
 
 const defaultProps = {
@@ -40,28 +42,41 @@ export default class ModalTrigger extends React.Component {
     this.props.beforeOpen();
     this.setState({ showModal: true });
   }
+  renderModal() {
+    return (
+      <Modal
+        show={this.state.showModal}
+        onHide={this.close}
+        onExit={this.props.onExit}
+        bsSize={this.props.bsSize}
+        className={this.props.className}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{this.props.modalTitle}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {this.props.modalBody}
+        </Modal.Body>
+      </Modal>
+    );
+  }
 
   render() {
     const classNames = cx({
       'btn btn-default btn-sm': this.props.isButton,
     });
-    return (
-      <span className={classNames} onClick={this.open} style={{ cursor: 'pointer' }}>
+    if (this.props.isButton) {
+      return (
+        <Button tooltip={this.props.tooltip} onClick={this.open}>
           {this.props.triggerNode}
-        <Modal
-          show={this.state.showModal}
-          onHide={this.close}
-          onExit={this.props.onExit}
-          bsSize={this.props.bsSize}
-          className={this.props.className}
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>{this.props.modalTitle}</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            {this.props.modalBody}
-          </Modal.Body>
-        </Modal>
+          {this.renderModal()}
+        </Button>
+      );
+    }
+    return (
+      <span className={classNames} onClick={this.open} role="button">
+        {this.props.triggerNode}
+        {this.renderModal()}
       </span>
     );
   }

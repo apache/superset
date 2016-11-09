@@ -251,6 +251,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             d = self.viz.data
             self.token = d.get('token')
         except Exception as e:
+            logging.exception(e)
             d['error'] = str(e)
         d['slice_id'] = self.id
         d['slice_name'] = self.slice_name
@@ -433,13 +434,17 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def json_data(self):
+        positions = self.position_json
+        if positions:
+            positions = json.loads(positions)
         d = {
             'id': self.id,
             'metadata': self.params_dict,
+            'css': self.css,
             'dashboard_title': self.dashboard_title,
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
-            'position_json': json.loads(self.position_json) if self.position_json else [],
+            'position_json': positions,
         }
         return json.dumps(d)
 
@@ -714,8 +719,6 @@ class Database(Model, AuditMixinNullable):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True):
         """Generates a ``select *`` statement in the proper dialect"""
-        for i in range(10):
-            print(schema)
         quote = self.get_quoter()
         fields = '*'
         table = self.get_table(table_name, schema=schema)
