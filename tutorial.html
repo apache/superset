@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Tutorial &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>Tutorial &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="Security" href="security.html"/>
         <link rel="prev" title="Installation &amp; Configuration" href="installation.html"/> 
 
@@ -53,7 +53,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -83,7 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
@@ -117,6 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
 </ul>
@@ -165,7 +166,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -198,7 +199,7 @@
 <h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
 <p>This basic linear tutorial will take you through connecting to a database,
 adding a table, creating a slice and a dashboard. First you&#8217;ll need to tell
-Caravel where to find the database you want to
+Superset where to find the database you want to
 query. First go to the database menu</p>
 <a class="reference internal image-reference" href="_images/db_menu.png"><img alt="_images/db_menu.png" src="_images/db_menu.png" style="width: 151.2px; height: 104.4px;" /></a>
 <p>Now click on the <code class="docutils literal"><span class="pre">+</span></code> button to add a new entry</p>
@@ -214,16 +215,16 @@ using the navigation bar at the top to <code class="docutils literal"><span clas
 plus (<code class="docutils literal"><span class="pre">+</span></code>) sign there (similar to the one ).</p>
 <p>Now enter the name of the table in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">Name</span></code> textbox, and select
 the database you just created in the <code class="docutils literal"><span class="pre">Database</span></code> dropdown, hit save. At this
-moment, Caravel fetched the column names, their data types and tries to guess
+moment, Superset fetched the column names, their data types and tries to guess
 which fields are metrics in dimensions. From the list view, edit the table
 that you just created by clicking the tiny pen icon.</p>
 <a class="reference internal image-reference" href="_images/pen.png"><img alt="_images/pen.png" src="_images/pen.png" style="width: 130.2px; height: 39.0px;" /></a>
 <p>Now you&#8217;re in the table editor, click on the &#8220;List Table Column&#8221; tab,
 showing you the list of columns in your table as well as their data types.</p>
 <a class="reference internal image-reference" href="_images/matrix.png"><img alt="_images/matrix.png" src="_images/matrix.png" style="width: 652.8px; height: 287.4px;" /></a>
-<p>Click the checkboxes here that inform Caravel how your columns should be
+<p>Click the checkboxes here that inform Superset how your columns should be
 shown in the explore view, and which metrics should be created. Make sure
-to inform Caravel about your date columns. You could also create
+to inform Superset about your date columns. You could also create
 &#8220;SQL expression&#8221; columns here, or metrics in that tab as aggregate expressions,
 but let&#8217;s not do that just yet. Hit <code class="docutils literal"><span class="pre">save</span></code>.</p>
 <p>You should now be back in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">List</span></code> view. Click on the name of the

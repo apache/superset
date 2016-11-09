@@ -1,14 +1,14 @@
 Security
 ========
-Security in Caravel is handled by Flask AppBuilder (FAB). FAB is a
+Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
 
 
 Provided Roles
 --------------
-Caravel ships with 3 roles that are handled by Caravel itself. You can
-assume that these 3 roles will stay up-to-date as Caravel evolves.
+Superset ships with 3 roles that are handled by Superset itself. You can
+assume that these 3 roles will stay up-to-date as Superset evolves.
 
 Admin
 """""
@@ -59,17 +59,17 @@ Customizing
 The permissions exposed by FAB are very granular and allow for a great level
 of customization. FAB creates many permissions automagically for each model
 that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
-each view. On top of that, Caravel can expose more granular permissions like
+each view. On top of that, Superset can expose more granular permissions like
 ``all_datasource_access``.
 
 We do not recommend altering the 3 base roles as there
-are a set of assumptions that Caravel build upon. It is possible though for
+are a set of assumptions that Superset build upon. It is possible though for
 you to create your own roles, and union them to existing ones.
 
 Permissions
 """""""""""
 
-Roles are composed of a set of permissions, and Caravel has many categories
+Roles are composed of a set of permissions, and Superset has many categories
 of permissions. Here are the different categories of permissions:
 
 - **Model & action**: models are entities like ``Dashboard``,

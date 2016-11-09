@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Security &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>Security &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="SQL Lab" href="sqllab.html"/>
         <link rel="prev" title="Tutorial" href="tutorial.html"/> 
 
@@ -53,7 +53,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -83,7 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
@@ -117,6 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
 </ul>
@@ -165,7 +166,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -196,13 +197,13 @@
             
   <div class="section" id="security">
 <h1>Security<a class="headerlink" href="#security" title="Permalink to this headline">¶</a></h1>
-<p>Security in Caravel is handled by Flask AppBuilder (FAB). FAB is a
+<p>Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 &#8220;Simple and rapid application development framework, built on top of Flask.&#8221;.
 FAB provides authentication, user management, permissions and roles.</p>
 <div class="section" id="provided-roles">
 <h2>Provided Roles<a class="headerlink" href="#provided-roles" title="Permalink to this headline">¶</a></h2>
-<p>Caravel ships with 3 roles that are handled by Caravel itself. You can
-assume that these 3 roles will stay up-to-date as Caravel evolves.</p>
+<p>Superset ships with 3 roles that are handled by Superset itself. You can
+assume that these 3 roles will stay up-to-date as Superset evolves.</p>
 <div class="section" id="admin">
 <h3>Admin<a class="headerlink" href="#admin" title="Permalink to this headline">¶</a></h3>
 <p>Admins have all possible rights, including granting or revoking rights from
@@ -245,14 +246,14 @@ and use the typeahead to search for your table names.</p>
 <p>The permissions exposed by FAB are very granular and allow for a great level
 of customization. FAB creates many permissions automagically for each model
 that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
-each view. On top of that, Caravel can expose more granular permissions like
+each view. On top of that, Superset can expose more granular permissions like
 <code class="docutils literal"><span class="pre">all_datasource_access</span></code>.</p>
 <p>We do not recommend altering the 3 base roles as there
-are a set of assumptions that Caravel build upon. It is possible though for
+are a set of assumptions that Superset build upon. It is possible though for
 you to create your own roles, and union them to existing ones.</p>
 <div class="section" id="permissions">
 <h3>Permissions<a class="headerlink" href="#permissions" title="Permalink to this headline">¶</a></h3>
-<p>Roles are composed of a set of permissions, and Caravel has many categories
+<p>Roles are composed of a set of permissions, and Superset has many categories
 of permissions. Here are the different categories of permissions:</p>
 <ul class="simple">
 <li><strong>Model &amp; action</strong>: models are entities like <code class="docutils literal"><span class="pre">Dashboard</span></code>,

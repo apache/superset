@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Installation &amp; Configuration &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>Installation &amp; Configuration &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,9 +33,9 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="Tutorial" href="tutorial.html"/>
-        <link rel="prev" title="Caravel’s documentation" href="index.html"/> 
+        <link rel="prev" title="Superset’s documentation" href="index.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -53,7 +53,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -83,7 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#database-dependencies">Database dependencies</a></li>
@@ -117,6 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
 </ul>
@@ -165,7 +166,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -198,16 +199,16 @@
 <h1>Installation &amp; Configuration<a class="headerlink" href="#installation-configuration" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="getting-started">
 <h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>Caravel is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
+<p>Superset is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
 Python 2.6 won&#8217;t be supported.</p>
 </div>
 <div class="section" id="os-dependencies">
 <h2>OS dependencies<a class="headerlink" href="#os-dependencies" title="Permalink to this headline">¶</a></h2>
-<p>Caravel stores database connection information in its metadata database.
+<p>Superset stores database connection information in its metadata database.
 For that purpose, we use the <code class="docutils literal"><span class="pre">cryptography</span></code> Python library to encrypt
 connection passwords. Unfortunately this library has OS level dependencies.</p>
 <p>You may want to attempt the next step
-(&#8220;Caravel installation and initialization&#8221;) and come back to this step if
+(&#8220;Superset installation and initialization&#8221;) and come back to this step if
 you encounter an error.</p>
 <p>Here&#8217;s how to install them:</p>
 <p>For <strong>Debian</strong> and <strong>Ubuntu</strong>, the following command will ensure that
@@ -237,7 +238,7 @@ attempt it, download <a class="reference external" href="https://bootstrap.pypa.
 </div>
 <div class="section" id="python-virtualenv">
 <h2>Python virtualenv<a class="headerlink" href="#python-virtualenv" title="Permalink to this headline">¶</a></h2>
-<p>It is recommended to install Caravel inside a virtualenv. Python 3 already ships virtualenv, for
+<p>It is recommended to install Superset inside a virtualenv. Python 3 already ships virtualenv, for
 Python 2 you need to install it. If it&#8217;s packaged for your operating systems install it from there
 otherwise you can install from pip:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">virtualenv</span>
@@ -264,65 +265,65 @@ and <code class="docutils literal"><span class="pre">setuptools</span></code> li
 </pre></div>
 </div>
 </div>
-<div class="section" id="caravel-installation-and-initialization">
-<h2>Caravel installation and initialization<a class="headerlink" href="#caravel-installation-and-initialization" title="Permalink to this headline">¶</a></h2>
-<p>Follow these few simple steps to install Caravel.:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Install caravel</span>
-<span class="n">pip</span> <span class="n">install</span> <span class="n">caravel</span>
+<div class="section" id="superset-installation-and-initialization">
+<h2>Superset installation and initialization<a class="headerlink" href="#superset-installation-and-initialization" title="Permalink to this headline">¶</a></h2>
+<p>Follow these few simple steps to install Superset.:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Install superset</span>
+<span class="n">pip</span> <span class="n">install</span> <span class="n">superset</span>
 
 <span class="c1"># Create an admin user</span>
-<span class="n">fabmanager</span> <span class="n">create</span><span class="o">-</span><span class="n">admin</span> <span class="o">--</span><span class="n">app</span> <span class="n">caravel</span>
+<span class="n">fabmanager</span> <span class="n">create</span><span class="o">-</span><span class="n">admin</span> <span class="o">--</span><span class="n">app</span> <span class="n">superset</span>
 
 <span class="c1"># Initialize the database</span>
-<span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
+<span class="n">superset</span> <span class="n">db</span> <span class="n">upgrade</span>
 
 <span class="c1"># Load some data to play with</span>
-<span class="n">caravel</span> <span class="n">load_examples</span>
+<span class="n">superset</span> <span class="n">load_examples</span>
 
 <span class="c1"># Create default roles and permissions</span>
-<span class="n">caravel</span> <span class="n">init</span>
+<span class="n">superset</span> <span class="n">init</span>
 
 <span class="c1"># Start the web server on port 8088</span>
-<span class="n">caravel</span> <span class="n">runserver</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span>
+<span class="n">superset</span> <span class="n">runserver</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span>
 
 <span class="c1"># To start a development web server, use the -d switch</span>
-<span class="c1"># caravel runserver -d</span>
+<span class="c1"># superset runserver -d</span>
 </pre></div>
 </div>
 <p>After installation, you should be able to point your browser to the right
 hostname:port <a class="reference external" href="http://localhost:8088">http://localhost:8088</a>, login using
 the credential you entered while creating the admin account, and navigate to
 <cite>Menu -&gt; Admin -&gt; Refresh Metadata</cite>. This action should bring in all of
-your datasources for Caravel to be aware of, and they should show up in
+your datasources for Superset to be aware of, and they should show up in
 <cite>Menu -&gt; Datasources</cite>, from where you can start playing with your data!</p>
-<p>Please note that <em>gunicorn</em>, Caravel default application server, does not
+<p>Please note that <em>gunicorn</em>, Superset default application server, does not
 work on Windows so you need to use the development web server.
 The development web server though is not intended to be used on production systems
 so better use a supported platform that can run <em>gunicorn</em>.</p>
 </div>
 <div class="section" id="configuration-behind-a-load-balancer">
 <h2>Configuration behind a load balancer<a class="headerlink" href="#configuration-behind-a-load-balancer" title="Permalink to this headline">¶</a></h2>
-<p>If you are running caravel behind a load balancer or reverse proxy (e.g. NGINX
+<p>If you are running superset behind a load balancer or reverse proxy (e.g. NGINX
 or ELB on AWS), you may need to utilise a healthcheck endpoint so that your
-load balancer knows if your caravel instance is running. This is provided
+load balancer knows if your superset instance is running. This is provided
 at <code class="docutils literal"><span class="pre">/health</span></code> which will return a 200 response containing &#8220;OK&#8221; if the
 webserver is running.</p>
 <p>If the load balancer is inserting X-Forwarded-For/X-Forwarded-Proto headers, you
-should set <cite>ENABLE_PROXY_FIX = True</cite> in the caravel config file to extract and use
+should set <cite>ENABLE_PROXY_FIX = True</cite> in the superset config file to extract and use
 the headers.</p>
 </div>
 <div class="section" id="configuration">
 <h2>Configuration<a class="headerlink" href="#configuration" title="Permalink to this headline">¶</a></h2>
 <p>To configure your application, you need to create a file (module)
-<code class="docutils literal"><span class="pre">caravel_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
+<code class="docutils literal"><span class="pre">superset_config.py</span></code> and make sure it is in your PYTHONPATH. Here are some
 of the parameters you can copy / paste in that configuration module:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1">#---------------------------------------------------------</span>
-<span class="c1"># Caravel specific config</span>
+<span class="c1"># Superset specific config</span>
 <span class="c1">#---------------------------------------------------------</span>
 <span class="n">ROW_LIMIT</span> <span class="o">=</span> <span class="mi">5000</span>
-<span class="n">CARAVEL_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
+<span class="n">SUPERSET_WORKERS</span> <span class="o">=</span> <span class="mi">4</span>
 
-<span class="n">CARAVEL_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
+<span class="n">SUPERSET_WEBSERVER_PORT</span> <span class="o">=</span> <span class="mi">8088</span>
 <span class="c1">#---------------------------------------------------------</span>
 
 <span class="c1">#---------------------------------------------------------</span>
@@ -333,10 +334,10 @@ of the parameters you can copy / paste in that configuration module:</p>
 
 <span class="c1"># The SQLAlchemy connection string to your database backend</span>
 <span class="c1"># This connection defines the path to the database that stores your</span>
-<span class="c1"># caravel metadata (slices, connections, tables, dashboards, ...).</span>
+<span class="c1"># superset metadata (slices, connections, tables, dashboards, ...).</span>
 <span class="c1"># Note that the connection information to connect to the datasources</span>
 <span class="c1"># you want to explore are managed directly in the web UI</span>
-<span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////path/to/caravel.db&#39;</span>
+<span class="n">SQLALCHEMY_DATABASE_URI</span> <span class="o">=</span> <span class="s1">&#39;sqlite:////path/to/superset.db&#39;</span>
 
 <span class="c1"># Flask-WTF flag for CSRF</span>
 <span class="n">CSRF_ENABLED</span> <span class="o">=</span> <span class="kc">True</span>
@@ -346,22 +347,22 @@ of the parameters you can copy / paste in that configuration module:</p>
 </pre></div>
 </div>
 <p>This file also allows you to define configuration parameters used by
-Flask App Builder, the web framework used by Caravel. Please consult
+Flask App Builder, the web framework used by Superset. Please consult
 the <a class="reference external" href="http://flask-appbuilder.readthedocs.org/en/latest/config.html">Flask App Builder Documentation</a>
-for more information on how to configure Caravel.</p>
+for more information on how to configure Superset.</p>
 <p>Please make sure to change:</p>
 <ul class="simple">
-<li><em>SQLALCHEMY_DATABASE_URI</em>, by default it is stored at <em>~/.caravel/caravel.db</em></li>
+<li><em>SQLALCHEMY_DATABASE_URI</em>, by default it is stored at <em>~/.superset/superset.db</em></li>
 <li><em>SECRET_KEY</em>, to a long random string</li>
 </ul>
 </div>
 <div class="section" id="database-dependencies">
 <h2>Database dependencies<a class="headerlink" href="#database-dependencies" title="Permalink to this headline">¶</a></h2>
-<p>Caravel does not ship bundled with connectivity to databases, except
+<p>Superset does not ship bundled with connectivity to databases, except
 for Sqlite, which is part of the Python standard library.
 You&#8217;ll need to install the required packages for the database you
 want to use as your metadata database as well as the packages needed to
-connect to the databases you want to access through Caravel.</p>
+connect to the databases you want to access through Superset.</p>
 <p>Here&#8217;s a list of some of the recommended packages.</p>
 <table border="1" class="docutils">
 <colgroup>
@@ -421,16 +422,16 @@ database you want to connect to should get you to the right place.</p>
 </div>
 <div class="section" id="caching">
 <h2>Caching<a class="headerlink" href="#caching" title="Permalink to this headline">¶</a></h2>
-<p>Caravel uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
+<p>Superset uses <a class="reference external" href="https://pythonhosted.org/Flask-Cache/">Flask-Cache</a> for
 caching purpose. Configuring your caching backend is as easy as providing
-a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, constant in your <code class="docutils literal"><span class="pre">caravel_config.py</span></code> that
+a <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>, constant in your <code class="docutils literal"><span class="pre">superset_config.py</span></code> that
 complies with the Flask-Cache specifications.</p>
 <p>Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the pylibmc client library as python-memcached does
 not handle storing binary data correctly. If you use Redis, please install
 [python-redis](<a class="reference external" href="https://pypi.python.org/pypi/redis">https://pypi.python.org/pypi/redis</a>).</p>
-<p>For setting your timeouts, this is done in the Caravel metadata and goes
+<p>For setting your timeouts, this is done in the Superset metadata and goes
 up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
 data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
 into your global default defined in <code class="docutils literal"><span class="pre">CACHE_CONFIG</span></code>.</p>
@@ -451,7 +452,7 @@ while the <code class="docutils literal"><span class="pre">metadata_params</span
 <h2>Schemas (Postgres &amp; Redshift)<a class="headerlink" href="#schemas-postgres-redshift" title="Permalink to this headline">¶</a></h2>
 <p>Postgres and Redshift, as well as other database,
 use the concept of <strong>schema</strong> as a logical entity
-on top of the <strong>database</strong>. For Caravel to connect to a specific schema,
+on top of the <strong>database</strong>. For Superset to connect to a specific schema,
 there&#8217;s a <strong>schema</strong> parameter you can set in the table form.</p>
 </div>
 <div class="section" id="ssl-access-to-databases">
@@ -480,15 +481,15 @@ parameter</p>
 <code class="docutils literal"><span class="pre">Admin-&gt;Refresh</span> <span class="pre">Metadata</span></code> menu item to populate</li>
 <li>Navigate to your datasources</li>
 </ul>
-<p>Note that you can run the <code class="docutils literal"><span class="pre">caravel</span> <span class="pre">refresh_druid</span></code> command to refresh the
+<p>Note that you can run the <code class="docutils literal"><span class="pre">superset</span> <span class="pre">refresh_druid</span></code> command to refresh the
 metadata from your Druid cluster(s)</p>
 </div>
 <div class="section" id="cors">
 <h2>CORS<a class="headerlink" href="#cors" title="Permalink to this headline">¶</a></h2>
 <p>The extra CORS Dependency must be installed:</p>
 <blockquote>
-<div>caravel[cors]</div></blockquote>
-<p>The following keys in <cite>caravel_config.py</cite> can be specified to configure CORS:</p>
+<div>superset[cors]</div></blockquote>
+<p>The following keys in <cite>superset_config.py</cite> can be specified to configure CORS:</p>
 <ul class="simple">
 <li><code class="docutils literal"><span class="pre">ENABLE_CORS</span></code>: Must be set to True in order to enable CORS</li>
 <li><code class="docutils literal"><span class="pre">CORS_OPTIONS</span></code>: options passed to Flask-CORS (<cite>documentation &lt;http://flask-cors.corydolphin.com/en/latest/api.html#extension&gt;</cite>)</li>
@@ -497,9 +498,9 @@ metadata from your Druid cluster(s)</p>
 <div class="section" id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
 <p>Upgrading should be as straightforward as running:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">caravel</span> <span class="o">--</span><span class="n">upgrade</span>
-<span class="n">caravel</span> <span class="n">db</span> <span class="n">upgrade</span>
-<span class="n">caravel</span> <span class="n">init</span>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">superset</span> <span class="o">--</span><span class="n">upgrade</span>
+<span class="n">superset</span> <span class="n">db</span> <span class="n">upgrade</span>
+<span class="n">superset</span> <span class="n">init</span>
 </pre></div>
 </div>
 </div>
@@ -508,33 +509,33 @@ metadata from your Druid cluster(s)</p>
 <p>SQL Lab is a powerful SQL IDE that works with all SQLAlchemy compatible
 databases out there. By default, queries are run in a web request, and
 may eventually timeout as queries exceed the maximum duration of a web
-request in your environment, whether it&#8217;d be a reverse proxy or the Caravel
+request in your environment, whether it&#8217;d be a reverse proxy or the Superset
 server itself.</p>
 <p>In the modern analytics world, it&#8217;s not uncommon to run large queries that
 run for minutes or hours.
 To enable support for long running queries that
 execute beyond the typical web request&#8217;s timeout (30-60 seconds), it is
 necessary to deploy an asynchronous backend, which consist of one or many
-Caravel worker, which is implemented as a Celery worker, and a Celery
+Superset worker, which is implemented as a Celery worker, and a Celery
 broker for which we recommend using Redis or RabbitMQ.</p>
 <p>It&#8217;s also preferable to setup an async result backend as a key value store
 that can hold the long-running query results for a period of time. More
 details to come as to how to set this up here soon.</p>
 <p>SQL Lab supports templating in queries, and it&#8217;s possible to override
 the default Jinja context in your environment by defining the
-<code class="docutils literal"><span class="pre">JINJA_CONTEXT_ADDONS</span></code> in your caravel configuration. Objects referenced
+<code class="docutils literal"><span class="pre">JINJA_CONTEXT_ADDONS</span></code> in your superset configuration. Objects referenced
 in this dictionary are made available for users to use in their SQL.</p>
 </div>
 <div class="section" id="making-your-own-build">
 <h2>Making your own build<a class="headerlink" href="#making-your-own-build" title="Permalink to this headline">¶</a></h2>
-<p>For more advanced users, you may want to build Caravel from sources. That
+<p>For more advanced users, you may want to build Superset from sources. That
 would be the case if you fork the project to add features specific to
 your environment.:</p>
-<div class="highlight-default"><div class="highlight"><pre><span></span># assuming $CARAVEL_HOME as the root of the repo
-cd $CARAVEL_HOME/caravel/assets
+<div class="highlight-default"><div class="highlight"><pre><span></span># assuming $SUPERSET_HOME as the root of the repo
+cd $SUPERSET_HOME/superset/assets
 npm install
 npm run prod
-cd $CARAVEL_HOME
+cd $SUPERSET_HOME
 python setup.py install
 </pre></div>
 </div>
@@ -551,7 +552,7 @@ python setup.py install
         <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="index.html" class="btn btn-neutral" title="Caravel’s documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="index.html" class="btn btn-neutral" title="Superset’s documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

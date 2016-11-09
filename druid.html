@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Druid &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>Druid &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="FAQ" href="faq.html"/>
         <link rel="prev" title="Gallery" href="gallery.html"/> 
 
@@ -53,7 +53,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -83,7 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
@@ -117,6 +117,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
 </ul>
@@ -165,7 +166,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -196,7 +197,7 @@
             
   <div class="section" id="druid">
 <h1>Druid<a class="headerlink" href="#druid" title="Permalink to this headline">¶</a></h1>
-<p>Caravel works well with Druid, though currently not all
+<p>Superset works well with Druid, though currently not all
 advanced features out of Druid are covered. This page clarifies what is
 covered and what isn&#8217;t and explains how to use some of the features.</p>
 <div class="admonition note">
@@ -208,7 +209,7 @@ following versions are not tested against.</p>
 <h2>Supported<a class="headerlink" href="#supported" title="Permalink to this headline">¶</a></h2>
 <div class="section" id="aggregations">
 <h3>Aggregations<a class="headerlink" href="#aggregations" title="Permalink to this headline">¶</a></h3>
-<p>Common aggregations, or Druid metrics can be defined and used in Caravel.
+<p>Common aggregations, or Druid metrics can be defined and used in Superset.
 The first and simpler use case is to use the checkbox matrix expose in your
 datasource&#8217;s edit view (<code class="docutils literal"><span class="pre">Sources</span> <span class="pre">-&gt;</span> <span class="pre">Druid</span> <span class="pre">Datasources</span> <span class="pre">-&gt;</span>
 <span class="pre">[your</span> <span class="pre">datasource]</span> <span class="pre">-&gt;</span> <span class="pre">Edit</span> <span class="pre">-&gt;</span> <span class="pre">[tab]</span> <span class="pre">List</span> <span class="pre">Druid</span> <span class="pre">Column</span></code>).
@@ -224,7 +225,7 @@ documentation.</p>
 </div>
 <div class="section" id="post-aggregations">
 <h3>Post-Aggregations<a class="headerlink" href="#post-aggregations" title="Permalink to this headline">¶</a></h3>
-<p>Druid supports post aggregation and this works in Caravel. All you have to
+<p>Druid supports post aggregation and this works in Superset. All you have to
 do is creating a metric, much like you would create an aggregation manually,
 but specify <code class="docutils literal"><span class="pre">postagg</span></code> as a <code class="docutils literal"><span class="pre">Metric</span> <span class="pre">Type</span></code>. You then have to provide a valid
 json post-aggregation definition (as specified in the Druid docs) in the

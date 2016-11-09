@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>FAQ &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>FAQ &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="prev" title="Druid" href="druid.html"/> 
 
   
@@ -52,7 +52,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -82,7 +82,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
@@ -116,6 +116,7 @@
 </li>
 <li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
 </ul>
@@ -164,7 +165,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -197,7 +198,7 @@
 <h1>FAQ<a class="headerlink" href="#faq" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="can-i-query-join-multiple-tables-at-one-time">
 <h2>Can I query/join multiple tables at one time?<a class="headerlink" href="#can-i-query-join-multiple-tables-at-one-time" title="Permalink to this headline">¶</a></h2>
-<p>Not directly no. A Caravel SQLAlchemy datasource can only be a single table
+<p>Not directly no. A Superset SQLAlchemy datasource can only be a single table
 or a view.</p>
 <p>When working with tables, the solution would be to materialize
 a table that contains all the fields needed for your analysis, most likely
@@ -205,14 +206,14 @@ through some scheduled batch process.</p>
 <p>A view is a simple logical layer that abstract an arbitrary SQL queries as
 a virtual table. This can allow you to join and union multiple tables, and
 to apply some transformation using arbitrary SQL expressions. The limitation
-there is your database performance as Caravel effectively will run a query
+there is your database performance as Superset effectively will run a query
 on top of your query (view). A good practice may be to limit yourself to
 joining your main large table to one or many small tables only, and avoid
-using <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> where possible as Caravel will do its own <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> and
+using <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> where possible as Superset will do its own <code class="docutils literal"><span class="pre">GROUP</span> <span class="pre">BY</span></code> and
 doing the work twice might slow down performance.</p>
 <p>Whether you use a table or a view, the important factor is whether your
 database is fast enough to serve it in an interactive fashion to provide
-a good user experience in Caravel.</p>
+a good user experience in Superset.</p>
 </div>
 <div class="section" id="how-big-can-my-data-source-be">
 <h2>How BIG can my data source be?<a class="headerlink" href="#how-big-can-my-data-source-be" title="Permalink to this headline">¶</a></h2>
@@ -227,7 +228,7 @@ queries that scan through terabytes in an interactive fashion.</p>
 framework, in the meantime, we&#8217;ve tagged a few pull requests as
 <code class="docutils literal"><span class="pre">example</span></code> to give people examples of how to contribute new
 visualizations.</p>
-<p><a class="reference external" href="https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed">https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed</a></p>
+<p><a class="reference external" href="https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed">https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed</a></p>
 </div>
 <div class="section" id="why-are-my-queries-timing-out">
 <h2>Why are my queries timing out?<a class="headerlink" href="#why-are-my-queries-timing-out" title="Permalink to this headline">¶</a></h2>
@@ -235,12 +236,12 @@ visualizations.</p>
 it&#8217;s because the web server is timing out web requests. If you want to
 increase the default (50), you can specify the timeout when starting the
 web server with the <code class="docutils literal"><span class="pre">-t</span></code> flag, which is expressed in seconds.</p>
-<p><code class="docutils literal"><span class="pre">caravel</span> <span class="pre">runserver</span> <span class="pre">-t</span> <span class="pre">300</span></code></p>
+<p><code class="docutils literal"><span class="pre">superset</span> <span class="pre">runserver</span> <span class="pre">-t</span> <span class="pre">300</span></code></p>
 </div>
 <div class="section" id="why-is-the-map-not-visible-in-the-mapbox-visualization">
 <h2>Why is the map not visible in the mapbox visualization?<a class="headerlink" href="#why-is-the-map-not-visible-in-the-mapbox-visualization" title="Permalink to this headline">¶</a></h2>
 <p>You need to register to mapbox.com, get an API key and configure it as
-<code class="docutils literal"><span class="pre">MAPBOX_API_KEY</span></code> in <code class="docutils literal"><span class="pre">caravel_config.py</span></code>.</p>
+<code class="docutils literal"><span class="pre">MAPBOX_API_KEY</span></code> in <code class="docutils literal"><span class="pre">superset_config.py</span></code>.</p>
 </div>
 <div class="section" id="how-to-add-dynamic-filters-to-a-dashboard">
 <h2>How to add dynamic filters to a dashboard?<a class="headerlink" href="#how-to-add-dynamic-filters-to-a-dashboard" title="Permalink to this headline">¶</a></h2>

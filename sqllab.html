@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>SQL Lab &mdash; Caravel&#39;s documentation  documentation</title>
+  <title>SQL Lab &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -33,7 +33,7 @@
         <link rel="index" title="Index"
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="Caravel&#39;s documentation  documentation" href="index.html"/>
+    <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="Videos" href="videos.html"/>
         <link rel="prev" title="Security" href="security.html"/> 
 
@@ -53,7 +53,7 @@
           
 
           
-            <a href="index.html" class="icon icon-home"> Caravel's documentation
+            <a href="index.html" class="icon icon-home"> Superset's documentation
           
 
           
@@ -83,7 +83,7 @@
 <li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caravel-installation-and-initialization">Caravel installation and initialization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
 <li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
@@ -117,6 +117,7 @@
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">SQL Lab</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#feature-overview">Feature Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#extra-features">Extra features</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#templating-with-jinja">Templating with Jinja</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#available-macros">Available macros</a></li>
 </ul>
@@ -165,7 +166,7 @@
       
       <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
         <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
-        <a href="index.html">Caravel's documentation</a>
+        <a href="index.html">Superset's documentation</a>
       </nav>
 
 
@@ -205,7 +206,7 @@
 </li>
 <li><p class="first">A multi-tab environment to work on multiple queries at a time</p>
 </li>
-<li><p class="first">A smooth flow to visualize your query results using Caravel&#8217;s rich
+<li><p class="first">A smooth flow to visualize your query results using Superset&#8217;s rich
 visualization capabilities</p>
 </li>
 <li><p class="first">Browse database metadata: tables, columns, indexes, partitions</p>
@@ -227,11 +228,17 @@ which allows for using macros in your SQL code</p>
 </li>
 </ul>
 </div>
+<div class="section" id="extra-features">
+<h2>Extra features<a class="headerlink" href="#extra-features" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li>Hit <code class="docutils literal"><span class="pre">alt</span> <span class="pre">+</span> <span class="pre">enter</span></code> as a keyboard shortcut to run your query</li>
+</ul>
+</div>
 <div class="section" id="templating-with-jinja">
 <h2>Templating with Jinja<a class="headerlink" href="#templating-with-jinja" title="Permalink to this headline">¶</a></h2>
 <div class="highlight-sql"><div class="highlight"><pre><span></span><span class="k">SELECT</span> <span class="o">*</span>
 <span class="k">FROM</span> <span class="n">some_table</span>
-<span class="k">WHERE</span> <span class="n">partition_key</span> <span class="o">=</span> <span class="s1">&#39;{{ preto.latest_partition(&#39;</span><span class="n">some_table</span><span class="s1">&#39;) }}&#39;</span>
+<span class="k">WHERE</span> <span class="n">partition_key</span> <span class="o">=</span> <span class="s1">&#39;{{ presto.latest_partition(&#39;</span><span class="n">some_table</span><span class="s1">&#39;) }}&#39;</span>
 </pre></div>
 </div>
 <p>Templating unleashes the power and capabilities of a
@@ -241,22 +248,23 @@ parameterized so they can be re-used easily.</p>
 <div class="section" id="available-macros">
 <h3>Available macros<a class="headerlink" href="#available-macros" title="Permalink to this headline">¶</a></h3>
 <p>We expose certain modules from Python&#8217;s standard library in
-Caravel&#8217;s Jinja context:
+Superset&#8217;s Jinja context:
 - <code class="docutils literal"><span class="pre">time</span></code>: <code class="docutils literal"><span class="pre">time</span></code>
 - <code class="docutils literal"><span class="pre">datetime</span></code>: <code class="docutils literal"><span class="pre">datetime.datetime</span></code>
 - <code class="docutils literal"><span class="pre">uuid</span></code>: <code class="docutils literal"><span class="pre">uuid</span></code>
 - <code class="docutils literal"><span class="pre">random</span></code>: <code class="docutils literal"><span class="pre">random</span></code>
+- <code class="docutils literal"><span class="pre">relativedelta</span></code>: <code class="docutils literal"><span class="pre">dateutil.relativedelta.relativedelta</span></code>
 - more to come!</p>
 <p><a class="reference external" href="http://jinja.pocoo.org/docs/dev/templates/">Jinja&#8217;s builtin filters</a> can be also be applied where needed.</p>
 <dl class="class">
-<dt id="caravel.jinja_context.PrestoContext">
-<em class="property">class </em><code class="descclassname">caravel.jinja_context.</code><code class="descname">PrestoContext</code><span class="sig-paren">(</span><em>database</em>, <em>query</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/caravel/jinja_context.html#PrestoContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#caravel.jinja_context.PrestoContext" title="Permalink to this definition">¶</a></dt>
+<dt id="superset.jinja_context.PrestoTemplateProcessor">
+<em class="property">class </em><code class="descclassname">superset.jinja_context.</code><code class="descname">PrestoTemplateProcessor</code><span class="sig-paren">(</span><em>database=None</em>, <em>query=None</em>, <em>table=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Presto Jinja context</p>
 <p>The methods described here are namespaced under <code class="docutils literal"><span class="pre">presto</span></code> in the
 jinja context as in <code class="docutils literal"><span class="pre">SELECT</span> <span class="pre">'{{</span> <span class="pre">presto.some_macro_call()</span> <span class="pre">}}'</span></code></p>
 <dl class="method">
-<dt id="caravel.jinja_context.PrestoContext.latest_partition">
-<code class="descname">latest_partition</code><span class="sig-paren">(</span><em>table_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/caravel/jinja_context.html#PrestoContext.latest_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#caravel.jinja_context.PrestoContext.latest_partition" title="Permalink to this definition">¶</a></dt>
+<dt id="superset.jinja_context.PrestoTemplateProcessor.latest_partition">
+<code class="descname">latest_partition</code><span class="sig-paren">(</span><em>table_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor.latest_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor.latest_partition" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the latest (max) partition value for a table</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
@@ -274,8 +282,8 @@ name or a fully qualified table name as <code class="docutils literal"><span cla
 </dd></dl>
 
 <dl class="method">
-<dt id="caravel.jinja_context.PrestoContext.latest_sub_partition">
-<code class="descname">latest_sub_partition</code><span class="sig-paren">(</span><em>table_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/caravel/jinja_context.html#PrestoContext.latest_sub_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#caravel.jinja_context.PrestoContext.latest_sub_partition" title="Permalink to this definition">¶</a></dt>
+<dt id="superset.jinja_context.PrestoTemplateProcessor.latest_sub_partition">
+<code class="descname">latest_sub_partition</code><span class="sig-paren">(</span><em>table_name</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/superset/jinja_context.html#PrestoTemplateProcessor.latest_sub_partition"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#superset.jinja_context.PrestoTemplateProcessor.latest_sub_partition" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the latest (max) partition value for a table</p>
 <p>A filtering criteria should be passed for all fields that are
 partitioned except for the field to be returned. For example,
