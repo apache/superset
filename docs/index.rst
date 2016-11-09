@@ -6,8 +6,8 @@ and interactive.
 
 ----------------
 
-.. warning:: This project used to be named Panoramix and has been renamed
-    to Superset in March 2016
+.. warning:: This project was originally named Panoramix, was renamed to
+    Caravel in March 2016, and is currently named Superset as of November 2016
 
 Overview
 =======================================
