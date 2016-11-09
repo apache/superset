@@ -1379,7 +1379,9 @@ class Caravel(BaseCaravelView):
             }
             return self.render_template(
                 "caravel/explorev2.html",
-                bootstrap_data=json.dumps(bootstrap_data))
+                bootstrap_data=json.dumps(bootstrap_data),
+                slice_name=slc.slice_name,
+                table_name=viz_obj.datasource.table_name)
         else:
             return self.render_template(
                 "caravel/explore.html",
