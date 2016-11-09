@@ -11,6 +11,7 @@ const langTools = ace.acequire('ace/ext/language_tools');
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
   onBlur: React.PropTypes.func,
+  onAltEnter: React.PropTypes.func,
   sql: React.PropTypes.string.isRequired,
   tables: React.PropTypes.array,
   queryEditor: React.PropTypes.object.isRequired,
@@ -18,6 +19,7 @@ const propTypes = {
 
 const defaultProps = {
   onBlur: () => {},
+  onAltEnter: () => {},
   tables: [],
 };
 
@@ -48,6 +50,13 @@ class AceEditorWrapper extends React.PureComponent {
     callback(null, this.state.words);
   }
   onEditorLoad(editor) {
+    editor.commands.addCommand({
+      name: 'runQuery',
+      bindKey: { win: 'Alt-enter', mac: 'Alt-enter' },
+      exec: () => {
+        this.props.onAltEnter();
+      },
+    });
     editor.$blockScrolling = Infinity; // eslint-disable-line no-param-reassign
     editor.selection.on('changeSelection', () => {
       this.props.actions.queryEditorSetSelectedText(
