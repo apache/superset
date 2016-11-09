@@ -1,5 +1,13 @@
 {% extends "caravel/basic.html" %}
 
+{% block title %}
+  {% if slice_name %}
+    [slice] {{ slice_name }}
+  {% else %}
+    [explore] {{ table_name }}
+  {% endif %}
+{% endblock %}
+
 {% block body %}
   <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/explorev2/explorev2.css">
   <div
