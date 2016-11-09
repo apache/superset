@@ -59,10 +59,14 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, defaultOpts);
     },
     [actions.SET_FIELD_VALUE]() {
-      const newState = Object.assign({}, state);
-      newState.viz.form_data[action.key] =
-        action.value ? action.value : (!state.viz.form_data[action.key]);
-      return newState;
+      const newFormData = Object.assign({}, state.viz.form_data);
+      newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
+
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
     },
   };
   if (action.type in actionHandlers) {

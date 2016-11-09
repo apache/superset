@@ -1628,10 +1628,14 @@ export const fields = {
   },
 };
 
-const defaultFormData = {};
-defaultFormData.slice_name = null;
-defaultFormData.slice_id = null;
-Object.keys(fields).forEach((k) => { defaultFormData[k] = fields[k].default; });
+export function defaultFormData() {
+  const data = {
+    slice_name: null,
+    slice_id: null,
+  };
+  Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
+  return data;
+}
 
 export const defaultViz = {
   cached_key: null,
@@ -1641,7 +1645,7 @@ export const defaultViz = {
   csv_endpoint: null,
   is_cached: false,
   data: [],
-  form_data: defaultFormData,
+  form_data: defaultFormData(),
   json_endpoint: null,
   query: null,
   standalone_endpoint: null,

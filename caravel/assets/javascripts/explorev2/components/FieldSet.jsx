@@ -14,6 +14,7 @@ const propTypes = {
   places: PropTypes.number,
   validators: PropTypes.any,
   onChange: React.PropTypes.func,
+  value: PropTypes.oneOf([PropTypes.string, PropTypes.bool, PropTypes.array]).isRequired,
 };
 
 const defaultProps = {

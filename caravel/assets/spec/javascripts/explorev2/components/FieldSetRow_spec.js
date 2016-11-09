@@ -2,14 +2,14 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import { fields } from '../../../../javascripts/explorev2/stores/store';
-
+import { fields, defaultFormData } from '../../../../javascripts/explorev2/stores/store';
 import FieldSetRow from '../../../../javascripts/explorev2/components/FieldSetRow';
 import FieldSet from '../../../../javascripts/explorev2/components/FieldSet';
 
 const defaultProps = {
   fields,
   fieldSets: ['columns', 'metrics'],
+  form_data: defaultFormData(),
 };
 
 describe('FieldSetRow', () => {
