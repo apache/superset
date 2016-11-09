@@ -56,5 +56,5 @@ Superset's Jinja context:
 `Jinja's builtin filters <http://jinja.pocoo.org/docs/dev/templates/>`_ can be also be applied where needed.
 
 
-.. autoclass:: superset.jinja_context.PrestoContext
+.. autoclass:: superset.jinja_context.PrestoTemplateProcessor
     :members:
