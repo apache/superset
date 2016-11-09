@@ -5,7 +5,6 @@ import SliceCell from './SliceCell';
 
 require('react-grid-layout/css/styles.css');
 require('react-resizable/css/styles.css');
-
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const propTypes = {
@@ -47,7 +46,7 @@ class GridLayout extends React.Component {
   onResizeStop(layout, oldItem, newItem) {
     const newSlice = this.props.dashboard.getSlice(newItem.i);
     if (oldItem.w !== newItem.w || oldItem.h !== newItem.h) {
-      this.setState({ layout }, () => { newSlice.resize(); });
+      this.setState({ layout }, () => newSlice.resize() );
     }
   }
 

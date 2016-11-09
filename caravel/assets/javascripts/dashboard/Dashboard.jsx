@@ -259,10 +259,10 @@ function dashboardContainer(dashboard) {
       const id = parseInt(sliceId, 10);
       let i = 0;
       let slice = null;
-      while (i < this.slices.length) {
+      while (i < this.sliceObjects.length) {
         // when the slice is found, assign to slice and break;
-        if (this.slices[i].data.slice_id === id) {
-          slice = this.slices[i];
+        if (this.sliceObjects[i].data.slice_id === id) {
+          slice = this.sliceObjects[i];
           break;
         }
         i++;
