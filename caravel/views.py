@@ -17,7 +17,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, jsonify)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1660,6 +1660,35 @@ class Caravel(BaseCaravelView):
             status=200,
             mimetype="application/json")
 
+    @api
+    @has_access_api
+    @expose("/fav_dashboards_list/",  methods=["GET"])
+    def fav_dashboards_list(self):
+        session = db.session()
+        FavStar = models.FavStar  # noqa
+        faves = session.query(FavStar).filter_by(user_id=g.user.get_id()).all()
+
+        # for f in faves:
+        #     return f.serialize()
+
+        # for f in faves:
+        #     if f.class_name == "Dashboard":
+        #         dashboard = session.query(Dashboard).filter_by(id=f.obj_id).first()
+        #         f.dashboard_title = dashboard.dashboard_title
+        #         f.description = dashboard.description
+
+        # json.dumps(
+        #     [{"slice_id": session.id, "slice_name": session.slice_name}
+        #     for session in slices])
+
+        session.close()
+
+        return Response(
+            jsonify({"faves": faves}),
+            status=200,
+            mimetype="application/json")
+
+
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
         session = db.session()
@@ -2265,7 +2294,10 @@ class Caravel(BaseCaravelView):
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
-        return self.render_template('caravel/welcome.html', utils=utils)
+
+        return self.render_template(
+            'caravel/welcome.html',
+            utils=utils)
 
     @has_access
     @expose("/sqllab")

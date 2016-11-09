@@ -1,3 +1,7 @@
+import React from 'react';
+import ReactDOM from 'react-dom';
+import FavesTable from './welcome/components/FavesTable.jsx';
+
 const $ = window.$ = require('jquery');
 /* eslint no-unused-vars: 0 */
 const jQuery = window.jQuery = $;
@@ -36,6 +40,7 @@ function modelViewTable(selector, modelView, orderCol, order) {
     });
     // Hack to move the searchbox in the right spot
     const search = panel.find('.dataTables_filter input');
+    search.attr('placeholder', 'Start typing to filter dashboards');
     search.addClass('form-control').detach();
     search.appendTo(panel.find('.search'));
     panel.find('.dataTables_filter').remove();
@@ -48,6 +53,21 @@ function modelViewTable(selector, modelView, orderCol, order) {
     $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
   });
 }
+
+function renderFaveTable() {
+  const favesEl = document.getElementById('js-faves-table');
+  $.get('/caravel/fav_dashboards_list/', function(data) {
+    console.log('data', data);
+  });
+  ReactDOM.render(
+    <FavesTable
+      faves={[]}
+    />,
+    favesEl
+  );
+}
+
 $(document).ready(function () {
   modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');
+  renderFaveTable();
 });
