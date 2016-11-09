@@ -25,29 +25,21 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery() {
-    const form_data = this.props.form_data;
+    const form_data = {};
+    Object.keys(this.props.form_data).forEach((field) => {
+      // filter out null fields
+      if (field) {
+        form_data[field] = this.props.form_data[field];
+      }
+    });
     form_data.V2 = true;
+    this.props.actions.updateExplore(
+      this.props.datasource_type, this.props.datasource_id, form_data);
 
-    const params = $.param(this.props.form_data, true);
+    const params = $.param(form_data, true);
     const baseUrl =
       `/caravel/explore/${this.props.datasource_type}/${this.props.datasource_id}/`;
-    const updateUrl =
-      `/caravel/update_explore/${this.props.datasource_type}/${this.props.datasource_id}/`;
     const newEndpoint = `${baseUrl}?${params}`;
-
-    $.ajax({
-      type: 'POST',
-      url: updateUrl,
-      data: {
-        data: JSON.stringify(this.props.form_data),
-      },
-      success: function (data) {
-        this.props.actions.updateViz(JSON.parse(data));
-      }.bind(this),
-      error(error) {
-        console.log(error);
-      },
-    });
     history.pushState({}, document.title, newEndpoint);
   }
 

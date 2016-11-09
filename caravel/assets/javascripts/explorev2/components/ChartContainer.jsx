@@ -18,6 +18,7 @@ const propTypes = {
   query: PropTypes.string.isRequired,
   column_formats: PropTypes.object,
   data: PropTypes.any,
+  isChartLoading: PropTypes.bool,
 };
 
 class ChartContainer extends React.Component {
@@ -157,11 +158,13 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
+        {!this.props.isChartLoading &&
           <div
             id={this.props.containerId}
             ref={(ref) => { this.chartContainerRef = ref; }}
             className={this.props.viz_type}
           />
+        }
         </Panel>
       </div>
     );
@@ -182,6 +185,7 @@ function mapStateToProps(state) {
     query: state.viz.query,
     column_formats: state.viz.column_formats,
     data: state.viz.data,
+    isChartLoading: state.isChartLoading,
   };
 }
 

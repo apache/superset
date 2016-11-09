@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
@@ -89,4 +90,35 @@ export function setFieldValue(key, value) {
 
 export function updateViz(viz) {
   return { type: UPDATE_VIZ, viz };
+}
+
+export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
+export function chartUpdateStarted() {
+  return { type: CHART_UPDATE_STARTED };
+}
+
+export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED ';
+export function chartUpdateFailed() {
+  return { type: CHART_UPDATE_FAILED };
+}
+export function updateExplore(datasource_type, datasource_id, form_data) {
+  return function (dispatch) {
+    dispatch(chartUpdateStarted);
+    const updateUrl =
+    `/caravel/update_explore/${datasource_type}/${datasource_id}/`;
+
+    $.ajax({
+      type: 'POST',
+      url: updateUrl,
+      data: {
+        data: JSON.stringify(form_data),
+      },
+      success: (data) => {
+        dispatch(updateViz(JSON.parse(data)));
+      },
+      error(error) {
+        dispatch(chartUpdateFailed(error));
+      },
+    });
+  };
 }

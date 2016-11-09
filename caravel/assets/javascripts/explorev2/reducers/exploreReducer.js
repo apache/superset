@@ -77,7 +77,19 @@ export const exploreReducer = function (state, action) {
         query: action.viz.query,
         data: action.viz.data,
       };
-      return Object.assign({}, state, { viz: Object.assign({}, state.viz, vizUpdates) });
+      return Object.assign(
+        {},
+        state,
+        {
+          viz: Object.assign({}, state.viz, vizUpdates),
+          isChartLoading: false,
+        });
+    },
+    [actions.CHART_UPDATE_STARTED]() {
+      return Object.assign({}, state, { isChartLoading: true });
+    },
+    [actions.CHART_UPDATE_FAILED]() {
+      return Object.assign({}, state, { isChartLoading: false });
     },
   };
   if (action.type in actionHandlers) {
