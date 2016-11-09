@@ -10,10 +10,8 @@ import json
 import io
 import random
 import unittest
-from datetime import datetime
 
 from flask import escape
-from flask_appbuilder.security.sqla import models as ab_models
 
 from caravel import db, models, utils, appbuilder, sm, jinja_context
 from caravel.views import DatabaseView
@@ -389,6 +387,11 @@ class CoreTests(CaravelTestCase):
             elif backend == 'postgresql':
                 self.assertEqual(len(data.get('indexes')), 5)
 
+    def test_fetch_datasource_metadata(self):
+        self.login(username='admin')
+        url = '/caravel/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
+        resp = json.loads(self.get_resp(url))
+        self.assertEqual(len(resp['field_options']), 19)
 
 
 if __name__ == '__main__':

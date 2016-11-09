@@ -59,7 +59,11 @@ class SqlEditor extends React.PureComponent {
     }
   }
   runQuery(runAsync = false) {
-    this.startQuery(runAsync);
+    let effectiveRunAsync = runAsync;
+    if (!this.props.database.allow_run_sync) {
+      effectiveRunAsync = true;
+    }
+    this.startQuery(effectiveRunAsync);
   }
   startQuery(runAsync = false, ctas = false) {
     const qe = this.props.queryEditor;
@@ -225,11 +229,12 @@ class SqlEditor extends React.PureComponent {
           <Col md={this.props.hideLeftBar ? 12 : 9}>
             <div className="scrollbar">
               <AceEditorWrapper
-                tables={this.props.tables}
                 actions={this.props.actions}
-                queryEditor={this.props.queryEditor}
-                sql={this.props.queryEditor.sql}
                 onBlur={this.setQueryEditorSql.bind(this)}
+                queryEditor={this.props.queryEditor}
+                onAltEnter={this.runQuery.bind(this)}
+                sql={this.props.queryEditor.sql}
+                tables={this.props.tables}
               />
               {editorBottomBar}
               <br />

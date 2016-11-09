@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
@@ -8,26 +9,29 @@ import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
-  vizType: PropTypes.string,
-  datasourceId: PropTypes.number.isRequired,
-  datasourceType: PropTypes.string.isRequired,
+  datasource_id: PropTypes.number.isRequired,
+  datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
-};
-
-const defaultProps = {
-  vizType: null,
+  fields: PropTypes.object.isRequired,
+  isDatasourceMetaLoading: PropTypes.bool.isRequired,
+  form_data: PropTypes.object.isRequired,
+  y_axis_zero: PropTypes.any,
 };
 
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
-    const { datasourceId, datasourceType } = this.props;
-    if (datasourceId) {
-      this.props.actions.setFormOpts(datasourceId, datasourceType);
+    const { datasource_id, datasource_type } = this.props;
+    if (datasource_id) {
+      this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
     }
   }
 
+  onChange(name, value) {
+    this.props.actions.setFieldValue(name, value);
+  }
+
   sectionsToRender() {
-    const viz = visTypes[this.props.vizType];
+    const viz = visTypes[this.props.form_data.viz_type];
     const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
     const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
 
@@ -35,46 +39,52 @@ class ControlPanelsContainer extends React.Component {
   }
 
   fieldOverrides() {
-    const viz = visTypes[this.props.vizType];
+    const viz = visTypes[this.props.form_data.viz_type];
     return viz.fieldOverrides;
   }
 
   render() {
     return (
       <Panel>
-        <div className="scrollbar-container">
-          <div className="scrollbar-content">
-            {this.sectionsToRender().map((section) => (
-              <ControlPanelSection
-                key={section.label}
-                label={section.label}
-                tooltip={section.description}
-              >
-                {section.fieldSetRows.map((fieldSets, i) => (
-                  <FieldSetRow
-                    key={`${section.label}-fieldSetRow-${i}`}
-                    fieldSets={fieldSets}
-                    fieldOverrides={this.fieldOverrides()}
-                  />
-                ))}
-              </ControlPanelSection>
-            ))}
-           {/* TODO: add filters section */}
+        {!this.props.isDatasourceMetaLoading &&
+          <div className="scrollbar-container">
+            <div className="scrollbar-content">
+              {this.sectionsToRender().map((section) => (
+                <ControlPanelSection
+                  key={section.label}
+                  label={section.label}
+                  tooltip={section.description}
+                >
+                  {section.fieldSetRows.map((fieldSets, i) => (
+                    <FieldSetRow
+                      key={`${section.label}-fieldSetRow-${i}`}
+                      fieldSets={fieldSets}
+                      fieldOverrides={this.fieldOverrides()}
+                      onChange={this.onChange.bind(this)}
+                      fields={this.props.fields}
+                      form_data={this.props.form_data}
+                    />
+                  ))}
+                </ControlPanelSection>
+              ))}
+              {/* TODO: add filters section */}
+            </div>
           </div>
-        </div>
+        }
       </Panel>
     );
   }
 }
 
 ControlPanelsContainer.propTypes = propTypes;
-ControlPanelsContainer.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
-    datasourceId: state.datasourceId,
-    datasourceType: state.datasourceType,
-    vizType: state.viz.formData.vizType,
+    isDatasourceMetaLoading: state.isDatasourceMetaLoading,
+    fields: state.fields,
+    datasource_id: state.datasource_id,
+    datasource_type: state.datasource_type,
+    form_data: state.viz.form_data,
   };
 }
 

@@ -1,52 +1,42 @@
-import { defaultFormData, defaultOpts } from '../stores/store';
+import { defaultOpts } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
-
-const setFormInViz = function (state, action) {
-  const newFormData = Object.assign({}, state);
-  newFormData[action.key] = action.value;
-  return newFormData;
-};
-
-const setVizInState = function (state, action) {
-  switch (action.type) {
-    case actions.SET_FORM_DATA:
-      return Object.assign(
-        {},
-        state,
-        { formData: setFormInViz(state.formData, action) }
-        );
-    default:
-      return state;
-  }
-};
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
     [actions.SET_DATASOURCE]() {
       return Object.assign({}, state, { datasourceId: action.datasourceId });
     },
-    [actions.SET_TIME_COLUMN_OPTS]() {
-      return Object.assign({}, state, { timeColumnOpts: action.timeColumnOpts });
+
+    [actions.FETCH_STARTED]() {
+      return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
-    [actions.SET_TIME_GRAIN_OPTS]() {
-      return Object.assign({}, state, { timeGrainOpts: action.timeGrainOpts });
+
+    [actions.FETCH_SUCCEEDED]() {
+      return Object.assign({}, state, { isDatasourceMetaLoading: false });
     },
-    [actions.SET_GROUPBY_COLUMN_OPTS]() {
-      return Object.assign({}, state, { groupByColumnOpts: action.groupByColumnOpts });
+
+    [actions.FETCH_FAILED]() {
+      // todo(alanna) handle failure/error state
+      return Object.assign({}, state, { isDatasourceMetaLoading: false });
     },
-    [actions.SET_METRICS_OPTS]() {
-      return Object.assign({}, state, { metricsOpts: action.metricsOpts });
+
+    [actions.SET_FIELD_OPTIONS]() {
+      const newState = Object.assign({}, state);
+      const optionsByFieldName = action.options;
+      const fieldNames = Object.keys(optionsByFieldName);
+
+      fieldNames.forEach((fieldName) => {
+        newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+      });
+
+      return Object.assign({}, state, newState);
     },
-    [actions.SET_COLUMN_OPTS]() {
-      return Object.assign({}, state, { columnOpts: action.columnOpts });
-    },
-    [actions.SET_ORDERING_OPTS]() {
-      return Object.assign({}, state, { orderingOpts: action.orderingOpts });
-    },
+
     [actions.TOGGLE_SEARCHBOX]() {
       return Object.assign({}, state, { searchBox: action.searchBox });
     },
+
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },
@@ -65,20 +55,17 @@ export const exploreReducer = function (state, action) {
     [actions.CHANGE_FILTER_VALUE]() {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
     },
-    [actions.RESET_FORM_DATA]() {
-      return Object.assign({}, state, defaultFormData);
-    },
     [actions.CLEAR_ALL_OPTS]() {
       return Object.assign({}, state, defaultOpts);
     },
-    [actions.SET_DATASOURCE_TYPE]() {
-      return Object.assign({}, state, { datasourceType: action.datasourceType });
-    },
-    [actions.SET_FORM_DATA]() {
+    [actions.SET_FIELD_VALUE]() {
+      const newFormData = Object.assign({}, state.viz.form_data);
+      newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
+
       return Object.assign(
         {},
         state,
-        { viz: setVizInState(state.viz, action) }
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
   };

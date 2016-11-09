@@ -150,7 +150,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'stopped' });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
-      return alterInObject(state, 'queries', action.query, { results: [], cached: true });
+      const newResults = Object.assign({}, action.query.results);
+      newResults.data = [];
+      return alterInObject(state, 'queries', action.query, { results: newResults, cached: true });
     },
     [actions.REQUEST_QUERY_RESULTS]() {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });

@@ -317,6 +317,7 @@ class BaseViz(object):
         if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
+
             payload = {
                 'cache_timeout': cache_timeout,
                 'cache_key': cache_key,
@@ -1034,7 +1035,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     def get_df(self, query_obj=None):
         form_data = self.form_data
         df = super(NVD3TimeSeriesViz, self).get_df(query_obj)
-
         df = df.fillna(0)
         if form_data.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")

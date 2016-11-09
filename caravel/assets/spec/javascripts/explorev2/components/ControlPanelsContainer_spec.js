@@ -3,17 +3,18 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Panel } from 'react-bootstrap';
+import { defaultFormData } from '../../../../javascripts/explorev2/stores/store';
 
 import {
   ControlPanelsContainer,
 } from '../../../../javascripts/explorev2/components/ControlPanelsContainer';
 
 const defaultProps = {
-  vizType: 'dist_bar',
-  datasourceId: 1,
-  datasourceType: 'type',
+  datasource_id: 1,
+  datasource_type: 'type',
+  form_data: defaultFormData(),
   actions: {
-    setFormOpts: () => {
+    fetchFieldOptions: () => {
       // noop
     },
   },

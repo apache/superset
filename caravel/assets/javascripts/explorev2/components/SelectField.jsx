@@ -4,25 +4,44 @@ import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 import { slugify } from '../../modules/utils';
 
 const propTypes = {
+  name: PropTypes.string.isRequired,
+  choices: PropTypes.array,
+  value: PropTypes.string,
   label: PropTypes.string,
   description: PropTypes.string,
+  onChange: PropTypes.func,
 };
 
 const defaultProps = {
+  value: '',
   label: null,
   description: null,
+  onChange: () => {},
 };
 
-export default function SelectField({ label, description }) {
-  return (
-    <FormGroup controlId={`formControlsSelect-${slugify(label)}`}>
-      <ControlLabelWithTooltip label={label} description={description} />
-      <FormControl componentClass="select" placeholder="select">
-        <option value="select">select</option>
-        <option value="other">...</option>
-      </FormControl>
-    </FormGroup>
-  );
+export default class SelectField extends React.Component {
+  onChange(opt) {
+    this.props.onChange(this.props.name, opt.target.value);
+  }
+
+  render() {
+    return (
+      <FormGroup controlId={`formControlsSelect-${slugify(this.props.label)}`}>
+        <ControlLabelWithTooltip
+          label={this.props.label}
+          description={this.props.description}
+        />
+        <FormControl
+          componentClass="select"
+          placeholder="select"
+          onChange={this.onChange.bind(this)}
+          value={this.props.value}
+        >
+          {this.props.choices.map((c) => <option key={c[0]} value={c[0]}>{c[1]}</option>)}
+        </FormControl>
+      </FormGroup>
+    );
+  }
 }
 
 SelectField.propTypes = propTypes;

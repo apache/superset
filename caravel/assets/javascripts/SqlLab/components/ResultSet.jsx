@@ -14,6 +14,7 @@ const propTypes = {
   searchText: React.PropTypes.string,
   showSql: React.PropTypes.bool,
   visualize: React.PropTypes.bool,
+  cache: React.PropTypes.bool,
 };
 const defaultProps = {
   search: true,
@@ -22,6 +23,7 @@ const defaultProps = {
   csv: true,
   searchText: '',
   actions: {},
+  cache: false,
 };
 
 
@@ -31,16 +33,16 @@ class ResultSet extends React.PureComponent {
     this.state = {
       searchText: '',
       showModal: false,
-      results: null,
+      data: [],
     };
   }
   componentWillReceiveProps(nextProps) {
     // when new results comes in, save them locally and clear in store
-    if ((!nextProps.query.cached)
+    if (this.props.cache && (!nextProps.query.cached)
       && nextProps.query.results
       && nextProps.query.results.data.length > 0) {
       this.setState(
-        { results: nextProps.query.results },
+        { data: nextProps.query.results.data },
         this.clearQueryResults(nextProps.query)
       );
     }
@@ -125,7 +127,14 @@ class ResultSet extends React.PureComponent {
   }
   render() {
     const query = this.props.query;
-    const results = (this.props.query.cached) ? this.state.results : query.results;
+    const results = query.results;
+    let data;
+    if (this.props.cache && query.cached) {
+      data = this.state.data;
+    } else {
+      data = results ? results.data : [];
+    }
+
     let sql;
 
     if (this.props.showSql) {
@@ -165,7 +174,7 @@ class ResultSet extends React.PureComponent {
           </Alert>
         </div>);
     } else if (query.state === 'success') {
-      if (results && results.data && results.data.length > 0) {
+      if (results && data && data.length > 0) {
         return (
           <div>
             <VisualizeModal
@@ -177,7 +186,7 @@ class ResultSet extends React.PureComponent {
             {sql}
             <div className="ResultSet">
               <Table
-                data={results.data}
+                data={data}
                 columns={results.columns.map((col) => col.name)}
                 sortable
                 className="table table-condensed table-bordered"

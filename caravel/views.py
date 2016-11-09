@@ -356,8 +356,9 @@ appbuilder.add_view_no_menu(TableColumnInlineView)
 class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
     datamodel = SQLAInterface(models.DruidColumn)
     edit_columns = [
-        'column_name', 'description', 'datasource', 'groupby',
-        'count_distinct', 'sum', 'min', 'max']
+        'column_name', 'description', 'dimension_spec_json', 'datasource',
+        'groupby', 'count_distinct', 'sum', 'min', 'max']
+    add_columns = edit_columns
     list_columns = [
         'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
         'sum', 'min', 'max']
@@ -374,9 +375,23 @@ class DruidColumnInlineView(CompactCRUDMixin, CaravelModelView):  # noqa
         'min': _("Min"),
         'max': _("Max"),
     }
+    description_columns = {
+        'dimension_spec_json': utils.markdown(
+            "this field can be used to specify  "
+            "a `dimensionSpec` as documented [here]"
+            "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
+            "Make sure to input valid JSON and that the "
+            "`outputName` matches the `column_name` defined "
+            "above.",
+            True),
+    }
 
     def post_update(self, col):
         col.generate_metrics()
+        utils.validate_json(col.dimension_spec_json)
+
+    def post_add(self, col):
+        self.post_update(col)
 
 appbuilder.add_view_no_menu(DruidColumnInlineView)
 
@@ -488,10 +503,12 @@ class DatabaseView(CaravelModelView, DeleteMixin):  # noqa
     edit_template = "caravel/models/database/edit.html"
     base_order = ('changed_on', 'desc')
     description_columns = {
-        'sqlalchemy_uri': (
-            "Refer to the SqlAlchemy docs for more information on how "
-            "to structure your URI here: "
-            "http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html"),
+        'sqlalchemy_uri': utils.markdown(
+            "Refer to the "
+            "[SqlAlchemy docs]"
+            "(http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#"
+            "database-urls) "
+            "for more information on how to structure your URI.", True),
         'expose_in_sqllab': _("Expose this DB in SQL Lab"),
         'allow_run_sync': _(
             "Allow users to run synchronous queries, this is the default "
@@ -707,11 +724,11 @@ class DruidClusterModelView(CaravelModelView, DeleteMixin):  # noqa
         'broker_endpoint': _("Broker Endpoint"),
     }
 
-    def pre_add(self, db):
-        utils.merge_perm(sm, 'database_access', db.perm)
+    def pre_add(self, cluster):
+        utils.merge_perm(sm, 'database_access', cluster.perm)
 
-    def pre_update(self, db):
-        self.pre_add(db)
+    def pre_update(self, cluster):
+        self.pre_add(cluster)
 
 
 if config['DRUID_IS_ACTIVE']:
@@ -1364,7 +1381,9 @@ class Caravel(BaseCaravelView):
             }
             return self.render_template(
                 "caravel/explorev2.html",
-                bootstrap_data=json.dumps(bootstrap_data))
+                bootstrap_data=json.dumps(bootstrap_data),
+                slice_name=slc.slice_name,
+                table_name=viz_obj.datasource.table_name)
         else:
             return self.render_template(
                 "caravel/explore.html",
@@ -2072,7 +2091,7 @@ class Caravel(BaseCaravelView):
         sql = query.select_sql or query.sql
         df = query.database.get_df(sql, query.schema)
         # TODO(bkyryliuk): add compression=gzip for big files.
-        csv = df.to_csv(index=False)
+        csv = df.to_csv(index=False, encoding='utf-8')
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
@@ -2091,6 +2110,9 @@ class Caravel(BaseCaravelView):
             .first()
         )
 
+        datasources = db.session.query(datasource_class).all()
+        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+
         # Check if datasource exists
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
@@ -2098,23 +2120,38 @@ class Caravel(BaseCaravelView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
+        gb_cols = [(col, col) for col in datasource.groupby_column_names]
         order_by_choices = []
         for s in sorted(datasource.num_cols):
-            order_by_choices.append(s + ' [asc]')
-            order_by_choices.append(s + ' [desc]')
-        column_opts = {
-            "groupby_cols": datasource.groupby_column_names,
-            "metrics": datasource.metrics_combo,
-            "filter_cols": datasource.filterable_column_names,
-            "columns": datasource.column_names,
-            "ordering_cols": order_by_choices
+            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
+            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
+
+        field_options = {
+            'datasource': [(d.id, d.full_name) for d in datasources],
+            'metrics': datasource.metrics_combo,
+            'order_by_cols': order_by_choices,
+            'metric':  datasource.metrics_combo,
+            'secondary_metric': datasource.metrics_combo,
+            'groupby': gb_cols,
+            'columns': gb_cols,
+            'all_columns': datasource.column_names,
+            'all_columns_x': datasource.column_names,
+            'all_columns_y': datasource.column_names,
+            'granularity_sqla': datasource.dttm_cols,
+            'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
+            'series': gb_cols,
+            'entity': gb_cols,
+            'x': datasource.metrics_combo,
+            'y': datasource.metrics_combo,
+            'size': datasource.metrics_combo,
+            'mapbox_label': datasource.column_names,
+            'point_radius': ["Auto"] + datasource.column_names,
         }
-        form_data = dict(
-            column_opts.items() + datasource.time_column_grains.items()
-        )
 
         return Response(
-            json.dumps(form_data), mimetype="application/json")
+            json.dumps({'field_options': field_options}),
+            mimetype="application/json"
+        )
 
     @has_access
     @expose("/queries/<last_updated_ms>")
