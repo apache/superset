@@ -15,6 +15,7 @@ const propTypes = {
   fields: PropTypes.object.isRequired,
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   form_data: PropTypes.object.isRequired,
+  y_axis_zero: PropTypes.any,
 };
 
 class ControlPanelsContainer extends React.Component {

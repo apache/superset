@@ -12,7 +12,7 @@ import {
 const defaultProps = {
   datasource_id: 1,
   datasource_type: 'type',
-  form_data: defaultFormData,
+  form_data: defaultFormData(),
   actions: {
     fetchFieldOptions: () => {
       // noop

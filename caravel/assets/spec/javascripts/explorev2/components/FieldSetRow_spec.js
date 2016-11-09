@@ -9,7 +9,7 @@ import FieldSet from '../../../../javascripts/explorev2/components/FieldSet';
 const defaultProps = {
   fields,
   fieldSets: ['columns', 'metrics'],
-  form_data: defaultFormData,
+  form_data: defaultFormData(),
 };
 
 describe('FieldSetRow', () => {
