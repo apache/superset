@@ -736,7 +736,7 @@ class BoxPlotViz(NVD3Viz):
     }, {
         'label': _('Chart Options'),
         'fields': (
-            'whisker_options',
+            'whisker_options','y_axis_format',
         )
     },)
 
@@ -846,6 +846,7 @@ class BubbleViz(NVD3Viz):
             ('x_log_scale', 'y_log_scale'),
             ('show_legend', None),
             'max_bubble_size',
+            ('x_axis_formats', 'y_axis_format'),
             ('x_axis_label', 'y_axis_label'),
         )
     },)

@@ -296,6 +296,11 @@ function nvd3Vis(slice) {
         } else if (fd.x_axis_format !== undefined) {
           chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
         }
+
+        if (fd.x_axis_formats) {
+          chart.xAxis.tickFormat(d3.format(fd.x_axis_formats));
+        }
+
         if (chart.yAxis !== undefined) {
           chart.yAxis.tickFormat(d3.format('.3s'));
         }
