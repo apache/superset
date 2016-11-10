@@ -35,7 +35,7 @@ from wtforms.validators import ValidationError
 import caravel
 from caravel import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend
+    sm, ascii_art, sql_lab, results_backend, default_datasource
 )
 from caravel.source_registry import SourceRegistry
 from caravel.models import DatasourceAccessRequest as DAR
@@ -798,13 +798,24 @@ class SliceModelView(CaravelModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        sources = SourceRegistry.sources
-        for source in sources:
-            ds = db.session.query(SourceRegistry.sources[source]).first()
-            if ds is not None:
-                url = "/{}/list/".format(ds.baselink)
-                msg = _("Click on a {} link to create a Slice".format(source))
-                break
+        src_cls = SourceRegistry.sources[default_datasource]
+        ds = db.session.query(
+            SourceRegistry.sources[default_datasource]).first()
+        url = "/{}/list/".format(src_cls.baselink)
+        msg = _(
+            "Click on a {} link to create a Slice"
+            .format(default_datasource))
+
+        if ds is None:
+            sources = SourceRegistry.sources
+            for source in sources:
+                ds = db.session.query(SourceRegistry.sources[source]).first()
+                if ds is not None:
+                    url = "/{}/list/".format(ds.baselink)
+                    msg = _(
+                        "Click on a {} link to create a Slice"
+                        .format(source))
+                    break
 
         redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
         return redirect(redirect_url)
