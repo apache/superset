@@ -3,6 +3,7 @@ import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 
 require('./table.css');
+const $ = require('jquery');
 
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 import 'datatables.net';
