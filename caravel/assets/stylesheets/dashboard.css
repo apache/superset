@@ -118,3 +118,12 @@ div.widget .chart-controls {
 .chart-header .header {
   font-size: 16px;
 }
+.ace_gutter {
+    z-index: 0;
+}
+.ace_content {
+    z-index: 0;
+}
+.ace_scrollbar {
+    z-index: 0;
+}
