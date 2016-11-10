@@ -151,5 +151,9 @@ def worker():
     c_worker.run(**options)
 
 
-if __name__ == "__main__":
+def main():
     manager.run()
+
+
+if __name__ == "__main__":
+    main()
