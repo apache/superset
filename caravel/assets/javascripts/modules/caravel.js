@@ -61,6 +61,7 @@ const px = function () {
     const container = $(selector);
     const sliceId = data.slice_id;
     const origJsonEndpoint = data.json_endpoint;
+    const filterSelectEnabled = data.filter_select_enabled;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -77,6 +78,7 @@ const px = function () {
       data,
       container,
       containerId,
+      filterSelectEnabled,
       selector,
       querystring() {
         const parser = document.createElement('a');
@@ -110,6 +112,11 @@ const px = function () {
         endpoint += '&json=true';
         endpoint += '&force=' + this.force;
         return endpoint;
+      },
+      filterEndpoint(column) {
+        const parser = document.createElement('a');
+        parser.href = data.filter_endpoint;
+        return parser.pathname + column + '/' + this.querystring();
       },
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
