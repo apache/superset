@@ -74,7 +74,7 @@ and ``setuptools`` libraries.::
     pip install --upgrade setuptools pip
 
 Superset installation and initialization
----------------------------------------
+----------------------------------------
 Follow these few simple steps to install Superset.::
 
     # Install superset
