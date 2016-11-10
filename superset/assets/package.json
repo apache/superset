@@ -10,7 +10,7 @@
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "cover": "babel-node ./node_modules/.bin/istanbul cover _mocha -- --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --inline-source-map",
+    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --source-map",
     "prod": "NODE_ENV=production node --max_old_space_size=8192 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx ."
@@ -51,8 +51,7 @@
     "d3-tip": "^0.7.1",
     "datamaps": "^0.5.8",
     "datatables-bootstrap3-plugin": "^0.5.0",
-    "datatables.net-bs": "1.10.11",
-    "datatables.net": "1.10.11",
+    "datatables.net-bs": "^1.10.12",
     "font-awesome": "^4.6.3",
     "gridster": "^0.5.6",
     "immutability-helper": "^2.0.0",

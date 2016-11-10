@@ -1,15 +1,18 @@
-const $ = require('jquery');
 import d3 from 'd3';
 import { fixDataTableBodyHeight } from '../javascripts/modules/utils';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 
 require('./table.css');
-require('datatables.net-bs');
+
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
+import 'datatables.net';
+import dt from 'datatables.net-bs';
+dt(window, $);
 
 function tableVis(slice) {
   const fC = d3.format('0,000');
   let timestampFormatter;
+  const container = $(slice.selector);
 
   function refresh() {
     function onError(xhr) {
@@ -122,8 +125,8 @@ function tableVis(slice) {
           }
           return d.val;
         });
-      const height = slice.container.height();
-      const datatable = slice.container.find('.dataTable').DataTable({
+      const height = slice.height();
+      const datatable = container.find('.dataTable').DataTable({
         paging: false,
         aaSorting: [],
         searching: fd.include_search,
@@ -133,14 +136,14 @@ function tableVis(slice) {
         scrollX: true,
       });
       fixDataTableBodyHeight(
-          slice.container.find('.dataTables_wrapper'), height);
+          container.find('.dataTables_wrapper'), height);
       // Sorting table by main column
       if (fd.metrics.length > 0) {
         const mainMetric = fd.metrics[0];
         datatable.column(data.columns.indexOf(mainMetric)).order('desc').draw();
       }
       slice.done(json);
-      slice.container.parents('.widget').find('.tooltip').remove();
+      container.parents('.widget').find('.tooltip').remove();
     }
     $.getJSON(slice.jsonEndpoint(), onSuccess).fail(onError);
   }

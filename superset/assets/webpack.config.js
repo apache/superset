@@ -43,6 +43,10 @@ const config = {
     noParse: /mapbox-gl\/dist/,
     loaders: [
       {
+        test: /datatables\.net.*/,
+        loader: 'imports?define=>false',
+      },
+      {
         test: /\.jsx?$/,
         exclude: APP_DIR + '/node_modules',
         loader: 'babel',
