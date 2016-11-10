@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -13,13 +13,13 @@ import unittest
 
 from flask import escape
 
-from caravel import db, models, utils, appbuilder, sm, jinja_context
-from caravel.views import DatabaseView
+from superset import db, models, utils, appbuilder, sm, jinja_context
+from superset.views import DatabaseView
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 
-class CoreTests(CaravelTestCase):
+class CoreTests(SupersetTestCase):
 
     requires_examples = True
 
@@ -45,19 +45,19 @@ class CoreTests(CaravelTestCase):
 
     def test_welcome(self):
         self.login()
-        resp = self.client.get('/caravel/welcome')
+        resp = self.client.get('/superset/welcome')
         assert 'Welcome' in resp.data.decode('utf-8')
 
     def test_slice_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
-        resp = self.get_resp('/caravel/slice/{}/'.format(slc.id))
+        resp = self.get_resp('/superset/slice/{}/'.format(slc.id))
         assert 'Time Column' in resp
         assert 'List Roles' in resp
 
         # Testing overrides
         resp = self.get_resp(
-            '/caravel/slice/{}/?standalone=true'.format(slc.id))
+            '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
     def test_endpoints_for_a_slice(self):
@@ -103,7 +103,7 @@ class CoreTests(CaravelTestCase):
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
         url = (
-            "/caravel/explore/table/{}/?viz_type=sankey&groupby=source&"
+            "/superset/explore/table/{}/?viz_type=sankey&groupby=source&"
             "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
             "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id={}&slice_name={}&"
             "collapsed_fieldsets=&action={}&datasource_name=energy_usage&"
@@ -158,7 +158,7 @@ class CoreTests(CaravelTestCase):
             'uri': database.safe_sqlalchemy_uri(),
             'name': 'main'
         })
-        response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
+        response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
 
         # validate that the endpoint works with the decrypted sqlalchemy uri
@@ -166,7 +166,7 @@ class CoreTests(CaravelTestCase):
             'uri': database.sqlalchemy_uri_decrypted,
             'name': 'main'
         })
-        response = self.client.post('/caravel/testconn', data=data, content_type='application/json')
+        response = self.client.post('/superset/testconn', data=data, content_type='application/json')
         assert response.status_code == 200
 
     def test_databaseview_edit(self, username='admin'):
@@ -184,17 +184,17 @@ class CoreTests(CaravelTestCase):
     def test_warm_up_cache(self):
         slice = db.session.query(models.Slice).first()
         data = self.get_json_resp(
-            '/caravel/warm_up_cache?slice_id={}'.format(slice.id))
+            '/superset/warm_up_cache?slice_id={}'.format(slice.id))
         assert data == [{'slice_id': slice.id, 'slice_name': slice.slice_name}]
 
         data = self.get_json_resp(
-            '/caravel/warm_up_cache?table_name=energy_usage&db_name=main')
+            '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
         assert len(data) == 3
 
     def test_shortner(self):
         self.login(username='admin')
         data = (
-            "//caravel/explore/table/1/?viz_type=sankey&groupby=source&"
+            "//superset/explore/table/1/?viz_type=sankey&groupby=source&"
             "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
             "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id=78&slice_name="
             "Energy+Sankey&collapsed_fieldsets=&action=&datasource_name="
@@ -222,7 +222,7 @@ class CoreTests(CaravelTestCase):
             'expanded_slices': {},
             'positions': positions,
         }
-        url = '/caravel/save_dash/{}/'.format(dash.id)
+        url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SUCCESS" in resp.data.decode('utf-8')
 
@@ -238,7 +238,7 @@ class CoreTests(CaravelTestCase):
             "slice_ids": [new_slice.data["slice_id"],
                           existing_slice.data["slice_id"]]
         }
-        url = '/caravel/add_slices/{}/'.format(dash.id)
+        url = '/superset/add_slices/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SLICES ADDED" in resp.data.decode('utf-8')
 
@@ -271,7 +271,7 @@ class CoreTests(CaravelTestCase):
         self.run_sql(sql, 'admin', client_id)
 
         self.login('admin')
-        resp = self.get_resp('/caravel/csv/{}'.format(client_id))
+        resp = self.get_resp('/superset/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(
             io.StringIO("first_name,last_name\nadmin, user\n"))
@@ -288,7 +288,7 @@ class CoreTests(CaravelTestCase):
         assert 'birth_names</a>' not in resp
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert '/caravel/dashboard/births/' not in resp
+        assert '/superset/dashboard/births/' not in resp
 
         self.setup_public_access_for_dashboard('birth_names')
 
@@ -296,16 +296,16 @@ class CoreTests(CaravelTestCase):
         assert 'birth_names' in self.get_resp('/slicemodelview/list/')
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert "/caravel/dashboard/births/" in resp
+        assert "/superset/dashboard/births/" in resp
 
-        assert 'Births' in self.get_resp('/caravel/dashboard/births/')
+        assert 'Births' in self.get_resp('/superset/dashboard/births/')
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp('/slicemodelview/list/')
         assert 'wb_health_population</a>' not in resp
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert "/caravel/dashboard/world_health/" not in resp
+        assert "/superset/dashboard/world_health/" not in resp
 
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
@@ -317,7 +317,7 @@ class CoreTests(CaravelTestCase):
         db.session.merge(dash)
         db.session.commit()
 
-        assert 'Births' in self.get_resp('/caravel/dashboard/births/')
+        assert 'Births' in self.get_resp('/superset/dashboard/births/')
 
     def test_only_owners_can_save(self):
         dash = (
@@ -352,7 +352,7 @@ class CoreTests(CaravelTestCase):
         self.login('admin')
         dbid = self.get_main_database(db.session).id
         self.get_json_resp(
-            '/caravel/extra_table_metadata/{dbid}/'
+            '/superset/extra_table_metadata/{dbid}/'
             'ab_permission_view/panoramix/'.format(**locals()))
 
     def test_process_template(self):
@@ -370,7 +370,7 @@ class CoreTests(CaravelTestCase):
     def test_table_metadata(self):
         maindb = self.get_main_database(db.session)
         data = self.get_json_resp(
-            "/caravel/table/{}/ab_user/null/".format(maindb.id))
+            "/superset/table/{}/ab_user/null/".format(maindb.id))
         self.assertEqual(data['name'], 'ab_user')
         assert len(data['columns']) > 5
         assert data.get('selectStar').startswith('SELECT')
@@ -389,7 +389,7 @@ class CoreTests(CaravelTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
-        url = '/caravel/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
+        url = '/superset/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
         resp = json.loads(self.get_resp(url))
         self.assertEqual(len(resp['field_options']), 19)
 

@@ -4,7 +4,7 @@ FAQ
 
 Can I query/join multiple tables at one time?
 ---------------------------------------------
-Not directly no. A Caravel SQLAlchemy datasource can only be a single table
+Not directly no. A Superset SQLAlchemy datasource can only be a single table
 or a view.
 
 When working with tables, the solution would be to materialize
@@ -14,15 +14,15 @@ through some scheduled batch process.
 A view is a simple logical layer that abstract an arbitrary SQL queries as
 a virtual table. This can allow you to join and union multiple tables, and
 to apply some transformation using arbitrary SQL expressions. The limitation
-there is your database performance as Caravel effectively will run a query
+there is your database performance as Superset effectively will run a query
 on top of your query (view). A good practice may be to limit yourself to
 joining your main large table to one or many small tables only, and avoid
-using ``GROUP BY`` where possible as Caravel will do its own ``GROUP BY`` and
+using ``GROUP BY`` where possible as Superset will do its own ``GROUP BY`` and
 doing the work twice might slow down performance.
 
 Whether you use a table or a view, the important factor is whether your
 database is fast enough to serve it in an interactive fashion to provide
-a good user experience in Caravel.
+a good user experience in Superset.
 
 
 How BIG can my data source be?
@@ -42,7 +42,7 @@ framework, in the meantime, we've tagged a few pull requests as
 ``example`` to give people examples of how to contribute new
 visualizations.
 
-https://github.com/airbnb/caravel/issues?q=label%3Aexample+is%3Aclosed
+https://github.com/airbnb/superset/issues?q=label%3Aexample+is%3Aclosed
 
 
 Why are my queries timing out?
@@ -53,14 +53,14 @@ it's because the web server is timing out web requests. If you want to
 increase the default (50), you can specify the timeout when starting the
 web server with the ``-t`` flag, which is expressed in seconds.
 
-``caravel runserver -t 300``
+``superset runserver -t 300``
 
 
 Why is the map not visible in the mapbox visualization?
 -------------------------------------------------------
 
 You need to register to mapbox.com, get an API key and configure it as
-``MAPBOX_API_KEY`` in ``caravel_config.py``.
+``MAPBOX_API_KEY`` in ``superset_config.py``.
 
 
 How to add dynamic filters to a dashboard?

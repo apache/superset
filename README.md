@@ -1,20 +1,20 @@
-Caravel
+Superset
 =========
-<img src="http://i.imgur.com/H0Kyvyi.jpg" style="border-radius: 20px; box-shadow:5px 5px 5px gray;" alt="Caravel" width="500"/>
+<img src="http://i.imgur.com/H0Kyvyi.jpg" style="border-radius: 20px; box-shadow:5px 5px 5px gray;" alt="Superset" width="500"/>
 
-[![Build Status](https://travis-ci.org/airbnb/caravel.svg?branch=master)](https://travis-ci.org/airbnb/caravel)
-[![PyPI version](https://badge.fury.io/py/caravel.svg)](https://badge.fury.io/py/caravel)
-[![Coverage Status](https://coveralls.io/repos/airbnb/caravel/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/caravel?branch=master)
-[![JS Test Coverage](https://codeclimate.com/github/airbnb/caravel/badges/coverage.svg)](https://codeclimate.com/github/airbnb/caravel/coverage)
-[![Code Health](https://landscape.io/github/airbnb/caravel/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/caravel/master)
-[![Code Climate](https://codeclimate.com/github/airbnb/caravel/badges/gpa.svg)](https://codeclimate.com/github/airbnb/caravel)
-[![PyPI](https://img.shields.io/pypi/pyversions/caravel.svg?maxAge=2592000)](https://pypi.python.org/pypi/caravel)
-[![Requirements Status](https://requires.io/github/airbnb/caravel/requirements.svg?branch=master)](https://requires.io/github/airbnb/caravel/requirements/?branch=master)
-[![Join the chat at https://gitter.im/airbnb/caravel](https://badges.gitter.im/airbnb/caravel.svg)](https://gitter.im/airbnb/caravel?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/caravel/)
-[![dependencies Status](https://david-dm.org/airbnb/caravel/status.svg?path=caravel/assets)](https://david-dm.org/airbnb/caravel?path=caravel/assets)
+[![Build Status](https://travis-ci.org/airbnb/superset.svg?branch=master)](https://travis-ci.org/airbnb/superset)
+[![PyPI version](https://badge.fury.io/py/superset.svg)](https://badge.fury.io/py/superset)
+[![Coverage Status](https://coveralls.io/repos/airbnb/superset/badge.svg?branch=master&service=github)](https://coveralls.io/github/airbnb/superset?branch=master)
+[![JS Test Coverage](https://codeclimate.com/github/airbnb/superset/badges/coverage.svg)](https://codeclimate.com/github/airbnb/superset/coverage)
+[![Code Health](https://landscape.io/github/airbnb/superset/master/landscape.svg?style=flat)](https://landscape.io/github/airbnb/superset/master)
+[![Code Climate](https://codeclimate.com/github/airbnb/superset/badges/gpa.svg)](https://codeclimate.com/github/airbnb/superset)
+[![PyPI](https://img.shields.io/pypi/pyversions/superset.svg?maxAge=2592000)](https://pypi.python.org/pypi/superset)
+[![Requirements Status](https://requires.io/github/airbnb/superset/requirements.svg?branch=master)](https://requires.io/github/airbnb/superset/requirements/?branch=master)
+[![Join the chat at https://gitter.im/airbnb/superset](https://badges.gitter.im/airbnb/superset.svg)](https://gitter.im/airbnb/superset?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/superset/)
+[![dependencies Status](https://david-dm.org/airbnb/superset/status.svg?path=superset/assets)](https://david-dm.org/airbnb/superset?path=superset/assets)
 
-Caravel is a data exploration platform designed to be visual, intuitive
+Superset is a data exploration platform designed to be visual, intuitive
 and interactive.
 
 [this project used to be named **Panoramix**]
@@ -36,12 +36,12 @@ Screenshots & Gifs
 ---
 ![img](http://i.imgur.com/DRCnbq6.png)
 
-Caravel
+Superset
 ---------
-Caravel's main goal is to make it easy to slice, dice and visualize data.
+Superset's main goal is to make it easy to slice, dice and visualize data.
 It empowers users to perform **analytics at the speed of thought**.
 
-Caravel provides:
+Superset provides:
 * A quick way to intuitively visualize datasets by allowing users to create
     and share interactive dashboards
 * A rich set of visualizations to analyze your data, as well as a flexible
@@ -54,7 +54,7 @@ Caravel provides:
     displayed in the UI, by defining which fields should show up in
     which dropdown and which aggregation and function (metrics) are
     made available to the user
-* Deep integration with Druid allows for Caravel to stay blazing fast while
+* Deep integration with Druid allows for Superset to stay blazing fast while
     slicing and dicing large, realtime datasets
 * Fast loading dashboards with configurable caching
 
@@ -62,7 +62,7 @@ Caravel provides:
 Database Support
 ----------------
 
-Caravel was originally designed on top of Druid.io, but quickly broadened
+Superset was originally designed on top of Druid.io, but quickly broadened
 its scope to support other databases through the use of SQLAlchemy, a Python
 ORM that is compatible with
 [most common databases](http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html).
@@ -83,7 +83,7 @@ power analytic dashboards and applications.*
 Installation & Configuration
 ----------------------------
 
-[See in the documentation](http://airbnb.io/caravel/installation.html)
+[See in the documentation](http://airbnb.io/superset/installation.html)
 
 
 More screenshots
@@ -112,26 +112,26 @@ More screenshots
 
 Resources
 -------------
-* [Caravel Google Group](https://groups.google.com/forum/#!forum/airbnb_caravel)
-* [Gitter (live chat) Channel](https://gitter.im/airbnb/caravel)
-* [Docker image 1](https://hub.docker.com/r/kochalex/caravel/)
-  [Docker image 2](https://hub.docker.com/r/amancevice/caravel/) (community contributed)
+* [Superset Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
+* [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
+* [Docker image 1](https://hub.docker.com/r/kochalex/superset/)
+  [Docker image 2](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 
 Tip of the Hat
 --------------
 
-Caravel would not be possible without these great frameworks / libs
+Superset would not be possible without these great frameworks / libs
 
 * Flask App Builder - Allowing us to focus on building the app quickly while
 getting the foundation for free
 * The Flask ecosystem - Simply amazing. So much Plug, easy play.
 * NVD3 - One of the best charting libraries out there
-* Much more, check out the `install_requires` section in the [setup.py](https://github.com/airbnb/caravel/blob/master/setup.py) file!
+* Much more, check out the `install_requires` section in the [setup.py](https://github.com/airbnb/superset/blob/master/setup.py) file!
 
 
 Contributing
 ------------
 
-Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/airbnb/caravel/blob/master/CONTRIBUTING.md)
+Interested in contributing? Casual hacking? Check out  [Contributing.MD](https://github.com/airbnb/superset/blob/master/CONTRIBUTING.md)

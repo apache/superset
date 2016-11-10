@@ -24,10 +24,10 @@ env:
 before_install:
   - npm install -g npm@'>=3.9.5'
 before_script:
-  - mysql -e 'drop database if exists caravel; create database caravel DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
+  - mysql -e 'drop database if exists superset; create database superset DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci' -u root
   - mysql -u root -e "CREATE USER 'mysqluser'@'localhost' IDENTIFIED BY 'mysqluserpassword';"
-  - mysql -u root -e "GRANT ALL ON caravel.* TO 'mysqluser'@'localhost';"
-  - psql -c 'create database caravel;' -U postgres
+  - mysql -u root -e "GRANT ALL ON superset.* TO 'mysqluser'@'localhost';"
+  - psql -c 'create database superset;' -U postgres
   - psql -c "CREATE USER postgresuser WITH PASSWORD 'pguserpassword';" -U postgres
   - export PATH=${PATH}:/tmp/hive/bin
 install:

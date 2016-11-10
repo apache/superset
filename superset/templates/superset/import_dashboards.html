@@ -1,0 +1,23 @@
+{% extends "superset/basic.html" %}
+
+# TODO: move the libs required by flask into the common.js from welcome.js.
+{% block head_js %}
+  {{ super() }}
+  {% with filename="welcome" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}
+
+{% block title %}{{ _("Import") }}{% endblock %}
+{% block body %}
+    {% include "superset/flash_wrapper.html" %}
+    <div class="container">
+        <title>Import the dashboards.</title>
+        <h1>Import the dashboards.</h1>
+        <form method=post enctype=multipart/form-data>
+          <p><input type=file name=file>
+             <input type=submit value=Upload>
+          </p>
+        </form>
+    </div>
+{% endblock %}

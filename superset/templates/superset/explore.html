@@ -1,0 +1,307 @@
+{% extends "superset/basic.html" %}
+
+{% block title %}
+  {% if slice %}
+    [slice] {{ slice.slice_name }}
+  {% else %}
+    [explore] {{ viz.datasource.table_name }}
+  {% endif %}
+{% endblock %}
+
+{% block body %}
+  {% set datasource = viz.datasource %}
+  {% set form = viz.form %}
+
+  {% macro panofield(fieldname)%}
+    <div>
+      {% set field = form.get_field(fieldname)%}
+      <div>
+        {{ field.label }}
+        {% if field.description %}
+        <i class="fa fa-question-circle-o" data-toggle="tooltip" data-placement="right"
+          title="{{ field.description }}"></i>
+        {% endif %}
+        {{ field(class_=form.field_css_classes(field.name)) }}
+      </div>
+    </div>
+  {% endmacro %}
+
+  <div class="datasource container-fluid">
+    <form id="query" method="GET" style="display: none;">
+      <div id="form_container" class="row">
+        <div class="col-md-3">
+          <div
+            id="js-query-and-save-btns"
+            class="query-and-save-btns-container"
+            data-can-add="{{ can_add }}"
+          >
+          </div>
+
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <div class="panel-title">
+                Datasource & Chart Type
+              </div>
+            </div>
+            <div class="panel-body">
+              <div>
+                <!-- DATASOURCE -->
+                <span title="Data Source" data-toggle="tooltip">
+                  <select id="datasource_id" class="select2">
+                    {% for ds in datasources %}
+                      <option url="{{ ds.explore_url }}" {{ "selected" if ds.id == datasource.id }} value="{{ ds.id }}">{{ ds.full_name }}<i class="fa fa-info"></i></option>
+                    {% endfor %}
+                  </select>
+                </span>
+                <a href="{{ datasource.url }}" data-toggle="tooltip" title="Edit/configure datasource">
+                  <i class="fa fa-edit m-l-3"></i>
+                </a>
+              </div>
+              <br/>
+              <!-- CHART TYPE -->
+              <div title="Visualization Type" data-toggle="tooltip">
+                {{ form.get_field("viz_type")(class_="select2-with-images") }}
+              </div>
+            </div>
+          </div>
+          {% for fieldset in form.fieldsets %}
+              <div class="panel panel-default">
+                {% if fieldset.label %}
+                  <div class="panel-heading">
+                    <div class="panel-title">
+                      {{ fieldset.label }}
+                      {% if fieldset.description %}
+                        <i class="fa fa-question-circle-o" data-toggle="tooltip"
+                              data-placement="bottom"
+                              title="{{ fieldset.description }}"></i>
+                      {% endif %}
+                    </div>
+                  </div>
+                {% endif %}
+                <div class="panel-body">
+                  {% for fieldname in fieldset.fields %}
+                    {% if not fieldname %}
+                      <hr/>
+                    {% elif fieldname is string %}
+                      {{ panofield(fieldname) }}
+                    {% else %}
+                      <div class="row">
+                        <div class="form-group">
+                          {% for name in fieldname %}
+                          <div class="col-xs-{{ (12 / fieldname|length) | int }}">
+                            {% if name %}
+                              {{ panofield(name) }}
+                            {% endif %}
+                          </div>
+                          {% endfor %}
+                        </div>
+                      </div>
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            {% endfor %}
+            <div id="filter_panel" class="panel panel-default">
+              <div class="panel-heading">
+                <div class="panel-title">
+                  {{ _("Filters") }}
+                  <i  class="fa fa-question-circle-o" data-toggle="tooltip"
+                      data-placement="right"
+                      title="{{_("Filters are defined using comma delimited strings as in <US,FR,Other>")}}.
+                      {{_("Leave the value field empty to filter empty strings or nulls")}}.
+                      {{_("For filters with comma in values, wrap them in single quotes,
+                      as in <NY, 'Tahoe, CA', DC>")}}">
+                  </i>
+                </div>
+              </div>
+              <div class="panel-body">
+                <div id="flt0" style="display: none;">
+                  <span class="">{{ form.flt_col_0(class_="form-control inc") }}</span>
+                  <div class="row">
+                    <span class="col col-sm-4">{{ form.flt_op_0(class_="form-control inc") }}</span>
+                    <span class="col col-sm-6">{{ form.flt_eq_0(class_="form-control inc") }}</span>
+                    <button type="button" class="btn btn-default btn-sm remove" aria-label="Delete filter">
+                      <span class="fa fa-minus"  aria-hidden="true"></span>
+
+                    </button>
+                  </div>
+                </div>
+                <div id="filters"></div>
+                <button type="button" id="plus" class="btn btn-default btn-sm" aria-label="Add a filter">
+                  <span class="fa fa-plus" aria-hidden="true"></span>
+                  <span>{{ _("Add filter") }}</span>
+                </button>
+              </div>
+            </div>
+
+
+            {% if form.having_col_0 %}
+              <div id="having_panel" class="panel panel-default">
+                <div class="panel-heading">
+                  <div class="panel-title">
+                    Result Filters ("having" filters)
+                    <i
+                      class="fa fa-info-circle"
+                      data-toggle="tooltip"
+                      data-placement="bottom"
+                      title="{{_("The filters to apply after post-aggregation.")}} {{_("Leave the value field empty to filter empty strings or nulls")}}">
+                    </i>
+                  </div>
+                </div>
+                <div class="panel-body">
+                  <div id="having0" style="display: none;">
+                    <span class="">{{ form.having_col_0(class_="form-control inc") }}</span>
+                    <div class="row">
+                      <span class="col col-sm-4">{{ form.having_op_0(class_="form-control inc") }}</span>
+                      <span class="col col-sm-6">{{ form.having_eq_0(class_="form-control inc") }}</span>
+                      <button type="button"
+                              class="btn btn-default btn-sm remove"
+                              aria-label="Delete filter">
+                                    <span class="fa fa-minus"
+                                          aria-hidden="true"></span>
+                      </button>
+                    </div>
+                  </div>
+                  <div id="filters"></div>
+                  <button type="button" id="plus"
+                          class="btn btn-default btn-sm"
+                          aria-label="Add a filter">
+                    <span class="fa fa-plus" aria-hidden="true"></span>
+                    <span>Add filter</span>
+                  </button>
+                </div>
+              </div>
+            {% endif %}
+          {{ form.slice_id() }}
+          {{ form.slice_name() }}
+          {{ form.collapsed_fieldsets() }}
+          <input type="hidden" name="action" id="action" value="">
+          <input type="hidden" name="userid" id="userid" value="{{ userid }}">
+          <input type="hidden" name="goto_dash" id="goto_dash" value="false">
+          <input type="hidden" name="datasource_name" value="{{ datasource.name }}">
+          <input type="hidden" name="datasource_id" value="{{ datasource.id }}">
+          <input type="hidden" name="datasource_type" value="{{ datasource.type }}">
+          <input type="hidden" name="previous_viz_type" value="{{ viz.viz_type or "table" }}">
+      </div>
+      <div class="col-md-9">
+        {% block messages %}{% endblock %}
+        {% include 'appbuilder/flash.html' %}
+        <div class="panel panel-default">
+          <div class="panel-heading">
+            <div class="panel-title">
+              <div class="clearfix">
+                <div class="pull-left">
+                  {% include 'superset/partials/_explore_title.html' %}
+                </div>
+                <div class="pull-right">
+                  <div class="slice-meta-controls pull-right">
+                    <span id="is_cached" class="label label-default m-r-3" title="{{ _("Force refresh" )}}" data-toggle="tooltip">
+                      cached
+                    </span>
+                    <span
+                      class="label label-warning m-r-3"
+                      id="timer"
+                      title="{{ _("Query timer") }}"
+                      data-toggle="tooltip">
+                      {{ _("0 sec") }}
+                    </span>
+
+                    <span
+                      id="js-explore-actions"
+                      data-can-download="{{can_download}}"
+                    >
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div
+              id="{{ viz.token }}"
+              class="widget viz slice {{ viz.viz_type }}"
+              data-slice="{{ viz.json_data }}"
+              style="height: 700px;">
+              <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
+              <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal fade" id="sourceinfo_modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title">{{ _("Datasource Description") }}</h4>
+            </div>
+            <div class="modal-body">
+              {{ datasource.description_markeddown | safe }}
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-default" data-dismiss="modal">{{ _("Close") }}</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal fade" id="save_modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+              <h4 class="modal-title">{{ _("Save a Slice") }}</h4>
+            </div>
+            <div class="modal-body">
+              {% if slice %}
+                <input
+                    type="radio"
+                    name="rdo_save"
+                    value="overwrite"
+                    {{ 'disabled' if not can_edit else '' }}
+                    {{ 'checked' if can_edit else '' }}>
+                Overwrite slice [{{ slice.slice_name }}] <br><br>
+              {% endif %}
+              <input
+                id="save_as_new"
+                type="radio"
+                name="rdo_save"
+                value="saveas"
+                {{ 'checked' if not slice or not can_edit else '' }}>
+              Save as
+              <input type="text" name="new_slice_name" placeholder="[slice name]"><br>
+              <hr/>
+              <input type="radio" name="add_to_dash" checked value="false">Do not add to a dashboard<br><br>
+              <input id="add_to_dash_existing" type="radio" name="add_to_dash" value="existing">Add slice to existing dashboard
+              <input type="text" id="save_to_dashboard_id" name="save_to_dashboard_id"><br><br>
+              <input type="radio" id="add_to_new_dash" name="add_to_dash" value="new">Add to new dashboard
+              <input type="text" name="new_dashboard_name" placeholder="[dashboard name]">  <br><br>
+            </div>
+            <div class="modal-footer">
+              <button type="button" id="btn_modal_save" class="btn pull-left">
+                {{ _("Save") }}
+              </button>
+              <button type="button" id="btn_modal_save_goto_dash" class="btn btn-primary pull-left gotodash" disabled>
+                {{ _("Save & go to dashboard") }}
+              </button>
+              <button type="button" class="btn btn-default pull-right" data-dismiss="modal">
+                {{ _("Cancel") }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="explore" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}

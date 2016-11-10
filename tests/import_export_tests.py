@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -10,12 +10,12 @@ import json
 import pickle
 import unittest
 
-from caravel import db, models
+from superset import db, models
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 
-class ImportExportTests(CaravelTestCase):
+class ImportExportTests(SupersetTestCase):
     """Testing export import functionality for dashboards"""
 
     def __init__(self, *args, **kwargs):

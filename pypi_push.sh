@@ -1,4 +1,4 @@
-cd caravel/assets/
+cd superset/assets/
 rm build/*
 npm run prod
 cd ../..

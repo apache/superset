@@ -30,8 +30,8 @@ Look through the GitHub issues for features. Anything tagged with
 
 ### Documentation
 
-Caravel could always use better documentation,
-whether as part of the official Caravel docs,
+Superset could always use better documentation,
+whether as part of the official Superset docs,
 in docstrings, `docs/*.rst` or even on the web as blog posts or
 articles.
 
@@ -49,16 +49,16 @@ If you are proposing a feature:
 
 ## Latest Documentation
 
-Latest documentation and tutorial are available [here](http://airbnb.io/caravel)
+Latest documentation and tutorial are available [here](http://airbnb.io/superset)
 
 ## Setting up a Python development environment
 
-Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-dependencies) before follows these steps.
+Check the [OS dependencies](http://airbnb.io/superset/installation.html#os-dependencies) before follows these steps.
 
     # fork the repo on GitHub and then clone it
     # alternatively you may want to clone the main repo but that won't work
     # so well if you are planning on sending PRs
-    # git clone git@github.com:airbnb/caravel.git
+    # git clone git@github.com:airbnb/superset.git
 
     # [optional] setup a virtual env and activate it
     virtualenv env
@@ -68,24 +68,24 @@ Check the [OS dependencies](http://airbnb.io/caravel/installation.html#os-depend
     python setup.py develop
 
     # Create an admin user
-    fabmanager create-admin --app caravel
+    fabmanager create-admin --app superset
 
     # Initialize the database
-    caravel db upgrade
+    superset db upgrade
 
     # Create default roles and permissions
-    caravel init
+    superset init
 
     # Load some data to play with
-    caravel load_examples
+    superset load_examples
 
     # start a dev web server
-    caravel runserver -d
+    superset runserver -d
 
 
 ## Setting up the node / npm javascript environment
 
-`caravel/assets` contains all npm-managed, front end assets.
+`superset/assets` contains all npm-managed, front end assets.
 Flask-Appbuilder itself comes bundled with jQuery and bootstrap.
 While these may be phased out over time, these packages are currently not
 managed with npm.
@@ -112,14 +112,14 @@ export PATH="$HOME/.npm-packages/bin:$PATH"
 
 #### npm packages
 To install third party libraries defined in `package.json`, run the
-following within the `caravel/assets/` directory which will install them in a
+following within the `superset/assets/` directory which will install them in a
 new `node_modules/` folder within `assets/`.
 
 ```
 npm install
 ```
 
-To parse and generate bundled files for caravel, run either of the
+To parse and generate bundled files for superset, run either of the
 following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
@@ -135,7 +135,7 @@ For every development session you will have to start a flask dev server
 as well as an npm watcher
 
 ```
-caravel runserver -d -p 8081
+superset runserver -d -p 8081
 npm run dev
 ```
 
@@ -147,7 +147,7 @@ Python tests can be run with:
 
 We use [Mocha](https://mochajs.org/), [Chai](http://chaijs.com/) and [Enzyme](http://airbnb.io/enzyme/) to test Javascript. Tests can be run with:
 
-    cd /caravel/caravel/assets/javascripts
+    cd /superset/superset/assets/javascripts
     npm i
     npm run test
 
@@ -157,13 +157,13 @@ Lint the project with:
 
     # for python changes
     flake8 changes tests
-    flake8 changes caravel
+    flake8 changes superset
 
     # for javascript
     npm run lint
 
 ## Linting with codeclimate
-Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Caravel fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
+Codeclimate is a service we use to measure code quality and test coverage. To get codeclimate's report on your branch, ideally before sending your PR, you can setup codeclimate against your Superset fork. After you push to your fork, you should be able to get the report at http://codeclimate.com . Alternatively, if you prefer to work locally, you can install the codeclimate cli tool.
 
 *Install the codeclimate cli tool*
 ```
@@ -193,12 +193,12 @@ Generate the documentation with:
     cd docs && ./build.sh
 
 ## CSS Themes
-As part of the npm build process, CSS for Caravel is compiled from `Less`, a dynamic stylesheet language.
+As part of the npm build process, CSS for Superset is compiled from `Less`, a dynamic stylesheet language.
 
-It's possible to customize or add your own theme to Caravel, either by overriding CSS rules or preferably
+It's possible to customize or add your own theme to Superset, either by overriding CSS rules or preferably
 by modifying the Less variables or files in `assets/stylesheets/less/`.
 
-The `variables.less` and `bootswatch.less` files that ship with Caravel are derived from
+The `variables.less` and `bootswatch.less` files that ship with Superset are derived from
 [Bootswatch](https://bootswatch.com) and thus extend Bootstrap. Modify variables in these files directly, or
 swap them out entirely with the equivalent files from other Bootswatch (themes)[https://github.com/thomaspark/bootswatch.git]
 
@@ -221,14 +221,14 @@ meets these guidelines:
 
 ## Translations
 
-We use [Babel](http://babel.pocoo.org/en/latest/) to translate Caravel. The
+We use [Babel](http://babel.pocoo.org/en/latest/) to translate Superset. The
 key is to instrument the strings that need translation using
 `from flask_babel import lazy_gettext as _`. Once this is imported in
 a module, all you have to do is to `_("Wrap your strings")` using the
 underscore `_` "function".
 
 To enable changing language in your environment, you can simply add the
-`LANGUAGES` parameter to your `caravel_config.py`. Having more than one
+`LANGUAGES` parameter to your `superset_config.py`. Having more than one
 options here will add a language selection dropdown on the right side of the
 navigation bar.
 
@@ -241,23 +241,23 @@ navigation bar.
 As per the [Flask AppBuilder documentation] about translation, to create a
 new language dictionary, run the following command:
 
-    pybabel init -i ./babel/messages.pot -d caravel/translations -l es
+    pybabel init -i ./babel/messages.pot -d superset/translations -l es
 
 Then it's a matter of running the statement below to gather all stings that
 need translation
 
-    fabmanager babel-extract --target caravel/translations/
+    fabmanager babel-extract --target superset/translations/
 
 You can then translate the strings gathered in files located under
-`caravel/translation`, where there's one per language. For the translations
+`superset/translation`, where there's one per language. For the translations
 to take effect, they need to be compiled using this command:
 
-    fabmanager babel-compile --target caravel/translations/
+    fabmanager babel-compile --target superset/translations/
 
 
 ## Adding new datasources
 
-1. Create Models and Views for the datasource, add them under caravel folder, like a new my_models.py
+1. Create Models and Views for the datasource, add them under superset folder, like a new my_models.py
     with models for cluster, datasources, columns and metrics and my_views.py with clustermodelview
     and datasourcemodelview.
 
@@ -267,6 +267,6 @@ to take effect, they need to be compiled using this command:
 
     For example:
 
-    `ADDITIONAL_MODULE_DS_MAP = {'caravel.my_models': ['MyDatasource', 'MyOtherDatasource']}`
+    `ADDITIONAL_MODULE_DS_MAP = {'superset.my_models': ['MyDatasource', 'MyOtherDatasource']}`
 
-    This means it'll register MyDatasource and MyOtherDatasource in caravel.my_models module in the source registry.
+    This means it'll register MyDatasource and MyOtherDatasource in superset.my_models module in the source registry.

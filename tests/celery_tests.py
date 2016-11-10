@@ -1,4 +1,4 @@
-"""Unit tests for Caravel Celery worker"""
+"""Unit tests for Superset Celery worker"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -13,27 +13,27 @@ import unittest
 
 import pandas as pd
 
-import caravel
-from caravel import app, appbuilder, db, models, sql_lab, utils, dataframe
+import superset
+from superset import app, appbuilder, db, models, sql_lab, utils, dataframe
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
-cli = imp.load_source('cli', BASE_DIR + '/bin/caravel')
+cli = imp.load_source('cli', BASE_DIR + '/bin/superset')
 
 
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + app.config.get('SQL_CELERY_DB_FILE_PATH')
-    CELERY_IMPORTS = ('caravel.sql_lab', )
+    CELERY_IMPORTS = ('superset.sql_lab', )
     CELERY_RESULT_BACKEND = 'db+sqlite:///' + app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH')
     CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
     CONCURRENCY = 1
 app.config['CELERY_CONFIG'] = CeleryConfig
 
 
-class UtilityFunctionTests(CaravelTestCase):
+class UtilityFunctionTests(SupersetTestCase):
 
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
@@ -71,7 +71,7 @@ class UtilityFunctionTests(CaravelTestCase):
             updated_multi_line_query)
 
 
-class CeleryTestCase(CaravelTestCase):
+class CeleryTestCase(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(CeleryTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
@@ -99,9 +99,9 @@ class CeleryTestCase(CaravelTestCase):
         except OSError as e:
             app.logger.warn(str(e))
 
-        utils.init(caravel)
+        utils.init(superset)
 
-        worker_command = BASE_DIR + '/bin/caravel worker'
+        worker_command = BASE_DIR + '/bin/superset worker'
         subprocess.Popen(
             worker_command, shell=True, stdout=subprocess.PIPE)
 
@@ -120,7 +120,7 @@ class CeleryTestCase(CaravelTestCase):
             shell=True
         )
         subprocess.call(
-            "ps auxww | grep 'caravel worker' | awk '{print $2}' | "
+            "ps auxww | grep 'superset worker' | awk '{print $2}' | "
             "xargs kill -9",
             shell=True
         )
@@ -129,7 +129,7 @@ class CeleryTestCase(CaravelTestCase):
                 async='false'):
         self.login()
         resp = self.client.post(
-            '/caravel/sql_json/',
+            '/superset/sql_json/',
             data=dict(
                 database_id=db_id,
                 sql=sql,
@@ -253,7 +253,7 @@ class CeleryTestCase(CaravelTestCase):
     def test_get_columns_dict(self):
         main_db = self.get_main_database(db.session)
         df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
-        cdf = dataframe.CaravelDataFrame(df)
+        cdf = dataframe.SupersetDataFrame(df)
         if main_db.sqlalchemy_uri.startswith('sqlite'):
             self.assertEqual(
                 [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',

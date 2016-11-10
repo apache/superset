@@ -10,11 +10,11 @@ import io
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from caravel import db, models, utils, appbuilder, sm
-from .base_tests import CaravelTestCase
+from superset import db, models, utils, appbuilder, sm
+from .base_tests import SupersetTestCase
 
 
-class SqlLabTests(CaravelTestCase):
+class SqlLabTests(SupersetTestCase):
     """Testings for Sql Lab"""
 
     def __init__(self, *args, **kwargs):
@@ -64,18 +64,18 @@ class SqlLabTests(CaravelTestCase):
         self.assertLess(0, len(data['data']))
 
     def test_queries_endpoint(self):
-        resp = self.client.get('/caravel/queries/{}'.format(0))
+        resp = self.client.get('/superset/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
         self.login('admin')
-        data = self.get_json_resp('/caravel/queries/{}'.format(0))
+        data = self.get_json_resp('/superset/queries/{}'.format(0))
         self.assertEquals(2, len(data))
         self.logout()
 
         self.run_sql("SELECT * FROM ab_user1", 'admin', client_id='client_id_4')
         self.run_sql("SELECT * FROM ab_user2", 'admin', client_id='client_id_5')
         self.login('admin')
-        data = self.get_json_resp('/caravel/queries/{}'.format(0))
+        data = self.get_json_resp('/superset/queries/{}'.format(0))
         self.assertEquals(4, len(data))
 
         query = db.session.query(models.Query).filter_by(
@@ -83,23 +83,23 @@ class SqlLabTests(CaravelTestCase):
         query.changed_on = utils.EPOCH
         db.session.commit()
 
-        data = self.get_json_resp('/caravel/queries/{}'.format(123456000))
+        data = self.get_json_resp('/superset/queries/{}'.format(123456000))
         self.assertEquals(3, len(data))
 
         self.logout()
-        resp = self.client.get('/caravel/queries/{}'.format(0))
+        resp = self.client.get('/superset/queries/{}'.format(0))
         self.assertEquals(403, resp.status_code)
 
     def test_search_query_on_db_id(self):
       self.login('admin')
       # Test search queries on database Id
-      resp = self.get_resp('/caravel/search_queries?database_id=1')
+      resp = self.get_resp('/superset/search_queries?database_id=1')
       data = json.loads(resp)
       self.assertEquals(3, len(data))
       db_ids = [data[k]['dbId'] for k in data]
       self.assertEquals([1, 1, 1], db_ids)
 
-      resp = self.get_resp('/caravel/search_queries?database_id=-1')
+      resp = self.get_resp('/superset/search_queries?database_id=-1')
       data = json.loads(resp)
       self.assertEquals(0, len(data))
       self.logout()
@@ -108,14 +108,14 @@ class SqlLabTests(CaravelTestCase):
       self.login('admin')
       # Test search queries on user Id
       user = appbuilder.sm.find_user('admin')
-      resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
+      resp = self.get_resp('/superset/search_queries?user_id={}'.format(user.id))
       data = json.loads(resp)
       self.assertEquals(2, len(data))
       user_ids = [data[k]['userId'] for k in data]
       self.assertEquals([user.id, user.id], user_ids)
 
       user = appbuilder.sm.find_user('gamma')
-      resp = self.get_resp('/caravel/search_queries?user_id={}'.format(user.id))
+      resp = self.get_resp('/superset/search_queries?user_id={}'.format(user.id))
       data = json.loads(resp)
       self.assertEquals(1, len(data))
       self.assertEquals(list(data.values())[0]['userId'] , user.id)
@@ -124,13 +124,13 @@ class SqlLabTests(CaravelTestCase):
     def test_search_query_on_status(self):
       self.login('admin')
       # Test search queries on status
-      resp = self.get_resp('/caravel/search_queries?status=success')
+      resp = self.get_resp('/superset/search_queries?status=success')
       data = json.loads(resp)
       self.assertEquals(2, len(data))
       states = [data[k]['state'] for k in data]
       self.assertEquals(['success', 'success'], states)
 
-      resp = self.get_resp('/caravel/search_queries?status=failed')
+      resp = self.get_resp('/superset/search_queries?status=failed')
       data = json.loads(resp)
       self.assertEquals(1, len(data))
       self.assertEquals(list(data.values())[0]['state'], 'failed')
@@ -138,7 +138,7 @@ class SqlLabTests(CaravelTestCase):
 
     def test_search_query_on_text(self):
       self.login('admin')
-      resp = self.get_resp('/caravel/search_queries?search_text=permission')
+      resp = self.get_resp('/superset/search_queries?search_text=permission')
       data = json.loads(resp)
       self.assertEquals(1, len(data))
       self.assertIn('permission', list(data.values())[0]['sql'])
@@ -154,7 +154,7 @@ class SqlLabTests(CaravelTestCase):
       from_time = 'from={}'.format(int(first_query_time))
       to_time = 'to={}'.format(int(second_query_time))
       params = [from_time, to_time]
-      resp = self.get_resp('/caravel/search_queries?'+'&'.join(params))
+      resp = self.get_resp('/superset/search_queries?'+'&'.join(params))
       data = json.loads(resp)
       self.assertEquals(2, len(data))
       for _, v in data.items():

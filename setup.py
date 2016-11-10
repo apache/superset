@@ -4,13 +4,13 @@ import json
 from setuptools import setup, find_packages
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-PACKAGE_DIR = os.path.join(BASE_DIR, 'caravel', 'static', 'assets')
+PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
 
 setup(
-    name='caravel',
+    name='superset',
     description=(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
@@ -18,7 +18,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=False,
-    scripts=['caravel/bin/caravel'],
+    scripts=['superset/bin/superset'],
     install_requires=[
         'celery==3.1.23',
         'cryptography==1.5.3',
@@ -57,9 +57,9 @@ setup(
     ],
     author='Maxime Beauchemin',
     author_email='maximebeauchemin@gmail.com',
-    url='https://github.com/airbnb/caravel',
+    url='https://github.com/airbnb/superset',
     download_url=(
-        'https://github.com/airbnb/caravel/tarball/' + version_string),
+        'https://github.com/airbnb/superset/tarball/' + version_string),
     classifiers=[
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.4',
