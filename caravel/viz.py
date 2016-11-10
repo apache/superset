@@ -23,7 +23,7 @@ from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
-from six import string_types, PY3
+from six import string_types, PY3, text_type
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -1111,7 +1111,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             if isinstance(name, string_types):
                 series_title = name
             else:
-                name = ["{}".format(s) for s in name]
+                name = [text_type(s) for s in name]
                 if len(self.form_data.get('metrics')) > 1:
                     series_title = ", ".join(name)
                 else:
@@ -1377,7 +1377,7 @@ class DistributionBarViz(DistributionPieViz):
             elif len(self.metrics) > 1:
                 series_title = ", ".join(name)
             else:
-                l = [str(s) for s in name[1:]]
+                l = [text_type(s) for s in name[1:]]
                 series_title = ", ".join(l)
             d = {
                 "key": series_title,
