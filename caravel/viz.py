@@ -68,7 +68,7 @@ class BaseViz(object):
         if isinstance(form_data, (MultiDict, ImmutableMultiDict)):
             form = form_class(form_data)
         else:
-            form = form_class(**form_data)
+            form = form_class(MultiDict(form_data))
         data = form.data.copy()
 
         if not form.validate():
