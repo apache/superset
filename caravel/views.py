@@ -1244,7 +1244,8 @@ class Caravel(BaseCaravelView):
             viz_type = args.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
-            viz_obj = viz.viz_types[viz_type](datasource, request.args)
+            viz_obj = viz.viz_types[viz_type](
+                datasource, request.args if request.args else args)
             return viz_obj
 
     @has_access
@@ -1300,6 +1301,22 @@ class Caravel(BaseCaravelView):
             db.session.commit()
             return redirect('/dashboardmodelview/list/')
         return self.render_template('caravel/import_dashboards.html')
+
+    @log_this
+    @has_access_api
+    @expose(
+        "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
+    def update_explore(self, datasource_type, datasource_id):
+        form_data = json.loads(request.form.get('data'))
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=form_data)
+        except Exception as e:
+            flash('{}'.format(e), "alert")
+            return redirect(error_redirect)
+        return viz_obj.get_json()
 
     @log_this
     @has_access
