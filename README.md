@@ -1,6 +1,5 @@
 Superset
 =========
-<img src="http://i.imgur.com/H0Kyvyi.jpg" style="border-radius: 20px; box-shadow:5px 5px 5px gray;" alt="Superset" width="500"/>
 
 [![Build Status](https://travis-ci.org/airbnb/superset.svg?branch=master)](https://travis-ci.org/airbnb/superset)
 [![PyPI version](https://badge.fury.io/py/superset.svg)](https://badge.fury.io/py/superset)
@@ -14,10 +13,10 @@ Superset
 [![Documentation](https://img.shields.io/badge/docs-airbnb.io-blue.svg)](http://airbnb.io/superset/)
 [![dependencies Status](https://david-dm.org/airbnb/superset/status.svg?path=superset/assets)](https://david-dm.org/airbnb/superset?path=superset/assets)
 
-Superset is a data exploration platform designed to be visual, intuitive
+**Superset** is a data exploration platform designed to be visual, intuitive
 and interactive.
 
-[this project used to be named **Panoramix**]
+[this project used to be named **Caravel**, and **Panoramix** in the past]
 
 
 Screenshots & Gifs
