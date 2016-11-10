@@ -17,6 +17,8 @@ const propTypes = {
   standalone_endpoint: PropTypes.string.isRequired,
   query: PropTypes.string.isRequired,
   column_formats: PropTypes.object,
+  data: PropTypes.any,
+  isChartLoading: PropTypes.bool,
 };
 
 class ChartContainer extends React.Component {
@@ -29,30 +31,34 @@ class ChartContainer extends React.Component {
   }
 
   componentWillMount() {
-    this.setState({ mockSlice: this.getMockedSliceObject() });
+    this.setState({ mockSlice: this.getMockedSliceObject(this.props) });
   }
 
   componentDidMount() {
     this.renderVis();
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+  }
+
   componentDidUpdate() {
     this.renderVis();
   }
 
-  getMockedSliceObject() {
+  getMockedSliceObject(nextProps) {
     return {
-      viewSqlQuery: this.props.query,
+      viewSqlQuery: nextProps.query,
 
       data: {
-        csv_endpoint: this.props.csv_endpoint,
-        json_endpoint: this.props.json_endpoint,
-        standalone_endpoint: this.props.standalone_endpoint,
+        csv_endpoint: nextProps.csv_endpoint,
+        json_endpoint: nextProps.json_endpoint,
+        standalone_endpoint: nextProps.standalone_endpoint,
       },
 
-      containerId: this.props.containerId,
+      containerId: nextProps.containerId,
 
-      jsonEndpoint: () => this.props.json_endpoint,
+      jsonEndpoint: () => nextProps.json_endpoint,
 
       container: {
         html: (data) => {
@@ -66,7 +72,7 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(this.props.height, 10) - 100,
+        height: () => parseInt(nextProps.height, 10) - 100,
 
         show: () => { this.render(); },
 
@@ -78,7 +84,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(this.props.height, 10) - 100,
+      height: () => parseInt(nextProps.height, 10) - 100,
 
       selector: this.state.selector,
 
@@ -128,6 +134,7 @@ class ChartContainer extends React.Component {
     };
   }
 
+
   renderVis() {
     visMap[this.props.viz_type](this.state.mockSlice).render();
   }
@@ -152,11 +159,13 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
-          <div
-            id={this.props.containerId}
-            ref={(ref) => { this.chartContainerRef = ref; }}
-            className={this.props.viz_type}
-          />
+          {!this.props.isChartLoading &&
+            <div
+              id={this.props.containerId}
+              ref={(ref) => { this.chartContainerRef = ref; }}
+              className={this.props.viz_type}
+            />
+          }
         </Panel>
       </div>
     );
@@ -168,7 +177,7 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   return {
     containerId: `slice-container-${state.viz.form_data.slice_id}`,
-    slice_name: state.viz.form_data.slice_name,
+    slice_name: state.viz.slice_name,
     viz_type: state.viz.form_data.viz_type,
     can_download: state.can_download,
     csv_endpoint: state.viz.csv_endpoint,
@@ -176,6 +185,8 @@ function mapStateToProps(state) {
     standalone_endpoint: state.viz.standalone_endpoint,
     query: state.viz.query,
     column_formats: state.viz.column_formats,
+    data: state.viz.data,
+    isChartLoading: state.isChartLoading,
   };
 }
 

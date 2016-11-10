@@ -1244,7 +1244,8 @@ class Superset(BaseSupersetView):
             viz_type = args.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
-            viz_obj = viz.viz_types[viz_type](datasource, request.args)
+            viz_obj = viz.viz_types[viz_type](
+                datasource, request.args if request.args else args)
             return viz_obj
 
     @has_access
@@ -1252,6 +1253,22 @@ class Superset(BaseSupersetView):
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
         return redirect(viz_obj.get_url(**request.args))
+
+    @log_this
+    @has_access_api
+    @expose(
+        "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
+    def update_explore(self, datasource_type, datasource_id):
+        form_data = json.loads(request.form.get('data'))
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=form_data)
+        except Exception as e:
+            flash('{}'.format(e), "alert")
+            return redirect(error_redirect)
+        return viz_obj.get_json()
 
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
@@ -1370,6 +1387,8 @@ class Superset(BaseSupersetView):
                 "can_download": slice_download_perm,
                 "can_edit": slice_edit_perm,
                 # TODO: separate endpoint for fetching datasources
+                "slice_id": slice_id,
+                "slice_name": slc.slice_name,
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
                 "datasource_type": datasource_type,

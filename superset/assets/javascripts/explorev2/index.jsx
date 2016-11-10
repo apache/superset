@@ -19,6 +19,9 @@ const bootstrappedState = Object.assign(initialState, {
   datasource_type: bootstrapData.datasource_type,
   viz: bootstrapData.viz,
 });
+bootstrappedState.viz.slice_id = bootstrapData.slice_id;
+bootstrappedState.viz.slice_name = bootstrapData.slice_name;
+
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
 );

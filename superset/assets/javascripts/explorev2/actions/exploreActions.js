@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
 export const SET_DATASOURCE = 'SET_DATASOURCE';
 export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
@@ -12,6 +13,7 @@ export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
 export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
+export const UPDATE_VIZ = 'UPDATE_VIZ';
 
 export function setFieldOptions(options) {
   return { type: SET_FIELD_OPTIONS, options };
@@ -85,3 +87,39 @@ export function changeFilterValue(filter, value) {
 export function setFieldValue(key, value) {
   return { type: SET_FIELD_VALUE, key, value };
 }
+
+export function updateViz(viz) {
+  return { type: UPDATE_VIZ, viz };
+}
+
+export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
+export function chartUpdateStarted() {
+  return { type: CHART_UPDATE_STARTED };
+}
+
+export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED ';
+export function chartUpdateFailed() {
+  return { type: CHART_UPDATE_FAILED };
+}
+export function updateExplore(datasource_type, datasource_id, form_data) {
+  return function (dispatch) {
+    dispatch(chartUpdateStarted);
+    const updateUrl =
+    `/superset/update_explore/${datasource_type}/${datasource_id}/`;
+
+    $.ajax({
+      type: 'POST',
+      url: updateUrl,
+      data: {
+        data: JSON.stringify(form_data),
+      },
+      success: (data) => {
+        dispatch(updateViz(JSON.parse(data)));
+      },
+      error(error) {
+        dispatch(chartUpdateFailed(error));
+      },
+    });
+  };
+}
+
