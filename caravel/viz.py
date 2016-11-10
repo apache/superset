@@ -450,6 +450,13 @@ class TableViz(BaseViz):
                 self.form_data.get("granularity") == "all" and
                 'timestamp' in df):
             del df['timestamp']
+        metrics = self.form_data.get('metrics') or ['count']
+        metrics = list(set(metrics) & set(df.columns.values))
+        if len(metrics) > 0 and not self.form_data.get('all_columns'):
+            sum_metrics = df[metrics].sum()
+            df_sum = pd.DataFrame(data=sum_metrics).T
+            df_sum = df_sum.reindex(columns=df.columns, fill_value="-")
+            df = df.append(df_sum, ignore_index=True)
         return df
 
     def get_data(self):

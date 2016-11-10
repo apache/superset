@@ -63,6 +63,31 @@ function tableVis(slice) {
           return d;
         });
 
+      var all_columns = form_data.all_columns;
+      if (all_columns == null || all_columns.length == 0) {
+        var sum_row = data.records.pop();
+        var tfoot = table.append('tfoot');
+        tfoot.append('tr')
+          .selectAll('th')
+          .data(data.columns).enter()
+          .append('th')
+          .text(function (d) {
+            return "Total " + d;
+          });
+        tfoot.append('tr')
+          .selectAll('td')
+          .data(data.columns).enter()
+          .append('td')
+          .text(function (d) {
+            var val = sum_row[d];
+            if (metrics.indexOf(d) >= 0) {
+              return slice.d3format(d, val);
+            } else {
+              return val;
+            }
+          });
+      }
+
       table.append('tbody')
         .selectAll('tr')
         .data(data.records)
