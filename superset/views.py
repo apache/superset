@@ -1260,6 +1260,7 @@ class Superset(BaseSupersetView):
         "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
     def update_explore(self, datasource_type, datasource_id):
         form_data = json.loads(request.form.get('data'))
+        error_redirect = '/slicemodelview/list/'
         try:
             viz_obj = self.get_viz(
                 datasource_type=datasource_type,

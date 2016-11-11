@@ -28,10 +28,11 @@ class ExploreViewContainer extends React.Component {
 
   onQuery() {
     const data = {};
-    Object.keys(this.props.form_data).forEach((field) => {
+    const form_data = this.props.form_data;
+    Object.keys(form_data).forEach((field) => {
       // filter out null fields
-      if (field !== null) {
-        data[field] = this.props.form_data[field];
+      if (form_data[field] !== null) {
+        data[field] = form_data[field];
       }
     });
     data.V2 = true;
