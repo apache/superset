@@ -26,18 +26,18 @@ const defaultProps = {
 
 export default class SelectField extends React.Component {
   onChange(opt) {
+    let optionValue = opt ? opt.value : null;
+    // if multi, return options values as an array
     if (this.props.multi) {
-      this.props.onChange(
-        this.props.name, opt ? opt.map((o) => (o.value)) : null);
-    } else {
-      this.props.onChange(this.props.name, opt ? opt.value : null);
+      optionValue = opt ? opt.map((o) => o.value) : null;
     }
+    this.props.onChange(this.props.name, optionValue);
   }
   render() {
     const options = this.props.choices.map((c) => ({ value: c[0], label: c[1] }));
     if (this.props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
-      const values = this.props.choices.map((c) => (c[0]));
+      const values = this.props.choices.map((c) => c[0]);
       if (values.indexOf(this.props.value) === -1) {
         options.push({ value: this.props.value, label: this.props.value });
       }
