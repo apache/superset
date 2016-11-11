@@ -8,6 +8,7 @@ from builtins import object
 from datetime import date, datetime
 import decimal
 import functools
+from itertools import product
 import json
 import logging
 import pytz
@@ -226,24 +227,38 @@ class JSONEncodedDict(TypeDecorator):
 
 def init(superset):
     """Inits the Superset application with security roles and such"""
-    ADMIN_ONLY_VIEW_MENUES = set([
+    READ_ONLY_MODELVIEWS = {
+        'DatabaseAsync',
+        'DatabaseView',
+        'DruidClusterModelView',
+    }
+    ADMIN_ONLY_VIEW_MENUES = {
+        'AccessRequestsModelView',
+        'Manage',
+        'SQL Lab',
+        'Refresh Druid Metadata',
         'ResetPasswordView',
         'RoleModelView',
         'Security',
         'UserDBModelView',
-        'SQL Lab',
-        'AccessRequestsModelView',
-        'Manage',
-    ])
+    } | READ_ONLY_MODELVIEWS
 
-    ADMIN_ONLY_PERMISSIONS = set([
+    ADMIN_ONLY_PERMISSIONS = {
+        'all_datasource_access',
+        'all_database_access',
+        'datasource_access',
+        'database_access',
+        'can_sql_json',
         'can_sync_druid_source',
         'can_override_role_permissions',
         'can_approve',
-    ])
+    }
+    READ_ONLY_PERMISSION = {
+        'can_show',
+        'can_list',
+    }
 
     ALPHA_ONLY_PERMISSIONS = set([
-        'all_datasource_access',
         'can_add',
         'can_download',
         'can_delete',
@@ -253,49 +268,77 @@ def init(superset):
         'database_access',
         'muldelete',
     ])
+    READ_ONLY_PRODUCT = set(
+        product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
 
     db = superset.db
     models = superset.models
     config = superset.app.config
     sm = superset.appbuilder.sm
+
+    # Creating default roles
     alpha = sm.add_role("Alpha")
     admin = sm.add_role("Admin")
+    gamma = sm.add_role("Gamma")
+    public = sm.add_role("Public")
+    sql_lab = sm.add_role("sql_lab")
+
     get_or_create_main_db(superset)
 
+    # Global perms
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
+    merge_perm(sm, 'all_database_access', 'all_database_access')
 
     perms = db.session.query(ab_models.PermissionView).all()
-    # set alpha and admin permissions
-    for perm in perms:
-        if (
-                perm.permission and
-                perm.permission.name in ('datasource_access', 'database_access')):
-            continue
-        if (
-                perm.view_menu and
-                perm.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
-                perm.permission and
-                perm.permission.name not in ADMIN_ONLY_PERMISSIONS):
+    perms = [p for p in perms if p.permission and p.view_menu]
 
-            sm.add_permission_role(alpha, perm)
-        sm.add_permission_role(admin, perm)
+    # set admin perms
+    for p in perms:
+        sm.add_permission_role(admin, p)
 
-    gamma = sm.add_role("Gamma")
-    public_role = sm.find_role("Public")
-    public_role_like_gamma = \
-        public_role and config.get('PUBLIC_ROLE_LIKE_GAMMA', False)
-
-    # set gamma permissions
-    for perm in perms:
+    # set alpha perms
+    for p in perms:
         if (
-                perm.view_menu and
-                perm.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
-                perm.permission and
-                perm.permission.name not in ADMIN_ONLY_PERMISSIONS and
-                perm.permission.name not in ALPHA_ONLY_PERMISSIONS):
-            sm.add_permission_role(gamma, perm)
-            if public_role_like_gamma:
-                sm.add_permission_role(public_role, perm)
+                (
+                    p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
+                    p.permission.name not in ADMIN_ONLY_PERMISSIONS
+                ) or
+                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
+            ):
+            sm.add_permission_role(alpha, p)
+        else:
+            sm.del_permission_role(alpha, p)
+
+    # set gamma permissions and public to be alike if specified
+    PUBLIC_ROLE_LIKE_GAMMA = config.get('PUBLIC_ROLE_LIKE_GAMMA', False)
+    for p in perms:
+        if (
+                (
+                    p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
+                    p.permission.name not in ADMIN_ONLY_PERMISSIONS and
+                    p.permission.name not in ALPHA_ONLY_PERMISSIONS
+                ) or
+                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
+        ):
+            sm.add_permission_role(gamma, p)
+            if PUBLIC_ROLE_LIKE_GAMMA:
+                sm.add_permission_role(public, p)
+        else:
+            sm.del_permission_role(gamma, p)
+            sm.del_permission_role(public, p)
+
+    # Managing the sql_lab role
+    for p in perms:
+        if (
+                p.view_menu.name in {'SQL Lab'} or
+                p.permission.name in {
+                    'can_sql_json', 'can_csv', 'can_search_queries'}
+        ):
+            sm.add_permission_role(sql_lab, p)
+        else:
+            sm.del_permission_role(sql_lab, p)
+
+    # Making sure all data source perms have been created
     session = db.session()
     table_perms = [
         table.perm for table in session.query(models.SqlaTable).all()]
@@ -304,6 +347,7 @@ def init(superset):
     for table_perm in table_perms:
         merge_perm(sm, 'datasource_access', table_perm)
 
+    # Making sure all database perms have been created
     db_perms = [db.perm for db in session.query(models.Database).all()]
     for db_perm in db_perms:
         merge_perm(sm, 'database_access', db_perm)

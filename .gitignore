@@ -8,6 +8,7 @@ changelog.sh
 _build
 _static
 _images
+_modules
 superset/bin/supersetc
 env_py3
 .eggs

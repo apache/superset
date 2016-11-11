@@ -160,20 +160,20 @@ class SupersetTestCase(unittest.TestCase):
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
 
-    def setup_public_access_for_dashboard(self, table_name):
+    def grant_public_access_to_table(self, table):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (perm.permission.name == 'datasource_access' and
-                    perm.view_menu and table_name in perm.view_menu.name):
+                    perm.view_menu and table.perm in perm.view_menu.name):
                 appbuilder.sm.add_permission_role(public_role, perm)
 
-    def revoke_public_access(self, table_name):
+    def revoke_public_access_to_table(self, table):
         public_role = appbuilder.sm.find_role('Public')
         perms = db.session.query(ab_models.PermissionView).all()
         for perm in perms:
             if (perm.permission.name == 'datasource_access' and
-                    perm.view_menu and table_name in perm.view_menu.name):
+                    perm.view_menu and table.perm in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
 
     def run_sql(self, sql, user_name, client_id):

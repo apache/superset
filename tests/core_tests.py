@@ -299,32 +299,39 @@ class CoreTests(SupersetTestCase):
         self.logout()
 
     def test_public_user_dashboard_access(self):
+        table = (
+            db.session
+            .query(models.SqlaTable)
+            .filter_by(table_name='birth_names')
+            .one()
+        )
+        print(table.perm)
         # Try access before adding appropriate permissions.
-        self.revoke_public_access('birth_names')
+        self.revoke_public_access_to_table(table)
         self.logout()
 
         resp = self.get_resp('/slicemodelview/list/')
-        assert 'birth_names</a>' not in resp
+        self.assertNotIn('birth_names</a>', resp)
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert '/superset/dashboard/births/' not in resp
+        self.assertNotIn('/superset/dashboard/births/', resp)
 
-        self.setup_public_access_for_dashboard('birth_names')
+        self.grant_public_access_to_table(table)
 
         # Try access after adding appropriate permissions.
-        assert 'birth_names' in self.get_resp('/slicemodelview/list/')
+        self.assertIn('birth_names', self.get_resp('/slicemodelview/list/'))
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert "/superset/dashboard/births/" in resp
+        self.assertIn("/superset/dashboard/births/", resp)
 
-        assert 'Births' in self.get_resp('/superset/dashboard/births/')
+        self.assertIn('Births', self.get_resp('/superset/dashboard/births/'))
 
         # Confirm that public doesn't have access to other datasets.
         resp = self.get_resp('/slicemodelview/list/')
-        assert 'wb_health_population</a>' not in resp
+        self.assertNotIn('wb_health_population</a>', resp)
 
         resp = self.get_resp('/dashboardmodelview/list/')
-        assert "/superset/dashboard/world_health/" not in resp
+        self.assertNotIn("/superset/dashboard/world_health/", resp)
 
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()

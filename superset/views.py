@@ -10,7 +10,6 @@ import re
 import sys
 import time
 import traceback
-import zlib
 from datetime import datetime, timedelta
 
 import functools
@@ -28,14 +27,13 @@ from flask_babel import lazy_gettext as _
 from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend
+    sm, ascii_art, sql_lab, results_backend,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -55,12 +53,17 @@ class BaseSupersetView(BaseView):
             "all_datasource_access", "all_datasource_access")
 
     def database_access(self, database):
-        return (self.all_datasource_access() or
-                self.can_access("database_access", database.perm))
+        return (
+            self.can_access("all_database_access", "all_database_access") or
+            self.can_access("database_access", database.perm)
+        )
 
     def datasource_access(self, datasource):
-        return (self.database_access(datasource.database) or
-                self.can_access("datasource_access", datasource.perm))
+        return (
+            self.database_access(datasource.database) or
+            self.can_access("all_database_access", "all_database_access") or
+            self.can_access("datasource_access", datasource.perm)
+        )
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -181,47 +184,94 @@ def get_user_roles():
 
 
 class SupersetFilter(BaseFilter):
-    def get_perms(self):
-        perms = []
+    """Add utility function to make BaseFilter easy and fast
+
+    These utility function exist in the SecurityManager, but would do
+    a database round trip at every check. Here we cache the role objects
+    to be able to make multiple checks but query the db only once
+    """
+    def get_user_roles(self):
+        attr = '__get_user_roles'
+        if not hasattr(self, attr):
+            setattr(self, attr, get_user_roles())
+        return getattr(self, attr)
+
+    def get_all_permissions(self):
+        """Returns a set of tuples with the perm name and view menu name"""
+        perms = set()
         for role in get_user_roles():
             for perm_view in role.permissions:
-                if perm_view.permission.name == 'datasource_access':
-                    perms.append(perm_view.view_menu.name)
+                t = (perm_view.permission.name, perm_view.view_menu.name)
+                perms.add(t)
         return perms
 
+    def has_role(self, role_name_or_list):
+        """Whether the user has this role name"""
+        if not isinstance(role_name_or_list, list):
+            role_name_or_list = [role_name_or_list]
+        return any(
+            [r.name in role_name_or_list for r in self.get_user_roles()])
 
-class TableSlice(SupersetFilter):
+    def has_perm(self, permission_name, view_menu_name):
+        """Whether the user has this perm"""
+        return (permission_name, view_menu_name) in self.get_all_permissions()
+
+    def get_view_menus(self, permission_name):
+        """Returns the details of view_menus for a perm name"""
+        vm = set()
+        for perm_name, vm_name in self.get_all_permissions():
+            if perm_name == permission_name:
+                vm.add(vm_name)
+        return vm
+
+    def has_all_datasource_access(self):
+        return (
+            self.has_role(['Admin', 'Alpha']) or
+            self.has_perm('all_datasource_access', 'all_datasource_access'))
+
+
+class DatabaseFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if (
+                self.has_role('Admin') or
+                self.has_perm('all_database_access', 'all_database_access')):
             return query
-        perms = self.get_perms()
-        tables = []
-        for perm in perms:
-            match = re.search(r'\(id:(\d+)\)', perm)
-            tables.append(match.group(1))
-        qry = query.filter(self.model.id.in_(tables))
-        return qry
+        perms = self.get_view_menus('database_access')
+        ids = [
+            o.id for o in db.session.query(self.model).all()
+            if o.perm in perms
+        ]
+        return query.filter(self.model.id.in_(ids))
 
 
-class FilterSlice(SupersetFilter):
+class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if self.has_all_datasource_access():
             return query
-        qry = query.filter(self.model.perm.in_(self.get_perms()))
-        return qry
+        perms = self.get_view_menus('datasource_access')
+        return query.filter(self.model.perm.in_(perms))
 
 
-class FilterDashboard(SupersetFilter):
+class SliceFilter(SupersetFilter):
+    def apply(self, query, func):  # noqa
+        if self.has_all_datasource_access():
+            return query
+        perms = self.get_view_menus('datasource_access')
+        return query.filter(self.model.perm.in_(perms))
+
+
+class DashboardFilter(SupersetFilter):
     """List dashboards for which users have access to at least one slice"""
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if self.has_all_datasource_access():
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
+        datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
             db.session
             .query(Slice.id)
-            .filter(Slice.perm.in_(self.get_perms()))
+            .filter(Slice.perm.in_(datasource_perms))
         )
         query = query.filter(
             Dash.id.in_(
@@ -232,37 +282,6 @@ class FilterDashboard(SupersetFilter):
             )
         )
         return query
-
-
-class FilterDashboardSlices(SupersetFilter):
-    def apply(self, query, value):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        qry = query.filter(self.model.perm.in_(self.get_perms()))
-        return qry
-
-
-class FilterDashboardOwners(SupersetFilter):
-    def apply(self, query, value):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        qry = query.filter_by(id=g.user.id)
-        return qry
-
-
-class FilterDruidDatasource(SupersetFilter):
-    def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        perms = self.get_perms()
-        druid_datasources = []
-        for perm in perms:
-            match = re.search(r'\(id:(\d+)\)', perm)
-            if match:
-                druid_datasources.append(match.group(1))
-        qry = query.filter(self.model.id.in_(druid_datasources))
-        return qry
-
 
 def validate_json(form, field):  # noqa
     try:
@@ -578,6 +597,7 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
+    base_filters = [['id', DatabaseFilter, lambda: []]]
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
@@ -622,7 +642,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
             "run a query against this string as a subquery."
         ),
     }
-    base_filters = [['id', TableSlice, lambda: []]]
+    base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
         'link': _("Table"),
         'changed_by_': _("Changed By"),
@@ -769,7 +789,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             "Duration (in seconds) of the caching timeout for this slice."
         ),
     }
-    base_filters = [['id', FilterSlice, lambda: []]]
+    base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
         'cache_timeout': _("Cache Timeout"),
         'creator': _("Creator"),
@@ -865,15 +885,11 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             "want to alter specific parameters."),
         'owners': _("Owners is a list of users who can alter the dashboard."),
     }
-    base_filters = [['slice', FilterDashboard, lambda: []]]
+    base_filters = [['slice', DashboardFilter, lambda: []]]
     add_form_query_rel_fields = {
-        'slices': [['slices', FilterDashboardSlices, None]],
-        'owners': [['owners', FilterDashboardOwners, None]],
+        'slices': [['slices', SliceFilter, None]],
     }
-    edit_form_query_rel_fields = {
-        'slices': [['slices', FilterDashboardSlices, None]],
-        'owners': [['owners', FilterDashboardOwners, None]],
-    }
+    edit_form_query_rel_fields = add_form_query_rel_fields
     label_columns = {
         'dashboard_link': _("Dashboard"),
         'dashboard_title': _("Title"),
@@ -985,7 +1001,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
-    base_filters = [['id', FilterDruidDatasource, lambda: []]]
+    base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
@@ -1864,29 +1880,6 @@ class Superset(BaseSupersetView):
         return redirect(url)
 
     @has_access
-    @expose("/sql/<database_id>/")
-    @log_this
-    def sql(self, database_id):
-        if not self.all_datasource_access():
-            flash(ALL_DATASOURCE_ACCESS_ERR, "danger")
-            return redirect("/tablemodelview/list/")
-
-        mydb = db.session.query(
-            models.Database).filter_by(id=database_id).first()
-        if not self.database_access(mydb.perm):
-            flash(get_database_access_error_msg(mydb.database_name), "danger")
-            return redirect("/tablemodelview/list/")
-        engine = mydb.get_sqla_engine()
-        tables = engine.table_names()
-
-        table_name = request.args.get('table_name')
-        return self.render_template(
-            "superset/sql.html",
-            tables=tables,
-            table_name=table_name,
-            db=mydb)
-
-    @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
@@ -1990,7 +1983,6 @@ class Superset(BaseSupersetView):
         return "nope"
 
     @has_access_api
-    @expose("/results/<key>/")
     @log_this
     def results(self, key):
         """Serves a key off of the results backend"""
@@ -2020,6 +2012,7 @@ class Superset(BaseSupersetView):
                 }),
                 status=410,
                 mimetype="application/json")
+
 
     @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
@@ -2301,6 +2294,7 @@ appbuilder.add_view_no_menu(Superset)
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
+        label=__("Refresh Druid Metadata"),
         href='/superset/refresh_datasources/',
         category='Sources',
         category_label=__("Sources"),
