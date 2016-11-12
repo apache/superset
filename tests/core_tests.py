@@ -305,7 +305,6 @@ class CoreTests(SupersetTestCase):
             .filter_by(table_name='birth_names')
             .one()
         )
-        print(table.perm)
         # Try access before adding appropriate permissions.
         self.revoke_public_access_to_table(table)
         self.logout()

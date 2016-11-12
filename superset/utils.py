@@ -304,7 +304,7 @@ def init(superset):
                     p.permission.name not in ADMIN_ONLY_PERMISSIONS
                 ) or
                 (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
-            ):
+        ):
             sm.add_permission_role(alpha, p)
         else:
             sm.del_permission_role(alpha, p)
