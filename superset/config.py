@@ -247,6 +247,7 @@ JINJA_CONTEXT_ADDONS = {}
 
 try:
     from superset_config import *  # noqa
+    print('Loaded your LOCAL configuration')
 except ImportError:
     pass
 

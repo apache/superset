@@ -1307,7 +1307,9 @@ class Superset(BaseSupersetView):
     def explore(self, datasource_type, datasource_id):
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
-        slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+        slc = None
+        if slice_id:
+            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
