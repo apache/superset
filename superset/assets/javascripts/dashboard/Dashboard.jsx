@@ -19,9 +19,11 @@ export function getInitialState(dashboardData, context) {
   dashboard.firstLoad = true;
 
   dashboard.posDict = {};
-  dashboard.position_json.forEach(position => {
-    dashboard.posDict[position.slice_id] = position;
-  });
+  if (dashboard.position_json) {
+    dashboard.position_json.forEach(position => {
+      dashboard.posDict[position.slice_id] = position;
+    });
+  }
   dashboard.curUserId = dashboard.context.user_id;
   dashboard.refreshTimer = null;
 
