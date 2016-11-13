@@ -1015,11 +1015,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         if granularity:
 
-            # TODO: sqlalchemy 1.2 release should be doing this on its own.
-            # Patch only if the column clause is specific for DateTime set and
-            # granularity is selected.
-            @compiles(ColumnClause)
             def visit_column(element, compiler, **kw):
+                """Patch for sqlalchemy bug
+
+                TODO: sqlalchemy 1.2 release should be doing this on its own.
+                Patch only if the column clause is specific for DateTime
+                set and granularity is selected.
+                """
                 text = compiler.visit_column(element, **kw)
                 try:
                     if (
@@ -1029,7 +1031,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                     ):
                         text = text.replace('%%', '%')
                 except NotImplementedError:
-                    pass  # Some elements raise NotImplementedError for python_type
+                    # Some elements raise NotImplementedError for python_type
+                    pass
                 return text
 
             dttm_col = cols[granularity]
@@ -1423,10 +1426,9 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
 
     def get_timestamp_expression(self, time_grain):
         """Getting the time component of the query"""
+        expr = self.expression or self.column_name
         if not self.expression and not time_grain:
             return column(expr, type_=DateTime).label(DTTM_ALIAS)
-
-        expr = self.expression or self.column_name
         if time_grain:
             pdf = self.python_date_format
             if pdf in ('epoch_s', 'epoch_ms'):
