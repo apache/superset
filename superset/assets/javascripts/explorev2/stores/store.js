@@ -1278,7 +1278,7 @@ export const fields = {
   },
 
   series_height: {
-    type: 'SelectCustomMultiField',
+    type: 'FreeFormSelectField',
     label: 'Series Height',
     default: 25,
     choices: formatSelectOptions([10, 25, 40, 50, 75, 100, 150, 200]),
@@ -1286,7 +1286,7 @@ export const fields = {
   },
 
   x_axis_format: {
-    type: 'SelectCustomMultiField',
+    type: 'FreeFormSelectField',
     label: 'X axis format',
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -1294,7 +1294,7 @@ export const fields = {
   },
 
   y_axis_format: {
-    type: 'SelectCustomMultiField',
+    type: 'FreeFormSelectField',
     label: 'Y axis format',
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,

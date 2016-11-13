@@ -14,7 +14,7 @@ const propTypes = {
   places: PropTypes.number,
   validators: PropTypes.any,
   onChange: React.PropTypes.func,
-  value: PropTypes.oneOf([PropTypes.string, PropTypes.bool, PropTypes.array]).isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.bool, PropTypes.array]).isRequired,
 };
 
 const defaultProps = {
@@ -40,10 +40,11 @@ export default class FieldSet extends React.Component {
       />);
   }
 
-  renderSelectField() {
+  renderSelectField(selectProps) {
     return (
       <SelectField
         {...this.props}
+        {...selectProps}
       />);
   }
 
@@ -56,18 +57,18 @@ export default class FieldSet extends React.Component {
 
   render() {
     const type = this.props.type;
-    const selectTypes = [
-      'SelectField',
-      'SelectCustomMultiField',
-      'SelectMultipleSortableField',
-      'FreeFormSelectField',
-    ];
+    const selectProps = {
+      SelectCustomMultiField: { multi: true, freeForm: true },
+      SelectMultipleSortableField: { multi: true, freeForm: false },
+      SelectField: { multi: false, freeForm: false },
+      FreeFormSelectField: { multi: false, freeForm: true },
+    };
     let field;
 
     if (type === 'CheckboxField') {
       field = this.renderCheckBoxField();
-    } else if (selectTypes.includes(type)) {
-      field = this.renderSelectField();
+    } else if (Object.keys(selectProps).includes(type)) {
+      field = this.renderSelectField(selectProps[type]);
     } else if (['TextField', 'IntegerField'].includes(type)) {
       field = this.renderTextField();
     } else if (type === 'TextAreaField') {
