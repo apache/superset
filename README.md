@@ -113,8 +113,7 @@ Resources
 -------------
 * [Superset Google Group](https://groups.google.com/forum/#!forum/airbnb_superset)
 * [Gitter (live chat) Channel](https://gitter.im/airbnb/superset)
-* [Docker image 1](https://hub.docker.com/r/kochalex/superset/)
-  [Docker image 2](https://hub.docker.com/r/amancevice/superset/) (community contributed)
+* [Docker image](https://hub.docker.com/r/amancevice/superset/) (community contributed)
 * [Slides from Strata (March 2016)](https://drive.google.com/open?id=0B5PVE0gzO81oOVJkdF9aNkJMSmM)
 
 
