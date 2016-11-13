@@ -11,7 +11,7 @@ const $ = require('jquery');
 const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
-  slice_id: React.PropTypes.number.isRequired,
+  slice_id: React.PropTypes.string.isRequired,
   slice_name: React.PropTypes.string.isRequired,
   datasource_id: React.PropTypes.number.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
@@ -35,24 +35,32 @@ class ExploreViewContainer extends React.Component {
         data[field] = form_data[field];
       }
     });
+    // V2 tag temporarily for updating url
+    // Todo: remove after launch
     data.V2 = true;
     data.datasource_id = this.props.datasource_id;
     data.datasource_type = this.props.datasource_type;
-    data.slice_id = this.props.slice_id;
-    data.slice_name = this.props.slice_name;
-    this.props.actions.updateExplore(
-      this.props.datasource_type, this.props.datasource_id, data);
+    this.queryFormData(data);
 
     const params = $.param(data, true);
+    this.updateUrl(params);
+  }
+
+  getHeight() {
+    const navHeight = 90;
+    return `${window.innerHeight - navHeight}px`;
+  }
+
+  updateUrl(params) {
     const baseUrl =
       `/superset/explore/${this.props.datasource_type}/${this.props.datasource_id}/`;
     const newEndpoint = `${baseUrl}?${params}`;
     history.pushState({}, document.title, newEndpoint);
   }
 
-  getHeight() {
-    const navHeight = 90;
-    return `${window.innerHeight - navHeight}px`;
+  queryFormData(data) {
+    this.props.actions.updateExplore(
+      this.props.datasource_type, this.props.datasource_id, data);
   }
 
   render() {
@@ -94,8 +102,8 @@ function mapStateToProps(state) {
     datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
-    slice_id: state.viz.slice_id,
-    slice_name: state.viz.slice_name,
+    slice_id: state.viz.form_data.slice_id,
+    slice_name: state.viz.form_data.slice_name,
   };
 }
 

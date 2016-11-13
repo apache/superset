@@ -1630,6 +1630,8 @@ export const fields = {
 
 export function defaultFormData() {
   const data = {};
+  data.slice_name = null;
+  data.slice_id = null;
   Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
   return data;
 }
@@ -1645,8 +1647,6 @@ export const defaultViz = {
   form_data: defaultFormData(),
   json_endpoint: null,
   query: null,
-  slice_name: null,
-  slice_id: null,
   standalone_endpoint: null,
 };
 

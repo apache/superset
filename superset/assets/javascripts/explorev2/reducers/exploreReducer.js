@@ -68,7 +68,7 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
-    [actions.UPDATE_VIZ]() {
+    [actions.UPDATE_CHART]() {
       const vizUpdates = {
         column_formats: action.viz.column_formats,
         json_endpoint: action.viz.json_endpoint,

@@ -1388,8 +1388,6 @@ class Superset(BaseSupersetView):
                 "can_download": slice_download_perm,
                 "can_edit": slice_edit_perm,
                 # TODO: separate endpoint for fetching datasources
-                "slice_id": slice_id,
-                "slice_name": slc.slice_name,
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
                 "datasource_type": datasource_type,
