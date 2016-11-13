@@ -1015,6 +1015,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         if granularity:
 
+            @compiles(ColumnClause)
             def visit_column(element, compiler, **kw):
                 """Patch for sqlalchemy bug
 
