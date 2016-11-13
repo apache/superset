@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from datetime import datetime, timedelta
 import json
 import logging
 import pickle
@@ -10,7 +11,7 @@ import re
 import sys
 import time
 import traceback
-from datetime import datetime, timedelta
+import zlib
 
 import functools
 import sqlalchemy as sqla
@@ -184,12 +185,14 @@ def get_user_roles():
 
 
 class SupersetFilter(BaseFilter):
+
     """Add utility function to make BaseFilter easy and fast
 
     These utility function exist in the SecurityManager, but would do
     a database round trip at every check. Here we cache the role objects
     to be able to make multiple checks but query the db only once
     """
+
     def get_user_roles(self):
         attr = '__get_user_roles'
         if not hasattr(self, attr):
@@ -261,7 +264,9 @@ class SliceFilter(SupersetFilter):
 
 
 class DashboardFilter(SupersetFilter):
+
     """List dashboards for which users have access to at least one slice"""
+
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query

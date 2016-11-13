@@ -13,8 +13,7 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-import superset
-from superset import app, ascii_art, db, data, utils
+from superset import app, ascii_art, db, data, security
 
 config = app.config
 
@@ -61,7 +60,7 @@ def runserver(debug, address, port, timeout, workers):
 @manager.command
 def init():
     """Inits the Superset application"""
-    utils.init(superset)
+    security.sync_role_definitions()
 
 @manager.option(
     '-v', '--verbose', action='store_true',
