@@ -171,7 +171,7 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         indexes = self.database.get_indexes(table_name, schema)
         part_fields = indexes[0]['column_names']
         for k in kwargs.keys():
-            if k not in k in part_field:
+            if k not in k in part_fields:
                 msg = "Field [{k}] is not part of the partionning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:

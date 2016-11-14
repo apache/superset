@@ -112,14 +112,18 @@ def load_examples(load_test_data):
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()
 
-@manager.command
-def refresh_druid():
-    """Refresh all druid datasources"""
+@manager.option(
+    '-d', '--datasource',
+    help=(
+        "Specify which datasource name to load, if omitted, all "
+        "datasources will be refreshed"))
+def refresh_druid(datasource):
+    """Refresh druid datasources"""
     session = db.session()
     from superset import models
     for cluster in session.query(models.DruidCluster).all():
         try:
-            cluster.refresh_datasources()
+            cluster.refresh_datasources(datasource_name=datasource)
         except Exception as e:
             print(
                 "Error while processing cluster '{}'\n{}".format(

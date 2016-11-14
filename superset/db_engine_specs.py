@@ -174,8 +174,11 @@ class PrestoEngineSpec(BaseEngineSpec):
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
-        if target_type.upper() in ('DATE', 'DATETIME'):
-            return "from_iso8601_date('{}')".format(dttm.isoformat())
+        tt = target_type.upper()
+        if tt == 'DATE':
+            return "from_iso8601_date('{}')".format(dttm.isoformat()[:10])
+        if tt == 'TIMESTAMP':
+            return "from_iso8601_timestamp('{}')".format(dttm.isoformat())
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod

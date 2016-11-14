@@ -55,6 +55,7 @@
     "font-awesome": "^4.6.3",
     "gridster": "^0.5.6",
     "immutability-helper": "^2.0.0",
+    "immutable": "^3.8.1",
     "jquery": "^2.2.1",
     "jquery-ui": "1.10.5",
     "mapbox-gl": "^0.26.0",
