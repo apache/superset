@@ -1259,6 +1259,8 @@ class Superset(BaseSupersetView):
     @expose(
         "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
     def update_explore(self, datasource_type, datasource_id):
+        """ Send back new viz on POST request """
+        """ to update explore view with new form data."""
         form_data = json.loads(request.form.get('data'))
         error_redirect = '/slicemodelview/list/'
         try:
