@@ -19,6 +19,7 @@ ADMIN_ONLY_VIEW_MENUES = {
     'AccessRequestsModelView',
     'Manage',
     'SQL Lab',
+    'Queries',
     'Refresh Druid Metadata',
     'ResetPasswordView',
     'RoleModelView',
@@ -76,6 +77,7 @@ def get_or_create_main_db():
 
 def sync_role_definitions():
     """Inits the Superset application with security roles and such"""
+    logging.info("Syncing role definition")
 
     # Creating default roles
     alpha = sm.add_role("Alpha")
@@ -83,6 +85,7 @@ def sync_role_definitions():
     gamma = sm.add_role("Gamma")
     public = sm.add_role("Public")
     sql_lab = sm.add_role("sql_lab")
+    granter = sm.add_role("granter")
 
     get_or_create_main_db()
 
@@ -94,11 +97,11 @@ def sync_role_definitions():
     perms = db.session.query(ab_models.PermissionView).all()
     perms = [p for p in perms if p.permission and p.view_menu]
 
-    # set admin perms
+    logging.info("Syncing admin perms")
     for p in perms:
         sm.add_permission_role(admin, p)
 
-    # set alpha perms
+    logging.info("Syncing alpha perms")
     for p in perms:
         if (
                 (
@@ -111,7 +114,7 @@ def sync_role_definitions():
         else:
             sm.del_permission_role(alpha, p)
 
-    # set gamma permissions and public to be alike if specified
+    logging.info("Syncing gamma perms and public if specified")
     PUBLIC_ROLE_LIKE_GAMMA = conf.get('PUBLIC_ROLE_LIKE_GAMMA', False)
     for p in perms:
         if (
@@ -129,7 +132,7 @@ def sync_role_definitions():
             sm.del_permission_role(gamma, p)
             sm.del_permission_role(public, p)
 
-    # Managing the sql_lab role
+    logging.info("Syncing sql_lab perms")
     for p in perms:
         if (
                 p.view_menu.name in {'SQL Lab'} or
@@ -140,20 +143,30 @@ def sync_role_definitions():
         else:
             sm.del_permission_role(sql_lab, p)
 
-    # Making sure all data source perms have been created
+    logging.info("Syncing granter perms")
+    for p in perms:
+        if (
+                p.permission.name in {
+                    'can_override_role_permissions', 'can_aprove'}
+        ):
+            sm.add_permission_role(granter, p)
+        else:
+            sm.del_permission_role(granter, p)
+
+    logging.info("Making sure all data source perms have been created")
     session = db.session()
     datasources = [
-        table.perm for table in session.query(models.SqlaTable).all()]
+        o for o in session.query(models.SqlaTable).all()]
     datasources += [
-        table.perm for table in session.query(models.DruidDatasource).all()]
+        o for o in session.query(models.DruidDatasource).all()]
     for datasource in datasources:
         perm = datasource.get_perm()
         sm.add_permission_view_menu('datasource_access', perm)
         if perm != datasource.perm:
             datasource.perm = perm
 
-    # Making sure all database perms have been created
-    databases = [o.perm for o in session.query(models.Database).all()]
+    logging.info("Making sure all database perms have been created")
+    databases = [o for o in session.query(models.Database).all()]
     for database in databases:
         perm = database.get_perm()
         if perm != database.perm:
@@ -161,5 +174,5 @@ def sync_role_definitions():
         sm.add_permission_view_menu('database_access', perm)
     session.commit()
 
-    # Creating metric perms
+    logging.info("Making sure all metrics perms exist")
     models.init_metrics_perm()

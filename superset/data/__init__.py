@@ -891,11 +891,8 @@ def load_unicode_test_data():
     dash.position_json = json.dumps([pos], indent=4)
     dash.slug = "unicode-test"
     dash.slices = [slc]
-    print('merge')
     db.session.merge(dash)
-    print('commit')
     db.session.commit()
-    print('after')
 
 
 def load_random_time_series_data():

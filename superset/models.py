@@ -70,6 +70,10 @@ QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
 FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
+def set_perm(mapper, connection, target):  # noqa
+    target.perm = target.get_perm()
+
+
 def init_metrics_perm(metrics=None):
     """Create permissions for restricted metrics
 
@@ -216,7 +220,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     params = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
-    perm = Column(String(2000), unique=True)
+    perm = Column(String(1000))
     owners = relationship("User", secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
@@ -383,14 +387,14 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             return slc_to_import.id
 
 
-def set_perm(mapper, connection, target):  # noqa
+def set_related_perm(mapper, connection, target):  # noqa
     src_class = target.cls_model
     id_ = target.datasource_id
     ds = db.session.query(src_class).filter_by(id=int(id_)).first()
     target.perm = ds.perm
 
-sqla.event.listen(Slice, 'before_insert', set_perm)
-sqla.event.listen(Slice, 'before_update', set_perm)
+sqla.event.listen(Slice, 'before_insert', set_related_perm)
+sqla.event.listen(Slice, 'before_update', set_related_perm)
 
 
 dashboard_slices = Table(
@@ -681,7 +685,7 @@ class Database(Model, AuditMixinNullable):
         "engine_params": {}
     }
     """))
-    perm = Column(String(2000), unique=True)
+    perm = Column(String(1000))
 
     def __repr__(self):
         return self.database_name
@@ -849,6 +853,9 @@ class Database(Model, AuditMixinNullable):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
 
+sqla.event.listen(Database, 'before_insert', set_perm)
+sqla.event.listen(Database, 'before_update', set_perm)
+
 
 class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
@@ -875,7 +882,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     schema = Column(String(255))
     sql = Column(Text)
     params = Column(Text)
-    perm = Column(String(2000), unique=True)
+    perm = Column(String(1000))
 
     baselink = "tablemodelview"
     export_fields = (
@@ -1317,6 +1324,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         return datasource.id
 
+sqla.event.listen(SqlaTable, 'before_insert', set_perm)
+sqla.event.listen(SqlaTable, 'before_update', set_perm)
+
 
 class SqlMetric(Model, AuditMixinNullable, ImportMixin):
 
@@ -1592,7 +1602,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
-    perm = Column(String(2000), unique=True)
+    perm = Column(String(1000))
 
     @property
     def database(self):
@@ -2195,6 +2205,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             else:
                 filters = cond
         return filters
+
+sqla.event.listen(DruidDatasource, 'before_insert', set_perm)
+sqla.event.listen(DruidDatasource, 'before_update', set_perm)
 
 
 class Log(Model):

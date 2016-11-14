@@ -177,6 +177,7 @@ class CeleryTestCase(SupersetTestCase):
     def test_run_sync_query(self):
         main_db = self.get_main_database(db.session)
         eng = main_db.get_sqla_engine()
+        perm_name = 'can_sql_json'
 
         db_id = main_db.id
         # Case 1.
@@ -187,7 +188,8 @@ class CeleryTestCase(SupersetTestCase):
 
         # Case 2.
         # Table and DB exists, CTA call to the backend.
-        sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
+        sql_where = (
+            "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
             db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
@@ -198,7 +200,7 @@ class CeleryTestCase(SupersetTestCase):
         # Check the data in the tmp table.
         df2 = pd.read_sql_query(sql=query2.select_sql, con=eng)
         data2 = df2.to_dict(orient='records')
-        self.assertEqual([{'name': 'can_sql'}], data2)
+        self.assertEqual([{'name': perm_name}], data2)
 
         # Case 3.
         # Table and DB exists, CTA call to the backend, no data.

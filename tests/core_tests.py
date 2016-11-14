@@ -116,7 +116,9 @@ class CoreTests(SupersetTestCase):
 
     def test_save_slice(self):
         self.login(username='admin')
-        slice_id = self.get_slice("Energy Sankey", db.session).id
+        slice_name = "Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        db.session.commit()
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
         url = (
@@ -126,9 +128,15 @@ class CoreTests(SupersetTestCase):
             "collapsed_fieldsets=&action={}&datasource_name=energy_usage&"
             "datasource_id=1&datasource_type=table&previous_viz_type=sankey")
 
-        db.session.commit()
+        # Changing name
         resp = self.get_resp(url.format(tbl_id, slice_id, copy_name, 'save'))
         assert copy_name in resp
+
+        # Setting the name back to its original name
+        resp = self.get_resp(url.format(tbl_id, slice_id, slice_name, 'save'))
+        assert slice_name in resp
+
+        # Doing a basic overwrite
         assert 'Energy' in self.get_resp(
             url.format(tbl_id, slice_id, copy_name, 'overwrite'))
 
@@ -279,15 +287,15 @@ class CoreTests(SupersetTestCase):
         assert "List Dashboard" in self.get_resp('/dashboardmodelview/list/')
 
     def test_csv_endpoint(self):
+        self.login('admin')
         sql = """
             SELECT first_name, last_name
             FROM ab_user
             WHERE first_name='admin'
         """
         client_id = "{}".format(random.getrandbits(64))[:10]
-        self.run_sql(sql, 'admin', client_id)
+        self.run_sql(sql, client_id)
 
-        self.login('admin')
         resp = self.get_resp('/superset/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp))
         expected_data = csv.reader(
@@ -392,8 +400,9 @@ class CoreTests(SupersetTestCase):
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
     def test_templated_sql_json(self):
+        self.login('admin')
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"
-        data = self.run_sql(sql, "admin", "fdaklj3ws")
+        data = self.run_sql(sql, "fdaklj3ws")
         self.assertEqual(data['data'][0]['test'], "2017-01-01T00:00:00")
 
     def test_table_metadata(self):

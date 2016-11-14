@@ -240,11 +240,7 @@ class DatabaseFilter(SupersetFilter):
                 self.has_perm('all_database_access', 'all_database_access')):
             return query
         perms = self.get_view_menus('database_access')
-        ids = [
-            o.id for o in db.session.query(self.model).all()
-            if o.perm in perms
-        ]
-        return query.filter(self.model.id.in_(ids))
+        return query.filter(self.model.perm.in_(perms))
 
 
 class DatasourceFilter(SupersetFilter):
@@ -518,10 +514,11 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra',
         'database_name',
         'sqlalchemy_uri',
+        'perm',
         'created_by',
         'created_on',
         'changed_by',
-        'changed_on'
+        'changed_on',
     ]
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
@@ -630,6 +627,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
+    show_columns = edit_columns + ['perm']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
@@ -985,6 +983,19 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
+class QueryView(SupersetModelView):
+    datamodel = SQLAInterface(models.Query)
+    list_columns = ['user', 'database', 'status', 'start_time', 'start_time']
+
+appbuilder.add_view(
+    QueryView,
+    "Queries",
+    label=__("Queries"),
+    category="Manage",
+    category_label=__("Manage"),
+    icon="fa-search")
+
+
 class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
@@ -998,6 +1009,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
         'cache_timeout']
     add_columns = edit_columns
+    show_columns = add_columns + ['perm']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
@@ -2282,7 +2294,6 @@ class Superset(BaseSupersetView):
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
 
-    @has_access
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
