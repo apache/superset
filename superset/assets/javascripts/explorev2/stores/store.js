@@ -1632,6 +1632,7 @@ export function defaultFormData() {
   const data = {
     slice_name: null,
     slice_id: null,
+    datasource_name: null,
   };
   Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
   return data;
@@ -1654,7 +1655,6 @@ export const defaultViz = {
 export const initialState = {
   isDatasourceMetaLoading: false,
   datasources: null,
-  datasource_id: null,
   datasource_type: null,
   fields,
   viz: defaultViz,

@@ -49,7 +49,9 @@ export const exploreReducer = function (state, action) {
     [actions.SET_FIELD_VALUE]() {
       const newFormData = Object.assign({}, state.viz.form_data);
       newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
-
+      if (action.key === 'datasource') {
+        newFormData.datasource_name = action.label;
+      }
       return Object.assign(
         {},
         state,

@@ -26,8 +26,17 @@ class ControlPanelsContainer extends React.Component {
     }
   }
 
-  onChange(name, value) {
-    this.props.actions.setFieldValue(name, value);
+  componentWillReceiveProps(nextProps) {
+    if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
+      if (nextProps.form_data.datasource) {
+        this.props.actions.fetchFieldOptions(
+          nextProps.form_data.datasource, nextProps.datasource_type);
+      }
+    }
+  }
+
+  onChange(name, value, label) {
+    this.props.actions.setFieldValue(name, value, label);
   }
 
   sectionsToRender() {
