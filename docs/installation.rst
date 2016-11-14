@@ -203,6 +203,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  SparkSQL     | ``pip install pyhive``              | ``jdbc+hive://``                                |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Greenplum    | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
