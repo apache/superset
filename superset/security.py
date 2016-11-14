@@ -32,6 +32,7 @@ ADMIN_ONLY_PERMISSIONS = {
     'datasource_access',
     'database_access',
     'can_sql_json',
+    'can_override_role_permissions',
     'can_sync_druid_source',
     'can_override_role_permissions',
     'can_approve',
@@ -141,15 +142,24 @@ def sync_role_definitions():
 
     # Making sure all data source perms have been created
     session = db.session()
-    table_perms = [
+    datasources = [
         table.perm for table in session.query(models.SqlaTable).all()]
-    table_perms += [
+    datasources += [
         table.perm for table in session.query(models.DruidDatasource).all()]
-    for table_perm in table_perms:
-        sm.add_permission_view_menu('datasource_access', table_perm)
+    for datasource in datasources:
+        perm = datasource.get_perm()
+        sm.add_permission_view_menu('datasource_access', perm)
+        if perm != datasource.perm:
+            datasource.perm = perm
 
     # Making sure all database perms have been created
-    db_perms = [o.perm for o in session.query(models.Database).all()]
-    for db_perm in db_perms:
-        sm.add_permission_view_menu('database_access', db_perm)
+    databases = [o.perm for o in session.query(models.Database).all()]
+    for database in databases:
+        perm = database.get_perm()
+        if perm != database.perm:
+            database.perm = perm
+        sm.add_permission_view_menu('database_access', perm)
+    session.commit()
+
+    # Creating metric perms
     models.init_metrics_perm()

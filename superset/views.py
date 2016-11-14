@@ -1094,7 +1094,7 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
-    @has_access
+    @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
     def override_role_permissions(self):
         """Updates the role with the give datasource permissions.

@@ -216,7 +216,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     params = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
-    perm = Column(String(2000))
+    perm = Column(String(2000), unique=True)
     owners = relationship("User", secondary=slice_user)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
@@ -681,7 +681,7 @@ class Database(Model, AuditMixinNullable):
         "engine_params": {}
     }
     """))
-    perm = Column(String(2000))
+    perm = Column(String(2000), unique=True)
 
     def __repr__(self):
         return self.database_name
@@ -875,7 +875,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     schema = Column(String(255))
     sql = Column(Text)
     params = Column(Text)
-    perm = Column(String(2000))
+    perm = Column(String(2000), unique=True)
 
     baselink = "tablemodelview"
     export_fields = (
@@ -1592,7 +1592,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     offset = Column(Integer, default=0)
     cache_timeout = Column(Integer)
-    perm = Column(String(2000))
+    perm = Column(String(2000), unique=True)
 
     @property
     def database(self):
