@@ -4,20 +4,18 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import imp
 import json
 import os
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-import superset
-from superset import app, db, models, utils, appbuilder, sm
+from superset import app, cli, db, models, appbuilder, sm
+from superset.security import sync_role_definitions
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
 BASE_DIR = app.config.get("BASE_DIR")
-cli = imp.load_source('cli', BASE_DIR + "/bin/superset")
 
 
 class SupersetTestCase(unittest.TestCase):
@@ -31,12 +29,13 @@ class SupersetTestCase(unittest.TestCase):
                 not os.environ.get('examples_loaded')
             ):
             cli.load_examples(load_test_data=True)
-            utils.init(superset)
+            print("Syncing role definitions")
+            sync_role_definitions()
             os.environ['examples_loaded'] = '1'
         super(SupersetTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
         self.maxDiff = None
-        utils.init(superset)
+        sync_role_definitions()
 
         admin = appbuilder.sm.find_user('admin')
         if not admin:
@@ -80,7 +79,7 @@ class SupersetTestCase(unittest.TestCase):
             session.add(druid_datasource2)
             session.commit()
 
-        utils.init(superset)
+        sync_role_definitions()
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()

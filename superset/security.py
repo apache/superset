@@ -7,9 +7,8 @@ from itertools import product
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import db, models, app, sm
+from superset import conf, db, models, sm
 
-config = app.config
 
 READ_ONLY_MODELVIEWS = {
     'DatabaseAsync',
@@ -56,29 +55,6 @@ READ_ONLY_PRODUCT = set(
     product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
 
 
-def merge_perm(sm, permission_name, view_menu_name):
-    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
-    if not pv:
-        sm.add_permission_view_menu(permission_name, view_menu_name)
-
-
-def init_metrics_perm(metrics=None):
-    """Create permissions for restricted metrics
-
-    :param metrics: a list of metrics to be processed, if not specified,
-        all metrics are processed
-    :type metrics: models.SqlMetric or models.DruidMetric
-    """
-    if not metrics:
-        metrics = []
-        for model in [models.SqlMetric, models.DruidMetric]:
-            metrics += list(db.session.query(model).all())
-
-    for metric in metrics:
-        if metric.is_restricted and metric.perm:
-            merge_perm(sm, 'metric_access', metric.perm)
-
-
 def get_or_create_main_db():
     logging.info("Creating database reference")
     dbobj = (
@@ -88,8 +64,8 @@ def get_or_create_main_db():
     )
     if not dbobj:
         dbobj = models.Database(database_name="main")
-    logging.info(config.get("SQLALCHEMY_DATABASE_URI"))
-    dbobj.set_sqlalchemy_uri(config.get("SQLALCHEMY_DATABASE_URI"))
+    logging.info(conf.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.set_sqlalchemy_uri(conf.get("SQLALCHEMY_DATABASE_URI"))
     dbobj.expose_in_sqllab = True
     dbobj.allow_run_sync = True
     db.session.add(dbobj)
@@ -110,8 +86,9 @@ def sync_role_definitions():
     get_or_create_main_db()
 
     # Global perms
-    merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
-    merge_perm(sm, 'all_database_access', 'all_database_access')
+    sm.add_permission_view_menu(
+        'all_datasource_access', 'all_datasource_access')
+    sm.add_permission_view_menu('all_database_access', 'all_database_access')
 
     perms = db.session.query(ab_models.PermissionView).all()
     perms = [p for p in perms if p.permission and p.view_menu]
@@ -134,7 +111,7 @@ def sync_role_definitions():
             sm.del_permission_role(alpha, p)
 
     # set gamma permissions and public to be alike if specified
-    PUBLIC_ROLE_LIKE_GAMMA = config.get('PUBLIC_ROLE_LIKE_GAMMA', False)
+    PUBLIC_ROLE_LIKE_GAMMA = conf.get('PUBLIC_ROLE_LIKE_GAMMA', False)
     for p in perms:
         if (
                 (
@@ -169,10 +146,10 @@ def sync_role_definitions():
     table_perms += [
         table.perm for table in session.query(models.DruidDatasource).all()]
     for table_perm in table_perms:
-        merge_perm(sm, 'datasource_access', table_perm)
+        sm.add_permission_view_menu('datasource_access', table_perm)
 
     # Making sure all database perms have been created
     db_perms = [o.perm for o in session.query(models.Database).all()]
     for db_perm in db_perms:
-        merge_perm(sm, 'database_access', db_perm)
-    init_metrics_perm()
+        sm.add_permission_view_menu('database_access', db_perm)
+    models.init_metrics_perm()

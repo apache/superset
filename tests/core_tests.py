@@ -24,8 +24,6 @@ class CoreTests(SupersetTestCase):
     requires_examples = True
 
     def __init__(self, *args, **kwargs):
-        # Load examples first, so that we setup proper permission-view
-        # relations for all example data sources.
         super(CoreTests, self).__init__(*args, **kwargs)
 
     @classmethod
@@ -334,7 +332,13 @@ class CoreTests(SupersetTestCase):
 
     def test_dashboard_with_created_by_can_be_accessed_by_public_users(self):
         self.logout()
-        self.setup_public_access_for_dashboard('birth_names')
+        table = (
+            db.session
+            .query(models.SqlaTable)
+            .filter_by(table_name='birth_names')
+            .one()
+        )
+        self.grant_public_access_to_table(table)
 
         dash = db.session.query(models.Dashboard).filter_by(dashboard_title="Births").first()
         dash.owners = [appbuilder.sm.find_user('admin')]

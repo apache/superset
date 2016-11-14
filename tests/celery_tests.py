@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import imp
 import json
 import os
 import subprocess
@@ -13,15 +12,14 @@ import unittest
 
 import pandas as pd
 
-import superset
-from superset import app, appbuilder, db, models, sql_lab, utils, dataframe
+from superset import app, appbuilder, cli, db, models, sql_lab, dataframe
+from superset.security import sync_role_definitions
 
 from .base_tests import SupersetTestCase
 
 QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
-cli = imp.load_source('cli', BASE_DIR + '/bin/superset')
 
 
 class CeleryConfig(object):
@@ -99,7 +97,7 @@ class CeleryTestCase(SupersetTestCase):
         except OSError as e:
             app.logger.warn(str(e))
 
-        utils.init(superset)
+        sync_role_definitions()
 
         worker_command = BASE_DIR + '/bin/superset worker'
         subprocess.Popen(

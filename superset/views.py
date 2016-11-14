@@ -34,7 +34,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend,
+    sm, ascii_art, sql_lab, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -575,7 +575,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        utils.merge_perm(sm, 'database_access', db.perm)
+        security.merge_perm(sm, 'database_access', db.perm)
 
     def pre_update(self, db):
         self.pre_add(db)
@@ -684,7 +684,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, table):
         table.fetch_metadata()
-        utils.merge_perm(sm, 'datasource_access', table.perm)
+        security.merge_perm(sm, 'datasource_access', table.perm)
         flash(_(
             "The table was created. As part of this two phase configuration "
             "process, you should now click the edit button by "
@@ -750,7 +750,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, cluster):
-        utils.merge_perm(sm, 'database_access', cluster.perm)
+        security.merge_perm(sm, 'database_access', cluster.perm)
 
     def pre_update(self, cluster):
         self.pre_add(cluster)
@@ -1034,7 +1034,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        utils.merge_perm(sm, 'datasource_access', datasource.perm)
+        security.merge_perm(sm, 'datasource_access', datasource.perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)

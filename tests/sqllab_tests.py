@@ -38,7 +38,7 @@ class SqlLabTests(SupersetTestCase):
 
     def test_sql_json_has_access(self):
         main_db = self.get_main_database(db.session)
-        utils.merge_perm(sm, 'database_access', main_db.perm)
+        sm.add_permission_view_menu('database_access', main_db.perm)
         db.session.commit()
         main_db_permission_view = (
             db.session.query(ab_models.PermissionView)
