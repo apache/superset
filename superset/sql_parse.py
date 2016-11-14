@@ -44,4 +44,4 @@ def extract_table_identifiers(token_stream):
 
 def extract_tables(sql):
     stream = extract_from_part(sqlparse.parse(sql)[0])
-    return list(extract_table_identifiers(stream))
+    return set(extract_table_identifiers(stream))
