@@ -9,7 +9,6 @@ import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
 const propTypes = {
-  datasource_id: PropTypes.number.isRequired,
   datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
   fields: PropTypes.object.isRequired,
@@ -20,7 +19,8 @@ const propTypes = {
 
 class ControlPanelsContainer extends React.Component {
   componentWillMount() {
-    const { datasource_id, datasource_type } = this.props;
+    const datasource_id = this.props.form_data.datasource;
+    const datasource_type = this.props.datasource_type;
     if (datasource_id) {
       this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
     }
@@ -82,7 +82,6 @@ function mapStateToProps(state) {
   return {
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
     fields: state.fields,
-    datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
   };
