@@ -58,8 +58,10 @@ from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
 from superset.jinja_context import get_template_processor
 from superset.utils import (
-    flasher, MetricPermException, DimSelector, wrap_clause_in_parens
+    flasher, MetricPermException, DimSelector, wrap_clause_in_parens,
+    DTTM_ALIAS,
 )
+
 
 config = app.config
 
@@ -1013,61 +1015,36 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         if granularity:
 
-            # TODO: sqlalchemy 1.2 release should be doing this on its own.
-            # Patch only if the column clause is specific for DateTime set and
-            # granularity is selected.
             @compiles(ColumnClause)
             def visit_column(element, compiler, **kw):
+                """Patch for sqlalchemy bug
+
+                TODO: sqlalchemy 1.2 release should be doing this on its own.
+                Patch only if the column clause is specific for DateTime
+                set and granularity is selected.
+                """
                 text = compiler.visit_column(element, **kw)
                 try:
-                    if element.is_literal and hasattr(element.type, 'python_type') and \
-                            type(element.type) is DateTime:
-
+                    if (
+                            element.is_literal and
+                            hasattr(element.type, 'python_type') and
+                            type(element.type) is DateTime
+                    ):
                         text = text.replace('%%', '%')
                 except NotImplementedError:
-                    pass  # Some elements raise NotImplementedError for python_type
+                    # Some elements raise NotImplementedError for python_type
+                    pass
                 return text
 
             dttm_col = cols[granularity]
-            dttm_expr = dttm_col.sqla_col.label('timestamp')
-            timestamp = dttm_expr
-
-            # Transforming time grain into an expression based on configuration
-            time_grain_sqla = extras.get('time_grain_sqla')
-            if time_grain_sqla:
-                db_engine_spec = self.database.db_engine_spec
-                if dttm_col.python_date_format == 'epoch_s':
-                    dttm_expr = \
-                        db_engine_spec.epoch_to_dttm().format(col=dttm_expr)
-                elif dttm_col.python_date_format == 'epoch_ms':
-                    dttm_expr = \
-                        db_engine_spec.epoch_ms_to_dttm().format(col=dttm_expr)
-                udf = self.database.grains_dict().get(time_grain_sqla, '{col}')
-                timestamp_grain = literal_column(
-                    udf.function.format(col=dttm_expr), type_=DateTime).label('timestamp')
-            else:
-                timestamp_grain = timestamp
+            time_grain = extras.get('time_grain_sqla')
+            timestamp = dttm_col.get_timestamp_expression(time_grain)
 
             if is_timeseries:
-                select_exprs += [timestamp_grain]
-                groupby_exprs += [timestamp_grain]
+                select_exprs += [timestamp]
+                groupby_exprs += [timestamp]
 
-            outer_from = text(dttm_col.dttm_sql_literal(from_dttm))
-            outer_to = text(dttm_col.dttm_sql_literal(to_dttm))
-
-            time_filter = [
-                timestamp >= outer_from,
-                timestamp <= outer_to,
-            ]
-            inner_time_filter = copy(time_filter)
-            if inner_from_dttm:
-                inner_time_filter[0] = timestamp >= text(
-                    dttm_col.dttm_sql_literal(inner_from_dttm))
-            if inner_to_dttm:
-                inner_time_filter[1] = timestamp <= text(
-                    dttm_col.dttm_sql_literal(inner_to_dttm))
-        else:
-            inner_time_filter = []
+            time_filter = dttm_col.get_time_filter(from_dttm, to_dttm)
 
         select_exprs += metrics_exprs
         qry = select(select_exprs)
@@ -1104,7 +1081,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 having_clause_and += [wrap_clause_in_parens(
                     template_processor.process_template(having))]
         if granularity:
-            qry = qry.where(and_(*(time_filter + where_clause_and)))
+            qry = qry.where(and_(*([time_filter] + where_clause_and)))
         else:
             qry = qry.where(and_(*where_clause_and))
         qry = qry.having(and_(*having_clause_and))
@@ -1123,7 +1100,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             inner_select_exprs += [main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
-            subq = subq.where(and_(*(where_clause_and + inner_time_filter)))
+            inner_time_filter = dttm_col.get_time_filter(
+                inner_from_dttm or from_dttm,
+                inner_to_dttm or to_dttm,
+            )
+            subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
             subq = subq.group_by(*inner_groupby_exprs)
             ob = main_metric_expr
             if timeseries_limit_metric_expr is not None:
@@ -1436,6 +1417,31 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         else:
             col = literal_column(self.expression).label(name)
         return col
+
+    def get_time_filter(self, start_dttm, end_dttm):
+        col = self.sqla_col.label('__time')
+        return and_(
+            col >= text(self.dttm_sql_literal(start_dttm)),
+            col <= text(self.dttm_sql_literal(end_dttm)),
+        )
+
+    def get_timestamp_expression(self, time_grain):
+        """Getting the time component of the query"""
+        expr = self.expression or self.column_name
+        if not self.expression and not time_grain:
+            return column(expr, type_=DateTime).label(DTTM_ALIAS)
+        if time_grain:
+            pdf = self.python_date_format
+            if pdf in ('epoch_s', 'epoch_ms'):
+                # if epoch, translate to DATE using db specific conf
+                db_spec = self.table.database.db_engine_spec
+                if pdf == 'epoch_s':
+                    expr = db_spec.epoch_to_dttm().format(col=expr)
+                elif pdf == 'epoch_ms':
+                    expr = db_spec.epoch_ms_to_dttm().format(col=expr)
+            grain = self.table.database.grains_dict().get(time_grain, '{col}')
+            expr = grain.function.format(col=expr)
+        return literal_column(expr, type_=DateTime).label(DTTM_ALIAS)
 
     @classmethod
     def import_obj(cls, column_to_import):
@@ -2070,19 +2076,21 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
         df = client.export_pandas()
+        df.columns = [
+            DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
 
         if (
                 not is_timeseries and
                 granularity == "all" and
-                'timestamp' in df.columns):
-            del df['timestamp']
+                DTTM_ALIAS in df.columns):
+            del df[DTTM_ALIAS]
 
         # Reordering columns
         cols = []
-        if 'timestamp' in df.columns:
-            cols += ['timestamp']
+        if DTTM_ALIAS in df.columns:
+            cols += [DTTM_ALIAS]
         cols += [col for col in groupby if col in df.columns]
         cols += [col for col in metrics if col in df.columns]
         df = df[cols]
@@ -2093,7 +2101,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             dt = utils.parse_human_datetime(ts).replace(
                 tzinfo=config.get("DRUID_TZ"))
             return dt + timedelta(milliseconds=time_offset)
-        if 'timestamp' in df.columns and time_offset:
+        if DTTM_ALIAS in df.columns and time_offset:
             df.timestamp = df.timestamp.apply(increment_timestamp)
 
         return QueryResult(
