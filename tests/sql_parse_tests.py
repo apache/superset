@@ -24,9 +24,9 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"tbname"}, sql_parse.extract_tables(query))
 
         # schema
-        # self.assertEquals(
-        #     {"schemaname.tbname"},
-        #     sql_parse.extract_tables("SELECT * FROM schemaname.tbname"))
+        self.assertEquals(
+            {"schemaname.tbname"},
+            sql_parse.extract_tables("SELECT * FROM schemaname.tbname"))
 
         # quotes
         query = "SELECT field1, field2 FROM tb_name"
@@ -40,38 +40,60 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {"left_table"}, sql_parse.extract_tables(query))
 
-    def test_reverse_select(self):
-        query = "FROM t1 SELECT field"
-        self.assertEquals({"t1"}, sql_parse.extract_tables(query))
+    # TODO: in hive support
+    # def test_reverse_select(self):
+    #     query = "FROM t1 SELECT field"
+    #     self.assertEquals({"t1"}, sql_parse.extract_tables(query))
 
     def test_subselect(self):
         query = """
-            SELECT a.date, b.name FROM
-                left_table a
-                JOIN (
-                  SELECT
-                    CAST((b.year) as VARCHAR) date,
-                    name
-                  FROM right_table
-                ) b
-                ON a.date = b.date
+          SELECT sub.*
+              FROM (
+                    SELECT *
+                      FROM s1.t1
+                     WHERE day_of_week = 'Friday'
+                   ) sub, s2.t2
+          WHERE sub.resolution = 'NONE'
         """
-        self.assertEquals({"left_table", "right_table"},
+        self.assertEquals({"s1.t1", "s2.t2"},
+                          sql_parse.extract_tables(query))
+
+        query = """
+          SELECT sub.*
+              FROM (
+                    SELECT *
+                      FROM s1.t1
+                     WHERE day_of_week = 'Friday'
+                   ) sub
+          WHERE sub.resolution = 'NONE'
+        """
+        self.assertEquals({"s1.t1"}, sql_parse.extract_tables(query))
+
+        query = """
+            SELECT * FROM t1
+            WHERE s11 > ANY
+             (SELECT COUNT(*) /* no hint */ FROM t2
+               WHERE NOT EXISTS
+                (SELECT * FROM t3
+                  WHERE ROW(5*t2.s1,77)=
+                    (SELECT 50,11*s1 FROM t4)));
+        """
+        self.assertEquals({"t1", "t2", "t3", "t4"},
                           sql_parse.extract_tables(query))
 
     def test_union(self):
-        query = "SELECT t1 UNION SELECT * t2"
+        query = "SELECT * FROM t1 UNION SELECT * FROM t2"
         self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
 
-        query = "SELECT t1 UNION ALL SELECT * t2"
+        query = "SELECT * FROM t1 UNION ALL SELECT * FROM t2"
         self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
 
-        query = "SELECT t1 INTERSECT SELECT * t2"
+        query = "SELECT * FROM t1 INTERSECT ALL SELECT * FROM t2"
         self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
 
     def test_select_from_values(self):
         query = "SELECT * FROM VALUES (13, 42)"
-        self.assertEquals({}, sql_parse.extract_tables(query))
+        self.assertFalse(sql_parse.extract_tables(query))
 
     def test_select_array(self):
         query = """
@@ -91,19 +113,41 @@ class SupersetTestCase(unittest.TestCase):
     def test_show_tables(self):
         query = 'SHOW TABLES FROM s1 like "%order%"'
         # TODO: figure out what should code do here
-        self.assertEquals({"s1.*"}, sql_parse.extract_tables(query))
+        self.assertEquals({"s1"}, sql_parse.extract_tables(query))
 
     # SHOW COLUMNS (FROM | IN) qualifiedName
     def test_show_columns(self):
         query = "SHOW COLUMNS FROM t1"
         self.assertEquals({"t1"}, sql_parse.extract_tables(query))
 
+    def test_where_subquery(self):
+        query = """
+          SELECT name
+            FROM t1
+            WHERE regionkey = (SELECT max(regionkey) FROM t2)
+        """
+        self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
+
+        query = """
+          SELECT name
+            FROM t1
+            WHERE regionkey IN (SELECT regionkey FROM t2)
+        """
+        self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
+
+        query = """
+          SELECT name
+            FROM t1
+            WHERE regionkey EXISTS (SELECT regionkey FROM t2)
+        """
+        self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
+
     # DESCRIBE | DESC qualifiedName
     def test_describe(self):
         self.assertEquals({"t1"}, sql_parse.extract_tables("DESCRIBE t1"))
         self.assertEquals({"t1"}, sql_parse.extract_tables("DESC t1"))
 
-    # SHOW PARTITIONS (FROM | IN) qualifiedName (WHERE booleanExpression)?
+    # SHOW PARTITIONS FROM qualifiedName (WHERE booleanExpression)?
     # (ORDER BY sortItem (',' sortItem)*)? (LIMIT limit=(INTEGER_VALUE | ALL))?
     def test_show_partitions(self):
         query = """
@@ -115,6 +159,21 @@ class SupersetTestCase(unittest.TestCase):
     def test_join(self):
         query = "SELECT t1.*, t2.* FROM t1 JOIN t2 ON t1.a = t2.a;"
         self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
+
+        # subquery + join
+        query = """
+            SELECT a.date, b.name FROM
+                left_table a
+                JOIN (
+                  SELECT
+                    CAST((b.year) as VARCHAR) date,
+                    name
+                  FROM right_table
+                ) b
+                ON a.date = b.date
+        """
+        self.assertEquals({"left_table", "right_table"},
+                          sql_parse.extract_tables(query))
 
     def test_with(self):
         query = """
