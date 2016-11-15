@@ -2076,10 +2076,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
         df = client.export_pandas()
-        df.columns = [
-            DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
+        df.columns = [
+            DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
 
         if (
                 not is_timeseries and
