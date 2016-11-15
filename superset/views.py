@@ -1515,8 +1515,12 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if request.args.get('goto_dash') == 'true':
+            if request.args.get('V2') == 'true':
+                return dash.url
             return redirect(dash.url)
         else:
+            if request.args.get('V2') == 'true':
+                return slc.slice_url
             return redirect(slc.slice_url)
 
     def save_slice(self, slc):
