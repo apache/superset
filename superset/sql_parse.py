@@ -1,6 +1,6 @@
 import sqlparse
 from sqlparse.sql import IdentifierList, Identifier
-from sqlparse.tokens import Keyword, DML, Name
+from sqlparse.tokens import Keyword, Name
 
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
@@ -14,17 +14,6 @@ def get_full_name(identifier):
     return identifier.get_real_name()
 
 
-def has_subselect(parsed):
-    if not parsed.is_group:
-        return False
-    for item in parsed.tokens:
-        if item.ttype is DML and item.value.upper() == 'SELECT':
-            return True
-        if item.is_group:
-            return has_subselect(item)
-    return False
-
-
 def is_result_operation(keyword):
     for operation in RESULT_OPERATIONS:
         if operation in keyword.upper():
@@ -32,18 +21,31 @@ def is_result_operation(keyword):
     return False
 
 
-def extract_from_token(token, table_names, aliases, table_name_preceding_token=False):
+def process_identifier(identifier, table_names, aliases):
+    # exclude subselects
+    if '(' not in identifier.value:
+        table_names.append(get_full_name(identifier))
+    else:
+        # store aliases
+        if hasattr(identifier, 'get_alias'):
+            aliases.append(identifier.get_alias())
+        if hasattr(identifier, 'tokens'):
+            # some aliases are not parsed properly
+            if identifier.tokens[0].ttype == Name:
+                aliases.append(identifier.tokens[0].value)
+
+        extract_from_token(identifier, table_names, aliases)
+
+
+def extract_from_token(token, table_names, aliases):
     if not hasattr(token, 'tokens'):
         return
 
-    for item in token.tokens:
-        print('Processing token: {}'.format(item.value))
-        print('from_seen: {}'.format(table_name_preceding_token))
+    table_name_preceding_token = False
 
+    for item in token.tokens:
         if item.is_group and not isinstance(item, IdentifierList):
-            print("Parsing group: {}".format(item.tokens))
-            extract_from_token(item, table_names, aliases,
-                               table_name_preceding_token=False)
+            extract_from_token(item, table_names, aliases)
 
         if item.ttype in Keyword:
             if item.value.upper() in PRECEDES_TABLE_NAME:
@@ -57,44 +59,19 @@ def extract_from_token(token, table_names, aliases, table_name_preceding_token=F
             if is_result_operation(item.value):
                 table_name_preceding_token = False
                 continue
-            # FROM clause if over
+            # FROM clause is over
             break
 
-        def process_identifier(identifier):
-            print("Parsing Identifier: {}".format(identifier.value))
-            # exclude subselects
-            if '(' not in identifier.value:
-                print("Found Identifier: {}".format(identifier.value))
-                table_names.append(get_full_name(identifier))
-            else:
-                print("Going inside Identifier: {}".format(identifier.value))
-                # some subselects are recognized as Identifier,
-                # some like generic groups
-
-                # store aliases
-                if hasattr(identifier, 'get_alias'):
-                    aliases.append(identifier.get_alias())
-                if hasattr(identifier, 'tokens'):
-                    # some aliases are not parsed properly
-                    if identifier.tokens[0].ttype == Name:
-                        aliases.append(identifier.tokens[0].value)
-
-                extract_from_token(identifier, table_names, aliases)
-
         if isinstance(item, Identifier):
-            process_identifier(item)
+            process_identifier(item, table_names, aliases)
 
         if isinstance(item, IdentifierList):
-            print("Parsing list: {}".format(list(item.get_identifiers())))
             for identifier in item.get_identifiers():
-                print("Parsing Identifier: {}".format(identifier))
-                process_identifier(identifier)
+                process_identifier(identifier, table_names, aliases)
 
 
 def extract_tables(sql):
-    # stream = extract_from_token(sqlparse.parse(sql)[0])
     table_names = []
     aliases = []
     extract_from_token(sqlparse.parse(sql)[0], table_names, aliases)
-    print("ALIASES ARE {}".format(aliases))
     return set(table_names) - set(aliases)
