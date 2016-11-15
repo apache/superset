@@ -40,10 +40,9 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals(
             {"left_table"}, sql_parse.extract_tables(query))
 
-    # TODO: in hive support
-    # def test_reverse_select(self):
-    #     query = "FROM t1 SELECT field"
-    #     self.assertEquals({"t1"}, sql_parse.extract_tables(query))
+    def test_reverse_select(self):
+        query = "FROM t1 SELECT field"
+        self.assertEquals({"t1"}, sql_parse.extract_tables(query))
 
     def test_subselect(self):
         query = """
@@ -219,7 +218,6 @@ class SupersetTestCase(unittest.TestCase):
         """
         self.assertEquals({"t1"}, sql_parse.extract_tables(query))
 
-    # TODO: implement support for:
     def test_reusing_aliases(self):
         query = """
             with q1 as ( select key from q2 where key = '5'),
