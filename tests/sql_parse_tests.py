@@ -81,6 +81,10 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"t1", "t2", "t3", "t4"},
                           sql_parse.extract_tables(query))
 
+    def test_select_in_expression(self):
+        query = "SELECT f1, (SELECT count(1) FROM t2) FROM t1"
+        self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
+
     def test_union(self):
         query = "SELECT * FROM t1 UNION SELECT * FROM t2"
         self.assertEquals({"t1", "t2"}, sql_parse.extract_tables(query))
@@ -175,12 +179,51 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"left_table", "right_table"},
                           sql_parse.extract_tables(query))
 
+    def test_combinations(self):
+        query = """
+            SELECT * FROM t1
+            WHERE s11 > ANY
+             (SELECT * FROM t1 UNION ALL SELECT * FROM (
+               SELECT t6.*, t3.* FROM t6 JOIN t3 ON t6.a = t3.a) tmp_join
+               WHERE NOT EXISTS
+                (SELECT * FROM t3
+                  WHERE ROW(5*t3.s1,77)=
+                    (SELECT 50,11*s1 FROM t4)));
+        """
+        self.assertEquals({"t1", "t3", "t4", "t6"},
+                          sql_parse.extract_tables(query))
+
+        query = """
+        SELECT * FROM (SELECT * FROM (SELECT * FROM (SELECT * FROM EmployeeS)
+            AS S1) AS S2) AS S3;
+        """
+        self.assertEquals({"EmployeeS"}, sql_parse.extract_tables(query))
+
     def test_with(self):
         query = """
             WITH
-              x AS (SELECT a FROM t),
+              x AS (SELECT a FROM t1),
+              y AS (SELECT a AS b FROM t2),
+              z AS (SELECT b AS c FROM t3)
+            SELECT c FROM z;
+        """
+        self.assertEquals({"t1", "t2", "t3"},
+                          sql_parse.extract_tables(query))
+
+        query = """
+            WITH
+              x AS (SELECT a FROM t1),
               y AS (SELECT a AS b FROM x),
               z AS (SELECT b AS c FROM y)
             SELECT c FROM z;
         """
-        self.assertEquals({"x", "y", "z"}, sql_parse.extract_tables(query))
+        self.assertEquals({"t1"}, sql_parse.extract_tables(query))
+
+    # TODO: implement support for:
+    def test_reusing_aliases(self):
+        query = """
+            with q1 as ( select key from q2 where key = '5'),
+            q2 as ( select key from src where key = '5')
+            select * from (select key from q1) a;
+        """
+        self.assertEquals({"src"}, sql_parse.extract_tables(query))

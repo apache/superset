@@ -32,17 +32,18 @@ def is_result_operation(keyword):
     return False
 
 
-def extract_from_token(token, table_names, table_name_preceding_token=False):
+def extract_from_token(token, table_names, aliases, table_name_preceding_token=False):
     if not hasattr(token, 'tokens'):
         return
 
     for item in token.tokens:
-        print('Processing token: {}'.format(item))
+        print('Processing token: {}'.format(item.value))
         print('from_seen: {}'.format(table_name_preceding_token))
 
         if item.is_group and not isinstance(item, IdentifierList):
             print("Parsing group: {}".format(item.tokens))
-            extract_from_token(item, table_names, table_name_preceding_token=False)
+            extract_from_token(item, table_names, aliases,
+                               table_name_preceding_token=False)
 
         if item.ttype in Keyword:
             if item.value.upper() in PRECEDES_TABLE_NAME:
@@ -59,32 +60,41 @@ def extract_from_token(token, table_names, table_name_preceding_token=False):
             # FROM clause if over
             break
 
-        if isinstance(item, Identifier):
-            print("Parsing Identifier: {}".format(item))
+        def process_identifier(identifier):
+            print("Parsing Identifier: {}".format(identifier.value))
             # exclude subselects
-            if '(' not in item.tokens[0].value:
-                table_names.append(get_full_name(item))
+            if '(' not in identifier.value:
+                print("Found Identifier: {}".format(identifier.value))
+                table_names.append(get_full_name(identifier))
             else:
-                print("Going inside Identifier: {}".format(item))
+                print("Going inside Identifier: {}".format(identifier.value))
                 # some subselects are recognized as Identifier,
                 # some like generic groups
-                extract_from_token(item, table_names)
+
+                # store aliases
+                if hasattr(identifier, 'get_alias'):
+                    aliases.append(identifier.get_alias())
+                if hasattr(identifier, 'tokens'):
+                    # some aliases are not parsed properly
+                    if identifier.tokens[0].ttype == Name:
+                        aliases.append(identifier.tokens[0].value)
+
+                extract_from_token(identifier, table_names, aliases)
+
+        if isinstance(item, Identifier):
+            process_identifier(item)
 
         if isinstance(item, IdentifierList):
             print("Parsing list: {}".format(list(item.get_identifiers())))
             for identifier in item.get_identifiers():
                 print("Parsing Identifier: {}".format(identifier))
-                if identifier.tokens[0].ttype == Name:
-                    table_names.append(get_full_name(identifier))
-                else:
-                    # some subselects are recognized as Identifier,
-                    # some like generic groups
-                    print("Going inside Identifier: {}".format(identifier))
-                    extract_from_token(identifier, table_names)
+                process_identifier(identifier)
 
 
 def extract_tables(sql):
     # stream = extract_from_token(sqlparse.parse(sql)[0])
     table_names = []
-    extract_from_token(sqlparse.parse(sql)[0], table_names)
-    return set(table_names)
+    aliases = []
+    extract_from_token(sqlparse.parse(sql)[0], table_names, aliases)
+    print("ALIASES ARE {}".format(aliases))
+    return set(table_names) - set(aliases)
