@@ -105,6 +105,22 @@ export const commonControlPanelSections = {
       ],
     },
   ],
+  filters: [
+    {
+      label: 'Filters',
+      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
+        'Leave the value field empty to filter empty strings or nulls' +
+        'For filters with comma in values, wrap them in single quotes' +
+        "as in <NY, 'Tahoe, CA', DC>",
+    },
+    {
+      label: 'Result Filters',
+      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
+        'Leave the value field empty to filter empty strings or nulls' +
+        'For filters with comma in values, wrap them in single quotes' +
+        "as in <NY, 'Tahoe, CA', DC>",
+    },
+  ],
 };
 
 export const visTypes = {
@@ -1688,6 +1704,7 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
     slice_name: null,
     slice_id: null,
     datasource_name: null,
+    filters: [],
   };
   const sections = sectionsToRender(vizType, datasourceType);
   sections.forEach((section) => {
@@ -1722,6 +1739,7 @@ export function initialState(vizType = 'table') {
     isDatasourceMetaLoading: false,
     datasources: null,
     datasource_type: null,
+    filterColumnOpts: [],
     fields,
     viz: defaultViz(vizType),
     isStarred: false,

@@ -152,3 +152,16 @@ export function slugify(string) {
           .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
           .replace(/-$/, ''); // remove last floating dash
 }
+
+export function formatFilters(filters) {
+  // outputs an object of url params of filters
+  // prefix can be 'flt' or 'having'
+  const params = {};
+  for (let i = 0; i < filters.length; i++) {
+    const filter = filters[i];
+    params[`${filter.prefix}_col_${i + 1}`] = filter.col;
+    params[`${filter.prefix}_op_${i + 1}`] = filter.op;
+    params[`${filter.prefix}_eq_${i + 1}`] = filter.value;
+  }
+  return params;
+}

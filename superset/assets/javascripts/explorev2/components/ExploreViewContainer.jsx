@@ -8,6 +8,8 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/store';
+import { formatFilters } from '../../modules/utils.js';
+
 const $ = require('jquery');
 
 const propTypes = {
@@ -59,6 +61,8 @@ class ExploreViewContainer extends React.Component {
     data.V2 = true;
     data.datasource_id = this.props.form_data.datasource;
     data.datasource_type = this.props.datasource_type;
+    const filterParams = formatFilters(this.props.form_data.filters);
+    Object.assign(data, filterParams);
     this.queryFormData(data);
 
     const params = $.param(data, true);
