@@ -118,7 +118,8 @@ export const visTypes = {
           ['groupby'],
           ['columns'],
           ['row_limit'],
-          ['show_legend', 'show_bar_value', 'bar_stacked'],
+          ['show_legend', 'show_bar_value'],
+          ['bar_stacked', 'order_bars'],
           ['y_axis_format', 'bottom_margin'],
           ['x_axis_label', 'y_axis_label'],
           ['reduce_x_ticks', 'contribution'],
@@ -867,6 +868,13 @@ export const fields = {
     label: 'Bar Values',
     default: false,
     description: 'Show the value on top of the bar',
+  },
+
+  order_bars: {
+    type: 'CheckboxField',
+    label: 'Sort Bars',
+    default: false,
+    description: 'Sort bars by x labels.',
   },
 
   show_controls: {
