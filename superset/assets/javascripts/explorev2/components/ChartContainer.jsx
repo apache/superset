@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Panel } from 'react-bootstrap';
+import { Panel, Alert } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
@@ -24,6 +24,7 @@ const propTypes = {
   data: PropTypes.any,
   isChartLoading: PropTypes.bool,
   isStarred: PropTypes.bool.isRequired,
+  alert: PropTypes.string,
 };
 
 class ChartContainer extends React.Component {
@@ -49,6 +50,10 @@ class ChartContainer extends React.Component {
 
   componentDidUpdate() {
     this.renderVis();
+  }
+
+  removeAlert() {
+    this.props.actions.removeChartAlert();
   }
 
   getMockedSliceObject(props) {
@@ -183,6 +188,16 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
+          {this.props.alert &&
+            <Alert>
+            {this.props.alert}
+              <i
+                className="fa fa-close pull-right"
+                onClick={this.removeAlert.bind(this)}
+                style={{ cursor: 'pointer' }}
+              />
+            </Alert>
+          }
           {!this.props.isChartLoading &&
             <div
               id={this.props.containerId}
@@ -213,6 +228,7 @@ function mapStateToProps(state) {
     data: state.viz.data,
     isChartLoading: state.isChartLoading,
     isStarred: state.isStarred,
+    alert: state.chartAlert,
   };
 }
 
