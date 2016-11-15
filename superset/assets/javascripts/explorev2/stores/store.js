@@ -604,7 +604,7 @@ export const visTypes = {
     label: 'Heatmap',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Axis & Metrics',
         fieldSetRows: [
           ['all_columns_x'],
           ['all_columns_y'],
@@ -1629,9 +1629,10 @@ export const fields = {
 };
 
 export function defaultFormData() {
-  const data = {};
-  data.slice_name = null;
-  data.slice_id = null;
+  const data = {
+    slice_name: null,
+    slice_id: null,
+  };
   Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
   return data;
 }
