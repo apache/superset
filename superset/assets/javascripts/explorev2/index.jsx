@@ -13,10 +13,12 @@ const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstr
 import { exploreReducer } from './reducers/exploreReducer';
 
 const bootstrappedState = Object.assign(initialState(bootstrapData.viz.form_data.viz_type), {
+  can_edit: bootstrapData.can_edit,
   can_download: bootstrapData.can_download,
   datasources: bootstrapData.datasources,
   datasource_type: bootstrapData.datasource_type,
   viz: bootstrapData.viz,
+  user_id: bootstrapData.user_id,
 });
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
 bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;

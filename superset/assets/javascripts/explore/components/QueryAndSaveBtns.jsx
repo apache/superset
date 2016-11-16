@@ -4,9 +4,14 @@ import classnames from 'classnames';
 const propTypes = {
   canAdd: PropTypes.string.isRequired,
   onQuery: PropTypes.func.isRequired,
+  onSave: PropTypes.func,
 };
 
-export default function QueryAndSaveBtns({ canAdd, onQuery }) {
+const defaultProps = {
+  onSave: () => {},
+};
+
+export default function QueryAndSaveBtns({ canAdd, onQuery, onSave }) {
   const saveClasses = classnames('btn btn-default btn-sm', {
     'disabled disabledButton': canAdd !== 'True',
   });
@@ -21,6 +26,7 @@ export default function QueryAndSaveBtns({ canAdd, onQuery }) {
         className={saveClasses}
         data-target="#save_modal"
         data-toggle="modal"
+        onClick={onSave}
       >
         <i className="fa fa-plus-circle"></i> Save as
       </button>
@@ -29,3 +35,4 @@ export default function QueryAndSaveBtns({ canAdd, onQuery }) {
 }
 
 QueryAndSaveBtns.propTypes = propTypes;
+QueryAndSaveBtns.defaultProps = defaultProps;

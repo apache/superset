@@ -27,6 +27,16 @@ export const exploreReducer = function (state, action) {
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },
+
+    [actions.FETCH_DASHBOARDS_SUCCEEDED]() {
+      return Object.assign({}, state, { dashboards: action.choices });
+    },
+
+    [actions.FETCH_DASHBOARDS_FAILED]() {
+      return Object.assign({}, state,
+        { alert: `fetching dashboards failed for ${action.userId}` });
+    },
+
     [actions.SET_FIELD_OPTIONS]() {
       const newState = Object.assign({}, state);
       const optionsByFieldName = action.options;

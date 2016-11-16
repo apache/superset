@@ -155,3 +155,54 @@ export const REMOVE_CHART_ALERT = 'REMOVE_CHART_ALERT';
 export function removeChartAlert() {
   return { type: REMOVE_CHART_ALERT };
 }
+
+export const FETCH_DASHBOARDS_SUCCEEDED = 'FETCH_DASHBOARDS_SUCCEEDED';
+export function fetchDashboardsSucceeded(choices) {
+  return { type: FETCH_DASHBOARDS_SUCCEEDED, choices };
+}
+
+export const FETCH_DASHBOARDS_FAILED = 'FETCH_DASHBOARDS_FAILED';
+export function fetchDashboardsFailed(userId) {
+  return { type: FETCH_FAILED, userId };
+}
+
+export function fetchDashboards(userId) {
+  return function (dispatch) {
+    const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + userId;
+    $.get(url, function (data, status) {
+      if (status === 'success') {
+        const choices = [];
+        for (let i = 0; i < data.pks.length; i++) {
+          choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
+        }
+        dispatch(fetchDashboardsSucceeded(choices));
+      } else {
+        dispatch(fetchDashboardsFailed(userId));
+      }
+    });
+  };
+}
+
+export const SAVE_SLICE_SUCCEEDED = 'SAVE_SLICE_SUCCEEDED';
+export function saveSliceSucceeded() {
+  return { type: SAVE_SLICE_SUCCEEDED };
+}
+
+export const SAVE_SLICE_FAILED = 'SAVE_SLICE_FAILED';
+export function saveSliceFailed() {
+  return { type: SAVE_SLICE_FAILED };
+}
+
+export function saveSlice(url) {
+  return function (dispatch) {
+    $.get(url, (data, status) => {
+      if (status === 'success') {
+        dispatch(saveSliceSucceeded());
+        // Go to new slice url or dashboard url
+        window.location = data;
+      } else {
+        dispatch(saveSliceFailed());
+      }
+    });
+  };
+}

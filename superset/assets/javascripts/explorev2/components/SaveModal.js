@@ -12,28 +12,47 @@ const propTypes = {
   form_data: PropTypes.object,
   datasource_type: PropTypes.string.isRequired,
   user_id: PropTypes.string.isRequired,
+  dashboards: PropTypes.array.isRequired,
 };
 
 class SaveModal extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      save_to_dashboard_id: null,
+      saveToDashboardId: null,
+      newDashboardName: '',
+      newSliceName: '',
       dashboards: [],
       alert: null,
+      action: 'overwrite',
+      addToDash: 'noSave',
     };
   }
-
   componentDidMount() {
-    this.prepSaveDialog();
+    this.props.actions.fetchDashboards(this.props.user_id);
   }
-
-  setSaveDashboard(opt) {
-    this.setState({ save_to_dashboard_id: opt.value });
-    $('#add_to_dash_existing').prop('checked', true);
-    $('.gotodash').removeAttr('disabled');
+  onChange(name, event) {
+    switch (name) {
+      case 'newSliceName':
+        this.setState({ newSliceName: event.target.value });
+        break;
+      case 'saveToDashboardId':
+        this.setState({ saveToDashboardId: event.value });
+        this.changeDash('existing');
+        break;
+      case 'newDashboardName':
+        this.setState({ newDashboardName: event.target.value });
+        break;
+      default:
+        break;
+    }
   }
-
+  changeAction(action) {
+    this.setState({ action });
+  }
+  changeDash(dash) {
+    this.setState({ addToDash: dash });
+  }
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     const params = {};
@@ -42,11 +61,10 @@ class SaveModal extends React.Component {
     params.datasource_type = this.props.datasource_type;
     params.datasource_name = this.props.form_data.datasource_name;
 
-    const action = $('input[name=rdo_save]:checked').val();
     let sliceName = null;
-    sliceParams.action = action;
-    if (action === 'saveas') {
-      sliceName = $('input[name=new_slice_name]').val();
+    sliceParams.action = this.state.action;
+    if (sliceParams.action === 'saveas') {
+      sliceName = this.state.newSliceName;
       if (sliceName === '') {
         this.setState({ alert: 'Please enter a slice name' });
         return;
@@ -62,12 +80,12 @@ class SaveModal extends React.Component {
       }
     });
 
-    const addToDash = $('input[name=add_to_dash]:checked').val();
+    const addToDash = this.state.addToDash;
     sliceParams.add_to_dash = addToDash;
     let dashboard = null;
     switch (addToDash) {
       case ('existing'):
-        dashboard = this.state.save_to_dashboard_id;
+        dashboard = this.state.saveToDashboardId;
         if (!dashboard) {
           this.setState({ alert: 'Please select a dashboard' });
           return;
@@ -75,7 +93,7 @@ class SaveModal extends React.Component {
         sliceParams.save_to_dashboard_id = dashboard;
         break;
       case ('new'):
-        dashboard = $('input[name=new_dashboard_name]').val();
+        dashboard = this.state.newDashboardName;
         if (dashboard === '') {
           this.setState({ alert: 'Please enter a dashboard name' });
           return;
@@ -93,40 +111,9 @@ class SaveModal extends React.Component {
     this.props.actions.saveSlice(saveUrl);
     this.props.onHide();
   }
-
-  prepSaveDialog() {
-    const setButtonsState = function () {
-      const addToDash = $('input[name=add_to_dash]:checked').val();
-      if (addToDash === 'existing' || addToDash === 'new') {
-        $('.gotodash').removeAttr('disabled');
-      } else {
-        $('.gotodash').prop('disabled', true);
-      }
-    };
-    setButtonsState();
-    const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + this.props.user_id;
-    $.get(url, function (data) {
-      const choices = [];
-      for (let i = 0; i < data.pks.length; i++) {
-        choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
-      }
-      this.setState({ dashboards: choices });
-    }.bind(this));
-    $('input[name=add_to_dash]').change(setButtonsState);
-    $("input[name='new_dashboard_name']").on('focus', function () {
-      $('#add_to_new_dash').prop('checked', true);
-      setButtonsState();
-    });
-    $("input[name='new_slice_name']").on('focus', function () {
-      $('#save_as_new').prop('checked', true);
-      setButtonsState();
-    });
-  }
-
   removeAlert() {
     this.setState({ alert: null });
   }
-
   render() {
     return (
       <Modal
@@ -153,45 +140,67 @@ class SaveModal extends React.Component {
           <form>
             <input
               type="radio"
-              name="rdo_save"
-              value="overwrite"
               disabled={!this.props.can_edit}
+              checked={this.state.action === 'overwrite'}
+              onChange={this.changeAction.bind(this, 'overwrite')}
             />
             {`Overwrite slice ${this.props.form_data.slice_name}`}
             <br />
 
             <input
-              id="save_as_new"
               type="radio"
-              name="rdo_save"
-              value="saveas"
+              checked={this.state.action === 'saveas'}
+              onChange={this.changeAction.bind(this, 'saveas')}
             /> Save as &nbsp;
-            <input type="text" name="new_slice_name" placeholder="[slice name]" />
+            <input
+              type="text"
+              name="new_slice_name"
+              placeholder="[slice name]"
+              onChange={this.onChange.bind(this, 'newSliceName')}
+              onFocus={this.changeAction.bind(this, 'saveas')}
+            />
 
             <br />
             <hr />
 
-            <input type="radio" name="add_to_dash" value="false" />
+            <input
+              type="radio"
+              checked={this.state.addToDash === 'noSave'}
+              onChange={this.changeDash.bind(this, 'noSave')}
+            />
             Do not add to a dashboard
             <br />
 
             <div
               id="save_to_dashboard_id"
             >
-              <input id="add_to_dash_existing" type="radio" name="add_to_dash" value="existing" />
+              <input
+                type="radio"
+                checked={this.state.addToDash === 'existing'}
+                onChange={this.changeDash.bind(this, 'existing')}
+              />
               Add slice to existing dashboard
               <Select
-                options={this.state.dashboards}
-                onChange={this.setSaveDashboard.bind(this)}
+                options={this.props.dashboards}
+                onChange={this.onChange.bind(this, 'saveToDashboardId')}
                 autoSize={false}
-                value={this.state.save_to_dashboard_id}
+                value={this.state.saveToDashboardId}
               />
             </div>
             <br />
 
-            <input type="radio" id="add_to_new_dash" name="add_to_dash" value="new" />
+            <input
+              type="radio"
+              checked={this.state.addToDash === 'new'}
+              onChange={this.changeDash.bind(this, 'new')}
+            />
             Add to new dashboard &nbsp;
-            <input type="text" name="new_dashboard_name" placeholder="[dashboard name]" />
+            <input
+              type="text"
+              onChange={this.onChange.bind(this, 'newDashboardName')}
+              onFocus={this.changeDash.bind(this, 'new')}
+              placeholder="[dashboard name]"
+            />
             <br />
           </form>
         </Modal.Body>
@@ -209,6 +218,7 @@ class SaveModal extends React.Component {
             type="button"
             id="btn_modal_save_goto_dash"
             className="btn btn-primary pull-left gotodash"
+            disabled={this.state.addToDash === 'noSave'}
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
             Save & go to dashboard
@@ -224,11 +234,10 @@ SaveModal.propTypes = propTypes;
 function mapStateToProps(state) {
   return {
     can_edit: state.can_edit,
-    form_data: state.viz.form_data,
-    datasource_type: state.datasource_type,
     user_id: state.user_id,
+    dashboards: state.dashboards,
   };
 }
 
 export { SaveModal };
-export default connect(mapStateToProps, () => {})(SaveModal);
+export default connect(mapStateToProps, () => ({}))(SaveModal);
