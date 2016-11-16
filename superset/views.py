@@ -2066,6 +2066,19 @@ class Superset(BaseSupersetView):
                 mimetype="application/json")
 
     @has_access_api
+    @expose("/user_profile/", methods=['POST', 'GET'])
+    @log_this
+    def user_profile(self):
+        """json blob of user related data"""
+        payload = {
+
+        }
+        return Response(
+            json.dumps(payload),
+            status=410,
+            mimetype="application/json")
+
+    @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
