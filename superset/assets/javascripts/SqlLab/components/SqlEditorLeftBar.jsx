@@ -4,6 +4,7 @@ import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import DatabaseSelect from './DatabaseSelect';
+import { getHeight } from '../../modules/utils.js';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -27,11 +28,21 @@ class SqlEditorLeftBar extends React.PureComponent {
       tableLoading: false,
       tableOptions: [],
       networkOn: true,
+      height: getHeight(window.innerHeight),
     };
   }
   componentWillMount() {
     this.fetchSchemas();
     this.fetchTables();
+  }
+  componentDidMount() {
+    window.addEventListener('resize', this.handleResize.bind(this));
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize.bind(this));
+  }
+  handleResize() {
+    this.setState({ height: getHeight(window.innerHeight) });
   }
   onChange(db) {
     const val = (db) ? db.value : null;
@@ -99,7 +110,12 @@ class SqlEditorLeftBar extends React.PureComponent {
     }
     const shouldShowReset = window.location.search === '?reset=1';
     return (
-      <div className="scrollbar-container">
+      <div
+        className="scrollbar-container"
+        style={{
+          height: this.state.height,
+        }}
+      >
         <div className="clearfix sql-toolbar scrollbar-content">
           {networkAlert}
           <div>

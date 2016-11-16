@@ -19,6 +19,7 @@ import Timer from './Timer';
 
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
+import { getHeight } from '../../modules/utils.js';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -46,10 +47,18 @@ class SqlEditor extends React.PureComponent {
     this.state = {
       autorun: props.queryEditor.autorun,
       ctas: '',
+      height: getHeight(window.innerHeight),
     };
   }
   componentDidMount() {
     this.onMount();
+    window.addEventListener('resize', this.handleResize.bind(this));
+  }
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize.bind(this));
+  }
+  handleResize() {
+    this.setState({ height: getHeight(window.innerHeight) });
   }
   onMount() {
     if (this.state.autorun) {
@@ -227,7 +236,12 @@ class SqlEditor extends React.PureComponent {
             </Col>
           </Collapse>
           <Col md={this.props.hideLeftBar ? 12 : 9}>
-            <div className="scrollbar-container">
+            <div
+              className="scrollbar-container"
+              style={{
+                height: this.state.height,
+              }}
+            >
               <div className="scrollbar-content">
                 <AceEditorWrapper
                   actions={this.props.actions}
