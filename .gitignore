@@ -1,4 +1,5 @@
 *.pyc
+changelog.sh
 panoramix
 caravel
 superset
