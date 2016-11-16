@@ -1,0 +1,8 @@
+{% extends "superset/basic.html" %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="profile" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}

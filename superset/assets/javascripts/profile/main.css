@@ -1,0 +1,13 @@
+.tab-pane {
+    min-height: 400px;
+    border-left: 1px solid #bbb;
+    border-right: 1px solid #bbb;
+    border-bottom: 1px solid #bbb;
+    background: white;
+}
+
+.label {
+    display: inline-block;
+    margin-right: 5px;
+    margin-bottom: 5px;
+}

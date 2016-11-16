@@ -20,6 +20,7 @@ const config = {
     sqllab: ['babel-polyfill', APP_DIR + '/javascripts/SqlLab/index.jsx'],
     standalone: ['babel-polyfill', APP_DIR + '/javascripts/standalone.js'],
     welcome: ['babel-polyfill', APP_DIR + '/javascripts/welcome.js'],
+    profile: ['babel-polyfill', APP_DIR + '/javascripts/profile/index.jsx'],
   },
   output: {
     path: BUILD_DIR,
@@ -48,7 +49,7 @@ const config = {
       },
       {
         test: /\.jsx?$/,
-        exclude: APP_DIR + '/node_modules',
+        exclude: /(node_modules|bower_components)/,
         loader: 'babel',
         query: {
           presets: [
@@ -106,6 +107,7 @@ const config = {
       {
         test: /\.js$/,
         include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
+        exclude: /(node_modules|bower_components)/,
         loader: 'transform/cacheable?brfs',
       },
     ],
