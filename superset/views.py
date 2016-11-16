@@ -1752,6 +1752,7 @@ class Superset(BaseSupersetView):
             "superset/dashboard.html",
             dashboard=dash,
             context=json.dumps(context),
+            standalone_mode=standalone,
         )
 
     @has_access
