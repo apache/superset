@@ -34,17 +34,6 @@ class SaveModal extends React.Component {
     $('.gotodash').removeAttr('disabled');
   }
 
-  fetchDashboards() {
-    const url = '/dashboardmodelviewasync/api/read?_flt_0_owners=' + this.props.user_id;
-    $.get(url, function (data) {
-      const choices = [];
-      for (let i = 0; i < data.pks.length; i++) {
-        choices.push({ value: data.pks[i], label: data.result[i].dashboard_title });
-      }
-      this.setState({ dashboards: choices });
-    }.bind(this));
-  }
-
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     const params = {};
