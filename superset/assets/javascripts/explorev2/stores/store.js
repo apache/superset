@@ -604,7 +604,7 @@ export const visTypes = {
     label: 'Heatmap',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Axis & Metrics',
         fieldSetRows: [
           ['all_columns_x'],
           ['all_columns_y'],

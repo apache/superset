@@ -2,13 +2,14 @@ import React from 'react';
 import { beforeEach, describe, it } from 'mocha';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
+import sinon from 'sinon';
 
 import QueryAndSaveButtons from '../../../../javascripts/explore/components/QueryAndSaveBtns';
 
 describe('QueryAndSaveButtons', () => {
   const defaultProps = {
     canAdd: 'True',
-    onQuery: () => {},
+    onQuery: sinon.spy(),
   };
 
   // It must render
@@ -31,6 +32,12 @@ describe('QueryAndSaveButtons', () => {
     it('renders buttons with correct text', () => {
       expect(wrapper.find('button').contains(' Query')).to.eql(true);
       expect(wrapper.find('button').contains(' Save as')).to.eql(true);
+    });
+
+    it('calls onQuery when query button is clicked', () => {
+      const queryButton = wrapper.find('#query_button');
+      queryButton.simulate('click');
+      expect(defaultProps.onQuery.called).to.eql(true);
     });
   });
 });

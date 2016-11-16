@@ -19,6 +19,7 @@ const bootstrappedState = Object.assign(initialState, {
   datasource_type: bootstrapData.datasource_type,
   viz: bootstrapData.viz,
 });
+
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
 );
