@@ -6,11 +6,6 @@ export function setFieldOptions(options) {
   return { type: SET_FIELD_OPTIONS, options };
 }
 
-export const CLEAR_ALL_OPTS = 'CLEAR_ALL_OPTS';
-export function clearAllOpts() {
-  return { type: CLEAR_ALL_OPTS };
-}
-
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };

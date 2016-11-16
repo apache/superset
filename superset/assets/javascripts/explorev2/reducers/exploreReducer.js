@@ -4,10 +4,6 @@ import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasourceId: action.datasourceId });
-    },
-
     [actions.FETCH_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
@@ -33,10 +29,6 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, newState);
     },
 
-    [actions.TOGGLE_SEARCHBOX]() {
-      return Object.assign({}, state, { searchBox: action.searchBox });
-    },
-
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },
@@ -54,9 +46,6 @@ export const exploreReducer = function (state, action) {
     },
     [actions.CHANGE_FILTER_VALUE]() {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
-    },
-    [actions.CLEAR_ALL_OPTS]() {
-      return Object.assign({}, state, defaultOpts);
     },
     [actions.SET_FIELD_VALUE]() {
       const newFormData = Object.assign({}, state.viz.form_data);
