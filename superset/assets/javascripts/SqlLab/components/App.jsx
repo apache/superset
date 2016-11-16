@@ -1,3 +1,4 @@
+const $ = window.$ = require('jquery');
 import * as Actions from '../actions';
 import React from 'react';
 
@@ -14,13 +15,28 @@ class App extends React.PureComponent {
     super(props);
     this.state = {
       hash: window.location.hash,
+      editorHeight: this.getHeight(),
     };
   }
   componentDidMount() {
+    /* eslint-disable react/no-did-mount-set-state */
+    this.setState({ editorHeight: this.getHeight() });
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
+    window.addEventListener('resize', this.handleResize.bind(this));
   }
   componentWillUnmount() {
     window.removeEventListener('hashchange', this.onHashChanged.bind(this));
+    window.removeEventListener('resize', this.handleResize.bind(this));
+  }
+  getHeight() {
+    const navHeight = 90;
+    const tabHeight = $('.nav-tabs').outerHeight();
+    const warningHeight = $('#navbar-warning').outerHeight();
+    const alertHeight = $('#sqllab-alerts').outerHeight();
+    return `${window.innerHeight - navHeight - tabHeight - warningHeight - alertHeight}px`;
+  }
+  handleResize() {
+    this.setState({ editorHeight: this.getHeight() });
   }
   onHashChanged() {
     this.setState({ hash: window.location.hash });
@@ -41,13 +57,13 @@ class App extends React.PureComponent {
       content = (
         <div>
           <QueryAutoRefresh />
-          <TabbedSqlEditors />
+          <TabbedSqlEditors editorHeight={this.state.editorHeight} />
         </div>
       );
     }
     return (
       <div className="App SqlLab">
-        <Alerts alerts={this.props.alerts} actions={this.props.actions} />
+        <Alerts id="sqllab-alerts" alerts={this.props.alerts} actions={this.props.actions} />
         <div className="container-fluid">
           {content}
         </div>

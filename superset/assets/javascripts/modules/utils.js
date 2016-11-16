@@ -8,13 +8,6 @@ const $ = require('jquery');
   If text does not span multiple lines AND adjustedY is passed,
   will set the text to the passed val
 */
-
-export function getHeight(windowSize) {
-  const navHeight = 90;
-  const tabHeight = 40;
-  return `${windowSize - navHeight - tabHeight}px`;
-}
-
 export function wrapSvgText(text, width, adjustedY) {
   const lineHeight = 1;
   // ems
