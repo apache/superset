@@ -241,9 +241,5 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps() {
-  return {};
-}
-
 export { SaveModal };
-export default connect(mapStateToProps, mapDispatchToProps)(SaveModal);
+export default connect(mapStateToProps, () => {})(SaveModal);

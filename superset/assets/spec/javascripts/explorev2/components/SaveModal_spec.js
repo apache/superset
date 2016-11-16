@@ -32,5 +32,4 @@ describe('SaveModal', () => {
     expect(wrapper.find('input')).to.have.lengthOf(7);
     expect(wrapper.find('button')).to.have.lengthOf(2);
   });
-
 });

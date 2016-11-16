@@ -112,6 +112,5 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export { ControlPanelsContainer };
-
+export { ExploreViewContainer };
 export default connect(mapStateToProps, mapDispatchToProps)(ExploreViewContainer);

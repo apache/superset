@@ -102,6 +102,13 @@ export const exploreReducer = function (state, action) {
     [actions.REMOVE_CHART_ALERT]() {
       return Object.assign({}, state, { chartAlert: null });
     },
+    [actions.SAVE_SLICE_SUCCEEDED]() {
+      // todo: vera: add Alert to exploreV2 for all ajax calls
+      return Object.assign({}, state, { alert: 'Successfully saved slice' });
+    },
+    [actions.SAVE_SLICE_FAILED]() {
+      return Object.assign({}, state, { alert: 'Failed to save slice' });
+    },
   };
   if (action.type in actionHandlers) {
     return actionHandlers[action.type]();
