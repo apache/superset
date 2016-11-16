@@ -21,9 +21,13 @@ def is_result_operation(keyword):
     return False
 
 
+def is_identifier(token):
+    return isinstance(token, IdentifierList) or isinstance(token, Identifier)
+
+
 def process_identifier(identifier, table_names, aliases):
     # exclude subselects
-    if '(' not in identifier.value:
+    if '(' not in '{}'.format(identifier):
         table_names.append(get_full_name(identifier))
     else:
         # store aliases
@@ -44,7 +48,7 @@ def extract_from_token(token, table_names, aliases):
     table_name_preceding_token = False
 
     for item in token.tokens:
-        if item.is_group and not isinstance(item, IdentifierList):
+        if item.is_group and not is_identifier(item):
             extract_from_token(item, table_names, aliases)
 
         if item.ttype in Keyword:
@@ -66,8 +70,9 @@ def extract_from_token(token, table_names, aliases):
             process_identifier(item, table_names, aliases)
 
         if isinstance(item, IdentifierList):
-            for identifier in item.get_identifiers():
-                process_identifier(identifier, table_names, aliases)
+            for token in item.tokens:
+                if is_identifier(token):
+                    process_identifier(token, table_names, aliases)
 
 
 def extract_tables(sql):
