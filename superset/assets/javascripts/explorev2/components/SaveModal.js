@@ -10,8 +10,6 @@ const propTypes = {
   onHide: PropTypes.func.isRequired,
   actions: PropTypes.object.isRequired,
   form_data: PropTypes.object,
-  datasource_id: PropTypes.number.isRequired,
-  datasource_name: PropTypes.string.isRequired,
   datasource_type: PropTypes.string.isRequired,
   user_id: PropTypes.string.isRequired,
 };
@@ -51,9 +49,9 @@ class SaveModal extends React.Component {
     this.setState({ alert: null });
     const params = {};
     const sliceParams = {};
-    params.datasource_id = this.props.datasource_id;
+    params.datasource_id = this.props.form_data.datasource;
     params.datasource_type = this.props.datasource_type;
-    params.datasource_name = this.props.datasource_name;
+    params.datasource_name = this.props.form_data.datasource_name;
 
     const action = $('input[name=rdo_save]:checked').val();
     let sliceName = null;
@@ -100,7 +98,8 @@ class SaveModal extends React.Component {
     }
     params.V2 = true;
     sliceParams.goto_dash = gotodash;
-    const baseUrl = `/superset/explore/${this.props.datasource_type}/${this.props.datasource_id}/`;
+    const baseUrl = '/superset/explore/' +
+      `${this.props.datasource_type}/${this.props.form_data.datasource}/`;
     const saveUrl = `${baseUrl}?${$.param(params, true)}&${$.param(sliceParams, true)}`;
     this.props.actions.saveSlice(saveUrl);
     this.props.onHide();
@@ -237,8 +236,6 @@ function mapStateToProps(state) {
   return {
     can_edit: state.can_edit,
     form_data: state.viz.form_data,
-    datasource_id: state.datasource_id,
-    datasource_name: state.datasource_name,
     datasource_type: state.datasource_type,
     user_id: state.user_id,
   };
