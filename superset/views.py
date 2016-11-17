@@ -1391,6 +1391,7 @@ class Superset(BaseSupersetView):
                 # TODO: separate endpoint for fetching datasources
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
+                "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())

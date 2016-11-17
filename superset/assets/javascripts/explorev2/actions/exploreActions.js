@@ -1,6 +1,5 @@
 /* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
-
 export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
 export function setFieldOptions(options) {
   return { type: SET_FIELD_OPTIONS, options };
@@ -75,8 +74,8 @@ export function changeFilterValue(filter, value) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(key, value) {
-  return { type: SET_FIELD_VALUE, key, value };
+export function setFieldValue(key, value, label) {
+  return { type: SET_FIELD_VALUE, key, value, label };
 }
 
 export const UPDATE_CHART = 'UPDATE_CHART';

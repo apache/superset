@@ -1,3 +1,4 @@
+import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
@@ -47,9 +48,15 @@ export const exploreReducer = function (state, action) {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
     },
     [actions.SET_FIELD_VALUE]() {
-      const newFormData = Object.assign({}, state.viz.form_data);
+      const newFormData = action.key === 'datasource' ?
+        defaultFormData(state.viz.form_data.viz_type) : Object.assign({}, state.viz.form_data);
+      if (action.key === 'datasource') {
+        newFormData.datasource_name = action.label;
+        newFormData.slice_id = state.viz.form_data.slice_id;
+        newFormData.slice_name = state.viz.form_data.slice_name;
+        newFormData.viz_type = state.viz.form_data.viz_type;
+      }
       newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
-
       return Object.assign(
         {},
         state,

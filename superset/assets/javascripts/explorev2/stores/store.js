@@ -1628,34 +1628,47 @@ export const fields = {
   },
 };
 
-export function defaultFormData() {
+export function defaultFormData(vizType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,
+    datasource_name: null,
   };
-  Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
+  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const viz = visTypes[vizType];
+  const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
+  sectionsToRender.forEach((section) => {
+    section.fieldSetRows.forEach((fieldSetRow) => {
+      fieldSetRow.forEach((k) => {
+        data[k] = fields[k].default;
+      });
+    });
+  });
   return data;
 }
 
-export const defaultViz = {
-  cached_key: null,
-  cached_timeout: null,
-  cached_dttm: null,
-  column_formats: null,
-  csv_endpoint: null,
-  is_cached: false,
-  data: [],
-  form_data: defaultFormData(),
-  json_endpoint: null,
-  query: null,
-  standalone_endpoint: null,
-};
+export function defaultViz(vizType) {
+  return {
+    cached_key: null,
+    cached_timeout: null,
+    cached_dttm: null,
+    column_formats: null,
+    csv_endpoint: null,
+    is_cached: false,
+    data: [],
+    form_data: defaultFormData(vizType),
+    json_endpoint: null,
+    query: null,
+    standalone_endpoint: null,
+  };
+}
 
-export const initialState = {
-  isDatasourceMetaLoading: false,
-  datasources: null,
-  datasource_id: null,
-  datasource_type: null,
-  fields,
-  viz: defaultViz,
-};
+export function initialState(vizType = 'table') {
+  return {
+    isDatasourceMetaLoading: false,
+    datasources: null,
+    datasource_type: null,
+    fields,
+    viz: defaultViz(vizType),
+  };
+}

@@ -11,9 +11,6 @@ const $ = require('jquery');
 const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
-  slice_id: React.PropTypes.string.isRequired,
-  slice_name: React.PropTypes.string.isRequired,
-  datasource_id: React.PropTypes.number.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
 };
 
@@ -31,14 +28,14 @@ class ExploreViewContainer extends React.Component {
     const form_data = this.props.form_data;
     Object.keys(form_data).forEach((field) => {
       // filter out null fields
-      if (form_data[field] !== null) {
+      if (form_data[field] !== null && field !== 'datasource') {
         data[field] = form_data[field];
       }
     });
     // V2 tag temporarily for updating url
     // Todo: remove after launch
     data.V2 = true;
-    data.datasource_id = this.props.datasource_id;
+    data.datasource_id = this.props.form_data.datasource;
     data.datasource_type = this.props.datasource_type;
     this.queryFormData(data);
 
@@ -53,14 +50,14 @@ class ExploreViewContainer extends React.Component {
 
   updateUrl(params) {
     const baseUrl =
-      `/superset/explore/${this.props.datasource_type}/${this.props.datasource_id}/`;
+      `/superset/explore/${this.props.datasource_type}/${this.props.form_data.datasource}/`;
     const newEndpoint = `${baseUrl}?${params}`;
     history.pushState({}, document.title, newEndpoint);
   }
 
   queryFormData(data) {
     this.props.actions.updateExplore(
-      this.props.datasource_type, this.props.datasource_id, data);
+      this.props.datasource_type, this.props.form_data.datasource, data);
   }
 
   render() {
@@ -99,11 +96,8 @@ ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
-    datasource_id: state.datasource_id,
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
-    slice_id: state.viz.form_data.slice_id,
-    slice_name: state.viz.form_data.slice_name,
   };
 }
 
