@@ -23,21 +23,23 @@ const UserInfo = ({ user }) => (
       <h3>
         <strong>{user.firstName} {user.lastName}</strong>
       </h3>
-      <h4>
+      <h4 className="username">
         <i className="fa fa-user-o" /> {user.username}
       </h4>
       <hr />
       <p>
         <i className="fa fa-clock-o" /> joined {moment(user.createdOn, 'YYYYMMDD').fromNow()}
       </p>
-      <p>
+      <p className="email">
         <i className="fa fa-envelope-o" /> {user.email}
       </p>
-      <p>
+      <p className="roles">
         <i className="fa fa-lock" /> {Object.keys(user.roles).join(', ')}
       </p>
       <p>
-        <i className="fa fa-key" /> <span className="text-muted">id:</span> {user.userId}
+        <i className="fa fa-key" />&nbsp;
+        <span className="text-muted">id:</span>&nbsp;
+        <span className="user-id">{user.userId}</span>
       </p>
     </Panel>
   </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Table, Tr, Td } from 'reactable';
+import TableLoader from './TableLoader';
 import moment from 'moment';
 import $ from 'jquery';
 
@@ -17,23 +17,22 @@ class RecentActivity extends React.PureComponent {
     });
   }
   render() {
-    const data = this.state.recentActions.map(row => (
-      <Tr>
-        <Td column="action">{row.action}</Td>
-        <Td column="item">
-          <a href={row.item_url}>{row.item_title}</a>
-        </Td>
-        <Td column="time" value={row.time}>{moment.utc(row.time).fromNow()}</Td>
-      </Tr>)
-    );
+    const mutator = function (data) {
+      return data.map(row => ({
+        action: row.action,
+        item: <a href={row.item_url}>{row.item_title}</a>,
+        time: moment.utc(row.time).fromNow(),
+        _time: row.time,
+      }));
+    };
     return (
       <div>
-        <Table
+        <TableLoader
           className="table table-condensed"
+          mutator={mutator}
           sortable
-        >
-          {data}
-        </Table>
+          dataEndpoint={`/superset/recent_activity/${this.props.user.userId}/`}
+        />
       </div>
     );
   }

@@ -1,12 +1,13 @@
 import React from 'react';
 import { Table, Tr, Td } from 'reactable';
+import { Collapse } from 'react-bootstrap';
 import $ from 'jquery';
 
 const propTypes = {
   dataEndpoint: React.PropTypes.string.isRequired,
   loadingNode: React.PropTypes.node,
   mutator: React.PropTypes.func,
-  columns: React.PropTypes.arrayOf(React.PropTypes.string).isRequired,
+  columns: React.PropTypes.arrayOf(React.PropTypes.string),
 };
 const defaultProps = {
   loadingNode: <img alt="loading" width="25" src="/static/assets/images/loading.gif" />,
@@ -31,30 +32,36 @@ class TableLoader extends React.PureComponent {
   }
   render() {
     const tableProps = Object.assign({}, this.props);
+    let columns = this.props.columns;
+    if (!columns && this.state.data.length > 0) {
+      columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
+    }
     delete tableProps.loadingNode;
     delete tableProps.dataEndpoint;
     delete tableProps.columns;
+    if (this.state.isLoading) {
+      return this.props.loadingNode;
+    }
     return (
-      <div>
-        {this.state.isLoading && this.props.loadingNode}
-        {!this.state.isLoading &&
+      <Collapse in transitionAppear >
+        <div>
           <Table {...tableProps}>
             {this.state.data.map((row, i) => (
               <Tr key={i}>
-                {this.props.columns.map(col => {
+                {columns.map(col => {
                   if (row.hasOwnProperty('_' + col)) {
                     return (
                       <Td key={col} column={col} value={row['_' + col]}>
                         {row[col]}
                       </Td>);
                   }
-                  return <Td column={col}>{row[col]}</Td>;
+                  return <Td key={col} column={col}>{row[col]}</Td>;
                 })}
               </Tr>
             ))}
           </Table>
-        }
-      </div>
+        </div>
+      </Collapse>
     );
   }
 }
