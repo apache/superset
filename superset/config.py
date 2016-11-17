@@ -9,6 +9,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from superset import email
+
 import imp
 import json
 import os
@@ -147,6 +149,7 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+IN_MEMORY_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 # CORS Options
 ENABLE_CORS = False
@@ -263,6 +266,20 @@ try:
 
     from superset_config import *  # noqa
     print('Loaded your LOCAL configuration')
+except ImportError:
+    pass
+
+# smtp server configuration
+smtp_host = 'localhost'
+smtp_starttls = True
+smtp_ssl = False
+smtp_user = 'superset'
+smtp_port = 25
+smtp_password = 'superset'
+smtp_mail_from = 'superset@superset.com'
+
+try:
+    from superset_config import *  # noqa
 except ImportError:
     pass
 
