@@ -1679,5 +1679,6 @@ export function initialState(vizType = 'table') {
     datasource_type: null,
     fields,
     viz: defaultViz(vizType),
+    isStarred: false,
   };
 }

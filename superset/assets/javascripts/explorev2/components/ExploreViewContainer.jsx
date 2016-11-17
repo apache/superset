@@ -83,6 +83,7 @@ class ExploreViewContainer extends React.Component {
           </div>
           <div className="col-sm-8">
             <ChartContainer
+              actions={this.props.actions}
               height={this.state.height}
             />
           </div>
