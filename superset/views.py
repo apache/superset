@@ -2142,7 +2142,7 @@ class Superset(BaseSupersetView):
 
         gb_cols = [(col, col) for col in datasource.groupby_column_names]
         order_by_choices = []
-        for s in sorted(datasource.num_cols):
+        for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 

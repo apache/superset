@@ -134,7 +134,7 @@ class FormFactory(object):
         default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = self.choicify(gb_cols)
         order_by_choices = []
-        for s in sorted(datasource.num_cols):
+        for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
         # Pool of all the fields that can be used in Superset
