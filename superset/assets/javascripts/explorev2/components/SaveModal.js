@@ -13,6 +13,7 @@ const propTypes = {
   datasource_type: PropTypes.string.isRequired,
   user_id: PropTypes.string.isRequired,
   dashboards: PropTypes.array.isRequired,
+  alert: PropTypes.string,
 };
 
 class SaveModal extends React.Component {
@@ -55,6 +56,7 @@ class SaveModal extends React.Component {
   }
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
+    this.props.actions.removeSaveModalAlert();
     const params = {};
     const sliceParams = {};
     params.datasource_id = this.props.form_data.datasource;
@@ -112,6 +114,9 @@ class SaveModal extends React.Component {
     this.props.onHide();
   }
   removeAlert() {
+    if (this.props.alert) {
+      this.props.actions.removeSaveModalAlert();
+    }
     this.setState({ alert: null });
   }
   render() {
@@ -127,9 +132,9 @@ class SaveModal extends React.Component {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {this.state.alert &&
+          {(this.state.alert || this.props.alert) &&
             <Alert>
-              {this.state.alert}
+              {this.state.alert ? this.state.alert : this.props.alert}
               <i
                 className="fa fa-close pull-right"
                 onClick={this.removeAlert.bind(this)}
@@ -236,6 +241,7 @@ function mapStateToProps(state) {
     can_edit: state.can_edit,
     user_id: state.user_id,
     dashboards: state.dashboards,
+    alert: state.saveModalAlert,
   };
 }
 

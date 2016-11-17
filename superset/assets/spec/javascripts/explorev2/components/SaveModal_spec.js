@@ -9,7 +9,7 @@ import sinon from 'sinon';
 
 const defaultProps = {
   can_edit: true,
-  onHide: () => {},
+  onHide: () => ({}),
   actions: {
     saveSlice: sinon.spy(),
   },

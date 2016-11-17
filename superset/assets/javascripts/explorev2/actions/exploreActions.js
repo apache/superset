@@ -183,21 +183,20 @@ export function fetchDashboards(userId) {
   };
 }
 
-export const SAVE_SLICE_SUCCEEDED = 'SAVE_SLICE_SUCCEEDED';
-export function saveSliceSucceeded() {
-  return { type: SAVE_SLICE_SUCCEEDED };
-}
-
 export const SAVE_SLICE_FAILED = 'SAVE_SLICE_FAILED';
 export function saveSliceFailed() {
   return { type: SAVE_SLICE_FAILED };
+}
+
+export const REMOVE_SAVE_MODAL_ALERT = 'REMOVE_SAVE_MODAL_ALERT';
+export function removeSaveModalAlert() {
+  return { type: REMOVE_SAVE_MODAL_ALERT };
 }
 
 export function saveSlice(url) {
   return function (dispatch) {
     $.get(url, (data, status) => {
       if (status === 'success') {
-        dispatch(saveSliceSucceeded());
         // Go to new slice url or dashboard url
         window.location = data;
       } else {
