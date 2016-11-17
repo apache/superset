@@ -343,6 +343,13 @@ class FormFactory(object):
                     "Bottom marging, in pixels, allowing for more room for "
                     "axis labels"),
             }),
+            'page_length': (FreeFormSelectField, {
+                "label": _("Page Length"),
+                "default": 0,
+                "choices": self.choicify([0, 10, 25, 50, 100, 250, 500]),
+                "description": _(
+                    "Number of rows per page, 0 means no pagination")
+            }),
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
                 "default": "one day",
@@ -957,8 +964,9 @@ class FormFactory(object):
             'render_while_dragging': (BetterBooleanField, {
                 "label": _("Live render"),
                 "default": True,
-                "description": _("Points and clusters will update as viewport "
-                    "is being changed")
+                "description": _(
+                    "Points and clusters will update as viewport "
+                    "is being changed"),
             }),
             'mapbox_color': (FreeFormSelectField, {
                 "label": _("RGB Color"),
