@@ -420,6 +420,7 @@ class TableViz(BaseViz):
         'fields': (
             'table_timestamp_format',
             'row_limit',
+            'page_length',
             ('include_search', None),
         )
     })

@@ -343,6 +343,13 @@ class FormFactory(object):
                     "Bottom marging, in pixels, allowing for more room for "
                     "axis labels"),
             }),
+            'page_length': (FreeFormSelectField, {
+                "label": _("Page Length"),
+                "default": 0,
+                "choices": self.choicify([0, 10, 25, 50 , 100, 250, 500]),
+                "description": _(
+                    "Number of rows per page, 0 means no pagination")
+            }),
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
                 "default": "one day",
