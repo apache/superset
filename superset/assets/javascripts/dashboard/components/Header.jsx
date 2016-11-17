@@ -22,7 +22,7 @@ class Header extends React.PureComponent {
           <h1>{dashboard.dashboard_title}</h1>
         </div>
         <div className="pull-right">
-        {this.props.dashboard.standalone_mode &&
+        {!this.props.dashboard.context.standalone_mode &&
           <Controls dashboard={dashboard} />
         }
         </div>
