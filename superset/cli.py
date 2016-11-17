@@ -57,10 +57,12 @@ def runserver(debug, address, port, timeout, workers):
         print("Starting server with command: " + cmd)
         Popen(cmd, shell=True).wait()
 
+
 @manager.command
 def init():
     """Inits the Superset application"""
     security.sync_role_definitions()
+
 
 @manager.option(
     '-v', '--verbose', action='store_true',
@@ -76,6 +78,7 @@ def version(verbose):
     print(s)
     if verbose:
         print("[DB] : " + "{}".format(db.engine))
+
 
 @manager.option(
     '-t', '--load-test-data', action='store_true',
@@ -110,6 +113,7 @@ def load_examples(load_test_data):
     if load_test_data:
         print("Loading [Unicode test data]")
         data.load_unicode_test_data()
+
 
 @manager.option(
     '-d', '--datasource',
