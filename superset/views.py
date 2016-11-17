@@ -1244,7 +1244,8 @@ class Superset(BaseSupersetView):
             viz_type = args.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
-            viz_obj = viz.viz_types[viz_type](datasource, request.args)
+            viz_obj = viz.viz_types[viz_type](
+                datasource, request.args if request.args else args)
             return viz_obj
 
     @has_access
@@ -1252,6 +1253,24 @@ class Superset(BaseSupersetView):
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
         return redirect(viz_obj.get_url(**request.args))
+
+    @log_this
+    @has_access_api
+    @expose(
+        "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
+    def update_explore(self, datasource_type, datasource_id):
+        """Send back new viz on POST request for updating update explore view"""
+        form_data = json.loads(request.form.get('data'))
+        error_redirect = '/slicemodelview/list/'
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=form_data)
+        except Exception as e:
+            flash('{}'.format(e), "alert")
+            return redirect(error_redirect)
+        return viz_obj.get_json()
 
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
@@ -1372,6 +1391,7 @@ class Superset(BaseSupersetView):
                 # TODO: separate endpoint for fetching datasources
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
+                "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())
@@ -1733,6 +1753,7 @@ class Superset(BaseSupersetView):
             "superset/dashboard.html",
             dashboard=dash,
             context=json.dumps(context),
+            standalone_mode=standalone,
         )
 
     @has_access
@@ -2123,7 +2144,7 @@ class Superset(BaseSupersetView):
         gb_cols = [(col, col) for col in datasource.groupby_column_names]
         all_cols = [(c, c) for c in datasource.column_names]
         order_by_choices = []
-        for s in sorted(datasource.num_cols):
+        for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
         grains = datasource.database.grains()

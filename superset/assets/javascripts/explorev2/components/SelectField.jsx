@@ -7,7 +7,7 @@ import Select, { Creatable } from 'react-select';
 const propTypes = {
   name: PropTypes.string.isRequired,
   choices: PropTypes.array,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.array]),
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]).isRequired,
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
@@ -31,7 +31,11 @@ export default class SelectField extends React.Component {
     if (this.props.multi) {
       optionValue = opt ? opt.map((o) => o.value) : null;
     }
-    this.props.onChange(this.props.name, optionValue);
+    if (this.props.name === 'datasource' && optionValue !== null) {
+      this.props.onChange(this.props.name, optionValue, opt.label);
+    } else {
+      this.props.onChange(this.props.name, optionValue);
+    }
   }
   render() {
     const options = this.props.choices.map((c) => ({ value: c[0], label: c[1] }));

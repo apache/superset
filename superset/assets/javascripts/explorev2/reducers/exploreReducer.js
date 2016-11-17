@@ -1,13 +1,9 @@
-import { defaultOpts } from '../stores/store';
+import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasourceId: action.datasourceId });
-    },
-
     [actions.FETCH_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
@@ -33,10 +29,6 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, newState);
     },
 
-    [actions.TOGGLE_SEARCHBOX]() {
-      return Object.assign({}, state, { searchBox: action.searchBox });
-    },
-
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },
@@ -55,18 +47,44 @@ export const exploreReducer = function (state, action) {
     [actions.CHANGE_FILTER_VALUE]() {
       return alterInArr(state, 'filters', action.filter, { value: action.value });
     },
-    [actions.CLEAR_ALL_OPTS]() {
-      return Object.assign({}, state, defaultOpts);
-    },
     [actions.SET_FIELD_VALUE]() {
-      const newFormData = Object.assign({}, state.viz.form_data);
+      const newFormData = action.key === 'datasource' ?
+        defaultFormData(state.viz.form_data.viz_type) : Object.assign({}, state.viz.form_data);
+      if (action.key === 'datasource') {
+        newFormData.datasource_name = action.label;
+        newFormData.slice_id = state.viz.form_data.slice_id;
+        newFormData.slice_name = state.viz.form_data.slice_name;
+        newFormData.viz_type = state.viz.form_data.viz_type;
+      }
       newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
-
       return Object.assign(
         {},
         state,
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
+    },
+    [actions.UPDATE_CHART]() {
+      const vizUpdates = {
+        column_formats: action.viz.column_formats,
+        json_endpoint: action.viz.json_endpoint,
+        csv_endpoint: action.viz.csv_endpoint,
+        standalone_endpoint: action.viz.standalone_endpoint,
+        query: action.viz.query,
+        data: action.viz.data,
+      };
+      return Object.assign(
+        {},
+        state,
+        {
+          viz: Object.assign({}, state.viz, vizUpdates),
+          isChartLoading: false,
+        });
+    },
+    [actions.CHART_UPDATE_STARTED]() {
+      return Object.assign({}, state, { isChartLoading: true });
+    },
+    [actions.CHART_UPDATE_FAILED]() {
+      return Object.assign({}, state, { isChartLoading: false });
     },
   };
   if (action.type in actionHandlers) {

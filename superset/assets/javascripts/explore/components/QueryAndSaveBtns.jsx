@@ -13,7 +13,7 @@ export default function QueryAndSaveBtns({ canAdd, onQuery }) {
 
   return (
     <div className="btn-group query-and-save">
-      <button type="button" className="btn btn-primary btn-sm" onClick={onQuery}>
+      <button id="query_button" type="button" className="btn btn-primary btn-sm" onClick={onQuery}>
         <i className="fa fa-bolt"></i> Query
       </button>
       <button
