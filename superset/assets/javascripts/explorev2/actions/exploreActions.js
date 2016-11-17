@@ -47,7 +47,6 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
         },
       });
     } else {
-      // in what case don't we have a datasource id?
       dispatch(fetchFailed('Please select a datasource'));
     }
   };

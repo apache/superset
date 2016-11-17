@@ -189,7 +189,7 @@ class ChartContainer extends React.Component {
           }
         >
           {this.props.alert &&
-            <Alert>
+            <Alert bsStyle="warning">
             {this.props.alert}
               <i
                 className="fa fa-close pull-right"
