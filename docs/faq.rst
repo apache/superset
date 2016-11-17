@@ -109,3 +109,27 @@ for dealing with the time boundary filtering mentioned above.
 But what happens with filtering when dealing with slices coming from
 different tables or databases? If the column name is shared, the filter will
 be applied, it's as simple as that.
+
+
+On which database server can I install Caravel?
+-----------------------------------------------
+
+To clarify, the *database backend* is an OLTP database used by Caravel to store its
+internal information like your list of users, slices and dashboard definitions.
+
+Caravel is tested using Mysql, Postgresql and Sqlite for its backend. It's recommended
+you install Caravel on one of these database server for production.
+
+Using a column-store, non-OLTP databases like Vertica, Redshift or Presto as a database
+backend simply won't work as these databases are not designed for this type of workload.
+Installation on Oracle, Microsoft SQL Server, or other OLTP databases may work but isn't
+tested.
+
+Please note that pretty much any databases that have a SqlAlchemy integration
+should work perfectly fine as a datasource for Caravel, just not as the OLTP backend.
+
+Caravel is tested on Mysql, Postgresql and Sqlite. It's recommended you
+install Caravel on one of these database server on production.
+
+Installation may work on other databases though, at time of writing it does
+not work on Oracle or Redshift.
