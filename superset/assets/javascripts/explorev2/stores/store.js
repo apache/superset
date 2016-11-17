@@ -1628,7 +1628,7 @@ export const fields = {
   },
 };
 
-export function defaultFormData(vizType = null) {
+export function defaultFormData(vizType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,

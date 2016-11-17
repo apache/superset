@@ -37,7 +37,6 @@ class ExploreViewContainer extends React.Component {
     data.V2 = true;
     data.datasource_id = this.props.form_data.datasource;
     data.datasource_type = this.props.datasource_type;
-    console.log(data);
     this.queryFormData(data);
 
     const params = $.param(data, true);
