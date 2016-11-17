@@ -2152,11 +2152,15 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         gb_cols = [(col, col) for col in datasource.groupby_column_names]
+        all_cols = [(c, c) for c in datasource.column_names]
         order_by_choices = []
         for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-
+        grains = datasource.database.grains()
+        grain_choices = []
+        if grains:
+            grain_choices = [(grain.name, grain.name) for grain in grains]
         field_options = {
             'datasource': [(d.id, d.full_name) for d in datasources],
             'metrics': datasource.metrics_combo,
@@ -2165,18 +2169,19 @@ class Superset(BaseSupersetView):
             'secondary_metric': datasource.metrics_combo,
             'groupby': gb_cols,
             'columns': gb_cols,
-            'all_columns': datasource.column_names,
-            'all_columns_x': datasource.column_names,
-            'all_columns_y': datasource.column_names,
-            'granularity_sqla': datasource.dttm_cols,
+            'all_columns': all_cols,
+            'all_columns_x': all_cols,
+            'all_columns_y': all_cols,
+            'granularity_sqla': [(c, c) for c in datasource.dttm_cols],
+            'time_grain_sqla': grain_choices,
             'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
             'series': gb_cols,
             'entity': gb_cols,
             'x': datasource.metrics_combo,
             'y': datasource.metrics_combo,
             'size': datasource.metrics_combo,
-            'mapbox_label': datasource.column_names,
-            'point_radius': ["Auto"] + datasource.column_names,
+            'mapbox_label': all_cols,
+            'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
         }
 
         return Response(

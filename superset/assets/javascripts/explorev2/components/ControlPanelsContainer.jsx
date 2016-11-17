@@ -41,9 +41,11 @@ class ControlPanelsContainer extends React.Component {
 
   sectionsToRender() {
     const viz = visTypes[this.props.form_data.viz_type];
+    const timeSection = this.props.datasource_type === 'table' ?
+      commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
     const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-    const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
-
+    const sectionsToRender = [datasourceAndVizType].concat(
+      viz.controlPanelSections, timeSection, sqlClause);
     return sectionsToRender;
   }
 

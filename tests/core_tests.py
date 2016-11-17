@@ -429,7 +429,7 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         url = '/superset/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
         resp = json.loads(self.get_resp(url))
-        self.assertEqual(len(resp['field_options']), 19)
+        self.assertEqual(len(resp['field_options']), 20)
 
 
 if __name__ == '__main__':
