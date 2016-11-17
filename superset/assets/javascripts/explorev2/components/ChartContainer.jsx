@@ -5,9 +5,13 @@ import { Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
+import FaveStar from '../../components/FaveStar';
+import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   can_download: PropTypes.bool.isRequired,
+  slice_id: PropTypes.string.isRequired,
   slice_name: PropTypes.string.isRequired,
   viz_type: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -19,6 +23,7 @@ const propTypes = {
   column_formats: PropTypes.object,
   data: PropTypes.any,
   isChartLoading: PropTypes.bool,
+  isStarred: PropTypes.bool.isRequired,
 };
 
 class ChartContainer extends React.Component {
@@ -150,6 +155,25 @@ class ChartContainer extends React.Component {
               className="panel-title"
             >
               {this.props.slice_name}
+
+              <FaveStar
+                sliceId={this.props.slice_id}
+                actions={this.props.actions}
+                isStarred={this.props.isStarred}
+              />
+
+              <TooltipWrapper
+                label="edit-desc"
+                tooltip="Edit Description"
+              >
+                <a
+                  className="edit-desc-icon"
+                  href={`/slicemodelview/edit/${this.props.slice_id}`}
+                >
+                  <i className="fa fa-edit" />
+                </a>
+              </TooltipWrapper>
+
               <div className="pull-right">
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
@@ -177,6 +201,7 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   return {
     containerId: `slice-container-${state.viz.form_data.slice_id}`,
+    slice_id: state.viz.form_data.slice_id,
     slice_name: state.viz.form_data.slice_name,
     viz_type: state.viz.form_data.viz_type,
     can_download: state.can_download,
@@ -187,6 +212,7 @@ function mapStateToProps(state) {
     column_formats: state.viz.column_formats,
     data: state.viz.data,
     isChartLoading: state.isChartLoading,
+    isStarred: state.isStarred,
   };
 }
 

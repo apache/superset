@@ -1,4 +1,6 @@
 *.pyc
+yarn-error.log
+_modules
 superset/assets/coverage/*
 changelog.sh
 .DS_Store

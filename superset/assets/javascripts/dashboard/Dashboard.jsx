@@ -74,7 +74,7 @@ function initDashboardView(dashboard) {
   $('[data-toggle="tooltip"]').tooltip({ container: 'body' });
 }
 
-function dashboardContainer(dashboard) {
+export function dashboardContainer(dashboard) {
   return Object.assign({}, dashboard, {
     type: 'dashboard',
     filters: {},

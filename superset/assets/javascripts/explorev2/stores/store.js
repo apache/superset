@@ -248,6 +248,7 @@ export const visTypes = {
         fieldSetRows: [
           ['table_timestamp_format'],
           ['row_limit'],
+          ['page_length'],
           ['include_search'],
         ],
       },
@@ -1314,6 +1315,14 @@ export const fields = {
     description: 'Pixel height of each series',
   },
 
+  page_length: {
+    type: 'FreeFormSelectField',
+    label: 'Page Length',
+    default: 0,
+    choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
+    description: 'Rows per page, 0 means no pagination',
+  },
+
   x_axis_format: {
     type: 'FreeFormSelectField',
     label: 'X axis format',
@@ -1699,5 +1708,6 @@ export function initialState(vizType = 'table') {
     datasource_type: null,
     fields,
     viz: defaultViz(vizType),
+    isStarred: false,
   };
 }
