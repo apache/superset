@@ -1,5 +1,6 @@
 import React, { PropTypes } from 'react';
 import cx from 'classnames';
+import TooltipWrapper from './TooltipWrapper';
 
 const propTypes = {
   sliceId: PropTypes.string.isRequired,
@@ -24,13 +25,18 @@ export default class FaveStar extends React.Component {
     });
 
     return (
-      <a
-        href="#"
-        onClick={this.onClick.bind(this)}
-        title="Click to favorite/unfavorite"
+      <TooltipWrapper
+        label="fave-unfave"
+        tooltip="Click to favorite/unfavorite"
       >
-        <i className={iconClassNames} />
-      </a>
+        <a
+          href="#"
+          onClick={this.onClick.bind(this)}
+          className="fave-unfave-icon"
+        >
+          <i className={iconClassNames} />
+        </a>
+      </TooltipWrapper>
     );
   }
 }

@@ -6,6 +6,7 @@ import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
+import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
   can_download: PropTypes.bool.isRequired,
@@ -159,6 +160,18 @@ class ChartContainer extends React.Component {
                 actions={this.props.actions}
                 isStarred={this.props.isStarred}
               />
+
+              <TooltipWrapper
+                label="edit-desc"
+                tooltip="Edit Description"
+              >
+                <a
+                  className="edit-desc-icon"
+                  href={`/slicemodelview/edit/${this.props.slice_id}`}
+                >
+                  <i className="fa fa-edit" />
+                </a>
+              </TooltipWrapper>
 
               <div className="pull-right">
                 <ExploreActionButtons

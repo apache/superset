@@ -15,3 +15,8 @@
   margin-right: 0px;
   margin-bottom: 100px;
 }
+
+.fave-unfave-icon, .edit-desc-icon {
+  padding: 0 0 0 .5em;
+  font-size: 14px;
+}
