@@ -1718,9 +1718,13 @@ class Superset(BaseSupersetView):
                 M.Slice,
                 M.Slice.id == M.Log.slice_id
             )
-            .filter(M.Log.action != 'queries')
+            .filter(
+                sqla.and_(
+                    M.Log.action != 'queries',
+                    M.Log.user_id == user_id,
+                )
+            )
             .order_by(M.Log.dttm.desc())
-            .filter_by(user_id=user_id)
             .limit(1000)
         )
         payload = []

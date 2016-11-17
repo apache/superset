@@ -440,6 +440,22 @@ class CoreTests(SupersetTestCase):
         self.assertIn('tables', resp)
         self.assertIn('views', resp)
 
+    def test_user_profile(self):
+        self.login(username='admin')
+        userid = appbuilder.sm.find_user('admin').id
+        resp = self.get_resp('/superset/profile/admin/')
+        self.assertIn('"app"', resp)
+        data = self.get_json_resp('/superset/recent_activity/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/created_slices/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/created_dashboards/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/fave_slices/{}/'.format(userid))
+        self.assertNotIn('message', data)
+        data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
+        self.assertNotIn('message', data)
+
 
 if __name__ == '__main__':
     unittest.main()
