@@ -1,5 +1,8 @@
 /* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
+
+const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+
 export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
 export function setFieldOptions(options) {
   return { type: SET_FIELD_OPTIONS, options };
@@ -45,6 +48,33 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
     } else {
       // in what case don't we have a datasource id?
     }
+  };
+}
+
+export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
+export function toggleFaveStar(isStarred) {
+  return { type: TOGGLE_FAVE_STAR, isStarred };
+}
+
+export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
+export function fetchFaveStar(sliceId) {
+  return function (dispatch) {
+    const url = `${FAVESTAR_BASE_URL}/${sliceId}/count`;
+    $.get(url, (data) => {
+      if (data.count > 0) {
+        dispatch(toggleFaveStar(true));
+      }
+    });
+  };
+}
+
+export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
+export function saveFaveStar(sliceId, isStarred) {
+  return function (dispatch) {
+    const urlSuffix = isStarred ? 'unselect' : 'select';
+    const url = `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`;
+    $.get(url);
+    dispatch(toggleFaveStar(!isStarred));
   };
 }
 

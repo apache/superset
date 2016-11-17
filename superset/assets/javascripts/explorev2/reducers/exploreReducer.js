@@ -4,6 +4,10 @@ import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
+    [actions.TOGGLE_FAVE_STAR]() {
+      return Object.assign({}, state, { isStarred: action.isStarred });
+    },
+
     [actions.FETCH_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
