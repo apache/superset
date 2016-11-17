@@ -241,8 +241,8 @@ class DruidTests(SupersetTestCase):
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
 
-        utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
-        utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+        sm.add_permission_view_menu('datasource_access', gamma_ds.perm)
+        sm.add_permission_view_menu('datasource_access', no_gamma_ds.perm)
 
         db.session.commit()
 
