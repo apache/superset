@@ -11,10 +11,9 @@ const propTypes = {
 
 const defaultProps = {
   placement: 'top',
-}
+};
 
-export default function TooltipWrapper({ label, tooltip, children, placement}) {
-  console.log('children', children)
+export default function TooltipWrapper({ label, tooltip, children, placement }) {
   return (
     <OverlayTrigger
       placement={placement}

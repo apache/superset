@@ -51,7 +51,12 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
   };
 }
 
-export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR'
+export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
+export function toggleFaveStar(isStarred) {
+  return { type: TOGGLE_FAVE_STAR, isStarred };
+}
+
+export const FETCH_FAVE_STAR = 'FETCH_FAVE_STAR';
 export function fetchFaveStar(sliceId) {
   return function (dispatch) {
     const url = `${FAVESTAR_BASE_URL}/${sliceId}/count`;
@@ -60,22 +65,17 @@ export function fetchFaveStar(sliceId) {
         dispatch(toggleFaveStar(true));
       }
     });
-  }
+  };
 }
 
-export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR'
+export const SAVE_FAVE_STAR = 'SAVE_FAVE_STAR';
 export function saveFaveStar(sliceId, isStarred) {
   return function (dispatch) {
     const urlSuffix = isStarred ? 'unselect' : 'select';
     const url = `${FAVESTAR_BASE_URL}/${sliceId}/${urlSuffix}/`;
     $.get(url);
     dispatch(toggleFaveStar(!isStarred));
-  }
-}
-
-export const TOGGLE_FAVE_STAR = 'TOGGLE_FAVE_STAR';
-export function toggleFaveStar(isStarred) {
-  return { type: TOGGLE_FAVE_STAR, isStarred };
+  };
 }
 
 export const ADD_FILTER = 'ADD_FILTER';

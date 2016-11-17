@@ -9,6 +9,7 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   can_download: PropTypes.bool.isRequired,
   slice_id: PropTypes.string.isRequired,
   slice_name: PropTypes.string.isRequired,
