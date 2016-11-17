@@ -10,12 +10,7 @@ import CodeModal from './CodeModal';
 import SliceAdder from './SliceAdder';
 
 const propTypes = {
-  table: React.PropTypes.object,
   dashboard: React.PropTypes.object.isRequired,
-};
-
-const defaultProps = {
-  actions: {},
 };
 
 class Controls extends React.PureComponent {
@@ -138,6 +133,5 @@ class Controls extends React.PureComponent {
   }
 }
 Controls.propTypes = propTypes;
-Controls.defaultProps = defaultProps;
 
 export default Controls;
