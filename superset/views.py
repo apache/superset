@@ -1706,7 +1706,8 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/recent_activity/<user_id>/", methods=['GET'])
     def recent_activity(self, user_id):
-        M = models
+        """Recent activity (actions) for a given user"""
+        M = models  # noqa
         qry = (
             db.session.query(M.Log, M.Dashboard, M.Slice)
             .outerjoin(
@@ -1719,6 +1720,7 @@ class Superset(BaseSupersetView):
             )
             .filter(M.Log.action != 'queries')
             .order_by(M.Log.dttm.desc())
+            .filter_by(user_id=user_id)
             .limit(1000)
         )
         payload = []
@@ -1754,9 +1756,9 @@ class Superset(BaseSupersetView):
             .join(
                 models.FavStar,
                 sqla.and_(
-                    models.FavStar.user_id==int(user_id),
-                    models.FavStar.class_name=='Dashboard',
-                    models.Dashboard.id==models.FavStar.obj_id,
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'Dashboard',
+                    models.Dashboard.id == models.FavStar.obj_id,
                 )
             )
             .order_by(
@@ -1778,7 +1780,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/created_dashboards/<user_id>/", methods=['GET'])
     def created_dashboards(self, user_id):
-        Dash = models.Dashboard
+        Dash = models.Dashboard  # noqa
         qry = (
             db.session.query(
                 Dash,
@@ -1808,7 +1810,8 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/created_slices/<user_id>/", methods=['GET'])
     def created_slices(self, user_id):
-        Slice = models.Slice
+        """List of slices created by this user"""
+        Slice = models.Slice  # noqa
         qry = (
             db.session.query(Slice)
             .filter(
@@ -1833,6 +1836,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/fave_slices/<user_id>/", methods=['GET'])
     def fave_slices(self, user_id):
+        """Favorite slices for a user"""
         qry = (
             db.session.query(
                 models.Slice,
@@ -1841,9 +1845,9 @@ class Superset(BaseSupersetView):
             .join(
                 models.FavStar,
                 sqla.and_(
-                    models.FavStar.user_id==int(user_id),
-                    models.FavStar.class_name=='slice',
-                    models.Slice.id==models.FavStar.obj_id,
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'slice',
+                    models.Slice.id == models.FavStar.obj_id,
                 )
             )
             .order_by(
@@ -1911,6 +1915,7 @@ class Superset(BaseSupersetView):
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
+        """Toggle favorite stars on Slices and Dashboard"""
         session = db.session()
         FavStar = models.FavStar  # noqa
         count = 0

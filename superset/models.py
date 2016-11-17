@@ -41,7 +41,7 @@ from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
     DateTime, Date, Table, Numeric,
-    create_engine, MetaData, desc, asc, select, and_, func
+    create_engine, MetaData, desc, asc, select, and_
 )
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
