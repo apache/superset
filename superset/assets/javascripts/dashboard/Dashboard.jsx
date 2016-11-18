@@ -50,9 +50,10 @@ function onBeforeUnload(hasChanged) {
 
 function renderAlert() {
   render(
-    <div className="page-container">
-      <Alert bsStyle="info">
-        You have unsaved changes. Click the <i className="fa fa-save" /> &nbsp;
+    <div className="container-fluid">
+      <Alert bsStyle="warning">
+        <strong>You have unsaved changes.</strong> Click the&nbsp;
+        <i className="fa fa-save" />&nbsp;
         button on the top right to save your changes.
       </Alert>
     </div>,
