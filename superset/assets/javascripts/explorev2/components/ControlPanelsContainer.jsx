@@ -108,8 +108,6 @@ function mapStateToProps(state) {
     alert: state.controlPanelAlert,
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
     fields: state.fields,
-    datasource_type: state.datasource_type,
-    form_data: state.viz.form_data,
   };
 }
 

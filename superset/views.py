@@ -1456,7 +1456,8 @@ class Superset(BaseSupersetView):
         # TODO use form processing form wtforms
         d = args.to_dict(flat=False)
         del d['action']
-        del d['previous_viz_type']
+        if 'previous_viz_type' in d:
+            del d['previous_viz_type']
 
         as_list = ('metrics', 'groupby', 'columns', 'all_columns',
                    'mapbox_label', 'order_by_cols')
@@ -1515,8 +1516,12 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if request.args.get('goto_dash') == 'true':
+            if request.args.get('V2') == 'true':
+                return dash.url
             return redirect(dash.url)
         else:
+            if request.args.get('V2') == 'true':
+                return slc.slice_url
             return redirect(slc.slice_url)
 
     def save_slice(self, slc):

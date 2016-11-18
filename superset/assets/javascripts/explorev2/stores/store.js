@@ -750,7 +750,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Metrics',
     choices: [],
-    default: null,
+    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -758,6 +758,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Ordering',
     choices: [],
+    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -931,6 +932,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Group by',
     choices: [],
+    default: [],
     description: 'One or many fields to group by',
   },
 
@@ -938,6 +940,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
     choices: [],
+    default: [],
     description: 'One or many fields to pivot as columns',
   },
 
@@ -945,6 +948,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
     choices: [],
+    default: [],
     description: 'Columns to display',
   },
 
@@ -1552,6 +1556,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'label',
     choices: [],
+    default: [],
     description: '`count` is COUNT(*) if a group by is used. ' +
                  'Numerical columns will be aggregated with the aggregator. ' +
                  'Non-numerical columns will be used to label points. ' +
@@ -1704,6 +1709,7 @@ export function defaultViz(vizType) {
 
 export function initialState(vizType = 'table') {
   return {
+    dashboards: [],
     isDatasourceMetaLoading: false,
     datasources: null,
     datasource_type: null,

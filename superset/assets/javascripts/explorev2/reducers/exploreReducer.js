@@ -27,6 +27,16 @@ export const exploreReducer = function (state, action) {
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },
+
+    [actions.FETCH_DASHBOARDS_SUCCEEDED]() {
+      return Object.assign({}, state, { dashboards: action.choices });
+    },
+
+    [actions.FETCH_DASHBOARDS_FAILED]() {
+      return Object.assign({}, state,
+        { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
+    },
+
     [actions.SET_FIELD_OPTIONS]() {
       const newState = Object.assign({}, state);
       const optionsByFieldName = action.options;
@@ -66,6 +76,9 @@ export const exploreReducer = function (state, action) {
         newFormData.slice_name = state.viz.form_data.slice_name;
         newFormData.viz_type = state.viz.form_data.viz_type;
       }
+      if (action.key === 'viz_type') {
+        newFormData.previous_viz_type = state.viz.form_data.viz_type;
+      }
       newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
       return Object.assign(
         {},
@@ -98,6 +111,12 @@ export const exploreReducer = function (state, action) {
     },
     [actions.REMOVE_CHART_ALERT]() {
       return Object.assign({}, state, { chartAlert: null });
+    },
+    [actions.SAVE_SLICE_FAILED]() {
+      return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });
+    },
+    [actions.REMOVE_SAVE_MODAL_ALERT]() {
+      return Object.assign({}, state, { saveModalAlert: null });
     },
   };
   if (action.type in actionHandlers) {
