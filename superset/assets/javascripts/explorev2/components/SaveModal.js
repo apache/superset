@@ -1,7 +1,7 @@
 /* eslint camel-case: 0 */
 import React, { PropTypes } from 'react';
 import $ from 'jquery';
-import { Modal, Alert } from 'react-bootstrap';
+import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
 
@@ -142,84 +142,76 @@ class SaveModal extends React.Component {
               />
             </Alert>
           }
-          <form>
-            <input
-              type="radio"
-              disabled={!this.props.can_edit}
-              checked={this.state.action === 'overwrite'}
-              onChange={this.changeAction.bind(this, 'overwrite')}
-            />
-            {`Overwrite slice ${this.props.form_data.slice_name}`}
-            <br />
+          <Radio
+            disabled={!this.props.can_edit}
+            checked={this.state.action === 'overwrite'}
+            onChange={this.changeAction.bind(this, 'overwrite')}
+          >
+          {`Overwrite slice ${this.props.form_data.slice_name}`}
+          </Radio>
 
-            <input
-              type="radio"
-              checked={this.state.action === 'saveas'}
-              onChange={this.changeAction.bind(this, 'saveas')}
-            /> Save as &nbsp;
-            <input
-              type="text"
-              name="new_slice_name"
-              placeholder="[slice name]"
-              onChange={this.onChange.bind(this, 'newSliceName')}
-              onFocus={this.changeAction.bind(this, 'saveas')}
-            />
+          <Radio
+            inline
+            checked={this.state.action === 'saveas'}
+            onChange={this.changeAction.bind(this, 'saveas')}
+          > Save as &nbsp;
+          </Radio>
+          <input
+            name="new_slice_name"
+            placeholder="[slice name]"
+            onChange={this.onChange.bind(this, 'newSliceName')}
+            onFocus={this.changeAction.bind(this, 'saveas')}
+          />
 
-            <br />
-            <hr />
 
-            <input
-              type="radio"
-              checked={this.state.addToDash === 'noSave'}
-              onChange={this.changeDash.bind(this, 'noSave')}
-            />
-            Do not add to a dashboard
-            <br />
+          <br />
+          <hr />
 
-            <div
-              id="save_to_dashboard_id"
-            >
-              <input
-                type="radio"
-                checked={this.state.addToDash === 'existing'}
-                onChange={this.changeDash.bind(this, 'existing')}
-              />
-              Add slice to existing dashboard
-              <Select
-                options={this.props.dashboards}
-                onChange={this.onChange.bind(this, 'saveToDashboardId')}
-                autoSize={false}
-                value={this.state.saveToDashboardId}
-              />
-            </div>
-            <br />
+          <Radio
+            checked={this.state.addToDash === 'noSave'}
+            onChange={this.changeDash.bind(this, 'noSave')}
+          >
+          Do not add to a dashboard
+          </Radio>
 
-            <input
-              type="radio"
-              checked={this.state.addToDash === 'new'}
-              onChange={this.changeDash.bind(this, 'new')}
-            />
-            Add to new dashboard &nbsp;
-            <input
-              type="text"
-              onChange={this.onChange.bind(this, 'newDashboardName')}
-              onFocus={this.changeDash.bind(this, 'new')}
-              placeholder="[dashboard name]"
-            />
-            <br />
-          </form>
+          <Radio
+            inline
+            checked={this.state.addToDash === 'existing'}
+            onChange={this.changeDash.bind(this, 'existing')}
+          >
+          Add slice to existing dashboard
+          </Radio>
+          <Select
+            options={this.props.dashboards}
+            onChange={this.onChange.bind(this, 'saveToDashboardId')}
+            autoSize={false}
+            value={this.state.saveToDashboardId}
+          />
+
+          <Radio
+            inline
+            checked={this.state.addToDash === 'new'}
+            onChange={this.changeDash.bind(this, 'new')}
+          >
+          Add to new dashboard &nbsp;
+          </Radio>
+          <input
+            onChange={this.onChange.bind(this, 'newDashboardName')}
+            onFocus={this.changeDash.bind(this, 'new')}
+            placeholder="[dashboard name]"
+          />
         </Modal.Body>
 
         <Modal.Footer>
-          <button
+          <Button
             type="button"
             id="btn_modal_save"
             className="btn pull-left"
             onClick={this.saveOrOverwrite.bind(this)}
           >
             Save
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             id="btn_modal_save_goto_dash"
             className="btn btn-primary pull-left gotodash"
@@ -227,7 +219,7 @@ class SaveModal extends React.Component {
             onClick={this.saveOrOverwrite.bind(this, true)}
           >
             Save & go to dashboard
-          </button>
+          </Button>
         </Modal.Footer>
       </Modal>
     );

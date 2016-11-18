@@ -4,7 +4,7 @@ import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { defaultFormData } from '../../../../javascripts/explorev2/stores/store';
 import { SaveModal } from '../../../../javascripts/explorev2/components/SaveModal';
-import { Modal } from 'react-bootstrap';
+import { Modal, Button, Radio } from 'react-bootstrap';
 import sinon from 'sinon';
 
 const defaultProps = {
@@ -29,7 +29,8 @@ describe('SaveModal', () => {
 
   it('renders a Modal with 7 inputs and 2 buttons', () => {
     expect(wrapper.find(Modal)).to.have.lengthOf(1);
-    expect(wrapper.find('input')).to.have.lengthOf(7);
-    expect(wrapper.find('button')).to.have.lengthOf(2);
+    expect(wrapper.find('input')).to.have.lengthOf(2);
+    expect(wrapper.find(Button)).to.have.lengthOf(2);
+    expect(wrapper.find(Radio)).to.have.lengthOf(5);
   });
 });
