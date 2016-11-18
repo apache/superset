@@ -28,7 +28,6 @@ ADMIN_ONLY_VIEW_MENUES = {
 } | READ_ONLY_MODELVIEWS
 
 ADMIN_ONLY_PERMISSIONS = {
-    'all_datasource_access',
     'all_database_access',
     'datasource_access',
     'database_access',
@@ -52,9 +51,20 @@ ALPHA_ONLY_PERMISSIONS = set([
     'datasource_access',
     'database_access',
     'muldelete',
+    'all_datasource_access',
 ])
 READ_ONLY_PRODUCT = set(
     product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
+
+OBJECT_SPEC_PERMISSIONS = set([
+    'database_access',
+    'datasource_access',
+    'metric_access',
+])
+
+
+def is_user_defined_permission(perm):
+    return perm.permission.name in OBJECT_SPEC_PERMISSIONS
 
 
 def get_or_create_main_db():
@@ -99,11 +109,18 @@ def sync_role_definitions():
 
     logging.info("Syncing admin perms")
     for p in perms:
-        sm.add_permission_role(admin, p)
+        # admin has all_database_access and all_datasource_access
+        if is_user_defined_permission(p):
+            sm.del_permission_role(admin, p)
+        else:
+            sm.add_permission_role(admin, p)
 
     logging.info("Syncing alpha perms")
     for p in perms:
-        if (
+        # alpha has all_database_access and all_datasource_access
+        if is_user_defined_permission(p):
+            sm.del_permission_role(alpha, p)
+        elif (
                 (
                     p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
                     p.permission.name not in ADMIN_ONLY_PERMISSIONS
