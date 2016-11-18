@@ -18,9 +18,15 @@ export const exploreReducer = function (state, action) {
 
     [actions.FETCH_FAILED]() {
       // todo(alanna) handle failure/error state
-      return Object.assign({}, state, { isDatasourceMetaLoading: false });
+      return Object.assign({}, state,
+        {
+          isDatasourceMetaLoading: false,
+          controlPanelAlert: action.error,
+        });
     },
-
+    [actions.REMOVE_CONTROL_PANEL_ALERT]() {
+      return Object.assign({}, state, { controlPanelAlert: null });
+    },
     [actions.SET_FIELD_OPTIONS]() {
       const newState = Object.assign({}, state);
       const optionsByFieldName = action.options;
@@ -88,7 +94,10 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { isChartLoading: true });
     },
     [actions.CHART_UPDATE_FAILED]() {
-      return Object.assign({}, state, { isChartLoading: false });
+      return Object.assign({}, state, { isChartLoading: false, chartAlert: action.error });
+    },
+    [actions.REMOVE_CHART_ALERT]() {
+      return Object.assign({}, state, { chartAlert: null });
     },
   };
   if (action.type in actionHandlers) {

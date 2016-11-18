@@ -3,7 +3,7 @@ import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
-import { Panel } from 'react-bootstrap';
+import { Panel, Alert } from 'react-bootstrap';
 import { visTypes, commonControlPanelSections } from '../stores/store';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
@@ -15,6 +15,7 @@ const propTypes = {
   isDatasourceMetaLoading: PropTypes.bool.isRequired,
   form_data: PropTypes.object.isRequired,
   y_axis_zero: PropTypes.any,
+  alert: PropTypes.string,
 };
 
 class ControlPanelsContainer extends React.Component {
@@ -53,10 +54,23 @@ class ControlPanelsContainer extends React.Component {
     const viz = visTypes[this.props.form_data.viz_type];
     return viz.fieldOverrides;
   }
+  removeAlert() {
+    this.props.actions.removeControlPanelAlert();
+  }
 
   render() {
     return (
       <Panel>
+        {this.props.alert &&
+          <Alert bsStyle="warning">
+            {this.props.alert}
+            <i
+              className="fa fa-close pull-right"
+              onClick={this.removeAlert.bind(this)}
+              style={{ cursor: 'pointer' }}
+            />
+          </Alert>
+        }
         {!this.props.isDatasourceMetaLoading &&
           <div className="scrollbar-container">
             <div className="scrollbar-content">
@@ -91,6 +105,7 @@ ControlPanelsContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
+    alert: state.controlPanelAlert,
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
     fields: state.fields,
     datasource_type: state.datasource_type,

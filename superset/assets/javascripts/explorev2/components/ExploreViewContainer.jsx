@@ -41,6 +41,9 @@ class ExploreViewContainer extends React.Component {
 
     const params = $.param(data, true);
     this.updateUrl(params);
+    // remove alerts when query
+    this.props.actions.removeControlPanelAlert();
+    this.props.actions.removeChartAlert();
   }
 
   getHeight() {
@@ -85,6 +88,7 @@ class ExploreViewContainer extends React.Component {
             <ChartContainer
               actions={this.props.actions}
               height={this.state.height}
+              actions={this.props.actions}
             />
           </div>
         </div>
