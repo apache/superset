@@ -4,6 +4,7 @@ const px = require('../modules/superset');
 const d3 = require('d3');
 const urlLib = require('url');
 const utils = require('../modules/utils');
+const { Alert } = require('react-bootstrap');
 
 import React from 'react';
 import { render } from 'react-dom';
@@ -31,6 +32,32 @@ export function getInitialState(dashboardData, context) {
     dashboard,
   };
   return state;
+}
+
+function unload() {
+  const message = 'You have unsaved changes.';
+  window.event.returnValue = message; // Gecko + IE
+  return message; // Gecko + Webkit, Safari, Chrome etc.
+}
+
+function onBeforeUnload(hasChanged) {
+  if (hasChanged) {
+    window.addEventListener('beforeunload', unload);
+  } else {
+    window.removeEventListener('beforeunload', unload);
+  }
+}
+
+function renderAlert() {
+  render(
+    <div className="page-container">
+      <Alert bsStyle="info">
+        You have unsaved changes. Click the <i className="fa fa-save" /> &nbsp;
+        button on the top right to save your changes.
+      </Alert>
+    </div>,
+    document.getElementById('alert-container')
+  );
 }
 
 function initDashboardView(dashboard) {
@@ -95,6 +122,14 @@ export function dashboardContainer(dashboard) {
       this.loadPreSelectFilters();
       this.startPeriodicRender(0);
       this.bindResizeToWindowResize();
+    },
+    onChange() {
+      onBeforeUnload(true);
+      renderAlert();
+    },
+    onSave() {
+      onBeforeUnload(false);
+      $('#alert-container').html('');
     },
     loadPreSelectFilters() {
       try {

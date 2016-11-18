@@ -59,6 +59,7 @@ class Controls extends React.PureComponent {
         data: JSON.stringify(data),
       },
       success() {
+        dashboard.onSave();
         showModal({
           title: 'Success',
           body: 'This dashboard was saved successfully.',
@@ -75,6 +76,7 @@ class Controls extends React.PureComponent {
   }
   changeCss(css) {
     this.setState({ css });
+    this.props.dashboard.onChange();
   }
   render() {
     const dashboard = this.props.dashboard;
