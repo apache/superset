@@ -1112,6 +1112,7 @@ export const fields = {
       '28 days ago',
       '90 days ago',
       '1 year ago',
+      '100 year ago',
     ]),
     description: 'Timestamp from filter. This supports free form typing and ' +
                  'natural language as in `1 day ago`, `28 days` or `3 years`',
