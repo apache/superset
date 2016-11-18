@@ -49,7 +49,7 @@ const config = {
       },
       {
         test: /\.jsx?$/,
-        exclude: /(node_modules|bower_components)/,
+        exclude: APP_DIR + '/node_modules',
         loader: 'babel',
         query: {
           presets: [
@@ -107,7 +107,6 @@ const config = {
       {
         test: /\.js$/,
         include: APP_DIR + '/node_modules/mapbox-gl/js/render/painter/use_program.js',
-        exclude: /(node_modules|bower_components)/,
         loader: 'transform/cacheable?brfs',
       },
     ],

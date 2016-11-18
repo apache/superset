@@ -2,7 +2,11 @@ import React from 'react';
 import moment from 'moment';
 import TableLoader from './TableLoader';
 
-class Favorites extends React.PureComponent {
+const propTypes = {
+  user: React.PropTypes.object.isRequired,
+};
+
+export default class Favorites extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -57,5 +61,4 @@ class Favorites extends React.PureComponent {
     );
   }
 }
-
-export default Favorites;
+Favorites.propTypes = propTypes;

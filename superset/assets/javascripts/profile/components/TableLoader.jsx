@@ -5,15 +5,11 @@ import $ from 'jquery';
 
 const propTypes = {
   dataEndpoint: React.PropTypes.string.isRequired,
-  loadingNode: React.PropTypes.node,
   mutator: React.PropTypes.func,
   columns: React.PropTypes.arrayOf(React.PropTypes.string),
 };
-const defaultProps = {
-  loadingNode: <img alt="loading" width="25" src="/static/assets/images/loading.gif" />,
-};
 
-class TableLoader extends React.PureComponent {
+export default class TableLoader extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -36,11 +32,11 @@ class TableLoader extends React.PureComponent {
     if (!columns && this.state.data.length > 0) {
       columns = Object.keys(this.state.data[0]).filter(col => col[0] !== '_');
     }
-    delete tableProps.loadingNode;
     delete tableProps.dataEndpoint;
+    delete tableProps.mutator;
     delete tableProps.columns;
     if (this.state.isLoading) {
-      return this.props.loadingNode;
+      return <img alt="loading" width="25" src="/static/assets/images/loading.gif" />;
     }
     return (
       <Collapse in transitionAppear >
@@ -66,6 +62,3 @@ class TableLoader extends React.PureComponent {
   }
 }
 TableLoader.propTypes = propTypes;
-TableLoader.defaultProps = defaultProps;
-
-export default TableLoader;

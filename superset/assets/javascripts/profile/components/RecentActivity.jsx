@@ -3,7 +3,11 @@ import TableLoader from './TableLoader';
 import moment from 'moment';
 import $ from 'jquery';
 
-class RecentActivity extends React.PureComponent {
+const propTypes = {
+  user: React.PropTypes.object,
+};
+
+export default class RecentActivity extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -37,5 +41,4 @@ class RecentActivity extends React.PureComponent {
     );
   }
 }
-
-export default RecentActivity;
+RecentActivity.propTypes = propTypes;

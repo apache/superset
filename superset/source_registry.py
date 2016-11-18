@@ -9,6 +9,7 @@ class SourceRegistry(object):
     @classmethod
     def register_sources(cls, datasource_config):
         for module_name, class_names in datasource_config.items():
+            class_names = [str(s) for s in class_names]
             module_obj = __import__(module_name, fromlist=class_names)
             for class_name in class_names:
                 source_class = getattr(module_obj, class_name)

@@ -2,7 +2,11 @@ import React from 'react';
 import moment from 'moment';
 import TableLoader from './TableLoader';
 
-class Favorites extends React.PureComponent {
+const propTypes = {
+  user: React.PropTypes.object.isRequired,
+};
+
+class CreatedContent extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
@@ -11,10 +15,6 @@ class Favorites extends React.PureComponent {
       dashboards: [],
       slices: [],
     };
-  }
-
-  imgLoading() {
-    return <img alt="loading" width="25" src="/static/assets/images/loading.gif" />;
   }
   renderSliceTable() {
     const mutator = (data) => data.map(slice => ({
@@ -62,5 +62,6 @@ class Favorites extends React.PureComponent {
     );
   }
 }
+CreatedContent.propTypes = propTypes;
 
-export default Favorites;
+export default CreatedContent;
