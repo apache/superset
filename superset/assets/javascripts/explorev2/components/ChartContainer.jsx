@@ -108,28 +108,12 @@ class ChartContainer extends React.Component {
         // finished rendering callback
       },
 
-      error(msg, xhr) {
-        let errorMsg = msg;
-        let errHtml = '';
-        try {
-          const o = JSON.parse(msg);
-          if (o.error) {
-            errorMsg = o.error;
-          }
-        } catch (e) {
-          // pass
-        }
-        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
-        if (xhr) {
-          const extendedMsg = this.getErrorMsg(xhr);
-          if (extendedMsg) {
-            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
-          }
-        }
-        $(this.state.selector).html(errHtml);
-        this.render();
-        $('span.query').removeClass('disabled');
-        $('.query-and-save button').removeAttr('disabled');
+      clearError: () => {
+        this.props.actions.removeChartAlert();
+      },
+
+      error(msg) {
+        this.props.actions.chartUpdateFailed(msg);
       },
 
       d3format: (col, number) => {
