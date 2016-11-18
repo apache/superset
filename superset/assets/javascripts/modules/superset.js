@@ -177,6 +177,9 @@ const px = function () {
         always(data);
         controller.error(this);
       },
+      clearError() {
+        $(selector + ' div.alert').remove();
+      },
       width() {
         return token.width();
       },
