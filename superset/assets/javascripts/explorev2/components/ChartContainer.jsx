@@ -52,10 +52,6 @@ class ChartContainer extends React.Component {
     this.renderVis();
   }
 
-  removeAlert() {
-    this.props.actions.removeChartAlert();
-  }
-
   getMockedSliceObject(props) {
     return {
       viewSqlQuery: props.query,
@@ -144,6 +140,9 @@ class ChartContainer extends React.Component {
     };
   }
 
+  removeAlert() {
+    this.props.actions.removeChartAlert();
+  }
 
   renderVis() {
     visMap[this.props.viz_type](this.state.mockSlice).render();
