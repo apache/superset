@@ -123,6 +123,7 @@ const px = function () {
 
         clearInterval(timer);
         token.find('img.loading').hide();
+        container.fadeTo(0.5, 1);
         container.show();
 
         if (data !== undefined) {
@@ -153,6 +154,7 @@ const px = function () {
       error(msg, xhr) {
         let errorMsg = msg;
         token.find('img.loading').hide();
+        container.fadeTo(0.5, 1);
         let errHtml = '';
         try {
           const o = JSON.parse(msg);
@@ -210,6 +212,7 @@ const px = function () {
           this.force = force;
         }
         token.find('img.loading').show();
+        container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
         dttm = 0;
         timer = setInterval(stopwatch, 10);
@@ -219,6 +222,7 @@ const px = function () {
       },
       resize() {
         token.find('img.loading').show();
+        container.fadeTo(0.5, 0.25);
         container.css('height', this.height());
         this.viz.render();
         this.viz.resize();
