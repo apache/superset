@@ -73,6 +73,7 @@ function query(forceUpdate, pushState) {
     // update the url after prepForm() fix the field ids
     history.pushState({}, document.title, slice.querystring());
   }
+  slice.container.html('');
   slice.render(force);
 }
 
