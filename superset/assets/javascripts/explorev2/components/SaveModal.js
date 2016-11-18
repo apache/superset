@@ -1,6 +1,6 @@
 /* eslint camel-case: 0 */
 import React, { PropTypes } from 'react';
-const $ = window.$ = require('jquery');
+import $ from 'jquery';
 import { Modal, Alert } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
