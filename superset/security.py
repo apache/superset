@@ -54,6 +54,7 @@ ALPHA_ONLY_PERMISSIONS = set([
     'muldelete',
     'all_datasource_access',
 ])
+
 READ_ONLY_PRODUCT = set(
     product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
 
@@ -126,8 +127,7 @@ def sync_role_definitions():
                     p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
                     p.permission.name not in ADMIN_ONLY_PERMISSIONS
                 ) or
-                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
-        ):
+                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT):
             sm.add_permission_role(alpha, p)
         else:
             sm.del_permission_role(alpha, p)
