@@ -62,7 +62,7 @@ class BaseSupersetView(BaseView):
     def datasource_access(self, datasource):
         return (
             self.database_access(datasource.database) or
-            self.can_access("all_database_access", "all_database_access") or
+            self.all_datasource_access() or
             self.can_access("datasource_access", datasource.perm)
         )
 
