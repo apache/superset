@@ -4,6 +4,8 @@ Superset's documentation
 Superset is a data exploration platform designed to be visual, intuitive
 and interactive.
 
+.. image:: _static/img/superset_logo_256.png
+
 ----------------
 
 .. warning:: This project was originally named Panoramix, was renamed to
