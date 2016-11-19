@@ -60,6 +60,7 @@ function nvd3Vis(slice) {
 
   const render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
+      slice.container.html('');
       // Check error first, otherwise payload can be null
       if (error) {
         slice.error(error.responseText, error);
