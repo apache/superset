@@ -427,9 +427,18 @@ class CoreTests(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
-        url = '/superset/fetch_datasource_metadata?datasource_type=table&datasource_id=1';
+        url = '/superset/fetch_datasource_metadata?datasource_type=table&' \
+              'datasource_id=1'
         resp = json.loads(self.get_resp(url))
         self.assertEqual(len(resp['field_options']), 20)
+
+    def test_fetch_all_tables(self):
+        self.login(username='admin')
+        database = self.get_main_database(db.session)
+        url = '/superset/all_tables/{}'.format(database.id)
+        resp = json.loads(self.get_resp(url))
+        self.assertIn('tables', resp)
+        self.assertIn('views', resp)
 
 
 if __name__ == '__main__':

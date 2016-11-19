@@ -1577,6 +1577,31 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/all_tables/<db_id>")
+    def all_tables(self, db_id):
+        """Endpoint that returns all tables and views from the database"""
+        database = (
+            db.session
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
+        all_tables = []
+        all_views = []
+        schemas = database.all_schema_names()
+        for schema in schemas:
+            all_tables.extend(database.all_table_names(schema=schema))
+            all_views.extend(database.all_view_names(schema=schema))
+        if not schemas:
+            all_tables.extend(database.all_table_names())
+            all_views.extend(database.all_view_names())
+
+        return Response(
+            json.dumps({"tables": all_tables, "views": all_views}),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
     @expose("/tables/<db_id>/<schema>")
     def tables(self, db_id, schema):
         """endpoint to power the calendar heatmap on the welcome page"""
