@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import inspect
-import jinja2
+from jinja2.sandbox import SandboxedEnvironment
 
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
@@ -58,6 +58,7 @@ class BaseTemplateProcessor(object):
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
+        self.env = SandboxedEnvironment()
 
     def process_template(self, sql):
         """Processes a sql template
@@ -66,7 +67,7 @@ class BaseTemplateProcessor(object):
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        template = jinja2.Template(sql)
+        template = self.env.from_string(sql)
         return template.render(self.context)
 
 
