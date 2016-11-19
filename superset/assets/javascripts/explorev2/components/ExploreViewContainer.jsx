@@ -8,7 +8,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/store';
-import { formatFilters } from '../../modules/utils.js';
+import { getParamObject } from '../../modules/utils.js';
 
 const $ = require('jquery');
 
@@ -48,21 +48,8 @@ class ExploreViewContainer extends React.Component {
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
 
-  onQuery(form_data) {
-    const data = {};
-    Object.keys(form_data).forEach((field) => {
-    // filter out null fields
-      if (form_data[field] !== null && field !== 'datasource') {
-        data[field] = form_data[field];
-      }
-    });
-    // V2 tag temporarily for updating url
-    // Todo: remove after launch
-    data.V2 = true;
-    data.datasource_id = this.props.form_data.datasource;
-    data.datasource_type = this.props.datasource_type;
-    const filterParams = formatFilters(this.props.form_data.filters);
-    Object.assign(data, filterParams);
+  onQuery() {
+    const data = getParamObject(this.props.form_data, this.props.datasource_type);
     this.queryFormData(data);
 
     const params = $.param(data, true);

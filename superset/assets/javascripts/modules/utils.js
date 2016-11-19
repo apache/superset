@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 const d3 = require('d3');
 const $ = require('jquery');
 
@@ -153,7 +154,7 @@ export function slugify(string) {
           .replace(/-$/, ''); // remove last floating dash
 }
 
-export function formatFilters(filters) {
+function formatFilters(filters) {
   // outputs an object of url params of filters
   // prefix can be 'flt' or 'having'
   const params = {};
@@ -164,4 +165,22 @@ export function formatFilters(filters) {
     params[`${filter.prefix}_eq_${i + 1}`] = filter.value;
   }
   return params;
+}
+
+export function getParamObject(form_data, datasource_type) {
+  const data = {};
+  // V2 tag temporarily for updating url
+  // Todo: remove after launch
+  data.V2 = true;
+  data.datasource_id = form_data.datasource;
+  data.datasource_type = datasource_type;
+  Object.keys(form_data).forEach((field) => {
+    // filter out null fields
+    if (form_data[field] !== null && field !== 'datasource') {
+      data[field] = form_data[field];
+    }
+  });
+  const filterParams = formatFilters(form_data.filters);
+  Object.assign(data, filterParams);
+  return data;
 }
