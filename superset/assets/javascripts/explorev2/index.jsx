@@ -5,6 +5,11 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 
+// jquery and bootstrap required to make bootstrap dropdown menu's work
+const $ = window.$ = require('jquery'); // eslint-disable-line
+const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
+require('bootstrap');
+
 import { initialState } from './stores/store';
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
