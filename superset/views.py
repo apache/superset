@@ -2624,4 +2624,11 @@ app.url_map.converters['regex'] = RegexConverter
 @app.route('/<regex("panoramix\/.*"):url>')
 def panoramix(url):  # noqa
     return redirect(request.full_path.replace('panoramix', 'superset'))
+
+
+@app.route('/<regex("caravel\/.*"):url>')
+def caravel(url):  # noqa
+    return redirect(request.full_path.replace('caravel', 'superset'))
+
+
 # ---------------------------------------------------------------------
