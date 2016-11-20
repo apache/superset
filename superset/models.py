@@ -41,7 +41,7 @@ from six import string_types
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
     DateTime, Date, Table, Numeric,
-    create_engine, MetaData, desc, asc, select, and_, func
+    create_engine, MetaData, desc, asc, select, and_
 )
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
@@ -2223,7 +2223,7 @@ class Log(Model):
     slice_id = Column(Integer)
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
-    dttm = Column(DateTime, default=func.now())
+    dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
 
     @classmethod
@@ -2444,7 +2444,7 @@ class FavStar(Model):
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     class_name = Column(String(50))
     obj_id = Column(Integer)
-    dttm = Column(DateTime, default=func.now())
+    dttm = Column(DateTime, default=datetime.utcnow)
 
 
 class QueryStatus:

@@ -69,6 +69,7 @@
     "react-bootstrap-table": "^2.3.8",
     "react-dom": "^15.3.2",
     "react-draggable": "^2.1.2",
+    "react-gravatar": "^2.6.1",
     "react-grid-layout": "^0.13.1",
     "react-map-gl": "^1.7.0",
     "react-redux": "^4.4.5",

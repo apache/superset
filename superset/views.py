@@ -23,9 +23,11 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.widgets import ListWidget
+from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla import models as ab_models
+
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
@@ -1702,6 +1704,172 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/recent_activity/<user_id>/", methods=['GET'])
+    def recent_activity(self, user_id):
+        """Recent activity (actions) for a given user"""
+        M = models  # noqa
+        qry = (
+            db.session.query(M.Log, M.Dashboard, M.Slice)
+            .outerjoin(
+                M.Dashboard,
+                M.Dashboard.id == M.Log.dashboard_id
+            )
+            .outerjoin(
+                M.Slice,
+                M.Slice.id == M.Log.slice_id
+            )
+            .filter(
+                sqla.and_(
+                    M.Log.action != 'queries',
+                    M.Log.user_id == user_id,
+                )
+            )
+            .order_by(M.Log.dttm.desc())
+            .limit(1000)
+        )
+        payload = []
+        for log in qry.all():
+            item_url = None
+            item_title = None
+            if log.Dashboard:
+                item_url = log.Dashboard.url
+                item_title = log.Dashboard.dashboard_title
+            elif log.Slice:
+                item_url = log.Slice.slice_url
+                item_title = log.Slice.slice_name
+
+            payload.append({
+                'action': log.Log.action,
+                'item_url': item_url,
+                'item_title': item_title,
+                'time': log.Log.dttm,
+            })
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/fave_dashboards/<user_id>/", methods=['GET'])
+    def fave_dashboards(self, user_id):
+        qry = (
+            db.session.query(
+                models.Dashboard,
+                models.FavStar.dttm,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'Dashboard',
+                    models.Dashboard.id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.desc()
+            )
+        )
+        payload = [{
+            'id': o.Dashboard.id,
+            'dashboard': o.Dashboard.dashboard_link(),
+            'title': o.Dashboard.dashboard_title,
+            'url': o.Dashboard.url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/created_dashboards/<user_id>/", methods=['GET'])
+    def created_dashboards(self, user_id):
+        Dash = models.Dashboard  # noqa
+        qry = (
+            db.session.query(
+                Dash,
+            )
+            .filter(
+                sqla.or_(
+                    Dash.created_by_fk == user_id,
+                    Dash.changed_by_fk == user_id,
+                )
+            )
+            .order_by(
+                Dash.changed_on.desc()
+            )
+        )
+        payload = [{
+            'id': o.id,
+            'dashboard': o.dashboard_link(),
+            'title': o.dashboard_title,
+            'url': o.url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/created_slices/<user_id>/", methods=['GET'])
+    def created_slices(self, user_id):
+        """List of slices created by this user"""
+        Slice = models.Slice  # noqa
+        qry = (
+            db.session.query(Slice)
+            .filter(
+                sqla.or_(
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                )
+            )
+            .order_by(Slice.changed_on.desc())
+        )
+        payload = [{
+            'id': o.id,
+            'title': o.slice_name,
+            'url': o.slice_url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/fave_slices/<user_id>/", methods=['GET'])
+    def fave_slices(self, user_id):
+        """Favorite slices for a user"""
+        qry = (
+            db.session.query(
+                models.Slice,
+                models.FavStar.dttm,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'slice',
+                    models.Slice.id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.desc()
+            )
+        )
+        payload = [{
+            'id': o.Slice.id,
+            'title': o.Slice.slice_name,
+            'url': o.Slice.slice_url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
     @expose("/warm_up_cache/", methods=['GET'])
     def warm_up_cache(self):
         """Warms up the cache for the slice or table."""
@@ -1751,6 +1919,7 @@ class Superset(BaseSupersetView):
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
+        """Toggle favorite stars on Slices and Dashboard"""
         session = db.session()
         FavStar = models.FavStar  # noqa
         count = 0
@@ -2225,7 +2394,6 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/queries/<last_updated_ms>")
-    @log_this
     def queries(self, last_updated_ms):
         """Get the updated queries."""
         if not g.user.get_id():
@@ -2339,8 +2507,51 @@ class Superset(BaseSupersetView):
         return self.render_template('superset/welcome.html', utils=utils)
 
     @has_access
+    @expose("/profile/<username>/")
+    def profile(self, username):
+        """User profile page"""
+        user = (
+            db.session.query(ab_models.User)
+            .filter_by(username=username)
+            .one()
+        )
+        roles = {}
+        from collections import defaultdict
+        permissions = defaultdict(list)
+        for role in user.roles:
+            perms = []
+            for perm in role.permissions:
+                perms.append(
+                    (perm.permission.name, perm.view_menu.name)
+                )
+                if perm.permission.name in ('datasource_access', 'database_access'):
+                    permissions[perm.permission.name].append(perm.view_menu.name)
+            roles[role.name] = [
+                [perm.permission.name, perm.view_menu.name]
+                for perm in role.permissions
+            ]
+        payload = {
+            'user': {
+                'username': user.username,
+                'firstName': user.first_name,
+                'lastName': user.last_name,
+                'userId': user.id,
+                'isActive': user.is_active(),
+                'createdOn': user.created_on.isoformat(),
+                'email': user.email,
+                'roles': roles,
+                'permissions': permissions,
+            }
+        }
+        return self.render_template(
+            'superset/profile.html',
+            title=user.username + "'s profile",
+            navbar_container=True,
+            bootstrap_data=json.dumps(payload))
+
+    @has_access
     @expose("/sqllab")
-    def sqlanvil(self):
+    def sqllab(self):
         """SQL Editor"""
         return self.render_template('superset/sqllab.html')
 
