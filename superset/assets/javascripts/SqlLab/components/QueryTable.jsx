@@ -91,6 +91,16 @@ class QueryTable extends React.PureComponent {
         </button>
       );
       q.started = moment(q.startDttm).format('HH:mm:ss');
+      q.querylink = (
+        <div style={{ width: '100px' }}>
+          <a
+            href={this.getQueryLink(q.dbId, q.sql)}
+            className="btn btn-primary btn-xs"
+          >
+            <i className="fa fa-external-link" />Open in SQL Editor
+          </a>
+        </div>
+      );
       q.sql = (
         <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
       );
@@ -164,16 +174,6 @@ class QueryTable extends React.PureComponent {
             tooltip="Remove query from log"
             onClick={this.removeQuery.bind(this, query)}
           />
-        </div>
-      );
-      q.querylink = (
-        <div style={{ width: '100px' }}>
-          <a
-            href={this.getQueryLink(q.dbId, q.sql)}
-            className="btn btn-primary btn-xs"
-          >
-            <i className="fa fa-external-link" />Open in SQL Editor
-          </a>
         </div>
       );
       return q;
