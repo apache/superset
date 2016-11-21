@@ -1109,6 +1109,22 @@ appbuilder.add_view_no_menu(R)
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
     @has_access_api
+    @expose("/update_role/", methods=['POST'])
+    def update_role(self):
+        """Assigns a list of found users to the given role."""
+        data = request.get_json(force=True)
+        user_emails = data['user_emails']
+        role_name = data['role_name']
+        role = sm.find_role(role_name)
+        role.user = []
+        for user_email in user_emails:
+            user = sm.find_user(email=user_email)
+            if user:
+                role.user.append(user)
+        db.session.commit()
+        return Response(status=201)
+
+    @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
     def override_role_permissions(self):
         """Updates the role with the give datasource permissions.

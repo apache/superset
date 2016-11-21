@@ -36,6 +36,7 @@ ADMIN_ONLY_PERMISSIONS = {
     'can_sync_druid_source',
     'can_override_role_permissions',
     'can_approve',
+    'can_update_role',
 }
 READ_ONLY_PERMISSION = {
     'can_show',

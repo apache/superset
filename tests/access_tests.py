@@ -348,6 +348,54 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user.roles.remove(sm.find_role('dummy_role'))
         session.commit()
 
+    def test_update_role_do_not_exist(self):
+        update_role_str = 'update_me'
+        update_role = sm.find_role(update_role_str)
+        if update_role:
+            db.session.delete(update_role)
+        db.session.commit()
+        with self.assertRaises(AttributeError):
+            self.get_resp(
+                '/superset/update_role/',
+                data=json.dumps({
+                    'user_emails': ['gamma@fab.org'],
+                    'role_name': update_role_str,
+                })
+            )
+
+    def test_update_role(self):
+        update_role_str = 'update_me'
+        sm.add_role(update_role_str)
+        db.session.commit()
+        resp = self.client.post(
+            '/superset/update_role/',
+            data=json.dumps({
+                'user_emails': ['gamma@fab.org'],
+                'role_name': update_role_str
+            }),
+            follow_redirects=True
+        )
+        update_role = sm.find_role(update_role_str)
+        self.assertEquals(
+            update_role.user, [sm.find_user(email='gamma@fab.org')])
+        self.assertEquals(resp.status_code, 201)
+
+        resp = self.client.post(
+            '/superset/update_role/',
+            data=json.dumps({
+                'user_emails': ['alpha@fab.org', 'unknown@fab.org'],
+                'role_name': update_role_str
+            }),
+            follow_redirects=True
+        )
+        self.assertEquals(resp.status_code, 201)
+        update_role = sm.find_role(update_role_str)
+        self.assertEquals(
+            update_role.user, [sm.find_user(email='alpha@fab.org')])
+
+        db.session.delete(update_role)
+        db.session.commit()
+
 
 if __name__ == '__main__':
     unittest.main()
