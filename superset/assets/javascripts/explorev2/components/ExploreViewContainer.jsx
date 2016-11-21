@@ -7,6 +7,7 @@ import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
+import { autoQueryFields } from '../stores/store';
 const $ = require('jquery');
 
 const propTypes = {
@@ -29,12 +30,24 @@ class ExploreViewContainer extends React.Component {
     window.addEventListener('resize', this.handleResize.bind(this));
   }
 
+  componentWillReceiveProps(nextProps) {
+    let refreshChart = false;
+    autoQueryFields.forEach((field) => {
+      if (nextProps.form_data[field] !== this.props.form_data[field]) {
+        refreshChart = true;
+      }
+    });
+    if (refreshChart) {
+      this.onQuery(nextProps.form_data);
+    }
+  }
+
   componentWillUnmount() {
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
-  onQuery() {
+
+  onQuery(form_data) {
     const data = {};
-    const form_data = this.props.form_data;
     Object.keys(form_data).forEach((field) => {
     // filter out null fields
       if (form_data[field] !== null && field !== 'datasource') {
@@ -101,7 +114,7 @@ class ExploreViewContainer extends React.Component {
           <div className="col-sm-4">
             <QueryAndSaveBtns
               canAdd="True"
-              onQuery={this.onQuery.bind(this)}
+              onQuery={this.onQuery.bind(this, this.props.form_data)}
               onSave={this.toggleModal.bind(this)}
             />
             <br /><br />
@@ -109,6 +122,7 @@ class ExploreViewContainer extends React.Component {
               actions={this.props.actions}
               form_data={this.props.form_data}
               datasource_type={this.props.datasource_type}
+              onQuery={this.onQuery.bind(this, this.props.form_data)}
             />
           </div>
           <div className="col-sm-8">
