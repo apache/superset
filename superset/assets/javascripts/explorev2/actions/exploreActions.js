@@ -105,8 +105,8 @@ export function changeFilterValue(filter, value) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(key, value, label) {
-  return { type: SET_FIELD_VALUE, key, value, label };
+export function setFieldValue(datasource_type, key, value, label) {
+  return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
 }
 
 export const UPDATE_CHART = 'UPDATE_CHART';

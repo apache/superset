@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 
 export const fieldTypes = [
@@ -969,7 +970,7 @@ export const fields = {
   },
 
   druid_time_origin: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Origin',
     choices: [
       ['', 'default'],
@@ -981,7 +982,7 @@ export const fields = {
   },
 
   bottom_margin: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Bottom Margin',
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -989,7 +990,7 @@ export const fields = {
   },
 
   granularity: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Time Granularity',
     default: 'one day',
     choices: formatSelectOptions([
@@ -1030,7 +1031,7 @@ export const fields = {
   },
 
   link_length: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Link Length',
     default: '200',
     choices: formatSelectOptions(['10', '25', '50', '75', '100', '150', '200', '250']),
@@ -1089,7 +1090,7 @@ export const fields = {
   },
 
   resample_how: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Resample How',
     default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
@@ -1097,7 +1098,7 @@ export const fields = {
   },
 
   resample_fillmethod: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Resample Fill Method',
     default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
@@ -1105,7 +1106,7 @@ export const fields = {
   },
 
   since: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Since',
     default: '7 days ago',
     choices: formatSelectOptions([
@@ -1123,7 +1124,7 @@ export const fields = {
   },
 
   until: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Until',
     default: 'now',
     choices: formatSelectOptions([
@@ -1137,14 +1138,14 @@ export const fields = {
   },
 
   max_bubble_size: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Max Bubble Size',
     default: '25',
     choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   whisker_options: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Whisker/outlier options',
     default: 'Tukey',
     description: 'Determines how whiskers and outliers are calculated.',
@@ -1164,7 +1165,7 @@ export const fields = {
   },
 
   number_format: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Number format',
     default: D3_TIME_FORMAT_OPTIONS[0],
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -1172,14 +1173,14 @@ export const fields = {
   },
 
   row_limit: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Row limit',
     default: null,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
   limit: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Series limit',
     choices: formatSelectOptions(SERIES_LIMITS),
     default: 50,
@@ -1305,7 +1306,7 @@ export const fields = {
   },
 
   table_timestamp_format: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Table Timestamp Format',
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -1657,7 +1658,7 @@ export const fields = {
   },
 
   mapbox_color: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'RGB Color',
     default: 'rgb(0, 122, 135)',
     choices: [
@@ -1672,16 +1673,24 @@ export const fields = {
   },
 };
 
-export function defaultFormData(vizType = 'table') {
+export function sectionsToRender(vizType, datasourceType) {
+  const viz = visTypes[vizType];
+  const timeSection = datasourceType === 'table' ?
+    commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
+  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const sections = [datasourceAndVizType].concat(
+    viz.controlPanelSections, timeSection, sqlClause);
+  return sections;
+}
+
+export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,
     datasource_name: null,
   };
-  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const viz = visTypes[vizType];
-  const sectionsToRender = [datasourceAndVizType].concat(viz.controlPanelSections, sqlClause);
-  sectionsToRender.forEach((section) => {
+  const sections = sectionsToRender(vizType, datasourceType);
+  sections.forEach((section) => {
     section.fieldSetRows.forEach((fieldSetRow) => {
       fieldSetRow.forEach((k) => {
         data[k] = fields[k].default;

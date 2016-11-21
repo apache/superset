@@ -69,7 +69,8 @@ export const exploreReducer = function (state, action) {
     },
     [actions.SET_FIELD_VALUE]() {
       const newFormData = action.key === 'datasource' ?
-        defaultFormData(state.viz.form_data.viz_type) : Object.assign({}, state.viz.form_data);
+        defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
+        Object.assign({}, state.viz.form_data);
       if (action.key === 'datasource') {
         newFormData.datasource_name = action.label;
         newFormData.slice_id = state.viz.form_data.slice_id;
