@@ -178,6 +178,63 @@ class SupersetTestCase(unittest.TestCase):
         self.assertEquals({"left_table", "right_table"},
                           sql_parse.extract_tables(query))
 
+        query = """
+            SELECT a.date, b.name FROM
+                left_table a
+                LEFT INNER JOIN (
+                  SELECT
+                    CAST((b.year) as VARCHAR) date,
+                    name
+                  FROM right_table
+                ) b
+                ON a.date = b.date
+        """
+        self.assertEquals({"left_table", "right_table"},
+                          sql_parse.extract_tables(query))
+
+        query = """
+            SELECT a.date, b.name FROM
+                left_table a
+                RIGHT OUTER JOIN (
+                  SELECT
+                    CAST((b.year) as VARCHAR) date,
+                    name
+                  FROM right_table
+                ) b
+                ON a.date = b.date
+        """
+        self.assertEquals({"left_table", "right_table"},
+                          sql_parse.extract_tables(query))
+
+        query = """
+            SELECT a.date, b.name FROM
+                left_table a
+                FULL OUTER JOIN (
+                  SELECT
+                    CAST((b.year) as VARCHAR) date,
+                    name
+                  FROM right_table
+                ) b
+                ON a.date = b.date
+        """
+        self.assertEquals({"left_table", "right_table"},
+                          sql_parse.extract_tables(query))
+
+        # TODO: add SEMI join support, SQL Parse does not handle it.
+        # query = """
+        #     SELECT a.date, b.name FROM
+        #         left_table a
+        #         LEFT SEMI JOIN (
+        #           SELECT
+        #             CAST((b.year) as VARCHAR) date,
+        #             name
+        #           FROM right_table
+        #         ) b
+        #         ON a.date = b.date
+        # """
+        # self.assertEquals({"left_table", "right_table"},
+        #                   sql_parse.extract_tables(query))
+
     def test_combinations(self):
         query = """
             SELECT * FROM t1

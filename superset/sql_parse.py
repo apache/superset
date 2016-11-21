@@ -7,6 +7,13 @@ RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
+def precedes_table_name(token_value):
+    for keyword in PRECEDES_TABLE_NAME:
+        if keyword in token_value:
+            return True
+    return False
+
+
 def get_full_name(identifier):
     if len(identifier.tokens) > 1 and identifier.tokens[1].value == '.':
         return "{}.{}".format(identifier.tokens[0].value,
@@ -52,7 +59,7 @@ def extract_from_token(token, table_names, aliases):
             extract_from_token(item, table_names, aliases)
 
         if item.ttype in Keyword:
-            if item.value.upper() in PRECEDES_TABLE_NAME:
+            if precedes_table_name(item.value.upper()):
                 table_name_preceding_token = True
                 continue
 
