@@ -25,10 +25,13 @@ class QuerySearch extends React.PureComponent {
       to: null,
       status: 'success',
       queriesArray: [],
+      queriesLoading: true,
     };
   }
   componentWillMount() {
     this.fetchUsers();
+  }
+  componentDidMount() {
     this.refreshQueries();
   }
   onUserClicked(userId) {
@@ -100,6 +103,7 @@ class QuerySearch extends React.PureComponent {
     });
   }
   refreshQueries() {
+    this.setState({ queriesLoading: true });
     const params = [
       this.state.userId ? `user_id=${this.state.userId}` : '',
       this.state.databaseId ? `database_id=${this.state.databaseId}` : '',
@@ -116,7 +120,7 @@ class QuerySearch extends React.PureComponent {
         for (const id in data) {
           newQueriesArray.push(data[id]);
         }
-        this.setState({ queriesArray: newQueriesArray });
+        this.setState({ queriesArray: newQueriesArray, queriesLoading: false });
       }
     });
   }
@@ -185,16 +189,20 @@ class QuerySearch extends React.PureComponent {
             Search
           </Button>
         </div>
-        <QueryTable
-          columns={[
-            'state', 'db', 'user', 'date',
-            'progress', 'rows', 'sql', 'querylink',
-          ]}
-          onUserClicked={this.onUserClicked.bind(this)}
-          onDbClicked={this.onDbClicked.bind(this)}
-          queries={this.state.queriesArray}
-          actions={this.props.actions}
-        />
+        {this.state.queriesLoading ?
+          (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
+          :
+          (<QueryTable
+            columns={[
+              'state', 'db', 'user', 'date',
+              'progress', 'rows', 'sql', 'querylink',
+            ]}
+            onUserClicked={this.onUserClicked.bind(this)}
+            onDbClicked={this.onDbClicked.bind(this)}
+            queries={this.state.queriesArray}
+            actions={this.props.actions}
+          />)
+        }
       </div>
     );
   }
