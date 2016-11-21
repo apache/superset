@@ -55,10 +55,14 @@ class BaseCaravelView(BaseView):
             "all_datasource_access", "all_datasource_access")
 
     def database_access(self, database):
+        if not database:
+            return False
         return (self.all_datasource_access() or
                 self.can_access("database_access", database.perm))
 
     def datasource_access(self, datasource):
+        if not datasource:
+            return False
         return (self.database_access(datasource.database) or
                 self.can_access("datasource_access", datasource.perm))
 
