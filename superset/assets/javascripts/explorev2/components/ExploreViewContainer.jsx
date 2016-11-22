@@ -25,11 +25,18 @@ class ExploreViewContainer extends React.Component {
     };
   }
 
+  componentDidMount() {
+    window.addEventListener('resize', this.handleResize.bind(this));
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleResize.bind(this));
+  }
   onQuery() {
     const data = {};
     const form_data = this.props.form_data;
     Object.keys(form_data).forEach((field) => {
-      // filter out null fields
+    // filter out null fields
       if (form_data[field] !== null && field !== 'datasource') {
         data[field] = form_data[field];
       }
@@ -64,6 +71,9 @@ class ExploreViewContainer extends React.Component {
     this.props.actions.updateExplore(
       this.props.datasource_type, this.props.form_data.datasource, data);
   }
+  handleResize() {
+    this.setState({ height: this.getHeight() });
+  }
 
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
@@ -72,6 +82,7 @@ class ExploreViewContainer extends React.Component {
   render() {
     return (
       <div
+        id="explore-container"
         className="container-fluid"
         style={{
           height: this.state.height,
