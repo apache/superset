@@ -192,16 +192,22 @@ class QuerySearch extends React.PureComponent {
         {this.state.queriesLoading ?
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
           :
-          (<QueryTable
-            columns={[
-              'state', 'db', 'user', 'date',
-              'progress', 'rows', 'sql', 'querylink',
-            ]}
-            onUserClicked={this.onUserClicked.bind(this)}
-            onDbClicked={this.onDbClicked.bind(this)}
-            queries={this.state.queriesArray}
-            actions={this.props.actions}
-          />)
+          (
+          <div className="scrollbar-container">
+            <div className="scrollbar-content">
+              <QueryTable
+                columns={[
+                  'state', 'db', 'user', 'date',
+                  'progress', 'rows', 'sql', 'querylink',
+                ]}
+                onUserClicked={this.onUserClicked.bind(this)}
+                onDbClicked={this.onDbClicked.bind(this)}
+                queries={this.state.queriesArray}
+                actions={this.props.actions}
+              />
+            </div>
+          </div>
+          )
         }
       </div>
     );
