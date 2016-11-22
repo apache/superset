@@ -182,12 +182,14 @@ class ChartContainer extends React.Component {
               />
             </Alert>
           }
-          {!this.props.isChartLoading &&
-            <div
+          {this.props.isChartLoading ?
+            (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />)
+            :
+            (<div
               id={this.props.containerId}
               ref={(ref) => { this.chartContainerRef = ref; }}
               className={this.props.viz_type}
-            />
+            />)
           }
         </Panel>
       </div>

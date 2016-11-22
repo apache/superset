@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import { visTypes, commonControlPanelSections } from '../stores/store';
+import { visTypes, sectionsToRender } from '../stores/store';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 
@@ -37,17 +37,11 @@ class ControlPanelsContainer extends React.Component {
   }
 
   onChange(name, value, label) {
-    this.props.actions.setFieldValue(name, value, label);
+    this.props.actions.setFieldValue(this.props.datasource_type, name, value, label);
   }
 
   sectionsToRender() {
-    const viz = visTypes[this.props.form_data.viz_type];
-    const timeSection = this.props.datasource_type === 'table' ?
-      commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
-    const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-    const sectionsToRender = [datasourceAndVizType].concat(
-      viz.controlPanelSections, timeSection, sqlClause);
-    return sectionsToRender;
+    return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
   }
 
   fieldOverrides() {
