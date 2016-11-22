@@ -184,4 +184,9 @@ export function getParamObject(form_data, datasource_type) {
   const filterParams = formatFilters(form_data.filters);
   Object.assign(data, filterParams);
   return data;
+
+export function getAjaxErrorMsg(error) {
+  const respJSON = error.responseJSON;
+  return (respJSON && respJSON.message) ? respJSON.message :
+          error.responseText;
 }
