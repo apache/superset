@@ -246,7 +246,7 @@ JINJA_CONTEXT_ADDONS = {}
 
 # Roles that are controlled by the API / Superset and should not be changes
 # by humans.
-ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin']
+ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
 try:
     from superset_config import *  # noqa
