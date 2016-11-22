@@ -36,7 +36,7 @@ body {
   position: relative;
   overflow: hidden;
   width: 100%;
-  height: 95%;
+  height: 100%;
 }
 
 .scrollbar-content {
@@ -47,7 +47,7 @@ body {
   bottom: 0px;
   overflow: scroll;
   margin-right: 0px;
-  margin-bottom: 100px;
+  margin-bottom: 0px;
 }
 
 .Workspace .btn-sm {

@@ -22,6 +22,7 @@ import AceEditorWrapper from './AceEditorWrapper';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
+  height: React.PropTypes.string.isRequired,
   database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
   networkOn: React.PropTypes.bool,
@@ -212,13 +213,20 @@ class SqlEditor extends React.PureComponent {
       </div>
     );
     return (
-      <div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}>
+      <div
+        className="SqlEditor"
+        style={{
+          minHeight: this.sqlEditorHeight(),
+          height: this.props.height,
+        }}
+      >
         <Row>
           <Collapse
             in={!this.props.hideLeftBar}
           >
             <Col md={3}>
               <SqlEditorLeftBar
+                style={{ height: this.props.height }}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
                 networkOn={this.props.networkOn}

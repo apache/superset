@@ -33,7 +33,7 @@
 {% set WARNING_MSG = appbuilder.app.config.get('WARNING_MSG') %}
 {% if WARNING_MSG %}
   <div class="container">
-    <div class="alert alert-danger">
+    <div id="navbar-warning" class="alert alert-danger">
       {{ WARNING_MSG | safe }}
     </div>
   </div>
