@@ -1942,26 +1942,38 @@ class Superset(BaseSupersetView):
     @expose("/created_dashboards/<user_id>/", methods=['GET'])
     def created_dashboards(self, user_id):
         Dash = models.Dashboard  # noqa
+        Log = models.Log
         qry = (
             db.session.query(
                 Dash,
+                sqla.func.count(),
+                sqla.func.count(Log.user_id.distinct()),
             )
+            .join(Log)
             .filter(
                 sqla.or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
                 )
             )
+            .filter(
+                sqla.and_(
+                    Log.dashboard_id == Dash.id,
+                )
+            )
             .order_by(
                 Dash.changed_on.desc()
             )
+            .group_by(Dash.id)
         )
         payload = [{
-            'id': o.id,
-            'dashboard': o.dashboard_link(),
-            'title': o.dashboard_title,
-            'url': o.url,
-            'dttm': o.changed_on,
+            'id': o[0].id,
+            'dashboard': o[0].dashboard_link(),
+            'title': o[0].dashboard_title,
+            'url': o[0].url,
+            'dttm': o[0].changed_on,
+            'views': o[1],
+            'distinct_users': o[2],
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),

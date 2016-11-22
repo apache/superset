@@ -421,7 +421,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
-
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
 
@@ -2313,7 +2312,7 @@ class Log(Model):
     id = Column(Integer, primary_key=True)
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
-    dashboard_id = Column(Integer)
+    dashboard_id = Column(Integer, ForeignKey('dashboards.id'))
     slice_id = Column(Integer)
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])

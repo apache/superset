@@ -36,6 +36,8 @@ class CreatedContent extends React.PureComponent {
   renderDashboardTable() {
     const mutator = (data) => data.map(dash => ({
       dashboard: <a href={dash.url}>{dash.title}</a>,
+      views: dash.views,
+      users: dash.distinct_users,
       favorited: moment.utc(dash.dttm).fromNow(),
       _favorited: dash.dttm,
     }));
@@ -45,7 +47,7 @@ class CreatedContent extends React.PureComponent {
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
         noDataText="No dashboards"
-        columns={['dashboard', 'favorited']}
+        columns={['dashboard', 'favorited', 'views', 'users']}
         sortable
       />
     );
