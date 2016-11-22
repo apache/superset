@@ -1949,7 +1949,7 @@ class Superset(BaseSupersetView):
                 sqla.func.count(),
                 sqla.func.count(Log.user_id.distinct()),
             )
-            .join(Log)
+            .join(Log).with_hint(Log, 'USE INDEX (views)')
             .filter(
                 sqla.or_(
                     Dash.created_by_fk == user_id,
