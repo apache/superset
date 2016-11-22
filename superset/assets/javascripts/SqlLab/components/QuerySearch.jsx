@@ -127,7 +127,7 @@ class QuerySearch extends React.PureComponent {
   render() {
     return (
       <div>
-        <div className="row space-1">
+        <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <Select
               name="select-user"
@@ -193,7 +193,10 @@ class QuerySearch extends React.PureComponent {
           (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
           :
           (
-          <div className="scrollbar-container">
+          <div
+            style={{ height: this.props.height }}
+            className="scrollbar-container"
+          >
             <div className="scrollbar-content">
               <QueryTable
                 columns={[

@@ -15,12 +15,12 @@ class App extends React.PureComponent {
     super(props);
     this.state = {
       hash: window.location.hash,
-      editorHeight: this.getHeight(),
+      contentHeight: this.getHeight(),
     };
   }
   componentDidMount() {
     /* eslint-disable react/no-did-mount-set-state */
-    this.setState({ editorHeight: this.getHeight() });
+    this.setState({ contentHeight: this.getHeight() });
     window.addEventListener('hashchange', this.onHashChanged.bind(this));
     window.addEventListener('resize', this.handleResize.bind(this));
   }
@@ -30,13 +30,14 @@ class App extends React.PureComponent {
   }
   getHeight() {
     const navHeight = 90;
-    const tabHeight = $('.nav-tabs').outerHeight();
+    const headerHeight = $('.nav-tabs').outerHeight() ?
+      $('.nav-tabs').outerHeight() : $('#search-header').outerHeight();
     const warningHeight = $('#navbar-warning').outerHeight();
     const alertHeight = $('#sqllab-alerts').outerHeight();
-    return `${window.innerHeight - navHeight - tabHeight - warningHeight - alertHeight}px`;
+    return `${window.innerHeight - navHeight - headerHeight - warningHeight - alertHeight}px`;
   }
   handleResize() {
-    this.setState({ editorHeight: this.getHeight() });
+    this.setState({ contentHeight: this.getHeight() });
   }
   onHashChanged() {
     this.setState({ hash: window.location.hash });
@@ -48,7 +49,7 @@ class App extends React.PureComponent {
         <div className="container-fluid">
           <div className="row">
             <div className="col-md-12">
-              <QuerySearch />
+              <QuerySearch height={this.state.contentHeight} />
             </div>
           </div>
         </div>
@@ -57,7 +58,7 @@ class App extends React.PureComponent {
       content = (
         <div>
           <QueryAutoRefresh />
-          <TabbedSqlEditors editorHeight={this.state.editorHeight} />
+          <TabbedSqlEditors editorHeight={this.state.contentHeight} />
         </div>
       );
     }
