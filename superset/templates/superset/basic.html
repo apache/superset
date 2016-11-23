@@ -2,7 +2,11 @@
   <head>
     <title>
       {% block title %}
-        {% if appbuilder and appbuilder.app_name %} {{ appbuilder.app_name }} {% endif %}
+        {% if title %}
+          {{ title }}
+        {% elif appbuilder and appbuilder.app_name %}
+          {{ appbuilder.app_name }}
+        {% endif %}
       {% endblock %}
     </title>
     {% block head_meta %}{% endblock %}
@@ -30,7 +34,7 @@
 
     {% block body %}
       {% include 'superset/flash_wrapper.html' %}
-      <div id="app">
+      <div id="app" data-bootstrap="{{ bootstrap_data }}" >
         <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
       </div>
     {% endblock %}

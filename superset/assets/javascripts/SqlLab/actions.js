@@ -158,7 +158,7 @@ export function setNetworkStatus(networkOn) {
 export function addAlert(alert) {
   const o = Object.assign({}, alert);
   o.id = shortid.generate();
-  return { type: ADD_ALERT, o };
+  return { type: ADD_ALERT, alert: o };
 }
 
 export function removeAlert(alert) {

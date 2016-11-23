@@ -412,3 +412,12 @@ a.list-group-item {
 hr {
   margin: 10px 0;
 }
+
+// generate space-n classes for vertical spacing
+.space-loop(@counter) when (@counter > 0) {
+  .space-loop((@counter - 1));    // next iteration
+  .space-@{counter} {
+    margin-bottom: (10px * @counter); // code for each iteration
+  }
+}
+.space-loop(6);

@@ -10,12 +10,7 @@ import CodeModal from './CodeModal';
 import SliceAdder from './SliceAdder';
 
 const propTypes = {
-  table: React.PropTypes.object,
   dashboard: React.PropTypes.object.isRequired,
-};
-
-const defaultProps = {
-  actions: {},
 };
 
 class Controls extends React.PureComponent {
@@ -64,6 +59,7 @@ class Controls extends React.PureComponent {
         data: JSON.stringify(data),
       },
       success() {
+        dashboard.onSave();
         showModal({
           title: 'Success',
           body: 'This dashboard was saved successfully.',
@@ -80,6 +76,7 @@ class Controls extends React.PureComponent {
   }
   changeCss(css) {
     this.setState({ css });
+    this.props.dashboard.onChange();
   }
   render() {
     const dashboard = this.props.dashboard;
@@ -138,6 +135,5 @@ class Controls extends React.PureComponent {
   }
 }
 Controls.propTypes = propTypes;
-Controls.defaultProps = defaultProps;
 
 export default Controls;

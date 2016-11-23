@@ -29,7 +29,7 @@ export default class FieldSetRow extends React.Component {
   render() {
     const colSize = NUM_COLUMNS / this.props.fieldSets.length;
     return (
-      <div className="row">
+      <div className="row space-2">
         {this.props.fieldSets.map((fs) => {
           const fieldData = this.getFieldData(fs);
           return (

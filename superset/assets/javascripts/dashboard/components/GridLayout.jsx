@@ -48,10 +48,12 @@ class GridLayout extends React.Component {
     if (oldItem.w !== newItem.w || oldItem.h !== newItem.h) {
       this.setState({ layout }, () => newSlice.resize());
     }
+    this.props.dashboard.onChange();
   }
 
   onDragStop(layout) {
     this.setState({ layout });
+    this.props.dashboard.onChange();
   }
 
   removeSlice(sliceId) {
@@ -64,6 +66,7 @@ class GridLayout extends React.Component {
         return slice.slice_id !== sliceId;
       }),
     });
+    this.props.dashboard.onChange();
   }
 
   serialize() {

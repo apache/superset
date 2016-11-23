@@ -14,8 +14,8 @@ import random
 import pandas as pd
 from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
-import superset
 from superset import app, db, models, utils
+from superset.security import get_or_create_main_db
 
 # Shortcuts
 DB = models.Database
@@ -67,7 +67,7 @@ def load_energy():
         tbl = TBL(table_name=tbl_name)
     tbl.description = "Energy consumption"
     tbl.is_featured = True
-    tbl.database = utils.get_or_create_main_db(superset)
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -194,7 +194,7 @@ def load_world_bank_health_n_pop():
     tbl.description = utils.readfile(os.path.join(DATA_FOLDER, 'countries.md'))
     tbl.main_dttm_col = 'year'
     tbl.is_featured = True
-    tbl.database = utils.get_or_create_main_db(superset)
+    tbl.database = get_or_create_main_db()
     db.session.merge(tbl)
     db.session.commit()
     tbl.fetch_metadata()
@@ -586,7 +586,7 @@ def load_birth_names():
     if not obj:
         obj = TBL(table_name='birth_names')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(superset)
+    obj.database = get_or_create_main_db()
     obj.is_featured = True
     db.session.merge(obj)
     db.session.commit()
@@ -834,7 +834,7 @@ def load_unicode_test_data():
     if not obj:
         obj = TBL(table_name='unicode_test')
     obj.main_dttm_col = 'date'
-    obj.database = utils.get_or_create_main_db(superset)
+    obj.database = get_or_create_main_db()
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -872,7 +872,11 @@ def load_unicode_test_data():
     merge_slice(slc)
 
     print("Creating a dashboard")
-    dash = db.session.query(Dash).filter_by(dashboard_title="Unicode Test").first()
+    dash = (
+        db.session.query(Dash)
+        .filter_by(dashboard_title="Unicode Test")
+        .first()
+    )
 
     if not dash:
         dash = Dash()
@@ -913,7 +917,7 @@ def load_random_time_series_data():
     if not obj:
         obj = TBL(table_name='random_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(superset)
+    obj.database = get_or_create_main_db()
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -981,7 +985,7 @@ def load_long_lat_data():
     if not obj:
         obj = TBL(table_name='long_lat')
     obj.main_dttm_col = 'date'
-    obj.database = utils.get_or_create_main_db(superset)
+    obj.database = get_or_create_main_db()
     obj.is_featured = False
     db.session.merge(obj)
     db.session.commit()
@@ -1046,7 +1050,7 @@ def load_multiformat_time_series_data():
     if not obj:
         obj = TBL(table_name='multiformat_time_series')
     obj.main_dttm_col = 'ds'
-    obj.database = utils.get_or_create_main_db(superset)
+    obj.database = get_or_create_main_db()
     obj.is_featured = False
     dttm_and_expr_dict = {
         'ds': [None, None],

@@ -420,6 +420,7 @@ class TableViz(BaseViz):
         'fields': (
             'table_timestamp_format',
             'row_limit',
+            'page_length',
             ('include_search', None),
         )
     })
@@ -440,7 +441,7 @@ class TableViz(BaseViz):
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
-            order_by_cols = fd.get('order_by_cols', []) or []
+            order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         return d
 

@@ -25,10 +25,13 @@ class QuerySearch extends React.PureComponent {
       to: null,
       status: 'success',
       queriesArray: [],
+      queriesLoading: true,
     };
   }
   componentWillMount() {
     this.fetchUsers();
+  }
+  componentDidMount() {
     this.refreshQueries();
   }
   onUserClicked(userId) {
@@ -100,6 +103,7 @@ class QuerySearch extends React.PureComponent {
     });
   }
   refreshQueries() {
+    this.setState({ queriesLoading: true });
     const params = [
       this.state.userId ? `user_id=${this.state.userId}` : '',
       this.state.databaseId ? `database_id=${this.state.databaseId}` : '',
@@ -116,14 +120,14 @@ class QuerySearch extends React.PureComponent {
         for (const id in data) {
           newQueriesArray.push(data[id]);
         }
-        this.setState({ queriesArray: newQueriesArray });
+        this.setState({ queriesArray: newQueriesArray, queriesLoading: false });
       }
     });
   }
   render() {
     return (
       <div>
-        <div className="row space-1">
+        <div id="search-header" className="row space-1">
           <div className="col-sm-2">
             <Select
               name="select-user"
@@ -185,16 +189,29 @@ class QuerySearch extends React.PureComponent {
             Search
           </Button>
         </div>
-        <QueryTable
-          columns={[
-            'state', 'db', 'user', 'date',
-            'progress', 'rows', 'sql', 'querylink',
-          ]}
-          onUserClicked={this.onUserClicked.bind(this)}
-          onDbClicked={this.onDbClicked.bind(this)}
-          queries={this.state.queriesArray}
-          actions={this.props.actions}
-        />
+        {this.state.queriesLoading ?
+          (<img className="loading" alt="Loading..." src="/static/assets/images/loading.gif" />)
+          :
+          (
+          <div
+            style={{ height: this.props.height }}
+            className="scrollbar-container"
+          >
+            <div className="scrollbar-content">
+              <QueryTable
+                columns={[
+                  'state', 'db', 'user', 'date',
+                  'progress', 'rows', 'sql', 'querylink',
+                ]}
+                onUserClicked={this.onUserClicked.bind(this)}
+                onDbClicked={this.onDbClicked.bind(this)}
+                queries={this.state.queriesArray}
+                actions={this.props.actions}
+              />
+            </div>
+          </div>
+          )
+        }
       </div>
     );
   }
