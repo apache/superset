@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend, security,
+    sm, sql_lab, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
