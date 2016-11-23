@@ -1488,7 +1488,8 @@ class Superset(BaseSupersetView):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
-        # find out if user is in explore v2 beta group and set flag `is_in_explore_v2_beta`
+        # find out if user is in explore v2 beta group
+        # and set flag `is_in_explore_v2_beta`
         explore_v2_users = config.get('EXPLORE_V2_BETA_USERS', [])
         is_in_explore_v2_beta = True if user_id in explore_v2_users else False
 
