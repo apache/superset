@@ -2510,12 +2510,10 @@ class Superset(BaseSupersetView):
 
     @app.errorhandler(500)
     def show_traceback(self):
-        error_msg = get_error_msg()
         return render_template(
             'superset/traceback.html',
-            error_msg=error_msg,
-            title=ascii_art.stacktrace,
-            art=ascii_art.error), 500
+            error_msg=get_error_msg(),
+        ), 500
 
     @expose("/welcome")
     def welcome(self):
