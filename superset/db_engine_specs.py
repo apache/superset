@@ -63,6 +63,13 @@ class BaseEngineSpec(object):
         query object"""
         pass
 
+    @classmethod
+    def sql_preprocessor(self, sql):
+        """If the SQL needs to be altered prior to running it
+
+        For example Presto needs to double `%` characters"""
+        return sql
+
 
 class PostgresEngineSpec(BaseEngineSpec):
     engine = 'postgresql'
@@ -171,6 +178,10 @@ class PrestoEngineSpec(BaseEngineSpec):
               "date_add('day', -1, date_trunc('week', "
               "date_add('day', 1, CAST({col} AS TIMESTAMP))))"),
     )
+
+    @classmethod
+    def sql_preprocessor(self, sql):
+        return sql.replace('%', '%%')
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
