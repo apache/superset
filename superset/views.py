@@ -1441,6 +1441,8 @@ class Superset(BaseSupersetView):
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
         slc = None
+        user_id = g.user.get_id() if g.user else None
+
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
@@ -1486,6 +1488,10 @@ class Superset(BaseSupersetView):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
+        # find out if user is in explore v2 beta group and set flag `is_in_explore_v2_beta`
+        explore_v2_users = config.get('EXPLORE_V2_BETA_USERS', [])
+        is_in_explore_v2_beta = True if user_id in explore_v2_users else False
+
         # handle different endpoints
         if request.args.get("csv") == "true":
             payload = viz_obj.get_csv()
@@ -1496,7 +1502,7 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
             return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
-        elif request.args.get("V2") == "true":
+        elif request.args.get("V2") == "true" or is_in_explore_v2_beta:
             # bootstrap data for explore V2
             bootstrap_data = {
                 "can_add": slice_add_perm,
@@ -1507,7 +1513,7 @@ class Superset(BaseSupersetView):
                 "datasource_id": datasource_id,
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
-                "user_id": g.user.get_id() if g.user else None,
+                "user_id": user_id,
                 "viz": json.loads(viz_obj.get_json())
             }
             table_name = viz_obj.datasource.table_name \
