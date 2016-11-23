@@ -115,10 +115,8 @@ export const commonControlPanelSections = {
     },
     {
       label: 'Result Filters',
-      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
-        'Leave the value field empty to filter empty strings or nulls' +
-        'For filters with comma in values, wrap them in single quotes' +
-        "as in <NY, 'Tahoe, CA', DC>",
+      description: 'The filters to apply after post-aggregation.' +
+        'Leave the value field empty to filter empty strings or nulls',
     },
   ],
 };

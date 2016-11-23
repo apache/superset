@@ -2,15 +2,12 @@ import React from 'react';
 // import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
-import shortid from 'shortid';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
   filterColumnOpts: React.PropTypes.array,
   prefix: React.PropTypes.string,
+  filter: React.PropTypes.object.isRequired,
 };
 
 const defaultProps = {
@@ -78,6 +75,7 @@ export default class Filter extends React.Component {
           </div>
           <div className="col-lg-2">
             <Button
+              id="remove-button"
               bsSize="small"
               onClick={this.removeFilter.bind(this, this.props.filter)}
             >

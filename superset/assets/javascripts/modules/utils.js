@@ -168,12 +168,13 @@ function formatFilters(filters) {
 }
 
 export function getParamObject(form_data, datasource_type) {
-  const data = {};
-  // V2 tag temporarily for updating url
-  // Todo: remove after launch
-  data.V2 = true;
-  data.datasource_id = form_data.datasource;
-  data.datasource_type = datasource_type;
+  const data = {
+    // V2 tag temporarily for updating url
+    // Todo: remove after launch
+    V2: true,
+    datasource_id: form_data.datasource,
+    datasource_type,
+  };
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource') {

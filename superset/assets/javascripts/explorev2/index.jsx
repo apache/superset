@@ -29,7 +29,7 @@ const bootstrappedState = Object.assign(initialState(bootstrapData.viz.form_data
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
 bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
 
-const parseFilters = function (form_data, prefix = 'flt') {
+function parseFilters(form_data, prefix = 'flt') {
   const filters = [];
   for (let i = 0; i < 10; i++) {
     if (form_data[`${prefix}_col_${i}`] && form_data[`${prefix}_op_${i}`]) {
@@ -46,14 +46,14 @@ const parseFilters = function (form_data, prefix = 'flt') {
     delete form_data[`${prefix}_eq_${i}`];
   }
   return filters;
-};
+}
 
-const getFilters = function (form_data, datasource_type) {
+function getFilters(form_data, datasource_type) {
   if (datasource_type === 'table') {
     return parseFilters(form_data);
   }
   return parseFilters(form_data).concat(parseFilters(form_data, 'having'));
-};
+}
 
 bootstrappedState.viz.form_data.filters =
   getFilters(bootstrappedState.viz.form_data, bootstrapData.datasource_type);

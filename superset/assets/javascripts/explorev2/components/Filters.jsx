@@ -51,6 +51,7 @@ class Filters extends React.Component {
         <div className="row space-2">
           <div className="col-lg-2">
             <Button
+              id="add-button"
               bsSize="sm"
               onClick={this.addFilter.bind(this)}
             >

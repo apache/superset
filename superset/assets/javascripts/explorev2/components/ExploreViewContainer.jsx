@@ -48,8 +48,8 @@ class ExploreViewContainer extends React.Component {
     window.removeEventListener('resize', this.handleResize.bind(this));
   }
 
-  onQuery() {
-    const data = getParamObject(this.props.form_data, this.props.datasource_type);
+  onQuery(form_data) {
+    const data = getParamObject(form_data, this.props.datasource_type);
     this.queryFormData(data);
 
     const params = $.param(data, true);
