@@ -139,7 +139,7 @@ class ChartContainer extends React.Component {
     if (this.props.slice_name) {
       title = this.props.slice_name;
     } else {
-      title = `[table] ${this.props.table_name}`;
+      title = `[${this.props.table_name}] - untitled`;
     }
     return title;
   }
