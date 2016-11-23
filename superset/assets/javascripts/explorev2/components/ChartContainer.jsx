@@ -141,27 +141,29 @@ class ChartContainer extends React.Component {
           header={
             <div
               id="slice-header"
-              className="panel-title"
+              className="clearfix panel-title-large"
             >
-              {this.props.slice_name}
+              <div className="pull-left">
+                {this.props.slice_name}
 
-              <FaveStar
-                sliceId={this.props.slice_id}
-                actions={this.props.actions}
-                isStarred={this.props.isStarred}
-              />
+                <FaveStar
+                  sliceId={this.props.slice_id}
+                  actions={this.props.actions}
+                  isStarred={this.props.isStarred}
+                />
 
-              <TooltipWrapper
-                label="edit-desc"
-                tooltip="Edit Description"
-              >
-                <a
-                  className="edit-desc-icon"
-                  href={`/slicemodelview/edit/${this.props.slice_id}`}
+                <TooltipWrapper
+                  label="edit-desc"
+                  tooltip="Edit Description"
                 >
-                  <i className="fa fa-edit" />
-                </a>
-              </TooltipWrapper>
+                  <a
+                    className="edit-desc-icon"
+                    href={`/slicemodelview/edit/${this.props.slice_id}`}
+                  >
+                    <i className="fa fa-edit" />
+                  </a>
+                </TooltipWrapper>
+              </div>
 
               <div className="pull-right">
                 <ExploreActionButtons
