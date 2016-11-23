@@ -64,10 +64,11 @@ class BaseEngineSpec(object):
         pass
 
     @classmethod
-    def sql_preprocessor(self, sql):
+    def sql_preprocessor(cls, sql):
         """If the SQL needs to be altered prior to running it
 
-        For example Presto needs to double `%` characters"""
+        For example Presto needs to double `%` characters
+        """
         return sql
 
 
@@ -180,7 +181,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
-    def sql_preprocessor(self, sql):
+    def sql_preprocessor(cls, sql):
         return sql.replace('%', '%%')
 
     @classmethod
