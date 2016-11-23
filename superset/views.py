@@ -1657,13 +1657,13 @@ class Superset(BaseSupersetView):
         self._set_dash_metadata(dash, data)
         session.add(dash)
         session.commit()
-        url = dash.url
+        dash_json = dash.json_data
         session.close()
-        return url
+        return Response(
+            dash_json, mimetype="application/json")
 
     @api
     @has_access_api
-    @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
