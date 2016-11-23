@@ -1,6 +1,5 @@
 /* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
-
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
 export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
@@ -89,19 +88,9 @@ export function removeFilter(filter) {
   return { type: REMOVE_FILTER, filter };
 }
 
-export const CHANGE_FILTER_FIELD = 'CHANGE_FILTER_FIELD';
-export function changeFilterField(filter, field) {
-  return { type: CHANGE_FILTER_FIELD, filter, field };
-}
-
-export const CHANGE_FILTER_OP = 'CHANGE_FILTER_OP';
-export function changeFilterOp(filter, op) {
-  return { type: CHANGE_FILTER_OP, filter, op };
-}
-
-export const CHANGE_FILTER_VALUE = 'CHANGE_FILTER_VALUE';
-export function changeFilterValue(filter, value) {
-  return { type: CHANGE_FILTER_VALUE, filter, value };
+export const CHANGE_FILTER = 'CHANGE_FILTER';
+export function changeFilter(filter, field, value) {
+  return { type: CHANGE_FILTER, filter, field, value };
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';

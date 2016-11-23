@@ -4,6 +4,7 @@ import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
+import { getParamObject } from '../../modules/utils.js';
 
 const propTypes = {
   can_edit: PropTypes.bool,
@@ -57,10 +58,8 @@ class SaveModal extends React.Component {
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
-    const params = {};
+    const params = getParamObject(this.props.form_data, this.props.datasource_type);
     const sliceParams = {};
-    params.datasource_id = this.props.form_data.datasource;
-    params.datasource_type = this.props.datasource_type;
     params.datasource_name = this.props.form_data.datasource_name;
 
     let sliceName = null;
@@ -75,12 +74,6 @@ class SaveModal extends React.Component {
     } else {
       sliceParams.slice_name = this.props.form_data.slice_name;
     }
-
-    Object.keys(this.props.form_data).forEach((field) => {
-      if (this.props.form_data[field] !== null && field !== 'slice_name') {
-        params[field] = this.props.form_data[field];
-      }
-    });
 
     const addToDash = this.state.addToDash;
     sliceParams.add_to_dash = addToDash;
@@ -105,7 +98,6 @@ class SaveModal extends React.Component {
       default:
         dashboard = null;
     }
-    params.V2 = true;
     sliceParams.goto_dash = gotodash;
     const baseUrl = '/superset/explore/' +
       `${this.props.datasource_type}/${this.props.form_data.datasource}/`;
