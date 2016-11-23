@@ -154,7 +154,6 @@ class ChartContainer extends React.Component {
               id="slice-header"
               className="clearfix panel-title-large"
             >
-
               <FaveStar
                 sliceId={this.props.slice_id}
                 actions={this.props.actions}
@@ -169,6 +168,28 @@ class ChartContainer extends React.Component {
               </TooltipWrapper>
 
               {this.renderChartTitle()}
+
+              {this.props.slice_id &&
+                <span>
+                  <FaveStar
+                    sliceId={this.props.slice_id}
+                    actions={this.props.actions}
+                    isStarred={this.props.isStarred}
+                  />
+
+                  <TooltipWrapper
+                    label="edit-desc"
+                    tooltip="Edit Description"
+                  >
+                    <a
+                      className="edit-desc-icon"
+                      href={`/slicemodelview/edit/${this.props.slice_id}`}
+                    >
+                      <i className="fa fa-edit" />
+                    </a>
+                  </TooltipWrapper>
+                </span>
+              }
 
               <div className="pull-right">
                 <ExploreActionButtons
