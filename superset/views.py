@@ -1454,7 +1454,7 @@ class Superset(BaseSupersetView):
             return self.render_template(
                 "superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
-                slice_name=slc.slice_name,
+                slice=slc,
                 table_name=viz_obj.datasource.table_name)
         else:
             return self.render_template(
