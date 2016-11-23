@@ -25,6 +25,7 @@ const propTypes = {
   isChartLoading: PropTypes.bool,
   isStarred: PropTypes.bool.isRequired,
   alert: PropTypes.string,
+  table_name: PropTypes.string,
 };
 
 class ChartContainer extends React.Component {
@@ -133,6 +134,16 @@ class ChartContainer extends React.Component {
     visMap[this.props.viz_type](this.state.mockSlice).render();
   }
 
+  renderChartTitle() {
+    let title;
+    if (this.props.slice_name) {
+      title = this.props.slice_name;
+    } else {
+      title = `[table] ${this.props.table_name}`;
+    }
+    return title;
+  }
+
   render() {
     return (
       <div className="chart-container">
@@ -143,27 +154,21 @@ class ChartContainer extends React.Component {
               id="slice-header"
               className="clearfix panel-title-large"
             >
-              <div className="pull-left">
-                {this.props.slice_name}
 
-                <FaveStar
-                  sliceId={this.props.slice_id}
-                  actions={this.props.actions}
-                  isStarred={this.props.isStarred}
-                />
+              <FaveStar
+                sliceId={this.props.slice_id}
+                actions={this.props.actions}
+                isStarred={this.props.isStarred}
+              />
 
-                <TooltipWrapper
-                  label="edit-desc"
-                  tooltip="Edit Description"
-                >
-                  <a
-                    className="edit-desc-icon"
-                    href={`/slicemodelview/edit/${this.props.slice_id}`}
-                  >
-                    <i className="fa fa-edit" />
-                  </a>
-                </TooltipWrapper>
-              </div>
+              <TooltipWrapper
+                label="edit-desc"
+                tooltip="Edit Description"
+              >
+                <i className="fa fa-edit" />
+              </TooltipWrapper>
+
+              {this.renderChartTitle()}
 
               <div className="pull-right">
                 <ExploreActionButtons
@@ -217,6 +222,7 @@ function mapStateToProps(state) {
     isChartLoading: state.isChartLoading,
     isStarred: state.isStarred,
     alert: state.chartAlert,
+    table_name: state.viz.form_data.datasource_name,
   };
 }
 
