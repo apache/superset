@@ -3,8 +3,6 @@ import React from 'react';
 import Filter from './Filter';
 import { Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import shortid from 'shortid';
 
 const propTypes = {
@@ -74,10 +72,5 @@ function mapStateToProps(state) {
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Filters);
+export { Filters };
+export default connect(mapStateToProps, () => ({}))(Filters);
