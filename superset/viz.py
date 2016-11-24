@@ -1223,8 +1223,8 @@ class DistributionPieViz(NVD3Viz):
             ('pie_pad_angle', 'pie_corner_radius'),
         ),
         "description": _("Properties setting of default viewport.")
-    })
-    
+    },)
+
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
         d['is_timeseries'] = False
