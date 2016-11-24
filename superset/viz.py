@@ -1207,16 +1207,34 @@ class DistributionPieViz(NVD3Viz):
     viz_type = "pie"
     verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
+    # fieldsets = ({
+    #     'label': None,
+    #     'fields': (
+    #         'metrics', 'groupby',
+    #         'limit',
+    #         'pie_label_type',
+    #         ('donut', 'show_legend'),
+    #         'labels_outside',
+    #     )
+    # },)
     fieldsets = ({
-        'label': None,
+        'label': 'Criterion',
         'fields': (
             'metrics', 'groupby',
             'limit',
+        ),
+        "description": _("Criterion setting of default viewport.")
+    },
+    {
+        'label': 'Chart Options',
+        'fields': (
             'pie_label_type',
             ('donut', 'show_legend'),
-            'labels_outside',
-        )
-    },)
+            ('labels_outside','pie_half_circle'),
+            ('pie_pad_angle','pie_corner_radius'),
+        ),
+        "description": _("Properties setting of default viewport.")
+    })
 
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()
