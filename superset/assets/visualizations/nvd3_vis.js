@@ -195,28 +195,22 @@ function nvd3Vis(slice) {
             chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
               .labelType(fd.pie_label_type);
             chart.cornerRadius(true);
-
-            // Configure the pie more tyles
-            if (fd.pie_half_circle){
+            if (fd.pie_half_circle){ // Configure the pie more tyles
               chart.pie
               .startAngle(function(d) { return d.startAngle/2 -Math.PI/2 })
               .endAngle(function(d) { return d.endAngle/2 -Math.PI/2 });
             } 
-
             if (fd.pie_title){
               chart.title(fd.pie_title);
             }
-
             if (fd.pie_title_offset){
               chart.titleOffset(fd.pie_title_offset);
             }
-
             if (fd.pie_pad_angle){
               chart.padAngle(fd.pie_pad_angle);
             }else{
               chart.padAngle(0);
             }
-
             if (fd.pie_corner_radius){
               chart.cornerRadius(fd.pie_corner_radius);
             }else{

@@ -1207,16 +1207,6 @@ class DistributionPieViz(NVD3Viz):
     viz_type = "pie"
     verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
-    # fieldsets = ({
-    #     'label': None,
-    #     'fields': (
-    #         'metrics', 'groupby',
-    #         'limit',
-    #         'pie_label_type',
-    #         ('donut', 'show_legend'),
-    #         'labels_outside',
-    #     )
-    # },)
     fieldsets = ({
         'label': 'Criterion',
         'fields': (
