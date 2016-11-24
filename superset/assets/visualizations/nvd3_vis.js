@@ -197,8 +197,8 @@ function nvd3Vis(slice) {
             chart.cornerRadius(true);
             if (fd.pie_half_circle) { // Configure the pie more tyles
               chart.pie
-                .startAngle( function(d) { return d.startAngle / 2 - Math.PI / 2; } )
-                .endAngle( function(d) { return d.endAngle / 2 - Math.PI / 2; } );
+                .startAngle( function (d) { return d.startAngle / 2 - Math.PI / 2; })
+                .endAngle( function (d) { return d.endAngle / 2 - Math.PI / 2; });
             }
             if (fd.pie_title) {
               chart.title(fd.pie_title);
