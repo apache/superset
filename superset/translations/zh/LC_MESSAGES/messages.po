@@ -1,0 +1,1840 @@
+# Chinese translations for PROJECT.
+# Copyright (C) 2016 ORGANIZATION
+# This file is distributed under the same license as the PROJECT project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2016.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2016-07-01 17:17+0800\n"
+"PO-Revision-Date: 2016-05-01 23:07-0700\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language: zh\n"
+"Language-Team: zh <LL@li.org>\n"
+"Plural-Forms: nplurals=1; plural=0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.4\n"
+
+#: superset/forms.py:140
+msgid "Viz"
+msgstr "图表"
+
+#: superset/forms.py:143
+msgid "The type of visualization to display"
+msgstr "显示图表类型"
+
+#: superset/forms.py:146
+msgid "Metrics"
+msgstr "度量"
+
+#: superset/forms.py:149 superset/forms.py:154
+msgid "One or many metrics to display"
+msgstr "显示一个或多个度量"
+
+#: superset/forms.py:152
+msgid "Ordering"
+msgstr "排序"
+
+#: superset/forms.py:157 superset/views.py:294 superset/views.py:334
+msgid "Metric"
+msgstr "度量"
+
+#: superset/forms.py:160
+msgid "Choose the metric"
+msgstr "选择度量"
+
+#: superset/forms.py:163
+msgid "Chart Style"
+msgstr "图表样式"
+
+#: superset/forms.py:165
+msgid "stack"
+msgstr "堆积"
+
+#: superset/forms.py:166
+msgid "stream"
+msgstr "流"
+
+#: superset/forms.py:167
+msgid "expand"
+msgstr "展开"
+
+#: superset/forms.py:173
+msgid "Color Scheme"
+msgstr "配色"
+
+#: superset/forms.py:175
+msgid "fire"
+msgstr "火焰"
+
+#: superset/forms.py:176
+msgid "blue_white_yellow"
+msgstr "蓝白黄"
+
+#: superset/forms.py:177
+msgid "white_black"
+msgstr "白黑"
+
+#: superset/forms.py:178
+msgid "black_white"
+msgstr "黑白"
+
+#: superset/forms.py:184
+msgid "Normalize Across"
+msgstr "标准化"
+
+#: superset/forms.py:186
+msgid "heatmap"
+msgstr "热力图"
+
+#: superset/forms.py:187
+msgid "x"
+msgstr ""
+
+#: superset/forms.py:188
+msgid "y"
+msgstr ""
+
+#: superset/forms.py:191
+msgid ""
+"Color will be rendered based on a ratio of the cell against the sum of "
+"across this criteria"
+msgstr "颜色将根据比例进行渲染"
+
+#: superset/forms.py:197
+msgid "Color Scale"
+msgstr "色阶"
+
+#: superset/forms.py:199
+msgid "series"
+msgstr "项目"
+
+#: superset/forms.py:200
+msgid "overall"
+msgstr "综合"
+
+#: superset/forms.py:201
+msgid "change"
+msgstr "变化"
+
+#: superset/forms.py:204
+msgid "Defines how the color are attributed."
+msgstr "定义颜色属性"
+
+#: superset/forms.py:207
+msgid "Rendering"
+msgstr "渲染"
+
+#: superset/forms.py:209
+msgid "pixelated (Sharp)"
+msgstr "像素化(锐利)"
+
+#: superset/forms.py:210
+msgid "auto (Smooth)"
+msgstr "自动(平滑)"
+
+#: superset/forms.py:213
+msgid ""
+"image-rendering CSS attribute of the canvas object that defines how the "
+"browser scales up the image"
+msgstr "浏览器渲染图片的方式"
+
+#: superset/forms.py:218
+msgid "XScale Interval"
+msgstr "X轴步长"
+
+#: superset/forms.py:221
+msgid "Number of step to take between ticks when printing the x scale"
+msgstr "X轴每个刻度的单位长度"
+
+#: superset/forms.py:226
+msgid "YScale Interval"
+msgstr "Y轴步长"
+
+#: superset/forms.py:229
+msgid "Number of step to take between ticks when printing the y scale"
+msgstr "Y轴每个刻度的单位长度"
+
+#: superset/forms.py:234
+msgid "Stacked Bars"
+msgstr "堆积"
+
+#: superset/forms.py:239
+msgid "Extra Controls"
+msgstr "扩展控件"
+
+#: superset/forms.py:241
+msgid ""
+"Whether to show extra controls or not. Extra controls include things like"
+" making mulitBar charts stacked or side by side."
+msgstr "是否显示扩展控件"
+
+#: superset/forms.py:247
+msgid "Reduce X ticks"
+msgstr "X轴自适应"
+
+#: superset/forms.py:249
+msgid ""
+"Reduces the number of X axis ticks to be rendered. If true, the x axis "
+"wont overflow and labels may be missing. If false, a minimum width will "
+"be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr "当X轴显示不下时，自动调整X轴步长"
+
+#: superset/forms.py:257
+msgid "Include Series"
+msgstr "显示项目"
+
+#: superset/forms.py:259
+msgid "Include series name as an axis"
+msgstr "坐标上显示项目名称"
+
+#: superset/forms.py:262
+msgid "Color Metric"
+msgstr "颜色度量"
+
+#: superset/forms.py:265
+msgid "A metric to use for color"
+msgstr "颜色度量项目"
+
+#: superset/forms.py:268
+msgid "Country Field Type"
+msgstr "国家名称编码方式"
+
+#: superset/forms.py:271
+msgid "Full name"
+msgstr "全名"
+
+#: superset/forms.py:272
+msgid "code International Olympic Committee (cioc)"
+msgstr "国际奥委会编码(cioc)"
+
+#: superset/forms.py:273
+msgid "code ISO 3166-1 alpha-2 (cca2)"
+msgstr "ISO 3166-1 alpha-2编码(cca2)"
+
+#: superset/forms.py:274
+msgid "code ISO 3166-1 alpha-3 (cca3)"
+msgstr "ISO 3166-1 alpha-3编码(cca3)"
+
+#: superset/forms.py:276
+msgid ""
+"The country code standard that Superset should expect to find in the "
+"[country] column"
+msgstr "数据库中国家名称类型"
+
+#: superset/forms.py:281
+msgid "Group by"
+msgstr "分组"
+
+#: superset/forms.py:283
+msgid "One or many fields to group by"
+msgstr "根据一个或多个字段分组"
+
+#: superset/forms.py:286 superset/forms.py:291
+msgid "Columns"
+msgstr "列"
+
+#: superset/forms.py:288
+msgid "One or many fields to pivot as columns"
+msgstr "将一个或多个字段做为列"
+
+#: superset/forms.py:293 superset/forms.py:298 superset/forms.py:303
+msgid "Columns to display"
+msgstr "显示列"
+
+#: superset/forms.py:296
+msgid "X"
+msgstr ""
+
+#: superset/forms.py:301
+msgid "Y"
+msgstr ""
+
+#: superset/forms.py:306
+msgid "Origin"
+msgstr "起点"
+
+#: superset/forms.py:308
+msgid "default"
+msgstr "默认"
+
+#: superset/forms.py:309 superset/forms.py:467
+msgid "now"
+msgstr "现在"
+
+#: superset/forms.py:312
+msgid ""
+"Defines the origin where time buckets start, accepts natural dates as in "
+"'now', 'sunday' or '1970-01-01'"
+msgstr "定义时间起点，支持'now', 'sunday' or '1970-01-01'等"
+
+#: superset/forms.py:317
+msgid "Bottom Margin"
+msgstr "底部留白"
+
+#: superset/forms.py:320
+msgid "Bottom marging, in pixels, allowing for more room for axis labels"
+msgstr "底部留白的像素大小"
+
+#: superset/forms.py:325
+msgid "Time Granularity"
+msgstr "时间粒度"
+
+#: superset/forms.py:328
+msgid "all"
+msgstr "全部"
+
+#: superset/forms.py:329
+msgid "5 seconds"
+msgstr "5秒"
+
+#: superset/forms.py:330
+msgid "30 seconds"
+msgstr "30秒"
+
+#: superset/forms.py:331
+msgid "1 minute"
+msgstr "1分钟"
+
+#: superset/forms.py:332
+msgid "5 minutes"
+msgstr "5分钟"
+
+#: superset/forms.py:333
+msgid "1 hour"
+msgstr "1小时"
+
+#: superset/forms.py:334
+msgid "6 hour"
+msgstr "6小时"
+
+#: superset/forms.py:335
+msgid "1 day"
+msgstr "1天"
+
+#: superset/forms.py:336
+msgid "7 days"
+msgstr "1周"
+
+#: superset/forms.py:338
+msgid ""
+"The time granularity for the visualization. Note that you can type and "
+"use simple natural language as in '10 seconds', '1 day' or '56 weeks'"
+msgstr "图表时间粒度。可以使用'10 seconds', '1 day', '56 weeks'等"
+
+#: superset/forms.py:344
+msgid "Domain"
+msgstr "区域"
+
+#: superset/forms.py:347 superset/forms.py:361 superset/models.py:417
+#: superset/models.py:435
+msgid "hour"
+msgstr "小时"
+
+#: superset/forms.py:348 superset/forms.py:362 superset/models.py:419
+#: superset/models.py:427 superset/models.py:436
+msgid "day"
+msgstr "天"
+
+#: superset/forms.py:349 superset/forms.py:363 superset/models.py:407
+#: superset/models.py:420 superset/models.py:428 superset/models.py:437
+msgid "week"
+msgstr "周"
+
+#: superset/forms.py:350 superset/forms.py:364 superset/models.py:408
+#: superset/models.py:422 superset/models.py:429 superset/models.py:438
+msgid "month"
+msgstr "月"
+
+#: superset/forms.py:351 superset/models.py:439
+msgid "year"
+msgstr "年"
+
+#: superset/forms.py:353
+msgid "The time unit used for the grouping of blocks"
+msgstr "每个区域表示的时间段"
+
+#: superset/forms.py:357
+msgid "Subdomain"
+msgstr "方块"
+
+#: superset/forms.py:360 superset/forms.py:701
+msgid "min"
+msgstr "分钟"
+
+#: superset/forms.py:366
+msgid ""
+"The time unit for each block. Should be a smaller unit than "
+"domain_granularity. Should be larger or equal to Time Grain"
+msgstr "每个区域内方块表示的时间段。必须比区域时间段小，比时间粒度大。"
+
+#: superset/forms.py:371
+msgid "Link Length"
+msgstr "链接长度"
+
+#: superset/forms.py:383
+msgid "Link length in the force layout"
+msgstr "有向图中的链接长度"
+
+#: superset/forms.py:386
+msgid "Charge"
+msgstr "缩放"
+
+#: superset/forms.py:400
+msgid "Charge in the force layout"
+msgstr "有向图缩放大小"
+
+#: superset/forms.py:403 superset/models.py:406 superset/models.py:416
+#: superset/models.py:426 superset/models.py:432
+msgid "Time Column"
+msgstr "时间字段"
+
+#: superset/forms.py:406
+msgid ""
+"The time column for the visualization. Note that you can define arbitrary"
+" expression that return a DATETIME column in the table editor. Also note "
+"that the filter below is applied against this column or expression"
+msgstr "图表中的时间字段。可以在表格编辑器中返回任意DATETIME列。"
+
+#: superset/forms.py:414
+msgid "Resample Rule"
+msgstr "重采样尺度"
+
+#: superset/forms.py:417
+msgid "1T"
+msgstr ""
+
+#: superset/forms.py:418
+msgid "1H"
+msgstr ""
+
+#: superset/forms.py:419
+msgid "1D"
+msgstr ""
+
+#: superset/forms.py:420
+msgid "7D"
+msgstr ""
+
+#: superset/forms.py:421
+msgid "1M"
+msgstr ""
+
+#: superset/forms.py:422
+msgid "1AS"
+msgstr ""
+
+#: superset/forms.py:424
+msgid "Pandas resample rule"
+msgstr "重采样尺度"
+
+#: superset/forms.py:427
+msgid "Resample How"
+msgstr "重采样方式"
+
+#: superset/forms.py:431 superset/forms.py:700
+msgid "mean"
+msgstr "平均值"
+
+#: superset/forms.py:432 superset/forms.py:699
+msgid "sum"
+msgstr "求和"
+
+#: superset/forms.py:433 superset/forms.py:703
+msgid "median"
+msgstr "中间值"
+
+#: superset/forms.py:435
+msgid "Pandas resample how"
+msgstr "重采样方式"
+
+#: superset/forms.py:438
+msgid "Resample Fill Method"
+msgstr "插值方式"
+
+#: superset/forms.py:442
+msgid "ffill"
+msgstr ""
+
+#: superset/forms.py:443
+msgid "bfill"
+msgstr ""
+
+#: superset/forms.py:445
+msgid "Pandas resample fill method"
+msgstr "重采样插值方式"
+
+#: superset/forms.py:448
+msgid "Since"
+msgstr "起始时间"
+
+#: superset/forms.py:451
+msgid "1 hour ago"
+msgstr "1小时前"
+
+#: superset/forms.py:452
+msgid "12 hours ago"
+msgstr "12小时前"
+
+#: superset/forms.py:453 superset/forms.py:468
+msgid "1 day ago"
+msgstr "1天前"
+
+#: superset/forms.py:454 superset/forms.py:469
+msgid "7 days ago"
+msgstr "7天前"
+
+#: superset/forms.py:455 superset/forms.py:470
+msgid "28 days ago"
+msgstr "28天前"
+
+#: superset/forms.py:456 superset/forms.py:471
+msgid "90 days ago"
+msgstr "90天前"
+
+#: superset/forms.py:457 superset/forms.py:472
+msgid "1 year ago"
+msgstr "1年前"
+
+#: superset/forms.py:459
+msgid ""
+"Timestamp from filter. This supports free form typing and natural "
+"language as in '1 day ago', '28 days' or '3 years'"
+msgstr "时间范围。支持自定义，可使用自然语言，如'1 day ago', '28 days' or '3 years'"
+
+#: superset/forms.py:464
+msgid "Until"
+msgstr "结束时间"
+
+#: superset/forms.py:476
+msgid "Max Bubble Size"
+msgstr "气泡最大尺寸"
+
+#: superset/forms.py:489
+msgid "Whisker/outlier options"
+msgstr "非异常值选项"
+
+#: superset/forms.py:491
+msgid "Determines how whiskers and outliers are calculated."
+msgstr "计算最大/最小非异常值的方法"
+
+#: superset/forms.py:494
+msgid "Tukey"
+msgstr "图基法"
+
+#: superset/forms.py:495
+msgid "Min/max (no outliers)"
+msgstr "最小/最大值(无异常值)"
+
+#: superset/forms.py:496
+msgid "2/98 percentiles"
+msgstr "2/98百分比"
+
+#: superset/forms.py:497
+msgid "9/91 percentiles"
+msgstr "9/91百分比"
+
+#: superset/forms.py:501
+msgid "Ratio"
+msgstr "比例"
+
+#: superset/forms.py:503
+msgid "Target aspect ratio for treemap tiles."
+msgstr "树状图中方块的比例"
+
+#: superset/forms.py:506 superset/viz.py:856 superset/viz.py:905
+msgid "Number format"
+msgstr "数字格式"
+
+#: superset/forms.py:516
+msgid ""
+"D3 format syntax for numbers https: //github.com/mbostock/\n"
+"d3/wiki/Formatting"
+msgstr "自定义格式请参考 https://github.com/mbostock/d3/wiki/Formatting"
+
+#: superset/forms.py:521
+msgid "Row limit"
+msgstr "行数上限"
+
+#: superset/forms.py:527
+msgid "Series limit"
+msgstr "项目上限"
+
+#: superset/forms.py:530
+msgid "Limits the number of time series that get displayed"
+msgstr "设置显示项目的数量上限"
+
+#: superset/forms.py:534
+msgid "Rolling"
+msgstr "滚动"
+
+#: superset/forms.py:537
+msgid ""
+"Defines a rolling window function to apply, works along with the "
+"[Periods] text box"
+msgstr "滚动窗口聚合函数，配合[周期]使用"
+
+#: superset/forms.py:542
+msgid "Periods"
+msgstr "周期"
+
+#: superset/forms.py:544
+msgid ""
+"Defines the size of the rolling window function, relative to the time "
+"granularity selected"
+msgstr "滚动窗口大小，取值和时间粒度相关"
+
+#: superset/forms.py:549 superset/viz.py:1192
+msgid "Series"
+msgstr "项目"
+
+#: superset/forms.py:552
+msgid ""
+"Defines the grouping of entities. Each serie is shown as a specific color"
+" on the chart and has a legend toggle"
+msgstr "定义分组实体。每个项目有特定的颜色和图例。"
+
+#: superset/forms.py:558
+msgid "Entity"
+msgstr "实体"
+
+#: superset/forms.py:561
+msgid "This define the element to be plotted on the chart"
+msgstr "在图表上绘制的元素"
+
+#: superset/forms.py:564
+msgid "X Axis"
+msgstr "X轴"
+
+#: superset/forms.py:567
+msgid "Metric assigned to the [X] axis"
+msgstr "X轴对应的项目"
+
+#: superset/forms.py:570
+msgid "Y Axis"
+msgstr "Y轴"
+
+#: superset/forms.py:573
+msgid "Metric assigned to the [Y] axis"
+msgstr "Y轴对应的项目"
+
+#: superset/forms.py:576
+msgid "Bubble Size"
+msgstr "气泡大小"
+
+#: superset/forms.py:581
+msgid "URL"
+msgstr ""
+
+#: superset/forms.py:582
+msgid ""
+"The URL, this field is templated, so you can integrate {{ width }} and/or"
+" {{ height }} in your URL string."
+msgstr ""
+
+#: superset/forms.py:589
+msgid "X Axis Label"
+msgstr "X轴名称"
+
+#: superset/forms.py:593
+msgid "Y Axis Label"
+msgstr "Y轴名称"
+
+#: superset/forms.py:597
+msgid "Custom WHERE clause"
+msgstr "WHERE语句"
+
+#: superset/forms.py:599
+msgid ""
+"The text in this box gets included in your query's WHERE clause, as an "
+"AND to other criteria. You can include complex expression, parenthesis "
+"and anything else supported by the backend it is directed towards."
+msgstr "语句将包含到WHERE子句中，并用AND连接到其他条件。"
+
+#: superset/forms.py:606
+msgid "Custom HAVING clause"
+msgstr "HAVING语句"
+
+#: superset/forms.py:608
+msgid ""
+"The text in this box gets included in your query's HAVING clause, as an "
+"AND to other criteria. You can include complex expression, parenthesis "
+"and anything else supported by the backend it is directed towards."
+msgstr "语句将包含到HAVE子句中，并用AND连接到其他条件"
+
+#: superset/forms.py:615
+msgid "Comparison Period Lag"
+msgstr "滞后比较周期"
+
+#: superset/forms.py:616
+msgid "Based on granularity, number of time periods to compare against"
+msgstr "比较的时间周期，基于时间粒度"
+
+#: superset/forms.py:621
+msgid "Comparison suffix"
+msgstr "后缀文字"
+
+#: superset/forms.py:622
+msgid "Suffix to apply after the percentage display"
+msgstr "百分比后面显示的文本"
+
+#: superset/forms.py:625
+msgid "Table Timestamp Format"
+msgstr "时间格式"
+
+#: superset/forms.py:628
+msgid "Timestamp Format"
+msgstr "时间格式"
+
+#: superset/forms.py:631
+msgid "Series Height"
+msgstr "项目高度"
+
+#: superset/forms.py:634
+msgid "Pixel height of each series"
+msgstr "每个项目的像素高度"
+
+#: superset/forms.py:637
+msgid "X axis format"
+msgstr "X轴数值格式"
+
+#: superset/forms.py:640 superset/forms.py:655
+msgid ""
+"D3 format syntax for y axis https: //github.com/mbostock/\n"
+"d3/wiki/Formatting"
+msgstr "自定义格式请参考 https://github.com/mbostock/d3/wiki/Formatting"
+
+#: superset/forms.py:645
+msgid "Y axis format"
+msgstr "Y轴数值格式"
+
+#: superset/forms.py:660
+msgid "Markup Type"
+msgstr "标记类型"
+
+#: superset/forms.py:662
+msgid "markdown"
+msgstr ""
+
+#: superset/forms.py:663
+msgid "html"
+msgstr ""
+
+#: superset/forms.py:666
+msgid "Pick your favorite markup language"
+msgstr "选择标记语言"
+
+#: superset/forms.py:669
+msgid "Rotation"
+msgstr "旋转"
+
+#: superset/forms.py:671
+msgid "random"
+msgstr "随机"
+
+#: superset/forms.py:672
+msgid "flat"
+msgstr "水平"
+
+#: superset/forms.py:673
+msgid "square"
+msgstr "方格"
+
+#: superset/forms.py:676
+msgid "Rotation to apply to words in the cloud"
+msgstr "词汇云中词语的旋转方式"
+
+#: superset/forms.py:679
+msgid "Line Style"
+msgstr "线形"
+
+#: superset/forms.py:681
+msgid "linear"
+msgstr "折线"
+
+#: superset/forms.py:682
+msgid "basis"
+msgstr "B样条曲线"
+
+#: superset/forms.py:683
+msgid "cardinal"
+msgstr "基本样条曲线"
+
+#: superset/forms.py:684
+msgid "monotone"
+msgstr "三次插值曲线"
+
+#: superset/forms.py:685
+msgid "step-before"
+msgstr "前阶梯线"
+
+#: superset/forms.py:686
+msgid "step-after"
+msgstr "后阶梯线"
+
+#: superset/forms.py:689
+msgid "Line interpolation as defined by d3.js"
+msgstr "定义线形"
+
+#: superset/forms.py:692
+msgid "Code"
+msgstr "代码"
+
+#: superset/forms.py:693
+msgid "Put your code here"
+msgstr "输入代码"
+
+#: superset/forms.py:697
+msgid "Aggregation function"
+msgstr "聚合函数"
+
+#: superset/forms.py:702
+msgid "max"
+msgstr "最大值"
+
+#: superset/forms.py:704
+msgid "stdev"
+msgstr "标准差"
+
+#: superset/forms.py:705
+msgid "var"
+msgstr "变量值"
+
+#: superset/forms.py:708
+msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr "透视时计算行和列的聚合函数"
+
+#: superset/forms.py:713
+msgid "Font Size From"
+msgstr "最小字体"
+
+#: superset/forms.py:715
+msgid "Font size for the smallest value in the list"
+msgstr "列表中最小值的字体大小"
+
+#: superset/forms.py:718
+msgid "Font Size To"
+msgstr "最大字体"
+
+#: superset/forms.py:720
+msgid "Font size for the biggest value in the list"
+msgstr "列表中最大值的字体大小"
+
+#: superset/forms.py:723
+msgid "Range Filter"
+msgstr "区间过滤"
+
+#: superset/forms.py:725
+msgid "Whether to display the time range interactive selector"
+msgstr "是否显示时间区间选择控件"
+
+#: superset/forms.py:729
+msgid "Data Table"
+msgstr "明细表"
+
+#: superset/forms.py:731
+msgid "Whether to display the interactive data table"
+msgstr "是否显示明细表"
+
+#: superset/forms.py:734
+msgid "Search Box"
+msgstr "搜索框"
+
+#: superset/forms.py:736
+msgid "Whether to include a client side search box"
+msgstr "是否显示搜索框"
+
+#: superset/forms.py:740
+msgid "Show Bubbles"
+msgstr "显示气泡"
+
+#: superset/forms.py:742
+msgid "Whether to display bubbles on top of countries"
+msgstr "是否在国家上显示气泡"
+
+#: superset/forms.py:746
+msgid "Legend"
+msgstr "图例"
+
+#: superset/forms.py:748
+msgid "Whether to display the legend (toggles)"
+msgstr "是否显示图例"
+
+#: superset/forms.py:751
+msgid "X bounds"
+msgstr "X轴边界"
+
+#: superset/forms.py:753
+msgid "Whether to display the min and max values of the X axis"
+msgstr "是否显示X轴的最大最小值"
+
+#: superset/forms.py:757
+msgid "Rich Tooltip"
+msgstr "详细信息"
+
+#: superset/forms.py:759
+msgid "The rich tooltip shows a list of all series for that point in time"
+msgstr "显示特定时间点的所有项目"
+
+#: superset/forms.py:764
+msgid "Y Axis Zero"
+msgstr "Y轴从0开始"
+
+#: superset/forms.py:766
+msgid "Force the Y axis to start at 0 instead of the minimum value"
+msgstr "Y轴不是从最小值开始"
+
+#: superset/forms.py:771
+msgid "Y Log"
+msgstr "Y轴对数刻度"
+
+#: superset/forms.py:773
+msgid "Use a log scale for the Y axis"
+msgstr "Y轴刻度值按照对数分布显示"
+
+#: superset/forms.py:776
+msgid "X Log"
+msgstr "X轴对数刻度"
+
+#: superset/forms.py:778
+msgid "Use a log scale for the X axis"
+msgstr "X轴刻度值按照对数分布显示"
+
+#: superset/forms.py:781
+msgid "Donut"
+msgstr "环形图"
+
+#: superset/forms.py:783
+msgid "Do you want a donut or a pie?"
+msgstr "使用环形图替代饼图"
+
+#: superset/forms.py:786
+msgid "Contribution"
+msgstr "贡献值"
+
+#: superset/forms.py:788
+msgid "Compute the contribution to the total"
+msgstr "在总和中的贡献值"
+
+#: superset/forms.py:791
+msgid "Period Ratio"
+msgstr "周期比"
+
+#: superset/forms.py:794
+msgid ""
+"[integer] Number of period to compare against, this is relative to the "
+"granularity selected"
+msgstr "[整数]要比较的周期数，和粒度有关"
+
+#: superset/forms.py:799
+msgid "Time Shift"
+msgstr "时间飘移"
+
+#: superset/forms.py:801
+msgid ""
+"Overlay a timeseries from a relative time period. Expects relative time "
+"delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days"
+msgstr "相关时间周期内的时间偏移。相对时间，如:  24 hours, 7 days, 56 weeks, 365 days"
+
+#: superset/forms.py:808
+msgid "Subheader"
+msgstr "子标题"
+
+#: superset/forms.py:809
+msgid "Description text that shows up below your Big Number"
+msgstr "在数字下显示的文本"
+
+#: superset/forms.py:816
+msgid ""
+"'count' is COUNT(*) if a group by is used. Numerical columns will be "
+"aggregated with the aggregator. Non-numerical columns will be used to "
+"label points. Leave empty to get a count of points in each cluster."
+msgstr "对分组使用COUNT(*)。"
+
+#: superset/forms.py:832
+msgid "Base layer map style"
+msgstr ""
+
+#: superset/forms.py:835
+msgid "Clustering Radius"
+msgstr "簇半径"
+
+#: superset/forms.py:848
+msgid ""
+"The radius (in pixels) the algorithm uses to define a cluster. Choose 0 "
+"to turn off clustering, but beware that a large number of points (>1000) "
+"will cause lag."
+msgstr "定义簇的半径大小(单位为像素)。0表示不显示簇。大量的点会导致显示缓慢。"
+
+#: superset/forms.py:854
+msgid "Point Radius"
+msgstr "点半径"
+
+#: superset/forms.py:857
+msgid ""
+"The radius of individual points (ones that are not in a cluster). Either "
+"a numerical column or 'Auto', which scales the point based on the largest"
+" cluster"
+msgstr "不在簇中点的半径。选择'Auto'时根据最大的簇自动调整。"
+
+#: superset/forms.py:863
+msgid "Point Radius Unit"
+msgstr "点半径单位"
+
+#: superset/forms.py:870
+msgid "The unit of measure for the specified point radius"
+msgstr "点半径的测量单位"
+
+#: superset/forms.py:873
+msgid "Opacity"
+msgstr ""
+
+#: superset/forms.py:875
+msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
+msgstr ""
+
+#: superset/forms.py:880
+msgid "Zoom"
+msgstr ""
+
+#: superset/forms.py:883
+msgid "Zoom level of the map"
+msgstr ""
+
+#: superset/forms.py:887
+msgid "Default latitude"
+msgstr "默认纬度"
+
+#: superset/forms.py:889
+msgid "Latitude of default viewport"
+msgstr "视窗默认纬度"
+
+#: superset/forms.py:893
+msgid "Default longitude"
+msgstr "默认经度"
+
+#: superset/forms.py:895
+msgid "Longitude of default viewport"
+msgstr "视窗默认经度"
+
+#: superset/forms.py:899
+msgid "Live render"
+msgstr "实时更新"
+
+#: superset/forms.py:901
+msgid "Points and clusters will update as viewport is being changed"
+msgstr "视窗发生改变时，点和簇实时更新"
+
+#: superset/forms.py:905
+msgid "RGB Color"
+msgstr ""
+
+#: superset/forms.py:915
+msgid "The color for points and clusters in RGB"
+msgstr ""
+
+#: superset/forms.py:978
+msgid "SQL"
+msgstr ""
+
+#: superset/forms.py:980
+msgid "This section exposes ways to include snippets of SQL in your query"
+msgstr "用于定制SQL语句"
+
+#: superset/forms.py:991
+msgid "Time Grain"
+msgstr "时间粒度"
+
+#: superset/forms.py:994
+msgid ""
+"The time granularity for the visualization. This applies a date "
+"transformation to alter your time column and defines a new time "
+"granularity.The options here are defined on a per database engine basis "
+"in the Superset source code"
+msgstr "图表中的时间粒度。用于替换时间字段默认的时间粒度。"
+
+#: superset/forms.py:1027 superset/forms.py:1031
+msgid "Filter 1"
+msgstr ""
+
+#: superset/forms.py:1036
+msgid "Super"
+msgstr ""
+
+#: superset/forms.py:1040
+msgid "Time"
+msgstr "时间"
+
+#: superset/forms.py:1045
+msgid "Time related form attributes"
+msgstr "时间相关的属性"
+
+#: superset/models.py:409
+msgid "quarter"
+msgstr "季度"
+
+#: superset/models.py:410
+msgid "week_ending_saturday"
+msgstr "周日为一周开始"
+
+#: superset/models.py:412
+msgid "week_start_sunday"
+msgstr "周日为一周结束"
+
+#: superset/models.py:433
+msgid "second"
+msgstr "秒"
+
+#: superset/models.py:434
+msgid "minute"
+msgstr "分"
+
+#: superset/models.py:620
+msgid ""
+"Datetime column not provided as part table configuration and is required "
+"by this type of chart"
+msgstr "缺少时间字段"
+
+#: superset/models.py:1328
+msgid "No data was returned."
+msgstr "没有数据"
+
+#: superset/views.py:203
+msgid ""
+"Whether to make this column available as a [Time Granularity] option, "
+"column has to be DATETIME or DATETIME-like"
+msgstr "是否将此列作为[时间粒度]选项, 列中的数据类型必须是DATETIME"
+
+#: superset/views.py:230 superset/views.py:259
+msgid "Column"
+msgstr "列"
+
+#: superset/views.py:231 superset/views.py:296 superset/views.py:336
+msgid "Verbose Name"
+msgstr "全称"
+
+#: superset/views.py:232 superset/views.py:295 superset/views.py:335
+#: superset/views.py:537 superset/views.py:691
+msgid "Description"
+msgstr "描述"
+
+#: superset/views.py:233 superset/views.py:262
+msgid "Groupable"
+msgstr "可分组"
+
+#: superset/views.py:234 superset/views.py:263
+msgid "Filterable"
+msgstr "可筛选"
+
+#: superset/views.py:235 superset/views.py:299 superset/views.py:433
+#: superset/views.py:543
+msgid "Table"
+msgstr "表"
+
+#: superset/views.py:236 superset/views.py:264
+msgid "Count Distinct"
+msgstr "计数"
+
+#: superset/views.py:237 superset/views.py:265
+msgid "Sum"
+msgstr "求和"
+
+#: superset/views.py:238 superset/views.py:266
+msgid "Min"
+msgstr "最小值"
+
+#: superset/views.py:239 superset/views.py:267
+msgid "Max"
+msgstr "最大值"
+
+#: superset/views.py:240
+msgid "Expression"
+msgstr "表达式"
+
+#: superset/views.py:241
+msgid "Is temporal"
+msgstr "表示时间"
+
+#: superset/views.py:242
+msgid "Datetime Format"
+msgstr "时间格式"
+
+#: superset/views.py:243
+msgid "Database Expression"
+msgstr "数据库表达式"
+
+#: superset/views.py:260 superset/views.py:297 superset/views.py:337
+#: superset/views.py:568
+msgid "Type"
+msgstr "类型"
+
+#: superset/views.py:261 superset/views.py:536
+msgid "Datasource"
+msgstr "数据源"
+
+#: superset/views.py:286 superset/views.py:328
+msgid ""
+"Whether the access to this metric is restricted to certain roles. Only "
+"roles with the permission 'metric access on XXX (the name of this "
+"metric)' are allowed to access this metric"
+msgstr "是否访问受限。只有有权限的用户才能访问。"
+
+#: superset/views.py:298
+msgid "SQL Expression"
+msgstr "SQL表达式"
+
+#: superset/views.py:338 superset/views.py:656
+msgid "JSON"
+msgstr ""
+
+#: superset/views.py:339
+msgid "Druid Datasource"
+msgstr "Druid数据源"
+
+#: superset/views.py:378 superset/views.py:435
+msgid "Database"
+msgstr "数据库"
+
+#: superset/views.py:379
+msgid "SQL link"
+msgstr "SQL查询"
+
+#: superset/views.py:380 superset/views.py:534 superset/views.py:610
+msgid "Creator"
+msgstr "作者"
+
+#: superset/views.py:381 superset/views.py:436
+msgid "Last Changed"
+msgstr "更新时间"
+
+#: superset/views.py:382
+msgid "SQLAlchemy URI"
+msgstr ""
+
+#: superset/views.py:383 superset/views.py:442 superset/views.py:533
+#: superset/views.py:697
+msgid "Cache Timeout"
+msgstr "缓存时间"
+
+#: superset/views.py:384
+msgid "Extra"
+msgstr "扩展"
+
+#: superset/views.py:434
+msgid "Changed By"
+msgstr "修改人"
+
+#: superset/views.py:437
+msgid "SQL Editor"
+msgstr "SQL查询"
+
+#: superset/views.py:438 superset/views.py:693
+msgid "Is Featured"
+msgstr "是否突出"
+
+#: superset/views.py:439
+msgid "Schema"
+msgstr "模式"
+
+#: superset/views.py:440 superset/views.py:695
+msgid "Default Endpoint"
+msgstr ""
+
+#: superset/views.py:441
+msgid "Offset"
+msgstr "偏移"
+
+#: superset/views.py:482 superset/views.py:690
+msgid "Cluster"
+msgstr "集群"
+
+#: superset/views.py:483
+msgid "Coordinator Host"
+msgstr ""
+
+#: superset/views.py:484
+msgid "Coordinator Port"
+msgstr ""
+
+#: superset/views.py:485
+msgid "Coordinator Endpoint"
+msgstr ""
+
+#: superset/views.py:486
+msgid "Broker Host"
+msgstr ""
+
+#: superset/views.py:487
+msgid "Broker Port"
+msgstr ""
+
+#: superset/views.py:488
+msgid "Broker Endpoint"
+msgstr ""
+
+#: superset/views.py:522
+msgid ""
+"These parameters are generated dynamically when clicking the save or "
+"overwrite button in the explore view. This JSON object is exposed here "
+"for reference and for power users who may want to alter specific "
+"parameters."
+msgstr "当单击“保存”或“覆盖”按钮时，这些参数会在视图中动态生成。高级用户可以在这里改变特定的参数。"
+
+#: superset/views.py:527
+msgid "Duration (in seconds) of the caching timeout for this slice."
+msgstr "切片数据过期时间(秒)"
+
+#: superset/templates/superset/welcome.html:26 superset/views.py:535
+msgid "Dashboards"
+msgstr "看板"
+
+#: superset/views.py:538
+msgid "Last Modified"
+msgstr "最后修改"
+
+#: superset/views.py:539 superset/views.py:609
+msgid "Owners"
+msgstr "所有者"
+
+#: superset/views.py:540
+msgid "Parameters"
+msgstr "参数"
+
+#: superset/views.py:541 superset/views.py:569
+msgid "Slice"
+msgstr "切片"
+
+#: superset/views.py:542
+msgid "Name"
+msgstr "名字"
+
+#: superset/views.py:544 superset/views.py:570
+msgid "Visualization Type"
+msgstr "图表类型"
+
+#: superset/views.py:586
+msgid ""
+"This json object describes the positioning of the widgets in the "
+"dashboard. It is dynamically generated when adjusting the widgets size "
+"and positions by using drag & drop in the dashboard view"
+msgstr "这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置。"
+
+#: superset/views.py:591
+msgid ""
+"The css for individual dashboards can be altered here, or in the "
+"dashboard view where changes are immediately visible"
+msgstr "可以在这里或者在看板视图修改单个看板的CSS样式"
+
+#: superset/views.py:595
+msgid "To get a readable URL for your dashboard"
+msgstr "为看板生成一个可读的URL"
+
+#: superset/views.py:596
+msgid ""
+"This JSON object is generated dynamically when clicking the save or "
+"overwrite button in the dashboard view. It is exposed here for reference "
+"and for power users who may want to alter specific parameters."
+msgstr "当在看板视图中单击“保存”或“覆盖”按钮时，这些参数会在视图中动态生成。高级用户可以在这里改变特定的参数。"
+
+#: superset/views.py:601
+msgid "Owners is a list of users who can alter the dashboard."
+msgstr "“所有者”是一组可以修改看板的用户列表"
+
+#: superset/views.py:605
+msgid "Dashboard"
+msgstr "看板"
+
+#: superset/views.py:606
+msgid "Title"
+msgstr "标题"
+
+#: superset/views.py:607
+msgid "Slug"
+msgstr ""
+
+#: superset/views.py:608
+msgid "Slices"
+msgstr "切片"
+
+#: superset/views.py:611
+msgid "Modified"
+msgstr "已修改"
+
+#: superset/views.py:612
+msgid "Position JSON"
+msgstr "位置参数"
+
+#: superset/views.py:613
+msgid "CSS"
+msgstr ""
+
+#: superset/views.py:614
+msgid "JSON Metadata"
+msgstr "JSON模板"
+
+#: superset/views.py:615
+msgid "Underlying Tables"
+msgstr "底层表"
+
+#: superset/views.py:653
+msgid "User"
+msgstr "用户"
+
+#: superset/views.py:654
+msgid "Action"
+msgstr "操作"
+
+#: superset/views.py:655
+msgid "dttm"
+msgstr "DTTM"
+
+#: superset/views.py:683
+msgid "Timezone offset (in hours) for this datasource"
+msgstr "数据源的时差(单位：小时)"
+
+#: superset/views.py:689
+msgid "Data Source"
+msgstr "数据源"
+
+#: superset/views.py:692
+msgid "Owner"
+msgstr "所有者"
+
+#: superset/views.py:694
+msgid "Is Hidden"
+msgstr "隐藏"
+
+#: superset/views.py:696
+msgid "Time Offset"
+msgstr "时间偏移"
+
+#: superset/views.py:1176
+msgid "This view requires the `all_datasource_access` permission"
+msgstr "本视图需要`访问所有数据`的权限"
+
+#: superset/views.py:1249
+msgid "Refresh Druid Metadata"
+msgstr "刷新Druid元数据"
+
+#: superset/viz.py:367
+msgid "Table View"
+msgstr "表视图"
+
+#: superset/viz.py:370
+msgid "GROUP BY"
+msgstr "分组"
+
+#: superset/viz.py:371
+msgid "Use this section if you want a query that aggregates"
+msgstr "进行聚合查询"
+
+#: superset/viz.py:374
+msgid "NOT GROUPED BY"
+msgstr "不分组"
+
+#: superset/viz.py:375
+msgid "Use this section if you want to query atomic rows"
+msgstr "进行非聚合查询"
+
+#: superset/viz.py:378
+msgid "Options"
+msgstr "选项"
+
+#: superset/viz.py:429
+msgid "Pivot Table"
+msgstr "透视表"
+
+#: superset/viz.py:491
+msgid "Markup"
+msgstr "标记"
+
+#: superset/viz.py:519
+msgid "Word Cloud"
+msgstr "词汇云"
+
+#: superset/viz.py:551
+msgid "Treemap"
+msgstr "树状图"
+
+#: superset/viz.py:561 superset/viz.py:676 superset/viz.py:783 superset/viz.py:948
+#: superset/viz.py:1093 superset/viz.py:1122 superset/viz.py:1177
+#: superset/viz.py:1682
+msgid "Chart Options"
+msgstr "图表选项"
+
+#: superset/viz.py:595
+msgid "Calendar Heatmap"
+msgstr "时间热力图"
+
+#: superset/viz.py:666
+msgid "Box Plot"
+msgstr "箱线图"
+
+#: superset/viz.py:773
+msgid "Bubble Chart"
+msgstr "气泡图"
+
+#: superset/viz.py:842
+msgid "Big Number with Trendline"
+msgstr "数字和趋势线"
+
+#: superset/viz.py:892
+msgid "Big Number"
+msgstr "数字"
+
+#: superset/viz.py:938
+msgid "Time Series - Line Chart"
+msgstr "时间序列-折线图"
+
+#: superset/viz.py:958
+msgid "Advanced Analytics"
+msgstr "高级分析"
+
+#: superset/viz.py:959
+msgid ""
+"This section contains options that allow for advanced analytical post "
+"processing of query results"
+msgstr "使用高级分析选项"
+
+#: superset/viz.py:1091
+msgid "Time Series - Bar Chart"
+msgstr "时间序列-柱状图"
+
+#: superset/viz.py:1111
+msgid "Time Series - Percent Change"
+msgstr "时间序列-百分比变化"
+
+#: superset/viz.py:1119
+msgid "Time Series - Stacked"
+msgstr "时间序列-堆积图"
+
+#: superset/viz.py:1138
+msgid "Distribution - NVD3 - Pie Chart"
+msgstr "分布-饼图"
+
+#: superset/viz.py:1174
+msgid "Distribution - Bar Chart"
+msgstr "分布-柱状图"
+
+#: superset/viz.py:1195
+msgid "Breakdowns"
+msgstr "拆分"
+
+#: superset/viz.py:1196
+msgid "Defines how each series is broken down"
+msgstr "项目的拆分方式"
+
+#: superset/viz.py:1261
+msgid "Sunburst"
+msgstr "环状层次图"
+
+#: superset/viz.py:1276
+msgid "Primary Metric"
+msgstr "主指标"
+
+#: superset/viz.py:1277
+msgid "The primary metric is used to define the arc segment sizes"
+msgstr "主要指标用来定义的弧段尺寸"
+
+#: superset/viz.py:1282
+msgid "Secondary Metric"
+msgstr "次指标"
+
+#: superset/viz.py:1283
+msgid ""
+"This secondary metric is used to define the color as a ratio against the "
+"primary metric. If the two metrics match, color is mapped level groups"
+msgstr "次指标用于定义相对主指标的颜色"
+
+#: superset/viz.py:1289
+msgid "Hierarchy"
+msgstr "层次"
+
+#: superset/viz.py:1290
+msgid "This defines the level of the hierarchy"
+msgstr "定义层次"
+
+#: superset/viz.py:1327
+msgid "Sankey"
+msgstr "蛇形图"
+
+#: superset/viz.py:1340 superset/viz.py:1410
+msgid "Source / Target"
+msgstr "源/目标"
+
+#: superset/viz.py:1341 superset/viz.py:1411
+msgid "Choose a source and a target"
+msgstr "选择源和目标"
+
+#: superset/viz.py:1391
+msgid "Directed Force Layout"
+msgstr "有向图"
+
+#: superset/viz.py:1402
+msgid "Force Layout"
+msgstr "有向图"
+
+#: superset/viz.py:1433
+msgid "World Map"
+msgstr "世界地图"
+
+#: superset/viz.py:1444
+msgid "Bubbles"
+msgstr "气泡"
+
+#: superset/viz.py:1453
+msgid "Country Field"
+msgstr "国家"
+
+#: superset/viz.py:1454
+msgid "3 letter code of the country"
+msgstr "3位国家码"
+
+#: superset/viz.py:1457
+msgid "Metric for color"
+msgstr "色彩度量项"
+
+#: superset/viz.py:1458
+msgid "Metric that defines the color of the country"
+msgstr "国家颜色表示的统计项"
+
+#: superset/viz.py:1461
+msgid "Bubble size"
+msgstr "气泡大小"
+
+#: superset/viz.py:1462
+msgid "Metric that defines the size of the bubble"
+msgstr "气泡大小表示的度量项"
+
+#: superset/templates/superset/explore.html:147 superset/viz.py:1507
+msgid "Filters"
+msgstr "筛选"
+
+#: superset/viz.py:1519
+msgid "Filter fields"
+msgstr "筛选条件"
+
+#: superset/viz.py:1520
+msgid "The fields you want to filter on"
+msgstr "筛选字段"
+
+#: superset/viz.py:1555
+msgid "iFrame"
+msgstr ""
+
+#: superset/viz.py:1573
+msgid "Parallel Coordinates"
+msgstr "平行坐标"
+
+#: superset/viz.py:1609
+msgid "Heatmap"
+msgstr "热力图"
+
+#: superset/viz.py:1622
+msgid "Heatmap Options"
+msgstr "热力图选项"
+
+#: superset/viz.py:1677
+msgid "Horizon Charts"
+msgstr "水平图"
+
+#: superset/viz.py:1693
+msgid "Mapbox"
+msgstr "箱图"
+
+#: superset/viz.py:1707
+msgid "Points"
+msgstr "点"
+
+#: superset/viz.py:1713
+msgid "Labelling"
+msgstr "标记"
+
+#: superset/viz.py:1719
+msgid "Visual Tweaks"
+msgstr ""
+
+#: superset/viz.py:1726
+msgid "Viewport"
+msgstr ""
+
+#: superset/viz.py:1736
+msgid "Longitude"
+msgstr "经度"
+
+#: superset/viz.py:1737
+msgid "Column containing longitude data"
+msgstr "表示经度的列"
+
+#: superset/viz.py:1740
+msgid "Latitude"
+msgstr "纬度"
+
+#: superset/viz.py:1741
+msgid "Column containing latitude data"
+msgstr "表示纬度的列"
+
+#: superset/viz.py:1744
+msgid "Cluster label aggregator"
+msgstr ""
+
+#: superset/viz.py:1745
+msgid ""
+"Aggregate function applied to the list of points in each cluster to "
+"produce the cluster label."
+msgstr "聚合函数用于集群标签"
+
+#: superset/viz.py:1750
+msgid "Tooltip"
+msgstr "提示"
+
+#: superset/viz.py:1751
+msgid "Show a tooltip when hovering over points and clusters describing the label"
+msgstr "鼠标放在集群上时显示的提示信息"
+
+#: superset/viz.py:1756
+msgid ""
+"One or many fields to group by. If grouping, latitude and longitude "
+"columns must be present."
+msgstr "按照一个或多个字段分组。必须指定经度和纬度。"
+
+#: superset/templates/appbuilder/navbar_right.html:36
+msgid "Profile"
+msgstr "策略"
+
+#: superset/templates/appbuilder/navbar_right.html:37
+msgid "Logout"
+msgstr "退出"
+
+#: superset/templates/appbuilder/navbar_right.html:42
+msgid "Login"
+msgstr "登录"
+
+#: superset/templates/superset/explore.html:34
+#: superset/templates/superset/explore.html:241
+msgid "Query"
+msgstr "查询"
+
+#: superset/templates/superset/explore.html:43
+#: superset/templates/superset/explore.html:306
+msgid "Save"
+msgstr ""
+
+#: superset/templates/superset/explore.html:72
+msgid "Force refresh"
+msgstr "强制刷新"
+
+#: superset/templates/superset/explore.html:77
+msgid "Short URL"
+msgstr "短链接"
+
+#: superset/templates/superset/explore.html:79
+msgid "Generate an embeddable iframe"
+msgstr "生成内嵌iframe"
+
+#: superset/templates/superset/explore.html:82
+msgid "Export to .json"
+msgstr "导出为JSON"
+
+#: superset/templates/superset/explore.html:86
+msgid "Export to .csv format"
+msgstr "导出为CVS"
+
+#: superset/templates/superset/explore.html:92
+msgid "Query timer"
+msgstr "查询时间"
+
+#: superset/templates/superset/explore.html:94
+msgid "0 sec"
+msgstr "0秒"
+
+#: superset/templates/superset/explore.html:100
+msgid "View database query"
+msgstr "查询语句"
+
+#: superset/templates/superset/explore.html:101
+msgid "query"
+msgstr "查询"
+
+#: superset/templates/superset/explore.html:150
+msgid "Filters are defined using comma delimited strings as in 'US,FR,Other'"
+msgstr "使用逗号分隔多个过滤条件，如'US,FR,Other'"
+
+#: superset/templates/superset/explore.html:168
+msgid "Add filter"
+msgstr "增加过滤条件"
+
+#: superset/templates/superset/explore.html:247
+#: superset/templates/superset/explore.html:265
+msgid "Close"
+msgstr "关闭"
+
+#: superset/templates/superset/explore.html:259
+msgid "Datasource Description"
+msgstr "数据源描述"
+
+#: superset/templates/superset/explore.html:277
+msgid "Save a Slice"
+msgstr ""
+
+#: superset/templates/superset/explore.html:309
+msgid "Save & go to dashboard"
+msgstr ""
+
+#: superset/templates/superset/explore.html:312
+msgid "Cancel"
+msgstr ""
+
+#: superset/templates/superset/sql.html:12
+msgid "Run!"
+msgstr "执行"
+
+#: superset/templates/superset/sql.html:13
+msgid "Create View"
+msgstr "创建视图"
+
+#: superset/templates/superset/welcome.html:8
+#: superset/templates/superset/welcome.html:14
+msgid "Welcome!"
+msgstr "欢迎！"
+
+#: superset/templates/superset/models/database/macros.html:4
+msgid "Test Connection"
+msgstr "测试连接"
+
+#~ msgid "Databases"
+#~ msgstr ""
+
+#~ msgid "Sources"
+#~ msgstr ""
+
+#~ msgid "Tables"
+#~ msgstr ""
+
+#~ msgid "Druid Clusters"
+#~ msgstr ""
+
+#~ msgid "Action Log"
+#~ msgstr ""
+
+#~ msgid "Security"
+#~ msgstr ""
+
+#~ msgid "Druid Datasources"
+#~ msgstr ""
+
+#~ msgid "CSS Templates"
+#~ msgstr ""
+
+#~ msgid "Documentation"
+#~ msgstr ""
+
+#~ msgid "Standalone version, use to embed anywhere"
+#~ msgstr ""
+

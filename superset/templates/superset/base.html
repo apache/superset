@@ -1,0 +1,21 @@
+{% extends "appbuilder/baselayout.html" %}
+
+  {% block head_css %}
+    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/superset.css" />
+    {{super()}}
+  {% endblock %}
+
+  {% block head_js %}
+    {{super()}}
+    {% with filename="css-theme" %}
+      {% include "superset/partials/_script_tag.html" %}
+    {% endwith %}
+  {% endblock %}
+
+  {% block tail_js %}
+    {{super()}}
+    {% with filename="common" %}
+      {% include "superset/partials/_script_tag.html" %}
+    {% endwith %}
+  {% endblock %}

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# caravel documentation build configuration file, created by
+# superset documentation build configuration file, created by
 # sphinx-quickstart on Thu Dec 17 15:42:06 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -15,7 +15,7 @@
 import sys
 import os
 import shlex
-import sphinx_bootstrap_theme
+import sphinx_rtd_theme
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -51,8 +51,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'caravel'
-copyright = u'2015, Maxime Beauchemin, Airbnb'
+project = "Superset's documentation"
+copyright = None
 author = u'Maxime Beauchemin'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -113,19 +113,15 @@ todo_include_todos = False
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'bootstrap'
-html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    # 'bootswatch_theme': 'cosmo',
-    'navbar_title': 'Caravel Documentation',
-    'navbar_fixed_top': "false",
-    'navbar_sidebarrel': False,
-    'navbar_site_name': "Topics",
-    #'navbar_class': "navbar navbar-left",
+    'collapse_navigation': False,
+    'display_version': False,
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -213,7 +209,7 @@ html_show_copyright = False
 #html_search_scorer = 'scorer.js'
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'caraveldoc'
+htmlhelp_basename = 'supersetdoc'
 
 # -- Options for LaTeX output ---------------------------------------------
 
@@ -235,7 +231,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-  (master_doc, 'caravel.tex', u'Caravel Documentation',
+  (master_doc, 'superset.tex', u'Superset Documentation',
    u'Maxime Beauchemin', 'manual'),
 ]
 
@@ -265,7 +261,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'Caravel', u'caravel Documentation',
+    (master_doc, 'Superset', u'superset Documentation',
      [author], 1)
 ]
 
@@ -279,8 +275,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  (master_doc, 'Caravel', u'Caravel Documentation',
-   author, 'Caravel', 'One line description of project.',
+  (master_doc, 'Superset', u'Superset Documentation',
+   author, 'Superset', 'One line description of project.',
    'Miscellaneous'),
 ]
 

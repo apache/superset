@@ -1,0 +1,33 @@
+<html>
+  <head>
+    <title>{{ viz.token }}</title>
+    <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/font-awesome/css/font-awesome.min.css" />
+    <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/superset.css" />
+    <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+    <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+    {% set CSS_THEME = appbuilder.get_app.config.get("CSS_THEME") %}
+    {% set height = request.args.get("height", 700) %}
+    {% if CSS_THEME %}
+      <link rel="stylesheet" type="text/css" href="{{ CSS_THEME }}" />
+    {% endif %}
+  </head>
+
+  <body>
+    <div
+      id="{{ viz.token }}"
+      class="widget viz slice {{ viz.viz_type }}"
+      data-slice="{{ viz.json_data }}"
+      data-standalone="true"
+      style="height: {{ height }}px;">
+      <img src="{{ url_for("static", filename="assets/images/loading.gif") }}" class="loading" alt="loading">
+      <div id="{{ viz.token }}_con" class="slice_container" style="height: 100%; width: 100%"></div>
+    </div>
+  </body>
+  {% with filename="css-theme" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+  {% with filename="standalone" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+</html>
+

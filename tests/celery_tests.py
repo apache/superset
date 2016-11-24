@@ -1,10 +1,9 @@
-"""Unit tests for Caravel Celery worker"""
+"""Unit tests for Superset Celery worker"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import imp
 import json
 import os
 import subprocess
@@ -13,27 +12,27 @@ import unittest
 
 import pandas as pd
 
-import caravel
-from caravel import app, appbuilder, db, models, sql_lab, utils
+from superset import app, appbuilder, cli, db, models, sql_lab, dataframe
+from superset.security import sync_role_definitions
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
-cli = imp.load_source('cli', BASE_DIR + '/bin/caravel')
 
 
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + app.config.get('SQL_CELERY_DB_FILE_PATH')
-    CELERY_IMPORTS = ('caravel.sql_lab', )
+    CELERY_IMPORTS = ('superset.sql_lab', )
     CELERY_RESULT_BACKEND = 'db+sqlite:///' + app.config.get('SQL_CELERY_RESULTS_DB_FILE_PATH')
     CELERY_ANNOTATIONS = {'sql_lab.add': {'rate_limit': '10/s'}}
     CONCURRENCY = 1
 app.config['CELERY_CONFIG'] = CeleryConfig
 
 
-class UtilityFunctionTests(CaravelTestCase):
+class UtilityFunctionTests(SupersetTestCase):
+
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
         select_query = "SELECT * FROM outer_space;"
@@ -70,7 +69,7 @@ class UtilityFunctionTests(CaravelTestCase):
             updated_multi_line_query)
 
 
-class CeleryTestCase(CaravelTestCase):
+class CeleryTestCase(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(CeleryTestCase, self).__init__(*args, **kwargs)
         self.client = app.test_client()
@@ -98,9 +97,9 @@ class CeleryTestCase(CaravelTestCase):
         except OSError as e:
             app.logger.warn(str(e))
 
-        utils.init(caravel)
+        sync_role_definitions()
 
-        worker_command = BASE_DIR + '/bin/caravel worker'
+        worker_command = BASE_DIR + '/bin/superset worker'
         subprocess.Popen(
             worker_command, shell=True, stdout=subprocess.PIPE)
 
@@ -119,23 +118,23 @@ class CeleryTestCase(CaravelTestCase):
             shell=True
         )
         subprocess.call(
-            "ps auxww | grep 'caravel worker' | awk '{print $2}' | "
+            "ps auxww | grep 'superset worker' | awk '{print $2}' | "
             "xargs kill -9",
             shell=True
         )
 
-    def run_sql(self, dbid, sql, cta='false', tmp_table='tmp',
+    def run_sql(self, db_id, sql, client_id, cta='false', tmp_table='tmp',
                 async='false'):
         self.login()
         resp = self.client.post(
-            '/caravel/sql_json/',
+            '/superset/sql_json/',
             data=dict(
-                database_id=dbid,
+                database_id=db_id,
                 sql=sql,
                 async=async,
                 select_as_cta=cta,
                 tmp_table_name=tmp_table,
-                client_id="not_used",
+                client_id=client_id,
             ),
         )
         self.logout()
@@ -143,12 +142,11 @@ class CeleryTestCase(CaravelTestCase):
 
     def test_add_limit_to_the_query(self):
         session = db.session
-        db_to_query = session.query(models.Database).filter_by(
-            id=1).first()
-        eng = db_to_query.get_sqla_engine()
+        main_db = self.get_main_database(db.session)
+        eng = main_db.get_sqla_engine()
 
         select_query = "SELECT * FROM outer_space;"
-        updated_select_query = db_to_query.wrap_sql_limit(select_query, 100)
+        updated_select_query = main_db.wrap_sql_limit(select_query, 100)
         # Different DB engines have their own spacing while compiling
         # the queries, that's why ' '.join(query.split()) is used.
         # In addition some of the engines do not include OFFSET 0.
@@ -158,7 +156,7 @@ class CeleryTestCase(CaravelTestCase):
         )
 
         select_query_no_semicolon = "SELECT * FROM outer_space"
-        updated_select_query_no_semicolon = db_to_query.wrap_sql_limit(
+        updated_select_query_no_semicolon = main_db.wrap_sql_limit(
             select_query_no_semicolon, 100)
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM outer_space) AS inner_qry "
@@ -169,7 +167,7 @@ class CeleryTestCase(CaravelTestCase):
         multi_line_query = (
             "SELECT * FROM planets WHERE\n Luke_Father = 'Darth Vader';"
         )
-        updated_multi_line_query = db_to_query.wrap_sql_limit(multi_line_query, 100)
+        updated_multi_line_query = main_db.wrap_sql_limit(multi_line_query, 100)
         self.assertTrue(
             "SELECT * FROM (SELECT * FROM planets WHERE "
             "Luke_Father = 'Darth Vader';) AS inner_qry LIMIT 100" in
@@ -177,46 +175,47 @@ class CeleryTestCase(CaravelTestCase):
         )
 
     def test_run_sync_query(self):
-        main_db = db.session.query(models.Database).filter_by(
-            database_name="main").first()
+        main_db = self.get_main_database(db.session)
         eng = main_db.get_sqla_engine()
+        perm_name = 'can_sql_json'
 
+        db_id = main_db.id
         # Case 1.
         # Table doesn't exist.
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
-        result1 = self.run_sql(1, sql_dont_exist, cta='true', )
+        result1 = self.run_sql(db_id, sql_dont_exist, "1", cta='true')
         self.assertTrue('error' in result1)
 
         # Case 2.
         # Table and DB exists, CTA call to the backend.
-        sql_where = "SELECT name FROM ab_permission WHERE name='can_sql'"
+        sql_where = (
+            "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
-            1, sql_where, tmp_table='tmp_table_2', cta='true')
+            db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
-        self.assertIsNone(result2['data'])
-        self.assertIsNone(result2['columns'])
+        self.assertEqual([], result2['data'])
+        self.assertEqual([], result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
         df2 = pd.read_sql_query(sql=query2.select_sql, con=eng)
         data2 = df2.to_dict(orient='records')
-        self.assertEqual([{'name': 'can_sql'}], data2)
+        self.assertEqual([{'name': perm_name}], data2)
 
         # Case 3.
         # Table and DB exists, CTA call to the backend, no data.
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
-            1, sql_empty_result, tmp_table='tmp_table_3', cta='true',)
+            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true',)
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
-        self.assertIsNone(result3['data'])
-        self.assertIsNone(result3['columns'])
+        self.assertEqual([], result3['data'])
+        self.assertEqual([], result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
 
     def test_run_async_query(self):
-        main_db = db.session.query(models.Database).filter_by(
-            database_name="main").first()
+        main_db = self.get_main_database(db.session)
         eng = main_db.get_sqla_engine()
 
         # Schedule queries
@@ -225,7 +224,8 @@ class CeleryTestCase(CaravelTestCase):
         # Table and DB exists, async CTA call to the backend.
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
         result1 = self.run_sql(
-            1, sql_where, async='true', tmp_table='tmp_async_1', cta='true')
+            main_db.id, sql_where, "4", async='true', tmp_table='tmp_async_1',
+            cta='true')
         assert result1['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
 
@@ -237,7 +237,7 @@ class CeleryTestCase(CaravelTestCase):
         self.assertEqual(QueryStatus.SUCCESS, query1.status)
         self.assertEqual([{'name': 'Admin'}], df1.to_dict(orient='records'))
         self.assertEqual(QueryStatus.SUCCESS, query1.status)
-        self.assertTrue("SELECT * \nFROM tmp_async_1" in query1.select_sql)
+        self.assertTrue("FROM tmp_async_1" in query1.select_sql)
         self.assertTrue("LIMIT 666" in query1.select_sql)
         self.assertEqual(
             "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
@@ -249,6 +249,51 @@ class CeleryTestCase(CaravelTestCase):
         self.assertEqual(False, query1.limit_used)
         self.assertEqual(True, query1.select_as_cta)
         self.assertEqual(True, query1.select_as_cta_used)
+
+    def test_get_columns_dict(self):
+        main_db = self.get_main_database(db.session)
+        df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
+        cdf = dataframe.SupersetDataFrame(df)
+        if main_db.sqlalchemy_uri.startswith('sqlite'):
+            self.assertEqual(
+                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
+                  'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'ds2',
+                  'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_ms', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_s', 'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
+                  'is_dim': False},
+                 {'is_date': False, 'type': 'object',
+                  'name': 'string1', 'is_dim': True},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
+                  'is_dim': False},
+                 {'is_date': False, 'type': 'object',
+                  'name': 'string3', 'is_dim': True}]
+                , cdf.columns_dict
+            )
+        else:
+            self.assertEqual(
+                [{'is_date': True, 'type': 'datetime_string', 'name': 'ds',
+                  'is_dim': False},
+                 {'is_date': True, 'type': 'datetime64[ns]',
+                  'name': 'ds2', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_ms', 'is_dim': False},
+                 {'agg': 'sum', 'is_date': False, 'type': 'int64',
+                  'name': 'epoch_s', 'is_dim': False},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string0',
+                  'is_dim': False},
+                 {'is_date': False, 'type': 'object',
+                  'name': 'string1', 'is_dim': True},
+                 {'is_date': True, 'type': 'datetime_string', 'name': 'string2',
+                  'is_dim': False},
+                 {'is_date': False, 'type': 'object',
+                  'name': 'string3', 'is_dim': True}]
+                , cdf.columns_dict
+            )
 
 
 if __name__ == '__main__':

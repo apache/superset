@@ -1,18 +1,19 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
+import json
 import unittest
 
 from mock import Mock, patch
 
-from caravel import db
-from caravel.models import DruidCluster
+from superset import db, sm, utils
+from superset.models import DruidCluster, DruidDatasource
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 
 SEGMENT_METADATA = [{
@@ -47,29 +48,29 @@ GB_RESULT_SET = [
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'Canada',
-      "sum__num": 12345678,
+      "dim1": 'Canada',
+      "metric1": 12345678,
     }
   },
   {
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'USA',
-      "sum__num": 12345678 / 2,
+      "dim1": 'USA',
+      "metric1": 12345678 / 2,
     }
   },
 ]
 
 
-class DruidTests(CaravelTestCase):
+class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
 
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('caravel.models.PyDruid')
+    @patch('superset.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -102,10 +103,6 @@ class DruidTests(CaravelTestCase):
         datasource_id = cluster.datasources[0].id
         db.session.commit()
 
-        resp = self.client.get('/caravel/explore/druid/{}/'.format(
-            datasource_id))
-        assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
-
         nres = [
             list(v['event'].items()) + [('timestamp', v['timestamp'])]
             for v in GB_RESULT_SET]
@@ -115,15 +112,150 @@ class DruidTests(CaravelTestCase):
         instance.export_pandas.return_value = df
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
-        resp = self.client.get(
-            '/caravel/explore/druid/{}/?viz_type=table&granularity=one+day&'
+
+        resp = self.get_resp('/superset/explore/druid/{}/'.format(
+            datasource_id))
+        self.assertIn("[test_cluster].[test_datasource]", resp)
+
+        # One groupby
+        url = (
+            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
             'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=name&flt_col_0=dim1&'
+            'include_search=false&metrics=count&groupby=dim1&flt_col_0=dim1&'
             'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
             'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&json=true&'
+            'datasource_type=druid&previous_viz_type=table&'
             'force=true'.format(datasource_id, datasource_id))
-        assert "Canada" in resp.data.decode('utf-8')
+        resp = self.get_json_resp(url)
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
+
+        # two groupby
+        url = (
+            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
+            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
+            'include_search=false&metrics=count&groupby=dim1&'
+            'flt_col_0=dim1&groupby=dim2d&'
+            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
+            'action=&datasource_name=test_datasource&datasource_id={}&'
+            'datasource_type=druid&previous_viz_type=table&'
+            'force=true'.format(datasource_id, datasource_id))
+        resp = self.get_json_resp(url)
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
+
+    def test_druid_sync_from_config(self):
+        CLUSTER_NAME = 'new_druid'
+        self.login()
+        cluster = self.get_or_create(
+            DruidCluster,
+            {'cluster_name': CLUSTER_NAME},
+            db.session)
+
+        db.session.merge(cluster)
+        db.session.commit()
+
+        ds = (
+            db.session.query(DruidDatasource)
+            .filter_by(datasource_name='test_click')
+            .first()
+        )
+        if ds:
+            db.session.delete(ds)
+        db.session.commit()
+
+        cfg = {
+            "user": "admin",
+            "cluster": CLUSTER_NAME,
+            "config": {
+                "name": "test_click",
+                "dimensions": ["affiliate_id", "campaign", "first_seen"],
+                "metrics_spec": [{"type": "count", "name": "count"},
+                                 {"type": "sum", "name": "sum"}],
+                "batch_ingestion": {
+                    "sql": "SELECT * FROM clicks WHERE d='{{ ds }}'",
+                    "ts_column": "d",
+                    "sources": [{
+                        "table": "clicks",
+                        "partition": "d='{{ ds }}'"
+                    }]
+                }
+            }
+        }
+        def check():
+            resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
+            druid_ds = db.session.query(DruidDatasource).filter_by(
+                datasource_name="test_click").first()
+            col_names = set([c.column_name for c in druid_ds.columns])
+            assert {"affiliate_id", "campaign", "first_seen"} == col_names
+            metric_names = {m.metric_name for m in druid_ds.metrics}
+            assert {"count", "sum"} == metric_names
+            assert resp.status_code == 201
+
+        check()
+        # checking twice to make sure a second sync yields the same results
+        check()
+
+        # datasource exists, add new metrics and dimensions
+        cfg = {
+            "user": "admin",
+            "cluster": CLUSTER_NAME,
+            "config": {
+                "name": "test_click",
+                "dimensions": ["affiliate_id", "second_seen"],
+                "metrics_spec": [
+                    {"type": "bla", "name": "sum"},
+                    {"type": "unique", "name": "unique"}
+                ],
+            }
+        }
+        resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
+        druid_ds = db.session.query(DruidDatasource).filter_by(
+            datasource_name="test_click").first()
+        # columns and metrics are not deleted if config is changed as
+        # user could define his own dimensions / metrics and want to keep them
+        assert set([c.column_name for c in druid_ds.columns]) == set(
+            ["affiliate_id", "campaign", "first_seen", "second_seen"])
+        assert set([m.metric_name for m in druid_ds.metrics]) == set(
+            ["count", "sum", "unique"])
+        # metric type will not be overridden, sum stays instead of bla
+        assert set([m.metric_type for m in druid_ds.metrics]) == set(
+            ["longSum", "sum", "unique"])
+        assert resp.status_code == 201
+
+    def test_filter_druid_datasource(self):
+        CLUSTER_NAME = 'new_druid'
+        cluster = self.get_or_create(
+            DruidCluster,
+            {'cluster_name': CLUSTER_NAME},
+            db.session)
+        db.session.merge(cluster)
+
+        gamma_ds = self.get_or_create(
+            DruidDatasource, {'datasource_name': 'datasource_for_gamma'},
+            db.session)
+        gamma_ds.cluster = cluster
+        db.session.merge(gamma_ds)
+
+        no_gamma_ds = self.get_or_create(
+            DruidDatasource, {'datasource_name': 'datasource_not_for_gamma'},
+            db.session)
+        no_gamma_ds.cluster = cluster
+        db.session.merge(no_gamma_ds)
+
+        sm.add_permission_view_menu('datasource_access', gamma_ds.perm)
+        sm.add_permission_view_menu('datasource_access', no_gamma_ds.perm)
+
+        db.session.commit()
+
+        perm = sm.find_permission_view_menu('datasource_access', gamma_ds.perm)
+        sm.add_permission_role(sm.find_role('Gamma'), perm)
+        db.session.commit()
+
+        self.login(username='gamma')
+        url = '/druiddatasourcemodelview/list/'
+        resp = self.get_resp(url)
+        assert 'datasource_for_gamma' in resp
+        assert 'datasource_not_for_gamma' not in resp
+
 
 if __name__ == '__main__':
     unittest.main()

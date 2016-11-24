@@ -1,0 +1,33 @@
+g.superset path {
+   stroke-dasharray: 5, 5;
+}
+
+.nvtooltip tr.highlight td {
+  font-weight: bold;
+  font-size: 15px !important;
+}
+
+text.nv-axislabel {
+  font-size: 14px;
+}
+
+.dist_bar .slice_container {
+  overflow-x: auto;
+}
+
+.dist_bar svg.nvd3-svg {
+  width: auto;
+  font-size: 14px;
+}
+
+.nv-x text{
+  font-size: 12px;
+}
+
+.bar .slice_container {
+  overflow-x: auto;
+}
+
+.bar svg.nvd3-svg {
+  width: auto;
+}

@@ -1,7 +1,13 @@
-.. image:: _static/img/caravel.jpg
+Superset's documentation
+''''''''''''''''''''''''
 
-.. warning:: This project used to be name Panoramix and has been renamed
-    to Caravel in March 2016
+Superset is a data exploration platform designed to be visual, intuitive
+and interactive.
+
+----------------
+
+.. warning:: This project was originally named Panoramix, was renamed to
+    Caravel in March 2016, and is currently named Superset as of November 2016
 
 Overview
 =======================================
@@ -24,6 +30,21 @@ Features
 - Integration with most RDBMS through SqlAlchemy
 - Deep integration with Druid.io
 
+------
+
+.. image:: https://camo.githubusercontent.com/82e264ef777ba06e1858766fe3b8817ee108eb7e/687474703a2f2f672e7265636f726469742e636f2f784658537661475574732e676966
+
+------
+
+.. image:: https://camo.githubusercontent.com/4991ff37a0005ea4e4267919a52786fda82d2d21/687474703a2f2f672e7265636f726469742e636f2f755a6767594f645235672e676966
+
+------
+
+.. image:: https://camo.githubusercontent.com/a389af15ac1e32a3d0fee941b4c62c850b1d583b/687474703a2f2f672e7265636f726469742e636f2f55373046574c704c76682e676966
+
+------
+
+
 Contents
 ---------
 
@@ -33,6 +54,7 @@ Contents
     installation
     tutorial
     security
+    sqllab
     videos
     gallery
     druid

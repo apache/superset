@@ -1,9 +1,11 @@
 codeclimate-test-reporter
 coveralls
+flake8
 mock
 mysqlclient
 nose
 psycopg2
+pyyaml
 sphinx
-sphinx_bootstrap_theme
+sphinx-rtd-theme
 sphinxcontrib.youtube

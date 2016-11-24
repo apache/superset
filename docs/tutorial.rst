@@ -3,7 +3,7 @@ Tutorial
 
 This basic linear tutorial will take you through connecting to a database,
 adding a table, creating a slice and a dashboard. First you'll need to tell
-Caravel where to find the database you want to
+Superset where to find the database you want to
 query. First go to the database menu
 
 .. image:: _static/img/tutorial/db_menu.png
@@ -29,7 +29,7 @@ plus (``+``) sign there (similar to the one ).
 
 Now enter the name of the table in the ``Table Name`` textbox, and select
 the database you just created in the ``Database`` dropdown, hit save. At this
-moment, Caravel fetched the column names, their data types and tries to guess
+moment, Superset fetched the column names, their data types and tries to guess
 which fields are metrics in dimensions. From the list view, edit the table
 that you just created by clicking the tiny pen icon.
 
@@ -42,9 +42,9 @@ showing you the list of columns in your table as well as their data types.
 .. image:: _static/img/tutorial/matrix.png
    :scale: 30 %
 
-Click the checkboxes here that inform Caravel how your columns should be
+Click the checkboxes here that inform Superset how your columns should be
 shown in the explore view, and which metrics should be created. Make sure
-to inform Caravel about your date columns. You could also create
+to inform Superset about your date columns. You could also create
 "SQL expression" columns here, or metrics in that tab as aggregate expressions,
 but let's not do that just yet. Hit ``save``.
 

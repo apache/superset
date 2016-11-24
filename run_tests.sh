@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 echo $DB
-rm ~/.caravel/unittests.db
-rm ~/.caravel/celerydb.sqlite
-rm ~/.caravel/celery_results.sqlite
+rm ~/.superset/unittests.db
+rm ~/.superset/celerydb.sqlite
+rm ~/.superset/celery_results.sqlite
 rm -f .coverage
-export CARAVEL_CONFIG=tests.caravel_test_config
+export SUPERSET_CONFIG=tests.superset_test_config
 set -e
-caravel/bin/caravel db upgrade
-caravel/bin/caravel db upgrade  # running twice on purpose as a test
-caravel/bin/caravel version -v
+superset/bin/superset db upgrade
+superset/bin/superset db upgrade  # running twice on purpose as a test
+superset/bin/superset version -v
 python setup.py nosetests
 coveralls

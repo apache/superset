@@ -1,0 +1,49 @@
+{% macro testconn() %}
+  <script>
+    $("#sqlalchemy_uri").parent()
+      .append('<button id="testconn" class="btn">{{ _("Test Connection") }}</button>');
+    $("#testconn").click(function(e) {
+      e.preventDefault();
+      var url = "/superset/testconn";
+
+      var data = {};
+      try{
+        data = JSON.stringify({
+          uri: $("#sqlalchemy_uri").val(),
+          name: $('#database_name').val(),
+          extras: JSON.parse($("#extra").val())
+        })
+      } catch(parse_error){
+        alert("Malformed JSON in the extras field: " + parse_error);
+        return false
+      }
+
+      $.ajax({
+        method: "POST",
+        url: url,
+        data: data,
+        dataType: 'json',
+        contentType: "application/json; charset=utf-8"
+      }).done(function(data) {
+          alert("Seems OK!");
+          if ($('#tables').length == 0)
+            $('body div.container').append('<div id="tables"></div>');
+          div = $('#tables')
+          div.html('Tables:<br>');
+          $.each(data, function(i, d){
+            var id = 'tbl_' + d;
+            div.append('<span id="' + id + '" style="margin: 0px 10px 10px 0px;" class="btn btn-default">' + d + '</span>')
+            $('#' + id).click(function(){window.location = '/tablemodelview/add';})
+          });
+      }).fail(function(error) {
+          var respJSON = error.responseJSON;
+          var errorMsg = error.responseText;
+          if (respJSON && respJSON.message) {
+              errorMsg = respJSON.message;
+          }
+          alert("ERROR: " + errorMsg);
+      });
+      return false;
+    });
+  </script>
+{% endmacro %}

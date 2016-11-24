@@ -1,6 +1,6 @@
 /* eslint-disable no-shadow, no-param-reassign, no-underscore-dangle, no-use-before-define*/
 import d3 from 'd3';
-// import { category21 } from '../javascripts/modules/colors';
+import { category21 } from '../javascripts/modules/colors';
 
 require('./mekko.css');
 
@@ -80,8 +80,8 @@ function mekko(slice) {
       .style('text-anchor', 'middle');
 
     // Consistent colour scheme
-    // const color = category21;
-    const color = d3.scale.category10();
+    const color = category21;
+    // const color = d3.scale.category10();
 
     // Get the date in the correct shape
     const data = _reshape(_data);
@@ -167,21 +167,21 @@ function mekko(slice) {
             return d.dy;
           });
 
-        cellEnter.filter(function (d) {
-          return d.depth > 2;
-        }).append('text')
-          .attr('class', 'label')
-          .attr('transform', 'translate(6, 10)')
-          .attr('width', function (d) {
-            return Math.max(0.01, d.dx);
-          })
-          .attr('height', 25)
-          .text(function (d) {
-            if (d.value > 0) {
-              return title(d);
-            }
-            return '';
-          });
+        // cellEnter.filter(function (d) {
+        //   return d.depth > 2;
+        // }).append('text')
+        //   .attr('class', 'label')
+        //   .attr('transform', 'translate(6, 10)')
+        //   .attr('width', function (d) {
+        //     return Math.max(0.01, d.dx);
+        //   })
+        //   .attr('height', 30)
+        //   .text(function (d) {
+        //     if (d.value > 0) {
+        //       return title(d);
+        //     }
+        //     return '';
+        //   });
 
 
         cell.select('title')

@@ -1,7 +1,7 @@
 Druid
 =====
 
-Caravel works well with Druid, though currently not all
+Superset works well with Druid, though currently not all
 advanced features out of Druid are covered. This page clarifies what is
 covered and what isn't and explains how to use some of the features.
 
@@ -15,7 +15,7 @@ Supported
 Aggregations
 ------------
 
-Common aggregations, or Druid metrics can be defined and used in Caravel.
+Common aggregations, or Druid metrics can be defined and used in Superset.
 The first and simpler use case is to use the checkbox matrix expose in your
 datasource's edit view (``Sources -> Druid Datasources ->
 [your datasource] -> Edit -> [tab] List Druid Column``).
@@ -34,7 +34,7 @@ documentation.
 Post-Aggregations
 -----------------
 
-Druid supports post aggregation and this works in Caravel. All you have to
+Druid supports post aggregation and this works in Superset. All you have to
 do is creating a metric, much like you would create an aggregation manually,
 but specify ``postagg`` as a ``Metric Type``. You then have to provide a valid
 json post-aggregation definition (as specified in the Druid docs) in the
