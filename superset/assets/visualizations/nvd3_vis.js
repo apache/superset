@@ -204,12 +204,8 @@ function nvd3Vis(slice) {
                   return d.endAngle / 2 - Math.PI / 2;
                 });
             }
-            if (fd.pie_pad_angle) {
-              chart.padAngle(fd.pie_pad_angle);
-            }
-            if (fd.pie_corner_radius) {
-              chart.cornerRadius(fd.pie_corner_radius);
-            }
+            chart.padAngle(fd.pie_pad_angle);
+            chart.cornerRadius(fd.pie_corner_radius);
             break;
 
           case 'column':
