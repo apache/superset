@@ -204,12 +204,6 @@ function nvd3Vis(slice) {
                   return d.endAngle / 2 - Math.PI / 2;
                 });
             }
-            if (fd.pie_title) {
-              chart.title(fd.pie_title);
-            }
-            if (fd.pie_title_offset) {
-              chart.titleOffset(fd.pie_title_offset);
-            }
             if (fd.pie_pad_angle) {
               chart.padAngle(fd.pie_pad_angle);
             }
