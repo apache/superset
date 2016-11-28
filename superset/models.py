@@ -1063,9 +1063,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
-            timestamp = dttm_col.get_timestamp_expression(time_grain)
 
             if is_timeseries:
+                timestamp = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
                 groupby_exprs += [timestamp]
 
@@ -1119,7 +1119,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         qry = qry.limit(row_limit)
 
-        if timeseries_limit and groupby:
+        if is_timeseries and timeseries_limit and groupby:
             # some sql dialects require for order by expressions
             # to also be in the select clause
             inner_select_exprs += [main_metric_expr]
