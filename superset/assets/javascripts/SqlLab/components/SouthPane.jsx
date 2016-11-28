@@ -28,11 +28,6 @@ class SouthPane extends React.PureComponent {
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
   }
-  shouldComponentUpdate(nextProps) {
-    return !areArraysShallowEqual(this.props.editorQueries, nextProps.editorQueries)
-      || !areArraysShallowEqual(this.props.dataPreviewQueries, nextProps.dataPreviewQueries)
-      || this.props.activeSouthPaneTab !== nextProps.activeSouthPaneTab;
-  }
   render() {
     let latestQuery;
     const props = this.props;
