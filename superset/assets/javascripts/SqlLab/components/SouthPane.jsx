@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import React from 'react';
-import { areArraysShallowEqual } from '../../reduxUtils';
 
 import shortid from 'shortid';
 

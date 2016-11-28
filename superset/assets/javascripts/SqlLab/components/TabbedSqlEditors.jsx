@@ -6,7 +6,7 @@ import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
-import { areObjectsEqual, areArraysShallowEqual } from '../../reduxUtils';
+import { areArraysShallowEqual } from '../../reduxUtils';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -78,7 +78,6 @@ class TabbedSqlEditors extends React.PureComponent {
     if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
       this.setState({ dataPreviewQueries });
     }
-
   }
   renameTab(qe) {
     /* eslint no-alert: 0 */
