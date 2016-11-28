@@ -19,6 +19,8 @@ class CreatedContent extends React.PureComponent {
   renderSliceTable() {
     const mutator = (data) => data.map(slice => ({
       slice: <a href={slice.url}>{slice.title}</a>,
+      views: slice.views,
+      users: slice.distinct_users,
       favorited: moment.utc(slice.dttm).fromNow(),
       _favorited: slice.dttm,
     }));
@@ -26,7 +28,7 @@ class CreatedContent extends React.PureComponent {
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
         className="table table-condensed"
-        columns={['slice', 'favorited']}
+        columns={['slice', 'favorited', 'views', 'users']}
         mutator={mutator}
         noDataText="No slices"
         sortable

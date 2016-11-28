@@ -1949,7 +1949,7 @@ class Superset(BaseSupersetView):
                 sqla.func.count(),
                 sqla.func.count(Log.user_id.distinct()),
             )
-            .join(Log).with_hint(Log, 'USE INDEX (views)')
+            .join(Log)
             .filter(
                 sqla.or_(
                     Dash.created_by_fk == user_id,
@@ -1985,21 +1985,35 @@ class Superset(BaseSupersetView):
     def created_slices(self, user_id):
         """List of slices created by this user"""
         Slice = models.Slice  # noqa
+        Log = models.Log
         qry = (
-            db.session.query(Slice)
+            db.session.query(
+                Slice,
+                sqla.func.count(),
+                sqla.func.count(Log.user_id.distinct()),
+            )
+            .join(Log)
             .filter(
                 sqla.or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                 )
             )
+            .filter(
+                sqla.and_(
+                    Log.slice_id == Slice.id,
+                )
+            )
             .order_by(Slice.changed_on.desc())
+            .group_by(Slice.id)
         )
         payload = [{
-            'id': o.id,
-            'title': o.slice_name,
-            'url': o.slice_url,
-            'dttm': o.changed_on,
+            'id': o[0].id,
+            'title': o[0].slice_name,
+            'url': o[0].slice_url,
+            'dttm': o[0].changed_on,
+            'views': o[1],
+            'distinct_users': o[2],
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),

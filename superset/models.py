@@ -2313,7 +2313,7 @@ class Log(Model):
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     dashboard_id = Column(Integer, ForeignKey('dashboards.id'))
-    slice_id = Column(Integer)
+    slice_id = Column(Integer, ForeignKey('slices.id'))
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
