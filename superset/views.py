@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, sql_lab, results_backend, security,
+    sm, ascii_art, sql_lab, sql_parse, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -2314,9 +2314,12 @@ class Superset(BaseSupersetView):
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
-        if not self.database_access(mydb):
+        superset_query = sql_parse.SupersetQuery(sql)
+        rejected_tables = [t for t in superset_query.tables
+                           if not self.datasource_access(t)]
+        if rejected_tables:
             json_error_response(
-                get_database_access_error_msg(mydb.database_name))
+                get_datasource_access_error_msg('{}'.format(rejected_tables)))
         session.commit()
 
         query = models.Query(
@@ -2341,7 +2344,8 @@ class Superset(BaseSupersetView):
         if async:
             # Ignore the celery future object and the request may time out.
             sql_lab.get_sql_results.delay(
-                query_id, return_results=False, store_results=not query.select_as_cta)
+                query_id, return_results=False,
+                store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,

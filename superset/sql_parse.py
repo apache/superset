@@ -22,6 +22,10 @@ class SupersetQuery:
     def tables(self):
         return self._table_names
 
+    # TODO: use sqlparse for this check.
+    def is_select(self):
+        return self._sql.upper().startswith('SELECT')
+
     @staticmethod
     def __precedes_table_name(token_value):
         for keyword in PRECEDES_TABLE_NAME:
