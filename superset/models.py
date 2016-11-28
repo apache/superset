@@ -908,6 +908,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         return Markup(
             '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
 
+    @property
+    def schema_perm(self):
+        return "[{obj.database}].[{obj.schema}]".format(obj=self)
+
     def get_perm(self):
         return (
             "[{obj.database}].[{obj.table_name}]"
@@ -1625,6 +1629,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def name(self):
         return self.datasource_name
+
+    @property
+    def schema_perm(self):
+        """Is not used. Created for consistency with SqlaTable."""
+        return "[{obj.database}]".format(obj=self)
 
     def get_perm(self):
         return (

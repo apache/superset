@@ -186,6 +186,7 @@ def sync_role_definitions():
     for datasource in datasources:
         perm = datasource.get_perm()
         sm.add_permission_view_menu('datasource_access', perm)
+        sm.add_permission_view_menu('schema_access', datasource.schema_perm)
         if perm != datasource.perm:
             datasource.perm = perm
 

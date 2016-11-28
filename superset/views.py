@@ -61,10 +61,16 @@ class BaseSupersetView(BaseView):
             self.can_access("database_access", database.perm)
         )
 
-    def datasource_access(self, datasource):
+    def schema_access(self, datasource):
         return (
             self.database_access(datasource.database) or
             self.all_datasource_access() or
+            self.can_access("schema_access", datasource.schema_perm)
+        )
+
+    def datasource_access(self, datasource):
+        return (
+            self.schema_access(datasource) or
             self.can_access("datasource_access", datasource.perm)
         )
 
