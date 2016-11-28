@@ -8,6 +8,8 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/store';
+import { getParamObject } from '../../modules/utils.js';
+
 const $ = require('jquery');
 
 const propTypes = {
@@ -47,18 +49,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery(form_data) {
-    const data = {};
-    Object.keys(form_data).forEach((field) => {
-    // filter out null fields
-      if (form_data[field] !== null && field !== 'datasource') {
-        data[field] = form_data[field];
-      }
-    });
-    // V2 tag temporarily for updating url
-    // Todo: remove after launch
-    data.V2 = true;
-    data.datasource_id = this.props.form_data.datasource;
-    data.datasource_type = this.props.datasource_type;
+    const data = getParamObject(form_data, this.props.datasource_type);
     this.queryFormData(data);
 
     const params = $.param(data, true);

@@ -43,9 +43,12 @@ export const exploreReducer = function (state, action) {
       const fieldNames = Object.keys(optionsByFieldName);
 
       fieldNames.forEach((fieldName) => {
-        newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+        if (fieldName === 'filterable_cols') {
+          newState.filterColumnOpts = optionsByFieldName[fieldName];
+        } else {
+          newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+        }
       });
-
       return Object.assign({}, state, newState);
     },
 
@@ -53,19 +56,32 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },
     [actions.ADD_FILTER]() {
-      return addToArr(state, 'filters', action.filter);
+      const newFormData = addToArr(state.viz.form_data, 'filters', action.filter);
+      const newState = Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+      return newState;
     },
     [actions.REMOVE_FILTER]() {
-      return removeFromArr(state, 'filters', action.filter);
+      const newFormData = removeFromArr(state.viz.form_data, 'filters', action.filter);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
     },
-    [actions.CHANGE_FILTER_FIELD]() {
-      return alterInArr(state, 'filters', action.filter, { field: action.field });
-    },
-    [actions.CHANGE_FILTER_OP]() {
-      return alterInArr(state, 'filters', action.filter, { op: action.op });
-    },
-    [actions.CHANGE_FILTER_VALUE]() {
-      return alterInArr(state, 'filters', action.filter, { value: action.value });
+    [actions.CHANGE_FILTER]() {
+      const changes = {};
+      changes[action.field] = action.value;
+      const newFormData = alterInArr(
+        state.viz.form_data, 'filters', action.filter, changes);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
     },
     [actions.SET_FIELD_VALUE]() {
       const newFormData = action.key === 'datasource' ?

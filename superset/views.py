@@ -2401,6 +2401,7 @@ class Superset(BaseSupersetView):
             'size': datasource.metrics_combo,
             'mapbox_label': all_cols,
             'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
+            'filterable_cols': datasource.filterable_column_names,
         }
 
         return Response(

@@ -4,9 +4,10 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import { visTypes, sectionsToRender } from '../stores/store';
+import { visTypes, sectionsToRender, commonControlPanelSections } from '../stores/store';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
+import Filters from './Filters';
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -42,6 +43,12 @@ class ControlPanelsContainer extends React.Component {
 
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
+  }
+
+  filterSectionsToRender() {
+    const filterSections = this.props.datasource_type === 'table' ?
+      [commonControlPanelSections.filters[0]] : commonControlPanelSections.filters;
+    return filterSections;
   }
 
   fieldOverrides() {
@@ -86,7 +93,20 @@ class ControlPanelsContainer extends React.Component {
                   ))}
                 </ControlPanelSection>
               ))}
-              {/* TODO: add filters section */}
+              {this.filterSectionsToRender().map((section) => (
+                <ControlPanelSection
+                  key={section.label}
+                  label={section.label}
+                  tooltip={section.description}
+                >
+                  <Filters
+                    filterColumnOpts={[]}
+                    filters={this.props.form_data.filters}
+                    actions={this.props.actions}
+                    prefix={section.prefix}
+                  />
+                </ControlPanelSection>
+              ))}
             </div>
           </div>
         }
