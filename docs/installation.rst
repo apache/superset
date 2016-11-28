@@ -203,6 +203,8 @@ Here's a list of some of the recommended packages.
 +---------------+-------------------------------------+-------------------------------------------------+
 |  SparkSQL     | ``pip install pyhive``              | ``jdbc+hive://``                                |
 +---------------+-------------------------------------+-------------------------------------------------+
+|  Greenplum    | ``pip install psycopg2``            | ``postgresql+psycopg2://``                      |
++---------------+-------------------------------------+-------------------------------------------------+
 
 Note that many other database are supported, the main criteria being the
 existence of a functional SqlAlchemy dialect and Python driver. Googling
@@ -222,7 +224,7 @@ Flask-Cache supports multiple caching backends (Redis, Memcached,
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the pylibmc client library as python-memcached does
 not handle storing binary data correctly. If you use Redis, please install
-[python-redis](https://pypi.python.org/pypi/redis).
+`python-redis <https://pypi.python.org/pypi/redis>`.
 
 For setting your timeouts, this is done in the Superset metadata and goes
 up the "timeout searchpath", from your slice configuration, to your

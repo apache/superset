@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from datetime import datetime, timedelta
 import json
 import logging
 import pickle
@@ -11,7 +12,6 @@ import sys
 import time
 import traceback
 import zlib
-from datetime import datetime, timedelta
 
 import functools
 import sqlalchemy as sqla
@@ -23,19 +23,20 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.widgets import ListWidget
+from flask_appbuilder.models.sqla.filters import BaseFilter
+from flask_appbuilder.security.sqla import models as ab_models
+
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
-from flask_appbuilder.models.sqla.filters import BaseFilter
 
 from sqlalchemy import create_engine
-from werkzeug.datastructures import ImmutableMultiDict
 from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend
+    sm, ascii_art, sql_lab, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -55,12 +56,17 @@ class BaseSupersetView(BaseView):
             "all_datasource_access", "all_datasource_access")
 
     def database_access(self, database):
-        return (self.all_datasource_access() or
-                self.can_access("database_access", database.perm))
+        return (
+            self.can_access("all_database_access", "all_database_access") or
+            self.can_access("database_access", database.perm)
+        )
 
     def datasource_access(self, datasource):
-        return (self.database_access(datasource.database) or
-                self.can_access("datasource_access", datasource.perm))
+        return (
+            self.database_access(datasource.database) or
+            self.all_datasource_access() or
+            self.can_access("datasource_access", datasource.perm)
+        )
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -181,47 +187,94 @@ def get_user_roles():
 
 
 class SupersetFilter(BaseFilter):
-    def get_perms(self):
-        perms = []
+
+    """Add utility function to make BaseFilter easy and fast
+
+    These utility function exist in the SecurityManager, but would do
+    a database round trip at every check. Here we cache the role objects
+    to be able to make multiple checks but query the db only once
+    """
+
+    def get_user_roles(self):
+        attr = '__get_user_roles'
+        if not hasattr(self, attr):
+            setattr(self, attr, get_user_roles())
+        return getattr(self, attr)
+
+    def get_all_permissions(self):
+        """Returns a set of tuples with the perm name and view menu name"""
+        perms = set()
         for role in get_user_roles():
             for perm_view in role.permissions:
-                if perm_view.permission.name == 'datasource_access':
-                    perms.append(perm_view.view_menu.name)
+                t = (perm_view.permission.name, perm_view.view_menu.name)
+                perms.add(t)
         return perms
 
+    def has_role(self, role_name_or_list):
+        """Whether the user has this role name"""
+        if not isinstance(role_name_or_list, list):
+            role_name_or_list = [role_name_or_list]
+        return any(
+            [r.name in role_name_or_list for r in self.get_user_roles()])
 
-class TableSlice(SupersetFilter):
+    def has_perm(self, permission_name, view_menu_name):
+        """Whether the user has this perm"""
+        return (permission_name, view_menu_name) in self.get_all_permissions()
+
+    def get_view_menus(self, permission_name):
+        """Returns the details of view_menus for a perm name"""
+        vm = set()
+        for perm_name, vm_name in self.get_all_permissions():
+            if perm_name == permission_name:
+                vm.add(vm_name)
+        return vm
+
+    def has_all_datasource_access(self):
+        return (
+            self.has_role(['Admin', 'Alpha']) or
+            self.has_perm('all_datasource_access', 'all_datasource_access'))
+
+
+class DatabaseFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if (
+                self.has_role('Admin') or
+                self.has_perm('all_database_access', 'all_database_access')):
             return query
-        perms = self.get_perms()
-        tables = []
-        for perm in perms:
-            match = re.search(r'\(id:(\d+)\)', perm)
-            tables.append(match.group(1))
-        qry = query.filter(self.model.id.in_(tables))
-        return qry
+        perms = self.get_view_menus('database_access')
+        return query.filter(self.model.perm.in_(perms))
 
 
-class FilterSlice(SupersetFilter):
+class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if self.has_all_datasource_access():
             return query
-        qry = query.filter(self.model.perm.in_(self.get_perms()))
-        return qry
+        perms = self.get_view_menus('datasource_access')
+        return query.filter(self.model.perm.in_(perms))
 
 
-class FilterDashboard(SupersetFilter):
+class SliceFilter(SupersetFilter):
+    def apply(self, query, func):  # noqa
+        if self.has_all_datasource_access():
+            return query
+        perms = self.get_view_menus('datasource_access')
+        return query.filter(self.model.perm.in_(perms))
+
+
+class DashboardFilter(SupersetFilter):
+
     """List dashboards for which users have access to at least one slice"""
+
     def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
+        if self.has_all_datasource_access():
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
+        datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
             db.session
             .query(Slice.id)
-            .filter(Slice.perm.in_(self.get_perms()))
+            .filter(Slice.perm.in_(datasource_perms))
         )
         query = query.filter(
             Dash.id.in_(
@@ -232,37 +285,6 @@ class FilterDashboard(SupersetFilter):
             )
         )
         return query
-
-
-class FilterDashboardSlices(SupersetFilter):
-    def apply(self, query, value):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        qry = query.filter(self.model.perm.in_(self.get_perms()))
-        return qry
-
-
-class FilterDashboardOwners(SupersetFilter):
-    def apply(self, query, value):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        qry = query.filter_by(id=g.user.id)
-        return qry
-
-
-class FilterDruidDatasource(SupersetFilter):
-    def apply(self, query, func):  # noqa
-        if any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]):
-            return query
-        perms = self.get_perms()
-        druid_datasources = []
-        for perm in perms:
-            match = re.search(r'\(id:(\d+)\)', perm)
-            if match:
-                druid_datasources.append(match.group(1))
-        qry = query.filter(self.model.id.in_(druid_datasources))
-        return qry
-
 
 def validate_json(form, field):  # noqa
     try:
@@ -494,10 +516,11 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'extra',
         'database_name',
         'sqlalchemy_uri',
+        'perm',
         'created_by',
         'created_on',
         'changed_by',
-        'changed_on'
+        'changed_on',
     ]
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
@@ -551,7 +574,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
-        utils.merge_perm(sm, 'database_access', db.perm)
+        security.merge_perm(sm, 'database_access', db.perm)
 
     def pre_update(self, db):
         self.pre_add(db)
@@ -578,6 +601,7 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
+    base_filters = [['id', DatabaseFilter, lambda: []]]
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
@@ -605,6 +629,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'table_name', 'sql', 'is_featured', 'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
+    show_columns = edit_columns + ['perm']
     related_views = [TableColumnInlineView, SqlMetricInlineView]
     base_order = ('changed_on', 'desc')
     description_columns = {
@@ -622,7 +647,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
             "run a query against this string as a subquery."
         ),
     }
-    base_filters = [['id', TableSlice, lambda: []]]
+    base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
         'link': _("Table"),
         'changed_by_': _("Changed By"),
@@ -659,7 +684,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, table):
         table.fetch_metadata()
-        utils.merge_perm(sm, 'datasource_access', table.perm)
+        security.merge_perm(sm, 'datasource_access', table.perm)
         flash(_(
             "The table was created. As part of this two phase configuration "
             "process, you should now click the edit button by "
@@ -725,7 +750,7 @@ class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     }
 
     def pre_add(self, cluster):
-        utils.merge_perm(sm, 'database_access', cluster.perm)
+        security.merge_perm(sm, 'database_access', cluster.perm)
 
     def pre_update(self, cluster):
         self.pre_add(cluster)
@@ -769,7 +794,7 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
             "Duration (in seconds) of the caching timeout for this slice."
         ),
     }
-    base_filters = [['id', FilterSlice, lambda: []]]
+    base_filters = [['id', SliceFilter, lambda: []]]
     label_columns = {
         'cache_timeout': _("Cache Timeout"),
         'creator': _("Creator"),
@@ -865,15 +890,11 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             "want to alter specific parameters."),
         'owners': _("Owners is a list of users who can alter the dashboard."),
     }
-    base_filters = [['slice', FilterDashboard, lambda: []]]
+    base_filters = [['slice', DashboardFilter, lambda: []]]
     add_form_query_rel_fields = {
-        'slices': [['slices', FilterDashboardSlices, None]],
-        'owners': [['owners', FilterDashboardOwners, None]],
+        'slices': [['slices', SliceFilter, None]],
     }
-    edit_form_query_rel_fields = {
-        'slices': [['slices', FilterDashboardSlices, None]],
-        'owners': [['owners', FilterDashboardOwners, None]],
-    }
+    edit_form_query_rel_fields = add_form_query_rel_fields
     label_columns = {
         'dashboard_link': _("Dashboard"),
         'dashboard_title': _("Title"),
@@ -964,6 +985,19 @@ appbuilder.add_view(
     icon="fa-list-ol")
 
 
+class QueryView(SupersetModelView):
+    datamodel = SQLAInterface(models.Query)
+    list_columns = ['user', 'database', 'status', 'start_time', 'end_time']
+
+appbuilder.add_view(
+    QueryView,
+    "Queries",
+    label=__("Queries"),
+    category="Manage",
+    category_label=__("Manage"),
+    icon="fa-search")
+
+
 class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidDatasource)
     list_widget = ListWidgetWithCheckboxes
@@ -977,6 +1011,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'is_featured', 'is_hidden', 'default_endpoint', 'offset',
         'cache_timeout']
     add_columns = edit_columns
+    show_columns = add_columns + ['perm']
     page_size = 500
     base_order = ('datasource_name', 'asc')
     description_columns = {
@@ -985,7 +1020,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
             "Supports <a href='"
             "https://daringfireball.net/projects/markdown/'>markdown</a>"),
     }
-    base_filters = [['id', FilterDruidDatasource, lambda: []]]
+    base_filters = [['id', DatasourceFilter, lambda: []]]
     label_columns = {
         'datasource_link': _("Data Source"),
         'cluster': _("Cluster"),
@@ -1013,7 +1048,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        utils.merge_perm(sm, 'datasource_access', datasource.perm)
+        security.merge_perm(sm, 'datasource_access', datasource.perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
@@ -1073,7 +1108,23 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
-    @has_access
+    @has_access_api
+    @expose("/update_role/", methods=['POST'])
+    def update_role(self):
+        """Assigns a list of found users to the given role."""
+        data = request.get_json(force=True)
+        user_emails = data['user_emails']
+        role_name = data['role_name']
+        role = sm.find_role(role_name)
+        role.user = []
+        for user_email in user_emails:
+            user = sm.find_user(email=user_email)
+            if user:
+                role.user.append(user)
+        db.session.commit()
+        return Response(status=201)
+
+    @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
     def override_role_permissions(self):
         """Updates the role with the give datasource permissions.
@@ -1244,7 +1295,8 @@ class Superset(BaseSupersetView):
             viz_type = args.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
-            viz_obj = viz.viz_types[viz_type](datasource, request.args)
+            viz_obj = viz.viz_types[viz_type](
+                datasource, request.args if request.args else args)
             return viz_obj
 
     @has_access
@@ -1252,6 +1304,28 @@ class Superset(BaseSupersetView):
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
         return redirect(viz_obj.get_url(**request.args))
+
+    @log_this
+    @has_access_api
+    @expose(
+        "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
+    def update_explore(self, datasource_type, datasource_id):
+        """Send back new viz on POST request for updating update explore view"""
+        form_data = json.loads(request.form.get('data'))
+        try:
+            viz_obj = self.get_viz(
+                datasource_type=datasource_type,
+                datasource_id=datasource_id,
+                args=form_data)
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response('{}'.format(e))
+        try:
+            viz_json = viz_obj.get_json()
+        except Exception as e:
+            logging.exception(e)
+            return json_error_response(utils.error_msg_from_exception(e))
+        return viz_json
 
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
@@ -1372,6 +1446,7 @@ class Superset(BaseSupersetView):
                 # TODO: separate endpoint for fetching datasources
                 "datasources": [(d.id, d.full_name) for d in datasources],
                 "datasource_id": datasource_id,
+                "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())
@@ -1399,7 +1474,8 @@ class Superset(BaseSupersetView):
         # TODO use form processing form wtforms
         d = args.to_dict(flat=False)
         del d['action']
-        del d['previous_viz_type']
+        if 'previous_viz_type' in d:
+            del d['previous_viz_type']
 
         as_list = ('metrics', 'groupby', 'columns', 'all_columns',
                    'mapbox_label', 'order_by_cols')
@@ -1458,8 +1534,12 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if request.args.get('goto_dash') == 'true':
+            if request.args.get('V2') == 'true':
+                return dash.url
             return redirect(dash.url)
         else:
+            if request.args.get('V2') == 'true':
+                return slc.slice_url
             return redirect(slc.slice_url)
 
     def save_slice(self, slc):
@@ -1512,6 +1592,31 @@ class Superset(BaseSupersetView):
         payload = {str(time.mktime(dt.timetuple())):
                    ccount for dt, ccount in qry if dt}
         return Response(json.dumps(payload), mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/all_tables/<db_id>")
+    def all_tables(self, db_id):
+        """Endpoint that returns all tables and views from the database"""
+        database = (
+            db.session
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
+        )
+        all_tables = []
+        all_views = []
+        schemas = database.all_schema_names()
+        for schema in schemas:
+            all_tables.extend(database.all_table_names(schema=schema))
+            all_views.extend(database.all_view_names(schema=schema))
+        if not schemas:
+            all_tables.extend(database.all_table_names())
+            all_views.extend(database.all_view_names())
+
+        return Response(
+            json.dumps({"tables": all_tables, "views": all_views}),
+            mimetype="application/json")
 
     @api
     @has_access_api
@@ -1615,6 +1720,172 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/recent_activity/<user_id>/", methods=['GET'])
+    def recent_activity(self, user_id):
+        """Recent activity (actions) for a given user"""
+        M = models  # noqa
+        qry = (
+            db.session.query(M.Log, M.Dashboard, M.Slice)
+            .outerjoin(
+                M.Dashboard,
+                M.Dashboard.id == M.Log.dashboard_id
+            )
+            .outerjoin(
+                M.Slice,
+                M.Slice.id == M.Log.slice_id
+            )
+            .filter(
+                sqla.and_(
+                    M.Log.action != 'queries',
+                    M.Log.user_id == user_id,
+                )
+            )
+            .order_by(M.Log.dttm.desc())
+            .limit(1000)
+        )
+        payload = []
+        for log in qry.all():
+            item_url = None
+            item_title = None
+            if log.Dashboard:
+                item_url = log.Dashboard.url
+                item_title = log.Dashboard.dashboard_title
+            elif log.Slice:
+                item_url = log.Slice.slice_url
+                item_title = log.Slice.slice_name
+
+            payload.append({
+                'action': log.Log.action,
+                'item_url': item_url,
+                'item_title': item_title,
+                'time': log.Log.dttm,
+            })
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/fave_dashboards/<user_id>/", methods=['GET'])
+    def fave_dashboards(self, user_id):
+        qry = (
+            db.session.query(
+                models.Dashboard,
+                models.FavStar.dttm,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'Dashboard',
+                    models.Dashboard.id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.desc()
+            )
+        )
+        payload = [{
+            'id': o.Dashboard.id,
+            'dashboard': o.Dashboard.dashboard_link(),
+            'title': o.Dashboard.dashboard_title,
+            'url': o.Dashboard.url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/created_dashboards/<user_id>/", methods=['GET'])
+    def created_dashboards(self, user_id):
+        Dash = models.Dashboard  # noqa
+        qry = (
+            db.session.query(
+                Dash,
+            )
+            .filter(
+                sqla.or_(
+                    Dash.created_by_fk == user_id,
+                    Dash.changed_by_fk == user_id,
+                )
+            )
+            .order_by(
+                Dash.changed_on.desc()
+            )
+        )
+        payload = [{
+            'id': o.id,
+            'dashboard': o.dashboard_link(),
+            'title': o.dashboard_title,
+            'url': o.url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/created_slices/<user_id>/", methods=['GET'])
+    def created_slices(self, user_id):
+        """List of slices created by this user"""
+        Slice = models.Slice  # noqa
+        qry = (
+            db.session.query(Slice)
+            .filter(
+                sqla.or_(
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                )
+            )
+            .order_by(Slice.changed_on.desc())
+        )
+        payload = [{
+            'id': o.id,
+            'title': o.slice_name,
+            'url': o.slice_url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
+    @expose("/fave_slices/<user_id>/", methods=['GET'])
+    def fave_slices(self, user_id):
+        """Favorite slices for a user"""
+        qry = (
+            db.session.query(
+                models.Slice,
+                models.FavStar.dttm,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(user_id),
+                    models.FavStar.class_name == 'slice',
+                    models.Slice.id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.desc()
+            )
+        )
+        payload = [{
+            'id': o.Slice.id,
+            'title': o.Slice.slice_name,
+            'url': o.Slice.slice_url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
     @expose("/warm_up_cache/", methods=['GET'])
     def warm_up_cache(self):
         """Warms up the cache for the slice or table."""
@@ -1664,6 +1935,7 @@ class Superset(BaseSupersetView):
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
+        """Toggle favorite stars on Slices and Dashboard"""
         session = db.session()
         FavStar = models.FavStar  # noqa
         count = 0
@@ -1733,6 +2005,7 @@ class Superset(BaseSupersetView):
             "superset/dashboard.html",
             dashboard=dash,
             context=json.dumps(context),
+            standalone_mode=standalone,
         )
 
     @has_access
@@ -1841,29 +2114,6 @@ class Superset(BaseSupersetView):
         params = "&".join([k + '=' + v for k, v in params.items()])
         url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
         return redirect(url)
-
-    @has_access
-    @expose("/sql/<database_id>/")
-    @log_this
-    def sql(self, database_id):
-        if not self.all_datasource_access():
-            flash(ALL_DATASOURCE_ACCESS_ERR, "danger")
-            return redirect("/tablemodelview/list/")
-
-        mydb = db.session.query(
-            models.Database).filter_by(id=database_id).first()
-        if not self.database_access(mydb.perm):
-            flash(get_database_access_error_msg(mydb.database_name), "danger")
-            return redirect("/tablemodelview/list/")
-        engine = mydb.get_sqla_engine()
-        tables = engine.table_names()
-
-        table_name = request.args.get('table_name')
-        return self.render_template(
-            "superset/sql.html",
-            tables=tables,
-            table_name=table_name,
-            db=mydb)
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
@@ -2121,11 +2371,15 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
         gb_cols = [(col, col) for col in datasource.groupby_column_names]
+        all_cols = [(c, c) for c in datasource.column_names]
         order_by_choices = []
-        for s in sorted(datasource.num_cols):
+        for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-
+        grains = datasource.database.grains()
+        grain_choices = []
+        if grains:
+            grain_choices = [(grain.name, grain.name) for grain in grains]
         field_options = {
             'datasource': [(d.id, d.full_name) for d in datasources],
             'metrics': datasource.metrics_combo,
@@ -2134,18 +2388,20 @@ class Superset(BaseSupersetView):
             'secondary_metric': datasource.metrics_combo,
             'groupby': gb_cols,
             'columns': gb_cols,
-            'all_columns': datasource.column_names,
-            'all_columns_x': datasource.column_names,
-            'all_columns_y': datasource.column_names,
-            'granularity_sqla': datasource.dttm_cols,
+            'all_columns': all_cols,
+            'all_columns_x': all_cols,
+            'all_columns_y': all_cols,
+            'granularity_sqla': [(c, c) for c in datasource.dttm_cols],
+            'time_grain_sqla': grain_choices,
             'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
             'series': gb_cols,
             'entity': gb_cols,
             'x': datasource.metrics_combo,
             'y': datasource.metrics_combo,
             'size': datasource.metrics_combo,
-            'mapbox_label': datasource.column_names,
-            'point_radius': ["Auto"] + datasource.column_names,
+            'mapbox_label': all_cols,
+            'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
+            'filterable_cols': datasource.filterable_column_names,
         }
 
         return Response(
@@ -2155,7 +2411,6 @@ class Superset(BaseSupersetView):
 
     @has_access
     @expose("/queries/<last_updated_ms>")
-    @log_this
     def queries(self, last_updated_ms):
         """Get the updated queries."""
         if not g.user.get_id():
@@ -2263,15 +2518,57 @@ class Superset(BaseSupersetView):
             title=ascii_art.stacktrace,
             art=ascii_art.error), 500
 
-    @has_access
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
         return self.render_template('superset/welcome.html', utils=utils)
 
     @has_access
+    @expose("/profile/<username>/")
+    def profile(self, username):
+        """User profile page"""
+        user = (
+            db.session.query(ab_models.User)
+            .filter_by(username=username)
+            .one()
+        )
+        roles = {}
+        from collections import defaultdict
+        permissions = defaultdict(list)
+        for role in user.roles:
+            perms = []
+            for perm in role.permissions:
+                perms.append(
+                    (perm.permission.name, perm.view_menu.name)
+                )
+                if perm.permission.name in ('datasource_access', 'database_access'):
+                    permissions[perm.permission.name].append(perm.view_menu.name)
+            roles[role.name] = [
+                [perm.permission.name, perm.view_menu.name]
+                for perm in role.permissions
+            ]
+        payload = {
+            'user': {
+                'username': user.username,
+                'firstName': user.first_name,
+                'lastName': user.last_name,
+                'userId': user.id,
+                'isActive': user.is_active(),
+                'createdOn': user.created_on.isoformat(),
+                'email': user.email,
+                'roles': roles,
+                'permissions': permissions,
+            }
+        }
+        return self.render_template(
+            'superset/profile.html',
+            title=user.username + "'s profile",
+            navbar_container=True,
+            bootstrap_data=json.dumps(payload))
+
+    @has_access
     @expose("/sqllab")
-    def sqlanvil(self):
+    def sqllab(self):
         """SQL Editor"""
         return self.render_template('superset/sqllab.html')
 
@@ -2280,6 +2577,7 @@ appbuilder.add_view_no_menu(Superset)
 if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
+        label=__("Refresh Druid Metadata"),
         href='/superset/refresh_datasources/',
         category='Sources',
         category_label=__("Sources"),
@@ -2343,4 +2641,11 @@ app.url_map.converters['regex'] = RegexConverter
 @app.route('/<regex("panoramix\/.*"):url>')
 def panoramix(url):  # noqa
     return redirect(request.full_path.replace('panoramix', 'superset'))
+
+
+@app.route('/<regex("caravel\/.*"):url>')
+def caravel(url):  # noqa
+    return redirect(request.full_path.replace('caravel', 'superset'))
+
+
 # ---------------------------------------------------------------------

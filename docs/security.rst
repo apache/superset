@@ -7,8 +7,19 @@ FAB provides authentication, user management, permissions and roles.
 
 Provided Roles
 --------------
-Superset ships with 3 roles that are handled by Superset itself. You can
-assume that these 3 roles will stay up-to-date as Superset evolves.
+Superset ships with a set of roles that are handled by Superset itself.
+You can assume that these roles will stay up-to-date as Superset evolves.
+Even though it's possible for ``Admin`` usrs to do so, it is not recommended
+that you alter these roles in any way by removing
+or adding permissions to them as these roles will be re-synchronized to
+their original values as you run your next ``superset init`` command.
+
+Since it's not recommended to alter the roles described here, it's right
+to assume that your security strategy should be to compose user access based
+on these base roles and roles that you create. For instance you could
+create a role ``Financial Analyst`` that would be made of set of permissions
+to a set of data sources (tables) and/or databases. Users would then be
+granted ``Gamma``, ``Financial Analyst``, and perhaps ``sql_lab``.
 
 Admin
 """""
@@ -32,6 +43,12 @@ mostly content consumers, though they can create slices and dashboards.
 
 Also note that when Gamma users look at the dashboards and slices list view,
 they will only see the objects that they have access to.
+
+sql_lab
+"""""""
+The ``sql_lab`` role grants access to SQL Lab. Note that while ``Admin``
+users have access to all databases by default, both ``Alpha`` and ``Gamma``
+users need to be given access on a per database basis.
 
 
 Managing Gamma per data source access

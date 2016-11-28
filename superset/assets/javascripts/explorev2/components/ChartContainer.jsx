@@ -1,13 +1,17 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Panel } from 'react-bootstrap';
+import { Panel, Alert } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
+import FaveStar from '../../components/FaveStar';
+import TooltipWrapper from '../../components/TooltipWrapper';
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   can_download: PropTypes.bool.isRequired,
+  slice_id: PropTypes.string.isRequired,
   slice_name: PropTypes.string.isRequired,
   viz_type: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -17,6 +21,10 @@ const propTypes = {
   standalone_endpoint: PropTypes.string.isRequired,
   query: PropTypes.string.isRequired,
   column_formats: PropTypes.object,
+  data: PropTypes.any,
+  isChartLoading: PropTypes.bool,
+  isStarred: PropTypes.bool.isRequired,
+  alert: PropTypes.string,
 };
 
 class ChartContainer extends React.Component {
@@ -29,30 +37,34 @@ class ChartContainer extends React.Component {
   }
 
   componentWillMount() {
-    this.setState({ mockSlice: this.getMockedSliceObject() });
+    this.setState({ mockSlice: this.getMockedSliceObject(this.props) });
   }
 
   componentDidMount() {
     this.renderVis();
   }
 
+  componentWillReceiveProps(nextProps) {
+    this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+  }
+
   componentDidUpdate() {
     this.renderVis();
   }
 
-  getMockedSliceObject() {
+  getMockedSliceObject(props) {
     return {
-      viewSqlQuery: this.props.query,
+      viewSqlQuery: props.query,
 
       data: {
-        csv_endpoint: this.props.csv_endpoint,
-        json_endpoint: this.props.json_endpoint,
-        standalone_endpoint: this.props.standalone_endpoint,
+        csv_endpoint: props.csv_endpoint,
+        json_endpoint: props.json_endpoint,
+        standalone_endpoint: props.standalone_endpoint,
       },
 
-      containerId: this.props.containerId,
+      containerId: props.containerId,
 
-      jsonEndpoint: () => this.props.json_endpoint,
+      jsonEndpoint: () => props.json_endpoint,
 
       container: {
         html: (data) => {
@@ -66,7 +78,7 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(this.props.height, 10) - 100,
+        height: () => parseInt(props.height, 10) - 100,
 
         show: () => { this.render(); },
 
@@ -78,7 +90,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(this.props.height, 10) - 100,
+      height: () => parseInt(props.height, 10) - 100,
 
       selector: this.state.selector,
 
@@ -96,36 +108,25 @@ class ChartContainer extends React.Component {
         // finished rendering callback
       },
 
-      error(msg, xhr) {
-        let errorMsg = msg;
-        let errHtml = '';
-        try {
-          const o = JSON.parse(msg);
-          if (o.error) {
-            errorMsg = o.error;
-          }
-        } catch (e) {
-          // pass
-        }
-        errHtml = `<div class="alert alert-danger">${errorMsg}</div>`;
-        if (xhr) {
-          const extendedMsg = this.getErrorMsg(xhr);
-          if (extendedMsg) {
-            errHtml += `<div class="alert alert-danger">${extendedMsg}</div>`;
-          }
-        }
-        $(this.state.selector).html(errHtml);
-        this.render();
-        $('span.query').removeClass('disabled');
-        $('.query-and-save button').removeAttr('disabled');
+      clearError: () => {
+        // no need to do anything here since Alert is closable
+        // query button will also remove Alert
+      },
+
+      error(msg) {
+        props.actions.chartUpdateFailed(msg);
       },
 
       d3format: (col, number) => {
         // mock d3format function in Slice object in superset.js
-        const format = this.props.column_formats[col];
+        const format = props.column_formats[col];
         return d3format(format, number);
       },
     };
+  }
+
+  removeAlert() {
+    this.props.actions.removeChartAlert();
   }
 
   renderVis() {
@@ -143,6 +144,25 @@ class ChartContainer extends React.Component {
               className="panel-title"
             >
               {this.props.slice_name}
+
+              <FaveStar
+                sliceId={this.props.slice_id}
+                actions={this.props.actions}
+                isStarred={this.props.isStarred}
+              />
+
+              <TooltipWrapper
+                label="edit-desc"
+                tooltip="Edit Description"
+              >
+                <a
+                  className="edit-desc-icon"
+                  href={`/slicemodelview/edit/${this.props.slice_id}`}
+                >
+                  <i className="fa fa-edit" />
+                </a>
+              </TooltipWrapper>
+
               <div className="pull-right">
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
@@ -152,11 +172,25 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
-          <div
-            id={this.props.containerId}
-            ref={(ref) => { this.chartContainerRef = ref; }}
-            className={this.props.viz_type}
-          />
+          {this.props.alert &&
+            <Alert bsStyle="warning">
+              {this.props.alert}
+              <i
+                className="fa fa-close pull-right"
+                onClick={this.removeAlert.bind(this)}
+                style={{ cursor: 'pointer' }}
+              />
+            </Alert>
+          }
+          {this.props.isChartLoading ?
+            (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />)
+            :
+            (<div
+              id={this.props.containerId}
+              ref={(ref) => { this.chartContainerRef = ref; }}
+              className={this.props.viz_type}
+            />)
+          }
         </Panel>
       </div>
     );
@@ -168,6 +202,7 @@ ChartContainer.propTypes = propTypes;
 function mapStateToProps(state) {
   return {
     containerId: `slice-container-${state.viz.form_data.slice_id}`,
+    slice_id: state.viz.form_data.slice_id,
     slice_name: state.viz.form_data.slice_name,
     viz_type: state.viz.form_data.viz_type,
     can_download: state.can_download,
@@ -176,11 +211,11 @@ function mapStateToProps(state) {
     standalone_endpoint: state.viz.standalone_endpoint,
     query: state.viz.query,
     column_formats: state.viz.column_formats,
+    data: state.viz.data,
+    isChartLoading: state.isChartLoading,
+    isStarred: state.isStarred,
+    alert: state.chartAlert,
   };
 }
 
-function mapDispatchToProps() {
-  return {};
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(ChartContainer);
+export default connect(mapStateToProps, () => ({}))(ChartContainer);

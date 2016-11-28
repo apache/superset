@@ -103,6 +103,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         template_processor = get_template_processor(
             database=database, query=query)
         executed_sql = template_processor.process_template(executed_sql)
+        executed_sql = db_engine_spec.sql_preprocessor(executed_sql)
     except Exception as e:
         logging.exception(e)
         msg = "Template rendering failed: " + utils.error_msg_from_exception(e)

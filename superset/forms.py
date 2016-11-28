@@ -134,7 +134,7 @@ class FormFactory(object):
         default_groupby = gb_cols[0] if gb_cols else None
         group_by_choices = self.choicify(gb_cols)
         order_by_choices = []
-        for s in sorted(datasource.num_cols):
+        for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
         # Pool of all the fields that can be used in Superset
@@ -342,6 +342,13 @@ class FormFactory(object):
                 "description": _(
                     "Bottom marging, in pixels, allowing for more room for "
                     "axis labels"),
+            }),
+            'page_length': (FreeFormSelectField, {
+                "label": _("Page Length"),
+                "default": 0,
+                "choices": self.choicify([0, 10, 25, 50, 100, 250, 500]),
+                "description": _(
+                    "Number of rows per page, 0 means no pagination")
             }),
             'granularity': (FreeFormSelectField, {
                 "label": _("Time Granularity"),
@@ -957,8 +964,9 @@ class FormFactory(object):
             'render_while_dragging': (BetterBooleanField, {
                 "label": _("Live render"),
                 "default": True,
-                "description": _("Points and clusters will update as viewport "
-                    "is being changed")
+                "description": _(
+                    "Points and clusters will update as viewport "
+                    "is being changed"),
             }),
             'mapbox_color': (FreeFormSelectField, {
                 "label": _("RGB Color"),

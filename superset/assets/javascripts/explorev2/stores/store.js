@@ -1,3 +1,4 @@
+/* eslint camelcase: 0 */
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 
 export const fieldTypes = [
@@ -104,6 +105,20 @@ export const commonControlPanelSections = {
       ],
     },
   ],
+  filters: [
+    {
+      label: 'Filters',
+      description: 'Filters are defined using comma delimited strings as in <US,FR,Other>' +
+        'Leave the value field empty to filter empty strings or nulls' +
+        'For filters with comma in values, wrap them in single quotes' +
+        "as in <NY, 'Tahoe, CA', DC>",
+    },
+    {
+      label: 'Result Filters',
+      description: 'The filters to apply after post-aggregation.' +
+        'Leave the value field empty to filter empty strings or nulls',
+    },
+  ],
 };
 
 export const visTypes = {
@@ -114,9 +129,12 @@ export const visTypes = {
         label: 'Chart Options',
         description: 'tooltip text here',
         fieldSetRows: [
+          ['metrics'],
+          ['groupby'],
           ['columns'],
           ['row_limit'],
-          ['show_legend', 'show_bar_value', 'bar_stacked'],
+          ['show_legend', 'show_bar_value'],
+          ['bar_stacked', 'order_bars'],
           ['y_axis_format', 'bottom_margin'],
           ['x_axis_label', 'y_axis_label'],
           ['reduce_x_ticks', 'contribution'],
@@ -140,7 +158,7 @@ export const visTypes = {
     controlPanelSections: [
       {
         label: null,
-        fields: [
+        fieldSetRows: [
           ['metrics', 'groupby'],
           ['limit'],
           ['pie_label_type'],
@@ -245,6 +263,7 @@ export const visTypes = {
         fieldSetRows: [
           ['table_timestamp_format'],
           ['row_limit'],
+          ['page_length'],
           ['include_search'],
         ],
       },
@@ -397,6 +416,24 @@ export const visTypes = {
           ['metric'],
           ['compare_lag'],
           ['compare_suffix'],
+          ['y_axis_format'],
+        ],
+      },
+    ],
+    fieldOverrides: {
+      y_axis_format: {
+        label: 'Number format',
+      },
+    },
+  },
+
+  big_number_total: {
+    controlPanelSections: [
+      {
+        label: null,
+        fieldSetRows: [
+          ['metric'],
+          ['subheader'],
           ['y_axis_format'],
         ],
       },
@@ -604,7 +641,7 @@ export const visTypes = {
     label: 'Heatmap',
     controlPanelSections: [
       {
-        label: null,
+        label: 'Axis & Metrics',
         fieldSetRows: [
           ['all_columns_x'],
           ['all_columns_y'],
@@ -728,7 +765,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Metrics',
     choices: [],
-    default: null,
+    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -736,6 +773,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Ordering',
     choices: [],
+    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -810,7 +848,7 @@ export const fields = {
                  'defines how the browser scales up the image',
   },
 
-  x_scale_interval: {
+  xscale_interval: {
     type: 'SelectField',
     label: 'XScale Interval',
     choices: formatSelectOptionsForRange(1, 50),
@@ -819,7 +857,7 @@ export const fields = {
                  'displaying the X scale',
   },
 
-  y_scale_interval: {
+  yscale_interval: {
     type: 'SelectField',
     label: 'YScale Interval',
     choices: formatSelectOptionsForRange(1, 50),
@@ -847,6 +885,13 @@ export const fields = {
     label: 'Bar Values',
     default: false,
     description: 'Show the value on top of the bar',
+  },
+
+  order_bars: {
+    type: 'CheckboxField',
+    label: 'Sort Bars',
+    default: false,
+    description: 'Sort bars by x labels.',
   },
 
   show_controls: {
@@ -902,6 +947,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Group by',
     choices: [],
+    default: [],
     description: 'One or many fields to group by',
   },
 
@@ -909,6 +955,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
     choices: [],
+    default: [],
     description: 'One or many fields to pivot as columns',
   },
 
@@ -916,6 +963,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'Columns',
     choices: [],
+    default: [],
     description: 'Columns to display',
   },
 
@@ -936,7 +984,7 @@ export const fields = {
   },
 
   druid_time_origin: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Origin',
     choices: [
       ['', 'default'],
@@ -948,7 +996,7 @@ export const fields = {
   },
 
   bottom_margin: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Bottom Margin',
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -956,7 +1004,7 @@ export const fields = {
   },
 
   granularity: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Time Granularity',
     default: 'one day',
     choices: formatSelectOptions([
@@ -997,7 +1045,7 @@ export const fields = {
   },
 
   link_length: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Link Length',
     default: '200',
     choices: formatSelectOptions(['10', '25', '50', '75', '100', '150', '200', '250']),
@@ -1035,7 +1083,8 @@ export const fields = {
                  'expression',
   },
 
-  time_grain: {
+  time_grain_sqla: {
+    type: 'SelectField',
     label: 'Time Grain',
     choices: [],
     default: 'Time Column',
@@ -1055,7 +1104,7 @@ export const fields = {
   },
 
   resample_how: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Resample How',
     default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
@@ -1063,7 +1112,7 @@ export const fields = {
   },
 
   resample_fillmethod: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Resample Fill Method',
     default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
@@ -1071,7 +1120,7 @@ export const fields = {
   },
 
   since: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Since',
     default: '7 days ago',
     choices: formatSelectOptions([
@@ -1082,13 +1131,14 @@ export const fields = {
       '28 days ago',
       '90 days ago',
       '1 year ago',
+      '100 year ago',
     ]),
     description: 'Timestamp from filter. This supports free form typing and ' +
                  'natural language as in `1 day ago`, `28 days` or `3 years`',
   },
 
   until: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Until',
     default: 'now',
     choices: formatSelectOptions([
@@ -1102,14 +1152,14 @@ export const fields = {
   },
 
   max_bubble_size: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Max Bubble Size',
     default: '25',
     choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   whisker_options: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Whisker/outlier options',
     default: 'Tukey',
     description: 'Determines how whiskers and outliers are calculated.',
@@ -1129,7 +1179,7 @@ export const fields = {
   },
 
   number_format: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Number format',
     default: D3_TIME_FORMAT_OPTIONS[0],
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -1137,14 +1187,14 @@ export const fields = {
   },
 
   row_limit: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Row limit',
     default: null,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
   limit: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Series limit',
     choices: formatSelectOptions(SERIES_LIMITS),
     default: 50,
@@ -1270,7 +1320,7 @@ export const fields = {
   },
 
   table_timestamp_format: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'Table Timestamp Format',
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -1280,9 +1330,17 @@ export const fields = {
   series_height: {
     type: 'FreeFormSelectField',
     label: 'Series Height',
-    default: 25,
-    choices: formatSelectOptions([10, 25, 40, 50, 75, 100, 150, 200]),
+    default: '25',
+    choices: formatSelectOptions(['10', '25', '40', '50', '75', '100', '150', '200']),
     description: 'Pixel height of each series',
+  },
+
+  page_length: {
+    type: 'FreeFormSelectField',
+    label: 'Page Length',
+    default: 0,
+    choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
+    description: 'Rows per page, 0 means no pagination',
   },
 
   x_axis_format: {
@@ -1513,6 +1571,7 @@ export const fields = {
     type: 'SelectMultipleSortableField',
     label: 'label',
     choices: [],
+    default: [],
     description: '`count` is COUNT(*) if a group by is used. ' +
                  'Numerical columns will be aggregated with the aggregator. ' +
                  'Non-numerical columns will be used to label points. ' +
@@ -1613,7 +1672,7 @@ export const fields = {
   },
 
   mapbox_color: {
-    type: 'SelectField',
+    type: 'FreeFormSelectField',
     label: 'RGB Color',
     default: 'rgb(0, 122, 135)',
     choices: [
@@ -1628,34 +1687,65 @@ export const fields = {
   },
 };
 
-export function defaultFormData() {
+export function sectionsToRender(vizType, datasourceType) {
+  const viz = visTypes[vizType];
+  const timeSection = datasourceType === 'table' ?
+    commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
+  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const sections = [datasourceAndVizType].concat(
+    viz.controlPanelSections, timeSection, sqlClause);
+  return sections;
+}
+
+export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,
+    datasource_name: null,
+    filters: [],
   };
-  Object.keys(fields).forEach((k) => { data[k] = fields[k].default; });
+  const sections = sectionsToRender(vizType, datasourceType);
+  sections.forEach((section) => {
+    section.fieldSetRows.forEach((fieldSetRow) => {
+      fieldSetRow.forEach((k) => {
+        data[k] = fields[k].default;
+      });
+    });
+  });
   return data;
 }
 
-export const defaultViz = {
-  cached_key: null,
-  cached_timeout: null,
-  cached_dttm: null,
-  column_formats: null,
-  csv_endpoint: null,
-  is_cached: false,
-  data: [],
-  form_data: defaultFormData(),
-  json_endpoint: null,
-  query: null,
-  standalone_endpoint: null,
-};
+export function defaultViz(vizType) {
+  return {
+    cached_key: null,
+    cached_timeout: null,
+    cached_dttm: null,
+    column_formats: null,
+    csv_endpoint: null,
+    is_cached: false,
+    data: [],
+    form_data: defaultFormData(vizType),
+    json_endpoint: null,
+    query: null,
+    standalone_endpoint: null,
+  };
+}
 
-export const initialState = {
-  isDatasourceMetaLoading: false,
-  datasources: null,
-  datasource_id: null,
-  datasource_type: null,
-  fields,
-  viz: defaultViz,
-};
+export function initialState(vizType = 'table') {
+  return {
+    dashboards: [],
+    isDatasourceMetaLoading: false,
+    datasources: null,
+    datasource_type: null,
+    filterColumnOpts: [],
+    fields,
+    viz: defaultViz(vizType),
+    isStarred: false,
+  };
+}
+
+// Control Panel fields that re-render chart without need for 'Query button'
+export const autoQueryFields = [
+  'datasource',
+  'viz_type',
+];

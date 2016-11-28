@@ -67,6 +67,8 @@ function nvd3Vis(slice) {
         return;
       }
 
+      slice.clearError();
+
       // Calculates the longest label size for stretching bottom margin
       function calculateStretchMargins(payloadData) {
         let stretchMargin = 0;
@@ -103,7 +105,8 @@ function nvd3Vis(slice) {
       const reduceXTicks = fd.reduce_x_ticks || false;
       let stacked = false;
       let row;
-      nv.addGraph(function () {
+
+      const drawGraph = function () {
         switch (vizType) {
           case 'line':
             if (fd.show_brush) {
@@ -351,8 +354,10 @@ function nvd3Vis(slice) {
         }
 
         return chart;
-      });
+      };
 
+      const graph = drawGraph();
+      nv.addGraph(graph);
       slice.done(payload);
     });
   };

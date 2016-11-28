@@ -127,8 +127,15 @@ function tableVis(slice) {
           return d.val;
         });
       const height = slice.height();
+      let paging = false;
+      let pageLength;
+      if (fd.page_length && fd.page_length > 0) {
+        paging = true;
+        pageLength = parseInt(fd.page_length, 10);
+      }
       const datatable = container.find('.dataTable').DataTable({
-        paging: false,
+        paging,
+        pageLength,
         aaSorting: [],
         searching: fd.include_search,
         bInfo: false,

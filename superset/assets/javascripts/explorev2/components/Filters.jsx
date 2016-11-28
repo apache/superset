@@ -1,107 +1,61 @@
 import React from 'react';
 // import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
-import Select from 'react-select';
+import Filter from './Filter';
 import { Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import * as actions from '../actions/exploreActions';
 import shortid from 'shortid';
 
 const propTypes = {
-  actions: React.PropTypes.object,
+  actions: React.PropTypes.object.isRequired,
   filterColumnOpts: React.PropTypes.array,
   filters: React.PropTypes.array,
+  prefix: React.PropTypes.string,
 };
 
 const defaultProps = {
   filterColumnOpts: [],
   filters: [],
+  prefix: 'flt',
 };
 
 class Filters extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      opOpts: ['in', 'not in'],
-    };
-  }
-  changeField(filter, fieldOpt) {
-    const val = (fieldOpt) ? fieldOpt.value : null;
-    this.props.actions.changeFilterField(filter, val);
-  }
-  changeOp(filter, opOpt) {
-    const val = (opOpt) ? opOpt.value : null;
-    this.props.actions.changeFilterOp(filter, val);
-  }
-  changeValue(filter, value) {
-    this.props.actions.changeFilterValue(filter, value);
-  }
-  removeFilter(filter) {
-    this.props.actions.removeFilter(filter);
-  }
   addFilter() {
     this.props.actions.addFilter({
       id: shortid.generate(),
-      field: null,
+      prefix: this.props.prefix,
+      col: null,
       op: null,
       value: null,
     });
   }
   render() {
-    const filters = this.props.filters.map((filter) => (
-      <div>
-        <Select
-          className="row"
-          multi={false}
-          name="select-column"
-          placeholder="Select column"
-          options={this.props.filterColumnOpts}
-          value={filter.field}
-          autosize={false}
-          onChange={this.changeField.bind(this, filter)}
-        />
-        <div className="row">
-          <Select
-            className="col-sm-3"
-            multi={false}
-            name="select-op"
-            placeholder="Select operator"
-            options={this.state.opOpts.map((o) => ({ value: o, label: o }))}
-            value={filter.op}
-            autosize={false}
-            onChange={this.changeOp.bind(this, filter)}
+    const filters = [];
+    this.props.filters.forEach((filter) => {
+      // only display filters with current prefix
+      if (filter.prefix === this.props.prefix) {
+        filters.push(
+          <Filter
+            filterColumnOpts={this.props.filterColumnOpts}
+            actions={this.props.actions}
+            prefix={this.props.prefix}
+            filter={filter}
           />
-          <div className="col-sm-6">
-            <input
-              type="text"
-              onChange={this.changeValue.bind(this, filter)}
-              className="form-control input-sm"
-              placeholder="Filter value"
-            />
-          </div>
-          <div className="col-sm-3">
+        );
+      }
+    });
+    return (
+      <div>
+        {filters}
+        <div className="row space-2">
+          <div className="col-lg-2">
             <Button
-              bsStyle="primary"
-              onClick={this.removeFilter.bind(this, filter)}
+              id="add-button"
+              bsSize="sm"
+              onClick={this.addFilter.bind(this)}
             >
-              <i className="fa fa-minus" />
+              <i className="fa fa-plus" /> &nbsp; Add Filter
             </Button>
           </div>
-        </div>
-      </div>
-      )
-    );
-    return (
-      <div className="panel space-1">
-        <div className="panel-header">Filters</div>
-        <div className="panel-body">
-          {filters}
-          <Button
-            bsStyle="primary"
-            onClick={this.addFilter.bind(this)}
-          >
-            <i className="fa fa-plus" />Add Filter
-          </Button>
         </div>
       </div>
     );
@@ -114,14 +68,9 @@ Filters.defaultProps = defaultProps;
 function mapStateToProps(state) {
   return {
     filterColumnOpts: state.filterColumnOpts,
-    filters: state.filters,
+    filters: state.viz.form_data.filters,
   };
 }
 
-function mapDispatchToProps(dispatch) {
-  return {
-    actions: bindActionCreators(actions, dispatch),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(Filters);
+export { Filters };
+export default connect(mapStateToProps, () => ({}))(Filters);

@@ -23,6 +23,8 @@ CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
+conf = app.config
+
 if not app.debug:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())

@@ -19,10 +19,15 @@ class Header extends React.PureComponent {
     return (
       <div className="title">
         <div className="pull-left">
-          <h1>{dashboard.dashboard_title}</h1>
+          <h1>
+            {dashboard.dashboard_title} &nbsp;
+            <span is class="favstar" class_name="Dashboard" obj_id={dashboard.id} />
+          </h1>
         </div>
         <div className="pull-right">
+        {!this.props.dashboard.context.standalone_mode &&
           <Controls dashboard={dashboard} />
+        }
         </div>
         <div className="clearfix" />
       </div>
