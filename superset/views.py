@@ -1639,31 +1639,62 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/copy_dash/<dashboard_id>/", methods=['GET', 'POST'])
+    def copy_dash(self, dashboard_id):
+        """Copy dashboard"""
+        session = db.session()
+        data = json.loads(request.form.get('data'))
+        dash = models.Dashboard()
+        original_dash = (session
+                         .query(models.Dashboard)
+                         .filter_by(id=dashboard_id).first())
+
+        dash.owners = [g.user] if g.user else []
+        dash.dashboard_title = data['dashboard_title']
+        dash.slices = original_dash.slices
+        dash.params = original_dash.params
+
+        self._set_dash_metadata(dash, data)
+        session.add(dash)
+        session.commit()
+        dash_json = dash.json_data
+        session.close()
+        return Response(
+            dash_json, mimetype="application/json")
+
+    @api
+    @has_access_api
     @expose("/save_dash/<dashboard_id>/", methods=['GET', 'POST'])
     def save_dash(self, dashboard_id):
         """Save a dashboard's metadata"""
+        session = db.session()
+        dash = (session
+                .query(models.Dashboard)
+                .filter_by(id=dashboard_id).first())
+        check_ownership(dash, raise_if_false=True)
         data = json.loads(request.form.get('data'))
+        self._set_dash_metadata(dash, data)
+        session.merge(dash)
+        session.commit()
+        session.close()
+        return "SUCCESS"
+
+    @staticmethod
+    def _set_dash_metadata(dashboard, data):
         positions = data['positions']
         slice_ids = [int(d['slice_id']) for d in positions]
-        session = db.session()
-        Dash = models.Dashboard  # noqa
-        dash = session.query(Dash).filter_by(id=dashboard_id).first()
-        check_ownership(dash, raise_if_false=True)
-        dash.slices = [o for o in dash.slices if o.id in slice_ids]
+        dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
-        dash.position_json = json.dumps(positions, indent=4, sort_keys=True)
-        md = dash.params_dict
+        dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+        md = dashboard.params_dict
+        dashboard.css = data['css']
+
         if 'filter_immune_slices' not in md:
             md['filter_immune_slices'] = []
         if 'filter_immune_slice_fields' not in md:
             md['filter_immune_slice_fields'] = {}
         md['expanded_slices'] = data['expanded_slices']
-        dash.json_metadata = json.dumps(md, indent=4)
-        dash.css = data['css']
-        session.merge(dash)
-        session.commit()
-        session.close()
-        return "SUCCESS"
+        dashboard.json_metadata = json.dumps(md, indent=4)
 
     @api
     @has_access_api
