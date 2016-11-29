@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend, security,
+    sm, sql_lab, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -2542,12 +2542,10 @@ class Superset(BaseSupersetView):
 
     @app.errorhandler(500)
     def show_traceback(self):
-        error_msg = get_error_msg()
         return render_template(
             'superset/traceback.html',
-            error_msg=error_msg,
-            title=ascii_art.stacktrace,
-            art=ascii_art.error), 500
+            error_msg=get_error_msg(),
+        ), 500
 
     @expose("/welcome")
     def welcome(self):
