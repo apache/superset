@@ -7,7 +7,7 @@ PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 
 
 # TODO: some sql_lab logic here.
-class SupersetQuery:
+class SupersetQuery(object):
     def __init__(self, sql_statement):
         self._tokens = []
         self._sql = sql_statement
@@ -49,7 +49,8 @@ class SupersetQuery:
 
     @staticmethod
     def __is_identifier(token):
-        return isinstance(token, IdentifierList) or isinstance(token, Identifier)
+        return (
+            isinstance(token, IdentifierList) or isinstance(token, Identifier))
 
     def __process_identifier(self, identifier):
         # exclude subselects

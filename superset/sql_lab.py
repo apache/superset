@@ -24,7 +24,7 @@ def create_table_as(sql, table_name, schema=None, override=False):
 
     Works only for the single select SQL statements, in all other cases
     the sql query is not modified.
-    :param sql: string, sql query that will be executed
+    :param superset_query: string, sql query that will be executed
     :param table_name: string, will contain the results of the query execution
     :param override, boolean, table table_name will be dropped if true
     :return: string, create table as query
@@ -37,12 +37,9 @@ def create_table_as(sql, table_name, schema=None, override=False):
     if schema:
         table_name = schema + '.' + table_name
     exec_sql = ''
-    if is_query_select(sql):
-        if override:
-            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-        exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
-    else:
-        raise Exception("Could not generate CREATE TABLE statement")
+    if override:
+        exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
+    exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
     return exec_sql.format(**locals())
 
 
