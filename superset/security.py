@@ -30,6 +30,7 @@ ADMIN_ONLY_VIEW_MENUES = {
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
     'datasource_access',
+    'schema_access',
     'database_access',
     'can_sql_json',
     'can_override_role_permissions',
@@ -50,6 +51,7 @@ ALPHA_ONLY_PERMISSIONS = set([
     'can_edit',
     'can_save',
     'datasource_access',
+    'schema_access',
     'database_access',
     'muldelete',
     'all_datasource_access',
@@ -59,6 +61,7 @@ READ_ONLY_PRODUCT = set(
 
 OBJECT_SPEC_PERMISSIONS = set([
     'database_access',
+    'schema_access',
     'datasource_access',
     'metric_access',
 ])
@@ -186,6 +189,9 @@ def sync_role_definitions():
     for datasource in datasources:
         perm = datasource.get_perm()
         sm.add_permission_view_menu('datasource_access', perm)
+        if datasource.schema:
+            sm.add_permission_view_menu(
+                'schema_access', datasource.schema_perm)
         if perm != datasource.perm:
             datasource.perm = perm
 
