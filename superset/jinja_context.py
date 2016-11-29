@@ -16,7 +16,6 @@ import random
 
 from superset import app
 from superset.utils import SupersetTemplateException
-from flask import g
 
 config = app.config
 BASE_CONTEXT = {
@@ -55,9 +54,6 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        self.context = {
-            'user': g.user,
-        }
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
