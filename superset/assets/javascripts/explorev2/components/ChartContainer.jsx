@@ -154,19 +154,6 @@ class ChartContainer extends React.Component {
               id="slice-header"
               className="clearfix panel-title-large"
             >
-              <FaveStar
-                sliceId={this.props.slice_id}
-                actions={this.props.actions}
-                isStarred={this.props.isStarred}
-              />
-
-              <TooltipWrapper
-                label="edit-desc"
-                tooltip="Edit Description"
-              >
-                <i className="fa fa-edit" />
-              </TooltipWrapper>
-
               {this.renderChartTitle()}
 
               {this.props.slice_id &&
