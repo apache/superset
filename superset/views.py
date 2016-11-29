@@ -1451,11 +1451,14 @@ class Superset(BaseSupersetView):
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())
             }
+            table_name = viz_obj.datasource.table_name \
+                if datasource_type == 'table' \
+                else viz_obj.datasource.datasource_name
             return self.render_template(
                 "superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
                 slice=slc,
-                table_name=viz_obj.datasource.table_name)
+                table_name=table_name)
         else:
             return self.render_template(
                 "superset/explore.html",
