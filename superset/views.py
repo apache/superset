@@ -40,6 +40,7 @@ from superset import (
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
+from superset.widgets import CsvListWidget
 
 config = app.config
 log_this = models.Log.log_this
@@ -522,6 +523,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'changed_by',
         'changed_on',
     ]
+    list_widget = CsvListWidget
     add_template = "superset/models/database/add.html"
     edit_template = "superset/models/database/edit.html"
     base_order = ('changed_on', 'desc')
