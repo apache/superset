@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, ascii_art, sql_lab, results_backend, security,
+    sm, sql_lab, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -61,10 +61,16 @@ class BaseSupersetView(BaseView):
             self.can_access("database_access", database.perm)
         )
 
-    def datasource_access(self, datasource):
+    def schema_access(self, datasource):
         return (
             self.database_access(datasource.database) or
             self.all_datasource_access() or
+            self.can_access("schema_access", datasource.schema_perm)
+        )
+
+    def datasource_access(self, datasource):
+        return (
+            self.schema_access(datasource) or
             self.can_access("datasource_access", datasource.perm)
         )
 
@@ -575,6 +581,9 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security.merge_perm(sm, 'database_access', db.perm)
+        for schema in db.all_schema_names():
+            security.merge_perm(
+                sm, 'schema_access', utils.get_schema_perm(db, schema))
 
     def pre_update(self, db):
         self.pre_add(db)
@@ -685,6 +694,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_add(self, table):
         table.fetch_metadata()
         security.merge_perm(sm, 'datasource_access', table.perm)
+        if table.schema:
+            security.merge_perm(sm, 'schema_access', table.schema_perm)
+
         flash(_(
             "The table was created. As part of this two phase configuration "
             "process, you should now click the edit button by "
@@ -1049,6 +1061,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_add(self, datasource):
         datasource.generate_metrics()
         security.merge_perm(sm, 'datasource_access', datasource.perm)
+        if datasource.schema:
+            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
@@ -1451,11 +1465,14 @@ class Superset(BaseSupersetView):
                 "user_id": g.user.get_id() if g.user else None,
                 "viz": json.loads(viz_obj.get_json())
             }
+            table_name = viz_obj.datasource.table_name \
+                if datasource_type == 'table' \
+                else viz_obj.datasource.datasource_name
             return self.render_template(
                 "superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
-                slice_name=slc.slice_name,
-                table_name=viz_obj.datasource.table_name)
+                slice=slc,
+                table_name=table_name)
         else:
             return self.render_template(
                 "superset/explore.html",
@@ -2542,12 +2559,10 @@ class Superset(BaseSupersetView):
 
     @app.errorhandler(500)
     def show_traceback(self):
-        error_msg = get_error_msg()
         return render_template(
             'superset/traceback.html',
-            error_msg=error_msg,
-            title=ascii_art.stacktrace,
-            art=ascii_art.error), 500
+            error_msg=get_error_msg(),
+        ), 500
 
     @expose("/welcome")
     def welcome(self):

@@ -21,7 +21,6 @@ import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.ext.hybrid import hybrid_property
 
 import sqlparse
 from dateutil.parser import parse
@@ -908,6 +907,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         return Markup(
             '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
 
+    @property
+    def schema_perm(self):
+        """Returns schema permission if present, database one otherwise."""
+        return utils.get_schema_perm(self.database, self.schema)
+
     def get_perm(self):
         return (
             "[{obj.database}].[{obj.table_name}]"
@@ -1063,9 +1067,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
             dttm_col = cols[granularity]
             time_grain = extras.get('time_grain_sqla')
-            timestamp = dttm_col.get_timestamp_expression(time_grain)
 
             if is_timeseries:
+                timestamp = dttm_col.get_timestamp_expression(time_grain)
                 select_exprs += [timestamp]
                 groupby_exprs += [timestamp]
 
@@ -1119,7 +1123,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         qry = qry.limit(row_limit)
 
-        if timeseries_limit and groupby:
+        if is_timeseries and timeseries_limit and groupby:
             # some sql dialects require for order by expressions
             # to also be in the select clause
             inner_select_exprs += [main_metric_expr]
@@ -1626,6 +1630,19 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     def name(self):
         return self.datasource_name
 
+    @property
+    def schema(self):
+        name_pieces = self.datasource_name.split('.')
+        if len(name_pieces) > 1:
+            return name_pieces[0]
+        else:
+            return None
+
+    @property
+    def schema_perm(self):
+        """Returns schema permission if present, cluster one otherwise."""
+        return utils.get_schema_perm(self.cluster, self.schema)
+
     def get_perm(self):
         return (
             "[{obj.cluster_name}].[{obj.datasource_name}]"
@@ -2040,7 +2057,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1:
+        elif len(groupby) > 1 or having_filters:
+            # If grouping on multiple fields or using a having filter
+            # we have to force a groupby query
             if timeseries_limit and is_timeseries:
                 order_by = metrics[0] if metrics else self.metrics[0]
                 if timeseries_limit_metric:
@@ -2561,7 +2580,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
 
-    ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
+    ROLES_BLACKLIST = set(config.get('ROBOT_PERMISSION_ROLES', []))
 
     @property
     def cls_model(self):
