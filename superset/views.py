@@ -508,7 +508,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
         'allow_ctas', 'allow_dml', 'force_ctas_schema']
-
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     show_columns = [
@@ -579,12 +578,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 
     def pre_update(self, db):
         self.pre_add(db)
-
-    # @has_access
-    # @expose('/method1/')
-    # def method1(self):
-    #     return 'Hello'
-
 
 appbuilder.add_link(
     'Import Dashboards',
