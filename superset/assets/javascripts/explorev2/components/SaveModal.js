@@ -4,7 +4,7 @@ import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
-import { getParamObject } from '../../modules/utils.js';
+import { getParamObject } from '../exploreUtils';
 
 const propTypes = {
   can_edit: PropTypes.bool,
