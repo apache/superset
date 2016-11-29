@@ -10,11 +10,11 @@ PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 class SupersetQuery(object):
     def __init__(self, sql_statement):
         self._tokens = []
-        self._sql = sql_statement
+        self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
         # TODO: multistatement support
-        for statement in sqlparse.parse(self._sql):
+        for statement in sqlparse.parse(self.sql):
             self.__extract_from_token(statement)
         self._table_names = self._table_names - self._alias_names
 
@@ -24,7 +24,7 @@ class SupersetQuery(object):
 
     # TODO: use sqlparse for this check.
     def is_select(self):
-        return self._sql.upper().startswith('SELECT')
+        return self.sql.upper().startswith('SELECT')
 
     @staticmethod
     def __precedes_table_name(token_value):
