@@ -205,6 +205,7 @@ class SupersetTestCase(unittest.TestCase):
         dbid = self.get_main_database(db.session).id
         resp = self.get_json_resp(
             '/superset/sql_json/',
+            raise_on_error=False,
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
                       client_id=client_id),
         )
