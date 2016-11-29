@@ -6,7 +6,7 @@ import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
 import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
-import { areObjectsEqual } from '../../reduxUtils';
+import { areArraysShallowEqual } from '../../reduxUtils';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -37,6 +37,7 @@ class TabbedSqlEditors extends React.PureComponent {
       cleanUri,
       query,
       queriesArray: [],
+      dataPreviewQueries: [],
       hideLeftBar: false,
     };
   }
@@ -56,16 +57,26 @@ class TabbedSqlEditors extends React.PureComponent {
     }
   }
   componentWillReceiveProps(nextProps) {
-    const activeQeId = this.props.tabHistory[this.props.tabHistory.length - 1];
-    const newActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
-    if (activeQeId !== newActiveQeId || !areObjectsEqual(this.props.queries, nextProps.queries)) {
-      const queriesArray = [];
-      for (const id in this.props.queries) {
-        if (this.props.queries[id].sqlEditorId === newActiveQeId) {
-          queriesArray.push(this.props.queries[id]);
-        }
+    const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
+    const queriesArray = [];
+    for (const id in nextProps.queries) {
+      if (nextProps.queries[id].sqlEditorId === nextActiveQeId) {
+        queriesArray.push(nextProps.queries[id]);
       }
+    }
+    if (!areArraysShallowEqual(queriesArray, this.state.queriesArray)) {
       this.setState({ queriesArray });
+    }
+
+    const dataPreviewQueries = [];
+    nextProps.tables.forEach((table) => {
+      const queryId = table.dataPreviewQueryId;
+      if (queryId && nextProps.queries[queryId] && table.queryEditorId === nextActiveQeId) {
+        dataPreviewQueries.push(nextProps.queries[queryId]);
+      }
+    });
+    if (!areArraysShallowEqual(dataPreviewQueries, this.state.dataPreviewQueries)) {
+      this.setState({ dataPreviewQueries });
     }
   }
   renameTab(qe) {
@@ -124,14 +135,6 @@ class TabbedSqlEditors extends React.PureComponent {
       }
       const state = (latestQuery) ? latestQuery.state : '';
 
-      const dataPreviewQueries = [];
-      this.props.tables.forEach((table) => {
-        const queryId = table.dataPreviewQueryId;
-        if (queryId && this.props.queries[queryId] && table.queryEditorId === qe.id) {
-          dataPreviewQueries.push(this.props.queries[queryId]);
-        }
-      });
-
       const tabTitle = (
         <div>
           <div className={'circle ' + state} /> {qe.title} {' '}
@@ -173,7 +176,7 @@ class TabbedSqlEditors extends React.PureComponent {
                   tables={this.props.tables.filter((t) => (t.queryEditorId === qe.id))}
                   queryEditor={qe}
                   editorQueries={this.state.queriesArray}
-                  dataPreviewQueries={dataPreviewQueries}
+                  dataPreviewQueries={this.state.dataPreviewQueries}
                   latestQuery={latestQuery}
                   database={database}
                   actions={this.props.actions}
