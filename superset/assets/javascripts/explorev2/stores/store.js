@@ -1715,7 +1715,7 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   return data;
 }
 
-export function defaultViz(vizType) {
+export function defaultViz(vizType, datasourceType = 'table') {
   return {
     cached_key: null,
     cached_timeout: null,
@@ -1724,14 +1724,14 @@ export function defaultViz(vizType) {
     csv_endpoint: null,
     is_cached: false,
     data: [],
-    form_data: defaultFormData(vizType),
+    form_data: defaultFormData(vizType, datasourceType),
     json_endpoint: null,
     query: null,
     standalone_endpoint: null,
   };
 }
 
-export function initialState(vizType = 'table') {
+export function initialState(vizType = 'table', datasourceType = 'table') {
   return {
     dashboards: [],
     isDatasourceMetaLoading: false,
@@ -1739,7 +1739,7 @@ export function initialState(vizType = 'table') {
     datasource_type: null,
     filterColumnOpts: [],
     fields,
-    viz: defaultViz(vizType),
+    viz: defaultViz(vizType, datasourceType),
     isStarred: false,
   };
 }

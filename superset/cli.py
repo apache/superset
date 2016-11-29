@@ -13,7 +13,7 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, ascii_art, db, data, security
+from superset import app, db, data, security
 
 config = app.config
 
@@ -70,11 +70,10 @@ def init():
 def version(verbose):
     """Prints the current version number"""
     s = (
-        "\n{boat}\n\n"
-        "-----------------------\n"
+        "\n-----------------------\n"
         "Superset {version}\n"
         "-----------------------").format(
-        boat=ascii_art.boat, version=config.get('VERSION_STRING'))
+        version=config.get('VERSION_STRING'))
     print(s)
     if verbose:
         print("[DB] : " + "{}".format(db.engine))
