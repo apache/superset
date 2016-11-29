@@ -2561,7 +2561,7 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     datasource_id = Column(Integer)
     datasource_type = Column(String(200))
 
-    ROLES_BLACKLIST = set(['Admin', 'Alpha', 'Gamma', 'Public'])
+    ROLES_BLACKLIST = set(config.get('ROBOT_PERMISSION_ROLES', []))
 
     @property
     def cls_model(self):
