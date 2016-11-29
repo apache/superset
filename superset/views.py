@@ -581,6 +581,9 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_add(self, db):
         db.set_sqlalchemy_uri(db.sqlalchemy_uri)
         security.merge_perm(sm, 'database_access', db.perm)
+        for schema in db.all_schema_names():
+            security.merge_perm(
+                sm, 'schema_access', utils.get_schema_perm(db, schema))
 
     def pre_update(self, db):
         self.pre_add(db)
@@ -691,6 +694,9 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_add(self, table):
         table.fetch_metadata()
         security.merge_perm(sm, 'datasource_access', table.perm)
+        if table.schema:
+            security.merge_perm(sm, 'schema_access', table.schema_perm)
+
         flash(_(
             "The table was created. As part of this two phase configuration "
             "process, you should now click the edit button by "
@@ -1055,6 +1061,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     def post_add(self, datasource):
         datasource.generate_metrics()
         security.merge_perm(sm, 'datasource_access', datasource.perm)
+        if datasource.schema:
+            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
 
     def post_update(self, datasource):
         self.post_add(datasource)
