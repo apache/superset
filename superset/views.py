@@ -1452,7 +1452,8 @@ class Superset(BaseSupersetView):
                 "viz": json.loads(viz_obj.get_json())
             }
             table_name = viz_obj.datasource.table_name \
-                if datasource_type == 'table' else viz_obj.datasource.datasource_name
+                if datasource_type == 'table' \
+                else viz_obj.datasource.datasource_name
             return self.render_template(
                 "superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
