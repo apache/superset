@@ -508,6 +508,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
         'allow_ctas', 'allow_dml', 'force_ctas_schema']
+
     search_exclude_columns = ('password',)
     edit_columns = add_columns
     show_columns = [
@@ -579,6 +580,11 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    # @has_access
+    # @expose('/method1/')
+    # def method1(self):
+    #     return 'Hello'
+
 
 appbuilder.add_link(
     'Import Dashboards',
@@ -615,6 +621,59 @@ class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
+# TODO: Add CSV import wizard/forms
+# add_csv_columns = [
+#     'csv_name', 'database_name', ''
+# ]  # NOTE: these are the wizard columns when adding a csv file as a new database
+# edit_csv_columns = add_csv_columns  # NOTE these are the wizard columns when adding a csv file as a new database
+
+# Just add new upload icon to the database view?
+
+#
+# class FileView(SupersetModelView, DeleteMixin):  #noqa
+#     datamodel = SQLAInterface(models.File)
+#     list_columns = ['file_name', 'creator', 'changed_on_']
+#     add_columns = ['file_name', 'file_path']
+#     search_exclude_columns = ('password',)
+#     edit_columns = add_columns
+#     show_columns = ['file_name', 'created_by', 'created_on', 'changed_by', 'changed_on']
+#     add_template = "superset/models/database/add.html"  # change to file add
+#     edit_template = "superset/models/database/edit.html"  # change to file add
+#     base_order = ('changed_on', 'desc')
+#     description_columns = {}
+#     label_columns = {
+#         'file_name': _("Database"),
+#         'creator': _("Creator"),
+#         'changed_on_': _("Last Changed"),
+#     }
+#
+#     @expose("/files", methods=['GET', 'POST'])
+#     @log_this
+#     def import_dashboards(self):
+#         """Overrides the dashboards using pickled instances from the file."""
+#         f = request.files.get('file')
+#         if request.method == 'POST' and f:
+#             current_tt = int(time.time())
+#             data = pickle.load(f)
+#             for table in data['datasources']:
+#                 models.SqlaTable.import_obj(table, import_time=current_tt)
+#             for dashboard in data['dashboards']:
+#                 models.Dashboard.import_obj(
+#                     dashboard, import_time=current_tt)
+#             db.session.commit()
+#             return redirect('/dashboardmodelview/list/')
+#         return self.render_template('superset/import_dashboards.html')
+#
+#
+# appbuilder.add_view(
+#     FileView,
+#     "Files",
+#     label=__("Files"),
+#     icon="fa-database",
+#     category="Sources",
+#     category_label=__("Sources"),
+#     category_icon='fa-database', )
 
 
 class TableModelView(SupersetModelView, DeleteMixin):  # noqa
