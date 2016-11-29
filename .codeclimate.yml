@@ -27,7 +27,6 @@ exclude_paths:
 - "**.gz"
 - "env/"
 - "tests/"
-- "superset/ascii_art.py"
 - "superset/assets/images/"
 - "superset/assets/vendor/"
 - "superset/assets/node_modules/"

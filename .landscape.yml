@@ -17,7 +17,6 @@ pep8:
 ignore-paths:
     - docs
     - superset/migrations/env.py
-    - superset/ascii_art.py
 ignore-patterns:
     - ^example/doc_.*\.py$
     - (^|/)docs(/|$)

@@ -64,6 +64,12 @@ OBJECT_SPEC_PERMISSIONS = set([
 ])
 
 
+def merge_perm(sm, permission_name, view_menu_name):
+    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
+    if not pv:
+        sm.add_permission_view_menu(permission_name, view_menu_name)
+
+
 def is_user_defined_permission(perm):
     return perm.permission.name in OBJECT_SPEC_PERMISSIONS
 
