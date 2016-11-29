@@ -21,7 +21,6 @@ import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.ext.hybrid import hybrid_property
 
 import sqlparse
 from dateutil.parser import parse
@@ -2040,7 +2039,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             del qry['dimensions']
             qry['metric'] = list(qry['aggregations'].keys())[0]
             client.topn(**qry)
-        elif len(groupby) > 1:
+        elif len(groupby) > 1 or having_filters:
+            # If grouping on multiple fields or using a having filter
+            # we have to force a groupby query
             if timeseries_limit and is_timeseries:
                 order_by = metrics[0] if metrics else self.metrics[0]
                 if timeseries_limit_metric:
