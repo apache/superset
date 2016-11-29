@@ -2151,7 +2151,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 tzinfo=config.get("DRUID_TZ"))
             return dt + timedelta(milliseconds=time_offset)
         if DTTM_ALIAS in df.columns and time_offset:
-            df.timestamp = df.timestamp.apply(increment_timestamp)
+            df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(increment_timestamp)
 
         return QueryResult(
             df=df,
