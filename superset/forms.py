@@ -998,7 +998,7 @@ class FormFactory(object):
             }),
             'pie_half_circle': (BetterBooleanField, {
                 "label": _("Half circle"),
-                "default": True,
+                "default": False,
                 "description": _("Half Circle mark of default viewport."
                                  "is being changed")
             }),
