@@ -54,6 +54,7 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
+        self.context = {}
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
