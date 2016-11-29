@@ -204,7 +204,7 @@ class ChartContainer extends React.Component {
               id={this.props.containerId}
               ref={(ref) => { this.chartContainerRef = ref; }}
               className={this.props.viz_type}
-              style={{ overflow: 'scroll' }}
+              style={{ 'overflow-x': 'scroll' }}
             />)
           }
         </Panel>
