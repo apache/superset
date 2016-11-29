@@ -34,7 +34,6 @@ from superset.utils import flasher, DTTM_ALIAS
 
 config = app.config
 
-
 class BaseViz(object):
 
     """All visualizations derive this base class"""
