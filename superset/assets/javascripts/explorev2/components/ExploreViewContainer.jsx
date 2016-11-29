@@ -8,7 +8,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/store';
-import { getParamObject } from '../../modules/utils.js';
+import { getParamObject } from '../exploreUtils';
 
 const $ = require('jquery');
 
