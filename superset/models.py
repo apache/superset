@@ -21,7 +21,6 @@ import requests
 import sqlalchemy as sqla
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import subqueryload
-from sqlalchemy.ext.hybrid import hybrid_property
 
 import sqlparse
 from dateutil.parser import parse
