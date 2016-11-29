@@ -665,6 +665,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
+    type = "table"
 
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
@@ -1524,6 +1525,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
+    type = "druid"
 
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)

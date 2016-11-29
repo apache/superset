@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, sql_lab, results_backend, security,
+    sm, sql_lab, sql_parse, results_backend, security,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -73,6 +73,18 @@ class BaseSupersetView(BaseView):
             self.schema_access(datasource) or
             self.can_access("datasource_access", datasource.perm)
         )
+
+    def datasource_access_by_name(
+            self, database, datasource_name, schema=None):
+        if (self.database_access(database) or
+                self.all_datasource_access()):
+            return True
+        datasources = SourceRegistry.query_datasources_by_name(
+            db.session, database, datasource_name, schema=schema)
+        for datasource in datasources:
+            if self.can_access("datasource_access", datasource.perm):
+                return True
+        return False
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -2303,27 +2315,45 @@ class Superset(BaseSupersetView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
+        def table_accessible(database, full_table_name, schema_name=None):
+            table_name_pieces = full_table_name.split(".")
+            if len(table_name_pieces) == 2:
+                table_schema = table_name_pieces[0]
+                table_name = table_name_pieces[1]
+            else:
+                table_schema = schema_name
+                table_name = table_name_pieces[0]
+            return self.datasource_access_by_name(
+                database, table_name, schema=table_schema)
+
         async = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
 
         session = db.session()
-        mydb = session.query(models.Database).filter_by(id=database_id).first()
+        mydb = session.query(models.Database).filter_by(id=database_id).one()
 
         if not mydb:
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
-        if not self.database_access(mydb):
+        superset_query = sql_parse.SupersetQuery(sql)
+        schema = request.form.get('schema')
+        schema = schema if schema else None
+
+        rejected_tables = [
+            t for t in superset_query.tables if not
+            table_accessible(mydb, t, schema_name=schema)]
+        if rejected_tables:
             json_error_response(
-                get_database_access_error_msg(mydb.database_name))
+                get_datasource_access_error_msg('{}'.format(rejected_tables)))
         session.commit()
 
         query = models.Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
             sql=sql,
-            schema=request.form.get('schema'),
+            schema=schema,
             select_as_cta=request.form.get('select_as_cta') == 'true',
             start_time=utils.now_as_float(),
             tab_name=request.form.get('tab'),
@@ -2341,7 +2371,8 @@ class Superset(BaseSupersetView):
         if async:
             # Ignore the celery future object and the request may time out.
             sql_lab.get_sql_results.delay(
-                query_id, return_results=False, store_results=not query.select_as_cta)
+                query_id, return_results=False,
+                store_results=not query.select_as_cta)
             return Response(
                 json.dumps({'query': query.to_dict()},
                            default=utils.json_int_dttm_ser,
