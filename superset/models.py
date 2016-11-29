@@ -422,6 +422,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
+    refresh_frequency = Column(Integer, default=0)
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
