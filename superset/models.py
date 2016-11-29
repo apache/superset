@@ -910,7 +910,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def schema_perm(self):
-        return "[{obj.database}].[{obj.schema}]".format(obj=self)
+        """Returns schema permission if present, database one otherwise."""
+        if self.schema:
+            return "[{obj.database}].[{obj.schema}]".format(obj=self)
+        return self.database.perm
 
     def get_perm(self):
         return (
@@ -1631,9 +1634,19 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         return self.datasource_name
 
     @property
+    def schema(self):
+        name_pieces = self.datasource_name.split('.')
+        if len(name_pieces) > 1:
+            return name_pieces[0]
+        else:
+            return None
+
+    @property
     def schema_perm(self):
-        """Is not used. Created for consistency with SqlaTable."""
-        return "[{obj.database}]".format(obj=self)
+        """Returns schema permission if present, cluster one otherwise."""
+        if self.schema:
+            return "[{obj.database}].[{obj.schema}]".format(obj=self)
+        return self.cluster.perm
 
     def get_perm(self):
         return (
