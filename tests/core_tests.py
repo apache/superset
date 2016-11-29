@@ -478,6 +478,23 @@ class CoreTests(SupersetTestCase):
 
     def test_user_profile(self):
         self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        # Setting some faves
+        url = '/superset/favstar/Slice/{}/select/'.format(slc.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
+        dash = (
+            db.session
+            .query(models.Dashboard)
+            .filter_by(slug="births")
+            .first()
+        )
+        url = '/superset/favstar/Dashboard/{}/select/'.format(dash.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
         userid = appbuilder.sm.find_user('admin').id
         resp = self.get_resp('/superset/profile/admin/')
         self.assertIn('"app"', resp)
