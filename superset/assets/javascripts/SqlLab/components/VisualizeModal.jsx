@@ -125,8 +125,16 @@ class VisualizeModal extends React.PureComponent {
     this.setState({ columns }, this.validate);
   }
   render() {
-    if (!(this.props.query)) {
-      return <div />;
+    if (!(this.props.query) || !(this.props.query.results)) {
+      return (
+        <div className="VisualizeModal">
+          <Modal show={this.props.show} onHide={this.props.onHide}>
+            <Modal.Body>
+              No results available for this query
+            </Modal.Body>
+          </Modal>
+        </div>
+      );
     }
     const tableData = this.props.query.results.columns.map((col) => ({
       column: col.name,
