@@ -253,8 +253,8 @@ CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
 
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
-        # Explicitly import config module that is not in pythonpath; useful for case where
-        # app is being executed via pex.
+        # Explicitly import config module that is not in pythonpath; useful
+        # for case where app is being executed via pex.
         imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
 
     from superset_config import *  # noqa
