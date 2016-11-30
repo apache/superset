@@ -59,6 +59,8 @@ class BaseTemplateProcessor(object):
             self.context = {
                 'user': g.user
             }
+        else:
+            self.context = {}
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
