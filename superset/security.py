@@ -45,11 +45,6 @@ READ_ONLY_PERMISSION = {
 }
 
 ALPHA_ONLY_PERMISSIONS = set([
-    'can_add',
-    'can_download',
-    'can_delete',
-    'can_edit',
-    'can_save',
     'datasource_access',
     'schema_access',
     'database_access',
