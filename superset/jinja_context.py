@@ -71,6 +71,7 @@ class BaseTemplateProcessor(object):
         self.context.update({
             'user': g.user,
         })
+        
         template = self.env.from_string(sql)
         return template.render(self.context)
 
