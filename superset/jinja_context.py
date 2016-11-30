@@ -55,9 +55,7 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        self.context = {
-            'user': g.user,
-        }
+        self.context = {}
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
@@ -70,6 +68,9 @@ class BaseTemplateProcessor(object):
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
+        self.context.update({
+            'user': g.user,
+        })
         template = self.env.from_string(sql)
         return template.render(self.context)
 
