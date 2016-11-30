@@ -13,6 +13,7 @@ import time
 import textwrap
 import uuid
 import random
+from flask import g
 
 from superset import app
 from superset.utils import SupersetTemplateException
@@ -54,7 +55,9 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        self.context = {}
+        self.context = {
+            'user': g.user,
+        }
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
