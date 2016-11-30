@@ -127,3 +127,6 @@ div.widget .chart-controls {
 .ace_scrollbar {
     z-index: 0;
 }
+.slice_container .alert {
+    margin: 10px;
+}

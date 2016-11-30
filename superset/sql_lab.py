@@ -11,7 +11,7 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend)
+    app, db, models, utils, dataframe, results_backend, sql_parse, sm)
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
 QueryStatus = models.QueryStatus
@@ -19,16 +19,12 @@ QueryStatus = models.QueryStatus
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
 
-def is_query_select(sql):
-    return sql.upper().startswith('SELECT')
-
-
 def create_table_as(sql, table_name, schema=None, override=False):
     """Reformats the query into the create table as query.
 
     Works only for the single select SQL statements, in all other cases
     the sql query is not modified.
-    :param sql: string, sql query that will be executed
+    :param superset_query: string, sql query that will be executed
     :param table_name: string, will contain the results of the query execution
     :param override, boolean, table table_name will be dropped if true
     :return: string, create table as query
@@ -41,12 +37,9 @@ def create_table_as(sql, table_name, schema=None, override=False):
     if schema:
         table_name = schema + '.' + table_name
     exec_sql = ''
-    if is_query_select(sql):
-        if override:
-            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-        exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
-    else:
-        raise Exception("Could not generate CREATE TABLE statement")
+    if override:
+        exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
+    exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
     return exec_sql.format(**locals())
 
 
@@ -76,12 +69,12 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         raise Exception(query.error_message)
 
     # Limit enforced only for retrieving the data, not for the CTA queries.
-    is_select = is_query_select(executed_sql);
-    if not is_select and not database.allow_dml:
+    superset_query = sql_parse.SupersetQuery(executed_sql)
+    if not superset_query.is_select() and not database.allow_dml:
         handle_error(
             "Only `SELECT` statements are allowed against this database")
     if query.select_as_cta:
-        if not is_select:
+        if not superset_query.is_select():
             handle_error(
                 "Only `SELECT` statements can be used with the CREATE TABLE "
                 "feature.")
@@ -94,7 +87,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             executed_sql, query.tmp_table_name, database.force_ctas_schema)
         query.select_as_cta_used = True
     elif (
-            query.limit and is_select and
+            query.limit and superset_query.is_select() and
             db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True

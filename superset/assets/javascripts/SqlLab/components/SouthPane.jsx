@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import React from 'react';
-import { areArraysShallowEqual } from '../../reduxUtils';
 
 import shortid from 'shortid';
 
@@ -27,11 +26,6 @@ const defaultProps = {
 class SouthPane extends React.PureComponent {
   switchTab(id) {
     this.props.actions.setActiveSouthPaneTab(id);
-  }
-  shouldComponentUpdate(nextProps) {
-    return !areArraysShallowEqual(this.props.editorQueries, nextProps.editorQueries)
-      || !areArraysShallowEqual(this.props.dataPreviewQueries, nextProps.dataPreviewQueries)
-      || this.props.activeSouthPaneTab !== nextProps.activeSouthPaneTab;
   }
   render() {
     let latestQuery;

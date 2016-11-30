@@ -12,9 +12,9 @@ function heatmapVis(slice) {
   function refresh() {
     // Header for panel in explore v2
     const header = document.getElementById('slice-header');
-    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    const headerHeight = header ? 30 + header.getBoundingClientRect().height : 0;
     const margin = {
-      top: 20 + headerHeight,
+      top: headerHeight,
       right: 10,
       bottom: 35,
       left: 35,
@@ -101,14 +101,14 @@ function heatmapVis(slice) {
         .style('height', hmHeight + 'px')
         .style('image-rendering', fd.canvas_image_rendering)
         .style('left', margin.left + 'px')
-        .style('top', margin.top + 'px')
+        .style('top', margin.top + headerHeight + 'px')
         .style('position', 'absolute');
 
       const svg = container.append('svg')
         .attr('width', width)
         .attr('height', height)
         .style('left', '0px')
-        .style('top', '0px')
+        .style('top', headerHeight + 'px')
         .style('position', 'absolute');
 
       const rect = svg.append('g')

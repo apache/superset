@@ -1,11 +1,12 @@
 const $ = window.$ = require('jquery');
+
 import React from 'react';
 
 import { ButtonGroup } from 'react-bootstrap';
 import Button from '../../components/Button';
-import { showModal } from '../../modules/utils';
 import CssEditor from './CssEditor';
 import RefreshIntervalModal from './RefreshIntervalModal';
+import SaveModal from './SaveModal';
 import CodeModal from './CodeModal';
 import SliceAdder from './SliceAdder';
 
@@ -34,44 +35,6 @@ class Controls extends React.PureComponent {
         label: row.template_name,
       }));
       this.setState({ cssTemplates });
-    });
-  }
-  save() {
-    const dashboard = this.props.dashboard;
-    const expandedSlices = {};
-    $.each($('.slice_info'), function () {
-      const widget = $(this).parents('.widget');
-      const sliceDescription = widget.find('.slice_description');
-      if (sliceDescription.is(':visible')) {
-        expandedSlices[$(widget).attr('data-slice-id')] = true;
-      }
-    });
-    const positions = dashboard.reactGridLayout.serialize();
-    const data = {
-      positions,
-      css: this.state.css,
-      expanded_slices: expandedSlices,
-    };
-    $.ajax({
-      type: 'POST',
-      url: '/superset/save_dash/' + dashboard.id + '/',
-      data: {
-        data: JSON.stringify(data),
-      },
-      success() {
-        dashboard.onSave();
-        showModal({
-          title: 'Success',
-          body: 'This dashboard was saved successfully.',
-        });
-      },
-      error(error) {
-        const errorMsg = this.getAjaxErrorMsg(error);
-        showModal({
-          title: 'Error',
-          body: 'Sorry, there was an error saving this dashboard: </ br>' + errorMsg,
-        });
-      },
     });
   }
   changeCss(css) {
@@ -123,13 +86,13 @@ class Controls extends React.PureComponent {
         >
           <i className="fa fa-edit" />
         </Button>
-        <Button
-          disabled={!canSave}
-          tooltip="Save the current positioning and CSS"
-          onClick={this.save.bind(this)}
-        >
-          <i className="fa fa-save" />
-        </Button>
+        <SaveModal
+          dashboard={dashboard}
+          css={this.state.css}
+          triggerNode={
+            <i className="fa fa-save" />
+          }
+        />
       </ButtonGroup>
     );
   }
