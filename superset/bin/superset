@@ -54,9 +54,10 @@ def run_gunicorn():
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == 'runserver_gunicorn':
-        # In the gunicorn case, don't go through manager so that superset import is deferred
-        # until GunicornSupersetApplication.load is called; this allows for the app to be cleanly
-        # forked without running the gunicorn command-line.
+        # In the gunicorn case, don't go through manager so that superset
+        # import is deferred until GunicornSupersetApplication.load is called;
+        # this allows for the app to be cleanly forked without running the
+        # gunicorn command-line.
         run_gunicorn()
     else:
         from superset.cli import manager
