@@ -3,6 +3,7 @@ import React from 'react';
 import ModalTrigger from '../../components/ModalTrigger';
 import Select from 'react-select';
 import $ from 'jquery';
+import { getAjaxErrorMsg, showModal } from '../../modules/utils';
 
 const propTypes = {
   triggerNode: React.PropTypes.node.isRequired,
@@ -57,6 +58,7 @@ class RefreshIntervalModal extends React.PureComponent {
   };
 
   setRefreshFrequency(opt){
+    const refreshFrequencyModal = this.modal;
     $.ajax({
       type: 'POST',
       url: '/superset/set_refresh_frequency/'+$('.dashboard').data('dashboard').id+'/',
@@ -65,7 +67,12 @@ class RefreshIntervalModal extends React.PureComponent {
       },
       success() {},
       error(error) {
-        console.log(error);
+        refreshFrequencyModal.close();
+        showModal({
+          title: 'Error',
+          body: 'Sorry, there was an error saving refresh interval',
+        });
+        console.log(getAjaxErrorMsg(error));
       },
     });
   }
