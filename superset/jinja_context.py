@@ -68,12 +68,13 @@ class BaseTemplateProcessor(object):
         >>> process_template(sql)
         "SELECT '2017-01-01T00:00:00'"
         """
-        self.context.update({
-            'user': g.user,
-        })
-        
-        template = self.env.from_string(sql)
-        return template.render(self.context)
+        with app.app_context():
+            self.context.update({
+                'user': g.user,
+            })
+
+            template = self.env.from_string(sql)
+            return template.render(self.context)
 
 
 class PrestoTemplateProcessor(BaseTemplateProcessor):
