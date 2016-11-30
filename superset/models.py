@@ -469,6 +469,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,
+            'refresh_frequency': self.refresh_frequency,
         }
         return json.dumps(d)
 

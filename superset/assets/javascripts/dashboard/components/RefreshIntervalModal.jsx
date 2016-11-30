@@ -28,27 +28,8 @@ class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      refreshFrequency: props.initialRefreshFrequency,
+      refreshFrequency: $('.dashboard').data('dashboard').refresh_frequency || props.initialRefreshFrequency,
     };
-    this.getRefreshFrequency();
-  }
-
-  getRefreshFrequency(){
-    var self = this;
-    $.ajax({
-      type: 'GET',
-      dataType: 'json',
-      url: '/superset/get_refresh_frequency/'+$('.dashboard').data('dashboard').id+'/',
-      success(results) {
-        self.state = {
-          refreshFrequency: results.refreshFrequency,
-        };
-        self.props.onChange(results.refreshFrequency);
-      },
-      error() {
-        dispatch(queryFailed(query, 'Failed at retrieving results from the results backend'));
-      },
-    });
   }
 
   render() {
