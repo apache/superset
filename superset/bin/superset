@@ -39,7 +39,7 @@ def run_gunicorn():
     subparsers = parser.add_subparsers()
     gunicorn_parser = subparsers.add_parser('runserver_gunicorn')
 
-    gunicorn_parser.add_argument('-a', '--address', type=str, default='0.0.0.0')
+    gunicorn_parser.add_argument('-a', '--address', type=str, default='127.0.0.1')
     gunicorn_parser.add_argument('-p', '--port', type=int, default=8088)
     gunicorn_parser.add_argument('-w', '--workers', type=int, default=4)
     gunicorn_parser.add_argument('-t', '--timeout', type=int, default=30)
