@@ -55,11 +55,11 @@ class BaseTemplateProcessor(object):
             self.schema = query.schema
         elif table:
             self.schema = table.schema
-        if g.user:
+        try:
             self.context = {
                 'user': g.user
             }
-        else:
+        except SupersetTemplateException:
             self.context = {}
         self.context.update(BASE_CONTEXT)
         if self.engine:
