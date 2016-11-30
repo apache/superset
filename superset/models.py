@@ -665,6 +665,7 @@ class Database(Model, AuditMixinNullable):
     """An ORM object that stores Database related information"""
 
     __tablename__ = 'dbs'
+    type = "table"
 
     id = Column(Integer, primary_key=True)
     database_name = Column(String(250), unique=True)
@@ -906,6 +907,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         table_name = escape(self.table_name)
         return Markup(
             '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
+
+    @property
+    def schema_perm(self):
+        """Returns schema permission if present, database one otherwise."""
+        return utils.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
         return (
@@ -1519,6 +1525,7 @@ class DruidCluster(Model, AuditMixinNullable):
     """ORM object referencing the Druid clusters"""
 
     __tablename__ = 'clusters'
+    type = "druid"
 
     id = Column(Integer, primary_key=True)
     cluster_name = Column(String(250), unique=True)
@@ -1624,6 +1631,19 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     @property
     def name(self):
         return self.datasource_name
+
+    @property
+    def schema(self):
+        name_pieces = self.datasource_name.split('.')
+        if len(name_pieces) > 1:
+            return name_pieces[0]
+        else:
+            return None
+
+    @property
+    def schema_perm(self):
+        """Returns schema permission if present, cluster one otherwise."""
+        return utils.get_schema_perm(self.cluster, self.schema)
 
     def get_perm(self):
         return (
@@ -2131,7 +2151,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 tzinfo=config.get("DRUID_TZ"))
             return dt + timedelta(milliseconds=time_offset)
         if DTTM_ALIAS in df.columns and time_offset:
-            df.timestamp = df.timestamp.apply(increment_timestamp)
+            df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(increment_timestamp)
 
         return QueryResult(
             df=df,

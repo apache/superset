@@ -4,7 +4,7 @@ import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
-import { getParamObject } from '../../modules/utils.js';
+import { getParamObject } from '../exploreUtils';
 
 const propTypes = {
   can_edit: PropTypes.bool,
@@ -58,7 +58,8 @@ class SaveModal extends React.Component {
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
-    const params = getParamObject(this.props.form_data, this.props.datasource_type);
+    const params = getParamObject(
+      this.props.form_data, this.props.datasource_type, this.state.action === 'saveas');
     const sliceParams = {};
     params.datasource_name = this.props.form_data.datasource_name;
 
@@ -199,7 +200,7 @@ class SaveModal extends React.Component {
             type="button"
             id="btn_modal_save"
             className="btn pull-left"
-            onClick={this.saveOrOverwrite.bind(this)}
+            onClick={this.saveOrOverwrite.bind(this, false)}
           >
             Save
           </Button>
