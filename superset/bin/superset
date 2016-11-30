@@ -4,7 +4,60 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset.cli import manager
+import argparse
+import sys
+
+import gunicorn.app.base
+
+
+class GunicornSupersetApplication(gunicorn.app.base.BaseApplication):
+    def __init__(self, address, port, workers, timeout):
+        self.options = {
+            'bind': '%s:%s' % (address, port),
+            'workers': workers,
+            'timeout': timeout,
+            'limit-request-line': 0,
+            'limit-request-field_size': 0
+        }
+
+        super(GunicornSupersetApplication, self).__init__()
+
+    def load_config(self):
+        config = dict([(key, value) for key, value in self.options.iteritems()
+                       if key in self.cfg.settings and value is not None])
+        for key, value in config.iteritems():
+            self.cfg.set(key.lower(), value)
+
+    def load(self):
+        from superset import app
+
+        return app
+
+
+def run_gunicorn():
+    parser = argparse.ArgumentParser(description='Run gunicorn for superset')
+    subparsers = parser.add_subparsers()
+    gunicorn_parser = subparsers.add_parser('runserver_gunicorn')
+
+    gunicorn_parser.add_argument('-a', '--address', type=str, default='0.0.0.0')
+    gunicorn_parser.add_argument('-p', '--port', type=int, default=8088)
+    gunicorn_parser.add_argument('-w', '--workers', type=int, default=4)
+    gunicorn_parser.add_argument('-t', '--timeout', type=int, default=30)
+
+    args = parser.parse_args()
+
+    gunicorn_app_obj = GunicornSupersetApplication(
+        args.address, args.port, args.workers, args.timeout)
+    gunicorn_app_obj.run()
+
+
 
 if __name__ == "__main__":
-    manager.run()
+    if len(sys.argv) > 1 and sys.argv[1] == 'runserver_gunicorn':
+        # In the gunicorn case, don't go through manager so that superset import is deferred
+        # until GunicornSupersetApplication.load is called; this allows for the app to be cleanly
+        # forked without running the gunicorn command-line.
+        run_gunicorn()
+    else:
+        from superset.cli import manager
+        manager.run()

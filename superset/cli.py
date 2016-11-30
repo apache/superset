@@ -46,6 +46,9 @@ def runserver(debug, address, port, timeout, workers):
             threaded=True,
             debug=True)
     else:
+        print("DEPRECATED: Please run gunicorn via the 'runserver_gunicorn' command")
+
+        # TODO(byolken): Remove this and associated manager options.
         cmd = (
             "gunicorn "
             "-w {workers} "
