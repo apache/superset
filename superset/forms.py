@@ -992,7 +992,7 @@ class FormFactory(object):
             'pie_corner_radius': (FreeFormSelectField, {
                 "label": _("Corner Radius"),
                 "default": 0,
-                "choices": self.choicify([0, 1, 2, 3, 4, 5, 6, 7, 8]),
+                "choices": self.choicify(range(9)),
                 "description": _("Pad Angle of default viewport."
                                  "Between 0 and 7.")
             }),
