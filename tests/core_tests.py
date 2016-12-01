@@ -13,7 +13,7 @@ import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context
+from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.views import DatabaseView
 
 from .base_tests import SupersetTestCase
@@ -165,7 +165,7 @@ class CoreTests(SupersetTestCase):
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
-        modules = [utils, models]
+        modules = [utils, models, sql_lab]
         for mod in modules:
             failed, tests = doctest.testmod(mod)
             if failed:
