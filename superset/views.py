@@ -8,6 +8,7 @@ import json
 import logging
 import pickle
 import re
+import os
 import sys
 import time
 import traceback
@@ -17,7 +18,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, url_for, send_from_directory)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -31,6 +32,7 @@ from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
+from werkzeug.utils import secure_filename
 from wtforms.validators import ValidationError
 
 import superset
@@ -581,6 +583,44 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
+    # TODO: Add CSV import wizard/forms - right now it just adds a file
+    # 1: Select local file
+    # 2: Pandas to turn into dataframe
+    # 3: Pandas to turn into database
+    # 4: Database upload wizard
+
+    @staticmethod
+    def allowed_file(filename):
+        # Only allow specific file extensions as specified in the config
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
+
+    @expose('/upload_file', methods=['GET', 'POST'])
+    def upload_file(self):
+        if request.method == 'POST':
+            # check if the post request has the file part
+            if 'file' not in request.files:
+                flash('No file part')
+                return redirect(request.url)
+            file = request.files['file']
+            # if user does not select file, browser also
+            # submit a empty part without filename
+            if file.filename == '':
+                flash('No selected file')
+                return redirect(request.url)
+            if file and self.allowed_file(file.filename):
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+                return redirect(request.url) # - > This is where I add the Pandas form?
+                # TODO: Use the following redirect if you want to download an uploaded file
+                # redirect(url_for('uploaded_file', filename=filename))
+        return self.render_template('superset/upload_files.html')
+
+    @expose('/uploads/<filename>')
+    def uploaded_file(self, filename):
+        return send_from_directory(config['UPLOAD_FOLDER'],
+                                   filename)
+
 appbuilder.add_link(
     'Import Dashboards',
     label=__("Import Dashboards"),
@@ -616,59 +656,6 @@ class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
-
-# TODO: Add CSV import wizard/forms
-# add_csv_columns = [
-#     'csv_name', 'database_name', ''
-# ]  # NOTE: these are the wizard columns when adding a csv file as a new database
-# edit_csv_columns = add_csv_columns  # NOTE these are the wizard columns when adding a csv file as a new database
-
-# Just add new upload icon to the database view?
-
-#
-# class FileView(SupersetModelView, DeleteMixin):  #noqa
-#     datamodel = SQLAInterface(models.File)
-#     list_columns = ['file_name', 'creator', 'changed_on_']
-#     add_columns = ['file_name', 'file_path']
-#     search_exclude_columns = ('password',)
-#     edit_columns = add_columns
-#     show_columns = ['file_name', 'created_by', 'created_on', 'changed_by', 'changed_on']
-#     add_template = "superset/models/database/add.html"  # change to file add
-#     edit_template = "superset/models/database/edit.html"  # change to file add
-#     base_order = ('changed_on', 'desc')
-#     description_columns = {}
-#     label_columns = {
-#         'file_name': _("Database"),
-#         'creator': _("Creator"),
-#         'changed_on_': _("Last Changed"),
-#     }
-#
-#     @expose("/files", methods=['GET', 'POST'])
-#     @log_this
-#     def import_dashboards(self):
-#         """Overrides the dashboards using pickled instances from the file."""
-#         f = request.files.get('file')
-#         if request.method == 'POST' and f:
-#             current_tt = int(time.time())
-#             data = pickle.load(f)
-#             for table in data['datasources']:
-#                 models.SqlaTable.import_obj(table, import_time=current_tt)
-#             for dashboard in data['dashboards']:
-#                 models.Dashboard.import_obj(
-#                     dashboard, import_time=current_tt)
-#             db.session.commit()
-#             return redirect('/dashboardmodelview/list/')
-#         return self.render_template('superset/import_dashboards.html')
-#
-#
-# appbuilder.add_view(
-#     FileView,
-#     "Files",
-#     label=__("Files"),
-#     icon="fa-database",
-#     category="Sources",
-#     category_label=__("Sources"),
-#     category_icon='fa-database', )
 
 
 class TableModelView(SupersetModelView, DeleteMixin):  # noqa

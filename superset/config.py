@@ -151,6 +151,9 @@ CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 ENABLE_CORS = False
 CORS_OPTIONS = {}
 
+# Allowed format types for upload on Database view
+ALLOWED_EXTENSIONS = set(['csv', 'xls'])
+
 
 # ---------------------------------------------------
 # List of viz_types not allowed in your environment
