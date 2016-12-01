@@ -209,30 +209,30 @@ function nvd3Vis(slice) {
             break;
 
           case 'multi':
-            let list = [];
+            const list = [];
             for (let i = 0; i < fd.line.length; i++) {
-              list.push({ 'key':fd.line[i], 'type':'line', 'yAxis': fd.yAxis1 })
+              list.push({ 'key': fd.line[i], 'type': 'line', 'yAxis': fd.yAxis1 });
             }
             for (let i = 0; i < fd.bar.length; i++) {
-              list.push({ 'key':fd.bar[i], 'type':'bar', 'yAxis': fd.yAxis2 })
+              list.push({ 'key': fd.bar[i], 'type': 'bar', 'yAxis': fd.yAxis2 });
             }
             for (let i = 0; i < fd.area.length; i++) {
-              list.push({ 'key':fd.area[i], 'type':'area', 'yAxis': fd.yAxis3 })
+              list.push({ 'key': fd.area[i], 'type': 'area', 'yAxis': fd.yAxis3 });
             }
             for (let i = 0; i < fd.scatter.length; i++) {
-              list.push({ 'key':fd.scatter[i], 'type':'scatter', 'yAxis': fd.yAxis4 })
+              list.push({ 'key': fd.scatter[i], 'type': 'scatter', 'yAxis': fd.yAxis4 });
             }
             for (let i = 0; i < payload.data.length; i++) {
               for (let j = 0; j < list.length; j++) {
-                  if(payload.data[i].key == list[j].key){
-                    payload.data[i].type = list[j].type;
-                    if(list[j].yAxis == 'y1') {
-                      payload.data[i].yAxis = 1;
-                    } else {
-                      payload.data[i].yAxis = 2;
-                    }
-                    break;
-                 }
+                if (payload.data[i].key === list[j].key) {
+                  payload.data[i].type = list[j].type;
+                  if (list[j].yAxis === 'y1') {
+                    payload.data[i].yAxis = 1;
+                  } else {
+                    payload.data[i].yAxis = 2;
+                  }
+                  break;
+                }
               }
               // solve this problem: if x is string, can't get result
               for (let m = 0; m < payload.data[0].values.length; m++) {
@@ -340,8 +340,8 @@ function nvd3Vis(slice) {
           chart.xScale(d3.scale.log());
         }
 
-        //multi,linePlusBar and multiBarHorizontal are special case
-        if(vizType !== 'multi' && vizType !== 'linePlusBar' && vizType !== 'multiBarHorizontal') {
+        // multi,linePlusBar and multiBarHorizontal are special case
+        if (vizType !== 'multi' && vizType !== 'linePlusBar' && vizType !== 'multiBarHorizontal') {
           let xAxisFormatter;
           if (vizType === 'bubble') {
             xAxisFormatter = d3.format('.3s');
@@ -376,48 +376,64 @@ function nvd3Vis(slice) {
             }
           }
         } else if (vizType === 'linePlusBar') {
-          fd.y_axis_label1 !== '' ? chart.y1Axis.axisLabel(fd.y_axis_label1) : null;
-          fd.y_axis_label2 !== '' ? chart.y2Axis.axisLabel(fd.y_axis_label2) : null;
-          fd.x_axis_label !== '' ? chart.xAxis.axisLabel(fd.x_axis_label) : null;
+          if (fd.y_axis_label1 !== '') {
+            chart.yAxis1.axisLabel(fd.y_axis_label1);
+          }
+          if (fd.y_axis_label2 !== '') {
+            chart.yAxis2.axisLabel(fd.y_axis_label2);
+          }
+          if (fd.x_axis_label !== '') {
+            chart.xAxis.axisLabel(fd.x_axis_label);
+          }
 
           if (fd.x_axis_format !== 'smart_date') {
-              //the x is date
-              chart.xAxis.tickFormat(function(d) {
-                return d3.time.format(fd.x_axis_format)(new Date(xArray[d]))
-              });
+            // the x is date
+            chart.xAxis.tickFormat( function(d) {
+              return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
+            });
           } else {
-            chart.xAxis.tickFormat(function(d) {
-                return xArray[d];
+            chart.xAxis.tickFormat( function(d) {
+              return xArray[d];
             });
           }
           chart.y1Axis.tickFormat(d3.format(fd.y_axis_format1));
           chart.y2Axis.tickFormat(d3.format(fd.y_axis_format2));
         } else if (vizType === 'multiBarHorizontal') {
           if (fd.x_axis_format !== 'smart_date') {
-            //the x is date
-            chart.xAxis.tickFormat(function(d) {
-              return d3.time.format(fd.x_axis_format)(new Date(d))
+            // the x is date
+            chart.xAxis.tickFormat( function(d) {
+              return d3.time.format(fd.x_axis_format)(new Date(d));
             });
           }
           chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
         } else if(vizType === 'multi') {
-          fd.y_axis_label1 !== '' ? chart.yAxis1.axisLabel(fd.y_axis_label1) : null;
-          fd.y_axis_label2 !== '' ? chart.yAxis2.axisLabel(fd.y_axis_label2) : null;
-          fd.x_axis_label !== '' ? chart.xAxis.axisLabel(fd.x_axis_label) : null;
+          if (fd.y_axis_label1 !== '') {
+            chart.yAxis1.axisLabel(fd.y_axis_label1);
+          }
+          if (fd.y_axis_label2 !== '') {
+            chart.yAxis2.axisLabel(fd.y_axis_label2);
+          }
+          if (fd.x_axis_label !== '') {
+            chart.xAxis.axisLabel(fd.x_axis_label);
+          }
           if (fd.x_axis_format !== 'smart_date') {
-              //the x is date
-              chart.xAxis.tickFormat(function(d) {
-                return d3.time.format(fd.x_axis_format)(new Date(xArray[d]))
-              });
+            // the x is date
+            chart.xAxis.tickFormat( function(d) {
+              return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
+            });
           } else {
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat( function(d) {
                 return xArray[d];
             });
           }
           chart.yAxis1.tickFormat(d3.format(fd.y_axis_format1));
           chart.yAxis2.tickFormat(d3.format(fd.y_axis_format2));
-          fd.y_domain1 !== '' ? chart.yDomain1(fd.y_domain1.split(',')) : null;
-          fd.y_domain2 !== '' ? chart.yDomain2(fd.y_domain2.split(',')) : null;
+          if (fd.y_domain1 !== '') {
+            chart.yDomain1(fd.y_domain1.split(','));
+          }
+          if (fd.y_domain2 !== '') {
+            chart.yDomain2(fd.y_domain2.split(','));
+          }
         }
 
         chart.color((d) => category21(d[colorKey]));
