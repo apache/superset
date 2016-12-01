@@ -134,7 +134,7 @@ export const sqlLabReducer = function (state, action) {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {
         const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-        if (qe.latestQueryId) {
+        if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
           const newResults = Object.assign(
             {}, state.queries[qe.latestQueryId].results, { data: [], query: null });
           const q = Object.assign({}, state.queries[qe.latestQueryId], { results: newResults });
