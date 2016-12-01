@@ -33,12 +33,10 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    let refreshChart = false;
-    autoQueryFields.forEach((field) => {
-      if (nextProps.form_data[field] !== this.props.form_data[field]) {
-        refreshChart = true;
-      }
-    });
+    const refreshChart = Object.keys(nextProps.form_data).some((field) => (
+      nextProps.form_data[field] !== this.props.form_data[field]
+      && autoQueryFields.indexOf(field) !== -1)
+    );
     if (refreshChart) {
       this.onQuery(nextProps.form_data);
     }
