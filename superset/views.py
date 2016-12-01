@@ -2663,13 +2663,14 @@ class Superset(BaseSupersetView):
             return "the user or password is invalid"
         user = self.appbuilder.sm.auth_user_db(username, password)
         if not user:
-           return "the user or password is invalid"
+            return "the user or password is invalid"
         else:
             from flask_login import login_user, logout_user
             login_user(user, remember=False)
 
             try:
-                table = db.session.query(models.SqlaTable).filter_by(table_name=request.form['tableName']).one()
+                table = db.session.query(models.SqlaTable)\
+                    .filter_by(table_name=request.form['tableName']).one()
                 param = {}
                 for key in request.form:
                     if key == 'username' or key == 'password' \
@@ -2684,9 +2685,9 @@ class Superset(BaseSupersetView):
                 dict = ImmutableMultiDict(param)
                 print(dict)
                 try:
-                    viz_obj = self.get_viz(datasource_type = 'table',
-                                           datasource_id = table.id,
-                                           args = dict)
+                    viz_obj = self.get_viz(datasource_type='table',
+                                           datasource_id=table.id,
+                                           args=dict)
                 except Exception as e:
                     return utils.error_msg_from_exception(e)
 
@@ -2711,7 +2712,7 @@ class Superset(BaseSupersetView):
             return 'the user or password is invalid'
         user = self.appbuilder.sm.auth_user_db(username, password)
         if not user:
-           return 'the user or password is invalid'
+            return 'the user or password is invalid'
         else:
             from flask_login import login_user, logout_user
             login_user(user, remember=False)
