@@ -1796,7 +1796,7 @@ class Superset(BaseSupersetView):
             )
             .filter(
                 sqla.and_(
-                    M.Log.action != 'queries',
+                    ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
                     M.Log.user_id == user_id,
                 )
             )
@@ -1845,13 +1845,21 @@ class Superset(BaseSupersetView):
                 models.FavStar.dttm.desc()
             )
         )
-        payload = [{
-            'id': o.Dashboard.id,
-            'dashboard': o.Dashboard.dashboard_link(),
-            'title': o.Dashboard.dashboard_title,
-            'url': o.Dashboard.url,
-            'dttm': o.dttm,
-        } for o in qry.all()]
+        payload = []
+        for o in qry.all():
+            d = {
+                'id': o.Dashboard.id,
+                'dashboard': o.Dashboard.dashboard_link(),
+                'title': o.Dashboard.dashboard_title,
+                'url': o.Dashboard.url,
+                'dttm': o.dttm,
+            }
+            if o.Dashboard.created_by:
+                user = o.Dashboard.created_by
+                d['creator'] = str(user)
+                d['creator_url'] = '/superset/profile/{}/'.format(
+                    user.username)
+            payload.append(d)
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
             mimetype="application/json")
@@ -1934,12 +1942,20 @@ class Superset(BaseSupersetView):
                 models.FavStar.dttm.desc()
             )
         )
-        payload = [{
-            'id': o.Slice.id,
-            'title': o.Slice.slice_name,
-            'url': o.Slice.slice_url,
-            'dttm': o.dttm,
-        } for o in qry.all()]
+        payload = []
+        for o in qry.all():
+            d = {
+                'id': o.Slice.id,
+                'title': o.Slice.slice_name,
+                'url': o.Slice.slice_url,
+                'dttm': o.dttm,
+            }
+            if o.Slice.created_by:
+                user = o.Slice.created_by
+                d['creator'] = str(user)
+                d['creator_url'] = '/superset/profile/{}/'.format(
+                    user.username)
+            payload.append(d)
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
             mimetype="application/json")
@@ -2613,15 +2629,15 @@ class Superset(BaseSupersetView):
         )
         roles = {}
         from collections import defaultdict
-        permissions = defaultdict(list)
+        permissions = defaultdict(set)
         for role in user.roles:
-            perms = []
+            perms = set()
             for perm in role.permissions:
-                perms.append(
+                perms.add(
                     (perm.permission.name, perm.view_menu.name)
                 )
                 if perm.permission.name in ('datasource_access', 'database_access'):
-                    permissions[perm.permission.name].append(perm.view_menu.name)
+                    permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
                 for perm in role.permissions
@@ -2643,7 +2659,8 @@ class Superset(BaseSupersetView):
             'superset/profile.html',
             title=user.username + "'s profile",
             navbar_container=True,
-            bootstrap_data=json.dumps(payload))
+            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
+        )
 
     @has_access
     @expose("/sqllab")

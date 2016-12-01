@@ -140,19 +140,23 @@ class SupersetTestCase(unittest.TestCase):
         return db.session.query(models.DruidDatasource).filter_by(
             datasource_name=name).first()
 
-    def get_resp(self, url, data=None, follow_redirects=True):
+    def get_resp(
+            self, url, data=None, follow_redirects=True, raise_on_error=True):
         """Shortcut to get the parsed results while following redirects"""
         if data:
             resp = self.client.post(
                 url, data=data, follow_redirects=follow_redirects)
-            return resp.data.decode('utf-8')
         else:
             resp = self.client.get(url, follow_redirects=follow_redirects)
-            return resp.data.decode('utf-8')
+        if raise_on_error and resp.status_code > 400:
+            raise Exception(
+                "http request failed with code {}".format(resp.status_code))
+        return resp.data.decode('utf-8')
 
-    def get_json_resp(self, url, data=None):
+    def get_json_resp(
+            self, url, data=None, follow_redirects=True, raise_on_error=True):
         """Shortcut to get the parsed results while following redirects"""
-        resp = self.get_resp(url, data=data)
+        resp = self.get_resp(url, data, follow_redirects, raise_on_error)
         return json.loads(resp)
 
     def get_main_database(self, session):
@@ -200,6 +204,7 @@ class SupersetTestCase(unittest.TestCase):
         dbid = self.get_main_database(db.session).id
         resp = self.get_json_resp(
             '/superset/sql_json/',
+            raise_on_error=False,
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
                       client_id=client_id),
         )
