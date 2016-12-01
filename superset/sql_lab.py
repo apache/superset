@@ -132,7 +132,10 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         query.rows = cdf.size
     if query.select_as_cta:
         query.select_sql = '{}'.format(database.select_star(
-            query.tmp_table_name, limit=query.limit))
+            query.tmp_table_name,
+            limit=query.limit,
+            schema=database.force_ctas_schema
+        ))
     query.end_time = utils.now_as_float()
     session.flush()
 
