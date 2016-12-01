@@ -39,6 +39,9 @@ class AceEditorWrapper extends React.PureComponent {
     if (!areArraysShallowEqual(this.props.tables, nextProps.tables)) {
       this.setAutoCompleter(nextProps);
     }
+    if (nextProps.sql !== this.props.sql) {
+      this.setState({ sql: nextProps.sql });
+    }
   }
   textChange(text) {
     this.setState({ sql: text });
