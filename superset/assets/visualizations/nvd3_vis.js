@@ -186,6 +186,7 @@ function nvd3Vis(slice) {
 
           // add bar style
           case 'linePlusBar':
+            delete payload.data[0].bar;
             payload.data[0].bar = true;
             chart = nv.models.linePlusBarChart()
               .color(d3.scale.category10().range());
@@ -211,16 +212,16 @@ function nvd3Vis(slice) {
           case 'multi':
             const list = new Array();
             for (let i = 0; i < fd.line.length; i++) {
-              list.push({ "key": fd.line[i], "type": "line", "yAxis": fd.yAxis1 });
+              list.push({ key: fd.line[i], type: 'line', yAxis: fd.yAxis1 });
             }
             for (let i = 0; i < fd.bar.length; i++) {
-              list.push({ "key": fd.bar[i], "type": "bar", "yAxis": fd.yAxis2 });
+              list.push({ key: fd.bar[i], type: 'bar', yAxis: fd.yAxis2 });
             }
             for (let i = 0; i < fd.area.length; i++) {
-              list.push({ "key": fd.area[i], "type": "area", "yAxis": fd.yAxis3 });
+              list.push({ key: fd.area[i], type: 'area', yAxis: fd.yAxis3 });
             }
             for (let i = 0; i < fd.scatter.length; i++) {
-              list.push({ "key": fd.scatter[i], "type": "scatter", "yAxis": fd.yAxis4 });
+              list.push({ key: fd.scatter[i], type: 'scatter', yAxis: fd.yAxis4 });
             }
             for (let i = 0; i < payload.data.length; i++) {
               for (let j = 0; j < list.length; j++) {
