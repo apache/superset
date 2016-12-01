@@ -2660,38 +2660,38 @@ class Superset(BaseSupersetView):
             username = request.form['username']
             password = request.form['password']
         except Exception as e:
-            return "用户或密码错误"
+            return "the user or password is invalid"
         user = self.appbuilder.sm.auth_user_db(username, password)
         if not user:
-           return "用户或密码错误"
+           return "the user or password is invalid"
         else:
             from flask_login import login_user, logout_user
             login_user(user, remember=False)
 
             try:
-                table = db.session.query(models.SqlaTable).filter_by(table_name = request.form['tableName']).one()
+                table = db.session.query(models.SqlaTable).filter_by(table_name=request.form['tableName']).one()
                 param = {}
                 for key in request.form:
-                    if key == 'username' or key == 'password' or key == 'tableName':
+                    if key == 'username' or key == 'password' \
+                            or key == 'tableName':
                         continue
                     elif key == 'metrics':
                         param['metrics'] = request.form[key].split(',')
                     elif key == 'since' or key == 'until':
-                        param[key] = request.form[key].replace('+',' ')
+                        param[key] = request.form[key].replace('+', ' ')
                     else:
                         param[key] = request.form[key]
                 dict = ImmutableMultiDict(param)
                 print(dict)
                 try:
-                    viz_obj = self.get_viz(
-                        datasource_type = 'table',
-                        datasource_id = table.id,
-                        args = dict)
+                    viz_obj = self.get_viz(datasource_type = 'table',
+                                           datasource_id = table.id,
+                                           args = dict)
                 except Exception as e:
                     return utils.error_msg_from_exception(e)
 
                 if not self.datasource_access(viz_obj.datasource):
-                    return  DATASOURCE_ACCESS_ERR
+                    return DATASOURCE_ACCESS_ERR
 
                 payload = ""
                 try:
@@ -2703,15 +2703,15 @@ class Superset(BaseSupersetView):
                 return utils.error_msg_from_exception(e)
 
     @expose("/rest/api/querySql", methods=['GET', 'POST'])
-    def querySql(self):
+    def querysql(self):
         try:
             username = request.form['username']
             password = request.form['password']
         except Exception as e:
-            return "用户或密码错误"
+            return 'the user or password is invalid'
         user = self.appbuilder.sm.auth_user_db(username, password)
         if not user:
-           return "用户或密码错误"
+           return 'the user or password is invalid'
         else:
             from flask_login import login_user, logout_user
             login_user(user, remember=False)
@@ -2721,16 +2721,18 @@ class Superset(BaseSupersetView):
                 database_name = request.form.get('database_name')
 
                 session = db.session()
-                mydb = session.query(models.Database).filter_by(database_name=database_name).first()
+                mydb = session.query(models.Database)\
+                    .filter_by(database_name=database_name).first()
 
                 if not mydb:
-                    return 'Database with id {} is missing.'.format(database_name)
+                    return 'Database with id {} is missing.'\
+                        .format(database_name)
 
                 if not self.database_access(mydb):
                     return get_database_access_error_msg(database_name)
                 session.commit()
 
-                client_id = str(time.time()).replace('.','')[2:13]
+                client_id = str(time.time()).replace('.', '')[2:13]
                 query = models.Query(
                     database_id=int(mydb.id),
                     limit=int(app.config.get('SQL_MAX_ROW', None)),
@@ -2743,7 +2745,8 @@ class Superset(BaseSupersetView):
                 query_id = query.id
 
                 try:
-                    result = sql_lab.get_sql_results(query_id, return_results=True)
+                    result = sql_lab.get_sql_results(query_id,
+                                                     return_results=True)
                 except Exception as e:
                     logging.exception(e)
                     return json.dumps({'error': "{}".format(e)})
