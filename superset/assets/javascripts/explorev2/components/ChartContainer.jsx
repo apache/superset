@@ -144,8 +144,8 @@ class ChartContainer extends React.Component {
     return title;
   }
 
-  renderChart(alert, loading) {
-    if (alert) {
+  renderChart() {
+    if (this.props.alert) {
       return (
         <Alert bsStyle="warning">
           {this.props.alert}
@@ -157,7 +157,7 @@ class ChartContainer extends React.Component {
         </Alert>
       );
     }
-    if (loading) {
+    if (this.props.isChartLoading) {
       return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
     }
     return (
@@ -213,7 +213,7 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
-          {this.renderChart(this.props.alert, this.props.isChartLoading)}
+          {this.renderChart()}
         </Panel>
       </div>
     );
