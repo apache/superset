@@ -125,7 +125,7 @@ class VisualizeModal extends React.PureComponent {
     this.setState({ columns }, this.validate);
   }
   render() {
-    if (!(this.props.query) || !(this.props.query.results)) {
+    if (!(this.props.query) || !(this.props.query.results) || !(this.props.query.results.columns)) {
       return (
         <div className="VisualizeModal">
           <Modal show={this.props.show} onHide={this.props.onHide}>
