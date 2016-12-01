@@ -209,22 +209,18 @@ function nvd3Vis(slice) {
             break;
 
           case 'multi':
-            const list = [];
+            const list = new Array();
             for (let i = 0; i < fd.line.length; i++) {
-              const a = { 'key': fd.line[i], 'type': 'line', 'yAxis': fd.yAxis1 };
-              list.push(a);
+              list.push({ 'key': fd.line[i], 'type': 'line', 'yAxis': fd.yAxis1 });
             }
             for (let i = 0; i < fd.bar.length; i++) {
-              const a = { 'key': fd.bar[i], 'type': 'bar', 'yAxis': fd.yAxis2 };
-              list.push(a);
+              list.push({ 'key': fd.bar[i], 'type': 'bar', 'yAxis': fd.yAxis2 });
             }
             for (let i = 0; i < fd.area.length; i++) {
-              const a = { 'key': fd.area[i], 'type': 'area', 'yAxis': fd.yAxis3 };
-              list.push(a);
+              list.push({ 'key': fd.area[i], 'type': 'area', 'yAxis': fd.yAxis3 });
             }
             for (let i = 0; i < fd.scatter.length; i++) {
-              const a = { 'key': fd.scatter[i], 'type': 'scatter', 'yAxis': fd.yAxis4 };
-              list.push(a);
+              list.push({ 'key': fd.scatter[i], 'type': 'scatter', 'yAxis': fd.yAxis4 });
             }
             for (let i = 0; i < payload.data.length; i++) {
               for (let j = 0; j < list.length; j++) {
@@ -392,11 +388,11 @@ function nvd3Vis(slice) {
 
           if (fd.x_axis_format !== 'smart_date') {
             // the x is date
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat(function (d) {
               return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
             });
           } else {
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat(function (d) {
               return xArray[d];
             });
           }
@@ -405,7 +401,7 @@ function nvd3Vis(slice) {
         } else if (vizType === 'multiBarHorizontal') {
           if (fd.x_axis_format !== 'smart_date') {
             // the x is date
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat(function (d) {
               return d3.time.format(fd.x_axis_format)(new Date(d));
             });
           }
@@ -422,11 +418,11 @@ function nvd3Vis(slice) {
           }
           if (fd.x_axis_format !== 'smart_date') {
             // the x is date
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat(function (d) {
               return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
             });
           } else {
-            chart.xAxis.tickFormat(function(d) {
+            chart.xAxis.tickFormat(function (d) {
               return xArray[d];
             });
           }
