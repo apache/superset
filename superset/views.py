@@ -701,7 +701,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
-                "table name".format(table.table_name))
+                "table name".format(table.name))
 
     def post_add(self, table):
         table.fetch_metadata()
