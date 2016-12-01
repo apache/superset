@@ -9,6 +9,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import imp
 import json
 import os
 
@@ -248,7 +249,14 @@ JINJA_CONTEXT_ADDONS = {}
 # by humans.
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
+CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
+
 try:
+    if CONFIG_PATH_ENV_VAR in os.environ:
+        # Explicitly import config module that is not in pythonpath; useful
+        # for case where app is being executed via pex.
+        imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+
     from superset_config import *  # noqa
     print('Loaded your LOCAL configuration')
 except ImportError:
