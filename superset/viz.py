@@ -1394,8 +1394,10 @@ class DistributionBarViz(DistributionPieViz):
             chart_data.append(d)
         return chart_data
 
-#=============LinePlusBarViz==========================
+
 class DistributionLinePlusBarViz(DistributionBarViz):
+
+    """A DistributionLinePlusBar chart"""
 
     viz_type = "linePlusBar"
     sort_series = True
@@ -1413,8 +1415,10 @@ class DistributionLinePlusBarViz(DistributionBarViz):
         )
     },)
 
-#=============MultiBarHorizontalViz==========================
+
 class DistributionMultiBarHorizontalViz(DistributionBarViz):
+
+    """A DistributionMultiBarHorizontal chart"""
 
     viz_type = "multiBarHorizontal"
     sort_series = True
@@ -1432,8 +1436,10 @@ class DistributionMultiBarHorizontalViz(DistributionBarViz):
         )
     },)
 
-#=============MultiViz==================================
+
 class DistributionMultiViz(DistributionBarViz):
+
+    """A DistributionMulti chart"""
 
     viz_type = "multi"
     sort_series = True
@@ -1442,10 +1448,10 @@ class DistributionMultiViz(DistributionBarViz):
         'label': _('Chart Options'),
         'fields': (
             'groupby',
-            ('line','yAxis1'),
-            ('bar','yAxis2'),
-            ('area','yAxis3'),
-            ('scatter','yAxis4'),
+            ('line', 'yAxis1'),
+            ('bar', 'yAxis2'),
+            ('area', 'yAxis3'),
+            ('scatter', 'yAxis4'),
             ('row_limit', 'bottom_margin'),
             ('x_axis_label', 'x_axis_format'),
             ('y_axis_label1', 'y_axis_format1'),
@@ -1454,6 +1460,7 @@ class DistributionMultiViz(DistributionBarViz):
             ('reduce_x_ticks', 'contribution')
         )
     },)
+
 
 class SunburstViz(BaseViz):
 

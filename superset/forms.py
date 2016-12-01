@@ -1009,8 +1009,8 @@ class FormFactory(object):
             'yAxis1': (SelectField, {
                 "label": _("yAxis"),
                 "choices": (
-                    ('y1',_('y1')),
-                    ('y2',_('y2'))
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
                 ),
                 "default": 'y1',
                 "description": _("choose the yAxias")
@@ -1018,8 +1018,8 @@ class FormFactory(object):
             'yAxis2': (SelectField, {
                 "label": _("yAxis"),
                 "choices": (
-                    ('y1',_('y1')),
-                    ('y2',_('y2'))
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
                 ),
                 "default": 'y1',
                 "description": _("choose the yAxias")
@@ -1027,8 +1027,8 @@ class FormFactory(object):
             'yAxis3': (SelectField, {
                 "label": _("yAxis"),
                 "choices": (
-                    ('y1',_('y1')),
-                    ('y2',_('y2'))
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
                 ),
                 "default": 'y1',
                 "description": _("choose the yAxias")
@@ -1036,8 +1036,8 @@ class FormFactory(object):
             'yAxis4': (SelectField, {
                 "label": _("yAxis"),
                 "choices": (
-                    ('y1',_('y1')),
-                    ('y2',_('y2'))
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
                 ),
                 "default": 'y1',
                 "description": _("choose the yAxias")
@@ -1076,15 +1076,15 @@ class FormFactory(object):
                 "label": _("Y2 Axis Label"),
                 "default": '',
             }),
-            'y_domain1':(TextField,{
+            'y_domain1': (TextField, {
                 "label": _("Y1 domain"),
                 "default": '',
-                "description":"the range of y1, for example: 0,100, it means from 0 to 100"
+                "description": "the range of y1, for example: 0,100, it means from 0 to 100"
             }),
-            'y_domain2':(TextField,{
+            'y_domain2': (TextField, {
                 "label": _("Y2 domain"),
                 "default": '',
-                "description":"the range of y2, for example: 0,100, it means from 0 to 100"
+                "description": "the range of y2, for example: 0,100, it means from 0 to 100"
             }),
         }
 
