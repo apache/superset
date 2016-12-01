@@ -1,0 +1,58 @@
+方式一： 根据条件获取
+
+	用户登录：（必填）
+		username: 用户名
+		password: 用户密码
+
+	查询：（必填）
+		tableName: 要查询的表明
+		metrics： 要查询的结果集（若为多个，中间用逗号间隔）
+
+	条件过滤：（选填）
+		where: 查询条件
+		groupby： 分组
+		having: 查询条件，配合groupby使用
+		since: 起始时间（用+间隔 例：1+day+ago， 90+days+ago, 1+hour+ago, 12+hours+ago, 1+year+ago, 3+years+ago）
+		until： 结束时间（同since）
+		row_limit: 查询数据条数
+
+	值集过滤：（选填， 若过滤多个字段，可写成flt_op_2,flt_col_2,flt_eq_2......以此类推）
+		flt_op_1: 第一个操作符（in 或者 not in）
+		flt_col_1: 过滤的某个字段
+		flt_eq_1: 结果集（若为多个，中间用逗号间隔）
+	
+
+	例：
+	{
+	  "username":"admin",
+	  "password":"admin",
+	  "tableName":"employee",
+	  "metrics":"avg__salary, max__salary, min__salary",
+	  "where": "age>30",
+	  "groupby": "age",
+	  "since": "1+year+ago",
+	  "until": "now",
+	  "row_limit":50000,
+	  "flt_op_1":"in",
+	  "flt_col_1":"age",
+	  "flt_eq_1":"45,50"
+	} 
+
+
+方式二： 根据SQL语句获取
+
+	用户登录：（必填）
+		username: 用户名
+		password: 密码
+
+	SQL:(必填)
+		sql: sql语句
+		database_name: 数据库名称
+
+	例：
+	{
+	  "username":"admin",
+	  "password":"admin",
+	  "database_name": "main",
+	  "sql": "select id, book_name from Test.book limit 100"
+	}
