@@ -358,7 +358,7 @@ class RequestAccessTests(SupersetTestCase):
             self.get_resp(
                 '/superset/update_role/',
                 data=json.dumps({
-                    'user_emails': ['gamma@fab.org'],
+                    'usernames': ['gamma'],
                     'role_name': update_role_str,
                 })
             )
@@ -370,20 +370,20 @@ class RequestAccessTests(SupersetTestCase):
         resp = self.client.post(
             '/superset/update_role/',
             data=json.dumps({
-                'user_emails': ['gamma@fab.org'],
+                'usernames': ['gamma'],
                 'role_name': update_role_str
             }),
             follow_redirects=True
         )
         update_role = sm.find_role(update_role_str)
         self.assertEquals(
-            update_role.user, [sm.find_user(email='gamma@fab.org')])
+            update_role.user, [sm.find_user(username='gamma')])
         self.assertEquals(resp.status_code, 201)
 
         resp = self.client.post(
             '/superset/update_role/',
             data=json.dumps({
-                'user_emails': ['alpha@fab.org', 'unknown@fab.org'],
+                'usernames': ['alpha', 'unknown'],
                 'role_name': update_role_str
             }),
             follow_redirects=True
@@ -391,7 +391,7 @@ class RequestAccessTests(SupersetTestCase):
         self.assertEquals(resp.status_code, 201)
         update_role = sm.find_role(update_role_str)
         self.assertEquals(
-            update_role.user, [sm.find_user(email='alpha@fab.org')])
+            update_role.user, [sm.find_user(username='alpha')])
 
         db.session.delete(update_role)
         db.session.commit()
