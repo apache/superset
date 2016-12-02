@@ -430,8 +430,8 @@ function nvd3Vis(slice) {
               chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
             }
           }
-        } 
-
+        }
+        
         chart.color((d) => category21(d[colorKey]));
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {

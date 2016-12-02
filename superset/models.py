@@ -728,7 +728,7 @@ class Database(Model, AuditMixinNullable):
             os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
             return create_engine(url, **params)
         elif sqlType == 'mysql':
-            return create_engine(url, **params, connect_args={'charset':'utf8'})
+            return create_engine(url, **params, connect_args={'charset': 'utf8'})
         else:
             return create_engine(url, **params)
 
