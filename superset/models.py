@@ -730,7 +730,6 @@ class Database(Model, AuditMixinNullable):
         elif sqlType == 'mysql':
             return create_engine(
                 url,
-                **params,
                 connect_args={'charset': 'utf8'},
             )
         else:
