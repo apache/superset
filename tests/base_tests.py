@@ -197,7 +197,7 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None):
+    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
@@ -208,6 +208,8 @@ class SupersetTestCase(unittest.TestCase):
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
                       client_id=client_id),
         )
+        if raise_on_error and 'error' in resp:
+            raise Exception("run_sql failed")
         return resp
 
     def test_gamma_permissions(self):

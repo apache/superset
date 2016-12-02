@@ -11,12 +11,33 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend, sql_parse, sm)
+    app, db, models, utils, dataframe, results_backend, sql_parse)
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
 QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
+
+
+def dedup(l, suffix='__'):
+    """De-duplicates a list of string by suffixing a counter
+
+    Always returns the same number of entries as provided, and always returns
+    unique values.
+
+    >>> dedup(['foo', 'bar', 'bar', 'bar'])
+    ['foo', 'bar', 'bar__1', 'bar__2']
+    """
+    new_l = []
+    seen = {}
+    for s in l:
+        if s in seen:
+            seen[s] += 1
+            s += suffix + str(seen[s])
+        else:
+            seen[s] = 0
+        new_l.append(s)
+    return new_l
 
 
 def create_table_as(sql, table_name, schema=None, override=False):
@@ -117,6 +138,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     cdf = None
     if result_proxy.cursor:
         column_names = [col[0] for col in result_proxy.cursor.description]
+        column_names = dedup(column_names)
         if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
             data = result_proxy.fetchmany(query.limit)
         else:

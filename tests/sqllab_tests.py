@@ -190,6 +190,13 @@ class SqlLabTests(SupersetTestCase):
             self.assertLess(int(first_query_time), v['startDttm'])
             self.assertLess(v['startDttm'], int(second_query_time))
 
+    def test_alias_duplicate(self):
+        self.run_sql(
+            "SELECT username as col, id as col, username FROM ab_user",
+            client_id='2e2df3',
+            user_name='admin',
+            raise_on_error=True)
+
 
 if __name__ == '__main__':
     unittest.main()
