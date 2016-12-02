@@ -16,6 +16,8 @@ Superset
 **Superset** is a data exploration platform designed to be visual, intuitive
 and interactive.
 
+<img src="http://i.imgur.com/2UAzX4d.png" alt="Superset" width="256">
+
 [this project used to be named **Caravel**, and **Panoramix** in the past]
 
 
