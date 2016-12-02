@@ -36,7 +36,9 @@ function bigNumberVis(slice) {
         const pos = data.length - (json.compare_lag + 1);
         if (pos >= 0) {
           const vAnchor = data[pos][1];
-          vCompare = (v - vAnchor) / Math.abs(vAnchor);
+          if (vAnchor !== 0) {
+            vCompare = (v - vAnchor) / Math.abs(vAnchor);
+          }
         }
       }
       const dateExt = d3.extent(data, (d) => d[0]);
