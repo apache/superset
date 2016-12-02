@@ -1376,8 +1376,8 @@ class DistributionBarViz(DistributionPieViz):
         df = self.get_df()
         chart_data = []
         for name, ys in df.iteritems():
-            if df[name].dtype.kind not in "biufc":
-                continue
+            # if df[name].dtype.kind not in "biufc":
+            #     continue
             if isinstance(name, string_types):
                 series_title = name
             elif len(self.metrics) > 1:
