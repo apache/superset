@@ -105,8 +105,8 @@ function nvd3Vis(slice) {
       const reduceXTicks = fd.reduce_x_ticks || false;
       let stacked = false;
       let row;
-      let xArray = [];
-      let list = [];
+      const xArray = [];
+      const list = [];
       let payloadData2;
       const drawGraph = function () {
         switch (vizType) {
