@@ -8,7 +8,7 @@ const propTypes = {
   filterColumnOpts: React.PropTypes.array,
   prefix: React.PropTypes.string,
   filter: React.PropTypes.object.isRequired,
-  filter_select: React.PropTypes.bool,
+  renderFilterSelect: React.PropTypes.bool,
   datasource_type: React.PropTypes.string.isRequired,
   datasource_id: React.PropTypes.number.isRequired,
 };
@@ -84,7 +84,7 @@ export default class Filter extends React.Component {
             onChange={this.changeOp.bind(this, this.props.filter)}
           />
           <div className="col-lg-6">
-            {this.props.filter_select ?
+            {this.props.renderFilterSelect ?
             (<SelectField
               multi
               freeForm

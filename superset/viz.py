@@ -155,31 +155,31 @@ class BaseViz(object):
         """
         Returns the URL to retrieve column values used in the filter dropdown
         """
-        d = self.orig_form_data.copy()
+        data = self.orig_form_data.copy()
         # Remove unchecked checkboxes because HTML is weird like that
-        od = MultiDict()
-        for key in sorted(d.keys()):
+        ordered_data = MultiDict()
+        for key in sorted(data.keys()):
             # if MultiDict is initialized with MD({key:[emptyarray]}),
             # key is included in d.keys() but accessing it throws
             try:
-                if d[key] is False:
-                    del d[key]
+                if data[key] is False:
+                    del data[key]
                     continue
             except IndexError:
                 pass
 
-            if isinstance(d, (MultiDict, ImmutableMultiDict)):
-                v = d.getlist(key)
+            if isinstance(data, (MultiDict, ImmutableMultiDict)):
+                v = data.getlist(key)
             else:
-                v = d.get(key)
+                v = data.get(key)
             if not isinstance(v, list):
                 v = [v]
             for item in v:
-                od.add(key, item)
+                ordered_data.add(key, item)
         href = Href(
             '/caravel/filter/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
-        return href(od)
+        return href(ordered_data)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""

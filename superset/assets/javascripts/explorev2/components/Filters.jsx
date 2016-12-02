@@ -12,7 +12,7 @@ const propTypes = {
   filterColumnOpts: React.PropTypes.array,
   filters: React.PropTypes.array,
   prefix: React.PropTypes.string,
-  filter_select: React.PropTypes.bool,
+  renderFilterSelect: React.PropTypes.bool,
 };
 
 const defaultProps = {
@@ -45,7 +45,7 @@ class Filters extends React.Component {
             actions={this.props.actions}
             prefix={this.props.prefix}
             filter={filter}
-            filter_select={this.props.filter_select}
+            renderFilterSelect={this.props.renderFilterSelect}
             datasource_type={this.props.datasource_type}
             datasource_id={this.props.datasource_id}
           />
@@ -79,7 +79,7 @@ function mapStateToProps(state) {
     datasource_type: state.datasource_type,
     filterColumnOpts: state.filterColumnOpts,
     filters: state.viz.form_data.filters,
-    filter_select: state.filter_select,
+    renderFilterSelect: state.filter_select,
   };
 }
 

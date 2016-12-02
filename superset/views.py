@@ -1537,17 +1537,14 @@ class Superset(BaseSupersetView):
             datasource_class).filter_by(id=datasource_id).first()
 
         if not datasource:
-            flash(__("The datasource seems to have been deleted"), "alert")
-            return redirect(error_redirect)
-
-        all_datasource_access = self.can_access(
-            'all_datasource_access', 'all_datasource_access')
-        datasource_access = self.can_access(
-            'datasource_access', datasource.perm)
-        if not (all_datasource_access or datasource_access):
-            flash(__("You don't seem to have access to this datasource"),
-                  "danger")
-            return redirect(error_redirect)
+            flash(DATASOURCE_MISSING_ERR, "alert")
+            return flash(DATASOURCE_MISSING_ERR, "alert")
+            return json_error_response(DATASOURCE_MISSING_ERR)
+        if not self.datasource_access(datasource):
+                flash(
+                    __(get_datasource_access_error_msg(datasource.name)),
+                    "danger")
+                return json_error_response(DATASOURCE_ACCESS_ERR)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:

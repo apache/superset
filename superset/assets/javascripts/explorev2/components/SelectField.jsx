@@ -100,7 +100,7 @@ export default class SelectField extends React.Component {
     }
     return (
       <div>
-      {selectWrap}
+        {selectWrap}
       </div>
     );
   }
