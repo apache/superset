@@ -25,10 +25,10 @@ class SupersetTestCase(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         if (
-                self.requires_examples and
-                not os.environ.get('SOLO_TEST') and
-                not os.environ.get('examples_loaded')
-            ):
+                        self.requires_examples and
+                        not os.environ.get('SOLO_TEST') and
+                    not os.environ.get('examples_loaded')
+        ):
             logging.info("Loading examples")
             cli.load_examples(load_test_data=True)
             logging.info("Done loading examples")
@@ -95,7 +95,6 @@ class SupersetTestCase(unittest.TestCase):
             session.add(druid_datasource2)
             session.commit()
 
-
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:
@@ -118,8 +117,8 @@ class SupersetTestCase(unittest.TestCase):
         session = db.create_scoped_session()
         query = (
             session.query(models.Query)
-            .order_by(models.Query.id.desc())
-            .first()
+                .order_by(models.Query.id.desc())
+                .first()
         )
         session.close()
         return query
@@ -127,8 +126,8 @@ class SupersetTestCase(unittest.TestCase):
     def get_slice(self, slice_name, session):
         slc = (
             session.query(models.Slice)
-            .filter_by(slice_name=slice_name)
-            .one()
+                .filter_by(slice_name=slice_name)
+                .one()
         )
         session.expunge_all()
         return slc
@@ -141,39 +140,43 @@ class SupersetTestCase(unittest.TestCase):
         return db.session.query(models.DruidDatasource).filter_by(
             datasource_name=name).first()
 
-    def get_resp(self, url, data=None, follow_redirects=True):
+    def get_resp(
+            self, url, data=None, follow_redirects=True, raise_on_error=True):
         """Shortcut to get the parsed results while following redirects"""
         if data:
             resp = self.client.post(
                 url, data=data, follow_redirects=follow_redirects)
-            return resp.data.decode('utf-8')
         else:
             resp = self.client.get(url, follow_redirects=follow_redirects)
-            return resp.data.decode('utf-8')
+        if raise_on_error and resp.status_code > 400:
+            raise Exception(
+                "http request failed with code {}".format(resp.status_code))
+        return resp.data.decode('utf-8')
 
-    def get_json_resp(self, url, data=None):
+    def get_json_resp(
+            self, url, data=None, follow_redirects=True, raise_on_error=True):
         """Shortcut to get the parsed results while following redirects"""
-        resp = self.get_resp(url, data=data)
+        resp = self.get_resp(url, data, follow_redirects, raise_on_error)
         return json.loads(resp)
 
     def get_main_database(self, session):
         return (
             db.session.query(models.Database)
-            .filter_by(database_name='main')
-            .first()
+                .filter_by(database_name='main')
+                .first()
         )
 
     def get_access_requests(self, username, ds_type, ds_id):
-            DAR = models.DatasourceAccessRequest
-            return (
-                db.session.query(DAR)
+        DAR = models.DatasourceAccessRequest
+        return (
+            db.session.query(DAR)
                 .filter(
-                    DAR.created_by == sm.find_user(username=username),
-                    DAR.datasource_type == ds_type,
-                    DAR.datasource_id == ds_id,
+                DAR.created_by == sm.find_user(username=username),
+                DAR.datasource_type == ds_type,
+                DAR.datasource_id == ds_id,
                 )
                 .first()
-            )
+        )
 
     def logout(self):
         self.client.get('/logout/', follow_redirects=True)
@@ -194,14 +197,70 @@ class SupersetTestCase(unittest.TestCase):
                     perm.view_menu and table.perm in perm.view_menu.name):
                 appbuilder.sm.del_permission_role(public_role, perm)
 
-    def run_sql(self, sql, client_id, user_name=None):
+    def run_sql(self, sql, client_id, user_name=None, raise_on_error=False):
         if user_name:
             self.logout()
             self.login(username=(user_name if user_name else 'admin'))
         dbid = self.get_main_database(db.session).id
         resp = self.get_json_resp(
             '/superset/sql_json/',
+            raise_on_error=False,
             data=dict(database_id=dbid, sql=sql, select_as_create_as=False,
                       client_id=client_id),
         )
+        if raise_on_error and 'error' in resp:
+            raise Exception("run_sql failed")
         return resp
+
+    def test_gamma_permissions(self):
+        def assert_can_read(view_menu):
+            self.assertIn(('can_show', view_menu), gamma_perm_set)
+            self.assertIn(('can_list', view_menu), gamma_perm_set)
+
+        def assert_can_write(view_menu):
+            self.assertIn(('can_add', view_menu), gamma_perm_set)
+            self.assertIn(('can_download', view_menu), gamma_perm_set)
+            self.assertIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertIn(('can_edit', view_menu), gamma_perm_set)
+
+        def assert_cannot_write(view_menu):
+            self.assertNotIn(('can_add', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_download', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_delete', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_edit', view_menu), gamma_perm_set)
+            self.assertNotIn(('can_save', view_menu), gamma_perm_set)
+
+        def assert_can_all(view_menu):
+            assert_can_read(view_menu)
+            assert_can_write(view_menu)
+
+        gamma_perm_set = set()
+        for perm in sm.find_role('Gamma').permissions:
+            gamma_perm_set.add((perm.permission.name, perm.view_menu.name))
+
+        # check read only perms
+        assert_can_read('TableModelView')
+        assert_cannot_write('DruidColumnInlineView')
+
+        # make sure that user can create slices and dashboards
+        assert_can_all('SliceModelView')
+        assert_can_all('DashboardModelView')
+
+        self.assertIn(('can_add_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_copy_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_activity_per_day', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_created_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_csv', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_dashboard', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_explore_json', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_dashboards', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
+        self.assertIn(('can_update_explore', 'Superset'), gamma_perm_set)
+
+
+
+

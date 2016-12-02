@@ -144,6 +144,32 @@ class ChartContainer extends React.Component {
     return title;
   }
 
+  renderChart() {
+    if (this.props.alert) {
+      return (
+        <Alert bsStyle="warning">
+          {this.props.alert}
+          <i
+            className="fa fa-close pull-right"
+            onClick={this.removeAlert.bind(this)}
+            style={{ cursor: 'pointer' }}
+          />
+        </Alert>
+      );
+    }
+    if (this.props.isChartLoading) {
+      return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
+    }
+    return (
+      <div
+        id={this.props.containerId}
+        ref={(ref) => { this.chartContainerRef = ref; }}
+        className={this.props.viz_type}
+        style={{ 'overflow-x': 'scroll' }}
+      />
+    );
+  }
+
   render() {
     return (
       <div className="chart-container">
@@ -187,26 +213,7 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
-          {this.props.alert &&
-            <Alert bsStyle="warning">
-              {this.props.alert}
-              <i
-                className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
-                style={{ cursor: 'pointer' }}
-              />
-            </Alert>
-          }
-          {this.props.isChartLoading ?
-            (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />)
-            :
-            (<div
-              id={this.props.containerId}
-              ref={(ref) => { this.chartContainerRef = ref; }}
-              className={this.props.viz_type}
-              style={{ 'overflow-x': 'scroll' }}
-            />)
-          }
+          {this.renderChart()}
         </Panel>
       </div>
     );

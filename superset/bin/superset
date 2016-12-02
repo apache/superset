@@ -4,7 +4,82 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset.cli import manager
+import argparse
+import sys
+
+import gunicorn.app.base
+
+
+class GunicornSupersetApplication(gunicorn.app.base.BaseApplication):
+    def __init__(self, address, port, workers, timeout):
+        self.options = {
+            'bind': '%s:%s' % (address, port),
+            'workers': workers,
+            'timeout': timeout,
+            'limit-request-line': 0,
+            'limit-request-field_size': 0
+        }
+
+        super(GunicornSupersetApplication, self).__init__()
+
+    def load_config(self):
+        config = dict([(key, value) for key, value in self.options.iteritems()
+                       if key in self.cfg.settings and value is not None])
+        for key, value in config.iteritems():
+            self.cfg.set(key.lower(), value)
+
+    def load(self):
+        from superset import app
+
+        return app
+
+
+def run_server():
+    parser = argparse.ArgumentParser(description='Run gunicorn for superset')
+    subparsers = parser.add_subparsers()
+    gunicorn_parser = subparsers.add_parser('runserver')
+
+    gunicorn_parser.add_argument(
+        '-d', '--debug', action='store_true',
+        help='Start the web server in debug mode')
+    gunicorn_parser.add_argument(
+        '-a', '--address', type=str, default='127.0.0.1',
+        help='Specify the address to which to bind the web server')
+    gunicorn_parser.add_argument(
+        '-p', '--port', type=int, default=8088,
+        help='Specify the port on which to run the web server')
+    gunicorn_parser.add_argument(
+        '-w', '--workers', type=int, default=4,
+        help='Number of gunicorn web server workers to fire up')
+    gunicorn_parser.add_argument(
+        '-t', '--timeout', type=int, default=30,
+        help='Specify the timeout (seconds) for the gunicorn web server')
+
+    args = parser.parse_args()
+
+    if args.debug:
+        from superset import app
+
+        app.run(
+            host='0.0.0.0',
+            port=int(args.port),
+            threaded=True,
+            debug=True)
+    else:
+        gunicorn_app_obj = GunicornSupersetApplication(
+            args.address, args.port, args.workers, args.timeout)
+        gunicorn_app_obj.run()
+
 
 if __name__ == "__main__":
-    manager.run()
+    if len(sys.argv) > 1 and sys.argv[1] == 'runserver':
+        # In the runserver case, don't go through the manager so that superset
+        # import is deferred until the app is loaded; this allows for the app to be run via pex
+        # and cleanly forked in the gunicorn case.
+        #
+        # TODO: Refactor cli so that gunicorn can be started without first importing superset;
+        # this will allow us to move the runserver logic back into cli module.
+        run_server()
+    else:
+        from superset.cli import manager
+        manager.run()
