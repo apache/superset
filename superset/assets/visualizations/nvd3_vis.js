@@ -106,6 +106,8 @@ function nvd3Vis(slice) {
       let stacked = false;
       let row;
       const xArray = new Array();
+      const list = new Array();
+      let payloadData2;
       const drawGraph = function () {
         switch (vizType) {
           case 'line':
@@ -186,18 +188,18 @@ function nvd3Vis(slice) {
 
           // add bar style
           case 'linePlusBar':
-            delete payload.data[0].bar;
-            payload.data[0].bar = true;
+            payloadData2 = payload.data;
+            payloadData2[0].bar = true;
             chart = nv.models.linePlusBarChart()
               .color(d3.scale.category10().range());
 
             // solve this problem: if x is string, can't get result
-            for (let m = 0; m < payload.data[0].values.length; m++) {
-              xArray.push(payload.data[0].values[m].x);
+            for (let m = 0; m < payloadData2[0].values.length; m++) {
+              xArray.push(payloadData2[0].values[m].x);
             }
-            for (let i = 0; i < payload.data.length; i++) {
-              for (let n = 0; n < payload.data[i].values.length; n++) {
-                payload.data[i].values[n].x = n;
+            for (let i = 0; i < payloadData2.length; i++) {
+              for (let n = 0; n < payloadData2[i].values.length; n++) {
+                payloadData2[i].values[n].x = n;
               }
             }
 
@@ -210,7 +212,7 @@ function nvd3Vis(slice) {
             break;
 
           case 'multi':
-            const list = new Array();
+            payloadData2 = payload.data;
             for (let i = 0; i < fd.line.length; i++) {
               list.push({ key: fd.line[i], type: 'line', yAxis: fd.yAxis1 });
             }
@@ -223,24 +225,24 @@ function nvd3Vis(slice) {
             for (let i = 0; i < fd.scatter.length; i++) {
               list.push({ key: fd.scatter[i], type: 'scatter', yAxis: fd.yAxis4 });
             }
-            for (let i = 0; i < payload.data.length; i++) {
+            for (let i = 0; i < payloadData2.length; i++) {
               for (let j = 0; j < list.length; j++) {
-                if (payload.data[i].key === list[j].key) {
-                  payload.data[i].type = list[j].type;
+                if (payloadData2[i].key === list[j].key) {
+                  payloadData2[i].type = list[j].type;
                   if (list[j].yAxis === 'y1') {
-                    payload.data[i].yAxis = 1;
+                    payloadData2[i].yAxis = 1;
                   } else {
-                    payload.data[i].yAxis = 2;
+                    payloadData2[i].yAxis = 2;
                   }
                   break;
                 }
               }
               // solve this problem: if x is string, can't get result
-              for (let m = 0; m < payload.data[0].values.length; m++) {
-                xArray.push(payload.data[0].values[m].x);
+              for (let m = 0; m < payloadData2[0].values.length; m++) {
+                xArray.push(payloadData2[0].values[m].x);
               }
-              for (let n = 0; n < payload.data[i].values.length; n++) {
-                payload.data[i].values[n].x = n;
+              for (let n = 0; n < payloadData2[i].values.length; n++) {
+                payloadData2[i].values[n].x = n;
               }
             }
 
@@ -468,8 +470,15 @@ function nvd3Vis(slice) {
           svg = d3.select(slice.selector).append('svg');
         }
 
+        let svgData;
+        if (vizType === 'linePlusBar' || vizType === 'multi') {
+          svgData = payloadData2;
+        } else {
+          svgData = payload.data;
+        }
+
         svg
-        .datum(payload.data)
+        .datum(svgData)
         .transition().duration(500)
         .attr('height', height)
         .attr('width', width)
