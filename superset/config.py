@@ -152,7 +152,8 @@ ENABLE_CORS = False
 CORS_OPTIONS = {}
 
 # Allowed format types for upload on Database view
-ALLOWED_EXTENSIONS = set(['csv', 'xls'])
+# TODO: Add processing of other spreadsheet formats (xls, xlsx etc)
+ALLOWED_EXTENSIONS = set(['csv'])
 
 
 # ---------------------------------------------------

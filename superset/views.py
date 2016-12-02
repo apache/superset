@@ -13,19 +13,22 @@ import sys
 import time
 import traceback
 import zlib
+import pandas
 
 import functools
 import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup, url_for, send_from_directory)
-from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_appbuilder.widgets import ListWidget
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla import models as ab_models
+from flask_appbuilder.fieldwidgets import BS3TextFieldWidget
+from flask_appbuilder.forms import DynamicForm
 
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
@@ -33,12 +36,14 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
-from wtforms.validators import ValidationError
+
+from wtforms import Form, StringField
+from wtforms.validators import ValidationError, DataRequired
 
 import superset
 from superset import (
     appbuilder, cache, db, models, viz, utils, app,
-    sm, sql_lab, results_backend, security,
+    sm, sql_lab, results_backend, security, dataframe
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -595,6 +600,27 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         return '.' in filename and \
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
 
+    @staticmethod
+    def csv_to_df(filename):
+        # Use Pandas to parse csv file to a dataframe
+        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
+                      + url_for('uploaded_file', filename=filename)
+        # TODO: Expose this to api so can specify each field
+        df = pandas.read_csv(filepath_or_buffer=upload_path, error_bad_lines=False)
+        # Convert to superset dataframe?
+        # sdf = dataframe.SupersetDataFrame(df)
+        return df
+
+    @staticmethod
+    def df_to_db(df, tablename):
+        # Use Pandas to parse dataframe to database
+
+        engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
+        tablename = 'csvtable'
+
+        # TODO: Expose this to API so can specify each field
+        df.to_sql(name=tablename, con=engine, if_exists='replace')
+
     @expose('/upload_file', methods=['GET', 'POST'])
     def upload_file(self):
         if request.method == 'POST':
@@ -602,24 +628,26 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
             if 'file' not in request.files:
                 flash('No file part')
                 return redirect(request.url)
-            file = request.files['file']
+            f = request.files['file']
             # if user does not select file, browser also
             # submit a empty part without filename
-            if file.filename == '':
+            if f.filename == '':
                 flash('No selected file')
                 return redirect(request.url)
-            if file and self.allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                file.save(os.path.join(config['UPLOAD_FOLDER'], filename))
-                return redirect(request.url) # - > This is where I add the Pandas form?
-                # TODO: Use the following redirect if you want to download an uploaded file
-                # redirect(url_for('uploaded_file', filename=filename))
-        return self.render_template('superset/upload_files.html')
+            if f and self.allowed_file(f.filename):
+                filename = secure_filename(f.filename)
+                f.save(os.path.join(config['UPLOAD_FOLDER'], filename))
 
-    @expose('/uploads/<filename>')
-    def uploaded_file(self, filename):
-        return send_from_directory(config['UPLOAD_FOLDER'],
-                                   filename)
+                # TODO: Use Pandas to convert csv to superset dataframe
+                df = self.csv_to_df(filename)
+                # TODO: Use Pandas to convert superset dataframe to database
+                self.df_to_db(df, filename)
+
+                return redirect('/csvtodatabaseview')
+                # return redirect(request.url)  # - > This is where I add the Pandas form?
+                # TODO: Use the following redirect if you want to download an uploaded file
+                # return redirect(url_for('uploaded_file', filename=filename))
+        return self.render_template('superset/upload_files.html')
 
 appbuilder.add_link(
     'Import Dashboards',
@@ -656,6 +684,37 @@ class DatabaseTablesAsync(DatabaseView):
     list_columns = ['id', 'all_table_names', 'all_schema_names']
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
+
+# TODO: This should prob be moved elsewhere
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(config['UPLOAD_FOLDER'],
+                               filename)
+
+# TODO: Custom form for when converting CSV to Database
+
+
+class CsvToDatabaseForm(DynamicForm):
+    field1 = StringField('Field1', description='Your field 1',
+                         validators=[DataRequired()], widget=BS3TextFieldWidget())
+    field2 = StringField('Field2', description='Your field 2',
+                         validators=[DataRequired()], widget=BS3TextFieldWidget())
+
+
+class CsvToDatabaseView(SimpleFormView):
+    form = CsvToDatabaseForm
+    form_title = 'This is my first form view'
+    message = 'Form view submitted'
+
+    def form_get(self, form):
+        # pre process form
+        form.field1.data = 'This was prefilled'
+
+    def form_post(self, form):
+        # post process form
+        flash(self.message, 'info')
+
+appbuilder.add_view_no_menu(CsvToDatabaseView)
 
 
 class TableModelView(SupersetModelView, DeleteMixin):  # noqa
