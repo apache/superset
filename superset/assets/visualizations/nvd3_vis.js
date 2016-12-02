@@ -431,7 +431,7 @@ function nvd3Vis(slice) {
             }
           }
         }
-        
+
         chart.color((d) => category21(d[colorKey]));
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
