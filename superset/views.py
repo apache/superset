@@ -2611,7 +2611,7 @@ class Superset(BaseSupersetView):
             error_msg=get_error_msg(),
         ), 500
 
-    @has_access  # Gowtham95india - Fix to login issue. Pages keeps rendering when logged out.
+    @has_access  # Gowtham95india - Login issue when logged out. 
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
