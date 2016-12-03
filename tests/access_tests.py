@@ -358,7 +358,12 @@ class RequestAccessTests(SupersetTestCase):
             self.get_resp(
                 '/superset/update_role/',
                 data=json.dumps({
-                    'usernames': ['gamma'],
+                    'users': [{
+                        'username': 'gamma',
+                        'first_name': 'Gamma',
+                        'last_name': 'Gamma',
+                        'email': 'gamma@superset.com'
+                    }],
                     'role_name': update_role_str,
                 })
             )
@@ -370,7 +375,12 @@ class RequestAccessTests(SupersetTestCase):
         resp = self.client.post(
             '/superset/update_role/',
             data=json.dumps({
-                'usernames': ['gamma'],
+                'users': [{
+                        'username': 'gamma',
+                        'first_name': 'Gamma',
+                        'last_name': 'Gamma',
+                        'email': 'gamma@superset.com'
+                    }],
                 'role_name': update_role_str
             }),
             follow_redirects=True
@@ -383,7 +393,17 @@ class RequestAccessTests(SupersetTestCase):
         resp = self.client.post(
             '/superset/update_role/',
             data=json.dumps({
-                'usernames': ['alpha', 'unknown'],
+                'users': [{
+                    'username': 'alpha',
+                    'first_name': 'Alpha',
+                    'last_name': 'Alpha',
+                    'email': 'alpha@superset.com'
+                }, {
+                    'username': 'unknown',
+                    'first_name': 'Unknown1',
+                    'last_name': 'Unknown2',
+                    'email': 'unknown@superset.com'
+                }],
                 'role_name': update_role_str
             }),
             follow_redirects=True
@@ -391,9 +411,16 @@ class RequestAccessTests(SupersetTestCase):
         self.assertEquals(resp.status_code, 201)
         update_role = sm.find_role(update_role_str)
         self.assertEquals(
-            update_role.user, [sm.find_user(username='alpha')])
-
+            update_role.user, [
+                sm.find_user(username='alpha'),
+                sm.find_user(username='unknown'),
+            ])
+        unknown = sm.find_user(username='unknown')
+        self.assertEquals('Unknown2', unknown.last_name)
+        self.assertEquals('Unknown1', unknown.first_name)
+        self.assertEquals('unknown@superset.com', unknown.email)
         db.session.delete(update_role)
+        db.session.delete(unknown)
         db.session.commit()
 
 

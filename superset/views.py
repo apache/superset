@@ -1134,21 +1134,39 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+    @api
     @has_access_api
     @expose("/update_role/", methods=['POST'])
     def update_role(self):
         """Assigns a list of found users to the given role."""
         data = request.get_json(force=True)
-        usernames = data['usernames']
+        users_data = data['users']
         role_name = data['role_name']
         role = sm.find_role(role_name)
         role.user = []
-        for username in usernames:
-            user = sm.find_user(username=username)
-            if user:
+        created_users = []
+        granted_users = []
+        for user_data in users_data:
+            user = sm.find_user(username=user_data['username'])
+            if not user and user_data['username']:
+                sm.add_user(
+                    username=user_data['username'],
+                    first_name=user_data['first_name'],
+                    last_name=user_data['last_name'],
+                    email=user_data['email'],
+                    role=role,
+                )
+                user = sm.find_user(username=user_data['username'])
+                created_users.append(user.username)
+            else:
                 role.user.append(user)
-        db.session.commit()
-        return Response(status=201)
+            granted_users.append(user.username)
+        sm.get_session.commit()
+        return Response(json.dumps({
+            'role': role_name,
+            'created_users': created_users,
+            'granted_users': granted_users,
+        }), status=201)
 
     @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
