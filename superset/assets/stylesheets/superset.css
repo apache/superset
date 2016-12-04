@@ -52,7 +52,7 @@ input.form-control {
     border: 1px solid #DDD;
     background-color: #F8F8F8;
     border-radius: 5px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .slice_info{
@@ -191,5 +191,5 @@ div.widget .slice_container {
 }
 
 .table-condensed {
-    font-size: 12px;
+    font-size: 14px;
 }

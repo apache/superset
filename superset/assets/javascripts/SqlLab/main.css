@@ -160,7 +160,7 @@ div.Workspace {
     padding: 0px !important;
     margin: 0px;
     border: none;
-    font-size: 12px;
+    font-size: 14px;
     line-height: @line-height-base;
     background-color: transparent !important;
 }
@@ -289,7 +289,7 @@ a.Link {
     border: none;
     text-align: left;
     color: white;
-    font-size: 10px;
+    font-size: 14px;
 }
 .tooltip-inner {
     max-width: 500px;
