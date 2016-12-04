@@ -67,7 +67,6 @@ if app.config.get('ENABLE_CHUNK_ENCODING'):
         def __call__(self, environ, start_response):
             # Setting wsgi.input_terminated tells werkzeug.wsgi to ignore
             # content-length and read the stream till the end.
-            print(environ)
             if 'chunked' == environ.get('HTTP_TRANSFER_ENCODING', '').lower():
                 environ['wsgi.input_terminated'] = True
             return self.app(environ, start_response)
