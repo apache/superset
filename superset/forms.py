@@ -784,6 +784,11 @@ class FormFactory(object):
                 "description": _(
                     "Whether to include a client side search box")
             }),
+            'table_filter': (BetterBooleanField, {
+                "label": _("Table Filter"),
+                "default": True,
+                "description": _("Whether to apply filter when table cell is clicked")
+            }),
             'show_bubbles': (BetterBooleanField, {
                 "label": _("Show Bubbles"),
                 "default": False,

@@ -106,7 +106,7 @@ function tableVis(slice) {
           return (d.isMetric) ? d.val : null;
         })
         .on('click', function (d) {
-          if (!d.isMetric) {
+          if (!d.isMetric && fd.table_filter) {
             const td = d3.select(this);
             if (td.classed('filtered')) {
               slice.removeFilter(d.col, [d.val]);
