@@ -1134,6 +1134,24 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+
+    @has_access_api
+    @expose("/set_refresh_frequency/<dashboard_id>/", methods=['POST'])
+    def set_refresh_frequency(self,dashboard_id):
+        """endpoint for set refreshFrequency"""
+        data = json.loads(request.form.get('data'))
+        refreshFrequency = data['refreshFrequency']
+        if dashboard_id:
+            dash = (
+                db.session.query(models.Dashboard)
+                    .filter_by(id=int(dashboard_id))
+                    .one()
+            )
+        if dash:
+            setattr(dash, 'refresh_frequency', refreshFrequency)
+            db.session.commit()
+        return Response(status=200)
+
     @has_access_api
     @expose("/update_role/", methods=['POST'])
     def update_role(self):

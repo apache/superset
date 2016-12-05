@@ -428,6 +428,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     description = Column(Text)
     css = Column(Text)
     json_metadata = Column(Text)
+    refresh_frequency = Column(Integer, default=0)
     slug = Column(String(255), unique=True)
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
@@ -475,6 +476,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'slug': self.slug,
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,
+            'refresh_frequency': self.refresh_frequency,
         }
         return json.dumps(d)
 

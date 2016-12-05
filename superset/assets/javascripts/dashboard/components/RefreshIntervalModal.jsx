@@ -2,6 +2,8 @@ import React from 'react';
 
 import ModalTrigger from '../../components/ModalTrigger';
 import Select from 'react-select';
+import $ from 'jquery';
+import { getAjaxErrorMsg, showModal } from '../../modules/utils';
 
 const propTypes = {
   triggerNode: React.PropTypes.node.isRequired,
@@ -16,6 +18,7 @@ const defaultProps = {
 
 const options = [
   [0, "Don't refresh"],
+  [5, '5 seconds'],
   [10, '10 seconds'],
   [30, '30 seconds'],
   [60, '1 minute'],
@@ -26,9 +29,10 @@ class RefreshIntervalModal extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      refreshFrequency: props.initialRefreshFrequency,
+      refreshFrequency: $('.dashboard').data('dashboard').refresh_frequency || props.initialRefreshFrequency,
     };
   }
+
   render() {
     return (
       <ModalTrigger
@@ -42,6 +46,7 @@ class RefreshIntervalModal extends React.PureComponent {
               options={options}
               value={this.state.refreshFrequency}
               onChange={(opt) => {
+                this.setRefreshFrequency(opt);
                 this.setState({ refreshFrequency: opt.value });
                 this.props.onChange(opt.value);
               }}
@@ -50,6 +55,26 @@ class RefreshIntervalModal extends React.PureComponent {
         }
       />
     );
+  };
+
+  setRefreshFrequency(opt){
+    const refreshFrequencyModal = this.modal;
+    $.ajax({
+      type: 'POST',
+      url: '/superset/set_refresh_frequency/'+$('.dashboard').data('dashboard').id+'/',
+      data: {
+        data: JSON.stringify({refreshFrequency: opt.value}),
+      },
+      success() {},
+      error(error) {
+        refreshFrequencyModal.close();
+        showModal({
+          title: 'Error',
+          body: 'Sorry, there was an error saving refresh interval',
+        });
+        console.log(getAjaxErrorMsg(error));
+      },
+    });
   }
 }
 RefreshIntervalModal.propTypes = propTypes;
