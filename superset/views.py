@@ -217,6 +217,12 @@ class SupersetFilter(BaseFilter):
         attr = '__get_user_roles'
         if not hasattr(self, attr):
             setattr(self, attr, get_user_roles())
+
+        for r in getattr(self, attr):
+            # handle sqlalchemy object expiration
+            if r._sa_instance_state.expired:
+                setattr(self, attr, get_user_roles())
+                break
         return getattr(self, attr)
 
     def get_all_permissions(self):
