@@ -1147,8 +1147,13 @@ class Superset(BaseSupersetView):
         created_users = []
         granted_users = []
         for user_data in users_data:
+            if not user_data['username']:
+                continue
             user = sm.find_user(username=user_data['username'])
-            if not user and user_data['username']:
+            if not user:
+                user = sm.find_user(email=user_data['email'])
+            if not user:
+                logging.info("Adding user: {}.".format(user_data))
                 sm.add_user(
                     username=user_data['username'],
                     first_name=user_data['first_name'],
@@ -1156,9 +1161,10 @@ class Superset(BaseSupersetView):
                     email=user_data['email'],
                     role=role,
                 )
+                sm.get_session.commit()
                 user = sm.find_user(username=user_data['username'])
                 created_users.append(user.username)
-            else:
+            elif role not in user.roles:
                 role.user.append(user)
             granted_users.append(user.username)
         sm.get_session.commit()
