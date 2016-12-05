@@ -19,7 +19,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup, url_for, send_from_directory)
+    g, request, redirect, flash, Response, render_template, Markup, url_for, send_from_directory, session)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose, SimpleFormView
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -37,8 +37,8 @@ from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
-from wtforms import Form, StringField
-from wtforms.validators import ValidationError, DataRequired
+from wtforms import Form, StringField, IntegerField, FieldList, BooleanField
+from wtforms.validators import ValidationError, DataRequired, InputRequired, Optional
 
 import superset
 from superset import (
@@ -600,27 +600,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
         return '.' in filename and \
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
 
-    @staticmethod
-    def csv_to_df(filename):
-        # Use Pandas to parse csv file to a dataframe
-        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
-                      + url_for('uploaded_file', filename=filename)
-        # TODO: Expose this to api so can specify each field
-        df = pandas.read_csv(filepath_or_buffer=upload_path, error_bad_lines=False)
-        # Convert to superset dataframe?
-        # sdf = dataframe.SupersetDataFrame(df)
-        return df
-
-    @staticmethod
-    def df_to_db(df, tablename):
-        # Use Pandas to parse dataframe to database
-
-        engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
-        tablename = 'csvtable'
-
-        # TODO: Expose this to API so can specify each field
-        df.to_sql(name=tablename, con=engine, if_exists='replace')
-
     @expose('/upload_file', methods=['GET', 'POST'])
     def upload_file(self):
         if request.method == 'POST':
@@ -635,16 +614,10 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
                 flash('No selected file')
                 return redirect(request.url)
             if f and self.allowed_file(f.filename):
-                filename = secure_filename(f.filename)
-                f.save(os.path.join(config['UPLOAD_FOLDER'], filename))
-
-                # TODO: Use Pandas to convert csv to superset dataframe
-                df = self.csv_to_df(filename)
-                # TODO: Use Pandas to convert superset dataframe to database
-                self.df_to_db(df, filename)
-
-                return redirect('/csvtodatabaseview')
-                # return redirect(request.url)  # - > This is where I add the Pandas form?
+                session['filename'] = secure_filename(f.filename)
+                f.save(os.path.join(config['UPLOAD_FOLDER'], session['filename']))
+                return redirect('/csvtodatabaseview/form')
+                #return redirect(request.url)  # - > This is where I add the Pandas form?
                 # TODO: Use the following redirect if you want to download an uploaded file
                 # return redirect(url_for('uploaded_file', filename=filename))
         return self.render_template('superset/upload_files.html')
@@ -695,24 +668,170 @@ def uploaded_file(filename):
 
 
 class CsvToDatabaseForm(DynamicForm):
-    field1 = StringField('Field1', description='Your field 1',
-                         validators=[DataRequired()], widget=BS3TextFieldWidget())
-    field2 = StringField('Field2', description='Your field 2',
-                         validators=[DataRequired()], widget=BS3TextFieldWidget())
+    csv_filename = StringField('CSV Filename', description='CSV File to be uploaded to Database.',
+                               validators=[DataRequired()], widget=BS3TextFieldWidget())  # For now make sure this cannot be edited
+    sep = StringField('Delimiter', description='Delimiter used by CSV file (for whitespace use \s+).',
+                      validators=[DataRequired()], widget=BS3TextFieldWidget())
+    header = IntegerField('Header Row', description='Row containing the headers to use as column names '
+                                                    '(0 is first line of data). Leave empty if there is no header row.',
+                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    names = StringField('Column Names', description='List of comma-separated column names to use if header '
+                                                    'row not specified above. Leave empty if header field populated.',
+                        validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    index_col = IntegerField('Index Column', description='Column to use as the row labels of the dataframe. Leave '
+                                                         'empty if no index column.',
+                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    squeeze = BooleanField('Squeeze', description='Parse the data as a series (specify this option if the data '
+                                                  'contains only one column.')
+    prefix = StringField('Prefix', description='Prefix to add to column numbers when no header '
+                                               '(e.g. "X" for "X0, X1").',
+                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    mangle_dupe_cols = BooleanField('Mangle Duplicate Columns', description='Specify duplicate columns as "X.0, X.1".')
+    skipinitialspace = BooleanField('Skip Initial Space', description='Skip spaces after delimiter.')
+    skiprows = IntegerField('Skip Rows', description='Number of rows to skip at start of file.',
+                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    nrows = IntegerField('Rows to Read', description='Number of rows of file to read.',
+                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    skip_blank_lines = BooleanField('Skip Blank Lines', description='Skip blank lines rather than interpreting them '
+                                                                    'as NaN values.')
+    parse_dates = BooleanField('Parse Dates', description='Parse date values.')
+    infer_datetime_format = BooleanField('Infer Datetime Format', description='Use Pandas to interpret the '
+                                                                              'datetime format.')
+    dayfirst = BooleanField('Day First', description='Use DD/MM (European/International) date format.')
+    thousands = StringField('Thousands Separator', description='Separator for values in thousands.',
+                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    decimal = StringField('Decimal Character', description='Character to interpret as decimal point.',
+                          validators=[DataRequired()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    quotechar = StringField('Quote Character', description='Character used to denote the start and end of a '
+                                                           'quoted item.',
+                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or "'"])
+    escapechar = StringField('Escape Character', description='Character used to escape a quoted item.',
+                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    comment = StringField('Comment Character', description='Character used to denote the start of a comment.',
+                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    encoding = StringField('Encoding', description='Encoding to use for UTF when reading/writing (e.g. "utf-8").',
+                           validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    error_bad_lines = BooleanField('Error On Bad Lines', description='Error on bad lines (e.g. a line with too many '
+                                                                     'commas). If false these bad lines will instead '
+                                                                     'be dropped from the resulting dataframe.')
+
+    # TODO: There are more fields in the Pandas API, but these are the most obviously used
+    # TODO: Check all the validators
+
 
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
-    form_title = 'This is my first form view'
-    message = 'Form view submitted'
+    form_title = 'CSV to Database configuration'
+    message = 'CSV uploaded to table <table_name> in database <db_name>'  # insert name here
 
     def form_get(self, form):
         # pre process form
-        form.field1.data = 'This was prefilled'
+        # default values
+        form.csv_filename.data = session['filename']
+        form.sep.data = ','
+        form.header.data = None
+        form.names.data = None
+        form.index_col.data = None
+        form.squeeze.data = False
+        form.prefix.data = None
+        form.mangle_dupe_cols.data = False
+        form.skipinitialspace.data = False
+        form.skiprows.data = None
+        form.nrows.data = None
+        form.skip_blank_lines.data = True
+        form.parse_dates.data = False
+        form.infer_datetime_format.data = False
+        form.dayfirst.data = False
+        form.thousands.data = None
+        form.decimal.data = '.'
+        form.quotechar.data = None
+        form.escapechar.data = None
+        form.comment.data = None
+        form.encoding.data = None
+        form.error_bad_lines.data = False
 
     def form_post(self, form):
         # post process form
+
+        # Turn into list of strings
+        if form.names.data is not None:
+            form.names.data = form.names.data.split(",")
+
+        # TODO: Use Pandas to convert csv to superset dataframe
+
+        print(str(form.encoding.data))
+
+        df = self.csv_to_df(filepath_or_buffer=form.csv_filename.data,
+                            sep=form.sep.data,
+                            header=form.header.data,
+                            names=form.names.data,
+                            index_col=form.index_col.data,
+                            squeeze=form.squeeze.data,
+                            prefix=form.prefix.data,
+                            mangle_dupe_cols=form.mangle_dupe_cols.data,
+                            skipinitialspace=form.skipinitialspace.data,
+                            skiprows=form.skiprows.data,
+                            nrows=form.nrows.data,
+                            skip_blank_lines=form.skip_blank_lines.data,
+                            parse_dates=form.parse_dates.data,
+                            infer_datetime_format=form.infer_datetime_format.data,
+                            dayfirst=form.dayfirst.data,
+                            thousands=form.thousands.data,
+                            decimal=form.decimal.data,
+                            quotechar=form.quotechar.data,
+                            escapechar=form.escapechar.data,
+                            comment=form.comment.data,
+                            encoding=form.encoding.data,
+                            error_bad_lines=form.error_bad_lines.data)
+        # TODO: Use Pandas to convert superset dataframe to database
+        self.df_to_db(df, form.csv_filename.data)
         flash(self.message, 'info')
+
+    @staticmethod
+    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, prefix, mangle_dupe_cols,
+                  skipinitialspace, skiprows, nrows, skip_blank_lines, parse_dates, infer_datetime_format,
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment, encoding, error_bad_lines):
+        # Use Pandas to parse csv file to a dataframe
+        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
+                      + url_for('uploaded_file', filename=filepath_or_buffer)
+        # TODO: Expose this to api so can specify each field
+        df = pandas.read_csv(filepath_or_buffer=upload_path,
+                             sep=sep,
+                             header=header,
+                             names=names,
+                             index_col=index_col,
+                             squeeze=squeeze,
+                             prefix=prefix,
+                             mangle_dupe_cols=mangle_dupe_cols,
+                             skipinitialspace=skipinitialspace,
+                             skiprows=skiprows,
+                             nrows=nrows,
+                             skip_blank_lines=skip_blank_lines,
+                             parse_dates=parse_dates,
+                             infer_datetime_format=infer_datetime_format,
+                             dayfirst=dayfirst,
+                             thousands=thousands,
+                             decimal=decimal,
+                             quotechar=quotechar,
+                             escapechar=escapechar,
+                             comment=comment,
+                             encoding=encoding,
+                             error_bad_lines=error_bad_lines,
+                             )
+        # Convert to superset dataframe?
+        # sdf = dataframe.SupersetDataFrame(df)
+        return df
+
+    @staticmethod
+    def df_to_db(df, tablename):
+        # Use Pandas to parse dataframe to database
+
+        engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
+        tablename = 'csvtable'
+
+        # TODO: Expose this to API so can specify each field
+        df.to_sql(name=tablename, con=engine, if_exists='replace')
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
