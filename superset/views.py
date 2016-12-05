@@ -214,10 +214,7 @@ class SupersetFilter(BaseFilter):
     """
 
     def get_user_roles(self):
-        attr = '__get_user_roles'
-        if not hasattr(self, attr):
-            setattr(self, attr, get_user_roles())
-        return getattr(self, attr)
+        return get_user_roles()
 
     def get_all_permissions(self):
         """Returns a set of tuples with the perm name and view menu name"""
@@ -253,21 +250,12 @@ class SupersetFilter(BaseFilter):
             self.has_perm('all_datasource_access', 'all_datasource_access'))
 
 
-class DatabaseFilter(SupersetFilter):
-    def apply(self, query, func):  # noqa
-        if (
-                self.has_role('Admin') or
-                self.has_perm('all_database_access', 'all_database_access')):
-            return query
-        perms = self.get_view_menus('database_access')
-        return query.filter(self.model.perm.in_(perms))
-
-
 class DatasourceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
+        # TODO(bogdan): add `schema_access` support here
         return query.filter(self.model.perm.in_(perms))
 
 
@@ -276,6 +264,7 @@ class SliceFilter(SupersetFilter):
         if self.has_all_datasource_access():
             return query
         perms = self.get_view_menus('datasource_access')
+        # TODO(bogdan): add `schema_access` support here
         return query.filter(self.model.perm.in_(perms))
 
 
@@ -288,6 +277,7 @@ class DashboardFilter(SupersetFilter):
             return query
         Slice = models.Slice  # noqa
         Dash = models.Dashboard  # noqa
+        # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
             db.session
@@ -303,6 +293,7 @@ class DashboardFilter(SupersetFilter):
             )
         )
         return query
+
 
 def validate_json(form, field):  # noqa
     try:
@@ -622,7 +613,6 @@ appbuilder.add_view(
 
 
 class DatabaseAsync(DatabaseView):
-    base_filters = [['id', DatabaseFilter, lambda: []]]
     list_columns = [
         'id', 'database_name',
         'expose_in_sqllab', 'allow_ctas', 'force_ctas_schema',
@@ -1659,10 +1649,11 @@ class Superset(BaseSupersetView):
             .filter_by(id=db_id)
             .one()
         )
-        payload = {
-            'tables': database.all_table_names(schema),
-            'views': database.all_view_names(schema),
-        }
+        tables = [t for t in database.all_table_names(schema) if
+                  self.datasource_access_by_name(database, t, schema=schema)]
+        views = [v for v in database.all_table_names(schema) if
+                 self.datasource_access_by_name(database, v, schema=schema)]
+        payload = {'tables': tables, 'views': views}
         return Response(
             json.dumps(payload), mimetype="application/json")
 
