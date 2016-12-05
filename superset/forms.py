@@ -787,7 +787,8 @@ class FormFactory(object):
             'table_filter': (BetterBooleanField, {
                 "label": _("Table Filter"),
                 "default": True,
-                "description": _("Whether to apply filter when table cell is clicked")
+                "description": _(
+                    "Whether to apply filter when table cell is clicked")
             }),
             'show_bubbles': (BetterBooleanField, {
                 "label": _("Show Bubbles"),
