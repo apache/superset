@@ -96,7 +96,8 @@ export const exploreReducer = function (state, action) {
       if (action.key === 'viz_type') {
         newFormData.previous_viz_type = state.viz.form_data.viz_type;
       }
-      newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
+      newFormData[action.key] = (action.value !== undefined)
+        ? action.value : (!state.viz.form_data[action.key]);
       return Object.assign(
         {},
         state,

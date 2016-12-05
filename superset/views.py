@@ -2471,10 +2471,7 @@ class Superset(BaseSupersetView):
         for s in sorted(datasource.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-        grains = datasource.database.grains()
-        grain_choices = []
-        if grains:
-            grain_choices = [(grain.name, grain.name) for grain in grains]
+
         field_options = {
             'datasource': [(d.id, d.full_name) for d in datasources],
             'metrics': datasource.metrics_combo,
@@ -2486,8 +2483,6 @@ class Superset(BaseSupersetView):
             'all_columns': all_cols,
             'all_columns_x': all_cols,
             'all_columns_y': all_cols,
-            'granularity_sqla': [(c, c) for c in datasource.dttm_cols],
-            'time_grain_sqla': grain_choices,
             'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
             'series': gb_cols,
             'entity': gb_cols,
@@ -2498,6 +2493,15 @@ class Superset(BaseSupersetView):
             'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
             'filterable_cols': datasource.filterable_column_names,
         }
+
+        if (datasource_type == 'table'):
+            grains = datasource.database.grains()
+            grain_choices = []
+            if grains:
+                grain_choices = [(grain.name, grain.name) for grain in grains]
+            field_options['granularity_sqla'] = \
+                [(c, c) for c in datasource.dttm_cols]
+            field_options['time_grain_sqla'] = grain_choices
 
         return Response(
             json.dumps({'field_options': field_options}),
