@@ -47,8 +47,7 @@ class QueryTable extends React.PureComponent {
     this.setState({ showVisualizeModal: false });
   }
   showVisualizeModal(query) {
-    this.setState({ showVisualizeModal: true });
-    this.setState({ activeQuery: query });
+    this.setState({ activeQuery: query, showVisualizeModal: true });
   }
   restoreSql(query) {
     this.props.actions.queryEditorSetSql({ id: query.sqlEditorId }, query.sql);
