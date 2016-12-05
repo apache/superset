@@ -211,12 +211,13 @@ class ResultSet extends React.PureComponent {
     }
     if (query.cached) {
       return (
-        <a
-          href="#"
+        <Button
+          bsSize="sm"
+          bsStyle="primary"
           onClick={this.reFetchQueryResults.bind(this, query)}
         >
-          click to retrieve results
-        </a>
+          Fetch data preview
+        </Button>
       );
     }
     return (<Alert bsStyle="warning">The query returned no data</Alert>);

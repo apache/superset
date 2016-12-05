@@ -1139,12 +1139,12 @@ class Superset(BaseSupersetView):
     def update_role(self):
         """Assigns a list of found users to the given role."""
         data = request.get_json(force=True)
-        user_emails = data['user_emails']
+        usernames = data['usernames']
         role_name = data['role_name']
         role = sm.find_role(role_name)
         role.user = []
-        for user_email in user_emails:
-            user = sm.find_user(email=user_email)
+        for username in usernames:
+            user = sm.find_user(username=username)
             if user:
                 role.user.append(user)
         db.session.commit()
