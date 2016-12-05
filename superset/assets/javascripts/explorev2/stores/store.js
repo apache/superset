@@ -1465,7 +1465,7 @@ export const fields = {
   table_filter: {
     type: 'CheckboxField',
     label: 'Table Filter',
-    default: true,
+    default: false,
     description: 'Whether to apply filter when table cell is clicked',
   },
 

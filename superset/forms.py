@@ -786,7 +786,7 @@ class FormFactory(object):
             }),
             'table_filter': (BetterBooleanField, {
                 "label": _("Table Filter"),
-                "default": True,
+                "default": False,
                 "description": _(
                     "Whether to apply filter when table cell is clicked")
             }),
