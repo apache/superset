@@ -917,11 +917,14 @@ class BulletViz(NVD3Viz):
         form_data = self.form_data
         d = super(BulletViz, self).query_obj()
         self.metric = form_data.get('metric')
+
         def as_strings(field):
             value = form_data.get(field)
             return value.split(',') if value else []
+
         def as_floats(field):
             return [float(x) for x in as_strings(field)]
+
         self.ranges = as_floats('ranges')
         self.range_labels = as_strings('range_labels')
         self.markers = as_floats('markers')
