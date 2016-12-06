@@ -11,7 +11,7 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, models, appbuilder, sm
+from superset import app, cli, db, models, appbuilder, security, sm
 from superset.security import sync_role_definitions
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
@@ -43,6 +43,11 @@ class SupersetTestCase(unittest.TestCase):
         gamma_sqllab = sm.add_role("gamma_sqllab")
         for perm in sm.find_role('Gamma').permissions:
             sm.add_permission_role(gamma_sqllab, perm)
+        db_perm = self.get_main_database(sm.get_session).perm
+        security.merge_perm(sm, 'database_access', db_perm)
+        db_pvm = sm.find_permission_view_menu(
+            view_menu_name=db_perm, permission_name='database_access')
+        gamma_sqllab.permissions.append(db_pvm)
         for perm in sm.find_role('sql_lab').permissions:
             sm.add_permission_role(gamma_sqllab, perm)
 
@@ -73,6 +78,7 @@ class SupersetTestCase(unittest.TestCase):
                 'alpha', 'alpha', 'user', 'alpha@fab.org',
                 appbuilder.sm.find_role('Alpha'),
                 password='general')
+        sm.get_session.commit()
 
         # create druid cluster and druid datasources
         session = db.session
