@@ -3,9 +3,10 @@ import { Tooltip, OverlayTrigger, MenuItem } from 'react-bootstrap';
 
 const propTypes = {
   copyNode: PropTypes.node,
+  getText: PropTypes.func,
   onCopyEnd: PropTypes.func,
   shouldShowText: PropTypes.bool,
-  text: PropTypes.string.isRequired,
+  text: PropTypes.string,
   inMenu: PropTypes.bool,
   tooltipText: PropTypes.string,
 };
@@ -36,12 +37,19 @@ export default class CopyToClipboard extends React.Component {
     setTimeout(this.resetTooltipText, 200);
   }
 
+  onClick() {
+    if (this.props.getText) {
+      this.props.getText((d) => { this.copyToClipboard(d); });
+    } else {
+      this.copyToClipboard(this.props.text);
+    }
+  }
+
   resetTooltipText() {
     this.setState({ hasCopied: false });
   }
 
-  copyToClipboard() {
-    const textToCopy = this.props.text;
+  copyToClipboard(textToCopy) {
     const textArea = document.createElement('textarea');
 
     textArea.style.position = 'fixed';
@@ -50,7 +58,6 @@ export default class CopyToClipboard extends React.Component {
 
     document.body.appendChild(textArea);
     textArea.select();
-
     try {
       if (!document.execCommand('copy')) {
         throw new Error('Not successful');
@@ -87,7 +94,7 @@ export default class CopyToClipboard extends React.Component {
           overlay={this.renderTooltip()}
           trigger={['hover']}
           bsStyle="link"
-          onClick={this.copyToClipboard}
+          onClick={this.onClick.bind(this)}
           onMouseOut={this.onMouseOut}
         >
             {this.props.copyNode}
@@ -101,7 +108,7 @@ export default class CopyToClipboard extends React.Component {
       <OverlayTrigger placement="top" overlay={this.renderTooltip()} trigger={['hover']}>
         <MenuItem>
           <span
-            onClick={this.copyToClipboard}
+            onClick={this.onClick.bind(this)}
             onMouseOut={this.onMouseOut}
           >
             {this.props.copyNode}
