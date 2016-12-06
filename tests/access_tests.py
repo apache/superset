@@ -354,16 +354,16 @@ class RequestAccessTests(SupersetTestCase):
         if update_role:
             db.session.delete(update_role)
         db.session.commit()
-        r = self.get_resp('/superset/update_role/',
-                          data=json.dumps({
-                              'users': [{
-                                  'username': 'gamma',
-                                  'first_name': 'Gamma',
-                                  'last_name': 'Gamma',
-                                  'email': 'gamma@superset.com',
-                              }],
-                              'role_name': update_role_str,
-                          }), raise_on_error=False)
+        data = json.dumps({
+            'users': [{
+                'username': 'gamma',
+                'first_name': 'Gamma',
+                'last_name': 'Gamma',
+                'email': 'gamma@superset.com',
+            }],
+            'role_name': update_role_str})
+        r = self.client.post('/superset/update_role/', data=data,
+                             follow_redirects=True)
         self.assertEquals(500, r.status_code)
 
     def test_update_role(self):

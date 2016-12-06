@@ -1140,18 +1140,27 @@ class Superset(BaseSupersetView):
     def update_role(self):
         """Assigns a list of found users to the given role."""
         data = request.get_json(force=True)
-        users_data = data['users']
-        role_name = data['role_name']
-        role = sm.find_role(role_name)
-        role.user = []
-        created_users = []
-        granted_users = []
-        for user_data in users_data:
-            if not user_data['username']:
+        gamma_role = sm.find_role('Gamma')
+
+        username_set = set()
+        user_data_dict = {}
+        for user_data in data['users']:
+            username = user_data['username']
+            if not username:
                 continue
-            user = sm.find_user(username=user_data['username'])
-            if not user:
-                user = sm.find_user(email=user_data['email'])
+            user_data_dict[username] = user_data
+            username_set.add(username)
+
+        existing_users = db.session.query(sm.user_model).filter(
+            sm.user_model.username.in_(username_set)).all()
+        missing_users = username_set.difference(
+            set([u.username for u in existing_users]))
+        logging.info('Missing users: {}'.format(missing_users))
+
+        created_users = []
+        for username in missing_users:
+            user_data = user_data_dict[username]
+            user = sm.find_user(email=user_data['email'])
             if not user:
                 logging.info("Adding user: {}.".format(user_data))
                 sm.add_user(
@@ -1159,19 +1168,22 @@ class Superset(BaseSupersetView):
                     first_name=user_data['first_name'],
                     last_name=user_data['last_name'],
                     email=user_data['email'],
-                    role=role,
+                    role=gamma_role,
                 )
                 sm.get_session.commit()
                 user = sm.find_user(username=user_data['username'])
-                created_users.append(user.username)
-            elif role not in user.roles:
-                role.user.append(user)
-            granted_users.append(user.username)
+            existing_users.append(user)
+            created_users.append(user.username)
+
+        role_name = data['role_name']
+        role = sm.find_role(role_name)
+        role.user = existing_users
         sm.get_session.commit()
         return Response(json.dumps({
             'role': role_name,
+            '# missing users': len(missing_users),
+            '# granted': len(existing_users),
             'created_users': created_users,
-            'granted_users': granted_users,
         }), status=201)
 
     @has_access_api
