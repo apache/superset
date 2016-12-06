@@ -35,22 +35,6 @@ const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
-const SQLA_FILTER_OPTIONS = ['in', 'not in', 'regex'];
-
-const DRUID_FILTER_OPTIONS = SQLA_FILTER_OPTIONS.push('regex');
-
-const DRUID_HAVING_OPTIONS = ['==', '!=', '>', '<', '>=', '<='];
-
-export const FIELD_CHOICES_OPTIONS = {
-  D3_TIME_FORMAT_OPTIONS,
-  ROW_LIMIT_OPTIONS,
-  SERIES_LIMITS,
-  TIME_STAMP_OPTIONS,
-  SQLA_FILTER_OPTIONS,
-  DRUID_FILTER_OPTIONS,
-  DRUID_HAVING_OPTIONS,
-};
-
 export const fields = {
   datasource: {
     type: 'SelectField',
