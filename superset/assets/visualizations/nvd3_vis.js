@@ -252,6 +252,10 @@ function nvd3Vis(slice) {
             chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
             break;
 
+          case 'bullet':
+            chart = nv.models.bulletChart();
+            break;
+
           default:
             throw new Error('Unrecognized visualization for nvd3' + vizType);
         }
