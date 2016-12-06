@@ -1085,12 +1085,12 @@ class FormFactory(object):
             'y_domain1': (TextField, {
                 "label": _("Y1 domain"),
                 "default": '',
-                "description": "the size of the y1-axis region. for example: 0,100."
+                "description": "the size of the y1-axis region."
             }),
             'y_domain2': (TextField, {
                 "label": _("Y2 domain"),
                 "default": '',
-                "description": "the size of the y2-axis region. for example: 0,100."
+                "description": "the size of the y2-axis region."
             }),
             'bar_horizontal': (BetterBooleanField, {
                 "label": _("Horizontal Bars"),
