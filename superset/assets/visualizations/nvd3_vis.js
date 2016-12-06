@@ -328,7 +328,7 @@ function nvd3Vis(slice) {
         }
 
         // multi,linePlusBar and multiBarHorizontal are special case
-        if (vizType !== 'multi' && vizType !== 'linePlusBar') {
+        if (vizType !== 'linePlusBar') {
           let xAxisFormatter;
           if (vizType === 'bubble') {
             xAxisFormatter = d3.format('.3s');
