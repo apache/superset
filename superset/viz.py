@@ -1317,7 +1317,8 @@ class DistributionBarViz(DistributionPieViz):
             'columns',
             'metrics',
             'row_limit',
-            ('show_legend', 'show_bar_value', 'bar_stacked'),
+            ('show_legend', 'show_bar_value'),
+            ('bar_stacked', 'bar_horizontal'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
@@ -1414,28 +1415,6 @@ class DistributionLinePlusBarViz(DistributionBarViz):
             ('reduce_x_ticks', 'contribution')
         )
     },)
-
-
-class DistributionMultiBarHorizontalViz(DistributionBarViz):
-
-    """A DistributionMultiBarHorizontal chart"""
-
-    viz_type = "multiBarHorizontal"
-    sort_series = True
-    verbose_name = _("Distribution - MultiBarHorizontal Chart")
-    fieldsets = ({
-        'label': _('Chart Options'),
-        'fields': (
-            'groupby',
-            'metrics',
-            ('row_limit', 'bottom_margin'),
-            ('show_legend', 'bar_stacked'),
-            ('x_axis_label', 'x_axis_format'),
-            ('y_axis_label', 'y_axis_format'),
-            ('reduce_x_ticks', 'contribution')
-        )
-    },)
-
 
 class DistributionMultiViz(DistributionBarViz):
 
@@ -2080,7 +2059,6 @@ viz_types_list = [
     DistributionBarViz,
 
     DistributionLinePlusBarViz,
-    DistributionMultiBarHorizontalViz,
     DistributionMultiViz,
 
     DistributionPieViz,

@@ -1086,6 +1086,11 @@ class FormFactory(object):
                 "default": '',
                 "description": "the range of y2, for example: 0,100, it means from 0 to 100"
             }),
+            'bar_horizontal': (BetterBooleanField, {
+                "label": _("Horizontal Bars"),
+                "default": False,
+                "description": ""
+            }),
         }
 
         # Override default arguments with form overrides

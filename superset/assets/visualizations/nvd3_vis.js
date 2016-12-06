@@ -153,11 +153,16 @@ function nvd3Vis(slice) {
             break;
 
           case 'dist_bar':
-            chart = nv.models.multiBarChart()
-            .showControls(fd.show_controls)
-            .reduceXTicks(reduceXTicks)
-            .rotateLabels(45)
-            .groupSpacing(0.1); // Distance between each group of bars.
+            if (fd.bar_horizontal) {
+              chart = nv.models.multiBarHorizontalChart()
+              .color(d3.scale.category10().range());
+            } else {
+              chart = nv.models.multiBarChart()
+              .showControls(fd.show_controls)
+              .reduceXTicks(reduceXTicks)
+              .rotateLabels(45)
+              .groupSpacing(0.1); // Distance between each group of bars.
+            }
 
             chart.xAxis
             .showMaxMin(false);
@@ -227,11 +232,6 @@ function nvd3Vis(slice) {
             chart.y2Axis.tickFormat(d3.format(fd.y_axis_format2));
 
             chart.focusEnable(false);
-            break;
-
-          case 'multiBarHorizontal':
-            chart = nv.models.multiBarHorizontalChart()
-              .color(d3.scale.category10().range());
             break;
 
           case 'multi':
