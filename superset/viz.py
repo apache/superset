@@ -1416,6 +1416,7 @@ class DistributionLinePlusBarViz(DistributionBarViz):
         )
     },)
 
+
 class DistributionMultiViz(DistributionBarViz):
 
     """A DistributionMulti chart"""
