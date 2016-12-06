@@ -1,6 +1,5 @@
 import React, { PropTypes } from 'react';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
-import { slugify } from '../../modules/utils';
+import { slugify } from '../../../modules/utils';
 import Select, { Creatable } from 'react-select';
 
 
@@ -24,7 +23,6 @@ const defaultProps = {
   label: null,
   multi: false,
   onChange: () => {},
-  value: '',
 };
 
 export default class SelectField extends React.Component {

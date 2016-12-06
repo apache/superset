@@ -5,7 +5,7 @@ import { Button } from 'react-bootstrap';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import Filter from '../../../../javascripts/explorev2/components/Filter';
+import Filter from '../../../../javascripts/explorev2/components/controls/Filter';
 
 const defaultProps = {
   actions: {

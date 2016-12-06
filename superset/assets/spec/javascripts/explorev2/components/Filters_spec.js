@@ -4,8 +4,8 @@ import { Button } from 'react-bootstrap';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import { Filters } from '../../../../javascripts/explorev2/components/Filters';
-import Filter from '../../../../javascripts/explorev2/components/Filter';
+import { Filters } from '../../../../javascripts/explorev2/components/controls/Filters';
+import Filter from '../../../../javascripts/explorev2/components/controls/Filter';
 
 const defaultProps = {
   filterColumnOpts: ['country_name'],

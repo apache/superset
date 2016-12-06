@@ -655,6 +655,33 @@ class Queryable(object):
         else:
             return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
+    @property
+    def data(self):
+        gb_cols = [(col, col) for col in self.groupby_column_names]
+        all_cols = [(c, c) for c in self.column_names]
+        order_by_choices = []
+        for s in sorted(self.column_names):
+            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
+            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
+
+        d = {
+            'id': self.id,
+            'type': self.type,
+            'name': self.name,
+            'metrics_combo': self.metrics_combo,
+            'order_by_choices': order_by_choices,
+            'gb_cols': gb_cols,
+            'all_cols': all_cols,
+            'filterable_cols': self.filterable_column_names,
+        }
+        if (self.type == 'table'):
+            grains = self.database.grains() or []
+            if grains:
+                grains = [(g.name, g.name) for g in grains]
+            d['granularity_sqla'] = [(c, c) for c in self.dttm_cols]
+            d['time_grain_sqla'] = grains
+        return d
+
 
 class Database(Model, AuditMixinNullable):
 

@@ -7,7 +7,8 @@ import { Panel, Alert } from 'react-bootstrap';
 import visTypes, { sectionsToRender, commonControlPanelSections } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
-import Filters from './Filters';
+import Filters from './controls/Filters';
+import FieldContainer from './FieldContainer';
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -37,8 +38,27 @@ class ControlPanelsContainer extends React.Component {
     }
   }
 
-  onChange(name, value, label) {
-    this.props.actions.setFieldValue(this.props.datasource_type, name, value, label);
+  onChange(name, value) {
+    this.props.actions.setFieldValue(this.props.datasource_type, name, value);
+  }
+
+  getFieldData(fs) {
+    const fieldOverrides = this.fieldOverrides.bind(this)();
+    if (!this.props.fields) {
+      return null;
+    }
+    let fieldData = this.props.fields[fs] || {};
+    if (fieldOverrides.hasOwnProperty(fs)) {
+      const overrideData = fieldOverrides[fs];
+      fieldData = Object.assign({}, fieldData, overrideData);
+    }
+    if (fieldData.getProps) {
+      Object.assign(fieldData, fieldData.getProps(this.props.exploreState));
+    }
+    return fieldData;
+  }
+  sectionsToRender() {
+    return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
   }
 
   sectionsToRender() {

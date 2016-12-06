@@ -1,3 +1,9 @@
+.checkbox {
+    float: left;
+    margin-top: 0px;
+    margin-right: 3px;
+}
+
 .scrollbar-container {
   position: relative;
   overflow: hidden;

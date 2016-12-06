@@ -1423,6 +1423,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
+        datasource_id = int(datasource_id)
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
         slc = None
@@ -1495,12 +1496,14 @@ class Superset(BaseSupersetView):
                 "can_edit": slice_edit_perm,
                 # TODO: separate endpoint for fetching datasources
                 "datasources": [(d.id, d.full_name) for d in datasources],
+                "datasource": [
+                    d for d in datasources if d.id == datasource_id][0].data,
                 "datasource_id": datasource_id,
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": user_id,
                 "viz": json.loads(viz_obj.json_data),
-                "filter_select": viz_obj.datasource.filter_select_enabled
+                "filter_select": viz_obj.datasource.filter_select_enabled,
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \
@@ -2556,46 +2559,21 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        gb_cols = [(col, col) for col in datasource.groupby_column_names]
-        all_cols = [(c, c) for c in datasource.column_names]
-        order_by_choices = []
-        for s in sorted(datasource.column_names):
-            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
-            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-
         field_options = {
-            'datasource': [(d.id, d.full_name) for d in datasources],
-            'metrics': datasource.metrics_combo,
-            'order_by_cols': order_by_choices,
-            'metric':  datasource.metrics_combo,
-            'secondary_metric': datasource.metrics_combo,
-            'groupby': gb_cols,
-            'columns': gb_cols,
-            'all_columns': all_cols,
-            'all_columns_x': all_cols,
-            'all_columns_y': all_cols,
-            'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
-            'series': gb_cols,
-            'entity': gb_cols,
-            'x': datasource.metrics_combo,
-            'y': datasource.metrics_combo,
-            'size': datasource.metrics_combo,
-            'mapbox_label': all_cols,
+            # TODO move logic to client side fields.getProps
             'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
-            'filterable_cols': datasource.filterable_column_names,
+            # TODO move logic to client side fields.getProps
+            'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
         }
 
-        if (datasource_type == 'table'):
-            grains = datasource.database.grains()
-            grain_choices = []
-            if grains:
-                grain_choices = [(grain.name, grain.name) for grain in grains]
-            field_options['granularity_sqla'] = \
-                [(c, c) for c in datasource.dttm_cols]
-            field_options['time_grain_sqla'] = grain_choices
+        payload = {
+            'field_options': field_options,
+            'datasources': [(d.id, d.full_name) for d in datasources],
+            'datasource': datasource.data
+        }
 
         return Response(
-            json.dumps({'field_options': field_options}),
+            json.dumps(payload),
             mimetype="application/json"
         )
 
