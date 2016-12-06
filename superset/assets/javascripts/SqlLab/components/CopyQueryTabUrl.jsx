@@ -14,8 +14,8 @@ export default class CopyQueryTabUrl extends React.PureComponent {
     };
   }
 
-  componentWillMount() {
-    const qe = this.props.queryEditor;
+  componentWillReceiveProps(nextProps) {
+    const qe = nextProps.queryEditor;
     const params = [];
     if (qe.dbId) params.push('dbid=' + qe.dbId);
     if (qe.title) params.push('title=' + encodeURIComponent(qe.title));
