@@ -421,7 +421,7 @@ class TableViz(BaseViz):
             'table_timestamp_format',
             'row_limit',
             'page_length',
-            ('include_search', None),
+            ('include_search', 'table_filter'),
         )
     })
     form_overrides = ({
@@ -1317,7 +1317,8 @@ class DistributionBarViz(DistributionPieViz):
             'columns',
             'metrics',
             'row_limit',
-            ('show_legend', 'show_bar_value', 'bar_stacked'),
+            ('show_legend', 'show_bar_value'),
+            ('bar_stacked', 'bar_horizontal'),
             ('y_axis_format', 'bottom_margin'),
             ('x_axis_label', 'y_axis_label'),
             ('reduce_x_ticks', 'contribution'),
@@ -1343,8 +1344,13 @@ class DistributionBarViz(DistributionPieViz):
         d['groupby'] = set(gb + cols)
         if len(d['groupby']) < len(gb) + len(cols):
             raise Exception("Can't have overlap between Series and Breakdowns")
-        if not self.metrics:
+        if not self.metrics and fd.get('viz_type') != 'multi':
             raise Exception("Pick at least one metric")
+        if fd.get('viz_type') == 'multi':
+            d['metrics'] = fd['line'] + fd['bar'] + fd['area'] + fd['scatter']
+            self.metrics = d['metrics']
+            if(len(d['metrics']) == 0):
+                raise Exception('Pick at least one metric')
         if not self.groupby:
             raise Exception("Pick at least one field for [Series]")
         return d
@@ -1354,7 +1360,7 @@ class DistributionBarViz(DistributionPieViz):
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
-        row.sort_values(ascending=False, inplace=True)
+        # row.sort_values(ascending=False, inplace=True)
         columns = fd.get('columns') or []
         pt = df.pivot_table(
             index=self.groupby,
@@ -1388,6 +1394,52 @@ class DistributionBarViz(DistributionPieViz):
             }
             chart_data.append(d)
         return chart_data
+
+
+class DistributionLinePlusBarViz(DistributionBarViz):
+
+    """A DistributionLinePlusBar chart"""
+
+    viz_type = "linePlusBar"
+    sort_series = True
+    verbose_name = _("Distribution - LinePlusBar Chart")
+    fieldsets = ({
+        'label': _('Chart Options'),
+        'fields': (
+            'groupby',
+            'metrics',
+            ('row_limit', 'bottom_margin'),
+            ('x_axis_label', 'x_axis_format'),
+            ('y_axis_label1', 'y_axis_format1'),
+            ('y_axis_label2', 'y_axis_format2'),
+            ('reduce_x_ticks', 'contribution')
+        )
+    },)
+
+
+class DistributionMultiViz(DistributionBarViz):
+
+    """A DistributionMulti chart"""
+
+    viz_type = "multi"
+    sort_series = True
+    verbose_name = _("Distribution - Multi Chart")
+    fieldsets = ({
+        'label': _('Chart Options'),
+        'fields': (
+            'groupby',
+            ('line', 'yAxis1'),
+            ('bar', 'yAxis2'),
+            ('area', 'yAxis3'),
+            ('scatter', 'yAxis4'),
+            ('row_limit', 'bottom_margin'),
+            ('x_axis_label', 'x_axis_format'),
+            ('y_axis_label1', 'y_axis_format1'),
+            ('y_axis_label2', 'y_axis_format2'),
+            ('y_domain1', 'y_domain2'),
+            ('reduce_x_ticks', 'contribution')
+        )
+    },)
 
 
 class SunburstViz(BaseViz):
@@ -2006,6 +2058,8 @@ viz_types_list = [
     NVD3TimeSeriesStackedViz,
     NVD3TimeSeriesBarViz,
     DistributionBarViz,
+    DistributionLinePlusBarViz,
+    DistributionMultiViz,
     DistributionPieViz,
     BubbleViz,
     MarkupViz,

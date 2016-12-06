@@ -118,8 +118,7 @@ class SqlLabTests(SupersetTestCase):
         self.run_some_queries()
         self.login('admin')
         # Test search queries on database Id
-        resp = self.get_resp('/superset/search_queries?database_id=1')
-        data = json.loads(resp)
+        data = self.get_json_resp('/superset/search_queries?database_id=1')
         self.assertEquals(3, len(data))
         db_ids = [data[k]['dbId'] for k in data]
         self.assertEquals([1, 1, 1], db_ids)
@@ -164,8 +163,8 @@ class SqlLabTests(SupersetTestCase):
     def test_search_query_on_text(self):
         self.run_some_queries()
         self.login('admin')
-        resp = self.get_resp('/superset/search_queries?search_text=permission')
-        data = json.loads(resp)
+        url = '/superset/search_queries?search_text=permission'
+        data = self.get_json_resp(url)
         self.assertEquals(1, len(data))
         self.assertIn('permission', list(data.values())[0]['sql'])
 
@@ -190,6 +189,13 @@ class SqlLabTests(SupersetTestCase):
         for _, v in data.items():
             self.assertLess(int(first_query_time), v['startDttm'])
             self.assertLess(v['startDttm'], int(second_query_time))
+
+    def test_alias_duplicate(self):
+        self.run_sql(
+            "SELECT username as col, id as col, username FROM ab_user",
+            client_id='2e2df3',
+            user_name='admin',
+            raise_on_error=True)
 
 
 if __name__ == '__main__':

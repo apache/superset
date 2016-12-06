@@ -13,7 +13,7 @@ import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context
+from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.views import DatabaseView
 
 from .base_tests import SupersetTestCase
@@ -165,7 +165,7 @@ class CoreTests(SupersetTestCase):
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
-        modules = [utils, models]
+        modules = [utils, models, sql_lab]
         for mod in modules:
             failed, tests = doctest.testmod(mod)
             if failed:
@@ -250,6 +250,42 @@ class CoreTests(SupersetTestCase):
         url = '/superset/save_dash/{}/'.format(dash.id)
         resp = self.client.post(url, data=dict(data=json.dumps(data)))
         assert "SUCCESS" in resp.data.decode('utf-8')
+
+    def test_copy_dash(self, username='admin'):
+        self.login(username=username)
+        dash = db.session.query(models.Dashboard).filter_by(
+            slug="births").first()
+        positions = []
+        for i, slc in enumerate(dash.slices):
+            d = {
+                'col': 0,
+                'row': i * 4,
+                'size_x': 4,
+                'size_y': 4,
+                'slice_id': '{}'.format(slc.id)}
+            positions.append(d)
+        data = {
+            'css': '',
+            'expanded_slices': {},
+            'positions': positions,
+            'dashboard_title': 'Copy Of Births',
+        }
+
+        # Save changes to Births dashboard and retrieve updated dash
+        dash_id = dash.id
+        url = '/superset/save_dash/{}/'.format(dash_id)
+        self.client.post(url, data=dict(data=json.dumps(data)))
+        dash = db.session.query(models.Dashboard).filter_by(
+            id=dash_id).first()
+        orig_json_data = json.loads(dash.json_data)
+
+        # Verify that copy matches original
+        url = '/superset/copy_dash/{}/'.format(dash_id)
+        resp = self.get_json_resp(url, data=dict(data=json.dumps(data)))
+        self.assertEqual(resp['dashboard_title'], 'Copy Of Births')
+        self.assertEqual(resp['position_json'], orig_json_data['position_json'])
+        self.assertEqual(resp['metadata'], orig_json_data['metadata'])
+        self.assertEqual(resp['slices'], orig_json_data['slices'])
 
     def test_add_slices(self, username='admin'):
         self.login(username=username)
@@ -442,6 +478,23 @@ class CoreTests(SupersetTestCase):
 
     def test_user_profile(self):
         self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        # Setting some faves
+        url = '/superset/favstar/Slice/{}/select/'.format(slc.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
+        dash = (
+            db.session
+            .query(models.Dashboard)
+            .filter_by(slug="births")
+            .first()
+        )
+        url = '/superset/favstar/Dashboard/{}/select/'.format(dash.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
         userid = appbuilder.sm.find_user('admin').id
         resp = self.get_resp('/superset/profile/admin/')
         self.assertIn('"app"', resp)

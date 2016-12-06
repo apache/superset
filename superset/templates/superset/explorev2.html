@@ -1,15 +1,15 @@
 {% extends "superset/basic.html" %}
 
 {% block title %}
-  {% if slice_name %}
-    [slice] {{ slice_name }}
+  {% if slc %}
+    [slice] {{ slc.slice_name }}
   {% else %}
     [explore] {{ table_name }}
   {% endif %}
 {% endblock %}
 
 {% block body %}
-  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/exploreV2/explorev2.css">
+  <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/exploreV2/exploreV2.css">
   <div
     id="js-explore-view-container"
     data-bootstrap="{{ bootstrap_data }}"

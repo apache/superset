@@ -25,6 +25,7 @@ const propTypes = {
   isChartLoading: PropTypes.bool,
   isStarred: PropTypes.bool.isRequired,
   alert: PropTypes.string,
+  table_name: PropTypes.string,
 };
 
 class ChartContainer extends React.Component {
@@ -133,6 +134,42 @@ class ChartContainer extends React.Component {
     visMap[this.props.viz_type](this.state.mockSlice).render();
   }
 
+  renderChartTitle() {
+    let title;
+    if (this.props.slice_name) {
+      title = this.props.slice_name;
+    } else {
+      title = `[${this.props.table_name}] - untitled`;
+    }
+    return title;
+  }
+
+  renderChart() {
+    if (this.props.alert) {
+      return (
+        <Alert bsStyle="warning">
+          {this.props.alert}
+          <i
+            className="fa fa-close pull-right"
+            onClick={this.removeAlert.bind(this)}
+            style={{ cursor: 'pointer' }}
+          />
+        </Alert>
+      );
+    }
+    if (this.props.isChartLoading) {
+      return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
+    }
+    return (
+      <div
+        id={this.props.containerId}
+        ref={(ref) => { this.chartContainerRef = ref; }}
+        className={this.props.viz_type}
+        style={{ 'overflow-x': 'scroll' }}
+      />
+    );
+  }
+
   render() {
     return (
       <div className="chart-container">
@@ -141,27 +178,31 @@ class ChartContainer extends React.Component {
           header={
             <div
               id="slice-header"
-              className="panel-title"
+              className="clearfix panel-title-large"
             >
-              {this.props.slice_name}
+              {this.renderChartTitle()}
 
-              <FaveStar
-                sliceId={this.props.slice_id}
-                actions={this.props.actions}
-                isStarred={this.props.isStarred}
-              />
+              {this.props.slice_id &&
+                <span>
+                  <FaveStar
+                    sliceId={this.props.slice_id}
+                    actions={this.props.actions}
+                    isStarred={this.props.isStarred}
+                  />
 
-              <TooltipWrapper
-                label="edit-desc"
-                tooltip="Edit Description"
-              >
-                <a
-                  className="edit-desc-icon"
-                  href={`/slicemodelview/edit/${this.props.slice_id}`}
-                >
-                  <i className="fa fa-edit" />
-                </a>
-              </TooltipWrapper>
+                  <TooltipWrapper
+                    label="edit-desc"
+                    tooltip="Edit Description"
+                  >
+                    <a
+                      className="edit-desc-icon"
+                      href={`/slicemodelview/edit/${this.props.slice_id}`}
+                    >
+                      <i className="fa fa-edit" />
+                    </a>
+                  </TooltipWrapper>
+                </span>
+              }
 
               <div className="pull-right">
                 <ExploreActionButtons
@@ -172,25 +213,7 @@ class ChartContainer extends React.Component {
             </div>
           }
         >
-          {this.props.alert &&
-            <Alert bsStyle="warning">
-              {this.props.alert}
-              <i
-                className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
-                style={{ cursor: 'pointer' }}
-              />
-            </Alert>
-          }
-          {this.props.isChartLoading ?
-            (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />)
-            :
-            (<div
-              id={this.props.containerId}
-              ref={(ref) => { this.chartContainerRef = ref; }}
-              className={this.props.viz_type}
-            />)
-          }
+          {this.renderChart()}
         </Panel>
       </div>
     );
@@ -215,6 +238,7 @@ function mapStateToProps(state) {
     isChartLoading: state.isChartLoading,
     isStarred: state.isStarred,
     alert: state.chartAlert,
+    table_name: state.viz.form_data.datasource_name,
   };
 }
 

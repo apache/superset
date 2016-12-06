@@ -264,7 +264,7 @@ export const visTypes = {
           ['table_timestamp_format'],
           ['row_limit'],
           ['page_length'],
-          ['include_search'],
+          ['include_search', 'table_filter'],
         ],
       },
     ],
@@ -1462,6 +1462,13 @@ export const fields = {
     description: 'Whether to include a client side search box',
   },
 
+  table_filter: {
+    type: 'CheckboxField',
+    label: 'Table Filter',
+    default: false,
+    description: 'Whether to apply filter when table cell is clicked',
+  },
+
   show_bubbles: {
     type: 'CheckboxField',
     label: 'Show Bubbles',
@@ -1715,7 +1722,7 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   return data;
 }
 
-export function defaultViz(vizType) {
+export function defaultViz(vizType, datasourceType = 'table') {
   return {
     cached_key: null,
     cached_timeout: null,
@@ -1724,14 +1731,14 @@ export function defaultViz(vizType) {
     csv_endpoint: null,
     is_cached: false,
     data: [],
-    form_data: defaultFormData(vizType),
+    form_data: defaultFormData(vizType, datasourceType),
     json_endpoint: null,
     query: null,
     standalone_endpoint: null,
   };
 }
 
-export function initialState(vizType = 'table') {
+export function initialState(vizType = 'table', datasourceType = 'table') {
   return {
     dashboards: [],
     isDatasourceMetaLoading: false,
@@ -1739,7 +1746,7 @@ export function initialState(vizType = 'table') {
     datasource_type: null,
     filterColumnOpts: [],
     fields,
-    viz: defaultViz(vizType),
+    viz: defaultViz(vizType, datasourceType),
     isStarred: false,
   };
 }
@@ -1748,4 +1755,27 @@ export function initialState(vizType = 'table') {
 export const autoQueryFields = [
   'datasource',
   'viz_type',
+  'bar_stacked',
+  'show_markers',
+  'show_bar_value',
+  'order_bars',
+  'show_controls',
+  'reduce_x_ticks',
+  'include_series',
+  'pie_label_type',
+  'show_brush',
+  'include_search',
+  'show_bubbles',
+  'show_legend',
+  'x_axis_showminmax',
+  'rich_tooltip',
+  'y_axis_zero',
+  'y_log_scale',
+  'x_log_scale',
+  'donut',
+  'labels_outside',
+  'contribution',
+  'size',
+  'row_limit',
+  'max_bubble_size',
 ];
