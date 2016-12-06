@@ -29,6 +29,5 @@ const vizMap = {
   word_cloud: require('./word_cloud.js'),
   world_map: require('./world_map.js'),
   linePlusBar: require('./nvd3_vis.js'),
-  multi: require('./nvd3_vis.js'),
 };
 export default vizMap;

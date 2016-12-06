@@ -209,10 +209,10 @@ function nvd3Vis(slice) {
             }
             // style
             if (fd.y_axis_label1 !== '') {
-              chart.yAxis1.axisLabel(fd.y_axis_label1);
+              chart.y1Axis.axisLabel(fd.y_axis_label1);
             }
             if (fd.y_axis_label2 !== '') {
-              chart.yAxis2.axisLabel(fd.y_axis_label2);
+              chart.y2Axis.axisLabel(fd.y_axis_label2);
             }
             if (fd.x_axis_label !== '') {
               chart.xAxis.axisLabel(fd.x_axis_label);
@@ -232,74 +232,6 @@ function nvd3Vis(slice) {
             chart.y2Axis.tickFormat(d3.format(fd.y_axis_format2));
 
             chart.focusEnable(false);
-            break;
-
-          case 'multi':
-            chart = nv.models.multiChart()
-              .color(d3.scale.category10().range());
-
-            payloadData2 = payload.data;
-            for (let i = 0; i < fd.line.length; i++) {
-              list.push({ key: fd.line[i], type: 'line', yAxis: fd.yAxis1 });
-            }
-            for (let i = 0; i < fd.bar.length; i++) {
-              list.push({ key: fd.bar[i], type: 'bar', yAxis: fd.yAxis2 });
-            }
-            for (let i = 0; i < fd.area.length; i++) {
-              list.push({ key: fd.area[i], type: 'area', yAxis: fd.yAxis3 });
-            }
-            for (let i = 0; i < fd.scatter.length; i++) {
-              list.push({ key: fd.scatter[i], type: 'scatter', yAxis: fd.yAxis4 });
-            }
-            for (let i = 0; i < payloadData2.length; i++) {
-              for (let j = 0; j < list.length; j++) {
-                if (payloadData2[i].key === list[j].key) {
-                  payloadData2[i].type = list[j].type;
-                  if (list[j].yAxis === 'y1') {
-                    payloadData2[i].yAxis = 1;
-                  } else {
-                    payloadData2[i].yAxis = 2;
-                  }
-                  break;
-                }
-              }
-              // solve this problem: if x is string, can't get result
-              for (let m = 0; m < payloadData2[0].values.length; m++) {
-                xArray.push(payloadData2[0].values[m].x);
-              }
-              for (let n = 0; n < payloadData2[i].values.length; n++) {
-                payloadData2[i].values[n].x = n;
-              }
-            }
-
-            // style
-            if (fd.y_axis_label1 !== '') {
-              chart.yAxis1.axisLabel(fd.y_axis_label1);
-            }
-            if (fd.y_axis_label2 !== '') {
-              chart.yAxis2.axisLabel(fd.y_axis_label2);
-            }
-            if (fd.x_axis_label !== '') {
-              chart.xAxis.axisLabel(fd.x_axis_label);
-            }
-            if (fd.x_axis_format !== 'smart_date') {
-              // the x is date
-              chart.xAxis.tickFormat(function (d) {
-                return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
-              });
-            } else {
-              chart.xAxis.tickFormat(function (d) {
-                return xArray[d];
-              });
-            }
-            chart.yAxis1.tickFormat(d3.format(fd.y_axis_format1));
-            chart.yAxis2.tickFormat(d3.format(fd.y_axis_format2));
-            if (fd.y_domain1 !== '') {
-              chart.yDomain1(fd.y_domain1.split(','));
-            }
-            if (fd.y_domain2 !== '') {
-              chart.yDomain2(fd.y_domain2.split(','));
-            }
             break;
 
           case 'pie':

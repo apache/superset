@@ -1417,31 +1417,6 @@ class DistributionLinePlusBarViz(DistributionBarViz):
     },)
 
 
-class DistributionMultiViz(DistributionBarViz):
-
-    """A DistributionMulti chart"""
-
-    viz_type = "multi"
-    sort_series = True
-    verbose_name = _("Distribution - Multi Chart")
-    fieldsets = ({
-        'label': _('Chart Options'),
-        'fields': (
-            'groupby',
-            ('line', 'yAxis1'),
-            ('bar', 'yAxis2'),
-            ('area', 'yAxis3'),
-            ('scatter', 'yAxis4'),
-            ('row_limit', 'bottom_margin'),
-            ('x_axis_label', 'x_axis_format'),
-            ('y_axis_label1', 'y_axis_format1'),
-            ('y_axis_label2', 'y_axis_format2'),
-            ('y_domain1', 'y_domain2'),
-            ('reduce_x_ticks', 'contribution')
-        )
-    },)
-
-
 class SunburstViz(BaseViz):
 
     """A multi level sunburst chart"""
@@ -2059,7 +2034,6 @@ viz_types_list = [
     NVD3TimeSeriesBarViz,
     DistributionBarViz,
     DistributionLinePlusBarViz,
-    DistributionMultiViz,
     DistributionPieViz,
     BubbleViz,
     MarkupViz,
