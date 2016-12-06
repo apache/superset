@@ -10,7 +10,7 @@
   "scripts": {
     "test": "mocha --require ignore-styles --compilers js:babel-core/register --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
     "cover": "babel-node ./node_modules/.bin/istanbul cover _mocha -- --require spec/helpers/browser.js --recursive spec/**/*_spec.*",
-    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool source-map",
+    "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
     "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx ."
@@ -62,7 +62,7 @@
     "moment": "^2.14.1",
     "moments": "0.0.2",
     "mustache": "^2.2.1",
-    "nvd3": "1.8.4",
+    "nvd3": "1.8.5",
     "react": "^15.3.2",
     "react-ace": "^3.4.1",
     "react-bootstrap": "^0.30.3",
