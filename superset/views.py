@@ -1134,21 +1134,57 @@ appbuilder.add_view_no_menu(R)
 
 class Superset(BaseSupersetView):
     """The base views for Superset!"""
+    @api
     @has_access_api
     @expose("/update_role/", methods=['POST'])
     def update_role(self):
         """Assigns a list of found users to the given role."""
         data = request.get_json(force=True)
-        usernames = data['usernames']
+        gamma_role = sm.find_role('Gamma')
+
+        username_set = set()
+        user_data_dict = {}
+        for user_data in data['users']:
+            username = user_data['username']
+            if not username:
+                continue
+            user_data_dict[username] = user_data
+            username_set.add(username)
+
+        existing_users = db.session.query(sm.user_model).filter(
+            sm.user_model.username.in_(username_set)).all()
+        missing_users = username_set.difference(
+            set([u.username for u in existing_users]))
+        logging.info('Missing users: {}'.format(missing_users))
+
+        created_users = []
+        for username in missing_users:
+            user_data = user_data_dict[username]
+            user = sm.find_user(email=user_data['email'])
+            if not user:
+                logging.info("Adding user: {}.".format(user_data))
+                sm.add_user(
+                    username=user_data['username'],
+                    first_name=user_data['first_name'],
+                    last_name=user_data['last_name'],
+                    email=user_data['email'],
+                    role=gamma_role,
+                )
+                sm.get_session.commit()
+                user = sm.find_user(username=user_data['username'])
+            existing_users.append(user)
+            created_users.append(user.username)
+
         role_name = data['role_name']
         role = sm.find_role(role_name)
-        role.user = []
-        for username in usernames:
-            user = sm.find_user(username=username)
-            if user:
-                role.user.append(user)
-        db.session.commit()
-        return Response(status=201)
+        role.user = existing_users
+        sm.get_session.commit()
+        return Response(json.dumps({
+            'role': role_name,
+            '# missing users': len(missing_users),
+            '# granted': len(existing_users),
+            'created_users': created_users,
+        }), status=201)
 
     @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
