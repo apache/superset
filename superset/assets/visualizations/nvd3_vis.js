@@ -209,10 +209,10 @@ function nvd3Vis(slice) {
             }
             // style
             if (fd.y_axis_label1 !== '') {
-              chart.yAxis1.axisLabel(fd.y_axis_label1);
+              chart.y1Axis.axisLabel(fd.y_axis_label1);
             }
             if (fd.y_axis_label2 !== '') {
-              chart.yAxis2.axisLabel(fd.y_axis_label2);
+              chart.y2Axis.axisLabel(fd.y_axis_label2);
             }
             if (fd.x_axis_label !== '') {
               chart.xAxis.axisLabel(fd.x_axis_label);

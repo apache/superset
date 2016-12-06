@@ -1344,13 +1344,14 @@ class DistributionBarViz(DistributionPieViz):
         d['groupby'] = set(gb + cols)
         if len(d['groupby']) < len(gb) + len(cols):
             raise Exception("Can't have overlap between Series and Breakdowns")
-        if not self.metrics and fd.get('viz_type') != 'multi':
-            raise Exception("Pick at least one metric")
-        if fd.get('viz_type') == 'multi':
-            d['metrics'] = fd['line'] + fd['bar'] + fd['area'] + fd['scatter']
-            self.metrics = d['metrics']
-            if(len(d['metrics']) == 0):
-                raise Exception('Pick at least one metric')
+        if not self.metrics :
+            if fd.get('viz_type') != 'multi':
+                raise Exception("Pick at least one metric")
+            elif fd.get('viz_type') == 'multi':
+                d['metrics'] = fd['line'] + fd['bar'] + fd['area'] + fd['scatter']
+                self.metrics = d['metrics']
+                if(len(d['metrics']) == 0):
+                    raise Exception('Pick at least one metric')
         if not self.groupby:
             raise Exception("Pick at least one field for [Series]")
         return d
