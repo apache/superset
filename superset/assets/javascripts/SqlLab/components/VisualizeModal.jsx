@@ -34,21 +34,21 @@ class VisualizeModal extends React.PureComponent {
       hints: [],
     };
   }
-  componentWillMount() {
-    this.setStateFromProps();
-  }
   componentDidMount() {
     this.validate();
   }
-  setStateFromProps() {
+  componentWillReceiveProps(nextProps) {
+    this.setStateFromProps(nextProps);
+  }
+  setStateFromProps(props) {
     if (
-        !this.props.query ||
-        !this.props.query.results ||
-        !this.props.query.results.columns) {
+        !props.query ||
+        !props.query.results ||
+        !props.query.results.columns) {
       return;
     }
     const columns = {};
-    this.props.query.results.columns.forEach((col) => {
+    props.query.results.columns.forEach((col) => {
       columns[col.name] = col;
     });
     this.setState({ columns });
@@ -125,8 +125,16 @@ class VisualizeModal extends React.PureComponent {
     this.setState({ columns }, this.validate);
   }
   render() {
-    if (!(this.props.query)) {
-      return <div />;
+    if (!(this.props.query) || !(this.props.query.results) || !(this.props.query.results.columns)) {
+      return (
+        <div className="VisualizeModal">
+          <Modal show={this.props.show} onHide={this.props.onHide}>
+            <Modal.Body>
+              No results available for this query
+            </Modal.Body>
+          </Modal>
+        </div>
+      );
     }
     const tableData = this.props.query.results.columns.map((col) => ({
       column: col.name,

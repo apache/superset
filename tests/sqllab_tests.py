@@ -9,7 +9,7 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from superset import db, models, utils, appbuilder, sm
+from superset import db, models, utils, appbuilder, security, sm
 from .base_tests import SupersetTestCase
 
 
@@ -18,6 +18,8 @@ class SqlLabTests(SupersetTestCase):
 
     def __init__(self, *args, **kwargs):
         super(SqlLabTests, self).__init__(*args, **kwargs)
+        gamma_sqllab = appbuilder.sm.find_role('gamma_sqllab')
+        security.merge_perm(sm, 'database_access', self.get_main_database(db.session).perm)
 
     def run_some_queries(self):
         self.logout()
@@ -93,15 +95,15 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(2, len(data))
 
         # Run 2 more queries
-        self.run_sql("SELECT * FROM ab_user1", client_id='client_id_4')
-        self.run_sql("SELECT * FROM ab_user2", client_id='client_id_5')
+        self.run_sql("SELECT * FROM ab_user LIMIT 1", client_id='client_id_4')
+        self.run_sql("SELECT * FROM ab_user LIMIT 2", client_id='client_id_5')
         self.login('admin')
         data = self.get_json_resp('/superset/queries/0')
         self.assertEquals(4, len(data))
 
         now = datetime.now() + timedelta(days=1)
         query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_user1').first()
+            sql='SELECT * FROM ab_user LIMIT 1').first()
         query.changed_on = now
         db.session.commit()
 
@@ -140,7 +142,8 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(set([user.id]), user_ids)
 
         user = appbuilder.sm.find_user('gamma_sqllab')
-        resp = self.get_resp('/superset/search_queries?user_id={}'.format(user.id))
+        resp = self.get_resp(
+            '/superset/search_queries?user_id={}'.format(user.id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
         self.assertEquals(list(data.values())[0]['userId'] , user.id)

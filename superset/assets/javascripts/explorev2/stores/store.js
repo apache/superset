@@ -264,7 +264,7 @@ export const visTypes = {
           ['table_timestamp_format'],
           ['row_limit'],
           ['page_length'],
-          ['include_search'],
+          ['include_search', 'table_filter'],
         ],
       },
     ],
@@ -1460,6 +1460,13 @@ export const fields = {
     label: 'Search Box',
     default: false,
     description: 'Whether to include a client side search box',
+  },
+
+  table_filter: {
+    type: 'CheckboxField',
+    label: 'Table Filter',
+    default: false,
+    description: 'Whether to apply filter when table cell is clicked',
   },
 
   show_bubbles: {

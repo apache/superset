@@ -122,9 +122,8 @@ def sync_role_definitions():
     get_or_create_main_db()
 
     # Global perms
-    sm.add_permission_view_menu(
-        'all_datasource_access', 'all_datasource_access')
-    sm.add_permission_view_menu('all_database_access', 'all_database_access')
+    merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
+    merge_perm(sm, 'all_database_access', 'all_database_access')
 
     perms = db.session.query(ab_models.PermissionView).all()
     perms = [p for p in perms if p.permission and p.view_menu]
@@ -202,10 +201,9 @@ def sync_role_definitions():
         o for o in session.query(models.DruidDatasource).all()]
     for datasource in datasources:
         perm = datasource.get_perm()
-        sm.add_permission_view_menu('datasource_access', perm)
+        merge_perm(sm, 'datasource_access', perm)
         if datasource.schema:
-            sm.add_permission_view_menu(
-                'schema_access', datasource.schema_perm)
+            merge_perm(sm, 'schema_access', datasource.schema_perm)
         if perm != datasource.perm:
             datasource.perm = perm
 
@@ -215,7 +213,7 @@ def sync_role_definitions():
         perm = database.get_perm()
         if perm != database.perm:
             database.perm = perm
-        sm.add_permission_view_menu('database_access', perm)
+        merge_perm(sm, 'database_access', perm)
     session.commit()
 
     logging.info("Making sure all metrics perms exist")
