@@ -37,8 +37,8 @@ from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
 
-from wtforms import Form, StringField, IntegerField, FieldList, BooleanField
-from wtforms.validators import ValidationError, DataRequired, InputRequired, Optional
+from wtforms import Form, StringField, IntegerField, FieldList, BooleanField, SelectField, FileField
+from wtforms.validators import ValidationError, DataRequired, InputRequired, Optional, Regexp
 
 import superset
 from superset import (
@@ -588,40 +588,6 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     def pre_update(self, db):
         self.pre_add(db)
 
-    # TODO: Add CSV import wizard/forms - right now it just adds a file
-    # 1: Select local file
-    # 2: Pandas to turn into dataframe
-    # 3: Pandas to turn into database
-    # 4: Database upload wizard
-
-    @staticmethod
-    def allowed_file(filename):
-        # Only allow specific file extensions as specified in the config
-        return '.' in filename and \
-               filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
-
-    @expose('/upload_file', methods=['GET', 'POST'])
-    def upload_file(self):
-        if request.method == 'POST':
-            # check if the post request has the file part
-            if 'file' not in request.files:
-                flash('No file part')
-                return redirect(request.url)
-            f = request.files['file']
-            # if user does not select file, browser also
-            # submit a empty part without filename
-            if f.filename == '':
-                flash('No selected file')
-                return redirect(request.url)
-            if f and self.allowed_file(f.filename):
-                session['filename'] = secure_filename(f.filename)
-                f.save(os.path.join(config['UPLOAD_FOLDER'], session['filename']))
-                return redirect('/csvtodatabaseview/form')
-                #return redirect(request.url)  # - > This is where I add the Pandas form?
-                # TODO: Use the following redirect if you want to download an uploaded file
-                # return redirect(url_for('uploaded_file', filename=filename))
-        return self.render_template('superset/upload_files.html')
-
 appbuilder.add_link(
     'Import Dashboards',
     label=__("Import Dashboards"),
@@ -658,18 +624,25 @@ class DatabaseTablesAsync(DatabaseView):
 
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
-# TODO: This should prob be moved elsewhere
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(config['UPLOAD_FOLDER'],
                                filename)
 
-# TODO: Custom form for when converting CSV to Database
-
 
 class CsvToDatabaseForm(DynamicForm):
-    csv_filename = StringField('CSV Filename', description='CSV File to be uploaded to Database.',
-                               validators=[DataRequired()], widget=BS3TextFieldWidget())  # For now make sure this cannot be edited
+
+    # These are the fields exposed by Pandas read_csv()
+    csv_filename = FileField('CSV File', description='Select a CSV file to be uploaded to a database.',
+                             validators=[DataRequired()])
+
+    # , Regexp(r'^[^/\\]\.csv$', message='Selected file does not have '
+    #                                                                                      'the .csv extension.')
+
+
+    #csv_filename = StringField('CSV Filename', description='CSV File to be uploaded to Database.',
+    #                           validators=[DataRequired()], widget=BS3TextFieldWidget())  # For now make sure this cannot be edited
     sep = StringField('Delimiter', description='Delimiter used by CSV file (for whitespace use \s+).',
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
     header = IntegerField('Header Row', description='Row containing the headers to use as column names '
@@ -701,7 +674,7 @@ class CsvToDatabaseForm(DynamicForm):
     thousands = StringField('Thousands Separator', description='Separator for values in thousands.',
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     decimal = StringField('Decimal Character', description='Character to interpret as decimal point.',
-                          validators=[DataRequired()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or '.'])
     quotechar = StringField('Quote Character', description='Character used to denote the start and end of a '
                                                            'quoted item.',
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or "'"])
@@ -718,17 +691,37 @@ class CsvToDatabaseForm(DynamicForm):
     # TODO: There are more fields in the Pandas API, but these are the most obviously used
     # TODO: Check all the validators
 
+    # TODO: Check all the fields use correct format - i.e. multiple choice???
+
+    # These are the fields exposed by Pandas .to_sql()
+    name = StringField('Table Name', description='Name of table to be created from csv data.',
+                       validators=[DataRequired()], widget=BS3TextFieldWidget())
+    con = StringField('Database URI', description='URI of database in which to add above table.',
+                      validators=[DataRequired()], widget=BS3TextFieldWidget())
+    schema = StringField('Schema', description='Specify a schema (if database flavour supports this).',
+                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    if_exists = SelectField('Table Exists', description='If table exists do one of the following: Fail (do nothing), '
+                                                        'Replace (drop and recreate table) or Append (insert data).',
+                            choices=[('fail', 'Fail'), ('replace', 'Replace'), ('append', 'Append')],
+                            validators=[DataRequired()])
+    index = BooleanField('Dataframe Index', description='Write dataframe index as a column.')
+    index_label = StringField('Column Label(s)', description='Column label for index column(s). If None is given and '
+                                                             'Dataframe Index is True, Index Names are used.',
+                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    chunksize = IntegerField('Chunksize', description='If not None, then rows will be written in batches of this size '
+                                                      'at a time. If None, all rows will be written at once.',
+                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+    # dtype
 
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
     form_title = 'CSV to Database configuration'
-    message = 'CSV uploaded to table <table_name> in database <db_name>'  # insert name here
 
     def form_get(self, form):
         # pre process form
         # default values
-        form.csv_filename.data = session['filename']
+        form.csv_filename.data = None
         form.sep.data = ','
         form.header.data = None
         form.names.data = None
@@ -750,6 +743,13 @@ class CsvToDatabaseView(SimpleFormView):
         form.comment.data = None
         form.encoding.data = None
         form.error_bad_lines.data = False
+        form.name.data = None
+        form.con.data = config['SQLALCHEMY_DATABASE_URI']
+        form.schema.data = None
+        form.if_exists.data = 'replace'
+        form.index.data = None
+        form.index_label.data = None
+        form.chunksize.data = None
 
     def form_post(self, form):
         # post process form
@@ -758,11 +758,11 @@ class CsvToDatabaseView(SimpleFormView):
         if form.names.data is not None:
             form.names.data = form.names.data.split(",")
 
-        # TODO: Use Pandas to convert csv to superset dataframe
+        # Attempt to upload csv file
+        filename = self.upload_file(form)
 
-        print(str(form.encoding.data))
-
-        df = self.csv_to_df(filepath_or_buffer=form.csv_filename.data,
+        # Use Pandas to convert csv to dataframe
+        df = self.csv_to_df(filepath_or_buffer=filename,
                             sep=form.sep.data,
                             header=form.header.data,
                             names=form.names.data,
@@ -784,9 +784,22 @@ class CsvToDatabaseView(SimpleFormView):
                             comment=form.comment.data,
                             encoding=form.encoding.data,
                             error_bad_lines=form.error_bad_lines.data)
-        # TODO: Use Pandas to convert superset dataframe to database
-        self.df_to_db(df, form.csv_filename.data)
-        flash(self.message, 'info')
+
+        # Use Pandas to convert superset dataframe to database
+        self.df_to_db(df=df,
+                      name=form.name.data,
+                      con=form.con.data,
+                      schema=form.schema.data,
+                      if_exists=form.if_exists.data,
+                      index=form.index.data,
+                      index_label=form.index_label.data,
+                      chunksize=form.chunksize.data)
+
+        # Go back to welcome page / splash screen
+        message = 'CSV file "{0}" uploaded to table "{1}" in database "{2}"'.format(filename,
+                                                                                    form.name.data, form.con.data)
+        flash(message, 'info')
+        redirect('/databaseview/list')
 
     @staticmethod
     def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, prefix, mangle_dupe_cols,
@@ -795,7 +808,7 @@ class CsvToDatabaseView(SimpleFormView):
         # Use Pandas to parse csv file to a dataframe
         upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
                       + url_for('uploaded_file', filename=filepath_or_buffer)
-        # TODO: Expose this to api so can specify each field
+        # Expose this to api so can specify each field
         df = pandas.read_csv(filepath_or_buffer=upload_path,
                              sep=sep,
                              header=header,
@@ -824,14 +837,29 @@ class CsvToDatabaseView(SimpleFormView):
         return df
 
     @staticmethod
-    def df_to_db(df, tablename):
+    def df_to_db(df, name, con, schema, if_exists, index, index_label, chunksize):
+
+        # SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(DATA_DIR, 'superset.db')
+        # DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
+
+        engine = create_engine(con, echo=False)  # Can only add to existing database - make dropdown?
+
         # Use Pandas to parse dataframe to database
+        df.to_sql(name=name, con=engine, schema=schema, if_exists=if_exists, index=index,
+                  index_label=index_label, chunksize=chunksize)
 
-        engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
-        tablename = 'csvtable'
+    @staticmethod
+    def allowed_file(filename):
+        # Only allow specific file extensions as specified in the config
+        return '.' in filename and \
+               filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
 
-        # TODO: Expose this to API so can specify each field
-        df.to_sql(name=tablename, con=engine, if_exists='replace')
+    @staticmethod
+    def upload_file(form):
+        if form.csv_filename.data:
+            filename = secure_filename(form.csv_filename.data.filename)
+            form.csv_filename.data.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+            return filename
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
 
