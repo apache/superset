@@ -14,12 +14,13 @@
 
 import os
 import sys
-import mylog
+import pip
 import site
+import mylog
+import urllib
 import getpass
 import platform
 import subprocess
-import urllib
 
 # Getting Super User password.
 sudo_pass = getpass.getpass("Please enter sudo password: ")
@@ -76,8 +77,11 @@ def general_config():
 			superset_config_file.write(line)
 
 	try:
-		import superset
-		superset_app_dir = superset.APP_DIR
+		superset_app_dir = None
+		for directory in install_dirs:
+			if os.path.isdir(directory+'/superset'):
+				superset_app_dir = directory+'/superset'
+		if not superset_app_dir: raise ImportError
 		superset_config_dir = superset_app_dir.replace('superset', '')
 		if 'site-packages' in superset_app_dir:
 			command_center("mv superset_config.py %s"%superset_config_dir)
