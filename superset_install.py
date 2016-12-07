@@ -192,6 +192,12 @@ def general_config():
 	# Configuring Nginx. 
 	nginx_config()
 
+	# Listing general config files. 
+	mylog.log("DEBUG", "You might need to consider reviewing the following files..!")
+	mylog.log("INFO", "superset_variables.sh - /etc/profile.d/superset_variables.sh")
+	mylog.log("INFO", "supreset_config.py - %s"%superset_app_dir.replace('superset', ''))
+	mylog.log("INFO", "gowtham-sai.conf - /etc/nginx/conf.d/")
+
 	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
 
 # Superset installation in Ubuntu
