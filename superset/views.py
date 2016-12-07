@@ -1115,7 +1115,7 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return("{request.headers[Host]}/r/{obj.id}".format(
+        return("http://{request.headers[Host]}/r/{obj.id}".format(
             request=request, obj=obj))
 
     @expose("/msg/")
