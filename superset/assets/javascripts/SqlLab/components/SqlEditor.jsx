@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Button,
+  Button as BootstrapButton,
   ButtonGroup,
   Col,
   FormGroup,
@@ -13,6 +13,8 @@ import {
   Tooltip,
   Collapse,
 } from 'react-bootstrap';
+
+import Button from '../../components/Button';
 
 import SouthPane from './SouthPane';
 import Timer from './Timer';
@@ -111,7 +113,7 @@ class SqlEditor extends React.PureComponent {
     }
     if (this.props.database && this.props.database.allow_run_sync) {
       runButtons.push(
-        <Button
+        <BootstrapButton
           bsSize="small"
           bsStyle={btnStyle}
           style={{ width: '100px' }}
@@ -120,33 +122,23 @@ class SqlEditor extends React.PureComponent {
           key="run-btn"
         >
           <i className="fa fa-table" /> {runText}
-        </Button>
+        </BootstrapButton>
       );
     }
     if (this.props.database && this.props.database.allow_run_async) {
-      const asyncToolTip = (
-        <Tooltip id="tooltip">
-          run query asynchronously
-        </Tooltip>
-      );
+      const asyncToolTip = 'run query asynchronously';
       runButtons.push(
-        <OverlayTrigger
+        <Button
+          bsSize="small"
+          bsStyle={btnStyle}
+          style={{ width: '100px' }}
+          onClick={this.runQuery.bind(this, true)}
           disabled={!(this.props.queryEditor.dbId)}
-          placement="top"
-          overlay={asyncToolTip}
+          key="run-async-btn"
+          tooltip={asyncToolTip}
         >
-          <Button
-            id="async-button"
-            bsSize="small"
-            bsStyle={btnStyle}
-            style={{ width: '100px' }}
-            onClick={this.runQuery.bind(this, true)}
-            disabled={!(this.props.queryEditor.dbId)}
-            key="run-async-btn"
-          >
-            <i className="fa fa-table" /> Run Async
-          </Button>
-        </OverlayTrigger>
+          <i className="fa fa-table" /> Run Async
+        </Button>
       );
     }
     runButtons = (
@@ -159,14 +151,14 @@ class SqlEditor extends React.PureComponent {
         ['running', 'pending'].indexOf(this.props.latestQuery.state) > -1) {
       runButtons = (
         <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
-          <Button
+          <BootstrapButton
             bsStyle="primary"
             bsSize="small"
             style={{ width: '100px' }}
             onClick={this.stopQuery.bind(this)}
           >
             <a className="fa fa-stop" /> Stop
-          </Button>
+          </BootstrapButton>
         </ButtonGroup>
       );
     }
@@ -181,17 +173,13 @@ class SqlEditor extends React.PureComponent {
       );
       limitWarning = (
         <OverlayTrigger placement="left" overlay={tooltip}>
-          <Label id="warning-label" bsStyle="warning" className="m-r-5">LIMIT</Label>
+          <Label bsStyle="warning" className="m-r-5">LIMIT</Label>
         </OverlayTrigger>
       );
     }
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
-      const ctasToolTip = (
-        <Tooltip id="tooltip">
-          run query with createTableAs
-        </Tooltip>
-      );
+      const ctasToolTip = 'run query with createTableAs';
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -203,20 +191,14 @@ class SqlEditor extends React.PureComponent {
               onChange={this.ctasChanged.bind(this)}
             />
             <InputGroup.Button>
-              <OverlayTrigger
+              <Button
+                bsSize="small"
                 disabled={this.state.ctas.length === 0}
-                placement="top"
-                overlay={ctasToolTip}
+                onClick={this.createTableAs.bind(this)}
+                tooltip={ctasToolTip}
               >
-                <Button
-                  id="ctas-button"
-                  bsSize="small"
-                  disabled={this.state.ctas.length === 0}
-                  onClick={this.createTableAs.bind(this)}
-                >
-                  <i className="fa fa-table" /> CTAS
-                </Button>
-              </OverlayTrigger>
+                <i className="fa fa-table" /> CTAS
+              </Button>
             </InputGroup.Button>
           </InputGroup>
         </FormGroup>
