@@ -66,10 +66,14 @@ install_dirs  = site.getsitepackages()
 # Checking if superset is installed.
 mylog.log("INFO", "Checking if superset installed?")
 mylog.log("WARN", "Superset is installed.")
-is_superset = sys.modules['superset']
+
+try: 
+	is_superset = sys.modules['superset']
+except KeyError:
+	mylog.log("INFO", "Superset is not installed!")
+	is_superset = None
 
 if not is_superset:
-	mylog.log("INFO", "Superset is not installed")
 	mylog.log("INFO", "Installing Sueprset...")
 	mylog.log("INFO", "Detecting OS Version")
 
