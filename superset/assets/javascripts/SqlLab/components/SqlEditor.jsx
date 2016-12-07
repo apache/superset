@@ -124,17 +124,29 @@ class SqlEditor extends React.PureComponent {
       );
     }
     if (this.props.database && this.props.database.allow_run_async) {
+      const asyncToolTip = (
+        <Tooltip id="tooltip">
+          run query asynchronously
+        </Tooltip>
+      );
       runButtons.push(
-        <Button
-          bsSize="small"
-          bsStyle={btnStyle}
-          style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this, true)}
+        <OverlayTrigger
           disabled={!(this.props.queryEditor.dbId)}
-          key="run-async-btn"
+          placement="top"
+          overlay={asyncToolTip}
         >
-          <i className="fa fa-table" /> Run Async
-        </Button>
+          <Button
+            id="async-button"
+            bsSize="small"
+            bsStyle={btnStyle}
+            style={{ width: '100px' }}
+            onClick={this.runQuery.bind(this, true)}
+            disabled={!(this.props.queryEditor.dbId)}
+            key="run-async-btn"
+          >
+            <i className="fa fa-table" /> Run Async
+          </Button>
+        </OverlayTrigger>
       );
     }
     runButtons = (
@@ -169,12 +181,17 @@ class SqlEditor extends React.PureComponent {
       );
       limitWarning = (
         <OverlayTrigger placement="left" overlay={tooltip}>
-          <Label bsStyle="warning" className="m-r-5">LIMIT</Label>
+          <Label id="warning-label" bsStyle="warning" className="m-r-5">LIMIT</Label>
         </OverlayTrigger>
       );
     }
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
+      const ctasToolTip = (
+        <Tooltip id="tooltip">
+          run query with createTableAs
+        </Tooltip>
+      );
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -186,13 +203,20 @@ class SqlEditor extends React.PureComponent {
               onChange={this.ctasChanged.bind(this)}
             />
             <InputGroup.Button>
-              <Button
-                bsSize="small"
+              <OverlayTrigger
                 disabled={this.state.ctas.length === 0}
-                onClick={this.createTableAs.bind(this)}
+                placement="top"
+                overlay={ctasToolTip}
               >
-                <i className="fa fa-table" /> CTAS
-              </Button>
+                <Button
+                  id="ctas-button"
+                  bsSize="small"
+                  disabled={this.state.ctas.length === 0}
+                  onClick={this.createTableAs.bind(this)}
+                >
+                  <i className="fa fa-table" /> CTAS
+                </Button>
+              </OverlayTrigger>
             </InputGroup.Button>
           </InputGroup>
         </FormGroup>
