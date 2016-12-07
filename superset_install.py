@@ -56,7 +56,7 @@ DARWIN_CMDS = {	"install_dependencies":
 CONFIG_CMDS = {"superset_config_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_config.py",
 				"superset_variables_url":
-				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.py"
+				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.sh"
 				}
 	
 def command_center(install_cmd):
