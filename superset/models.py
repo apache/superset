@@ -80,6 +80,7 @@ def init_metrics_perm(metrics=None):
         all metrics are processed
     :type metrics: models.SqlMetric or models.DruidMetric
     """
+    logging.info("Creating missing metrics permissions")
     if not metrics:
         metrics = []
         for model in [SqlMetric, DruidMetric]:
