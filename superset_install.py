@@ -58,37 +58,6 @@ CONFIG_CMDS = {"superset_config_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.py"
 				}
 
-
-# Get the python installation direcory 
-mylog.log("INFO", "Getting PYTHONPATH ")
-install_dirs  = site.getsitepackages()
-
-# Checking if superset is installed.
-mylog.log("INFO", "Checking if superset installed?")
-try: 
-	is_superset = sys.modules['superset']
-except KeyError:
-	mylog.log("WARN", "Superset is not installed!")
-	is_superset = None
-
-if not is_superset:
-	mylog.log("INFO", "Installing Sueprset...")
-	mylog.log("INFO", "Detecting OS Version")
-
-	detected_platform = platform.platform().lower()+platform.version().lower()
-	if "Darwin" in detected_platform:
-		os_name = 'Apple'
-		osx_installation()
-	elif "ubuntu" in detected_platform:
-		os_name = 'Ubuntu'
-		ubuntu_installation()
-	elif "centos" in detected_platform:
-		os_name = "CentOS"
-		centos_installation()
-	else:
-		mylog.log("FATAL", "Detecting OS Failed. Committing Suicide.")
-		sys.exit(1)
-	
 def command_center(install_cmd):
 	# Executes the commands and return False if failed to execute
 	install_cmd = "echo '%s' | sudo -S "%sudo_pass + install_cmd 
@@ -141,7 +110,6 @@ def general_config():
 
 		command_center("mv superset_variables.sh /etc/profile.d/")
 		mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
-
 
 # Superset installation in Ubuntu
 def ubuntu_installation():
@@ -203,3 +171,33 @@ def osx_installation():
 
 	mylog.log("INFO", "Hurrah! Installation Done Successfully..!")
 	mylog.log9("WARN", "Automatic configuring superset is not available for OS X due to System Integrity Protection (rootless)")
+
+# Get the python installation direcory 
+mylog.log("INFO", "Getting PYTHONPATH ")
+install_dirs  = site.getsitepackages()
+
+# Checking if superset is installed.
+mylog.log("INFO", "Checking if superset installed?")
+try: 
+	is_superset = sys.modules['superset']
+except KeyError:
+	mylog.log("WARN", "Superset is not installed!")
+	is_superset = None
+
+if not is_superset:
+	mylog.log("INFO", "Installing Sueprset...")
+	mylog.log("INFO", "Detecting OS Version")
+
+	detected_platform = platform.platform().lower()+platform.version().lower()
+	if "Darwin" in detected_platform:
+		os_name = 'Apple'
+		osx_installation()
+	elif "ubuntu" in detected_platform:
+		os_name = 'Ubuntu'
+		ubuntu_installation()
+	elif "centos" in detected_platform:
+		os_name = "CentOS"
+		centos_installation()
+	else:
+		mylog.log("FATAL", "Detecting OS Failed. Committing Suicide.")
+		sys.exit(1)
