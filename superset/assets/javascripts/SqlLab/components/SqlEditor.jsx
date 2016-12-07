@@ -74,7 +74,7 @@ class SqlEditor extends React.PureComponent {
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
-      tempTableName: this.state.ctas,
+      tempTableName: ctas ? this.state.ctas : '',
       runAsync,
       ctas,
     };
