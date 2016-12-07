@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/SqlLab/reducers.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">All files</a> / <a href="index.html">javascripts/SqlLab</a> reducers.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">61.29% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>76/124</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">39.47% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>15/38</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">67.5% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>27/40</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">59.66% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>71/119</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">37x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-yes">11x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">5x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">37x</span>
+<span class="cline-any cline-yes">37x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import shortid from 'shortid';
+import * as actions from './actions';
+import { now } from '../modules/dates';
+import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
+  from '../reduxUtils.js';
+&nbsp;
+export const defaultQueryEditor = {
+  id: shortid.generate(),
+  title: 'Untitled Query',
+  sql: 'SELECT *\nFROM\nWHERE',
+  selectedText: null,
+  latestQueryId: null,
+  autorun: false,
+  dbId: null,
+};
+&nbsp;
+export const initialState = {
+  alerts: [],
+  networkOn: true,
+  queries: {},
+  databases: {},
+  queryEditors: [defaultQueryEditor],
+  tabHistory: [defaultQueryEditor.id],
+  tables: [],
+  queriesLastUpdate: 0,
+  activeSouthPaneTab: 'Results',
+};
+&nbsp;
+export const sqlLabReducer = function (state, action) {
+  const <span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" >actionHandlers = {</span></span></span></span></span></span></span></span></span></span>
+    [actions.ADD_QUERY_EDITOR]() {
+      const tabHistory = state.tabHistory.slice();
+      tabHistory.push(action.queryEditor.id);
+      const newState = Object.assign({}, state, { tabHistory });
+      return addToArr(newState, 'queryEditors', action.queryEditor);
+    },
+    [actions.CLONE_QUERY_TO_NEW_TAB]() {
+      const progenitor = state.queryEditors.find((qe) =&gt;
+          qe.id === state.tabHistory[state.tabHistory.length - 1]);
+      const qe = {
+        id: shortid.generate(),
+        title: `Copy of ${progenitor.title}`,
+        dbId: (action.query.dbId) ? action.query.dbId : <span class="branch-1 cbranch-no" title="branch not covered" >null,</span>
+        schema: (</span>action.query.schema) ? <span class="branch-0 cbranch-no" title="branch not covered" >action.query.schema : null,
+        autorun: true,
+        sql: action.query.sql,
+      };
+&nbsp;
+      return sqlLabReducer(state, actions.addQueryEditor(qe));
+    },
+    [actions.REMOVE_QUERY_EDITOR]() {
+      let newState = removeFromArr(state, 'queryEditors', action.queryEditor);
+      // List of remaining queryEditor ids
+      const qeIds = newState.queryEditors.map((qe) =&gt; qe.id);
+      const queries = {};
+      Object.keys(state.queries).forEach(<span class="fstat-no" title="function not covered" >(</span>k) =&gt; {
+        c</span>onst query = <span class="cstat-no" title="statement not covered" >state.queries[k];
+<span class="cstat-no" title="statement not covered" >        if (qeIds.indexOf(query.sqlEditorId) &gt; -1) {</span>
+<span class="cstat-no" title="statement not covered" >          queries[k] = query;</span>
+        }
+      });
+      let tabHistory = state.tabHistory.slice();
+      tabHistory = tabHistory.filter((id) =&gt; qeIds.indexOf(id) &gt; -1);
+      newState = Object.assign({}, newState, { tabHistory, queries });
+      return newState;
+    },
+    [actions.REMOVE_QUERY]() {
+      const newQueries = Object.assign({}, state.queries);
+      delete newQueries[action.query.id];
+      return Object.assign({}, state, { queries: newQueries });
+    },
+    [actions.RESET_STATE]() {
+<span class="cstat-no" title="statement not covered" >      return Object.assign({}, initialState);</span>
+    },
+    [actions.MERGE_TABLE]() {
+      const at = Object.assign({}, action.table);
+      let existingTable;
+      state.tables.forEach((t) =&gt; {
+        <span class="missing-if-branch" title="else path not taken" >E</span>if (
+            t.dbId === at.dbId &amp;&amp;
+            t.queryEditorId === at.queryEditorId &amp;&amp;
+            t.schema === at.schema &amp;&amp;
+            t.name === at.name) {
+          existingTable = t;
+        }
+      });
+      if (existingTable) {
+        <span class="missing-if-branch" title="if path not taken" >I</span>if (action.query) {
+<span class="cstat-no" title="statement not covered" >          at.dataPreviewQueryId = action.query.id;</span>
+        }
+        return alterInArr(state, 'tables', existingTable, at);
+      }
+      at.id = shortid.generate();
+      // for new table, associate Id of query for data preview
+      at.dataPreviewQueryId = null;
+      let newState = addToArr(state, 'tables', at);
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (action.query) {
+<span class="cstat-no" title="statement not covered" >        newState = alterInArr(newState, 'tables', at, { dataPreviewQueryId: action.query.id });</span>
+      }
+      return newState;
+    },
+    [actions.EXPAND_TABLE]() {
+      return alterInArr(state, 'tables', action.table, { expanded: true });
+    },
+    [actions.REMOVE_DATA_PREVIEW]() {
+      c</span>onst queries = <span class="cstat-no" title="statement not covered" >Object.assign({}, state.queries);
+<span class="cstat-no" title="statement not covered" >      delete queries[action.table.dataPreviewQueryId];</span>
+      c</span>onst newState = <span class="cstat-no" title="statement not covered" >alterInArr(state, 'tables', action.table, { dataPreviewQueryId: null });
+<span class="cstat-no" title="statement not covered" >      return Object.assign(</span>
+       {}, newState, { queries });
+    },
+    [actions.CHANGE_DATA_PREVIEW_ID]() {
+      c</span>onst queries = <span class="cstat-no" title="statement not covered" >Object.assign({}, state.queries);
+<span class="cstat-no" title="statement not covered" >      delete queries[action.oldQueryId];</span>
+&nbsp;
+      c</span>onst newTables = <span class="cstat-no" title="statement not covered" >[];
+<span class="cstat-no" title="statement not covered" >      state.tables.forEach(<span class="fstat-no" title="function not covered" >(</span>t) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (t.dataPreviewQueryId === action.oldQueryId) {</span>
+<span class="cstat-no" title="statement not covered" >          newTables.push(Object.assign({}, t, { dataPreviewQueryId: action.newQuery.id }));</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          newTables.push(t);</span>
+        }
+      });
+<span class="cstat-no" title="statement not covered" >      return Object.assign(</span>
+       {}, state, { queries, tables: newTables, activeSouthPaneTab: action.newQuery.id });
+    },
+    [actions.COLLAPSE_TABLE]() {
+      return alterInArr(state, 'tables', action.table, { expanded: false });
+    },
+    [actions.REMOVE_TABLE]() {
+      return removeFromArr(state, 'tables', action.table);
+    },
+    [actions.START_QUERY]() {
+      let newState = Object.assign({}, state);
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (action.query.sqlEditorId) {
+        c</span>onst qe = <span class="cstat-no" title="statement not covered" >getFromArr(state.queryEditors, action.query.sqlEditorId);
+<span class="cstat-no" title="statement not covered" >        if (qe.latestQueryId) {</span>
+          c</span>onst q = <span class="cstat-no" title="statement not covered" >Object.assign({}, state.queries[qe.latestQueryId], { results: null });
+          c</span>onst queries = <span class="cstat-no" title="statement not covered" >Object.assign({}, state.queries, { [q.id]: q });
+<span class="cstat-no" title="statement not covered" >          newState = Object.assign({}, state, { queries });</span>
+        }
+      } else {
+        newState.activeSouthPaneTab = action.query.id;
+      }
+      newState = addToObject(newState, 'queries', action.query);
+      const sqlEditor = { id: action.query.sqlEditorId };
+      return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
+    },
+    [actions.STOP_QUERY]() {
+      return alterInObject(state, 'queries', action.query, { state: 'stopped' });
+    },
+    [actions.CLEAR_QUERY_RESULTS]() {
+      c</span>onst newResults = <span class="cstat-no" title="statement not covered" >Object.assign({}, action.query.results);
+<span class="cstat-no" title="statement not covered" >      newResults.data = [];</span>
+<span class="cstat-no" title="statement not covered" >      return alterInObject(state, 'queries', action.query, { results: newResults, cached: true });</span>
+    },
+    [actions.REQUEST_QUERY_RESULTS]() {
+<span class="cstat-no" title="statement not covered" >      return alterInObject(state, 'queries', action.query, { state: 'fetching' });</span>
+    },
+    [actions.QUERY_SUCCESS]() {
+      l</span>et <span class="cstat-no" title="statement not covered" >rows;
+<span class="cstat-no" title="statement not covered" >      if (action.results.data) {</span>
+<span class="cstat-no" title="statement not covered" >        rows = action.results.data.length;</span>
+      }
+      c</span>onst alts = <span class="cstat-no" title="statement not covered" >{
+        endDttm: now(),
+        progress: 100,
+        results: action.results,
+        rows,
+        state: 'success',
+        errorMessage: null,
+        cached: false,
+      };
+<span class="cstat-no" title="statement not covered" >      return alterInObject(state, 'queries', action.query, alts);</span>
+    },
+    [actions.QUERY_FAILED]() {
+      c</span>onst alts = <span class="cstat-no" title="statement not covered" >{ state: 'failed', errorMessage: action.msg, endDttm: now() };
+<span class="cstat-no" title="statement not covered" >      return alterInObject(state, 'queries', action.query, alts);</span>
+    },
+    [actions.SET_ACTIVE_QUERY_EDITOR]() {
+      const qeIds = state.queryEditors.map((qe) =&gt; qe.id);
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (qeIds.indexOf(action.queryEditor.id) &gt; -1) {
+        const tabHistory = state.tabHistory.slice();
+        tabHistory.push(action.queryEditor.id);
+        return Object.assign({}, state, { tabHistory });
+      }
+<span class="cstat-no" title="statement not covered" >      return state;</span>
+    },
+    [actions.SET_ACTIVE_SOUTHPANE_TAB]() {
+<span class="cstat-no" title="statement not covered" >      return Object.assign({}, state, { activeSouthPaneTab: action.tabId });</span>
+    },
+    [actions.QUERY_EDITOR_SETDB]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { dbId: action.dbId });
+    },
+    [actions.QUERY_EDITOR_SET_SCHEMA]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { schema: action.schema });
+    },
+    [actions.QUERY_EDITOR_SET_TITLE]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { title: action.title });
+    },
+    [actions.QUERY_EDITOR_SET_SQL]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { sql: action.sql });
+    },
+    [actions.QUERY_EDITOR_SET_SELECTED_TEXT]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { selectedText: action.sql });
+    },
+    [actions.QUERY_EDITOR_SET_AUTORUN]() {
+      return alterInArr(state, 'queryEditors', action.queryEditor, { autorun: action.autorun });
+    },
+    [actions.ADD_ALERT]() {
+      return addToArr(state, 'alerts', action.alert);
+    },
+    [actions.SET_DATABASES]() {
+      c</span>onst databases = <span class="cstat-no" title="statement not covered" >{};
+<span class="cstat-no" title="statement not covered" >      action.databases.forEach(<span class="fstat-no" title="function not covered" >(</span>db) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        databases[db.id] = db;</span>
+      });
+<span class="cstat-no" title="statement not covered" >      return Object.assign({}, state, { databases });</span>
+    },
+    [actions.REMOVE_ALERT]() {
+      return removeFromArr(state, 'alerts', action.alert);
+    },
+    [actions.SET_NETWORK_STATUS]() {
+<span class="cstat-no" title="statement not covered" >      if (state.networkOn !== action.networkOn) {</span>
+<span class="cstat-no" title="statement not covered" >        return Object.assign({}, state, { networkOn: action.networkOn });</span>
+      }
+<span class="cstat-no" title="statement not covered" >      return state;</span>
+    },
+    [actions.REFRESH_QUERIES]() {
+      let newQueries = Object.assign({}, state.queries);
+      // Fetch the updates to the queries present in the store.
+      let change = false;
+      for (const id in action.alteredQueries) {
+        c</span>onst changedQuery = <span class="cstat-no" title="statement not covered" >action.alteredQueries[id];
+<span class="cstat-no" title="statement not covered" >        if (</span>
+            !state.queries.hasOwnProperty(id) ||
+            state.queries[id].changedOn !== changedQuery.changedOn) {
+<span class="cstat-no" title="statement not covered" >          newQueries[id] = Object.assign({}, state.queries[id], changedQuery);</span>
+<span class="cstat-no" title="statement not covered" >          change = true;</span>
+        }
+      }
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (!change) {
+        newQueries = state.queries;
+      }
+      const queriesLastUpdate = now();
+      return Object.assign({}, state, { queries: newQueries, queriesLastUpdate });
+    },
+  };
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (action.type in actionHandlers) {
+    return actionHandlers[action.type]();
+  }
+<span class="cstat-no" title="statement not covered" >  return state;</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

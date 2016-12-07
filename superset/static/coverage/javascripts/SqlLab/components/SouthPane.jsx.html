@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/SqlLab/components/SouthPane.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">All files</a> / <a href="index.html">javascripts/SqlLab/components</a> SouthPane.jsx
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">46.43% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>13/28</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/7</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/3</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">48.15% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>13/27</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Alert, Tab, Tabs } from 'react-bootstrap';
+import QueryHistory from './QueryHistory';
+import ResultSet from './ResultSet';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import * as Actions from '../actions';
+import React from 'react';
+import { areArraysShallowEqual } from '../../reduxUtils';
+&nbsp;
+import shortid from 'shortid';
+&nbsp;
+/*
+    editorQueries are queries executed by users passed from SqlEditor component
+    dataPrebiewQueries are all queries executed for preview of table data (from SqlEditorLeft)
+*/
+const propTypes = {
+  editorQueries: React.PropTypes.array.isRequired,
+  dataPreviewQueries: React.PropTypes.array.isRequired,
+  actions: React.PropTypes.object.isRequired,
+  activeSouthPaneTab: React.PropTypes.string,
+};
+&nbsp;
+const defaultProps = {
+  activeSouthPaneTab: 'Results',
+};
+&nbsp;
+class SouthPane extends React.PureComponent {
+  switchTab(id) {
+<span class="cstat-no" title="statement not covered" >    this.props.actions.setActiveSouthPaneTab(id);</span>
+  }
+  shouldComponentUpdate(nextProps) {
+<span class="cstat-no" title="statement not covered" >    return !areArraysShallowEqual(this.props.editorQueries, nextProps.editorQueries)</span>
+      || !areArraysShallowEqual(this.props.dataPreviewQueries, nextProps.dataPreviewQueries)
+      || this.props.activeSouthPaneTab !== nextProps.activeSouthPaneTab;
+  }
+  render() {
+    l</span>et <span class="cstat-no" title="statement not covered" >latestQuery;
+    c</span>onst props = <span class="cstat-no" title="statement not covered" >this.props;
+<span class="cstat-no" title="statement not covered" >    if (props.editorQueries.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >      latestQuery = props.editorQueries[props.editorQueries.length - 1];</span>
+    }
+    l</span>et <span class="cstat-no" title="statement not covered" >results;
+<span class="cstat-no" title="statement not covered" >    if (latestQuery) {</span>
+<span class="cstat-no" title="statement not covered" >      results = (</span>
+        &lt;ResultSet showControls search query={latestQuery} actions={props.actions} /&gt;
+      );
+    } else {
+<span class="cstat-no" title="statement not covered" >      results = &lt;Alert bsStyle="info"&gt;Run a query to display results here&lt;/Alert&gt;;</span>
+    }
+&nbsp;
+    c</span>onst dataPreviewTabs = <span class="cstat-no" title="statement not covered" >props.dataPreviewQueries.map(<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>query) =&gt; (</span>
+      &lt;Tab
+        title={`Preview for ${query.tableName}`}
+        eventKey={query.id}
+        key={query.id}
+      &gt;
+        &lt;ResultSet query={query} visualize={false} csv={false} actions={props.actions} cache /&gt;
+      &lt;/Tab&gt;
+    ));
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    return (</span>
+      &lt;div className="SouthPane"&gt;
+        &lt;Tabs
+          bsStyle="tabs"
+          id={shortid.generate()}
+          activeKey={this.props.activeSouthPaneTab}
+          onSelect={this.switchTab.bind(this)}
+        &gt;
+          &lt;Tab
+            title="Results"
+            eventKey="Results"
+          &gt;
+            &lt;div style={{ overflow: 'auto' }}&gt;
+              {results}
+            &lt;/div&gt;
+          &lt;/Tab&gt;
+          &lt;Tab
+            title="Query History"
+            eventKey="History"
+          &gt;
+            &lt;QueryHistory queries={props.editorQueries} actions={props.actions} /&gt;
+          &lt;/Tab&gt;
+          {dataPreviewTabs}
+        &lt;/Tabs&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >mapStateToProps(state) {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    activeSouthPaneTab: state.activeSouthPaneTab,
+  };
+}
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >mapDispatchToProps(dispatch) {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    actions: bindActionCreators(Actions, dispatch),
+  };
+}
+&nbsp;
+SouthPane.propTypes = propTypes;
+SouthPane.defaultProps = defaultProps;
+&nbsp;
+export default connect(mapStateToProps, mapDispatchToProps)(SouthPane);
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/explorev2/components/ChartContainer.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">All files</a> / <a href="index.html">javascripts/explorev2/components</a> ChartContainer.jsx
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/64</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/33</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/54</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187</td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import $ from 'jquery';</span>
+<span class="cstat-no" title="statement not covered" >import React, { PropTypes } from 'react';</span>
+<span class="cstat-no" title="statement not covered" >import { connect } from 'react-redux';</span>
+<span class="cstat-no" title="statement not covered" >import { Panel } from 'react-bootstrap';</span>
+<span class="cstat-no" title="statement not covered" >import visMap from '../../../visualizations/main';</span>
+<span class="cstat-no" title="statement not covered" >import { d3format } from '../../modules/utils';</span>
+<span class="cstat-no" title="statement not covered" >import ExploreActionButtons from '../../explore/components/ExploreActionButtons';</span>
+&nbsp;
+c</span>onst propTypes = <span class="cstat-no" title="statement not covered" >{
+  can_download: PropTypes.bool.isRequired,
+  slice_name: PropTypes.string.isRequired,
+  viz_type: PropTypes.string.isRequired,
+  height: PropTypes.string.isRequired,
+  containerId: PropTypes.string.isRequired,
+  json_endpoint: PropTypes.string.isRequired,
+  csv_endpoint: PropTypes.string.isRequired,
+  standalone_endpoint: PropTypes.string.isRequired,
+  query: PropTypes.string.isRequired,
+  column_formats: PropTypes.object,
+};
+&nbsp;
+class ChartContainer extends React.Component {
+<span class="fstat-no" title="function not covered" >  constructor(</span>props) <span class="cstat-no" title="statement not covered" >{</span>
+    super(props);
+<span class="cstat-no" title="statement not covered" >    this.state = {</span>
+      selector: `#${props.containerId}`,
+      mockSlice: {},
+    };
+  }
+&nbsp;
+  componentWillMount() {
+<span class="cstat-no" title="statement not covered" >    this.setState({ mockSlice: this.getMockedSliceObject() });</span>
+  }
+&nbsp;
+  componentDidMount() {
+<span class="cstat-no" title="statement not covered" >    this.renderVis();</span>
+  }
+&nbsp;
+  componentDidUpdate() {
+<span class="cstat-no" title="statement not covered" >    this.renderVis();</span>
+  }
+&nbsp;
+  getMockedSliceObject() <span class="cstat-no" title="statement not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >    return <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" >{</span></span></span></span>
+      viewSqlQuery: this.props.query,
+&nbsp;
+      data: {
+        csv_endpoint: this.props.csv_endpoint,
+        json_endpoint: this.props.json_endpoint,
+        standalone_endpoint: this.props.standalone_endpoint,
+      },
+&nbsp;
+      containerId: this.props.containerId,
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      jsonEndpoint: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; this.props.json_endpoint,</span></span></span></span>
+&nbsp;
+      container: {
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        html: <span class="fstat-no" title="function not covered" >(</span>data) =&gt; {</span></span>
+          // this should be a callback to clear the contents of the slice container
+<span class="cstat-no" title="statement not covered" >          $(this.state.selector).html(data);</span>
+        },
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        css: <span class="fstat-no" title="function not covered" >(</span>dim, size) =&gt; {</span></span>
+          // dimension can be 'height'
+          // pixel string can be '300px'
+          // should call callback to adjust height of chart
+<span class="cstat-no" title="statement not covered" >          $(this.state.selector).css(dim, size);</span>
+        },
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        height: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; parseInt(this.props.height, 10) - 100,</span></span></span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        show: <span class="fstat-no" title="function not covered" >() =&gt; </span>{ <span class="cstat-no" title="statement not covered" >this.render(); },</span></span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        get: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>n) =&gt; ($(this.state.selector).get(n)),</span></span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >        find: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>classname) =&gt; ($(this.state.selector).find(classname)),</span></span></span>
+&nbsp;
+      },
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      width: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; this.chartContainerRef.getBoundingClientRect().width,</span></span></span></span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      height: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; parseInt(this.props.height, 10) - 100,</span></span></span></span>
+&nbsp;
+      selector: this.state.selector,
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      setFilter: <span class="fstat-no" title="function not covered" >() =&gt; </span>{</span></span>
+        // set filter according to data in store
+        // used in FilterBox.onChange()
+      },
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      getFilters: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; (</span></span></span></span>
+        // return filter objects from viz.formData
+        {}
+      ),
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      done: <span class="fstat-no" title="function not covered" >() =&gt; </span>{</span></span>
+        // finished rendering callback
+      },
+&nbsp;
+      error(msg, xhr) {
+        l</span>et errorMsg = <span class="cstat-no" title="statement not covered" >msg;
+        l</span>et errHtml = <span class="cstat-no" title="statement not covered" >'';
+<span class="cstat-no" title="statement not covered" >        try {</span>
+          c</span>onst o = <span class="cstat-no" title="statement not covered" >JSON.parse(msg);
+<span class="cstat-no" title="statement not covered" >          if (o.error) {</span>
+<span class="cstat-no" title="statement not covered" >            errorMsg = o.error;</span>
+          }
+        } catch (e) {
+          // pass
+        }
+<span class="cstat-no" title="statement not covered" >        errHtml = `&lt;div class="alert alert-danger"&gt;${errorMsg}&lt;/div&gt;`;</span>
+<span class="cstat-no" title="statement not covered" >        if (xhr) {</span>
+          c</span>onst extendedMsg = <span class="cstat-no" title="statement not covered" >this.getErrorMsg(xhr);
+<span class="cstat-no" title="statement not covered" >          if (extendedMsg) {</span>
+<span class="cstat-no" title="statement not covered" >            errHtml += `&lt;div class="alert alert-danger"&gt;${extendedMsg}&lt;/div&gt;`;</span>
+          }
+        }
+<span class="cstat-no" title="statement not covered" >        $(this.state.selector).html(errHtml);</span>
+<span class="cstat-no" title="statement not covered" >        this.render();</span>
+<span class="cstat-no" title="statement not covered" >        $('span.query').removeClass('disabled');</span>
+<span class="cstat-no" title="statement not covered" >        $('.query-and-save button').removeAttr('disabled');</span>
+      },
+&nbsp;
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >      d3format: <span class="fstat-no" title="function not covered" >(</span>col, number) =&gt; {</span></span>
+        // mock d3format function in Slice object in superset.js
+        c</span>onst format = <span class="cstat-no" title="statement not covered" >this.props.column_formats[col];
+<span class="cstat-no" title="statement not covered" >        return d3format(format, number);</span>
+      },
+    };
+  }
+&nbsp;
+  renderVis() {
+<span class="cstat-no" title="statement not covered" >    visMap[this.props.viz_type](this.state.mockSlice).render();</span>
+  }
+&nbsp;
+  render() <span class="cstat-no" title="statement not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >    return (</span>
+      &lt;div className="chart-container"&gt;
+        &lt;Panel
+          style={{ height: this.props.height }}
+          header={
+            &lt;div
+              id="slice-header"
+              className="panel-title"
+            &gt;
+              {this.props.slice_name}
+              &lt;div className="pull-right"&gt;
+                &lt;ExploreActionButtons
+                  slice={this.state.mockSlice}
+                  canDownload={this.props.can_download}
+                /&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          }
+        &gt;
+          &lt;div
+            id={this.props.containerId}
+<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >            ref={<span class="fstat-no" title="function not covered" >(</span>ref) =&gt; { <span class="cstat-no" title="statement not covered" >this.chartContainerRef = ref; }}</span></span></span>
+            className={this.props.viz_type}
+          /&gt;
+        &lt;/Panel&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >ChartContainer.propTypes = propTypes;</span>
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >mapStateToProps(state) {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    containerId: `slice-container-${state.viz.form_data.slice_id}`,
+    slice_name: state.viz.form_data.slice_name,
+    viz_type: state.viz.form_data.viz_type,
+    can_download: state.can_download,
+    csv_endpoint: state.viz.csv_endpoint,
+    json_endpoint: state.viz.json_endpoint,
+    standalone_endpoint: state.viz.standalone_endpoint,
+    query: state.viz.query,
+    column_formats: state.viz.column_formats,
+  };
+}
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >mapDispatchToProps() {
+<span class="cstat-no" title="statement not covered" >  return {};</span>
+}
+&nbsp;
+export default connect(mapStateToProps, mapDispatchToProps)(ChartContainer);
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

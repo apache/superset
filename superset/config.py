@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 import imp
 import json
+import redis
 import os
 
 from dateutil import tz
@@ -209,16 +210,17 @@ WARNING_MSG = None
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
-"""
+
 # Example:
 class CeleryConfig(object):
-  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
+  BROKER_URL = 'pyamqp://'
   CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
+  CELERY_RESULT_BACKEND = 'redis://localhost:6379/'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
-"""
-CELERY_CONFIG = None
+
+# Hiddenbugskiller Modification for Run Async Queries.
+# CELERY_CONFIG = None
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
@@ -237,7 +239,7 @@ SQLLAB_TIMEOUT = 30
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND = None
+RESULTS_BACKEND = redis.Redis() # Hiddenbugskiller - Hack to use results_backend to store async results
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,

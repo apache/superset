@@ -15,19 +15,6 @@ READ_ONLY_MODELVIEWS = {
     'DatabaseView',
     'DruidClusterModelView',
 }
-
-GAMMA_READ_ONLY_MODELVIEWS = {
-    'ColumnInlineView',
-    'SqlMetricInlineView',
-    'TableColumnInlineView',
-    'TableModelView',
-    'DatasourceModelView',
-    'DruidColumnInlineView',
-    'MetricInlineView',
-    'DruidDatasourceModelView',
-    'DruidMetricInlineView',
-} | READ_ONLY_MODELVIEWS
-
 ADMIN_ONLY_VIEW_MENUES = {
     'AccessRequestsModelView',
     'Manage',
@@ -58,6 +45,11 @@ READ_ONLY_PERMISSION = {
 }
 
 ALPHA_ONLY_PERMISSIONS = set([
+    'can_add',
+    'can_download',
+    'can_delete',
+    'can_edit',
+    'can_save',
     'datasource_access',
     'schema_access',
     'database_access',
@@ -67,15 +59,12 @@ ALPHA_ONLY_PERMISSIONS = set([
 READ_ONLY_PRODUCT = set(
     product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
 
-GAMMA_READ_ONLY_PRODUCT = set(
-    product(READ_ONLY_PERMISSION, GAMMA_READ_ONLY_MODELVIEWS))
-
-
 OBJECT_SPEC_PERMISSIONS = set([
     'database_access',
     'schema_access',
     'datasource_access',
     'metric_access',
+    'dashboard_access',
 ])
 
 
@@ -159,12 +148,10 @@ def sync_role_definitions():
         if (
                 (
                     p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
-                    p.view_menu.name not in GAMMA_READ_ONLY_MODELVIEWS and
                     p.permission.name not in ADMIN_ONLY_PERMISSIONS and
                     p.permission.name not in ALPHA_ONLY_PERMISSIONS
                 ) or
-                (p.permission.name, p.view_menu.name) in
-                GAMMA_READ_ONLY_PRODUCT
+                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
         ):
             sm.add_permission_role(gamma, p)
             if PUBLIC_ROLE_LIKE_GAMMA:
@@ -216,6 +203,16 @@ def sync_role_definitions():
         if perm != database.perm:
             database.perm = perm
         sm.add_permission_view_menu('database_access', perm)
+    # Hiddenbugskiller - Hack to have dashboard specific permissions
+    """
+    logging.info("Making sure all dashboard perms have been created")
+    dashboards = [o for o in session.query(models.Dashboard).all()]
+    for dashboard in dashboards:
+        perm = dashboard.get_perm()
+        if perm != dashboard.perm:
+            dashboard.perm = perm
+        sm.add_permission_view_menu('dashboard_access', perm)
+    """
     session.commit()
 
     logging.info("Making sure all metrics perms exist")

@@ -33,11 +33,11 @@ class AceEditorWrapper extends React.PureComponent {
   componentDidMount() {
     // Making sure no text is selected from previous mount
     this.props.actions.queryEditorSetSelectedText(this.props.queryEditor, null);
-    this.setAutoCompleter(this.props);
+    this.setAutoCompleter();
   }
   componentWillReceiveProps(nextProps) {
     if (!areArraysShallowEqual(this.props.tables, nextProps.tables)) {
-      this.setAutoCompleter(nextProps);
+      this.setAutoCompleter();
     }
   }
   textChange(text) {
@@ -63,11 +63,11 @@ class AceEditorWrapper extends React.PureComponent {
         this.props.queryEditor, editor.getSelectedText());
     });
   }
-  setAutoCompleter(props) {
+  setAutoCompleter() {
     // Loading table and column names as auto-completable words
     let words = [];
     const columns = {};
-    const tables = props.tables || [];
+    const tables = this.props.tables || [];
     tables.forEach(t => {
       words.push({ name: t.name, value: t.name, score: 55, meta: 'table' });
       const cols = t.columns || [];
@@ -78,15 +78,13 @@ class AceEditorWrapper extends React.PureComponent {
     words = words.concat(Object.keys(columns).map(col => (
       { name: col, value: col, score: 50, meta: 'column' }
     )));
-
-    this.setState({ words }, () => {
-      const completer = {
-        getCompletions: this.getCompletions.bind(this),
-      };
-      if (langTools) {
-        langTools.setCompleters([completer, langTools.keyWordCompleter]);
-      }
-    });
+    this.setState({ words });
+    const completer = {
+      getCompletions: this.getCompletions.bind(this),
+    };
+    if (langTools) {
+      langTools.setCompleters([completer, langTools.keyWordCompleter]);
+    }
   }
   render() {
     return (

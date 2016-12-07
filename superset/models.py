@@ -149,19 +149,13 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    def _user_link(self, user):
-        if not user:
-            return ''
-        url = '/superset/profile/{}/'.format(user.username)
-        return '<a href="{}">{}</a>'.format(url, escape(user) or '')
-
-    @renders('created_by')
+    @renders('created_on')
     def creator(self):  # noqa
-        return self._user_link(self.created_by)
+        return '{}'.format(self.created_by or '')
 
     @property
     def changed_by_(self):
-        return self._user_link(self.changed_by)
+        return '{}'.format(self.changed_by or '')
 
     @renders('changed_on')
     def changed_on_(self):
@@ -441,8 +435,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def table_names(self):
-        return ", ".join(
-            {"{}".format(s.datasource.name) for s in self.slices})
+        return ", ".join({"{}".format(s.datasource) for s in self.slices})
 
     @property
     def url(self):
@@ -629,7 +622,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'dashboards': copied_dashboards,
             'datasources': eager_datasources,
         })
-
 
 class Queryable(object):
 
@@ -903,7 +895,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             name='_customer_location_uc'),)
 
     def __repr__(self):
-        return self.name
+        return self.table_name
 
     @property
     def description_markeddown(self):
@@ -911,9 +903,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def link(self):
-        name = escape(self.name)
+        table_name = escape(self.table_name)
         return Markup(
-            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
+            '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
 
     @property
     def schema_perm(self):
@@ -927,9 +919,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def name(self):
-        if not self.schema:
-            return self.table_name
-        return "{}.{}".format(self.schema, self.table_name)
+        return self.table_name
 
     @property
     def full_name(self):
@@ -1131,7 +1121,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 direction = asc if ascending else desc
                 qry = qry.order_by(direction(col))
 
-        qry = qry.limit(row_limit)
+        # Uncomment the following line to set row limit. 	
+        # qry = qry.limit(row_limit) # Hiddenbugskiller - Issue - Adding row limit when calculating GMV will give improper results. 
 
         if is_timeseries and timeseries_limit and groupby:
             # some sql dialects require for order by expressions

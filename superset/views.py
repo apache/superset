@@ -701,7 +701,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
                 "Table [{}] could not be found, "
                 "please double check your "
                 "database connection, schema, and "
-                "table name".format(table.name))
+                "table name".format(table.table_name))
 
     def post_add(self, table):
         table.fetch_metadata()
@@ -1407,9 +1407,7 @@ class Superset(BaseSupersetView):
     def explore(self, datasource_type, datasource_id):
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
-        slc = None
-        if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+    	slc = db.session.query(models.Slice).filter_by(id=slice_id).first() if slice_id else None  # Hiddenbugskiller - Code Optimisation
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1796,7 +1794,7 @@ class Superset(BaseSupersetView):
             )
             .filter(
                 sqla.and_(
-                    ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
+                    M.Log.action != 'queries',
                     M.Log.user_id == user_id,
                 )
             )
@@ -1845,21 +1843,13 @@ class Superset(BaseSupersetView):
                 models.FavStar.dttm.desc()
             )
         )
-        payload = []
-        for o in qry.all():
-            d = {
-                'id': o.Dashboard.id,
-                'dashboard': o.Dashboard.dashboard_link(),
-                'title': o.Dashboard.dashboard_title,
-                'url': o.Dashboard.url,
-                'dttm': o.dttm,
-            }
-            if o.Dashboard.created_by:
-                user = o.Dashboard.created_by
-                d['creator'] = str(user)
-                d['creator_url'] = '/superset/profile/{}/'.format(
-                    user.username)
-            payload.append(d)
+        payload = [{
+            'id': o.Dashboard.id,
+            'dashboard': o.Dashboard.dashboard_link(),
+            'title': o.Dashboard.dashboard_title,
+            'url': o.Dashboard.url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
             mimetype="application/json")
@@ -1942,20 +1932,12 @@ class Superset(BaseSupersetView):
                 models.FavStar.dttm.desc()
             )
         )
-        payload = []
-        for o in qry.all():
-            d = {
-                'id': o.Slice.id,
-                'title': o.Slice.slice_name,
-                'url': o.Slice.slice_url,
-                'dttm': o.dttm,
-            }
-            if o.Slice.created_by:
-                user = o.Slice.created_by
-                d['creator'] = str(user)
-                d['creator_url'] = '/superset/profile/{}/'.format(
-                    user.username)
-            payload.append(d)
+        payload = [{
+            'id': o.Slice.id,
+            'title': o.Slice.slice_name,
+            'url': o.Slice.slice_url,
+            'dttm': o.dttm,
+        } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
             mimetype="application/json")
@@ -2039,6 +2021,19 @@ class Superset(BaseSupersetView):
             json.dumps({'count': count}),
             mimetype="application/json")
 
+    # Hiddenbugskiller - Hack to control dashboard
+    @classmethod
+    def has_dashboard_access(cls, dash):
+        # Allow all if not specified
+        owner_names = (user.username for user in dash.owners)
+        if (
+            (hasattr(g.user, 'username') and g.user.username in owner_names)
+            or
+            any([r.name in ('Admin', 'Alpha') for r in get_user_roles()]) ):
+            return True
+
+        return False
+
     @has_access
     @expose("/dashboard/<dashboard_id>/")
     def dashboard(self, dashboard_id):
@@ -2051,6 +2046,12 @@ class Superset(BaseSupersetView):
             qry = qry.filter_by(slug=dashboard_id)
 
         dash = qry.one()
+
+        # Hiddenbugskiller - Hack to check dashboard permissions. 
+        if not self.has_dashboard_access(dash):
+            flash("Access to this dashboard denied", "danger")
+            return redirect("/dashboardmodelview/list/")
+
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
             if not self.datasource_access(datasource):
@@ -2611,11 +2612,10 @@ class Superset(BaseSupersetView):
             error_msg=get_error_msg(),
         ), 500
 
+    @has_access # Hiddenbugskiller - Issue - When User not logged in, pages keeps rendering and rendering.  
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
-        if not g.user or not g.user.get_id():
-            return redirect(appbuilder.get_url_for_login)
         return self.render_template('superset/welcome.html', utils=utils)
 
     @has_access
@@ -2629,15 +2629,15 @@ class Superset(BaseSupersetView):
         )
         roles = {}
         from collections import defaultdict
-        permissions = defaultdict(set)
+        permissions = defaultdict(list)
         for role in user.roles:
-            perms = set()
+            perms = []
             for perm in role.permissions:
-                perms.add(
+                perms.append(
                     (perm.permission.name, perm.view_menu.name)
                 )
                 if perm.permission.name in ('datasource_access', 'database_access'):
-                    permissions[perm.permission.name].add(perm.view_menu.name)
+                    permissions[perm.permission.name].append(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
                 for perm in role.permissions
@@ -2659,8 +2659,7 @@ class Superset(BaseSupersetView):
             'superset/profile.html',
             title=user.username + "'s profile",
             navbar_container=True,
-            bootstrap_data=json.dumps(payload, default=utils.json_iso_dttm_ser)
-        )
+            bootstrap_data=json.dumps(payload))
 
     @has_access
     @expose("/sqllab")

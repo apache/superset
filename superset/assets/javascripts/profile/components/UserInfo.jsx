@@ -11,6 +11,7 @@ const UserInfo = ({ user }) => (
     <a href="https://en.gravatar.com/">
       <Gravatar
         email={user.email}
+        size={{200}}
         width="100%"
         height=""
         alt="Profile picture provided by Gravatar"

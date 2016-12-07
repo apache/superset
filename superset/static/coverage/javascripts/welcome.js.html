@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/welcome.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../prettify.css" />
+    <link rel="stylesheet" href="../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../index.html">All files</a> / <a href="index.html">javascripts</a> welcome.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/35</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/0</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/35</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58</td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">c</span>onst $ = <span class="cstat-no" title="statement not covered" >window.$ = require('jquery');
+/* eslint no-unused-vars: 0 */
+c</span>onst jQuery = <span class="cstat-no" title="statement not covered" >window.jQuery = $;
+<span class="cstat-no" title="statement not covered" >require('../stylesheets/welcome.css');</span>
+<span class="cstat-no" title="statement not covered" >require('bootstrap');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');</span>
+<span class="cstat-no" title="statement not covered" >import 'datatables.net';</span>
+<span class="cstat-no" title="statement not covered" >import dt from 'datatables.net-bs';</span>
+<span class="cstat-no" title="statement not covered" >dt(window, $);</span>
+&nbsp;
+c</span>onst d3 = <span class="cstat-no" title="statement not covered" >require('d3');
+f</span>unction <span class="fstat-no" title="function not covered" >modelViewTable(selector, modelView, orderCol, order) {
+  // Builds a dataTable from a flask appbuilder api endpoint
+  l</span>et url = <span class="cstat-no" title="statement not covered" >'/' + modelView.toLowerCase() + '/api/read';
+<span class="cstat-no" title="statement not covered" >  url += '?_oc_' + modelView + '=' + orderCol;</span>
+<span class="cstat-no" title="statement not covered" >  url += '&amp;_od_' + modelView + '=' + order;</span>
+<span class="cstat-no" title="statement not covered" >  $.getJSON(url, <span class="fstat-no" title="function not covered" >function (</span>data) {</span>
+    c</span>onst columns = <span class="cstat-no" title="statement not covered" >['dashboard_link', 'creator', 'modified'];
+    c</span>onst tableData = <span class="cstat-no" title="statement not covered" >$.map(data.result, <span class="fstat-no" title="function not covered" >function (</span>el) {
+      c</span>onst row = <span class="cstat-no" title="statement not covered" >$.map(columns, <span class="fstat-no" title="function not covered" >function (</span>col) {
+<span class="cstat-no" title="statement not covered" >        return el[col];</span>
+      });
+<span class="cstat-no" title="statement not covered" >      return [row];</span>
+    });
+    c</span>onst cols = <span class="cstat-no" title="statement not covered" >$.map(columns, <span class="fstat-no" title="function not covered" >function (</span>col) {
+<span class="cstat-no" title="statement not covered" >      return { sTitle: data.label_columns[col] };</span>
+    });
+    c</span>onst panel = <span class="cstat-no" title="statement not covered" >$(selector).parents('.panel');
+<span class="cstat-no" title="statement not covered" >    panel.find('img.loading').remove();</span>
+<span class="cstat-no" title="statement not covered" >    $(selector).DataTable({</span>
+      aaData: tableData,
+      aoColumns: cols,
+      bPaginate: true,
+      pageLength: 10,
+      bLengthChange: false,
+      aaSorting: [],
+      searching: true,
+      bInfo: false,
+    });
+    // Hack to move the searchbox in the right spot
+    c</span>onst search = <span class="cstat-no" title="statement not covered" >panel.find('.dataTables_filter input');
+<span class="cstat-no" title="statement not covered" >    search.addClass('form-control').detach();</span>
+<span class="cstat-no" title="statement not covered" >    search.appendTo(panel.find('.search'));</span>
+<span class="cstat-no" title="statement not covered" >    panel.find('.dataTables_filter').remove();</span>
+    // Hack to display the page navigator properly
+<span class="cstat-no" title="statement not covered" >    panel.find('.col-sm-5').remove();</span>
+    c</span>onst nav = <span class="cstat-no" title="statement not covered" >panel.find('.col-sm-7');
+<span class="cstat-no" title="statement not covered" >    nav.removeClass('col-sm-7');</span>
+<span class="cstat-no" title="statement not covered" >    nav.addClass('col-sm-12');</span>
+<span class="cstat-no" title="statement not covered" >    $(selector).slideDown();</span>
+<span class="cstat-no" title="statement not covered" >    $('[data-toggle="tooltip"]').tooltip({ container: 'body' });</span>
+  });
+}
+<span class="cstat-no" title="statement not covered" >$(document).ready(<span class="fstat-no" title="function not covered" >function () </span>{</span>
+<span class="cstat-no" title="statement not covered" >  modelViewTable('#dash_table', 'DashboardModelViewAsync', 'changed_on', 'desc');</span>
+});
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../sorter.js"></script>
+</body>
+</html>
