@@ -949,13 +949,13 @@ class BulletViz(NVD3Viz):
         df = self.get_df()
         values = df['metric'].values
         return {
-          'measures': values.tolist(),
-          'ranges': self.ranges or None,
-          'rangeLabels': self.range_labels or None,
-          'markers': self.markers or None,
-          'markerLabels': self.marker_labels or None,
-          'markerLines': self.marker_lines or None,
-          'markerLineLabels': self.marker_line_labels or None,
+            'measures': values.tolist(),
+            'ranges': self.ranges or None,
+            'rangeLabels': self.range_labels or None,
+            'markers': self.markers or None,
+            'markerLabels': self.marker_labels or None,
+            'markerLines': self.marker_lines or None,
+            'markerLineLabels': self.marker_line_labels or None,
         }
 
 

@@ -409,6 +409,7 @@ export const visTypes = {
 
   bullet: {
     label: 'Bullet Chart',
+    requiresTime: false,
     controlPanelSections: [
       {
         label: null,
