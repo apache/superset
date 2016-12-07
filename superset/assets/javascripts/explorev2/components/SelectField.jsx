@@ -37,6 +37,18 @@ export default class SelectField extends React.Component {
       this.props.onChange(this.props.name, optionValue);
     }
   }
+  renderOption(opt) {
+    if (this.props.name === 'viz_type') {
+      const url = `/static/assets/images/viz_thumbnails/${opt.value}.png`;
+      return (
+        <div>
+          <img className="viz-thumb-option" src={url} alt={opt.value} />
+          <span>{opt.value}</span>
+        </div>
+      );
+    }
+    return opt.label;
+  }
   render() {
     const options = this.props.choices.map((c) => ({ value: c[0], label: c[1] }));
     if (this.props.freeForm) {
@@ -55,6 +67,7 @@ export default class SelectField extends React.Component {
       value: this.props.value,
       autosize: false,
       onChange: this.onChange.bind(this),
+      optionRenderer: this.renderOption.bind(this),
     };
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?
