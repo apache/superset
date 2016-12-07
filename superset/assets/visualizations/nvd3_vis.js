@@ -265,6 +265,9 @@ function nvd3Vis(slice) {
         }
 
         let height = slice.height() - 15;
+        if (vizType === 'bullet') {
+          height = Math.min(height, 50);
+        }
 
         chart.height(height);
         slice.container.css('height', height + 'px');
