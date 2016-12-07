@@ -61,7 +61,7 @@ CONFIG_CMDS = {"superset_config_url":
 def command_center(install_cmd):
 	# Executes the commands and return False if failed to execute
 	install_cmd = "echo '%s' | sudo -S "%sudo_pass + install_cmd 
-	exec_cmd = subprocess.Popen(install_cmd, shell=True, stdout=subprocess.PIPE, stderrr=subprocess.PIPE)
+	exec_cmd = subprocess.Popen(install_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	exec_output,exec_error = exec_cmd.communicate()
 	if exec_cmd.returncode != 0:
 		mylog.log("FATAL", "Error while installing superset. Check below and logs file:")
@@ -191,10 +191,13 @@ except ImportError:
 	detected_paltform = platform.platform().lower()
 	if "Darwin" in detected_paltform:
 		os_name = 'Apple'
+		osx_installation()
 	elif "ubuntu" in detected_paltform:
 		os_name = 'Ubuntu'
+		ubuntu_installation()
 	elif "centos" in detected_paltform:
 		os_name = "CentOS"
+		centos_installation()
 	else:
 		my.log("FATAL", "Detecting OS Failed. Committing Suicide.")
 		sys.exit(1)
