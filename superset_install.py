@@ -57,32 +57,6 @@ CONFIG_CMDS = {"superset_config_url":
 				"superset_variables_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.py"
 				}
-
-
-# Get the python installation direcory 
-mylog.log("INFO", "Getting PYTHONPATH ")
-install_dirs  = site.getsitepackages()
-
-# Checking if superset is installed.
-mylog.log("INFO", "Checking if superset installed?")
-mylog.log("WARN", "Superset is installed.")
-is_superset = sys.modules['superset']
-
-if not is_superset:
-	mylog.log("INFO", "Superset is not installed")
-	mylog.log("INFO", "Installing Sueprset...")
-	mylog.log("INFO", "Detecting OS Version")
-
-	detected_paltform = platform.platform().lower()
-	if "Darwin" in detected_paltform:
-		os_name = 'Apple'
-	elif "ubuntu" in detected_paltform:
-		os_name = 'Ubuntu'
-	elif "centos" in detected_paltform:
-		os_name = "CentOS"
-	else:
-		my.log("FATAL", "Detecting OS Failed. Committing Suicide.")
-		sys.exit(1)
 	
 def command_center(install_cmd):
 	# Executes the commands and return False if failed to execute
@@ -198,3 +172,29 @@ def osx_installation():
 
 	mylog.log("INFO", "Hurrah! Installation Done Successfully..!")
 	mylog.log9("WARN", "Automatic configuring superset is not available for OS X due to System Integrity Protection (rootless)")
+
+# Get the python installation direcory 
+mylog.log("INFO", "Getting PYTHONPATH ")
+install_dirs  = site.getsitepackages()
+
+# Checking if superset is installed.
+mylog.log("INFO", "Checking if superset installed?")
+mylog.log("WARN", "Superset is installed.")
+try: 
+	import superset
+
+except ImportError:
+	mylog.log("INFO", "Superset is not installed")
+	mylog.log("INFO", "Installing Sueprset...")
+	mylog.log("INFO", "Detecting OS Version")
+
+	detected_paltform = platform.platform().lower()
+	if "Darwin" in detected_paltform:
+		os_name = 'Apple'
+	elif "ubuntu" in detected_paltform:
+		os_name = 'Ubuntu'
+	elif "centos" in detected_paltform:
+		os_name = "CentOS"
+	else:
+		my.log("FATAL", "Detecting OS Failed. Committing Suicide.")
+		sys.exit(1)
