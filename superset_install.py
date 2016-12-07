@@ -108,9 +108,9 @@ def general_config():
 
 	if os_name != "Apple":
 		superset_variables_raw = urllib.urlopen(CONFIG_CMDS['superset_variables_url'])
-		with open('superset_variables.py', 'w') as superset_variable_file:
+		with open('superset_variables.sh', 'w') as superset_variable_file:
 			for line in superset_variables_raw.readlines():
-				superset_config_file.write(line)
+				superset_variables_file.write(line)
 
 		command_center("mv superset_variables.sh /etc/profile.d/")
 	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
