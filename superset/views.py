@@ -33,12 +33,13 @@ from flask_appbuilder.forms import DynamicForm
 from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
+from flask_wtf.file import FileField, FileAllowed, FileRequired
+from wtforms import Form, StringField, IntegerField, FieldList, BooleanField, SelectField
+from wtforms.validators import ValidationError, DataRequired, InputRequired, Optional
+
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 from werkzeug.utils import secure_filename
-
-from wtforms import Form, StringField, IntegerField, FieldList, BooleanField, SelectField, FileField
-from wtforms.validators import ValidationError, DataRequired, InputRequired, Optional, Regexp
 
 import superset
 from superset import (
@@ -632,17 +633,9 @@ def uploaded_file(filename):
 
 
 class CsvToDatabaseForm(DynamicForm):
-
     # These are the fields exposed by Pandas read_csv()
-    csv_filename = FileField('CSV File', description='Select a CSV file to be uploaded to a database.',
-                             validators=[DataRequired()])
-
-    # , Regexp(r'^[^/\\]\.csv$', message='Selected file does not have '
-    #                                                                                      'the .csv extension.')
-
-
-    #csv_filename = StringField('CSV Filename', description='CSV File to be uploaded to Database.',
-    #                           validators=[DataRequired()], widget=BS3TextFieldWidget())  # For now make sure this cannot be edited
+    csv_file = FileField('CSV File', description='Select a CSV file to be uploaded to a database.',
+                             validators=[FileRequired(), FileAllowed(['csv'], 'CSV Files Only!')])
     sep = StringField('Delimiter', description='Delimiter used by CSV file (for whitespace use \s+).',
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
     header = IntegerField('Header Row', description='Row containing the headers to use as column names '
@@ -721,7 +714,7 @@ class CsvToDatabaseView(SimpleFormView):
     def form_get(self, form):
         # pre process form
         # default values
-        form.csv_filename.data = None
+        form.csv_file.data = None
         form.sep.data = ','
         form.header.data = None
         form.names.data = None
@@ -854,11 +847,10 @@ class CsvToDatabaseView(SimpleFormView):
         return '.' in filename and \
                filename.rsplit('.', 1)[1] in config['ALLOWED_EXTENSIONS']
 
-    @staticmethod
-    def upload_file(form):
-        if form.csv_filename.data:
-            filename = secure_filename(form.csv_filename.data.filename)
-            form.csv_filename.data.save(os.path.join(config['UPLOAD_FOLDER'], filename))
+    def upload_file(self, form):
+        if form.csv_file.data and self.allowed_file(form.csv_file.data.filename):
+            filename = secure_filename(form.csv_file.data.filename)
+            form.csv_file.data.save(os.path.join(config['UPLOAD_FOLDER'], filename))
             return filename
 
 appbuilder.add_view_no_menu(CsvToDatabaseView)
