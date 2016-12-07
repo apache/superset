@@ -91,7 +91,7 @@ While these may be phased out over time, these packages are currently not
 managed with npm.
 
 ### Node/npm versions
-Make sure you are using recent versions of node and npm. No problems have been found with node>=5.10 and npm>=3.9.
+Make sure you are using recent versions of node and npm. No problems have been found with node>=5.10 and 4.0. > npm>=3.9.
 
 ### Using npm to generate bundled files
 
