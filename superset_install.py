@@ -14,13 +14,19 @@
 
 import os
 import sys
-import pip
 import site
 import mylog
+import socket
 import urllib
 import getpass
 import platform
 import subprocess
+
+try:
+	import pip
+except ImportError:
+	mylog.log("WARN", "Pip not installed.")
+	mylog.log("INFO", "Superset might not be installed.")
 
 # Getting Super User password.
 sudo_pass = getpass.getpass("Please enter sudo password: ")
@@ -57,9 +63,11 @@ CONFIG_CMDS = {"superset_config_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_config.py",
 				"superset_variables_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.sh"
+				"nginx_config_url":
+				"https://raw.githubusercontent.com/gowtham95india/superset/master/gowtham-sai.conf"
 				}
 	
-def command_center(install_cmd):
+def command_center(install_cmd, exit_on_fail=True):
 	# Executes the commands and return False if failed to execute
 	install_cmd = "echo '%s' | sudo -S "%sudo_pass + install_cmd 
 	exec_cmd = subprocess.Popen(install_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -67,10 +75,84 @@ def command_center(install_cmd):
 	if exec_cmd.returncode != 0:
 		mylog.log("FATAL", "Error while installing superset. Check below and logs file:")
 		mylog.log("INFO", exec_error)
-		sys.exit(1)
+		return sys.exit(1) if exit_on_fail else (False,exec_error)
+	return (True,exec_output)
+
+def nginx_config():
+	mylog.log("INFO", "Installing Nginx Recursively")
+	if os_name.lower() == "ubuntu":
+		command_center("apt-get -y install nginx")
+	elif os_name.lower() == 'centos':
+		command_center("yum -y install nginx")
+
+	# Getting Machine IP for Nginx domain check & configuration.
+	machine_ip = urllib.urlopen('http://ip.42.pl/raw').read()
+
+	option = raw_input("\n\nIf you have your own domain to configure, please type yes/Yes/Y/y: ").lower()
+	if option in ('yes', 'y'):
+		mylog.log("WARN", "Please enter space separated domain names that should point to the superset:")
+		domain_names = raw_input("\nSpace separated domain names: ").split(' ')
+		corrected_domain_names = []
+		for domain_name in domain_names:
+			temp_domain = domain_name
+			if 'https://' in temp_domain:
+				temp_domain = temp_domain.replace('https://', '')
+			if 'http://' in temp_domain:
+				temp_domain = temp_domain.replace('http://','')
+			corrected_domain_names.append(temp_domain)
+
+		mapped_domains = {}
+		for correct_domain in corrected_domain_names:
+			try: 
+				domain_result = socket.getaddrinfo(correct_domain,None)
+				domain_ip = domain_result[0][4][0]
+				if domain_ip != machine_ip:
+					mylog.log("WARN", "Domain %s is not pointing to the machine."%correct_domain)
+					mylog.log("INFO", "%s is pointing to %s insteaed of %s"%(correct_domain, domain_ip, machine_ip))
+					domain_option = raw_input("Would you like to add %s to Nginx config? "%correct_domain).lower()
+					if domain_option in ('y', 'yes'):
+						mapped_domains[correct_domain] = domain_ip
+				else:
+					mylog.log("INFO", "Domain %s is configured correctly..!"%correct_domain)
+					mapped_domains[correct_domain] = domain_ip
+			except socket.gaierror:
+				mylog.log("ERROR", correct_domain + ' is not a valid domain. Ignoring it!') 
+
+		nginx_domain_string = ' '.join(crt_domain for crt_domain in mapped_domains.keys())
+	
+	else:
+		mylog.log("INFO", "Configuring Nginx with  machine ip")
+		mylog.log("WARN", "Not recommended to configure the bare ip")
+		nginx_domain_string = machine_ip
+
+	nginx_config_raw = urllib.urlopen(CONFIG_CMDS['nginx_config_url'])
+
+	with open('gowtham-sai.conf','w') as nginx_config_file:
+		for line in nginx_config_raw.readlines():
+			if 'domainnameshouldbehere' in line:
+				line = line.replace('domainnameshouldbehere', nginx_domain_string)
+			nginx_config_file.write(line)
+	
+	# Finally moving confiugration file. 
+	command_center("mv gowtham-sai.conf /etc/nginx/conf.d/")
+
+	nginx_config_check = command_center("nginx -t", exit_on_fail=False)
+	if nginx_config_check[0]:
+		nginx_restart_status = command_center('systemctl restart nginx', exit_on_fail=False)
+		if nginx_restart_status[0]:
+			myglog.log("INFO", "Nginx Confiugration Done.")
+		else:
+			myglog.log("WARN", "Restrting Nginx Failed. May be due to %s"%nginx_restart_status[1])
+	else:
+		mylog.log("WARN", "Nginx configuration files has error. May be due to %s"%nginx_config_check[1])
 
 def general_config():
+	# Installing general pip dependencies
+	mylog.log("INFO", "Installing few python dependencies") 
+	command_center("pip install celery redis mysql-python")
+
 	# Getting superset_config.py file.
+	mylog.log("INFO", "Setting up external superset_config file.")
 	superset_config_raw = urllib.urlopen(CONFIG_CMDS['superset_config_url'])
 	with open('superset_config.py', 'w') as superset_config_file:
 		for line in superset_config_raw.readlines():
@@ -83,38 +165,34 @@ def general_config():
 				superset_app_dir = directory+'/superset'
 		if not superset_app_dir: raise ImportError
 		superset_config_dir = superset_app_dir.replace('superset', '')
-		if 'site-packages' in superset_app_dir:
-			command_center("mv superset_config.py %s"%superset_config_dir)
-		elif 'dist-packages' in superset_app_dir:
-			superset_config_dir = superset_config_dir.replace("dist-packages", "site-packages")
-			command_center("mv superset_config.py %s"%superset_config_dir)
+		command_center("mv superset_config.py %s"%superset_config_dir)
 
 	except ImportError:
 		mylog.log("FATAL", "Something gone horribly wrong. Committing Suicide.")
 		sys.exit(1)
 
-	# Installing few python lib
-	command_center("pip install celery redis")
-
-	if os_name == "Ubuntu":
-		# Installing Redis for Celery as Cache
+	if os_name.lower() == "ubuntu":
+		# Installing Redis Server for Celery Cache and RabbitMQ Server for Celery Broker
+		mylog.log("INFO", "Installing Redis and RabbitMQ Servers for Celery.")
 		command_center("apt-get -y install redis-server")
-
-		# Installing RabbitMQ for Celery as Broker
 		command_center("apt-get -y install rabbitmq-server")
 
 	else:
 		my.log("INFO", "Please install redis-server and rabbitmq-server for your os.")
 
-	if os_name != "Apple":
+	if os_name.lower() != "apple":
+		# Setting up global system-wide variable files
+		mylog.log("INFO", "Setting up global system-wide autoload variable file.")
 		superset_variables_raw = urllib.urlopen(CONFIG_CMDS['superset_variables_url'])
 		with open('superset_variables.sh', 'w') as superset_variable_file:
 			for line in superset_variables_raw.readlines():
 				superset_variable_file.write(line)
-
 		command_center("mv superset_variables.sh /etc/profile.d/")
-	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
+	
+	# Configuring Nginx. 
+	nginx_config()
 
+	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
 
 # Superset installation in Ubuntu
 def ubuntu_installation():
@@ -132,7 +210,7 @@ def ubuntu_installation():
 
 	# General config. 
 	mylog.log("INFO", "Installing Superset is done..!")
-	mylog.log("INFO", "Configurign Superset...")
+	mylog.log("INFO", "Configuring Superset...")
 	general_config()
 
 # Superset installation in CentOS
@@ -154,7 +232,7 @@ def centos_installation():
 
 	# General config. 
 	mylog.log("INFO", "Installing Superset is done..!")
-	mylog.log("INFO", "Configurign Superset...")
+	mylog.log("INFO", "Configuring Superset...")
 	general_config()
 
 # Superset installation in OS X
