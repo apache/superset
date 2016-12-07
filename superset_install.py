@@ -87,7 +87,7 @@ def general_config():
 			command_center("mv superset_config.py %s"%superset_config_dir)
 		elif 'dist-packages' in superset_app_dir:
 			superset_config_dir = superset_config_dir.replace("dist-packages", "site-packages")
-			command_center("mv superset_config.sh %s"%superset_config_dir)
+			command_center("mv superset_config.py %s"%superset_config_dir)
 
 	except ImportError:
 		mylog.log("FATAL", "Something gone horribly wrong. Committing Suicide.")
@@ -98,10 +98,10 @@ def general_config():
 
 	if os_name == "Ubuntu":
 		# Installing Redis for Celery as Cache
-		command_center("apt-get install redis-server")
+		command_center("apt-get -y install redis-server")
 
 		# Installing RabbitMQ for Celery as Broker
-		command_center("apt-get install rabbitmq-server")
+		command_center("apt-get -y install rabbitmq-server")
 
 	else:
 		my.log("INFO", "Please install redis-server and rabbitmq-server for your os.")
@@ -113,7 +113,7 @@ def general_config():
 				superset_config_file.write(line)
 
 		command_center("mv superset_variables.sh /etc/profile.d/")
-		mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
+	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
 
 
 # Superset installation in Ubuntu
