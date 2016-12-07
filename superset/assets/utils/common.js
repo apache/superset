@@ -59,6 +59,7 @@ export function getShortUrl(longUrl, callback) {
   $.ajax({
     type: 'POST',
     url: '/r/shortner/',
+    async: false,
     data: {
       data: '/' + longUrl,
     },
