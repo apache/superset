@@ -123,15 +123,7 @@ class QueryTable extends React.PureComponent {
           />
         );
       } else {
-        const schema = q.schema ? q.schema : '';
-        const tempTable = q.tempTable ? q.tempTable : '';
-        q.output = (
-          <div>
-            <span>
-              {schema} <br /> {tempTable}
-            </span>
-          </div>
-        );
+        q.output = [q.schema, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (
         <ProgressBar
