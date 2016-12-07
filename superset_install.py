@@ -73,15 +73,15 @@ if not is_superset:
 	mylog.log("INFO", "Installing Sueprset...")
 	mylog.log("INFO", "Detecting OS Version")
 
-	detected_paltform = platform.platform().lower()
-	if "Darwin" in detected_paltform:
+	detected_platform = platform.platform().lower()+platform.version().lower()
+	if "Darwin" in detected_platform:
 		os_name = 'Apple'
-	elif "ubuntu" in detected_paltform:
+	elif "ubuntu" in detected_platform:
 		os_name = 'Ubuntu'
-	elif "centos" in detected_paltform:
+	elif "centos" in detected_platform:
 		os_name = "CentOS"
 	else:
-		my.log("FATAL", "Detecting OS Failed. Committing Suicide.")
+		mylog.log("FATAL", "Detecting OS Failed. Committing Suicide.")
 		sys.exit(1)
 	
 def command_center(install_cmd):
