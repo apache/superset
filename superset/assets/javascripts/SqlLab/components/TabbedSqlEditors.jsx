@@ -101,7 +101,9 @@ class TabbedSqlEditors extends React.PureComponent {
     const activeQueryEditor = this.activeQueryEditor();
     const qe = {
       title: `Untitled Query ${queryCount}`,
-      dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
+      dbId: (activeQueryEditor && activeQueryEditor.dbId) ?
+        activeQueryEditor.dbId :
+        this.props.defaultDbId,
       schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
       autorun: false,
       sql: 'SELECT ...',
@@ -216,6 +218,7 @@ function mapStateToProps(state) {
     tabHistory: state.tabHistory,
     networkOn: state.networkOn,
     tables: state.tables,
+    defaultDbId: state.defaultDbId,
   };
 }
 function mapDispatchToProps(dispatch) {
