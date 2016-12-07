@@ -40,10 +40,9 @@ export default class SelectField extends React.Component {
   renderOption(opt) {
     if (this.props.name === 'viz_type') {
       const url = `/static/assets/images/viz_thumbnails/${opt.value}.png`;
-      const noImg = '/static/assets/images/noimg.png';
       return (
         <div>
-          <img className="viz-thumb-option" src={url} alt={noImg} />
+          <img className="viz-thumb-option" src={url} alt={opt.value} />
           <span>{opt.value}</span>
         </div>
       );
