@@ -76,8 +76,8 @@ def general_config():
 			superset_config_file.write(line)
 
 	try:
-		superset_mods = sys.modules['superset']
-		superset_app_dir = superset_mods.APP_DIR
+		import superset
+		superset_app_dir = superset.APP_DIR
 		superset_config_dir = superset_app_dir.replace('superset', '')
 		if 'site-packages' in superset_app_dir:
 			command_center("mv superset_config.py %s"%superset_config_dir)
@@ -85,7 +85,7 @@ def general_config():
 			superset_config_dir = superset_config_dir.replace("dist-packages", "site-packages")
 			command_center("mv superset_config.sh %s"%superset_config_dir)
 
-	except KeyError:
+	except ImportError:
 		mylog.log("FATAL", "Something gone horribly wrong. Committing Suicide.")
 		sys.exit(1)
 
