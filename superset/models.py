@@ -1121,7 +1121,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 direction = asc if ascending else desc
                 qry = qry.order_by(direction(col))
 
-        # Uncomment the following line to set row limit. 	
+	# Uncomment the following line to set row limit. 	
         # qry = qry.limit(row_limit) # Hiddenbugskiller - Issue - Adding row limit when calculating GMV will give improper results. 
 
         if is_timeseries and timeseries_limit and groupby:

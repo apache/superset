@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/modules/colors.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">All files</a> / <a href="index.html">javascripts/modules</a> colors.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/26</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/8</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/5</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/25</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86</td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import $ from 'jquery';</span>
+c</span>onst d3 = <span class="cstat-no" title="statement not covered" >require('d3');
+&nbsp;
+// Color related utility functions go in this object
+export c</span>onst <span class="cstat-no" title="statement not covered" >bnbColors = [
+  '#ff5a5f', // rausch
+  '#7b0051', // hackb
+  '#007A87', // kazan
+  '#00d1c1', // babu
+  '#8ce071', // lima
+  '#ffb400', // beach
+  '#b4a76c', // barol
+  '#ff8083',
+  '#cc0086',
+  '#00a1b3',
+  '#00ffeb',
+  '#bbedab',
+  '#ffd266',
+  '#cbc29a',
+  '#ff3339',
+  '#ff1ab1',
+  '#005c66',
+  '#00b3a5',
+  '#55d12e',
+  '#b37e00',
+  '#988b4e',
+];
+&nbsp;
+c</span>onst spectrums = <span class="cstat-no" title="statement not covered" >{
+  blue_white_yellow: [
+    '#00d1c1',
+    'white',
+    '#ffb400',
+  ],
+  fire: [
+    'white',
+    'yellow',
+    'red',
+    'black',
+  ],
+  white_black: [
+    'white',
+    'black',
+  ],
+  black_white: [
+    'black',
+    'white',
+  ],
+};
+&nbsp;
+export c</span>onst <span class="cstat-no" title="statement not covered" >category21 = (<span class="fstat-no" title="function not covered" >function () </span>{
+  // Color factory
+  c</span>onst seen = <span class="cstat-no" title="statement not covered" >{};
+<span class="cstat-no" title="statement not covered" >  return <span class="fstat-no" title="function not covered" >function (</span>s) {</span>
+<span class="cstat-no" title="statement not covered" >    if (!s) {</span>
+<span class="cstat-no" title="statement not covered" >      return;</span>
+    }
+    l</span>et stringifyS = <span class="cstat-no" title="statement not covered" >String(s);
+    // next line is for superset series that should have the same color
+<span class="cstat-no" title="statement not covered" >    stringifyS = stringifyS.replace('---', '');</span>
+<span class="cstat-no" title="statement not covered" >    if (seen[stringifyS] === undefined) {</span>
+<span class="cstat-no" title="statement not covered" >      seen[stringifyS] = Object.keys(seen).length;</span>
+    }
+    /* eslint consistent-return: 0 */
+<span class="cstat-no" title="statement not covered" >    return bnbColors[seen[stringifyS] % bnbColors.length];</span>
+  };
+}());
+&nbsp;
+export c</span>onst <span class="cstat-no" title="statement not covered" ><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="fstat-no" title="function not covered" >colorScalerFactory = f</span>unction (colors, data, accessor) {</span></span>
+  // Returns a linear scaler our of an array of color
+<span class="cstat-no" title="statement not covered" >  if (!Array.isArray(colors)) {</span>
+    /* eslint no-param-reassign: 0 */
+<span class="cstat-no" title="statement not covered" >    colors = spectrums[colors];</span>
+  }
+  l</span>et ext = <span class="cstat-no" title="statement not covered" >[0, 1];
+<span class="cstat-no" title="statement not covered" >  if (data !== undefined) {</span>
+<span class="cstat-no" title="statement not covered" >    ext = d3.extent(data, accessor);</span>
+  }
+  c</span>onst points = <span class="cstat-no" title="statement not covered" >[];
+  c</span>onst chunkSize = <span class="cstat-no" title="statement not covered" >(ext[1] - ext[0]) / colors.length;
+<span class="cstat-no" title="statement not covered" >  $.each(colors, <span class="fstat-no" title="function not covered" >function (</span>i) {</span>
+<span class="cstat-no" title="statement not covered" >    points.push(i * chunkSize);</span>
+  });
+<span class="cstat-no" title="statement not covered" >  return d3.scale.linear().domain(points).range(colors);</span>
+};
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

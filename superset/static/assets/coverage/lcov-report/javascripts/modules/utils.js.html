@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/modules/utils.js</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../index.html">All files</a> / <a href="index.html">javascripts/modules</a> utils.js
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">30.3% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>20/66</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/26</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">44.83% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>13/29</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">28.57% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>18/63</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">100x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">175x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">const d3 = require('d3');
+const $ = require('jquery');
+&nbsp;
+/*
+  Utility function that takes a d3 svg:text selection and a max width, and splits the
+  text's text across multiple tspan lines such that any given line does not exceed max width
+&nbsp;
+  If text does not span multiple lines AND adjustedY is passed,
+  will set the text to the passed val
+*/
+export f</span>unction <span class="fstat-no" title="function not covered" >wrapSvgText(text, width, adjustedY) {
+  c</span>onst lineHeight = <span class="cstat-no" title="statement not covered" >1;
+  // ems
+<span class="cstat-no" title="statement not covered" >  text.each(<span class="fstat-no" title="function not covered" >function () </span>{</span>
+    c</span>onst d3Text = <span class="cstat-no" title="statement not covered" >d3.select(this);
+    c</span>onst words = <span class="cstat-no" title="statement not covered" >d3Text.text().split(/\s+/);
+    l</span>et <span class="cstat-no" title="statement not covered" >word;
+    l</span>et line = <span class="cstat-no" title="statement not covered" >[];
+    l</span>et lineNumber = <span class="cstat-no" title="statement not covered" >0;
+    c</span>onst x = <span class="cstat-no" title="statement not covered" >d3Text.attr('x');
+    c</span>onst y = <span class="cstat-no" title="statement not covered" >d3Text.attr('y');
+    c</span>onst dy = <span class="cstat-no" title="statement not covered" >parseFloat(d3Text.attr('dy'));
+    let tspan =
+<span class="cstat-no" title="statement not covered" >      d3Text.text(null).append('tspan').attr('x', x)</span>
+            .attr('y', y)
+            .attr('dy', dy + 'em');
+&nbsp;
+    l</span>et didWrap = <span class="cstat-no" title="statement not covered" >false;
+<span class="cstat-no" title="statement not covered" >    for (let i = 0; i &lt; words.length; i++) {</span>
+<span class="cstat-no" title="statement not covered" >      word = words[i];</span>
+<span class="cstat-no" title="statement not covered" >      line.push(word);</span>
+<span class="cstat-no" title="statement not covered" >      tspan.text(line.join(' '));</span>
+<span class="cstat-no" title="statement not covered" >      if (tspan.node().getComputedTextLength() &gt; width) {</span>
+<span class="cstat-no" title="statement not covered" >        line.pop();</span>
+        // remove word that pushes over the limit
+<span class="cstat-no" title="statement not covered" >        tspan.text(line.join(' '));</span>
+<span class="cstat-no" title="statement not covered" >        line = [word];</span>
+<span class="cstat-no" title="statement not covered" >        tspan =</span>
+          d3Text.append('tspan').attr('x', x).attr('y', y)
+                .attr('dy', ++lineNumber * lineHeight + dy + 'em')
+                .text(word);
+<span class="cstat-no" title="statement not covered" >        didWrap = true;</span>
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    if (!didWrap &amp;&amp; typeof adjustedY !== 'undefined') {</span>
+<span class="cstat-no" title="statement not covered" >      tspan.attr('y', adjustedY);</span>
+    }
+  });
+}
+&nbsp;
+/**
+ * Sets the body and title content of a modal, and shows it. Assumes HTML for modal exists and that
+ * it handles closing (i.e., works with bootstrap)
+ *
+ * @param {object} options object of the form
+ *  {
+ *    title: {string},
+ *    body: {string},
+ *    modalSelector: {string, default: '.misc-modal' },
+ *    titleSelector: {string, default: '.misc-modal .modal-title' },
+ *    bodySelector:  {string, default: '.misc-modal .modal-body' },
+ *   }
+ */
+export f</span>unction <span class="fstat-no" title="function not covered" >showModal(options) {
+  /* eslint no-param-reassign: 0 */
+<span class="cstat-no" title="statement not covered" >  options.modalSelector = options.modalSelector || '.misc-modal';</span>
+<span class="cstat-no" title="statement not covered" >  options.titleSelector = options.titleSelector || '.misc-modal .modal-title';</span>
+<span class="cstat-no" title="statement not covered" >  options.bodySelector = options.bodySelector || '.misc-modal .modal-body';</span>
+<span class="cstat-no" title="statement not covered" >  $(options.titleSelector).html(options.title || '');</span>
+<span class="cstat-no" title="statement not covered" >  $(options.bodySelector).html(options.body || '');</span>
+<span class="cstat-no" title="statement not covered" >  $(options.modalSelector).modal('show');</span>
+}
+&nbsp;
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >showApiMessage(resp) {
+  const template =
+<span class="cstat-no" title="statement not covered" >    '&lt;div class="alert"&gt; ' +</span>
+    '&lt;button type="button" class="close" ' +
+    'data-dismiss="alert"&gt;\xD7&lt;/button&gt; &lt;/div&gt;';
+  c</span>onst severity = <span class="cstat-no" title="statement not covered" >resp.severity || 'info';
+<span class="cstat-no" title="statement not covered" >  $(template).addClass('alert-' + severity)</span>
+             .append(resp.message)
+             .appendTo($('#alert-container'));
+}
+&nbsp;
+export f</span>unction <span class="fstat-no" title="function not covered" >toggleCheckbox(apiUrlPrefix, selector) {
+  c</span>onst apiUrl = <span class="cstat-no" title="statement not covered" >apiUrlPrefix + $(selector)[0].checked;
+<span class="cstat-no" title="statement not covered" >  $.get(apiUrl).fail(<span class="fstat-no" title="function not covered" >function (</span>xhr) {</span>
+    c</span>onst resp = <span class="cstat-no" title="statement not covered" >xhr.responseJSON;
+<span class="cstat-no" title="statement not covered" >    if (resp &amp;&amp; resp.message) {</span>
+<span class="cstat-no" title="statement not covered" >      showApiMessage(resp);</span>
+    }
+  });
+}
+&nbsp;
+/**
+ * Fix the height of the table body of a DataTable with scrollY set
+ */
+export const <span class="fstat-no" title="function not covered" >fixDataTableBodyHeight = f</span>unction ($tableDom, height) {
+  c</span>onst headHeight = <span class="cstat-no" title="statement not covered" >$tableDom.find('.dataTables_scrollHead').height();
+<span class="cstat-no" title="statement not covered" >  $tableDom.find('.dataTables_scrollBody').css('max-height', height - headHeight);</span>
+};
+&nbsp;
+export f</span>unction <span class="fstat-no" title="function not covered" >d3format(format, number) {
+  c</span>onst formatters = <span class="cstat-no" title="statement not covered" >{};
+  // Formats a number and memoizes formatters to be reused
+<span class="cstat-no" title="statement not covered" >  format = format || '.3s';</span>
+<span class="cstat-no" title="statement not covered" >  if (!(format in formatters)) {</span>
+<span class="cstat-no" title="statement not covered" >    formatters[format] = d3.format(format);</span>
+  }
+<span class="cstat-no" title="statement not covered" >  return formatters[format](number);</span>
+}
+&nbsp;
+// Slice objects interact with their context through objects that implement
+// this controllerInterface (dashboard, explore, standalone)
+export const controllerInterface = {
+  type: null,
+  done: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  error: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  always: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  addFiler: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  setFilter: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  getFilters: <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; false,</span></span>
+  clearFilter: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  removeFilter: <span class="fstat-no" title="function not covered" >() =&gt; </span>{},
+  filters: {},
+};
+&nbsp;
+export function formatSelectOptionsForRange(start, end) {
+  // outputs array of arrays
+  // formatSelectOptionsForRange(1, 5)
+  // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
+  const options = [];
+  for (let i = start; i &lt;= end; i++) {
+    options.push([i, i]);
+  }
+  return options;
+}
+&nbsp;
+export function formatSelectOptions(options) {
+  return options.map((opt) =&gt;
+     [opt, opt]
+  );
+}
+&nbsp;
+export function slugify(string) {
+  // slugify('My Neat Label! '); returns 'my-neat-label'
+  return string
+          .toString()
+          .toLowerCase()
+          .trim()
+          .replace(/[\s\W-]+/g, '-') // replace spaces, non-word chars, w/ a single dash (-)
+          .replace(/-$/, ''); // remove last floating dash
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

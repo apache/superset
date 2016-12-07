@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/SqlLab/components/TabbedSqlEditors.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">All files</a> / <a href="index.html">javascripts/SqlLab/components</a> TabbedSqlEditors.jsx
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">54.17% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>39/72</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">30.77% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>12/39</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">33.33% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>2/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">54.17% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>39/72</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React from 'react';
+import { DropdownButton, MenuItem, Tab, Tabs } from 'react-bootstrap';
+import { connect } from 'react-redux';
+import { bindActionCreators } from 'redux';
+import * as Actions from '../actions';
+import SqlEditor from './SqlEditor';
+import { getParamFromQuery } from '../../../utils/common';
+import CopyQueryTabUrl from './CopyQueryTabUrl';
+import { areObjectsEqual } from '../../reduxUtils';
+&nbsp;
+const propTypes = {
+  actions: React.PropTypes.object.isRequired,
+  databases: React.PropTypes.object.isRequired,
+  queries: React.PropTypes.object.isRequired,
+  queryEditors: React.PropTypes.array,
+  tabHistory: React.PropTypes.array.isRequired,
+  tables: React.PropTypes.array.isRequired,
+  networkOn: React.PropTypes.bool,
+};
+const defaultProps = {
+  queryEditors: [],
+  networkOn: true,
+};
+&nbsp;
+let queryCount = 1;
+&nbsp;
+class TabbedSqlEditors extends React.PureComponent {
+  constructor(props) <span class="branch-1 cbranch-no" title="branch not covered" >{</span>
+    super(props);
+    const uri = window.location.toString();
+    const search = window.location.search;
+    const cleanUri = s</span>earch ? <span class="branch-0 cbranch-no" title="branch not covered" >uri.substring(0, uri.indexOf('?')) : uri;
+    const query = search.substring(1);
+    this.state = {
+      uri,
+      cleanUri,
+      query,
+      queriesArray: [],
+      hideLeftBar: false,
+    };
+  }
+  componentWillMount() {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.state.query) {
+<span class="cstat-no" title="statement not covered" >      queryCount++;</span>
+      c</span>onst queryEditorProps = <span class="cstat-no" title="statement not covered" >{
+        title: getParamFromQuery(this.state.query, 'title'),
+        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
+        schema: getParamFromQuery(this.state.query, 'schema'),
+        autorun: getParamFromQuery(this.state.query, 'autorun'),
+        sql: getParamFromQuery(this.state.query, 'sql'),
+      };
+<span class="cstat-no" title="statement not covered" >      this.props.actions.addQueryEditor(queryEditorProps);</span>
+      // Clean the url in browser history
+<span class="cstat-no" title="statement not covered" >      window.history.replaceState({}, document.title, this.state.cleanUri);</span>
+    }
+  }
+  componentWillReceiveProps(nextProps) {
+    c</span>onst activeQeId = <span class="cstat-no" title="statement not covered" >this.props.tabHistory[this.props.tabHistory.length - 1];
+    c</span>onst newActiveQeId = <span class="cstat-no" title="statement not covered" >nextProps.tabHistory[nextProps.tabHistory.length - 1];
+<span class="cstat-no" title="statement not covered" >    if (activeQeId !== newActiveQeId || !areObjectsEqual(this.props.queries, nextProps.queries)) {</span>
+      c</span>onst queriesArray = <span class="cstat-no" title="statement not covered" >[];
+<span class="cstat-no" title="statement not covered" >      for (const id in this.props.queries) {</span>
+<span class="cstat-no" title="statement not covered" >        if (this.props.queries[id].sqlEditorId === newActiveQeId) {</span>
+<span class="cstat-no" title="statement not covered" >          queriesArray.push(this.props.queries[id]);</span>
+        }
+      }
+<span class="cstat-no" title="statement not covered" >      this.setState({ queriesArray });</span>
+    }
+  }
+  renameTab(qe) {
+    /* eslint no-alert: 0 */
+    c</span>onst newTitle = <span class="cstat-no" title="statement not covered" >prompt('Enter a new title for the tab');
+<span class="cstat-no" title="statement not covered" >    if (newTitle) {</span>
+<span class="cstat-no" title="statement not covered" >      this.props.actions.queryEditorSetTitle(qe, newTitle);</span>
+    }
+  }
+  activeQueryEditor() {
+    const qeid = this.props.tabHistory[this.props.tabHistory.length - 1];
+    for (let i = 0; i &lt; this.props.queryEditors.length; i++) {
+      const qe = this.props.queryEditors[i];
+      <span class="missing-if-branch" title="else path not taken" >E</span>if (qe.id === qeid) {
+        return qe;
+      }
+    }
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+  }
+  newQueryEditor() {
+<span class="cstat-no" title="statement not covered" >    queryCount++;</span>
+    c</span>onst activeQueryEditor = <span class="cstat-no" title="statement not covered" >this.activeQueryEditor();
+    c</span>onst qe = <span class="cstat-no" title="statement not covered" >{
+      title: `Untitled Query ${queryCount}`,
+      dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
+      schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
+      autorun: false,
+      sql: 'SELECT ...',
+    };
+<span class="cstat-no" title="statement not covered" >    this.props.actions.addQueryEditor(qe);</span>
+  }
+  handleSelect(key) {
+<span class="cstat-no" title="statement not covered" >    if (key === 'add_tab') {</span>
+<span class="cstat-no" title="statement not covered" >      this.newQueryEditor();</span>
+    } else {
+<span class="cstat-no" title="statement not covered" >      this.props.actions.setActiveQueryEditor({ id: key });</span>
+    }
+  }
+  removeQueryEditor(qe) {
+<span class="cstat-no" title="statement not covered" >    this.props.actions.removeQueryEditor(qe);</span>
+  }
+  toggleLeftBar() {
+<span class="cstat-no" title="statement not covered" >    this.setState({ hideLeftBar: !this.state.hideLeftBar });</span>
+  }
+  render() {
+    const editors = this.props.queryEditors.map((qe, i) =&gt; {
+      const isSelected = (qe.id === this.activeQueryEditor().id);
+&nbsp;
+      let latestQuery;
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (qe.latestQueryId) {
+<span class="cstat-no" title="statement not covered" >        latestQuery = this.props.queries[qe.latestQueryId];</span>
+      }
+      let database;
+      <span class="missing-if-branch" title="if path not taken" >I</span>if (qe.dbId) {
+<span class="cstat-no" title="statement not covered" >        database = this.props.databases[qe.dbId];</span>
+      }
+      const state = (</span>latestQuery) ? <span class="branch-0 cbranch-no" title="branch not covered" >latestQuery.state : '';
+&nbsp;
+      const dataPreviewQueries = [];
+      this.props.tables.forEach(<span class="fstat-no" title="function not covered" >(</span>table) =&gt; {
+        c</span>onst queryId = <span class="cstat-no" title="statement not covered" >table.dataPreviewQueryId;
+<span class="cstat-no" title="statement not covered" >        if (queryId &amp;&amp; this.props.queries[queryId] &amp;&amp; table.queryEditorId === qe.id) {</span>
+<span class="cstat-no" title="statement not covered" >          dataPreviewQueries.push(this.props.queries[queryId]);</span>
+        }
+      });
+&nbsp;
+      const tabTitle = (
+        &lt;div&gt;
+          &lt;div className={'circle ' + state} /&gt; {qe.title} {' '}
+          &lt;DropdownButton
+            bsSize="small"
+            id={'ddbtn-tab-' + i}
+            title=""
+          &gt;
+            &lt;MenuItem eventKey="1" onClick={this.removeQueryEditor.bind(this, qe)}&gt;
+              &lt;i className="fa fa-close" /&gt; close tab
+            &lt;/MenuItem&gt;
+            &lt;MenuItem eventKey="2" onClick={this.renameTab.bind(this, qe)}&gt;
+              &lt;i className="fa fa-i-cursor" /&gt; rename tab
+            &lt;/MenuItem&gt;
+            {qe &amp;&amp;
+              &lt;MenuItem eventKey="3"&gt;
+                &lt;i className="fa fa-clipboard" /&gt; &lt;CopyQueryTabUrl queryEditor={qe} /&gt;
+              &lt;/MenuItem&gt;
+            }
+            &lt;MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}&gt;
+              &lt;i className="fa fa-cogs" /&gt;
+              &amp;nbsp;
+              {t</span>his.state.hideLeftBar ? <span class="branch-0 cbranch-no" title="branch not covered" >'expand tool bar' : 'hide tool bar'}
+            &lt;/MenuItem&gt;
+          &lt;/DropdownButton&gt;
+        &lt;/div&gt;
+      );
+      return (
+        &lt;Tab
+          key={qe.id}
+          title={tabTitle}
+          eventKey={qe.id}
+        &gt;
+          &lt;div className="panel panel-default"&gt;
+            &lt;div className="panel-body"&gt;
+              {isSelected &amp;&amp;
+                &lt;SqlEditor
+                  tables={this.props.tables.filter(<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(</span>t) =&gt; (t.queryEditorId === qe.id))}</span>
+                  queryEditor={qe}
+                  editorQueries={this.state.queriesArray}
+                  dataPreviewQueries={dataPreviewQueries}
+                  latestQuery={latestQuery}
+                  database={database}
+                  actions={this.props.actions}
+                  networkOn={this.props.networkOn}
+                  hideLeftBar={this.state.hideLeftBar}
+                /&gt;
+              }
+            &lt;/div&gt;
+          &lt;/div&gt;
+        &lt;/Tab&gt;);
+    });
+    return (
+      &lt;Tabs
+        bsStyle="tabs"
+        activeKey={this.props.tabHistory[this.props.tabHistory.length - 1]}
+        onSelect={this.handleSelect.bind(this)}
+        id="a11y-query-editor-tabs"
+      &gt;
+        {editors}
+        &lt;Tab
+          title={
+            &lt;div&gt;
+              &lt;i className="fa fa-plus-circle" /&gt;&amp;nbsp;
+            &lt;/div&gt;}
+          eventKey="add_tab"
+        /&gt;
+      &lt;/Tabs&gt;
+    );
+  }
+}
+TabbedSqlEditors.propTypes = propTypes;
+TabbedSqlEditors.defaultProps = defaultProps;
+&nbsp;
+f</span>unction <span class="fstat-no" title="function not covered" >mapStateToProps(state) {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    databases: state.databases,
+    queryEditors: state.queryEditors,
+    queries: state.queries,
+    tabHistory: state.tabHistory,
+    networkOn: state.networkOn,
+    tables: state.tables,
+  };
+}
+f</span>unction <span class="fstat-no" title="function not covered" >mapDispatchToProps(dispatch) {
+<span class="cstat-no" title="statement not covered" >  return {</span>
+    actions: bindActionCreators(Actions, dispatch),
+  };
+}
+&nbsp;
+export { TabbedSqlEditors };
+export default connect(mapStateToProps, mapDispatchToProps)(TabbedSqlEditors);
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

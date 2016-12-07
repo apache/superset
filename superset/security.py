@@ -64,7 +64,6 @@ OBJECT_SPEC_PERMISSIONS = set([
     'schema_access',
     'datasource_access',
     'metric_access',
-    'dashboard_access',
 ])
 
 
@@ -203,16 +202,6 @@ def sync_role_definitions():
         if perm != database.perm:
             database.perm = perm
         sm.add_permission_view_menu('database_access', perm)
-    # Hiddenbugskiller - Hack to have dashboard specific permissions
-    """
-    logging.info("Making sure all dashboard perms have been created")
-    dashboards = [o for o in session.query(models.Dashboard).all()]
-    for dashboard in dashboards:
-        perm = dashboard.get_perm()
-        if perm != dashboard.perm:
-            dashboard.perm = perm
-        sm.add_permission_view_menu('dashboard_access', perm)
-    """
     session.commit()
 
     logging.info("Making sure all metrics perms exist")

@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/SqlLab/components/SqlEditor.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">All files</a> / <a href="index.html">javascripts/SqlLab/components</a> SqlEditor.jsx
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.63% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>30/57</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">40.91% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>18/44</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">100% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>1/1</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">52.63% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>30/57</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line medium'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+153
+154
+155
+156
+157
+158
+159
+160
+161
+162
+163
+164
+165
+166
+167
+168
+169
+170
+171
+172
+173
+174
+175
+176
+177
+178
+179
+180
+181
+182
+183
+184
+185
+186
+187
+188
+189
+190
+191
+192
+193
+194
+195
+196
+197
+198
+199
+200
+201
+202
+203
+204
+205
+206
+207
+208
+209
+210
+211
+212
+213
+214
+215
+216
+217
+218
+219
+220
+221
+222
+223
+224
+225
+226
+227
+228
+229
+230
+231
+232
+233
+234
+235
+236
+237
+238
+239
+240
+241
+242
+243
+244
+245
+246
+247
+248
+249
+250
+251
+252
+253
+254
+255
+256
+257
+258
+259</td><td class="line-coverage quiet"><span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import React from 'react';
+import {
+  Button,
+  ButtonGroup,
+  Col,
+  FormGroup,
+  InputGroup,
+  Form,
+  FormControl,
+  Label,
+  OverlayTrigger,
+  Row,
+  Tooltip,
+  Collapse,
+} from 'react-bootstrap';
+&nbsp;
+import SouthPane from './SouthPane';
+import Timer from './Timer';
+&nbsp;
+import SqlEditorLeftBar from './SqlEditorLeftBar';
+import AceEditorWrapper from './AceEditorWrapper';
+&nbsp;
+const propTypes = {
+  actions: React.PropTypes.object.isRequired,
+  database: React.PropTypes.object,
+  latestQuery: React.PropTypes.object,
+  networkOn: React.PropTypes.bool,
+  tables: React.PropTypes.array.isRequired,
+  editorQueries: React.PropTypes.array.isRequired,
+  dataPreviewQueries: React.PropTypes.array.isRequired,
+  queryEditor: React.PropTypes.object.isRequired,
+  hideLeftBar: React.PropTypes.bool,
+};
+&nbsp;
+const defaultProps = {
+  networkOn: true,
+  database: null,
+  latestQuery: null,
+  hideLeftBar: false,
+};
+&nbsp;
+&nbsp;
+class SqlEditor extends React.PureComponent {
+  constructor(props) <span class="branch-1 cbranch-no" title="branch not covered" >{</span>
+    super(props);
+    this.state = {
+      autorun: props.queryEditor.autorun,
+      ctas: '',
+    };
+  }
+  componentDidMount() {
+<span class="cstat-no" title="statement not covered" >    this.onMount();</span>
+  }
+  onMount() {
+<span class="cstat-no" title="statement not covered" >    if (this.state.autorun) {</span>
+<span class="cstat-no" title="statement not covered" >      this.setState({ autorun: false });</span>
+<span class="cstat-no" title="statement not covered" >      this.props.actions.queryEditorSetAutorun(this.props.queryEditor, false);</span>
+<span class="cstat-no" title="statement not covered" >      this.startQuery();</span>
+    }
+  }
+  runQuery(runAsync = false) <span class="cstat-no" title="statement not covered" ></span>{
+    l</span>et effectiveRunAsync = <span class="cstat-no" title="statement not covered" >runAsync;
+<span class="cstat-no" title="statement not covered" >    if (!this.props.database.allow_run_sync) {</span>
+<span class="cstat-no" title="statement not covered" >      effectiveRunAsync = true;</span>
+    }
+<span class="cstat-no" title="statement not covered" >    this.startQuery(effectiveRunAsync);</span>
+  }
+  startQuery(runAsync = false, ctas = false) <span class="cstat-no" title="statement not covered" ></span>{
+    c</span>onst qe = <span class="cstat-no" title="statement not covered" >this.props.queryEditor;
+    c</span>onst query = <span class="cstat-no" title="statement not covered" >{
+      dbId: qe.dbId,
+      sql: qe.selectedText ? qe.selectedText : qe.sql,
+      sqlEditorId: qe.id,
+      tab: qe.title,
+      schema: qe.schema,
+      tempTableName: this.state.ctas,
+      runAsync,
+      ctas,
+    };
+<span class="cstat-no" title="statement not covered" >    this.props.actions.runQuery(query);</span>
+<span class="cstat-no" title="statement not covered" >    this.props.actions.setActiveSouthPaneTab('Results');</span>
+  }
+  stopQuery() {
+<span class="cstat-no" title="statement not covered" >    this.props.actions.stopQuery(this.props.latestQuery);</span>
+  }
+  createTableAs() {
+<span class="cstat-no" title="statement not covered" >    this.startQuery(true, true);</span>
+  }
+  setQueryEditorSql(sql) {
+<span class="cstat-no" title="statement not covered" >    this.props.actions.queryEditorSetSql(this.props.queryEditor, sql);</span>
+  }
+  ctasChanged(event) {
+<span class="cstat-no" title="statement not covered" >    this.setState({ ctas: event.target.value });</span>
+  }
+  sqlEditorHeight() {
+    // quick hack to make the white bg of the tab stretch full height.
+    const tabNavHeight = 40;
+    const navBarHeight = 56;
+    const mysteryVerticalHeight = 50;
+    return window.innerHeight - tabNavHeight - navBarHeight - mysteryVerticalHeight;
+  }
+&nbsp;
+  render() {
+    let runButtons = [];
+    let runText = 'Run Query';
+    let btnStyle = 'primary';
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.props.queryEditor.selectedText) {
+<span class="cstat-no" title="statement not covered" >      runText = 'Run Selection';</span>
+<span class="cstat-no" title="statement not covered" >      btnStyle = 'warning';</span>
+    }
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.props.database &amp;&amp; this.props.database.allow_run_sync) {
+<span class="cstat-no" title="statement not covered" >      runButtons.push(</span>
+        &lt;Button
+          bsSize="small"
+          bsStyle={btnStyle}
+          style={{ width: '100px' }}
+          onClick={this.runQuery.bind(this, false)}
+          disabled={!(this.props.queryEditor.dbId)}
+          key="run-btn"
+        &gt;
+          &lt;i className="fa fa-table" /&gt; {runText}
+        &lt;/Button&gt;
+      );
+    }
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.props.database &amp;&amp; this.props.database.allow_run_async) {
+<span class="cstat-no" title="statement not covered" >      runButtons.push(</span>
+        &lt;Button
+          bsSize="small"
+          bsStyle={btnStyle}
+          style={{ width: '100px' }}
+          onClick={this.runQuery.bind(this, true)}
+          disabled={!(this.props.queryEditor.dbId)}
+          key="run-async-btn"
+        &gt;
+          &lt;i className="fa fa-table" /&gt; Run Async
+        &lt;/Button&gt;
+      );
+    }
+    runButtons = (
+      &lt;ButtonGroup bsSize="small" className="inline m-r-5 pull-left"&gt;
+        {runButtons}
+      &lt;/ButtonGroup&gt;
+    );
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (
+        this.props.latestQuery &amp;&amp;
+        ['running', 'pending'].indexOf(this.props.latestQuery.state) &gt; -1) {
+<span class="cstat-no" title="statement not covered" >      runButtons = (</span>
+        &lt;ButtonGroup bsSize="small" className="inline m-r-5 pull-left"&gt;
+          &lt;Button
+            bsStyle="primary"
+            bsSize="small"
+            style={{ width: '100px' }}
+            onClick={this.stopQuery.bind(this)}
+          &gt;
+            &lt;a className="fa fa-stop" /&gt; Stop
+          &lt;/Button&gt;
+        &lt;/ButtonGroup&gt;
+      );
+    }
+    let limitWarning = null;
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.props.latestQuery &amp;&amp; this.props.latestQuery.limit_reached) {
+      const tooltip = (
+<span class="cstat-no" title="statement not covered" >        &lt;Tooltip id="tooltip"&gt;</span>
+          It appears that the number of rows in the query results displayed
+          was limited on the server side to
+          the {this.props.latestQuery.rows} limit.
+        &lt;/Tooltip&gt;
+      );
+<span class="cstat-no" title="statement not covered" >      limitWarning = (</span>
+        &lt;OverlayTrigger placement="left" overlay={tooltip}&gt;
+          &lt;Label bsStyle="warning" className="m-r-5"&gt;LIMIT&lt;/Label&gt;
+        &lt;/OverlayTrigger&gt;
+      );
+    }
+    let ctasControls;
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (this.props.database &amp;&amp; this.props.database.allow_ctas) {
+<span class="cstat-no" title="statement not covered" >      ctasControls = (</span>
+        &lt;FormGroup&gt;
+          &lt;InputGroup&gt;
+            &lt;FormControl
+              type="text"
+              bsSize="small"
+              className="input-sm"
+              placeholder="new table name"
+              onChange={this.ctasChanged.bind(this)}
+            /&gt;
+            &lt;InputGroup.Button&gt;
+              &lt;Button
+                bsSize="small"
+                disabled={this.state.ctas.length === 0}
+                onClick={this.createTableAs.bind(this)}
+              &gt;
+                &lt;i className="fa fa-table" /&gt; CTAS
+              &lt;/Button&gt;
+            &lt;/InputGroup.Button&gt;
+          &lt;/InputGroup&gt;
+        &lt;/FormGroup&gt;
+      );
+    }
+    const editorBottomBar = (
+      &lt;div className="sql-toolbar clearfix"&gt;
+        &lt;div className="pull-left"&gt;
+          &lt;Form inline&gt;
+            {runButtons}
+            {ctasControls}
+          &lt;/Form&gt;
+        &lt;/div&gt;
+        &lt;div className="pull-right"&gt;
+          {limitWarning}
+          &lt;Timer query={this.props.latestQuery} /&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    );
+    return (
+      &lt;div className="SqlEditor" style={{ minHeight: this.sqlEditorHeight() }}&gt;
+        &lt;Row&gt;
+          &lt;Collapse
+            in={!this.props.hideLeftBar}
+          &gt;
+            &lt;Col md={3}&gt;
+              &lt;SqlEditorLeftBar
+                queryEditor={this.props.queryEditor}
+                tables={this.props.tables}
+                networkOn={this.props.networkOn}
+                actions={this.props.actions}
+              /&gt;
+            &lt;/Col&gt;
+          &lt;/Collapse&gt;
+          &lt;Col md={t</span>his.props.hideLeftBar ? <span class="branch-0 cbranch-no" title="branch not covered" >12 : 9}&gt;
+            &lt;div className="scrollbar-container"&gt;
+              &lt;div className="scrollbar-content"&gt;
+                &lt;AceEditorWrapper
+                  actions={this.props.actions}
+                  onBlur={this.setQueryEditorSql.bind(this)}
+                  queryEditor={this.props.queryEditor}
+                  onAltEnter={this.runQuery.bind(this)}
+                  sql={this.props.queryEditor.sql}
+                  tables={this.props.tables}
+                /&gt;
+                {editorBottomBar}
+                &lt;br /&gt;
+                &lt;SouthPane
+                  editorQueries={this.props.editorQueries}
+                  dataPreviewQueries={this.props.dataPreviewQueries}
+                  actions={this.props.actions}
+                /&gt;
+              &lt;/div&gt;
+            &lt;/div&gt;
+          &lt;/Col&gt;
+        &lt;/Row&gt;
+      &lt;/div&gt;
+    );
+  }
+}
+SqlEditor.defaultProps = defaultProps;
+SqlEditor.propTypes = propTypes;
+&nbsp;
+export default SqlEditor;
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>

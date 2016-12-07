@@ -9,9 +9,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import imp
 import json
-import redis
 import os
 
 from dateutil import tz
@@ -210,17 +208,16 @@ WARNING_MSG = None
 # Default celery config is to use SQLA as a broker, in a production setting
 # you'll want to use a proper broker as specified here:
 # http://docs.celeryproject.org/en/latest/getting-started/brokers/index.html
-
+"""
 # Example:
 class CeleryConfig(object):
-  BROKER_URL = 'pyamqp://'
+  BROKER_URL = 'sqla+sqlite:///celerydb.sqlite'
   CELERY_IMPORTS = ('superset.sql_lab', )
-  CELERY_RESULT_BACKEND = 'redis://localhost:6379/'
+  CELERY_RESULT_BACKEND = 'db+sqlite:///celery_results.sqlite'
   CELERY_ANNOTATIONS = {'tasks.add': {'rate_limit': '10/s'}}
 CELERY_CONFIG = CeleryConfig
-
-# Hiddenbugskiller Modification for Run Async Queries.
-# CELERY_CONFIG = None
+"""
+CELERY_CONFIG = None
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
 SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
 
@@ -239,7 +236,7 @@ SQLLAB_TIMEOUT = 30
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
 # in SQL Lab by using the "Run Async" button/feature
-RESULTS_BACKEND = redis.Redis() # Hiddenbugskiller - Hack to use results_backend to store async results
+RESULTS_BACKEND = None
 
 # A dictionary of items that gets merged into the Jinja context for
 # SQL Lab. The existing context gets updated with this dictionary,
@@ -251,14 +248,7 @@ JINJA_CONTEXT_ADDONS = {}
 # by humans.
 ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
-CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
-
 try:
-    if CONFIG_PATH_ENV_VAR in os.environ:
-        # Explicitly import config module that is not in pythonpath; useful
-        # for case where app is being executed via pex.
-        imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
-
     from superset_config import *  # noqa
     print('Loaded your LOCAL configuration')
 except ImportError:

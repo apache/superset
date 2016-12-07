@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for javascripts/dashboard/components/GridLayout.jsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class='wrapper'>
+  <div class='pad1'>
+    <h1>
+      <a href="../../../index.html">All files</a> / <a href="index.html">javascripts/dashboard/components</a> GridLayout.jsx
+    </h1>
+    <div class='clearfix'>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Statements</span>
+        <span class='fraction'>0/32</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Branches</span>
+        <span class='fraction'>0/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Functions</span>
+        <span class='fraction'>0/6</span>
+      </div>
+      <div class='fl pad1y space-right2'>
+        <span class="strong">0% </span>
+        <span class="quiet">Lines</span>
+        <span class='fraction'>0/30</span>
+      </div>
+    </div>
+  </div>
+  <div class='status-line low'></div>
+<pre><table class="coverage">
+<tr><td class="line-count quiet">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115</td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import $ from 'jquery';</span>
+<span class="cstat-no" title="statement not covered" >import React, { PropTypes } from 'react';</span>
+<span class="cstat-no" title="statement not covered" >import { Responsive, WidthProvider } from 'react-grid-layout';</span>
+<span class="cstat-no" title="statement not covered" >import SliceCell from './SliceCell';</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >require('react-grid-layout/css/styles.css');</span>
+<span class="cstat-no" title="statement not covered" >require('react-resizable/css/styles.css');</span>
+c</span>onst ResponsiveReactGridLayout = <span class="cstat-no" title="statement not covered" >WidthProvider(Responsive);
+&nbsp;
+c</span>onst propTypes = <span class="cstat-no" title="statement not covered" >{
+  dashboard: PropTypes.object.isRequired,
+};
+&nbsp;
+class GridLayout extends React.Component {
+  componentWillMount() <span class="cstat-no" title="statement not covered" >{</span>
+    c</span>onst layout = <span class="cstat-no" title="statement not covered" >[];
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this.props.dashboard.slices.forEach(<span class="fstat-no" title="function not covered" >(</span>slice, index) =&gt; {</span>
+      c</span>onst sliceId = <span class="cstat-no" title="statement not covered" >slice.slice_id;
+      l</span>et pos = <span class="cstat-no" title="statement not covered" >this.props.dashboard.posDict[sliceId];
+<span class="cstat-no" title="statement not covered" >      if (!pos) {</span>
+<span class="cstat-no" title="statement not covered" >        pos = {</span>
+          col: (index * 4 + 1) % 12,
+          row: Math.floor((index) / 3) * 4,
+          size_x: 4,
+          size_y: 4,
+        };
+      }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      layout.push({</span>
+        i: String(sliceId),
+        x: pos.col - 1,
+        y: pos.row,
+        w: pos.size_x,
+        minW: 2,
+        h: pos.size_y,
+      });
+    });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    this.setState({</span>
+      layout,
+      slices: this.props.dashboard.slices,
+    });
+  }
+&nbsp;
+  onResizeStop(layout, oldItem, newItem) {
+    c</span>onst newSlice = <span class="cstat-no" title="statement not covered" >this.props.dashboard.getSlice(newItem.i);
+<span class="cstat-no" title="statement not covered" >    if (oldItem.w !== newItem.w || oldItem.h !== newItem.h) {</span>
+<span class="cstat-no" title="statement not covered" >      this.setState({ layout }, <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; newSlice.resize());</span></span></span>
+    }
+  }
+&nbsp;
+  onDragStop(layout) {
+<span class="cstat-no" title="statement not covered" >    this.setState({ layout });</span>
+  }
+&nbsp;
+  removeSlice(sliceId) {
+<span class="cstat-no" title="statement not covered" >    $('[data-toggle=tooltip]').tooltip('hide');</span>
+<span class="cstat-no" title="statement not covered" >    this.setState({</span>
+      layout: this.state.layout.filter(<span class="fstat-no" title="function not covered" >function (</span>reactPos) {
+<span class="cstat-no" title="statement not covered" >        return reactPos.i !== String(sliceId);</span>
+      }),
+      slices: this.state.slices.filter(<span class="fstat-no" title="function not covered" >function (</span>slice) {
+<span class="cstat-no" title="statement not covered" >        return slice.slice_id !== sliceId;</span>
+      }),
+    });
+  }
+&nbsp;
+  serialize() {
+<span class="cstat-no" title="statement not covered" >    return this.state.layout.map(<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >reactPos =&gt; ({</span></span></span>
+      slice_id: reactPos.i,
+      col: reactPos.x + 1,
+      row: reactPos.y,
+      size_x: reactPos.w,
+      size_y: reactPos.h,
+    }));
+  }
+&nbsp;
+  render() <span class="cstat-no" title="statement not covered" >{</span>
+<span class="cstat-no" title="statement not covered" >    return (</span>
+      &lt;ResponsiveReactGridLayout
+        className="layout"
+        layouts={{ lg: this.state.layout }}
+        onResizeStop={this.onResizeStop.bind(this)}
+        onDragStop={this.onDragStop.bind(this)}
+        cols={{ lg: 12, md: 12, sm: 10, xs: 8, xxs: 6 }}
+        rowHeight={100}
+        autoSize
+        margin={[20, 20]}
+        useCSSTransforms
+        draggableHandle=".drag"
+      &gt;
+        {this.state.slices.map(<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >slice =&gt; (</span></span>
+          &lt;div
+            id={'slice_' + slice.slice_id}
+            key={slice.slice_id}
+            data-slice-id={slice.slice_id}
+            className={`widget ${slice.viz_name}`}
+          &gt;
+            &lt;SliceCell
+              slice={slice}
+              removeSlice={this.removeSlice.bind(this, slice.slice_id)}
+              expandedSlices={this.props.dashboard.metadata.expanded_slices}
+            /&gt;
+          &lt;/div&gt;
+        ))}
+      &lt;/ResponsiveReactGridLayout&gt;
+    );
+  }
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >GridLayout.propTypes = propTypes;</span>
+&nbsp;
+export default GridLayout;
+&nbsp;</pre></td></tr>
+</table></pre>
+<div class='push'></div><!-- for sticky footer -->
+</div><!-- /wrapper -->
+<div class='footer quiet pad2 space-top1 center small'>
+  Code coverage
+  generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Thu Nov 17 2016 18:11:29 GMT-0800 (PST)
+</div>
+</div>
+<script src="../../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../../sorter.js"></script>
+</body>
+</html>
