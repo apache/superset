@@ -1164,6 +1164,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
+        template_processor = get_template_processor(
+            database=self.database)
+        sql = template_processor.process_template(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine
