@@ -987,6 +987,111 @@ class FormFactory(object):
                 ],
                 "description": _("The color for points and clusters in RGB")
             }),
+            # extra style
+            'line': (SelectMultipleSortableField, {
+                "label": _("line"),
+                "choices": datasource.metrics_combo,
+                "default": [],
+                "description": _("One or many lines to display")
+            }),
+            'bar': (SelectMultipleSortableField, {
+                "label": _("bar"),
+                "choices": datasource.metrics_combo,
+                "default": [],
+                "description": _("One or many bars to display")
+            }),
+            'area': (SelectMultipleSortableField, {
+                "label": _("area"),
+                "choices": datasource.metrics_combo,
+                "default": [],
+                "description": _("One or many areas to display")
+            }),
+            'scatter': (SelectMultipleSortableField, {
+                "label": _("scatter"),
+                "choices": datasource.metrics_combo,
+                "default": [],
+                "description": _("One or many scatters to display")
+            }),
+            'yAxis1': (SelectField, {
+                "label": _("yAxis"),
+                "choices": (
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
+                ),
+                "default": 'y1',
+                "description": _("choose the yAxias")
+            }),
+            'yAxis2': (SelectField, {
+                "label": _("yAxis"),
+                "choices": (
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
+                ),
+                "default": 'y1',
+                "description": _("choose the yAxias")
+            }),
+            'yAxis3': (SelectField, {
+                "label": _("yAxis"),
+                "choices": (
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
+                ),
+                "default": 'y1',
+                "description": _("choose the yAxias")
+            }),
+            'yAxis4': (SelectField, {
+                "label": _("yAxis"),
+                "choices": (
+                    ('y1', _('y1')),
+                    ('y2', _('y2'))
+                ),
+                "default": 'y1',
+                "description": _("choose the yAxias")
+            }),
+            'y_axis_format1': (FreeFormSelectField, {
+                "label": _("Y1 axis format"),
+                "default": '.3s',
+                "choices": [
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                "description": D3_FORMAT_DOCS,
+            }),
+            'y_axis_format2': (FreeFormSelectField, {
+                "label": _("Y2 axis format"),
+                "default": '.3s',
+                "choices": [
+                    ('.3s', '".3s" | 12.3k'),
+                    ('.3%', '".3%" | 1234543.210%'),
+                    ('.4r', '".4r" | 12350'),
+                    ('.3f', '".3f" | 12345.432'),
+                    ('+,', '"+," | +12,345.4321'),
+                    ('$,.2f', '"$,.2f" | $12,345.43'),
+                ],
+                "description": D3_FORMAT_DOCS,
+            }),
+            'y_axis_label1': (TextField, {
+                "label": _("Y1 Axis Label"),
+                "default": '',
+            }),
+            'y_axis_label2': (TextField, {
+                "label": _("Y2 Axis Label"),
+                "default": '',
+            }),
+            'y_domain1': (TextField, {
+                "label": _("Y1 domain"),
+                "default": '',
+                "description": "the range of y1, for example: 0,100, it means from 0 to 100"
+            }),
+            'y_domain2': (TextField, {
+                "label": _("Y2 domain"),
+                "default": '',
+                "description": "the range of y2, for example: 0,100, it means from 0 to 100"
+            }),
         }
 
         # Override default arguments with form overrides
