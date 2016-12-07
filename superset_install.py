@@ -110,7 +110,7 @@ def general_config():
 		superset_variables_raw = urllib.urlopen(CONFIG_CMDS['superset_variables_url'])
 		with open('superset_variables.sh', 'w') as superset_variable_file:
 			for line in superset_variables_raw.readlines():
-				superset_variables_file.write(line)
+				superset_variable_file.write(line)
 
 		command_center("mv superset_variables.sh /etc/profile.d/")
 	mylog.log("INFO", "Hurrah! Installation and Configuration Done Successfully..!")
@@ -158,7 +158,7 @@ def centos_installation():
 	general_config()
 
 # Superset installation in OS X
-def osx_installation():
+def apple_installation():
 	mylog.log("INFO",
 		"Detected OS as %s and installing Superset."%os_name)
 	
@@ -177,21 +177,7 @@ def osx_installation():
 	mylog.log("INFO", "Hurrah! Installation Done Successfully..!")
 	mylog.log9("WARN", "Automatic configuring superset is not available for OS X due to System Integrity Protection (rootless)")
 
-# Get the python installation direcory 
-mylog.log("INFO", "Getting PYTHONPATH ")
-install_dirs  = site.getsitepackages()
-
-# Checking if superset is installed.
-mylog.log("INFO", "Checking if superset installed?")
-mylog.log("WARN", "Superset is installed.")
-try: 
-	import superset
-
-except ImportError:
-	mylog.log("INFO", "Superset is not installed")
-	mylog.log("INFO", "Installing Sueprset...")
-	mylog.log("INFO", "Detecting OS Version")
-
+def detect_os():
 	detected_paltform = platform.platform().lower()
 	if "Darwin" in detected_paltform:
 		os_name = 'Apple'
@@ -202,6 +188,31 @@ except ImportError:
 	elif "centos" in detected_paltform:
 		os_name = "CentOS"
 		centos_installation()
+	return os_name if os_name else None
+
+# Get the python installation direcory 
+mylog.log("INFO", "Getting PYTHONPATH ")
+install_dirs  = site.getsitepackages()
+
+# Checking if superset is installed.
+mylog.log("INFO", "Checking if superset installed?")
+try: 
+	import superset
+	mylog.log("WARN", "Superset is installed.")
+	os_name = detect_os()
+	if os_name:
+		mylog.log("INFO", "Configuring for General Purpose.")
+		general_config()
 	else:
-		my.log("FATAL", "Detecting OS Failed. Committing Suicide.")
-		sys.exit(1)
+		myglog.log("WARN", "Detecting OS Failed. Committing Suicide.")
+
+except ImportError:
+	mylog.log("INFO", "Superset is not installed")
+	mylog.log("INFO", "Installing Sueprset...")
+	mylog.log("INFO", "Detecting OS Version")
+
+	os_name = detect_os()
+	if os_name:
+		exec(os_name.lower()+'_installation()')
+	else:
+		myglog.log("WARN", "Detecting OS Failed. Committing Suicide.")
