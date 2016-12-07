@@ -65,12 +65,10 @@ install_dirs  = site.getsitepackages()
 
 # Checking if superset is installed.
 mylog.log("INFO", "Checking if superset installed?")
-mylog.log("WARN", "Superset is installed.")
-
 try: 
 	is_superset = sys.modules['superset']
 except KeyError:
-	mylog.log("INFO", "Superset is not installed!")
+	mylog.log("WARN", "Superset is not installed!")
 	is_superset = None
 
 if not is_superset:
@@ -80,10 +78,13 @@ if not is_superset:
 	detected_platform = platform.platform().lower()+platform.version().lower()
 	if "Darwin" in detected_platform:
 		os_name = 'Apple'
+		osx_installation()
 	elif "ubuntu" in detected_platform:
 		os_name = 'Ubuntu'
+		ubuntu_installation()
 	elif "centos" in detected_platform:
 		os_name = "CentOS"
+		centos_installation()
 	else:
 		mylog.log("FATAL", "Detecting OS Failed. Committing Suicide.")
 		sys.exit(1)
