@@ -139,7 +139,7 @@ def nginx_config():
 
 	nginx_config_check = command_center("nginx -t", exit_on_fail=False)
 	if nginx_config_check[0]:
-		nginx_restart_status = command_center('systemctl restart nginx', exit_on_fail=False)
+		nginx_restart_status = command_center('service nginx restart', exit_on_fail=False)
 		if nginx_restart_status[0]:
 			mylog.log("INFO", "Nginx Confiugration Done.")
 		else:
