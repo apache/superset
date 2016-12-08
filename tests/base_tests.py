@@ -266,6 +266,3 @@ class SupersetTestCase(unittest.TestCase):
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
 
-
-
-
