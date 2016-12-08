@@ -1115,7 +1115,7 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return("{request.headers[Host]}/r/{obj.id}".format(
+        return("http://{request.headers[Host]}/r/{obj.id}".format(
             request=request, obj=obj))
 
     @expose("/msg/")
@@ -2702,8 +2702,13 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
-        return self.render_template('superset/sqllab.html')
-
+        d = {
+            'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
+        }
+        return self.render_template(
+            'superset/sqllab.html',
+            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
+        )
 appbuilder.add_view_no_menu(Superset)
 
 if config['DRUID_IS_ACTIVE']:

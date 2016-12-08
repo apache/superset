@@ -69,7 +69,7 @@ ENABLE_PROXY_FIX = False
 APP_NAME = "Superset"
 
 # Uncomment to setup Setup an App icon
-APP_ICON = "/static/assets/images/superset_logo.png"
+APP_ICON = "/static/assets/images/superset-logo@2x.png"
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone
@@ -233,6 +233,9 @@ DEFAULT_DB_ID = None
 
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = 30
+
+# SQLLAB_DEFAULT_DBID
+SQLLAB_DEFAULT_DBID = None
 
 # An instantiated derivative of werkzeug.contrib.cache.BaseCache
 # if enabled, it can be used to store the results of long-running queries
