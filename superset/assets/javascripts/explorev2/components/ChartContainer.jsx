@@ -219,6 +219,7 @@ class ChartContainer extends React.Component {
                   endTime={this.props.chartUpdateEndTime}
                   isRunning={this.props.chartStatus === 'loading'}
                   state={CHART_STATE_MAP[this.props.chartStatus]}
+                  style={{ 'font-size': '10px' }}
                 />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}

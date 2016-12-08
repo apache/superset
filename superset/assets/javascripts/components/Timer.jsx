@@ -42,7 +42,10 @@ class Timer extends React.PureComponent {
     let timerSpan = null;
     if (this.props) {
       timerSpan = (
-        <span className={'inlineBlock m-r-5 label label-' + this.props.state}>
+        <span
+          className={`inlineBlock m-r-5 label label-${this.props.state}`}
+          style={this.props.style}
+        >
           {this.state.clockStr}
         </span>
       );
@@ -55,12 +58,14 @@ Timer.propTypes = {
   endTime: React.PropTypes.number,
   isRunning: React.PropTypes.bool.isRequired,
   state: React.PropTypes.string,
+  style: React.PropTypes.object,
 };
 
 Timer.defaultProps = {
   startTime: null,
   endTime: null,
   state: 'success',
+  style: null,
 };
 
 export default Timer;
