@@ -62,7 +62,7 @@ DARWIN_CMDS = {	"install_dependencies":
 CONFIG_CMDS = {"superset_config_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_config.py",
 				"superset_variables_url":
-				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.sh"
+				"https://raw.githubusercontent.com/gowtham95india/superset/master/superset_variables.sh",
 				"nginx_config_url":
 				"https://raw.githubusercontent.com/gowtham95india/superset/master/gowtham-sai.conf"
 				}
@@ -265,13 +265,10 @@ def detect_os():
 	detected_paltform = platform.platform().lower()
 	if "Darwin" in detected_paltform:
 		os_name = 'Apple'
-		osx_installation()
 	elif "ubuntu" in detected_paltform:
 		os_name = 'Ubuntu'
-		ubuntu_installation()
 	elif "centos" in detected_paltform:
 		os_name = "CentOS"
-		centos_installation()
 	return os_name if os_name else None
 
 # Get the python installation direcory 
