@@ -18,11 +18,8 @@ class SqlLabTests(SupersetTestCase):
 
     def __init__(self, *args, **kwargs):
         super(SqlLabTests, self).__init__(*args, **kwargs)
-        gamma_sqllab = appbuilder.sm.find_role('gamma_sqllab')
-        security.merge_perm(sm, 'database_access', self.get_main_database(db.session).perm)
 
     def run_some_queries(self):
-        self.logout()
         db.session.query(models.Query).delete()
         db.session.commit()
         self.run_sql(
@@ -87,7 +84,8 @@ class SqlLabTests(SupersetTestCase):
 
         # Not logged in, should error out
         resp = self.client.get('/superset/queries/0')
-        self.assertEquals(403, resp.status_code)
+        # Redirects to the login page
+        self.assertEquals(302, resp.status_code)
 
         # Admin sees queries
         self.login('admin')
@@ -114,7 +112,8 @@ class SqlLabTests(SupersetTestCase):
 
         self.logout()
         resp = self.client.get('/superset/queries/0')
-        self.assertEquals(403, resp.status_code)
+        # Redirects to the login page
+        self.assertEquals(302, resp.status_code)
 
     def test_search_query_on_db_id(self):
         self.run_some_queries()
