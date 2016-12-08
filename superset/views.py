@@ -1557,7 +1557,7 @@ class Superset(BaseSupersetView):
             dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
-                security.merge_perm(sm, 'dashboard_access', dash.dashboard_title)
+            security.merge_perm(sm, 'dashboard_access', dash.dashboard_title)
             flash(
                 "Dashboard [{}] just got created and slice [{}] was added "
                 "to it".format(
