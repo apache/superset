@@ -115,7 +115,7 @@ export function chartUpdateFailed(error) {
 
 export function updateExplore(datasource_type, datasource_id, form_data) {
   return function (dispatch) {
-    dispatch(chartUpdateStarted);
+    dispatch(chartUpdateStarted());
     const updateUrl =
     `/superset/update_explore/${datasource_type}/${datasource_id}/`;
 

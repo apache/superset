@@ -1,7 +1,5 @@
 import React from 'react';
-import { now, fDuration } from '../../modules/dates';
-
-import { STATE_BSSTYLE_MAP } from '../constants.js';
+import { now, fDuration } from '../modules/dates';
 
 class Timer extends React.PureComponent {
   constructor(props) {
@@ -26,24 +24,25 @@ class Timer extends React.PureComponent {
     this.timer = null;
   }
   stopwatch() {
-    if (this.props && this.props.query) {
-      const endDttm = this.props.query.endDttm || now();
-      const clockStr = fDuration(this.props.query.startDttm, endDttm);
-      this.setState({ clockStr });
-      if (this.props.query.state !== 'running') {
+    if (this.props && this.props.startTime) {
+      const endDttm = this.props.endTime || now();
+      if (this.props.startTime < endDttm) {
+        const clockStr = fDuration(this.props.startTime, endDttm);
+        this.setState({ clockStr });
+      }
+      if (!this.props.isRunning) {
         this.stopTimer();
       }
     }
   }
   render() {
-    if (this.props.query && this.props.query.state === 'running') {
+    if (this.props && this.props.isRunning) {
       this.startTimer();
     }
     let timerSpan = null;
-    if (this.props && this.props.query) {
-      const bsStyle = STATE_BSSTYLE_MAP[this.props.query.state];
+    if (this.props) {
       timerSpan = (
-        <span className={'inlineBlock m-r-5 label label-' + bsStyle}>
+        <span className={'inlineBlock m-r-5 label label-' + this.props.state}>
           {this.state.clockStr}
         </span>
       );
@@ -52,10 +51,16 @@ class Timer extends React.PureComponent {
   }
 }
 Timer.propTypes = {
-  query: React.PropTypes.object,
+  startTime: React.PropTypes.string,
+  endTime: React.PropTypes.string,
+  isRunning: React.PropTypes.bool.isRequired,
+  state: React.PropTypes.bool,
 };
+
 Timer.defaultProps = {
-  query: null,
+  startTime: null,
+  endTime: null,
+  state: 'success',
 };
 
 export default Timer;
