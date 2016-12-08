@@ -635,7 +635,7 @@ def uploaded_file(filename):
 class CsvToDatabaseForm(DynamicForm):
     # These are the fields exposed by Pandas read_csv()
     csv_file = FileField('CSV File', description='Select a CSV file to be uploaded to a database.',
-                             validators=[FileRequired(), FileAllowed(['csv'], 'CSV Files Only!')])
+                         validators=[FileRequired(), FileAllowed(['csv'], 'CSV Files Only!')])
     sep = StringField('Delimiter', description='Delimiter used by CSV file (for whitespace use \s+).',
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
     header = IntegerField('Header Row', description='Row containing the headers to use as column names '
@@ -681,11 +681,6 @@ class CsvToDatabaseForm(DynamicForm):
                                                                      'commas). If false these bad lines will instead '
                                                                      'be dropped from the resulting dataframe.')
 
-    # TODO: There are more fields in the Pandas API, but these are the most obviously used
-    # TODO: Check all the validators
-
-    # TODO: Check all the fields use correct format - i.e. multiple choice???
-
     # These are the fields exposed by Pandas .to_sql()
     name = StringField('Table Name', description='Name of table to be created from csv data.',
                        validators=[DataRequired()], widget=BS3TextFieldWidget())
@@ -704,7 +699,6 @@ class CsvToDatabaseForm(DynamicForm):
     chunksize = IntegerField('Chunksize', description='If not None, then rows will be written in batches of this size '
                                                       'at a time. If None, all rows will be written at once.',
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    # dtype
 
 
 class CsvToDatabaseView(SimpleFormView):
@@ -750,6 +744,9 @@ class CsvToDatabaseView(SimpleFormView):
         # Turn into list of strings
         if form.names.data is not None:
             form.names.data = form.names.data.split(",")
+        else:
+            if form.header.data is None:
+                form.header.data = 0
 
         # Attempt to upload csv file
         filename = self.upload_file(form)
