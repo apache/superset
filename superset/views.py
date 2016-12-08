@@ -634,76 +634,79 @@ def uploaded_file(filename):
 
 class CsvToDatabaseForm(DynamicForm):
     # These are the fields exposed by Pandas read_csv()
-    csv_file = FileField('CSV File', description='Select a CSV file to be uploaded to a database.',
-                         validators=[FileRequired(), FileAllowed(['csv'], 'CSV Files Only!')])
-    sep = StringField('Delimiter', description='Delimiter used by CSV file (for whitespace use \s+).',
+    csv_file = FileField(_('CSV File'), description=_('Select a CSV file to be uploaded to a database.'),
+                         validators=[FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
+    sep = StringField(_('Delimiter'), description=_('Delimiter used by CSV file (for whitespace use \s+).'),
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
-    header = IntegerField('Header Row', description='Row containing the headers to use as column names '
-                                                    '(0 is first line of data). Leave empty if there is no header row.',
+    header = IntegerField(_('Header Row'), description=_('Row containing the headers to use as column names (0 is '
+                                                         'first line of data). Leave empty if there is no header row.'),
                           validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    names = StringField('Column Names', description='List of comma-separated column names to use if header '
-                                                    'row not specified above. Leave empty if header field populated.',
+    names = StringField(_('Column Names'), description=_('List of comma-separated column names to use if header row '
+                                                         'not specified above. Leave empty if header field populated.'),
                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    index_col = IntegerField('Index Column', description='Column to use as the row labels of the dataframe. Leave '
-                                                         'empty if no index column.',
+    index_col = IntegerField(_('Index Column'), description=_('Column to use as the row labels of the dataframe. Leave '
+                                                              'empty if no index column.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    squeeze = BooleanField('Squeeze', description='Parse the data as a series (specify this option if the data '
-                                                  'contains only one column.')
-    prefix = StringField('Prefix', description='Prefix to add to column numbers when no header '
-                                               '(e.g. "X" for "X0, X1").',
+    squeeze = BooleanField(_('Squeeze'), description=_('Parse the data as a series (specify this option if the data '
+                                                       'contains only one column.'))
+    prefix = StringField(_('Prefix'), description=_('Prefix to add to column numbers when no header '
+                                                    '(e.g. "X" for "X0, X1").'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    mangle_dupe_cols = BooleanField('Mangle Duplicate Columns', description='Specify duplicate columns as "X.0, X.1".')
-    skipinitialspace = BooleanField('Skip Initial Space', description='Skip spaces after delimiter.')
-    skiprows = IntegerField('Skip Rows', description='Number of rows to skip at start of file.',
+    mangle_dupe_cols = BooleanField(_('Mangle Duplicate Columns'), description=_('Specify duplicate columns as '
+                                                                                 '"X.0, X.1".'))
+    skipinitialspace = BooleanField(_('Skip Initial Space'), description=_('Skip spaces after delimiter.'))
+    skiprows = IntegerField(_('Skip Rows'), description=_('Number of rows to skip at start of file.'),
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    nrows = IntegerField('Rows to Read', description='Number of rows of file to read.',
+    nrows = IntegerField(_('Rows to Read'), description=_('Number of rows of file to read.'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    skip_blank_lines = BooleanField('Skip Blank Lines', description='Skip blank lines rather than interpreting them '
-                                                                    'as NaN values.')
-    parse_dates = BooleanField('Parse Dates', description='Parse date values.')
-    infer_datetime_format = BooleanField('Infer Datetime Format', description='Use Pandas to interpret the '
-                                                                              'datetime format.')
-    dayfirst = BooleanField('Day First', description='Use DD/MM (European/International) date format.')
-    thousands = StringField('Thousands Separator', description='Separator for values in thousands.',
+    skip_blank_lines = BooleanField(_('Skip Blank Lines'), description=_('Skip blank lines rather than interpreting '
+                                                                         'them as NaN values.'))
+    parse_dates = BooleanField(_('Parse Dates'), description=_('Parse date values.'))
+    infer_datetime_format = BooleanField(_('Infer Datetime Format'), description=_('Use Pandas to interpret the '
+                                                                                   'datetime format automatically.'))
+    dayfirst = BooleanField(_('Day First'), description=_('Use DD/MM (European/International) date format.'))
+    thousands = StringField(_('Thousands Separator'), description=_('Separator for values in thousands.'),
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    decimal = StringField('Decimal Character', description='Character to interpret as decimal point.',
+    decimal = StringField(_('Decimal Character'), description=_('Character to interpret as decimal point.'),
                           validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or '.'])
-    quotechar = StringField('Quote Character', description='Character used to denote the start and end of a '
-                                                           'quoted item.',
+    quotechar = StringField(_('Quote Character'), description=_('Character used to denote the start and end of a '
+                                                                'quoted item.'),
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or "'"])
-    escapechar = StringField('Escape Character', description='Character used to escape a quoted item.',
+    escapechar = StringField(_('Escape Character'), description=_('Character used to escape a quoted item.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    comment = StringField('Comment Character', description='Character used to denote the start of a comment.',
+    comment = StringField(_('Comment Character'), description=_('Character used to denote the start of a comment.'),
                           validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    encoding = StringField('Encoding', description='Encoding to use for UTF when reading/writing (e.g. "utf-8").',
+    encoding = StringField(_('Encoding'), description=_('Encoding to use for UTF when reading/writing (e.g. "utf-8").'),
                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    error_bad_lines = BooleanField('Error On Bad Lines', description='Error on bad lines (e.g. a line with too many '
-                                                                     'commas). If false these bad lines will instead '
-                                                                     'be dropped from the resulting dataframe.')
+    error_bad_lines = BooleanField(_('Error On Bad Lines'), description=_('Error on bad lines (e.g. a line with too '
+                                                                          'many commas). If false these bad lines will '
+                                                                          'instead be dropped from the resulting '
+                                                                          'dataframe.'))
 
     # These are the fields exposed by Pandas .to_sql()
-    name = StringField('Table Name', description='Name of table to be created from csv data.',
+    name = StringField(_('Table Name'), description=_('Name of table to be created from csv data.'),
                        validators=[DataRequired()], widget=BS3TextFieldWidget())
-    con = StringField('Database URI', description='URI of database in which to add above table.',
+    con = StringField(_('Database URI'), description=_('URI of database in which to add above table.'),
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
-    schema = StringField('Schema', description='Specify a schema (if database flavour supports this).',
+    schema = StringField(_('Schema'), description=_('Specify a schema (if database flavour supports this).'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    if_exists = SelectField('Table Exists', description='If table exists do one of the following: Fail (do nothing), '
-                                                        'Replace (drop and recreate table) or Append (insert data).',
-                            choices=[('fail', 'Fail'), ('replace', 'Replace'), ('append', 'Append')],
+    if_exists = SelectField(_('Table Exists'), description=_('If table exists do one of the following: Fail (do '
+                                                             'nothing), Replace (drop and recreate table) or Append '
+                                                             '(insert data).'),
+                            choices=[('fail', _('Fail')), ('replace', _('Replace')), ('append', _('Append'))],
                             validators=[DataRequired()])
-    index = BooleanField('Dataframe Index', description='Write dataframe index as a column.')
-    index_label = StringField('Column Label(s)', description='Column label for index column(s). If None is given and '
-                                                             'Dataframe Index is True, Index Names are used.',
+    index = BooleanField(_('Dataframe Index'), description=_('Write dataframe index as a column.'))
+    index_label = StringField(_('Column Label(s)'), description=_('Column label for index column(s). If None is given '
+                                                                  'and Dataframe Index is True, Index Names are used.'),
                               validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    chunksize = IntegerField('Chunksize', description='If not None, then rows will be written in batches of this size '
-                                                      'at a time. If None, all rows will be written at once.',
+    chunksize = IntegerField(_('Chunksize'), description=_('If not None, rows will be written in batches of this size '
+                                                           'at a time. If None, all rows will be written at once.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
 
 
 class CsvToDatabaseView(SimpleFormView):
     form = CsvToDatabaseForm
-    form_title = 'CSV to Database configuration'
+    form_title = _('CSV to Database configuration')
 
     def form_get(self, form):
         # pre process form
@@ -786,8 +789,8 @@ class CsvToDatabaseView(SimpleFormView):
                       chunksize=form.chunksize.data)
 
         # Go back to welcome page / splash screen
-        message = 'CSV file "{0}" uploaded to table "{1}" in database "{2}"'.format(filename,
-                                                                                    form.name.data, form.con.data)
+        message = _('CSV file "{0}" uploaded to table "{1}" in database "{2}"'.format(filename,
+                                                                                      form.name.data, form.con.data))
         flash(message, 'info')
         redirect('/databaseview/list')
 
