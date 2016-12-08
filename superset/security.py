@@ -64,6 +64,7 @@ OBJECT_SPEC_PERMISSIONS = set([
     'schema_access',
     'datasource_access',
     'metric_access',
+    'dashboard_access'
 ])
 
 
