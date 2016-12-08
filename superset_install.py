@@ -118,15 +118,16 @@ def nginx_config():
 			except socket.gaierror:
 				mylog.log("ERROR", correct_domain + ' is not a valid domain. Ignoring it!') 
 
-		nginx_domain_string = ' '.join(crt_domain for crt_domain in mapped_domains.keys())
+		nginx_domain_string = ' '.join(crt_domain for crt_domain in mapped_domains.keys()) if mapped_domains.keys() else machine_ip
 	
 	else:
 		mylog.log("INFO", "Configuring Nginx with  machine ip")
 		mylog.log("WARN", "Not recommended to configure the bare ip")
 		nginx_domain_string = machine_ip
 
-	nginx_config_raw = urllib.urlopen(CONFIG_CMDS['nginx_config_url'])
+	mylog.log("INFO", "Configuring Nginx for domains: %s"%nginx_domain_string)
 
+	nginx_config_raw = urllib.urlopen(CONFIG_CMDS['nginx_config_url'])
 	with open('gowtham-sai.conf','w') as nginx_config_file:
 		for line in nginx_config_raw.readlines():
 			if 'domainnameshouldbehere' in line:
@@ -140,9 +141,9 @@ def nginx_config():
 	if nginx_config_check[0]:
 		nginx_restart_status = command_center('systemctl restart nginx', exit_on_fail=False)
 		if nginx_restart_status[0]:
-			myglog.log("INFO", "Nginx Confiugration Done.")
+			mylog.log("INFO", "Nginx Confiugration Done.")
 		else:
-			myglog.log("WARN", "Restrting Nginx Failed. May be due to %s"%nginx_restart_status[1])
+			mylog.log("WARN", "Restrting Nginx Failed. May be due to %s"%nginx_restart_status[1])
 	else:
 		mylog.log("WARN", "Nginx configuration files has error. May be due to %s"%nginx_config_check[1])
 
@@ -285,7 +286,7 @@ try:
 		mylog.log("INFO", "Configuring for General Purpose.")
 		general_config()
 	else:
-		myglog.log("WARN", "Detecting OS Failed. Committing Suicide.")
+		mylog.log("WARN", "Detecting OS Failed. Committing Suicide.")
 
 except ImportError:
 	mylog.log("INFO", "Superset is not installed")
@@ -296,4 +297,4 @@ except ImportError:
 	if os_name:
 		exec(os_name.lower()+'_installation()')
 	else:
-		myglog.log("WARN", "Detecting OS Failed. Committing Suicide.")
+		mylog.log("WARN", "Detecting OS Failed. Committing Suicide.")
