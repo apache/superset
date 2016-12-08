@@ -1490,8 +1490,10 @@ class Superset(BaseSupersetView):
 
         # find out if user is in explore v2 beta group
         # and set flag `is_in_explore_v2_beta`
-        explore_v2_users = config.get('EXPLORE_V2_BETA_USERS', [])
-        is_in_explore_v2_beta = True if user_id in explore_v2_users else False
+        is_in_explore_v2_beta = False
+        roles = (r.name for r in get_user_roles())
+        if 'explore-v2-beta' in roles:
+            is_in_explore_v2_beta = True
 
         # handle different endpoints
         if request.args.get("csv") == "true":
