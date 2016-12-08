@@ -304,7 +304,7 @@ class DashboardFilter(SupersetFilter):
                 .distinct()
                 .join(Dash.slices)
                 .filter(Slice.id.in_(slice_ids_qry))
-                # .filter(Dash.dashboard_title.in_(dashboard_perms))
+                .filter(Dash.dashboard_title.in_(dashboard_perms))
             )
         )
         return query

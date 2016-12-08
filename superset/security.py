@@ -205,5 +205,12 @@ def sync_role_definitions():
         sm.add_permission_view_menu('database_access', perm)
     session.commit()
 
+    logging.info("Making sure all dashboard perms have been created")
+    dashboards = [o for o in session.query(models.Dashboard).all()]
+    for dashboard in dashboards:
+        perm = dashboard.get_dashboard_title()
+        sm.add_permission_view_menu('dashboard_access', perm)
+    session.commit()
+
     logging.info("Making sure all metrics perms exist")
     models.init_metrics_perm()
