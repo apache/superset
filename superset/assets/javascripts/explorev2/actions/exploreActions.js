@@ -194,3 +194,8 @@ export function saveSlice(url) {
     });
   };
 }
+
+export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
+export function updateChartStatus(status) {
+  return { type: UPDATE_CHART_STATUS, status };
+}

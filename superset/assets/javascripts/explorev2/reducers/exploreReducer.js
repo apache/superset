@@ -134,6 +134,13 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         { chartStatus: 'failed', chartAlert: action.error, chartUpdateEndTime });
     },
+    [actions.UPDATE_CHART_STATUS]() {
+      const newState = Object.assign({}, state, { chartStatus: action.status });
+      if (action.status === 'success' || action.status === 'failed') {
+        newState.chartUpdateEndTime = now();
+      }
+      return newState;
+    },
     [actions.REMOVE_CHART_ALERT]() {
       return Object.assign({}, state, { chartAlert: null });
     },

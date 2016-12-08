@@ -51,10 +51,10 @@ class Timer extends React.PureComponent {
   }
 }
 Timer.propTypes = {
-  startTime: React.PropTypes.string,
-  endTime: React.PropTypes.string,
+  startTime: React.PropTypes.number,
+  endTime: React.PropTypes.number,
   isRunning: React.PropTypes.bool.isRequired,
-  state: React.PropTypes.bool,
+  state: React.PropTypes.string,
 };
 
 Timer.defaultProps = {
