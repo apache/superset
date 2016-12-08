@@ -32,7 +32,7 @@ except ImportError:
 sudo_pass = getpass.getpass("Please enter sudo password: ")
 
 UBUNTU_CMDS = { "install_dependencies": 
-				"apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev",
+				"apt-get install build-essential libssl-dev libffi-dev python-dev python-pip libsasl2-dev libldap2-dev libmysqlclient-dev",
 				"pip_update": 
 				"pip install --upgrade setuptools pip",
 				"superset_install":
@@ -150,7 +150,13 @@ def nginx_config():
 def general_config():
 	# Installing general pip dependencies
 	mylog.log("INFO", "Installing few python dependencies") 
-	command_center("pip install celery redis mysql-python")
+	try:
+		command_center("pip install celery redis mysql-python", exit_on_fail=False)
+	except MemoryError:
+		command_center("pip install celery redis mysql-python --no-cache-dir")
+	else: 
+		mylog.log("ERROR", "Machine MYSQL path is not configured properly.")
+		mylog.log("INFO", "Configure and run pip install mysql-python.")
 
 	# Getting superset_config.py file.
 	mylog.log("INFO", "Setting up external superset_config file.")
@@ -213,7 +219,10 @@ def ubuntu_installation():
 	command_center(UBUNTU_CMDS['pip_update'])
 
 	# Install superset
-	command_center(UBUNTU_CMDS['superset_install'])
+	try:
+		command_center(UBUNTU_CMDS['superset_install'], exit_on_fail=False)
+	except MemoryError:
+		command_center(UBUNTU_CMDS['superset_install'] + ' --no-cache-dir')
 
 	# General config. 
 	mylog.log("INFO", "Installing Superset is done..!")
@@ -235,7 +244,10 @@ def centos_installation():
 	command_center(CENTOS_CMDS['pip_update'])
 
 	# Install superset
-	command_center(CENTOS_CMDS['superset_install'])	
+	try:
+		command_center(CENTOS_CMDS['superset_install'], exit_on_fail=False)	
+	except MemoryError:
+		command_center(CENTOS_CMDS['superset_install'] + ' --no-cache-dir')
 
 	# General config. 
 	mylog.log("INFO", "Installing Superset is done..!")
@@ -257,7 +269,10 @@ def apple_installation():
 	command_center(DARWIN_CMDS['pip_update'])
 
 	# Install superset
-	command_center(DARWIN_CMDS['superset_install'])
+	try:
+		command_center(DARWIN_CMDS['superset_install'], exit_on_fail=False)
+	except MemoryError:
+		command_center(DARWIN_CMDS['superset_install'] + ' --no-cache-dir')
 
 	mylog.log("INFO", "Hurrah! Installation Done Successfully..!")
 	mylog.log9("WARN", "Automatic configuring superset is not available for OS X due to System Integrity Protection (rootless)")
