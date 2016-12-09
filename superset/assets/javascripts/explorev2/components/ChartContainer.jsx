@@ -29,10 +29,10 @@ const propTypes = {
   query: PropTypes.string,
   column_formats: PropTypes.object,
   data: PropTypes.any,
-  chartStatus: PropTypes.bool,
+  chartStatus: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
-  chartUpdateStartTime: PropTypes.string.isRequired,
-  chartUpdateEndTime: PropTypes.string.isRequired,
+  chartUpdateStartTime: PropTypes.number.isRequired,
+  chartUpdateEndTime: PropTypes.number,
   alert: PropTypes.string,
   table_name: PropTypes.string,
 };
@@ -55,7 +55,13 @@ class ChartContainer extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    if (nextProps.chartStatus !== this.props.chartStatus) {
+      this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    }
+  }
+
+  shouldComponentUpdate(nextProps) {
+    return (nextProps.chartStatus !== this.props.chartStatus);
   }
 
   componentDidUpdate() {
@@ -168,16 +174,19 @@ class ChartContainer extends React.Component {
         </Alert>
       );
     }
-    if (this.props.chartStatus === 'loading') {
-      return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
-    }
+    const loading = this.props.chartStatus === 'loading';
     return (
-      <div
-        id={this.props.containerId}
-        ref={(ref) => { this.chartContainerRef = ref; }}
-        className={this.props.viz_type}
-        style={{ overflowX: 'scroll' }}
-      />
+      <div>
+        {loading &&
+          <img alt="loading" width="25" src="/static/assets/images/loading.gif" />
+        }
+        <div
+          id={this.props.containerId}
+          ref={(ref) => { this.chartContainerRef = ref; }}
+          className={this.props.viz_type}
+          style={{ overflowX: 'scroll' }}
+        />
+      </div>
     );
   }
 
@@ -221,7 +230,7 @@ class ChartContainer extends React.Component {
                   endTime={this.props.chartUpdateEndTime}
                   isRunning={this.props.chartStatus === 'loading'}
                   state={CHART_STATUS_MAP[this.props.chartStatus]}
-                  style={{ 'font-size': '10px', 'margin-right': '5px' }}
+                  style={{ fontSize: '10px', marginRight: '5px' }}
                 />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}

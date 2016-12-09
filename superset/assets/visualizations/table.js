@@ -150,7 +150,6 @@ function tableVis(slice) {
         const mainMetric = fd.metrics[0];
         datatable.column(data.columns.indexOf(mainMetric)).order('desc').draw();
       }
-      debugger;
       slice.done(json);
       container.parents('.widget').find('.tooltip').remove();
     }

@@ -98,11 +98,6 @@ export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
 }
 
-export const UPDATE_CHART = 'UPDATE_CHART';
-export function updateChart(viz) {
-  return { type: UPDATE_CHART, viz };
-}
-
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted() {
   return { type: CHART_UPDATE_STARTED };

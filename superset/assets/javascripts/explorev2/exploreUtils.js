@@ -1,4 +1,5 @@
 /* eslint camelcase: 0 */
+const $ = require('jquery');
 function formatFilters(filters) {
   // outputs an object of url params of filters
   // prefix can be 'flt' or 'having'
@@ -22,7 +23,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   };
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
-    if (form_data[field] !== null && field !== 'datasource'
+    if (form_data[field] !== null && field !== 'datasource' && field !== 'filters'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }
@@ -30,4 +31,22 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   const filterParams = formatFilters(form_data.filters);
   Object.assign(data, filterParams);
   return data;
+}
+
+export function getExploreUrl(form_data, datasource_type, endpoint = 'base') {
+  const data = getParamObject(form_data, datasource_type);
+  const params = `${datasource_type}/` +
+    `${form_data.datasource}/?${$.param(data, true)}`;
+  switch (endpoint) {
+    case 'base':
+      return `/superset/explore/${params}`;
+    case 'json':
+      return `/superset/explore_json/${params}`;
+    case 'csv':
+      return `/superset/explore/${params}&csv=true`;
+    case 'standalone':
+      return `/superset/explore/${params}&standalone=true`;
+    default:
+      return `/superset/explore/${params}`;
+  }
 }

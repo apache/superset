@@ -8,9 +8,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/fields';
-import { getParamObject } from '../exploreUtils';
-
-const $ = require('jquery');
+import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
   form_data: React.PropTypes.object.isRequired,
@@ -48,11 +46,12 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery(form_data) {
-    const data = getParamObject(form_data, this.props.datasource_type);
-    const params = `${this.props.datasource_type}/` +
-      `${this.props.form_data.datasource}/?${$.param(data, true)}`;
-    this.queryFormData(params);
-    this.updateUrl(params);
+    this.props.actions.chartUpdateStarted();
+    history.pushState(
+      {},
+      document.title,
+      getExploreUrl(form_data, this.props.datasource_type)
+    );
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
@@ -63,18 +62,6 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
-  updateUrl(params) {
-    const baseUrl = `/superset/explore/${params}`;
-    const newEndpoint = `${baseUrl}?${params}`;
-    history.pushState({}, document.title, newEndpoint);
-  }
-
-  queryFormData(params) {
-    const jsonUrl = `/superset/explore_json/${params}`;
-    const csvUrl = `/superset/explore/${params}&csv=true`;
-    const standaloneUrl = `/superset/explore/${params}&standalone=true`;
-    this.props.actions.updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl);
-  }
   handleResize() {
     this.setState({ height: this.getHeight() });
   }
