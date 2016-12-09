@@ -2202,7 +2202,8 @@ class Superset(BaseSupersetView):
                 if agg == 'count_distinct':
                     metrics.append(models.SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
-                        expression="COUNT(DISTINCT {column_name})".format(**locals()),
+                        expression="COUNT(DISTINCT {column_name})"
+                        .format(**locals()),
                     ))
                 else:
                     metrics.append(models.SqlMetric(
