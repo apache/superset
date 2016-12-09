@@ -1145,24 +1145,25 @@ class CsvToDatabaseForm(DynamicForm):
     index_col = IntegerField(_('Index Column'), description=_('Column to use as the row labels of the dataframe. Leave '
                                                               'empty if no index column.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    squeeze = BooleanField(_('Squeeze'), description=_('Parse the data as a series (specify this option if the data '
-                                                       'contains only one column.'))
+    squeeze = BetterBooleanField(_('Squeeze'), description=_('Parse the data as a series (specify this option if the '
+                                                             'data contains only one column.'))
     prefix = StringField(_('Prefix'), description=_('Prefix to add to column numbers when no header '
                                                     '(e.g. "X" for "X0, X1").'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    mangle_dupe_cols = BooleanField(_('Mangle Duplicate Columns'), description=_('Specify duplicate columns as '
-                                                                                 '"X.0, X.1".'))
-    skipinitialspace = BooleanField(_('Skip Initial Space'), description=_('Skip spaces after delimiter.'))
+    mangle_dupe_cols = BetterBooleanField(_('Mangle Duplicate Columns'), description=_('Specify duplicate columns as '
+                                                                                       '"X.0, X.1".'))
+    skipinitialspace = BetterBooleanField(_('Skip Initial Space'), description=_('Skip spaces after delimiter.'))
     skiprows = IntegerField(_('Skip Rows'), description=_('Number of rows to skip at start of file.'),
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     nrows = IntegerField(_('Rows to Read'), description=_('Number of rows of file to read.'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    skip_blank_lines = BooleanField(_('Skip Blank Lines'), description=_('Skip blank lines rather than interpreting '
-                                                                         'them as NaN values.'))
-    parse_dates = BooleanField(_('Parse Dates'), description=_('Parse date values.'))
-    infer_datetime_format = BooleanField(_('Infer Datetime Format'), description=_('Use Pandas to interpret the '
-                                                                                   'datetime format automatically.'))
-    dayfirst = BooleanField(_('Day First'), description=_('Use DD/MM (European/International) date format.'))
+    skip_blank_lines = BetterBooleanField(_('Skip Blank Lines'), description=_('Skip blank lines rather than '
+                                                                               'interpreting them as NaN values.'))
+    parse_dates = BetterBooleanField(_('Parse Dates'), description=_('Parse date values.'))
+    infer_datetime_format = BetterBooleanField(_('Infer Datetime Format'), description=_('Use Pandas to interpret the '
+                                                                                         'datetime format '
+                                                                                         'automatically.'))
+    dayfirst = BetterBooleanField(_('Day First'), description=_('Use DD/MM (European/International) date format.'))
     thousands = StringField(_('Thousands Separator'), description=_('Separator for values in thousands.'),
                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     decimal = StringField(_('Decimal Character'), description=_('Character to interpret as decimal point.'),
@@ -1176,10 +1177,10 @@ class CsvToDatabaseForm(DynamicForm):
                           validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     encoding = StringField(_('Encoding'), description=_('Encoding to use for UTF when reading/writing (e.g. "utf-8").'),
                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    error_bad_lines = BooleanField(_('Error On Bad Lines'), description=_('Error on bad lines (e.g. a line with too '
-                                                                          'many commas). If false these bad lines will '
-                                                                          'instead be dropped from the resulting '
-                                                                          'dataframe.'))
+    error_bad_lines = BetterBooleanField(_('Error On Bad Lines'), description=_('Error on bad lines (e.g. a line with '
+                                                                                'too many commas). If false these bad '
+                                                                                'lines will instead be dropped from '
+                                                                                'the resulting dataframe.'))
 
     # These are the fields exposed by Pandas .to_sql()
     name = StringField(_('Table Name'), description=_('Name of table to be created from csv data.'),
@@ -1194,7 +1195,7 @@ class CsvToDatabaseForm(DynamicForm):
                                                              '(insert data).'),
                             choices=[('fail', _('Fail')), ('replace', _('Replace')), ('append', _('Append'))],
                             validators=[DataRequired()])
-    index = BooleanField(_('Dataframe Index'), description=_('Write dataframe index as a column.'))
+    index = BetterBooleanField(_('Dataframe Index'), description=_('Write dataframe index as a column.'))
     index_label = StringField(_('Column Label(s)'), description=_('Column label for index column(s). If None is given '
                                                                   'and Dataframe Index is True, Index Names are used.'),
                               validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
