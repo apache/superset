@@ -52,7 +52,6 @@ from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
 
-import superset
 from superset import app, db, db_engine_specs, get_session, utils, sm
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
@@ -70,25 +69,13 @@ FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 def set_perm(mapper, connection, target):  # noqa
-    target.perm = target.get_perm()
-
-
-def init_metrics_perm(metrics=None):
-    """Create permissions for restricted metrics
-
-    :param metrics: a list of metrics to be processed, if not specified,
-        all metrics are processed
-    :type metrics: models.SqlMetric or models.DruidMetric
-    """
-    logging.info("Creating missing metrics permissions")
-    if not metrics:
-        metrics = []
-        for model in [SqlMetric, DruidMetric]:
-            metrics += list(db.session.query(model).all())
-
-    for metric in metrics:
-        if metric.is_restricted and metric.perm:
-            sm.add_permission_view_menu('metric_access', metric.perm)
+    if target.perm != target.get_perm():
+        link_table = target.__table__
+        connection.execute(
+            link_table.update()
+            .where(link_table.c.id == target.id)
+            .values(perm=target.get_perm())
+        )
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -861,8 +848,8 @@ class Database(Model, AuditMixinNullable):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
 
-sqla.event.listen(Database, 'before_insert', set_perm)
-sqla.event.listen(Database, 'before_update', set_perm)
+sqla.event.listen(Database, 'after_insert', set_perm)
+sqla.event.listen(Database, 'after_update', set_perm)
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
@@ -1339,8 +1326,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         return datasource.id
 
-sqla.event.listen(SqlaTable, 'before_insert', set_perm)
-sqla.event.listen(SqlaTable, 'before_update', set_perm)
+sqla.event.listen(SqlaTable, 'after_insert', set_perm)
+sqla.event.listen(SqlaTable, 'after_update', set_perm)
 
 
 class SqlMetric(Model, AuditMixinNullable, ImportMixin):
@@ -2237,8 +2224,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 filters = cond
         return filters
 
-sqla.event.listen(DruidDatasource, 'before_insert', set_perm)
-sqla.event.listen(DruidDatasource, 'before_update', set_perm)
+sqla.event.listen(DruidDatasource, 'after_insert', set_perm)
+sqla.event.listen(DruidDatasource, 'after_update', set_perm)
 
 
 class Log(Model):
@@ -2464,8 +2451,6 @@ class DruidColumn(Model, AuditMixinNullable):
                 new_metrics.append(metric)
                 session.add(metric)
                 session.flush()
-
-        init_metrics_perm(new_metrics)
 
 
 class FavStar(Model):

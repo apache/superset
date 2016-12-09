@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import conf, db, models, sm
+from superset import conf, db, models, sm, source_registry
 
 
 READ_ONLY_MODELVIEWS = {
@@ -67,7 +67,7 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 def merge_perm(sm, permission_name, view_menu_name):
     pv = sm.find_permission_view_menu(permission_name, view_menu_name)
-    if not pv:
+    if not pv and permission_name and view_menu_name:
         sm.add_permission_view_menu(permission_name, view_menu_name)
 
 
@@ -147,23 +147,39 @@ def create_custom_permissions():
 
 def create_missing_datasource_perms(view_menu_set):
     logging.info("Creating missing datasource permissions.")
-    datasources = db.session.query(models.SqlaTable).all()
-    datasources.extend(db.session.query(models.DruidDatasource).all())
+    datasources = source_registry.SourceRegistry.get_all_datasources(
+        db.session)
     for datasource in datasources:
-        if datasource.perm in view_menu_set:
-            continue
-        merge_perm(sm, 'datasource_access', datasource.get_perm())
-        if datasource.schema:
-            merge_perm(sm, 'schema_access', datasource.schema_perm)
+        if datasource and datasource.perm not in view_menu_set:
+            merge_perm(sm, 'datasource_access', datasource.get_perm())
+            if datasource.schema_perm:
+                merge_perm(sm, 'schema_access', datasource.schema_perm)
 
 
 def create_missing_database_perms(view_menu_set):
     logging.info("Creating missing database permissions.")
     databases = db.session.query(models.Database).all()
     for database in databases:
-        if database.perm in view_menu_set:
-            continue
-        merge_perm(sm, 'database_access', database.perm)
+        if database and database.perm not in view_menu_set:
+            merge_perm(sm, 'database_access', database.perm)
+
+
+def create_missing_metrics_perm(view_menu_set):
+    """Create permissions for restricted metrics
+
+    :param metrics: a list of metrics to be processed, if not specified,
+        all metrics are processed
+    :type metrics: models.SqlMetric or models.DruidMetric
+    """
+    logging.info("Creating missing metrics permissions")
+    metrics = []
+    for model in [models.SqlMetric, models.DruidMetric]:
+        metrics += list(db.session.query(model).all())
+
+    for metric in metrics:
+        if (metric.is_restricted and metric.perm and
+                metric.perm not in view_menu_set):
+            merge_perm('metric_access', metric.perm)
 
 
 def sync_role_definitions():
@@ -189,14 +205,13 @@ def sync_role_definitions():
     set_role('granter', pvms, is_granter_pvm)
     set_role('sql_lab', pvms, is_sql_lab_pvm)
 
-    PUBLIC_ROLE_LIKE_GAMMA = conf.get('PUBLIC_ROLE_LIKE_GAMMA', False)
-    if PUBLIC_ROLE_LIKE_GAMMA:
-        set_role(PUBLIC_ROLE_LIKE_GAMMA, pvms, is_gamma_pvm)
+    if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
+        set_role('Public', pvms, is_gamma_pvm)
 
     view_menu_set = db.session.query(models.SqlaTable).all()
     create_missing_datasource_perms(view_menu_set)
     create_missing_database_perms(view_menu_set)
-    models.init_metrics_perm()
+    create_missing_metrics_perm(view_menu_set)
 
     # commit role and view menu updates
     sm.get_session.commit()

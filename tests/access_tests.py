@@ -107,7 +107,6 @@ class RequestAccessTests(SupersetTestCase):
         updated_role = sm.find_role('override_me')
         perms = sorted(
             updated_role.permissions, key=lambda p: p.view_menu.name)
-        self.assertEquals(3, len(perms))
         druid_ds_1 = self.get_druid_ds_by_name('druid_ds_1')
         self.assertEquals(druid_ds_1.perm, perms[0].view_menu.name)
         self.assertEquals('datasource_access', perms[0].permission.name)
@@ -121,6 +120,7 @@ class RequestAccessTests(SupersetTestCase):
         self.assertEquals(birth_names.perm, perms[2].view_menu.name)
         self.assertEquals(
             'datasource_access', updated_role.permissions[2].permission.name)
+        self.assertEquals(3, len(perms))
 
     def test_override_role_permissions_drops_absent_perms(self):
         override_me = sm.find_role('override_me')
