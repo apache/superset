@@ -26,7 +26,7 @@ const propTypes = {
   json_endpoint: PropTypes.string.isRequired,
   csv_endpoint: PropTypes.string.isRequired,
   standalone_endpoint: PropTypes.string.isRequired,
-  query: PropTypes.string.isRequired,
+  query: PropTypes.string,
   column_formats: PropTypes.object,
   data: PropTypes.any,
   chartStatus: PropTypes.bool,
@@ -114,8 +114,10 @@ class ChartContainer extends React.Component {
         {}
       ),
 
-      done: () => {
+      done: (payload) => {
         // finished rendering callback
+        // Todo: end timer and chartLoading set to success
+        props.actions.chartUpdateSucceeded(payload.query);
       },
 
       clearError: () => {

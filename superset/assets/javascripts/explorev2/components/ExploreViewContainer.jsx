@@ -49,9 +49,9 @@ class ExploreViewContainer extends React.Component {
 
   onQuery(form_data) {
     const data = getParamObject(form_data, this.props.datasource_type);
-    this.queryFormData(data);
-
-    const params = $.param(data, true);
+    const params = `${this.props.datasource_type}/` +
+      `${this.props.form_data.datasource}/?${$.param(data, true)}`;
+    this.queryFormData(params);
     this.updateUrl(params);
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
@@ -64,15 +64,16 @@ class ExploreViewContainer extends React.Component {
   }
 
   updateUrl(params) {
-    const baseUrl =
-      `/superset/explore/${this.props.datasource_type}/${this.props.form_data.datasource}/`;
+    const baseUrl = `/superset/explore/${params}`;
     const newEndpoint = `${baseUrl}?${params}`;
     history.pushState({}, document.title, newEndpoint);
   }
 
-  queryFormData(data) {
-    this.props.actions.updateExplore(
-      this.props.datasource_type, this.props.form_data.datasource, data);
+  queryFormData(params) {
+    const jsonUrl = `/superset/explore_json/${params}`;
+    const csvUrl = `/superset/explore/${params}&csv=true`;
+    const standaloneUrl = `/superset/explore/${params}&standalone=true`;
+    this.props.actions.updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl);
   }
   handleResize() {
     this.setState({ height: this.getHeight() });

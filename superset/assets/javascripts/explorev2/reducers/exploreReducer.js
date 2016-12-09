@@ -124,6 +124,32 @@ export const exploreReducer = function (state, action) {
           chartUpdateEndTime,
         });
     },
+    [actions.UPDATE_EXPLORE_ENDPOINTS]() {
+      const vizUpdates = {
+        json_endpoint: action.jsonUrl,
+        csv_endpoint: action.csvUrl,
+        standalone_endpoint: action.standaloneUrl,
+        query: action.query,
+      };
+      return Object.assign(
+        {},
+        state,
+        {
+          viz: Object.assign({}, state.viz, vizUpdates),
+        });
+    },
+    [actions.CHART_UPDATE_SUCCEEDED]() {
+      const vizUpdates = {
+        query: action.query,
+      };
+      return Object.assign(
+        {},
+        state,
+        {
+          isChartLoading: false,
+          viz: Object.assign({}, state.viz, vizUpdates),
+        });
+    },
     [actions.CHART_UPDATE_STARTED]() {
       const chartUpdateStartTime = now();
       return Object.assign({}, state,
