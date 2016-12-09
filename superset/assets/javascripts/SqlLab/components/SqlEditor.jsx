@@ -15,10 +15,10 @@ import {
 } from 'react-bootstrap';
 
 import SouthPane from './SouthPane';
-import Timer from './Timer';
-
+import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
+import { STATE_BSSTYLE_MAP } from '../constants.js';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -208,7 +208,14 @@ class SqlEditor extends React.PureComponent {
         </div>
         <div className="pull-right">
           {limitWarning}
-          <Timer query={this.props.latestQuery} />
+          {this.props.latestQuery &&
+            <Timer
+              startTime={this.props.latestQuery.startDttm}
+              endTime={this.props.latestQuery.endDttm}
+              state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+              isRunning={this.props.latestQuery.state === 'running'}
+            />
+          }
         </div>
       </div>
     );
