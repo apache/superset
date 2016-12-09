@@ -9,7 +9,7 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 
-const CHART_STATE_MAP = {
+const CHART_STATUS_MAP = {
   failed: 'danger',
   loading: 'warning',
   success: 'success',
@@ -218,8 +218,8 @@ class ChartContainer extends React.Component {
                   startTime={this.props.chartUpdateStartTime}
                   endTime={this.props.chartUpdateEndTime}
                   isRunning={this.props.chartStatus === 'loading'}
-                  state={CHART_STATE_MAP[this.props.chartStatus]}
-                  style={{ 'font-size': '10px' }}
+                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  style={{ 'font-size': '10px', 'margin-right': '5px' }}
                 />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
