@@ -85,7 +85,7 @@ class SqlLabTests(SupersetTestCase):
         # Not logged in, should error out
         resp = self.client.get('/superset/queries/0')
         # Redirects to the login page
-        self.assertEquals(302, resp.status_code)
+        self.assertEquals(403, resp.status_code)
 
         # Admin sees queries
         self.login('admin')
@@ -113,7 +113,7 @@ class SqlLabTests(SupersetTestCase):
         self.logout()
         resp = self.client.get('/superset/queries/0')
         # Redirects to the login page
-        self.assertEquals(302, resp.status_code)
+        self.assertEquals(403, resp.status_code)
 
     def test_search_query_on_db_id(self):
         self.run_some_queries()
