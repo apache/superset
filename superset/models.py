@@ -394,11 +394,10 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             slc_to_override.override(slc_to_import)
             session.flush()
             return slc_to_override.id
-        else:
-            session.add(slc_to_import)
-            logging.info('Final slice: {}'.format(slc_to_import.to_json()))
-            session.flush()
-            return slc_to_import.id
+        session.add(slc_to_import)
+        logging.info('Final slice: {}'.format(slc_to_import.to_json()))
+        session.flush()
+        return slc_to_import.id
 
 
 def set_related_perm(mapper, connection, target):  # noqa
@@ -618,7 +617,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     remote_id=slc.id,
                     datasource_name=slc.datasource.name,
                     schema=slc.datasource.name,
-                    database_name=slc.datasource.database.database_name,
+                    database_name=slc.datasource.database.name,
                 )
             copied_dashboard.alter_params(remote_id=dashboard_id)
             copied_dashboards.append(copied_dashboard)
@@ -629,7 +628,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
                     db.session, dashboard_type, dashboard_id)
                 eager_datasource.alter_params(
                     remote_id=eager_datasource.id,
-                    database_name=eager_datasource.database.database_name,
+                    database_name=eager_datasource.database.name,
                 )
                 make_transient(eager_datasource)
                 eager_datasources.append(eager_datasource)
@@ -1619,9 +1618,7 @@ class DruidCluster(Model, AuditMixinNullable):
         return self.cluster_name
 
 
-
 class DruidColumn(Model, AuditMixinNullable, ImportMixin):
-
     """ORM model for storing Druid datasource column metadata"""
 
     __tablename__ = 'columns'
@@ -1770,7 +1767,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         def lookup_obj(lookup_column):
             return db.session.query(DruidColumn).filter(
                 DruidColumn.datasource_name == lookup_column.datasource_name,
-                DruidColumn.metric_name == lookup_column.column_name).first()
+                DruidColumn.column_name == lookup_column.column_name).first()
 
         return import_util.import_simple_obj(db.session, i_column, lookup_obj)
 
@@ -1964,7 +1961,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
          superset instances. Audit metadata isn't copies over.
         """
         def lookup_datasource(d):
-            return db.session.query(DruidDatasource).join(Database).filter(
+            return db.session.query(DruidDatasource).join(DruidCluster).filter(
                 DruidDatasource.datasource_name == d.datasource_name,
                 DruidCluster.cluster_name == d.cluster_name,
             ).first()

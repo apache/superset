@@ -39,7 +39,8 @@ def import_datasource(
         logging.info('Importing metric {} from the datasource: {}'.format(
             new_m.to_json(), i_datasource.full_name))
         imported_m = i_datasource.metric_cls.import_obj(new_m)
-        if imported_m not in datasource.metrics:
+        if (imported_m.metric_name not in
+                [m.metric_name for m in datasource.metrics]):
             datasource.metrics.append(imported_m)
 
     for c in i_datasource.columns:
@@ -48,7 +49,8 @@ def import_datasource(
         logging.info('Importing column {} from the datasource: {}'.format(
             new_c.to_json(), i_datasource.full_name))
         imported_c = i_datasource.column_cls.import_obj(new_c)
-        if imported_c not in datasource.columns:
+        if (imported_c.column_name not in
+                [c.column_name for c in datasource.columns]):
             datasource.columns.append(imported_c)
     session.flush()
     return datasource.id
