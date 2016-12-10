@@ -41,6 +41,7 @@ class RolePermissionTests(SupersetTestCase):
         self.assert_cannot_write('DruidColumnInlineView', perm_set)
 
     def assert_can_gamma(self, perm_set):
+        self.assert_can_read('DatabaseAsync', perm_set)
         self.assert_can_read('TableModelView', perm_set)
 
         # make sure that user can create slices and dashboards

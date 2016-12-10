@@ -34,7 +34,7 @@ ADMIN_ONLY_VIEW_MENUES = {
     'RoleModelView',
     'Security',
     'UserDBModelView',
-} | READ_ONLY_MODELVIEWS
+}
 
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
