@@ -195,6 +195,17 @@ function nvd3Vis(slice) {
             chart.labelThreshold(0.05)  // Configure the minimum slice size for labels to show up
               .labelType(fd.pie_label_type);
             chart.cornerRadius(true);
+            if (fd.pie_half_circle) { // Configure the pie more tyles
+              chart.pie
+                .startAngle(function (d) {
+                  return d.startAngle / 2 - Math.PI / 2;
+                })
+                .endAngle(function (d) {
+                  return d.endAngle / 2 - Math.PI / 2;
+                });
+            }
+            chart.padAngle(fd.pie_pad_angle);
+            chart.cornerRadius(fd.pie_corner_radius);
             break;
 
           case 'column':

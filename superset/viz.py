@@ -1212,10 +1212,16 @@ class DistributionPieViz(NVD3Viz):
         'fields': (
             'metrics', 'groupby',
             'limit',
+        )
+    }, {
+        'label': 'Chart Options',
+        'fields': (
             'pie_label_type',
             ('donut', 'show_legend'),
-            'labels_outside',
-        )
+            ('labels_outside', 'pie_half_circle'),
+            ('pie_pad_angle', 'pie_corner_radius'),
+        ),
+        "description": _("Rendering options for the pie chart")
     },)
 
     def query_obj(self):
