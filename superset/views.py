@@ -517,7 +517,9 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
-    list_columns = ['database_name', 'creator', 'changed_on_']
+    list_columns = [
+        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
+        'allow_dml', 'creator', 'changed_on_']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
