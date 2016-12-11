@@ -6,10 +6,10 @@ text {
   font-weight: bold;
 }
 
-rect {
+/*rect {
   fill: none;
   stroke: #fff;
-}
+}*/
 
 rect.parent,
 .grandparent rect {
