@@ -105,7 +105,8 @@ function nvd3Vis(slice) {
       const reduceXTicks = fd.reduce_x_ticks || false;
       let stacked = false;
       let row;
-
+      const xArray = [];
+      let payloadData2;
       const drawGraph = function () {
         switch (vizType) {
           case 'line':
@@ -151,11 +152,16 @@ function nvd3Vis(slice) {
             break;
 
           case 'dist_bar':
-            chart = nv.models.multiBarChart()
-            .showControls(fd.show_controls)
-            .reduceXTicks(reduceXTicks)
-            .rotateLabels(45)
-            .groupSpacing(0.1); // Distance between each group of bars.
+            if (fd.bar_horizontal) {
+              chart = nv.models.multiBarHorizontalChart()
+              .color(d3.scale.category10().range());
+            } else {
+              chart = nv.models.multiBarChart()
+              .showControls(fd.show_controls)
+              .reduceXTicks(reduceXTicks)
+              .rotateLabels(45)
+              .groupSpacing(0.1); // Distance between each group of bars.
+            }
 
             chart.xAxis
             .showMaxMin(false);
@@ -182,6 +188,49 @@ function nvd3Vis(slice) {
               width = barchartWidth();
             }
             chart.width(width);
+            break;
+
+          // add bar style
+          case 'linePlusBar':
+            payloadData2 = payload.data;
+            payloadData2[0].bar = true;
+            chart = nv.models.linePlusBarChart()
+              .color(d3.scale.category10().range());
+
+            // solve this problem: if x is string, can't get result
+            for (let m = 0; m < payloadData2[0].values.length; m++) {
+              xArray.push(payloadData2[0].values[m].x);
+            }
+            for (let i = 0; i < payloadData2.length; i++) {
+              for (let n = 0; n < payloadData2[i].values.length; n++) {
+                payloadData2[i].values[n].x = n;
+              }
+            }
+            // style
+            if (fd.y_axis_label1 !== '') {
+              chart.y1Axis.axisLabel(fd.y_axis_label1);
+            }
+            if (fd.y_axis_label2 !== '') {
+              chart.y2Axis.axisLabel(fd.y_axis_label2);
+            }
+            if (fd.x_axis_label !== '') {
+              chart.xAxis.axisLabel(fd.x_axis_label);
+            }
+
+            if (fd.x_axis_format !== 'smart_date') {
+              // the x is date
+              chart.xAxis.tickFormat(function (d) {
+                return d3.time.format(fd.x_axis_format)(new Date(xArray[d]));
+              });
+            } else {
+              chart.xAxis.tickFormat(function (d) {
+                return xArray[d];
+              });
+            }
+            chart.y1Axis.tickFormat(d3.format(fd.y_axis_format1));
+            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format2));
+
+            chart.focusEnable(false);
             break;
 
           case 'pie':
@@ -276,39 +325,44 @@ function nvd3Vis(slice) {
         if (fd.x_log_scale) {
           chart.xScale(d3.scale.log());
         }
-        let xAxisFormatter;
-        if (vizType === 'bubble') {
-          xAxisFormatter = d3.format('.3s');
-        } else if (fd.x_axis_format === 'smart_date') {
-          xAxisFormatter = formatDate;
-          chart.xAxis.tickFormat(xAxisFormatter);
-        } else if (fd.x_axis_format !== undefined) {
-          xAxisFormatter = timeFormatFactory(fd.x_axis_format);
-          chart.xAxis.tickFormat(xAxisFormatter);
-        }
 
-        if (chart.hasOwnProperty('x2Axis')) {
-          chart.x2Axis.tickFormat(xAxisFormatter);
-          height += 30;
-        }
+        // multi,linePlusBar and multiBarHorizontal are special case
+        if (vizType !== 'linePlusBar') {
+          let xAxisFormatter;
+          if (vizType === 'bubble') {
+            xAxisFormatter = d3.format('.3s');
+          } else if (fd.x_axis_format === 'smart_date') {
+            xAxisFormatter = formatDate;
+            chart.xAxis.tickFormat(xAxisFormatter);
+          } else if (fd.x_axis_format !== undefined) {
+            xAxisFormatter = timeFormatFactory(fd.x_axis_format);
+            chart.xAxis.tickFormat(xAxisFormatter);
+          }
 
-        if (vizType === 'bubble') {
-          chart.xAxis.tickFormat(d3.format('.3s'));
-        } else if (fd.x_axis_format === 'smart_date') {
-          chart.xAxis.tickFormat(formatDate);
-        } else if (fd.x_axis_format !== undefined) {
-          chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
-        }
-        if (chart.yAxis !== undefined) {
-          chart.yAxis.tickFormat(d3.format('.3s'));
-        }
+          if (chart.hasOwnProperty('x2Axis')) {
+            chart.x2Axis.tickFormat(xAxisFormatter);
+            height += 30;
+          }
 
-        if (fd.y_axis_format) {
-          chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
-          if (chart.y2Axis !== undefined) {
-            chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+          if (vizType === 'bubble') {
+            chart.xAxis.tickFormat(d3.format('.3s'));
+          } else if (fd.x_axis_format === 'smart_date') {
+            chart.xAxis.tickFormat(formatDate);
+          } else if (fd.x_axis_format !== undefined) {
+            chart.xAxis.tickFormat(timeFormatFactory(fd.x_axis_format));
+          }
+          if (chart.yAxis !== undefined) {
+            chart.yAxis.tickFormat(d3.format('.3s'));
+          }
+
+          if (fd.y_axis_format) {
+            chart.yAxis.tickFormat(d3.format(fd.y_axis_format));
+            if (chart.y2Axis !== undefined) {
+              chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
+            }
           }
         }
+
         chart.color((d) => category21(d[colorKey]));
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
@@ -340,8 +394,15 @@ function nvd3Vis(slice) {
           svg = d3.select(slice.selector).append('svg');
         }
 
+        let svgData;
+        if (vizType === 'linePlusBar' || vizType === 'multi') {
+          svgData = payloadData2;
+        } else {
+          svgData = payload.data;
+        }
+
         svg
-        .datum(payload.data)
+        .datum(svgData)
         .transition().duration(500)
         .attr('height', height)
         .attr('width', width)
