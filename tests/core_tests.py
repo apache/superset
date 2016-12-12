@@ -159,10 +159,13 @@ class CoreTests(SupersetTestCase):
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
-        user = sm.find_user('admin')
         sm.add_role('explore-v2-beta')
-        user.roles.append(sm.find_role('explore-v2-beta'))
-        self.login(username='admin')
+
+        appbuilder.sm.add_user(
+            'explore_beta', 'explore_beta', ' user', 'explore_beta@airbnb.com',
+            appbuilder.sm.find_role('explore-v2-beta'),
+            password='general')
+        self.login(username='explore_beta', password='general')
 
         Slc = models.Slice
         urls = []
