@@ -55,13 +55,15 @@ class ChartContainer extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.chartStatus !== this.props.chartStatus) {
+    if (nextProps.chartStatus !== this.props.chartStatus
+      || nextProps.height !== this.props.height) {
       this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
     }
   }
 
   shouldComponentUpdate(nextProps) {
-    return (nextProps.chartStatus !== this.props.chartStatus);
+    return (nextProps.chartStatus !== this.props.chartStatus
+      || nextProps.height !== this.props.height);
   }
 
   componentDidUpdate() {
@@ -184,7 +186,7 @@ class ChartContainer extends React.Component {
           id={this.props.containerId}
           ref={(ref) => { this.chartContainerRef = ref; }}
           className={this.props.viz_type}
-          style={{ overflowX: 'scroll' }}
+          style={{ overflowX: 'auto' }}
         />
       </div>
     );

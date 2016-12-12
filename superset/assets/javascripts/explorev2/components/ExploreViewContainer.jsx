@@ -107,7 +107,6 @@ class ExploreViewContainer extends React.Component {
             <ChartContainer
               actions={this.props.actions}
               height={this.state.height}
-              actions={this.props.actions}
             />
           </div>
         </div>
