@@ -4,27 +4,29 @@ import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
   from '../reduxUtils.js';
 
-export const defaultQueryEditor = {
-  id: shortid.generate(),
-  title: 'Untitled Query',
-  sql: 'SELECT *\nFROM\nWHERE',
-  selectedText: null,
-  latestQueryId: null,
-  autorun: false,
-  dbId: null,
-};
+export function getInitialState(defaultDbId) {
+  const defaultQueryEditor = {
+    id: shortid.generate(),
+    title: 'Untitled Query',
+    sql: 'SELECT *\nFROM\nWHERE',
+    selectedText: null,
+    latestQueryId: null,
+    autorun: false,
+    dbId: defaultDbId,
+  };
 
-export const initialState = {
-  alerts: [],
-  networkOn: true,
-  queries: {},
-  databases: {},
-  queryEditors: [defaultQueryEditor],
-  tabHistory: [defaultQueryEditor.id],
-  tables: [],
-  queriesLastUpdate: 0,
-  activeSouthPaneTab: 'Results',
-};
+  return {
+    alerts: [],
+    networkOn: true,
+    queries: {},
+    databases: {},
+    queryEditors: [defaultQueryEditor],
+    tabHistory: [defaultQueryEditor.id],
+    tables: [],
+    queriesLastUpdate: 0,
+    activeSouthPaneTab: 'Results',
+  };
+}
 
 export const sqlLabReducer = function (state, action) {
   const actionHandlers = {
@@ -70,7 +72,7 @@ export const sqlLabReducer = function (state, action) {
       return Object.assign({}, state, { queries: newQueries });
     },
     [actions.RESET_STATE]() {
-      return Object.assign({}, initialState);
+      return Object.assign({}, getInitialState());
     },
     [actions.MERGE_TABLE]() {
       const at = Object.assign({}, action.table);
@@ -134,8 +136,10 @@ export const sqlLabReducer = function (state, action) {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {
         const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-        if (qe.latestQueryId) {
-          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null });
+        if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
+          const newResults = Object.assign(
+            {}, state.queries[qe.latestQueryId].results, { data: [], query: null });
+          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: newResults });
           const queries = Object.assign({}, state.queries, { [q.id]: q });
           newState = Object.assign({}, state, { queries });
         }
