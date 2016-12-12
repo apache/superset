@@ -1,0 +1,84 @@
+{% block header %}
+	<script src="http://code.jquery.com/jquery-latest.js"></script>
+{% endblock %}
+
+{% block content %}
+	<div style="overflow:hidden;">
+		<div style="float:left;">
+			<p style="height:20px;">
+				参数设置(<a href="/static/doc/rest.doc" download="rest.doc">参数说明</a>)
+				<span style="margin-left:50px;">
+					<select style="height:20px;">
+						<option value="1">根据条件获取</option>
+						<option value="2" selected="selected">根据SQL语句获取</option>
+					</select>
+				</span>
+			</p>
+			<textarea id="param" style="width:600px;height:500px;text-align:left;"></textarea>
+		</div>
+		<div style="float:left;margin-left:20px;">
+			<p style="height:20px;">
+				<button onclick="getData()">获取数据</button>
+			</p>
+			<textarea id="response" readonly="readonly" style="width:850px;height:500px"></textarea>
+		</div>
+	</div>
+{% endblock %}
+
+{% block tail_js %}
+<script>
+	function getData(){
+		var str = $("#param").val();
+		//去掉空格,回车换行
+		str = str.replace(/[ ]/g,"").replace(/[\r\n]/g,"")
+		var params = null;
+		try{
+			params = $.parseJSON($.trim(str));
+		} catch(e){
+			$("#response").val('json格式有误');
+			return;
+		}
+		if(params == null){
+			$("#response").val('json格式有误');
+			return;
+		}
+		if($("select").val() == "1"){
+			$.ajax({
+				type: 'post',
+				url:'/superset/rest/api/query',
+				data: params,
+				success: function(data){
+					$("#response").val(data);
+				},
+				error: function(){
+					alert("error")
+				}
+			});
+		} else{
+			//将sql还原
+			var content = $("#param").val();
+			var str = params.sql.substring(0,6);
+			str = '"' + str + ' ';
+			sql = content.substring(content.indexOf(str)+1);
+			sql = sql.substring(0, sql.indexOf('"'));
+			params.sql = sql;
+			$.ajax({
+				type: 'post',
+				url:'/superset/rest/api/querySql',
+				data: params,
+				success: function(data){
+					$("#response").val(data);
+				},
+				error: function(){
+					alert("error")
+				}
+			});
+		}
+		
+	}
+</script>
+{% endblock %}
+
+
+
+

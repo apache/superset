@@ -439,6 +439,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.dashboard_title
 
+    def get_dashboard_title(self):
+        return self.dashboard_title
+
     @property
     def table_names(self):
         return ", ".join(
@@ -726,7 +729,21 @@ class Database(Model, AuditMixinNullable):
                 url.database += '/' + schema
         elif schema:
             url.database = schema
-        return create_engine(url, **params)
+        # return create_engine(url, **params)
+
+        # to solve the garbled problem
+        sqlType = self.sqlalchemy_uri.split("+")[0]
+        if sqlType == 'oracle':
+            import os
+            os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
+            return create_engine(url, **params)
+        elif sqlType == 'mysql':
+            return create_engine(
+                url,
+                connect_args={'charset': 'utf8'},
+            )
+        else:
+            return create_engine(url, **params)
 
     def get_reserved_words(self):
         return self.get_sqla_engine().dialect.preparer.reserved_words
@@ -1164,6 +1181,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
+        template_processor = get_template_processor(
+            database=self.database)
+        sql = template_processor.process_template(sql)
         df = pd.read_sql_query(
             sql=sql,
             con=engine

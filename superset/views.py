@@ -40,6 +40,7 @@ from superset import (
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
+from werkzeug.datastructures import ImmutableMultiDict
 
 config = app.config
 log_this = models.Log.log_this
@@ -284,17 +285,21 @@ class DashboardFilter(SupersetFilter):
         Dash = models.Dashboard  # noqa
         # TODO(bogdan): add `schema_access` support here
         datasource_perms = self.get_view_menus('datasource_access')
+
         slice_ids_qry = (
             db.session
             .query(Slice.id)
             .filter(Slice.perm.in_(datasource_perms))
         )
+
+        dashboard_perms = self.get_view_menus('dashboard_access')
         query = query.filter(
             Dash.id.in_(
                 db.session.query(Dash.id)
                 .distinct()
                 .join(Dash.slices)
                 .filter(Slice.id.in_(slice_ids_qry))
+                .filter(Dash.dashboard_title.in_(dashboard_perms))
             )
         )
         return query
@@ -939,6 +944,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
             obj.owners.append(g.user)
         utils.validate_json(obj.json_metadata)
         utils.validate_json(obj.position_json)
+        security.merge_perm(sm, 'dashboard_access', obj.dashboard_title)
 
     def pre_update(self, obj):
         check_ownership(obj)
@@ -1584,6 +1590,7 @@ class Superset(BaseSupersetView):
             dash = models.Dashboard(
                 dashboard_title=request.args.get('new_dashboard_name'),
                 owners=[g.user] if g.user else [])
+            security.merge_perm(sm, 'dashboard_access', dash.dashboard_title)
             flash(
                 "Dashboard [{}] just got created and slice [{}] was added "
                 "to it".format(
@@ -2704,13 +2711,113 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
-        d = {
-            'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
-        }
-        return self.render_template(
-            'superset/sqllab.html',
-            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
-        )
+        return self.render_template('superset/sqllab.html')
+
+    @expose("/rest/api")
+    def restIndex(self):
+        return render_template('rest.html')
+
+    @expose("/rest/api/query", methods=['GET', 'POST'])
+    def query(self):
+        try:
+            username = request.form['username']
+            password = request.form['password']
+        except Exception as e:
+            return "the user or password is invalid"
+        user = self.appbuilder.sm.auth_user_db(username, password)
+        if not user:
+            return "the user or password is invalid"
+        else:
+            from flask_login import login_user, logout_user
+            login_user(user, remember=False)
+
+            try:
+                table = db.session.query(models.SqlaTable)\
+                    .filter_by(table_name=request.form['tableName']).one()
+                param = {}
+                for key in request.form:
+                    if key == 'username' or key == 'password' \
+                            or key == 'tableName':
+                        continue
+                    elif key == 'metrics':
+                        param['metrics'] = request.form[key].split(',')
+                    elif key == 'since' or key == 'until':
+                        param[key] = request.form[key].replace('+', ' ')
+                    else:
+                        param[key] = request.form[key]
+                dict = ImmutableMultiDict(param)
+                print(dict)
+                try:
+                    viz_obj = self.get_viz(datasource_type='table',
+                                           datasource_id=table.id,
+                                           args=dict)
+                except Exception as e:
+                    return utils.error_msg_from_exception(e)
+
+                if not self.datasource_access(viz_obj.datasource):
+                    return DATASOURCE_ACCESS_ERR
+
+                payload = ""
+                try:
+                    payload = viz_obj.get_json()
+                except Exception as e:
+                    return utils.error_msg_from_exception(e)
+                return json.dumps(json.loads(payload)['data']['records'])
+            except Exception as e:
+                return utils.error_msg_from_exception(e)
+
+    @expose("/rest/api/querySql", methods=['GET', 'POST'])
+    def querysql(self):
+        try:
+            username = request.form['username']
+            password = request.form['password']
+        except Exception as e:
+            return 'the user or password is invalid'
+        user = self.appbuilder.sm.auth_user_db(username, password)
+        if not user:
+            return 'the user or password is invalid'
+        else:
+            from flask_login import login_user, logout_user
+            login_user(user, remember=False)
+
+            try:
+                sql = request.form.get('sql')
+                database_name = request.form.get('database_name')
+
+                session = db.session()
+                mydb = session.query(models.Database)\
+                    .filter_by(database_name=database_name).first()
+
+                if not mydb:
+                    return 'Database with id {} is missing.'\
+                        .format(database_name)
+
+                if not self.database_access(mydb):
+                    return get_database_access_error_msg(database_name)
+                session.commit()
+
+                client_id = str(time.time()).replace('.', '')[2:13]
+                query = models.Query(
+                    database_id=int(mydb.id),
+                    limit=int(app.config.get('SQL_MAX_ROW', None)),
+                    sql=sql,
+                    user_id=int(g.user.get_id()),
+                    client_id=client_id,
+                )
+                session.add(query)
+                session.commit()
+                query_id = query.id
+
+                try:
+                    result = sql_lab.get_sql_results(query_id,
+                                                     return_results=True)
+                except Exception as e:
+                    logging.exception(e)
+                    return json.dumps({'error': "{}".format(e)})
+                return json.dumps(json.loads(result)['data'])
+            except Exception as e:
+                return utils.error_msg_from_exception(e)
+
 appbuilder.add_view_no_menu(Superset)
 
 if config['DRUID_IS_ACTIVE']:
