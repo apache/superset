@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import { visTypes, sectionsToRender, commonControlPanelSections } from '../stores/store';
+import visTypes, { sectionsToRender, commonControlPanelSections } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import Filters from './Filters';

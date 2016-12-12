@@ -421,7 +421,7 @@ class TableViz(BaseViz):
             'table_timestamp_format',
             'row_limit',
             'page_length',
-            ('include_search', None),
+            ('include_search', 'table_filter'),
         )
     })
     form_overrides = ({

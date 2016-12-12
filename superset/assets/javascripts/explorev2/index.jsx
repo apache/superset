@@ -5,6 +5,7 @@ import ExploreViewContainer from './components/ExploreViewContainer';
 import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
+import { now } from '../modules/dates';
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
 const $ = window.$ = require('jquery'); // eslint-disable-line
@@ -26,6 +27,9 @@ const bootstrappedState = Object.assign(
     datasource_type: bootstrapData.datasource_type,
     viz: bootstrapData.viz,
     user_id: bootstrapData.user_id,
+    chartUpdateStartTime: now(),
+    chartUpdateEndTime: null,
+    chartStatus: 'loading',
   }
 );
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);

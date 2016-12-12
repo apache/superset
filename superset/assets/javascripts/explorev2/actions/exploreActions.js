@@ -115,7 +115,7 @@ export function chartUpdateFailed(error) {
 
 export function updateExplore(datasource_type, datasource_id, form_data) {
   return function (dispatch) {
-    dispatch(chartUpdateStarted);
+    dispatch(chartUpdateStarted());
     const updateUrl =
     `/superset/update_explore/${datasource_type}/${datasource_id}/`;
 
@@ -193,4 +193,9 @@ export function saveSlice(url) {
       }
     });
   };
+}
+
+export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
+export function updateChartStatus(status) {
+  return { type: UPDATE_CHART_STATUS, status };
 }

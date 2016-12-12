@@ -149,13 +149,19 @@ class AuditMixinNullable(AuditMixin):
             Integer, ForeignKey('ab_user.id'),
             default=cls.get_user_id, onupdate=cls.get_user_id, nullable=True)
 
-    @renders('created_on')
+    def _user_link(self, user):
+        if not user:
+            return ''
+        url = '/superset/profile/{}/'.format(user.username)
+        return '<a href="{}">{}</a>'.format(url, escape(user) or '')
+
+    @renders('created_by')
     def creator(self):  # noqa
-        return '{}'.format(self.created_by or '')
+        return self._user_link(self.created_by)
 
     @property
     def changed_by_(self):
-        return '{}'.format(self.changed_by or '')
+        return self._user_link(self.changed_by)
 
     @renders('changed_on')
     def changed_on_(self):
@@ -438,7 +444,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def table_names(self):
-        return ", ".join({"{}".format(s.datasource) for s in self.slices})
+        return ", ".join(
+            {"{}".format(s.datasource.name) for s in self.slices})
 
     @property
     def url(self):
@@ -913,7 +920,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             name='_customer_location_uc'),)
 
     def __repr__(self):
-        return self.table_name
+        return self.name
 
     @property
     def description_markeddown(self):
@@ -921,9 +928,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def link(self):
-        table_name = escape(self.table_name)
+        name = escape(self.name)
         return Markup(
-            '<a href="{self.explore_url}">{table_name}</a>'.format(**locals()))
+            '<a href="{self.explore_url}">{name}</a>'.format(**locals()))
 
     @property
     def schema_perm(self):
@@ -937,7 +944,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def name(self):
-        return self.table_name
+        if not self.schema:
+            return self.table_name
+        return "{}.{}".format(self.schema, self.table_name)
 
     @property
     def full_name(self):
