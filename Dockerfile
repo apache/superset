@@ -27,11 +27,11 @@ RUN mkdir -p /home/superset/logs/superset/
 
 RUN pip3 --default-timeout=100 install superset_tddv
 
-RUN export PATH=~/.local/bin:$PATH
+RUN echo "export PATH=/home/supperset/.local/bin:$PATH > /etc/profile"
 
-RUN export LC_ALL=C.UTF-8
+ENV LC_ALL C.UTF-8
 
-RUN export LANG=C.UTF-8
+ENV LANG C.UTF-8
 
 # RUN fabmanager create-admin --app superset
 
