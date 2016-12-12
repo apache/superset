@@ -7,6 +7,13 @@ import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
+import Timer from '../../components/Timer';
+
+const CHART_STATUS_MAP = {
+  failed: 'danger',
+  loading: 'warning',
+  success: 'success',
+};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -22,8 +29,10 @@ const propTypes = {
   query: PropTypes.string.isRequired,
   column_formats: PropTypes.object,
   data: PropTypes.any,
-  isChartLoading: PropTypes.bool,
+  chartStatus: PropTypes.bool,
   isStarred: PropTypes.bool.isRequired,
+  chartUpdateStartTime: PropTypes.string.isRequired,
+  chartUpdateEndTime: PropTypes.string.isRequired,
   alert: PropTypes.string,
   table_name: PropTypes.string,
 };
@@ -157,7 +166,7 @@ class ChartContainer extends React.Component {
         </Alert>
       );
     }
-    if (this.props.isChartLoading) {
+    if (this.props.chartStatus === 'loading') {
       return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
     }
     return (
@@ -205,6 +214,13 @@ class ChartContainer extends React.Component {
               }
 
               <div className="pull-right">
+                <Timer
+                  startTime={this.props.chartUpdateStartTime}
+                  endTime={this.props.chartUpdateEndTime}
+                  isRunning={this.props.chartStatus === 'loading'}
+                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  style={{ 'font-size': '10px', 'margin-right': '5px' }}
+                />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
@@ -232,10 +248,12 @@ function mapStateToProps(state) {
     csv_endpoint: state.viz.csv_endpoint,
     json_endpoint: state.viz.json_endpoint,
     standalone_endpoint: state.viz.standalone_endpoint,
+    chartUpdateStartTime: state.chartUpdateStartTime,
+    chartUpdateEndTime: state.chartUpdateEndTime,
     query: state.viz.query,
     column_formats: state.viz.column_formats,
     data: state.viz.data,
-    isChartLoading: state.isChartLoading,
+    chartStatus: state.chartStatus,
     isStarred: state.isStarred,
     alert: state.chartAlert,
     table_name: state.viz.form_data.datasource_name,
