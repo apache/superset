@@ -48,4 +48,3 @@ export function initialState(vizType = 'table', datasourceType = 'table') {
     isStarred: false,
   };
 }
-

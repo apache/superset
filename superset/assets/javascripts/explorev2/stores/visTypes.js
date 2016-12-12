@@ -702,4 +702,3 @@ export function sectionsToRender(vizType, datasourceType) {
     viz.controlPanelSections, timeSection, sqlClause);
   return sections;
 }
-

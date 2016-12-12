@@ -2847,6 +2847,7 @@ class CssTemplateModelView(SupersetModelView, DeleteMixin):
 class CssTemplateAsyncModelView(CssTemplateModelView):
     list_columns = ['template_name', 'css']
 
+
 appbuilder.add_separator("Sources")
 appbuilder.add_view(
     CssTemplateModelView,
