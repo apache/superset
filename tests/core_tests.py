@@ -95,25 +95,6 @@ class CoreTests(SupersetTestCase):
         assert_admin_view_menus_in('Alpha', self.assertNotIn)
         assert_admin_view_menus_in('Gamma', self.assertNotIn)
 
-    def test_update_explore(self):
-        self.login(username='admin')
-        tbl_id = self.table_ids.get('energy_usage')
-        data = json.dumps({
-            'viz_type': 'sankey',
-            'groupby': ['source', 'target'],
-            'metrics': ['sum__value'],
-            'row_limit': 5000,
-            'flt_col_0': 'source',
-            'datasource_name': 'energy_usage',
-            'datasource_id': tbl_id,
-            'datasource_type': 'table',
-            'previous_viz_type': 'sankey'
-        })
-        response = self.client.post('/superset/update_explore/table/{}/'.format(tbl_id),
-            data=dict(data=data))
-        assert response.status_code == 200
-        self.logout()
-
     def test_save_slice(self):
         self.login(username='admin')
         slice_name = "Energy Sankey"

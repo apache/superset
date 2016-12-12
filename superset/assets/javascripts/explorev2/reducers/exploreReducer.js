@@ -1,7 +1,9 @@
+/* eslint camelcase: 0 */
 import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 import { now } from '../../modules/dates';
+import { getExploreUrl } from '../exploreUtils';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -105,29 +107,35 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
-    [actions.UPDATE_CHART]() {
+    [actions.CHART_UPDATE_SUCCEEDED]() {
       const vizUpdates = {
-        column_formats: action.viz.column_formats,
-        json_endpoint: action.viz.json_endpoint,
-        csv_endpoint: action.viz.csv_endpoint,
-        standalone_endpoint: action.viz.standalone_endpoint,
-        query: action.viz.query,
-        data: action.viz.data,
+        query: action.query,
       };
-      const chartUpdateEndTime = now();
       return Object.assign(
         {},
         state,
         {
-          viz: Object.assign({}, state.viz, vizUpdates),
           chartStatus: 'success',
-          chartUpdateEndTime,
+          viz: Object.assign({}, state.viz, vizUpdates),
         });
     },
     [actions.CHART_UPDATE_STARTED]() {
       const chartUpdateStartTime = now();
+      const form_data = Object.assign({}, state.viz.form_data);
+      const datasource_type = state.datasource_type;
+      const vizUpdates = {
+        json_endpoint: getExploreUrl(form_data, datasource_type, 'json'),
+        csv_endpoint: getExploreUrl(form_data, datasource_type, 'csv'),
+        standalone_endpoint:
+          getExploreUrl(form_data, datasource_type, 'standalone'),
+      };
       return Object.assign({}, state,
-        { chartStatus: 'loading', chartUpdateEndTime: null, chartUpdateStartTime });
+        {
+          chartStatus: 'loading',
+          chartUpdateEndTime: null,
+          chartUpdateStartTime,
+          viz: Object.assign({}, state.viz, vizUpdates),
+        });
     },
     [actions.CHART_UPDATE_FAILED]() {
       const chartUpdateEndTime = now();

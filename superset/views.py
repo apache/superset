@@ -1364,28 +1364,6 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         return redirect(viz_obj.get_url(**request.args))
 
-    @log_this
-    @has_access_api
-    @expose(
-        "/update_explore/<datasource_type>/<datasource_id>/", methods=['POST'])
-    def update_explore(self, datasource_type, datasource_id):
-        """Send back new viz on POST request for updating update explore view"""
-        form_data = json.loads(request.form.get('data'))
-        try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                args=form_data)
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response('{}'.format(e))
-        try:
-            viz_json = viz_obj.get_json()
-        except Exception as e:
-            logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
-        return viz_json
-
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
