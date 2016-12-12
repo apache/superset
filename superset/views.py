@@ -2711,7 +2711,13 @@ class Superset(BaseSupersetView):
     @expose("/sqllab")
     def sqllab(self):
         """SQL Editor"""
-        return self.render_template('superset/sqllab.html')
+        d = {
+            'defaultDbId': config.get('SQLLAB_DEFAULT_DBID'),
+        }
+        return self.render_template(
+            'superset/sqllab.html',
+            bootstrap_data=json.dumps(d, default=utils.json_iso_dttm_ser)
+        )
 
     @expose("/rest/api")
     def restIndex(self):
