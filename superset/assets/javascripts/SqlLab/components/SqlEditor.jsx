@@ -126,7 +126,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
     if (this.props.database && this.props.database.allow_run_async) {
-      const asyncToolTip = 'run query asynchronously';
+      const asyncToolTip = 'Run query asynchronously';
       runButtons.push(
         <Button
           bsSize="small"
@@ -179,7 +179,7 @@ class SqlEditor extends React.PureComponent {
     }
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
-      const ctasToolTip = 'run query with createTableAs';
+      const ctasToolTip = 'Create table as with query results';
       ctasControls = (
         <FormGroup>
           <InputGroup>
