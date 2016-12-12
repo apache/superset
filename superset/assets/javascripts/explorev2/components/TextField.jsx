@@ -23,7 +23,7 @@ export default class TextField extends React.Component {
   }
   render() {
     return (
-      <FormGroup controlId="formInlineName">
+      <FormGroup controlId="formInlineName" bsSize="small">
         <ControlLabelWithTooltip
           label={this.props.label}
           description={this.props.description}

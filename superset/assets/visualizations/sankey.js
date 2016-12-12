@@ -89,8 +89,8 @@ function sankeyVis(slice) {
           .html(function () { return getTooltipHtml(d); })
          .transition()
           .duration(200)
-          .style('left', (d3.event.layerX + 10) + 'px')
-          .style('top', (d3.event.layerY + 10) + 'px')
+          .style('left', (d3.event.offsetX + 10) + 'px')
+          .style('top', (d3.event.offsetY + 10) + 'px')
           .style('opacity', 0.95);
       }
 

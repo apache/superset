@@ -7,14 +7,7 @@ const propTypes = {
 };
 
 export default class CopyQueryTabUrl extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state = {
-      shortUrl: '',
-    };
-  }
-
-  componentWillMount() {
+  getUrl(callback) {
     const qe = this.props.queryEditor;
     const params = [];
     if (qe.dbId) params.push('dbid=' + qe.dbId);
@@ -25,23 +18,21 @@ export default class CopyQueryTabUrl extends React.PureComponent {
 
     const queryString = params.join('&');
     const queryLink = window.location.pathname + '?' + queryString;
-    getShortUrl(queryLink, this.onShortUrlSuccess.bind(this));
-  }
-
-  onShortUrlSuccess(data) {
-    this.setState({
-      shortUrl: data,
-    });
+    getShortUrl(queryLink, callback);
   }
 
   render() {
     return (
       <CopyToClipboard
         inMenu
-        text={this.state.shortUrl}
-        copyNode={<span>share query</span>}
+        copyNode={(
+          <div>
+            <i className="fa fa-clipboard" /> <span>share query</span>
+          </div>
+        )}
         tooltipText="copy URL to clipboard"
         shouldShowText={false}
+        getText={this.getUrl.bind(this)}
       />
     );
   }

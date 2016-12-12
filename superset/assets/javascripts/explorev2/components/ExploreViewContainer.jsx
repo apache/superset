@@ -7,7 +7,7 @@ import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
-import { autoQueryFields } from '../stores/store';
+import { autoQueryFields } from '../stores/fields';
 import { getParamObject } from '../exploreUtils';
 
 const $ = require('jquery');
@@ -30,15 +30,14 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
+    this.props.actions.updateChartStatus('success');
   }
 
   componentWillReceiveProps(nextProps) {
-    let refreshChart = false;
-    autoQueryFields.forEach((field) => {
-      if (nextProps.form_data[field] !== this.props.form_data[field]) {
-        refreshChart = true;
-      }
-    });
+    const refreshChart = Object.keys(nextProps.form_data).some((field) => (
+      nextProps.form_data[field] !== this.props.form_data[field]
+      && autoQueryFields.indexOf(field) !== -1)
+    );
     if (refreshChart) {
       this.onQuery(nextProps.form_data);
     }

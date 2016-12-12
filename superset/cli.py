@@ -21,43 +21,6 @@ manager = Manager(app)
 manager.add_command('db', MigrateCommand)
 
 
-@manager.option(
-    '-d', '--debug', action='store_true',
-    help="Start the web server in debug mode")
-@manager.option(
-    '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
-    help="Specify the address to which to bind the web server")
-@manager.option(
-    '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
-    help="Specify the port on which to run the web server")
-@manager.option(
-    '-w', '--workers', default=config.get("SUPERSET_WORKERS", 2),
-    help="Number of gunicorn web server workers to fire up")
-@manager.option(
-    '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
-    help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, address, port, timeout, workers):
-    """Starts a Superset web server"""
-    debug = debug or config.get("DEBUG")
-    if debug:
-        app.run(
-            host='0.0.0.0',
-            port=int(port),
-            threaded=True,
-            debug=True)
-    else:
-        cmd = (
-            "gunicorn "
-            "-w {workers} "
-            "--timeout {timeout} "
-            "-b {address}:{port} "
-            "--limit-request-line 0 "
-            "--limit-request-field_size 0 "
-            "superset:app").format(**locals())
-        print("Starting server with command: " + cmd)
-        Popen(cmd, shell=True).wait()
-
-
 @manager.command
 def init():
     """Inits the Superset application"""

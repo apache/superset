@@ -29,8 +29,13 @@
 
 {% if not current_user.is_anonymous() %}
     <li class="dropdown">
-      <a class="dropdown-toggle" data-toggle="dropdown" title="{{g.user.get_full_name()}}" href="#">
-        <span class="fa fa-user fa-lg" title=""></span><b class="caret"></b>
+      <a
+        class="dropdown-toggle"
+        data-toggle="dropdown"
+        title="{{g.user.get_full_name()}}"
+        href="javascript:void(0)"
+      >
+        <i class="fa fa-user"></i>&nbsp;<b class="caret"></b>
       </a>
         <ul class="dropdown-menu">
             <li><a href="{{appbuilder.get_url_for_userinfo}}"><span class="fa fa-fw fa-user"></span>{{_("Profile")}}</a></li>

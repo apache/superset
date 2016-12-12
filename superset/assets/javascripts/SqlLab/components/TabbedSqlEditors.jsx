@@ -101,7 +101,9 @@ class TabbedSqlEditors extends React.PureComponent {
     const activeQueryEditor = this.activeQueryEditor();
     const qe = {
       title: `Untitled Query ${queryCount}`,
-      dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
+      dbId: (activeQueryEditor && activeQueryEditor.dbId) ?
+        activeQueryEditor.dbId :
+        this.props.defaultDbId,
       schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
       autorun: false,
       sql: 'SELECT ...',
@@ -150,9 +152,7 @@ class TabbedSqlEditors extends React.PureComponent {
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
             {qe &&
-              <MenuItem eventKey="3">
-                <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
-              </MenuItem>
+              <CopyQueryTabUrl queryEditor={qe} />
             }
             <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
               <i className="fa fa-cogs" />
@@ -218,6 +218,7 @@ function mapStateToProps(state) {
     tabHistory: state.tabHistory,
     networkOn: state.networkOn,
     tables: state.tables,
+    defaultDbId: state.defaultDbId,
   };
 }
 function mapDispatchToProps(dispatch) {
