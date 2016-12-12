@@ -30,6 +30,7 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
+    this.props.actions.updateChartStatus('success');
   }
 
   componentWillReceiveProps(nextProps) {
