@@ -1468,7 +1468,8 @@ class Superset(BaseSupersetView):
 
         # find out if user is in explore v2 beta group
         # and set flag `is_in_explore_v2_beta`
-        is_in_explore_v2_beta = sm.find_role('explore-v2-beta') in get_user_roles()
+        is_in_explore_v2_beta = (
+            sm.find_role('explore-v2-beta') in get_user_roles())
 
         # handle different endpoints
         if request.args.get("csv") == "true":
@@ -1479,7 +1480,8 @@ class Superset(BaseSupersetView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
-            return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
+            return self.render_template(
+                "superset/standalone.html", viz=viz_obj, standalone_mode=True)
         elif request.args.get("V2") == "true" or is_in_explore_v2_beta:
             # bootstrap data for explore V2
             bootstrap_data = {

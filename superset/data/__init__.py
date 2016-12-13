@@ -72,80 +72,72 @@ def load_energy():
     db.session.commit()
     tbl.fetch_metadata()
 
+    params_dict = {
+        "collapsed_fieldsets": "",
+        "datasource_id": "{}".format(tbl.id),
+        "datasource_name": "energy_usage",
+        "datasource_type": "table",
+        "flt_col_0": "source",
+        "flt_eq_0": "",
+        "flt_op_0": "in",
+        "groupby": [
+            "source",
+            "target"
+        ],
+        "having": "",
+        "metric": "sum__value",
+        "row_limit": "5000",
+        "slice_name": "Energy Sankey",
+        "viz_type": "sankey",
+        "where": ""
+    }
     slc = Slice(
         slice_name="Energy Sankey",
         viz_type='sankey',
         datasource_type='table',
         datasource_id=tbl.id,
-        params=textwrap.dedent("""\
-        {
-            "collapsed_fieldsets": "",
-            "datasource_id": "3",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
-            "groupby": [
-                "source",
-                "target"
-            ],
-            "having": "",
-            "metric": "sum__value",
-            "row_limit": "5000",
-            "slice_name": "Energy Sankey",
-            "viz_type": "sankey",
-            "where": ""
-        }
-        """)
+        params=json.dumps(params_dict, indent=4, sort_keys=True)
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
 
+    params_dict = {
+        "charge": "-500",
+        "collapsed_fieldsets": "",
+        "datasource_id": "{}".format(tbl.id),
+        "datasource_name": "energy_usage",
+        "datasource_type": "table",
+        "flt_col_0": "source",
+        "flt_eq_0": "",
+        "flt_op_0": "in",
+        "groupby": [
+            "source",
+            "target"
+        ],
+        "having": "",
+        "link_length": "200",
+        "metric": "sum__value",
+        "row_limit": "5000",
+        "slice_name": "Force",
+        "viz_type": "directed_force",
+        "where": ""
+    }
     slc = Slice(
         slice_name="Energy Force Layout",
         viz_type='directed_force',
         datasource_type='table',
         datasource_id=tbl.id,
-        params=textwrap.dedent("""\
-        {
-            "charge": "-500",
-            "collapsed_fieldsets": "",
-            "datasource_id": "1",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
-            "groupby": [
-                "source",
-                "target"
-            ],
-            "having": "",
-            "link_length": "200",
-            "metric": "sum__value",
-            "row_limit": "5000",
-            "slice_name": "Force",
-            "viz_type": "directed_force",
-            "where": ""
-        }
-        """)
+        params=json.dumps(params_dict, indent=4, sort_keys=True)
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
 
-    slc = Slice(
-        slice_name="Heatmap",
-        viz_type='heatmap',
-        datasource_type='table',
-        datasource_id=tbl.id,
-        params=textwrap.dedent("""\
-        {
+    params_dict = {
             "all_columns_x": "source",
             "all_columns_y": "target",
             "canvas_image_rendering": "pixelated",
             "collapsed_fieldsets": "",
-            "datasource_id": "1",
+            "datasource_id": "{}".format(tbl.id),
             "datasource_name": "energy_usage",
             "datasource_type": "table",
             "flt_col_0": "source",
@@ -161,7 +153,12 @@ def load_energy():
             "xscale_interval": "1",
             "yscale_interval": "1"
         }
-        """)
+    slc = Slice(
+        slice_name="Heatmap",
+        viz_type='heatmap',
+        datasource_type='table',
+        datasource_id=tbl.id,
+        params=json.dumps(params_dict, indent=4, sort_keys=True)
     )
     misc_dash_slices.append(slc.slice_name)
     merge_slice(slc)
@@ -202,7 +199,7 @@ def load_world_bank_health_n_pop():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
+        "datasource_id": "{}".format(tbl.id),
         "datasource_name": "birth_names",
         "datasource_type": "table",
         "limit": "25",
@@ -596,7 +593,7 @@ def load_birth_names():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
+        "datasource_id": "{}".format(tbl.id),
         "datasource_name": "birth_names",
         "datasource_type": "table",
         "flt_op_1": "in",
@@ -842,7 +839,7 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "3",
+        "datasource_id": "{}".format(tbl.id),
         "datasource_name": "unicode_test",
         "datasource_type": "table",
         "flt_op_1": "in",
@@ -925,7 +922,7 @@ def load_random_time_series_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "6",
+        "datasource_id": "{}".format(tbl.id),
         "datasource_name": "random_time_series",
         "datasource_type": "table",
         "granularity": "day",
@@ -993,7 +990,7 @@ def load_long_lat_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "7",
+        "datasource_id": "{}".format(tbl.id),
         "datasource_name": "long_lat",
         "datasource_type": "table",
         "granularity": "day",
@@ -1076,7 +1073,7 @@ def load_multiformat_time_series_data():
     for i, col in enumerate(tbl.columns):
         slice_data = {
             "granularity_sqla": col.column_name,
-            "datasource_id": "8",
+            "datasource_id": "{}".format(tbl.id),
             "datasource_name": "multiformat_time_series",
             "datasource_type": "table",
             "granularity": "day",

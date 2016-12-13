@@ -166,6 +166,7 @@ class BaseViz(object):
                 timestamp_format = dttm_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
+        logging.info("DF query: {}".format(query_obj))
         self.results = self.datasource.query(**query_obj)
         self.query = self.results.query
         df = self.results.df
