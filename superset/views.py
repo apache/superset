@@ -1492,7 +1492,7 @@ class Superset(BaseSupersetView):
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": user_id,
-                "viz": json.loads(viz_obj.get_json())
+                "viz": json.loads(viz_obj.json_data)
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \
