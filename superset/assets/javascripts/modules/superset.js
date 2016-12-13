@@ -107,6 +107,11 @@ const px = function () {
         const parser = document.createElement('a');
         parser.href = data.json_endpoint;
         let endpoint = parser.pathname + this.querystring();
+        if (endpoint.charAt(0) !== '/') {
+          // Known issue for IE <= 11:
+          // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
+          endpoint = '/' + endpoint;
+        }
         endpoint += '&json=true';
         endpoint += '&force=' + this.force;
         return endpoint;
