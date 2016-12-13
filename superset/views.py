@@ -1486,13 +1486,16 @@ class Superset(BaseSupersetView):
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": g.user.get_id() if g.user else None,
-                "viz": json.loads(viz_obj.get_json())
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \
                 else viz_obj.datasource.datasource_name
-            return self.render_template(
-                "superset/explorev2.html",
+            try:
+                viz_json = json.loads(viz_obj.get_json())
+                bootstrap_data["viz"] = viz_json
+            except Exception as e:
+                bootstrap_data["error"] = str(e)
+            return self.render_template("superset/explorev2.html",
                 bootstrap_data=json.dumps(bootstrap_data),
                 slice=slc,
                 table_name=table_name)

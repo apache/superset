@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 import { sectionsToRender } from './visTypes';
 import fields from './fields';
+import { getExploreUrl } from '../exploreUtils';
 
 export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   const data = {
@@ -13,7 +14,11 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
   sections.forEach((section) => {
     section.fieldSetRows.forEach((fieldSetRow) => {
       fieldSetRow.forEach((k) => {
-        data[k] = fields[k].default;
+        if (k === 'viz_type') {
+          data[k] = vizType;
+        } else {
+          data[k] = fields[k].default;
+        }
       });
     });
   });
@@ -21,18 +26,19 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
 }
 
 export function defaultViz(vizType, datasourceType = 'table') {
+  const form_data = defaultFormData(vizType, datasourceType);
   return {
     cached_key: null,
     cached_timeout: null,
     cached_dttm: null,
     column_formats: null,
-    csv_endpoint: null,
+    csv_endpoint: getExploreUrl(form_data, datasourceType, 'csv'),
     is_cached: false,
     data: [],
-    form_data: defaultFormData(vizType, datasourceType),
-    json_endpoint: null,
+    form_data,
+    json_endpoint: getExploreUrl(form_data, datasourceType, 'json'),
     query: null,
-    standalone_endpoint: null,
+    standalone_endpoint: getExploreUrl(form_data, datasourceType, 'standalone'),
   };
 }
 

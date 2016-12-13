@@ -19,21 +19,32 @@ const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstr
 
 import { exploreReducer } from './reducers/exploreReducer';
 
-const bootstrappedState = Object.assign(
-  initialState(bootstrapData.viz.form_data.viz_type, bootstrapData.datasource_type), {
-    can_edit: bootstrapData.can_edit,
-    can_download: bootstrapData.can_download,
-    datasources: bootstrapData.datasources,
-    datasource_type: bootstrapData.datasource_type,
-    viz: bootstrapData.viz,
-    user_id: bootstrapData.user_id,
-    chartUpdateStartTime: now(),
-    chartUpdateEndTime: null,
-    chartStatus: 'loading',
-  }
-);
-bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
-bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
+const stateChanges = {
+  can_edit: bootstrapData.can_edit,
+  can_download: bootstrapData.can_download,
+  datasources: bootstrapData.datasources,
+  datasource_type: bootstrapData.datasource_type,
+  user_id: bootstrapData.user_id,
+};
+
+if (bootstrapData.error) {
+  stateChanges.chartAlert = bootstrapData.error;
+  stateChanges.chartStatus = 'failed';
+} else {
+  stateChanges.viz = bootstrapData.viz;
+  stateChanges.chartUpdateStartTime = now();
+  stateChanges.chartUpdateEndTime = null;
+  stateChanges.chartStatus = 'loading';
+}
+
+const bootstrappedState = bootstrapData.error ?
+  Object.assign(
+    initialState(bootstrapData.viz_type, bootstrapData.datasource_type),
+    stateChanges)
+  : Object.assign(
+    initialState(bootstrapData.viz.form_data.viz_type, bootstrapData.datasource_type),
+    stateChanges
+  );
 
 function parseFilters(form_data, prefix = 'flt') {
   const filters = [];
@@ -61,9 +72,10 @@ function getFilters(form_data, datasource_type) {
   return parseFilters(form_data).concat(parseFilters(form_data, 'having'));
 }
 
+bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
+bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
 bootstrappedState.viz.form_data.filters =
   getFilters(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
-
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
 );
