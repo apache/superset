@@ -137,6 +137,27 @@ class CoreTests(SupersetTestCase):
             print("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
 
+    def test_slices_V2(self):
+        # Add explore-v2-beta role to admin user
+        # Test all slice urls as user with with explore-v2-beta role
+        sm.add_role('explore-v2-beta')
+
+        appbuilder.sm.add_user(
+            'explore_beta', 'explore_beta', ' user', 'explore_beta@airbnb.com',
+            appbuilder.sm.find_role('explore-v2-beta'),
+            password='general')
+        self.login(username='explore_beta', password='general')
+
+        Slc = models.Slice
+        urls = []
+        for slc in db.session.query(Slc).all():
+            urls += [
+                (slc.slice_name, 'slice_url', slc.slice_url),
+            ]
+        for name, method, url in urls:
+            print("[{name}]/[{method}]: {url}".format(**locals()))
+            response = self.client.get(url)
+
     def test_dashboard(self):
         self.login(username='admin')
         urls = {}
