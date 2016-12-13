@@ -6,7 +6,7 @@
         <span class="favstar" class_name="Slice" obj_id="{{ slice.id }}"></span>
         <span>
           <a
-            href="/slicemodelview/edit/{{ slice.id }}"
+            href="{{ url_for('SliceModelView.edit', pk=slice.id) }}"
             data-toggle="tooltip"
             title="Edit Description"
             class="edit-slice-description-icon"

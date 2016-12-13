@@ -81,7 +81,7 @@
       <img class="img-circle" src="{{ url_for('static', filename='img/cardash.jpg') }}" width="140" height="140">
       <h2>Dashboards</h2>
       <p>Browse the dashboards list</p>
-      <p><a class="btn btn-default" href="/dashboardmodelview/list/" role="button">
+      <p><a class="btn btn-default" href="{{ url_for('DashboardModelView.list') }}" role="button">
         <i class="fa fa-dashboard"></i>
       </a></p>
     </div><!-- /.col-lg-4 -->
@@ -89,7 +89,7 @@
       <img class="img-circle" src="{{ url_for('static', filename='img/slice.jpg') }}" width="140" height="140">
       <h2>Slices</h2>
       <p>"Slices" are individual views into a single dataset</p>
-      <p><a class="btn btn-default" href="/slicemodelview/list/" role="button">
+      <p><a class="btn btn-default" href="{{ url_for("SliceModelView.list")}}" role="button">
         <i class="fa fa-line-chart"></i>
       </a></p>
     </div><!-- /.col-lg-4 -->

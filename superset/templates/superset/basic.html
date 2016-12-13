@@ -11,10 +11,10 @@
     </title>
     {% block head_meta %}{% endblock %}
     {% block head_css %}
-      <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/font-awesome/css/font-awesome.min.css" />
-      <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/superset.css" />
-      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
-      <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+      <link rel="stylesheet" type="text/css" href="{{url_for("static", filename="assets/node_modules/font-awesome/css/font-awesome.min.css")}}" />
+      <link rel="stylesheet" type="text/css" href="{{url_for("static", filename="assets/stylesheets/superset.css")}}" />
+      <link rel="stylesheet" type="text/css" href="{{url_for("static", filename="appbuilder/css/flags/flags16.css")}}" />
+      <link rel="icon" type="image/png" href="{{url_for("static", filename="assets/images/favicon.png")}}" >
     {% endblock %}
     {% block head_js %}
       {% with filename="css-theme" %}
@@ -35,7 +35,7 @@
     {% block body %}
       {% include 'superset/flash_wrapper.html' %}
       <div id="app" data-bootstrap="{{ bootstrap_data }}" >
-        <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
+        <img src="{{url_for("static", filename="assets/images/loading.gif")}}" style="width: 50px; margin: 10px;">
       </div>
     {% endblock %}
 

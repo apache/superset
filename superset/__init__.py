@@ -8,7 +8,7 @@ import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 
-from flask import Flask, redirect
+from flask import Flask, redirect, url_for
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
@@ -71,7 +71,7 @@ for middleware in app.config.get('ADDITIONAL_MIDDLEWARE'):
 class MyIndexView(IndexView):
     @expose('/')
     def index(self):
-        return redirect('/superset/welcome')
+        return redirect(url_for('Superset.welcome'))
 
 appbuilder = AppBuilder(
     app, db.session,

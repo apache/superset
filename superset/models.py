@@ -25,7 +25,7 @@ from sqlalchemy.orm import subqueryload
 import sqlparse
 from dateutil.parser import parse
 
-from flask import escape, g, Markup, request
+from flask import escape, g, Markup, request, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.mixins import AuditMixin
 from flask_appbuilder.models.decorators import renders
@@ -141,7 +141,7 @@ class AuditMixinNullable(AuditMixin):
     def _user_link(self, user):
         if not user:
             return ''
-        url = '/superset/profile/{}/'.format(user.username)
+        url = url_for('Superset.profile', username=user.username)
         return '<a href="{}">{}</a>'.format(url, escape(user) or '')
 
     @renders('created_by')
@@ -295,20 +295,20 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         from werkzeug.urls import Href
-        href = Href(
-            "/superset/explore/{obj.datasource_type}/"
-            "{obj.datasource_id}/".format(obj=self))
+        href = Href(url_for(
+            'Superset.explore',
+            datasource_type=self.datasource_type,
+            datasource_id=self.datasource_id
+        ))
         return href(slice_params)
 
     @property
     def slice_id_url(self):
-        return (
-            "/superset/{slc.datasource_type}/{slc.datasource_id}/{slc.id}/"
-        ).format(slc=self)
+        return url_for("Superset.slice", slice_id=self.id)
 
     @property
     def edit_url(self):
-        return "/slicemodelview/edit/{}".format(self.id)
+        return url_for("SliceModelView.edit", pk=self.id)
 
     @property
     def slice_link(self):
@@ -435,7 +435,8 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
 
     @property
     def url(self):
-        return "/superset/dashboard/{}/".format(self.slug or self.id)
+        dashboard_id = self.slug or self.id
+        return url_for('Superset.dashboard', dashboard_id=dashboard_id)
 
     @property
     def datasources(self):
@@ -646,14 +647,18 @@ class Queryable(object):
 
     @property
     def url(self):
-        return '/{}/edit/{}'.format(self.baselink, self.id)
+        return url_for(self.baseview + ".edit", pk=self.id)
 
     @property
     def explore_url(self):
         if self.default_endpoint:
             return self.default_endpoint
         else:
-            return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+            return url_for(
+                "Superset.explore",
+                datasource_type=self.type,
+                datasource_id=self.id
+            )
 
 
 class Database(Model, AuditMixinNullable):
@@ -843,6 +848,7 @@ class Database(Model, AuditMixinNullable):
 
     @property
     def sql_url(self):
+        # ?? Route doesn't exist and this (well SQLATable.sql_url is not used)
         return '/superset/sql/{}/'.format(self.id)
 
     def get_perm(self):
@@ -881,7 +887,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     params = Column(Text)
     perm = Column(String(1000))
 
-    baselink = "tablemodelview"
+    baseview = "TableModelView"
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
@@ -1628,7 +1634,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     type = "druid"
 
-    baselink = "druiddatasourcemodelview"
+    baseview = "DruidDatasourceModelView"
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
@@ -1718,7 +1724,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
     @renders('datasource_name')
     def datasource_link(self):
-        url = "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+        url = url_for(
+            "Superset.explore",
+            datasource_type=self.type,
+            datasource_id=self.id
+        )
         name = escape(self.datasource_name)
         return Markup('<a href="{url}">{name}</a>'.format(**locals()))
 
@@ -2698,8 +2708,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
         for r in pv.role:
             if r.name in self.ROLES_BLACKLIST:
                 continue
-            url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
+            url = url_for(
+                'Superset.approve'
+            )
+            url += (
+                '?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'
                 'created_by={self.created_by.username}&role_to_grant={r.name}'
                 .format(**locals())
@@ -2712,8 +2725,11 @@ class DatasourceAccessRequest(Model, AuditMixinNullable):
     def user_roles(self):
         action_list = ''
         for r in self.created_by.roles:
-            url = (
-                '/superset/approve?datasource_type={self.datasource_type}&'
+            url = url_for(
+                'Superset.approve'
+            )
+            url += (
+                '?datasource_type={self.datasource_type}&'
                 'datasource_id={self.datasource_id}&'
                 'created_by={self.created_by.username}&role_to_extend={r.name}'
                 .format(**locals())
