@@ -354,6 +354,22 @@ const visTypes = {
     ],
   },
 
+  bullet: {
+    label: 'Bullet Chart',
+    requiresTime: false,
+    controlPanelSections: [
+      {
+        label: null,
+        fieldSetRows: [
+          ['metric'],
+          ['ranges', 'range_labels'],
+          ['markers', 'marker_labels'],
+          ['marker_lines', 'marker_line_labels'],
+        ],
+      },
+    ],
+  },
+
   big_number: {
     label: 'Big Number with Trendline',
     controlPanelSections: [

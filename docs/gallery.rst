@@ -49,6 +49,9 @@ Gallery
 .. image:: _static/img/viz_thumbnails/big_number_total.png
    :scale: 25 %
 
+.. image:: _static/img/viz_thumbnails/bullet.png
+   :scale: 25 %
+
 .. image:: _static/img/viz_thumbnails/dist_bar.png
    :scale: 25 %
 

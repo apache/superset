@@ -38,6 +38,8 @@ function bigNumberVis(slice) {
           const vAnchor = data[pos][1];
           if (vAnchor !== 0) {
             vCompare = (v - vAnchor) / Math.abs(vAnchor);
+          } else {
+            vCompare = 0;
           }
         }
       }

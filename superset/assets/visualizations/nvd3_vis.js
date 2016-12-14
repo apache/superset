@@ -252,6 +252,10 @@ function nvd3Vis(slice) {
             chart.maxBoxWidth(75); // prevent boxes from being incredibly wide
             break;
 
+          case 'bullet':
+            chart = nv.models.bulletChart();
+            break;
+
           default:
             throw new Error('Unrecognized visualization for nvd3' + vizType);
         }
@@ -261,6 +265,9 @@ function nvd3Vis(slice) {
         }
 
         let height = slice.height() - 15;
+        if (vizType === 'bullet') {
+          height = Math.min(height, 50);
+        }
 
         chart.height(height);
         slice.container.css('height', height + 'px');
@@ -309,7 +316,9 @@ function nvd3Vis(slice) {
             chart.y2Axis.tickFormat(d3.format(fd.y_axis_format));
           }
         }
-        chart.color((d) => category21(d[colorKey]));
+        if (vizType !== 'bullet') {
+          chart.color((d) => category21(d[colorKey]));
+        }
 
         if (fd.x_axis_label && fd.x_axis_label !== '' && chart.xAxis) {
           let distance = 0;

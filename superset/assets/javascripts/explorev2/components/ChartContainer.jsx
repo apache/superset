@@ -7,6 +7,13 @@ import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
+import Timer from '../../components/Timer';
+
+const CHART_STATUS_MAP = {
+  failed: 'danger',
+  loading: 'warning',
+  success: 'success',
+};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -19,11 +26,13 @@ const propTypes = {
   json_endpoint: PropTypes.string.isRequired,
   csv_endpoint: PropTypes.string.isRequired,
   standalone_endpoint: PropTypes.string.isRequired,
-  query: PropTypes.string.isRequired,
+  query: PropTypes.string,
   column_formats: PropTypes.object,
   data: PropTypes.any,
-  isChartLoading: PropTypes.bool,
+  chartStatus: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
+  chartUpdateStartTime: PropTypes.number.isRequired,
+  chartUpdateEndTime: PropTypes.number,
   alert: PropTypes.string,
   table_name: PropTypes.string,
 };
@@ -46,7 +55,15 @@ class ChartContainer extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    if (nextProps.chartStatus !== this.props.chartStatus
+      || nextProps.height !== this.props.height) {
+      this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    }
+  }
+
+  shouldComponentUpdate(nextProps) {
+    return (nextProps.chartStatus !== this.props.chartStatus
+      || nextProps.height !== this.props.height);
   }
 
   componentDidUpdate() {
@@ -105,8 +122,10 @@ class ChartContainer extends React.Component {
         {}
       ),
 
-      done: () => {
+      done: (payload) => {
         // finished rendering callback
+        // Todo: end timer and chartLoading set to success
+        props.actions.chartUpdateSucceeded(payload.query);
       },
 
       clearError: () => {
@@ -157,16 +176,19 @@ class ChartContainer extends React.Component {
         </Alert>
       );
     }
-    if (this.props.isChartLoading) {
-      return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
-    }
+    const loading = this.props.chartStatus === 'loading';
     return (
-      <div
-        id={this.props.containerId}
-        ref={(ref) => { this.chartContainerRef = ref; }}
-        className={this.props.viz_type}
-        style={{ overflowX: 'scroll' }}
-      />
+      <div>
+        {loading &&
+          <img alt="loading" width="25" src="/static/assets/images/loading.gif" />
+        }
+        <div
+          id={this.props.containerId}
+          ref={(ref) => { this.chartContainerRef = ref; }}
+          className={this.props.viz_type}
+          style={{ overflowX: 'auto' }}
+        />
+      </div>
     );
   }
 
@@ -205,6 +227,13 @@ class ChartContainer extends React.Component {
               }
 
               <div className="pull-right">
+                <Timer
+                  startTime={this.props.chartUpdateStartTime}
+                  endTime={this.props.chartUpdateEndTime}
+                  isRunning={this.props.chartStatus === 'loading'}
+                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  style={{ fontSize: '10px', marginRight: '5px' }}
+                />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
@@ -232,10 +261,12 @@ function mapStateToProps(state) {
     csv_endpoint: state.viz.csv_endpoint,
     json_endpoint: state.viz.json_endpoint,
     standalone_endpoint: state.viz.standalone_endpoint,
+    chartUpdateStartTime: state.chartUpdateStartTime,
+    chartUpdateEndTime: state.chartUpdateEndTime,
     query: state.viz.query,
     column_formats: state.viz.column_formats,
     data: state.viz.data,
-    isChartLoading: state.isChartLoading,
+    chartStatus: state.chartStatus,
     isStarred: state.isStarred,
     alert: state.chartAlert,
     table_name: state.viz.form_data.datasource_name,
