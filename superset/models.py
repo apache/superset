@@ -1917,7 +1917,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
 
         granularity = {'type': 'period'}
         if timezone:
-            granularity['timezone'] = timezone
+            granularity['timeZone'] = timezone
 
         if origin:
             dttm = utils.parse_human_datetime(origin)
