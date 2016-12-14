@@ -56,7 +56,7 @@ class ChartContainer extends React.Component {
   }
 
   componentDidMount() {
-    this.renderVis();
+    this.renderVisOnChange();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -76,7 +76,7 @@ class ChartContainer extends React.Component {
   }
 
   componentDidUpdate(prevProps) {
-    this.renderVis(prevProps.height !== this.props.height);
+    this.renderVisOnChange(prevProps.height !== this.props.height);
   }
 
   getMockedSliceObject(props) {
@@ -158,7 +158,7 @@ class ChartContainer extends React.Component {
     this.props.actions.removeChartAlert();
   }
 
-  renderVis(heightChange) {
+  renderVisOnChange(heightChange) {
     if (this.props.chartStatus === 'loading') {
       this.state.viz.render();
     }
