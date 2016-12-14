@@ -17,6 +17,7 @@ from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.views import DatabaseView
 
 from .base_tests import SupersetTestCase
+import logging
 
 
 class CoreTests(SupersetTestCase):
@@ -134,7 +135,7 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
-            print("[{name}]/[{method}]: {url}".format(**locals()))
+            logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
 
     def test_slices_V2(self):
