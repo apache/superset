@@ -2557,7 +2557,7 @@ class Superset(BaseSupersetView):
 
         query_limit = config.get('QUERY_SEARCH_LIMIT', 1000)
         sql_queries = (
-            query.order_by(models.Query.start_time.desc())
+            query.order_by(models.Query.start_time.asc())
             .limit(query_limit)
             .all()
         )
