@@ -11,9 +11,8 @@
   left: 0px;
   right: 0px;
   bottom: 0px;
-  overflow: scroll;
+  overflow-y: auto;
   margin-right: 0px;
-  margin-bottom: 100px;
 }
 
 .fave-unfave-icon, .edit-desc-icon {

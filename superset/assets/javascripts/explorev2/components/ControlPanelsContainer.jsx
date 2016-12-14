@@ -61,56 +61,52 @@ class ControlPanelsContainer extends React.Component {
 
   render() {
     return (
-      <Panel>
-        {this.props.alert &&
-          <Alert bsStyle="warning">
-            {this.props.alert}
-            <i
-              className="fa fa-close pull-right"
-              onClick={this.removeAlert.bind(this)}
-              style={{ cursor: 'pointer' }}
-            />
-          </Alert>
-        }
-        {!this.props.isDatasourceMetaLoading &&
-          <div className="scrollbar-container">
-            <div className="scrollbar-content">
-              {this.sectionsToRender().map((section) => (
-                <ControlPanelSection
-                  key={section.label}
-                  label={section.label}
-                  tooltip={section.description}
-                >
-                  {section.fieldSetRows.map((fieldSets, i) => (
-                    <FieldSetRow
-                      key={`${section.label}-fieldSetRow-${i}`}
-                      fieldSets={fieldSets}
-                      fieldOverrides={this.fieldOverrides()}
-                      onChange={this.onChange.bind(this)}
-                      fields={this.props.fields}
-                      form_data={this.props.form_data}
-                    />
-                  ))}
-                </ControlPanelSection>
+      <div className="scrollbar-container">
+        <Panel className="scrollbar-content">
+          {this.props.alert &&
+            <Alert bsStyle="warning">
+              {this.props.alert}
+              <i
+                className="fa fa-close pull-right"
+                onClick={this.removeAlert.bind(this)}
+                style={{ cursor: 'pointer' }}
+              />
+            </Alert>
+          }
+          {!this.props.isDatasourceMetaLoading && this.sectionsToRender().map((section) => (
+            <ControlPanelSection
+              key={section.label}
+              label={section.label}
+              tooltip={section.description}
+            >
+              {section.fieldSetRows.map((fieldSets, i) => (
+                <FieldSetRow
+                  key={`${section.label}-fieldSetRow-${i}`}
+                  fieldSets={fieldSets}
+                  fieldOverrides={this.fieldOverrides()}
+                  onChange={this.onChange.bind(this)}
+                  fields={this.props.fields}
+                  form_data={this.props.form_data}
+                />
               ))}
-              {this.filterSectionsToRender().map((section) => (
-                <ControlPanelSection
-                  key={section.label}
-                  label={section.label}
-                  tooltip={section.description}
-                >
-                  <Filters
-                    filterColumnOpts={[]}
-                    filters={this.props.form_data.filters}
-                    actions={this.props.actions}
-                    prefix={section.prefix}
-                  />
-                </ControlPanelSection>
-              ))}
-            </div>
-          </div>
-        }
-      </Panel>
+            </ControlPanelSection>
+          ))}
+          {this.filterSectionsToRender().map((section) => (
+            <ControlPanelSection
+              key={section.label}
+              label={section.label}
+              tooltip={section.description}
+            >
+              <Filters
+                filterColumnOpts={[]}
+                filters={this.props.form_data.filters}
+                actions={this.props.actions}
+                prefix={section.prefix}
+              />
+            </ControlPanelSection>
+          ))}
+        </Panel>
+      </div>
     );
   }
 }
