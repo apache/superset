@@ -60,8 +60,7 @@ class ChartContainer extends React.Component {
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.chartStatus !== this.props.chartStatus
-      || nextProps.height !== this.props.height) {
+    if (nextProps.chartStatus !== this.props.chartStatus) {
       const mockSlice = this.getMockedSliceObject(nextProps);
       this.setState({
         mockSlice,
@@ -105,7 +104,7 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(props.height, 10) - 100,
+        height: () => parseInt(this.props.height, 10) - 100,
 
         show: () => { this.render(); },
 
@@ -117,7 +116,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(props.height, 10) - 100,
+      height: () => parseInt(this.props.height, 10) - 100,
 
       selector: this.state.selector,
 
@@ -163,8 +162,7 @@ class ChartContainer extends React.Component {
       this.state.viz.render();
     }
     if (heightChange) {
-      this.state.viz.render();
-      this.state.viz.resize();
+      this.state.viz.resize(this.state.chart);
     }
   }
 
