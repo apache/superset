@@ -896,6 +896,69 @@ class BubbleViz(NVD3Viz):
         return chart_data
 
 
+class BulletViz(NVD3Viz):
+
+    """Based on the NVD3 bullet chart"""
+
+    viz_type = "bullet"
+    verbose_name = _("Bullet Chart")
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metric',
+            'ranges', 'range_labels',
+            'markers', 'marker_labels',
+            'marker_lines', 'marker_line_labels',
+        )
+    },)
+
+    def query_obj(self):
+        form_data = self.form_data
+        d = super(BulletViz, self).query_obj()
+        self.metric = form_data.get('metric')
+
+        def as_strings(field):
+            value = form_data.get(field)
+            return value.split(',') if value else []
+
+        def as_floats(field):
+            return [float(x) for x in as_strings(field)]
+
+        self.ranges = as_floats('ranges')
+        self.range_labels = as_strings('range_labels')
+        self.markers = as_floats('markers')
+        self.marker_labels = as_strings('marker_labels')
+        self.marker_lines = as_floats('marker_lines')
+        self.marker_line_labels = as_strings('marker_line_labels')
+
+        d['metrics'] = [
+            self.metric,
+        ]
+        if not self.metric:
+            raise Exception("Pick a metric to display")
+        return d
+
+    def get_df(self, query_obj=None):
+        df = super(BulletViz, self).get_df(query_obj)
+        df = df.fillna(0)
+        df['metric'] = df[[self.metric]]
+        return df
+
+    def get_data(self):
+        df = self.get_df()
+        values = df['metric'].values
+        return {
+            'measures': values.tolist(),
+            'ranges': self.ranges or [0, values.max() * 1.1],
+            'rangeLabels': self.range_labels or None,
+            'markers': self.markers or None,
+            'markerLabels': self.marker_labels or None,
+            'markerLines': self.marker_lines or None,
+            'markerLineLabels': self.marker_line_labels or None,
+        }
+
+
 class BigNumberViz(BaseViz):
 
     """Put emphasis on a single metric with this big number viz"""
@@ -2008,6 +2071,7 @@ viz_types_list = [
     DistributionBarViz,
     DistributionPieViz,
     BubbleViz,
+    BulletViz,
     MarkupViz,
     WordCloudViz,
     BigNumberViz,
