@@ -43,11 +43,16 @@ class ChartContainer extends React.Component {
     this.state = {
       selector: `#${props.containerId}`,
       mockSlice: {},
+      viz: {},
     };
   }
 
   componentWillMount() {
-    this.setState({ mockSlice: this.getMockedSliceObject(this.props) });
+    const mockSlice = this.getMockedSliceObject(this.props);
+    this.setState({
+      mockSlice,
+      viz: visMap[this.props.viz_type](mockSlice),
+    });
   }
 
   componentDidMount() {
@@ -57,7 +62,11 @@ class ChartContainer extends React.Component {
   componentWillReceiveProps(nextProps) {
     if (nextProps.chartStatus !== this.props.chartStatus
       || nextProps.height !== this.props.height) {
-      this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+      const mockSlice = this.getMockedSliceObject(nextProps);
+      this.setState({
+        mockSlice,
+        viz: visMap[nextProps.viz_type](mockSlice),
+      });
     }
   }
 
@@ -150,8 +159,11 @@ class ChartContainer extends React.Component {
   }
 
   renderVis(heightChange) {
-    if (this.props.chartStatus === 'loading' || heightChange) {
-      visMap[this.props.viz_type](this.state.mockSlice).render();
+    if (this.props.chartStatus === 'loading') {
+      this.state.viz.render();
+    }
+    if (heightChange) {
+      this.state.viz.resize();
     }
   }
 
