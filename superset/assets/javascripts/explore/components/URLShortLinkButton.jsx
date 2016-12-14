@@ -27,12 +27,17 @@ export default class URLShortLinkButton extends React.Component {
   }
 
   renderPopover() {
+    const emailBody = `Check out this slice: ${this.state.shortUrl}`;
     return (
       <Popover id="shorturl-popover">
         <CopyToClipboard
           text={this.state.shortUrl}
           copyNode={<i className="fa fa-clipboard" title="Copy to clipboard"></i>}
         />
+        &nbsp;&nbsp;
+        <a href={`mailto:?Subject=Superset%20Slice%20&Body=${emailBody}`}>
+          <i className="fa fa-envelope"></i>
+        </a>
       </Popover>
     );
   }
