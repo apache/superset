@@ -163,6 +163,7 @@ class ChartContainer extends React.Component {
       this.state.viz.render();
     }
     if (heightChange) {
+      this.state.viz.render();
       this.state.viz.resize();
     }
   }
