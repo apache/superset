@@ -11,6 +11,7 @@ import { now } from '../modules/dates';
 const $ = window.$ = require('jquery'); // eslint-disable-line
 const jQuery = window.jQuery = require('jquery'); // eslint-disable-line
 require('bootstrap');
+require('./main.css');
 
 import { initialState } from './stores/store';
 
