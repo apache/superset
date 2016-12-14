@@ -2348,8 +2348,9 @@ class Log(Model):
                 json=params,
                 dashboard_id=d.get('dashboard_id') or None,
                 slice_id=slice_id,
-                duration_ms=(datetime.now() - start_dttm).total_seconds() * 1000,
-                referrer=request.referrer[:1000],
+                duration_ms=(
+                    datetime.now() - start_dttm).total_seconds() * 1000,
+                referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
             db.session.add(log)
             db.session.commit()
