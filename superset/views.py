@@ -1369,6 +1369,7 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         return redirect(viz_obj.get_url(**request.args))
 
+    @log_this
     @has_access_api
     @expose("/explore_json/<datasource_type>/<datasource_id>/")
     def explore_json(self, datasource_type, datasource_id):
