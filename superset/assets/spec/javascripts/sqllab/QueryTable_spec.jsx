@@ -21,6 +21,6 @@ describe('QueryTable', () => {
   it('renders a proper table', () => {
     const wrapper = mount(<QueryTable {...mockedProps} />);
     expect(wrapper.find('table')).to.have.length(1);
-    expect(wrapper.find('tr')).to.have.length(3);
+    expect(wrapper.find('tr')).to.have.length(4);
   });
 });

@@ -2593,9 +2593,14 @@ class Superset(BaseSupersetView):
         if to_time:
             query = query.filter(models.Query.start_time < int(to_time))
 
-        query_limit = config.get('QUERY_SEARCH_LIMIT', 5000)
-        sql_queries = query.limit(query_limit).all()
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+        query_limit = config.get('QUERY_SEARCH_LIMIT', 1000)
+        sql_queries = (
+            query.order_by(models.Query.start_time.asc())
+            .limit(query_limit)
+            .all()
+        )
+
+        dict_queries = [q.to_dict() for q in sql_queries]
 
         return Response(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser),
