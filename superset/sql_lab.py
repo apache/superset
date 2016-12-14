@@ -55,8 +55,6 @@ def create_table_as(sql, table_name, schema=None, override=False):
     # TODO(bkyryliuk): drop table if allowed, check the namespace and
     #                  the permissions.
     # TODO raise if multi-statement
-    if schema:
-        table_name = schema + '.' + table_name
     exec_sql = ''
     if override:
         exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
