@@ -14,6 +14,7 @@ const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
+  chartStatus: React.PropTypes.string.isRequired,
 };
 
 
@@ -94,6 +95,7 @@ class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={this.onQuery.bind(this, this.props.form_data)}
               onSave={this.toggleModal.bind(this)}
+              disabled={this.props.chartStatus === 'loading'}
             />
             <br /><br />
             <ControlPanelsContainer
@@ -121,6 +123,7 @@ function mapStateToProps(state) {
   return {
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
+    chartStatus: state.chartStatus,
   };
 }
 
