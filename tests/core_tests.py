@@ -13,10 +13,11 @@ import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context
+from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
 from superset.views import DatabaseView
 
 from .base_tests import SupersetTestCase
+import logging
 
 
 class CoreTests(SupersetTestCase):
@@ -95,25 +96,6 @@ class CoreTests(SupersetTestCase):
         assert_admin_view_menus_in('Alpha', self.assertNotIn)
         assert_admin_view_menus_in('Gamma', self.assertNotIn)
 
-    def test_update_explore(self):
-        self.login(username='admin')
-        tbl_id = self.table_ids.get('energy_usage')
-        data = json.dumps({
-            'viz_type': 'sankey',
-            'groupby': ['source', 'target'],
-            'metrics': ['sum__value'],
-            'row_limit': 5000,
-            'flt_col_0': 'source',
-            'datasource_name': 'energy_usage',
-            'datasource_id': tbl_id,
-            'datasource_type': 'table',
-            'previous_viz_type': 'sankey'
-        })
-        response = self.client.post('/superset/update_explore/table/{}/'.format(tbl_id),
-            data=dict(data=data))
-        assert response.status_code == 200
-        self.logout()
-
     def test_save_slice(self):
         self.login(username='admin')
         slice_name = "Energy Sankey"
@@ -153,8 +135,29 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
-            print("[{name}]/[{method}]: {url}".format(**locals()))
+            logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
+
+    def test_slices_V2(self):
+        # Add explore-v2-beta role to admin user
+        # Test all slice urls as user with with explore-v2-beta role
+        sm.add_role('explore-v2-beta')
+
+        appbuilder.sm.add_user(
+            'explore_beta', 'explore_beta', ' user', 'explore_beta@airbnb.com',
+            appbuilder.sm.find_role('explore-v2-beta'),
+            password='general')
+        self.login(username='explore_beta', password='general')
+
+        Slc = models.Slice
+        urls = []
+        for slc in db.session.query(Slc).all():
+            urls += [
+                (slc.slice_name, 'slice_url', slc.slice_url),
+            ]
+        for name, method, url in urls:
+            print("[{name}]/[{method}]: {url}".format(**locals()))
+            response = self.client.get(url)
 
     def test_dashboard(self):
         self.login(username='admin')
@@ -165,7 +168,7 @@ class CoreTests(SupersetTestCase):
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
-        modules = [utils, models]
+        modules = [utils, models, sql_lab]
         for mod in modules:
             failed, tests = doctest.testmod(mod)
             if failed:
@@ -478,6 +481,23 @@ class CoreTests(SupersetTestCase):
 
     def test_user_profile(self):
         self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        # Setting some faves
+        url = '/superset/favstar/Slice/{}/select/'.format(slc.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
+        dash = (
+            db.session
+            .query(models.Dashboard)
+            .filter_by(slug="births")
+            .first()
+        )
+        url = '/superset/favstar/Dashboard/{}/select/'.format(dash.id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
         userid = appbuilder.sm.find_user('admin').id
         resp = self.get_resp('/superset/profile/admin/')
         self.assertIn('"app"', resp)

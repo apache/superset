@@ -3,7 +3,7 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
-import { fieldTypes } from '../stores/store';
+import { fieldTypes } from '../stores/fields';
 
 const propTypes = {
   name: PropTypes.string.isRequired,

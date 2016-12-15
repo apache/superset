@@ -784,6 +784,12 @@ class FormFactory(object):
                 "description": _(
                     "Whether to include a client side search box")
             }),
+            'table_filter': (BetterBooleanField, {
+                "label": _("Table Filter"),
+                "default": False,
+                "description": _(
+                    "Whether to apply filter when table cell is clicked")
+            }),
             'show_bubbles': (BetterBooleanField, {
                 "label": _("Show Bubbles"),
                 "default": False,
@@ -980,6 +986,36 @@ class FormFactory(object):
                     ("rgb(34, 139, 34)", "Forest Green"),
                 ],
                 "description": _("The color for points and clusters in RGB")
+            }),
+            'ranges': (TextField, {
+                "label": _("Ranges"),
+                "default": "",
+                "description": _("Ranges to highlight with shading")
+            }),
+            'range_labels': (TextField, {
+                "label": _("Range labels"),
+                "default": "",
+                "description": _("Labels for the ranges")
+            }),
+            'markers': (TextField, {
+                "label": _("Markers"),
+                "default": "",
+                "description": _("List of values to mark with triangles")
+            }),
+            'marker_labels': (TextField, {
+                "label": _("Marker labels"),
+                "default": "",
+                "description": _("Labels for the markers")
+            }),
+            'marker_lines': (TextField, {
+                "label": _("Marker lines"),
+                "default": "",
+                "description": _("List of values to mark with lines")
+            }),
+            'marker_line_labels': (TextField, {
+                "label": _("Marker line labels"),
+                "default": "",
+                "description": _("Labels for the marker lines")
             }),
         }
 

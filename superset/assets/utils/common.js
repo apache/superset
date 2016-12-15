@@ -55,15 +55,16 @@ export function getParamsFromUrl() {
   return newParams;
 }
 
-export function getShortUrl(longUrl, callBack) {
+export function getShortUrl(longUrl, callback) {
   $.ajax({
     type: 'POST',
     url: '/r/shortner/',
+    async: false,
     data: {
       data: '/' + longUrl,
     },
     success: (data) => {
-      callBack(data);
+      callback(data);
     },
     error: (error) => {
       /* eslint no-console: 0 */
@@ -71,6 +72,7 @@ export function getShortUrl(longUrl, callBack) {
         console.warn('Something went wrong...');
         console.warn(error);
       }
+      callback(longUrl);
     },
   });
 }

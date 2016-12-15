@@ -30,11 +30,14 @@ class Filters extends React.Component {
   }
   render() {
     const filters = [];
+    let i = 0;
     this.props.filters.forEach((filter) => {
       // only display filters with current prefix
+      i++;
       if (filter.prefix === this.props.prefix) {
         filters.push(
           <Filter
+            key={i}
             filterColumnOpts={this.props.filterColumnOpts}
             actions={this.props.actions}
             prefix={this.props.prefix}
