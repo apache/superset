@@ -5,25 +5,26 @@ import Select, { Creatable } from 'react-select';
 
 
 const propTypes = {
-  name: PropTypes.string.isRequired,
   choices: PropTypes.array,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
-  label: PropTypes.string,
-  description: PropTypes.string,
-  onChange: PropTypes.func,
-  multi: PropTypes.bool,
-  freeForm: PropTypes.bool,
   clearable: PropTypes.bool,
+  description: PropTypes.string,
+  freeForm: PropTypes.bool,
+  label: PropTypes.string,
+  multi: PropTypes.bool,
+  name: PropTypes.string.isRequired,
+  onChange: PropTypes.func,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.array]),
 };
 
 const defaultProps = {
-  multi: false,
-  freeForm: false,
-  value: '',
-  label: null,
-  description: null,
-  onChange: () => {},
+  choices: [],
   clearable: true,
+  description: null,
+  freeForm: false,
+  label: null,
+  multi: false,
+  onChange: () => {},
+  value: '',
 };
 
 export default class SelectField extends React.Component {
@@ -52,7 +53,7 @@ export default class SelectField extends React.Component {
     return opt.label;
   }
   render() {
-    const choices = this.props.choices || [];
+    const choices = this.props.choices;
     const options = choices.map((c) => ({ value: c[0], label: c[1] }));
     if (this.props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
