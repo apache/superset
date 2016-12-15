@@ -98,41 +98,24 @@ export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
 }
 
-export const UPDATE_CHART = 'UPDATE_CHART';
-export function updateChart(viz) {
-  return { type: UPDATE_CHART, viz };
-}
-
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
 export function chartUpdateStarted() {
   return { type: CHART_UPDATE_STARTED };
 }
 
-export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED ';
+export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
+export function chartUpdateSucceeded(query) {
+  return { type: CHART_UPDATE_SUCCEEDED, query };
+}
+
+export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(error) {
   return { type: CHART_UPDATE_FAILED, error };
 }
 
-export function updateExplore(datasource_type, datasource_id, form_data) {
-  return function (dispatch) {
-    dispatch(chartUpdateStarted());
-    const updateUrl =
-    `/superset/update_explore/${datasource_type}/${datasource_id}/`;
-
-    $.ajax({
-      type: 'POST',
-      url: updateUrl,
-      data: {
-        data: JSON.stringify(form_data),
-      },
-      success: (data) => {
-        dispatch(updateChart(JSON.parse(data)));
-      },
-      error(error) {
-        dispatch(chartUpdateFailed(error.responseJSON.error));
-      },
-    });
-  };
+export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';
+export function updateExploreEndpoints(jsonUrl, csvUrl, standaloneUrl) {
+  return { type: UPDATE_EXPLORE_ENDPOINTS, jsonUrl, csvUrl, standaloneUrl };
 }
 
 export const REMOVE_CONTROL_PANEL_ALERT = 'REMOVE_CONTROL_PANEL_ALERT';

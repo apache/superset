@@ -8,9 +8,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
 import { autoQueryFields } from '../stores/fields';
-import { getParamObject } from '../exploreUtils';
-
-const $ = require('jquery');
+import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
   form_data: React.PropTypes.object.isRequired,
@@ -48,11 +46,12 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery(form_data) {
-    const data = getParamObject(form_data, this.props.datasource_type);
-    this.queryFormData(data);
-
-    const params = $.param(data, true);
-    this.updateUrl(params);
+    this.props.actions.chartUpdateStarted();
+    history.pushState(
+      {},
+      document.title,
+      getExploreUrl(form_data, this.props.datasource_type)
+    );
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
@@ -63,17 +62,6 @@ class ExploreViewContainer extends React.Component {
     return `${window.innerHeight - navHeight}px`;
   }
 
-  updateUrl(params) {
-    const baseUrl =
-      `/superset/explore/${this.props.datasource_type}/${this.props.form_data.datasource}/`;
-    const newEndpoint = `${baseUrl}?${params}`;
-    history.pushState({}, document.title, newEndpoint);
-  }
-
-  queryFormData(data) {
-    this.props.actions.updateExplore(
-      this.props.datasource_type, this.props.form_data.datasource, data);
-  }
   handleResize() {
     this.setState({ height: this.getHeight() });
   }
@@ -119,7 +107,6 @@ class ExploreViewContainer extends React.Component {
             <ChartContainer
               actions={this.props.actions}
               height={this.state.height}
-              actions={this.props.actions}
             />
           </div>
         </div>

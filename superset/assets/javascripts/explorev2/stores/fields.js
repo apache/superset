@@ -983,6 +983,48 @@ export const fields = {
     ],
     description: 'The color for points and clusters in RGB',
   },
+
+  ranges: {
+    type: 'TextField',
+    label: 'Ranges',
+    default: '',
+    description: 'Ranges to highlight with shading',
+  },
+
+  range_labels: {
+    type: 'TextField',
+    label: 'Range labels',
+    default: '',
+    description: 'Labels for the ranges',
+  },
+
+  markers: {
+    type: 'TextField',
+    label: 'Markers',
+    default: '',
+    description: 'List of values to mark with triangles',
+  },
+
+  marker_labels: {
+    type: 'TextField',
+    label: 'Marker labels',
+    default: '',
+    description: 'Labels for the markers',
+  },
+
+  marker_lines: {
+    type: 'TextField',
+    label: 'Marker lines',
+    default: '',
+    description: 'List of values to mark with lines',
+  },
+
+  marker_line_labels: {
+    type: 'TextField',
+    label: 'Marker line labels',
+    default: '',
+    description: 'Labels for the marker lines',
+  },
 };
 export default fields;
 
