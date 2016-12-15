@@ -1,5 +1,6 @@
 import React from 'react';
 import { beforeEach, describe, it } from 'mocha';
+import { Button } from 'react-bootstrap';
 import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
@@ -26,12 +27,12 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('renders 2 buttons', () => {
-      expect(wrapper.find('button')).to.have.lengthOf(2);
+      expect(wrapper.find(Button)).to.have.lengthOf(2);
     });
 
     it('renders buttons with correct text', () => {
-      expect(wrapper.find('button').contains(' Query')).to.eql(true);
-      expect(wrapper.find('button').contains(' Save as')).to.eql(true);
+      expect(wrapper.find(Button).contains(' Query')).to.eql(true);
+      expect(wrapper.find(Button).contains(' Save as')).to.eql(true);
     });
 
     it('calls onQuery when query button is clicked', () => {
