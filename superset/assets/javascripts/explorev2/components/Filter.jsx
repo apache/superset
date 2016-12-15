@@ -57,6 +57,29 @@ export default class Filter extends React.Component {
   removeFilter(filter) {
     this.props.actions.removeFilter(filter);
   }
+  renderFilterFormField() {
+    if (this.props.renderFilterSelect) {
+      return (
+        <SelectField
+          multi
+          freeForm
+          name="filter-value"
+          value={this.props.filter.value}
+          choices={this.props.filter.choices ? this.props.filter.choices : []}
+          onChange={this.changeSelectValue.bind(this, this.props.filter)}
+        />
+      );
+    }
+    return (
+      <input
+        type="text"
+        onChange={this.changeValue.bind(this, this.props.filter)}
+        value={this.props.filter.value}
+        className="form-control input-sm"
+        placeholder="Filter value"
+      />
+    );
+  }
   render() {
     return (
       <div>
@@ -84,23 +107,7 @@ export default class Filter extends React.Component {
             onChange={this.changeOp.bind(this, this.props.filter)}
           />
           <div className="col-lg-6">
-            {this.props.renderFilterSelect ?
-            (<SelectField
-              multi
-              freeForm
-              name="filter-value"
-              value={this.props.filter.value}
-              choices={this.props.filter.choices ? this.props.filter.choices : []}
-              onChange={this.changeSelectValue.bind(this, this.props.filter)}
-            />) :
-            (<input
-              type="text"
-              onChange={this.changeValue.bind(this, this.props.filter)}
-              value={this.props.filter.value}
-              className="form-control input-sm"
-              placeholder="Filter value"
-            />)
-          }
+            {this.renderFilterFormField()}
           </div>
           <div className="col-lg-2">
             <Button
