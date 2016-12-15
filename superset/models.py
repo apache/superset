@@ -52,13 +52,9 @@ from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
 
-<<<<<<< 92aa1a612476fdef5f19eb68f961324a333b346c
-from superset import app, db, db_engine_specs, get_session, utils, sm
-=======
 from superset import (
     app, db, db_engine_specs, get_session, utils, sm, import_util
 )
->>>>>>> Druid dashboard import
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
 from superset.jinja_context import get_template_processor
@@ -82,6 +78,14 @@ def set_perm(mapper, connection, target):  # noqa
             .where(link_table.c.id == target.id)
             .values(perm=target.get_perm())
         )
+
+
+def set_related_perm(mapper, connection, target):  # noqa
+    src_class = target.cls_model
+    id_ = target.datasource_id
+    ds = db.session.query(src_class).filter_by(id=int(id_)).first()
+    target.perm = ds.perm
+
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -386,12 +390,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         session.flush()
         return slc_to_import.id
 
-
-def set_related_perm(mapper, connection, target):  # noqa
-    src_class = target.cls_model
-    id_ = target.datasource_id
-    ds = db.session.query(src_class).filter_by(id=int(id_)).first()
-    target.perm = ds.perm
 
 sqla.event.listen(Slice, 'before_insert', set_related_perm)
 sqla.event.listen(Slice, 'before_update', set_related_perm)

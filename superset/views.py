@@ -1412,6 +1412,7 @@ class Superset(BaseSupersetView):
                 else:
                     models.DruidDatasource.import_obj(
                         table, import_time=current_tt)
+            db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
