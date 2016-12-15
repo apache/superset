@@ -3,11 +3,10 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from itertools import product
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import conf, db, models, sm
+from superset import conf, db, models, sm, source_registry
 
 
 READ_ONLY_MODELVIEWS = {
@@ -17,13 +16,10 @@ READ_ONLY_MODELVIEWS = {
 }
 
 GAMMA_READ_ONLY_MODELVIEWS = {
-    'ColumnInlineView',
     'SqlMetricInlineView',
     'TableColumnInlineView',
     'TableModelView',
-    'DatasourceModelView',
     'DruidColumnInlineView',
-    'MetricInlineView',
     'DruidDatasourceModelView',
     'DruidMetricInlineView',
 } | READ_ONLY_MODELVIEWS
@@ -38,13 +34,11 @@ ADMIN_ONLY_VIEW_MENUES = {
     'RoleModelView',
     'Security',
     'UserDBModelView',
-} | READ_ONLY_MODELVIEWS
+}
 
 ADMIN_ONLY_PERMISSIONS = {
     'all_database_access',
-    'datasource_access',
-    'schema_access',
-    'database_access',
+    # TODO: move can_sql_json to sql_lab role
     'can_sql_json',
     'can_override_role_permissions',
     'can_sync_druid_source',
@@ -52,24 +46,16 @@ ADMIN_ONLY_PERMISSIONS = {
     'can_approve',
     'can_update_role',
 }
+
 READ_ONLY_PERMISSION = {
     'can_show',
     'can_list',
 }
 
 ALPHA_ONLY_PERMISSIONS = set([
-    'datasource_access',
-    'schema_access',
-    'database_access',
     'muldelete',
     'all_datasource_access',
 ])
-READ_ONLY_PRODUCT = set(
-    product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
-
-GAMMA_READ_ONLY_PRODUCT = set(
-    product(READ_ONLY_PERMISSION, GAMMA_READ_ONLY_MODELVIEWS))
-
 
 OBJECT_SPEC_PERMISSIONS = set([
     'database_access',
@@ -81,7 +67,7 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 def merge_perm(sm, permission_name, view_menu_name):
     pv = sm.find_permission_view_menu(permission_name, view_menu_name)
-    if not pv:
+    if not pv and permission_name and view_menu_name:
         sm.add_permission_view_menu(permission_name, view_menu_name)
 
 
@@ -107,114 +93,125 @@ def get_or_create_main_db():
     return dbobj
 
 
-def sync_role_definitions():
-    """Inits the Superset application with security roles and such"""
-    logging.info("Syncing role definition")
+def is_admin_only(pvm):
+    # not readonly operations on read only model views allowed only for admins
+    if (pvm.view_menu.name in READ_ONLY_MODELVIEWS and
+            pvm.permission.name not in READ_ONLY_PERMISSION):
+        return True
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUES or
+            pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
-    # Creating default roles
-    alpha = sm.add_role("Alpha")
-    admin = sm.add_role("Admin")
-    gamma = sm.add_role("Gamma")
-    public = sm.add_role("Public")
-    sql_lab = sm.add_role("sql_lab")
-    granter = sm.add_role("granter")
 
-    get_or_create_main_db()
+def is_alpha_only(pvm):
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODELVIEWS and
+            pvm.permission.name not in READ_ONLY_PERMISSION):
+        return True
+    return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
 
+
+def is_admin_pvm(pvm):
+    return not is_user_defined_permission(pvm)
+
+
+def is_alpha_pvm(pvm):
+    return not (is_user_defined_permission(pvm) or is_admin_only(pvm))
+
+
+def is_gamma_pvm(pvm):
+    return not (is_user_defined_permission(pvm) or is_admin_only(pvm) or
+                is_alpha_only(pvm))
+
+
+def is_sql_lab_pvm(pvm):
+    return pvm.view_menu.name in {'SQL Lab'} or pvm.permission.name in {
+        'can_sql_json', 'can_csv', 'can_search_queries'}
+
+
+def is_granter_pvm(pvm):
+    return pvm.permission.name in {'can_override_role_permissions',
+                                   'can_approve'}
+
+
+def set_role(role_name, pvms, pvm_check):
+    logging.info("Syncing {} perms".format(role_name))
+    role = sm.add_role(role_name)
+    role_pvms = [p for p in pvms if pvm_check(p)]
+    role.permissions = role_pvms
+
+
+def create_custom_permissions():
     # Global perms
     merge_perm(sm, 'all_datasource_access', 'all_datasource_access')
     merge_perm(sm, 'all_database_access', 'all_database_access')
 
-    perms = db.session.query(ab_models.PermissionView).all()
-    perms = [p for p in perms if p.permission and p.view_menu]
 
-    logging.info("Syncing admin perms")
-    for p in perms:
-        # admin has all_database_access and all_datasource_access
-        if is_user_defined_permission(p):
-            sm.del_permission_role(admin, p)
-        else:
-            sm.add_permission_role(admin, p)
-
-    logging.info("Syncing alpha perms")
-    for p in perms:
-        # alpha has all_database_access and all_datasource_access
-        if is_user_defined_permission(p):
-            sm.del_permission_role(alpha, p)
-        elif (
-                (
-                    p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
-                    p.permission.name not in ADMIN_ONLY_PERMISSIONS
-                ) or
-                (p.permission.name, p.view_menu.name) in READ_ONLY_PRODUCT
-        ):
-            sm.add_permission_role(alpha, p)
-        else:
-            sm.del_permission_role(alpha, p)
-
-    logging.info("Syncing gamma perms and public if specified")
-    PUBLIC_ROLE_LIKE_GAMMA = conf.get('PUBLIC_ROLE_LIKE_GAMMA', False)
-    for p in perms:
-        if (
-                (
-                    p.view_menu.name not in ADMIN_ONLY_VIEW_MENUES and
-                    p.view_menu.name not in GAMMA_READ_ONLY_MODELVIEWS and
-                    p.permission.name not in ADMIN_ONLY_PERMISSIONS and
-                    p.permission.name not in ALPHA_ONLY_PERMISSIONS
-                ) or
-                (p.permission.name, p.view_menu.name) in
-                GAMMA_READ_ONLY_PRODUCT
-        ):
-            sm.add_permission_role(gamma, p)
-            if PUBLIC_ROLE_LIKE_GAMMA:
-                sm.add_permission_role(public, p)
-        else:
-            sm.del_permission_role(gamma, p)
-            sm.del_permission_role(public, p)
-
-    logging.info("Syncing sql_lab perms")
-    for p in perms:
-        if (
-                p.view_menu.name in {'SQL Lab'} or
-                p.permission.name in {
-                    'can_sql_json', 'can_csv', 'can_search_queries'}
-        ):
-            sm.add_permission_role(sql_lab, p)
-        else:
-            sm.del_permission_role(sql_lab, p)
-
-    logging.info("Syncing granter perms")
-    for p in perms:
-        if (
-                p.permission.name in {
-                    'can_override_role_permissions', 'can_aprove'}
-        ):
-            sm.add_permission_role(granter, p)
-        else:
-            sm.del_permission_role(granter, p)
-
-    logging.info("Making sure all data source perms have been created")
-    session = db.session()
-    datasources = [
-        o for o in session.query(models.SqlaTable).all()]
-    datasources += [
-        o for o in session.query(models.DruidDatasource).all()]
+def create_missing_datasource_perms(view_menu_set):
+    logging.info("Creating missing datasource permissions.")
+    datasources = source_registry.SourceRegistry.get_all_datasources(
+        db.session)
     for datasource in datasources:
-        perm = datasource.get_perm()
-        merge_perm(sm, 'datasource_access', perm)
-        if datasource.schema:
-            merge_perm(sm, 'schema_access', datasource.schema_perm)
-        if perm != datasource.perm:
-            datasource.perm = perm
+        if datasource and datasource.perm not in view_menu_set:
+            merge_perm(sm, 'datasource_access', datasource.get_perm())
+            if datasource.schema_perm:
+                merge_perm(sm, 'schema_access', datasource.schema_perm)
 
-    logging.info("Making sure all database perms have been created")
-    databases = [o for o in session.query(models.Database).all()]
+
+def create_missing_database_perms(view_menu_set):
+    logging.info("Creating missing database permissions.")
+    databases = db.session.query(models.Database).all()
     for database in databases:
-        perm = database.get_perm()
-        if perm != database.perm:
-            database.perm = perm
-        merge_perm(sm, 'database_access', perm)
-    session.commit()
+        if database and database.perm not in view_menu_set:
+            merge_perm(sm, 'database_access', database.perm)
 
-    logging.info("Making sure all metrics perms exist")
-    models.init_metrics_perm()
+
+def create_missing_metrics_perm(view_menu_set):
+    """Create permissions for restricted metrics
+
+    :param metrics: a list of metrics to be processed, if not specified,
+        all metrics are processed
+    :type metrics: models.SqlMetric or models.DruidMetric
+    """
+    logging.info("Creating missing metrics permissions")
+    metrics = []
+    for model in [models.SqlMetric, models.DruidMetric]:
+        metrics += list(db.session.query(model).all())
+
+    for metric in metrics:
+        if (metric.is_restricted and metric.perm and
+                metric.perm not in view_menu_set):
+            merge_perm('metric_access', metric.perm)
+
+
+def sync_role_definitions():
+    """Inits the Superset application with security roles and such"""
+    logging.info("Syncing role definition")
+
+    get_or_create_main_db()
+    create_custom_permissions()
+
+    pvms = db.session.query(ab_models.PermissionView).all()
+    pvms = [p for p in pvms if p.permission and p.view_menu]
+
+    # cleanup
+    pvms_to_delete = [p for p in pvms if not (p.permission and p.view_menu)]
+
+    for pvm_to_delete in pvms_to_delete:
+        sm.get_session.delete(pvm_to_delete)
+
+    # Creating default roles
+    set_role('Admin', pvms, is_admin_pvm)
+    set_role('Alpha', pvms, is_alpha_pvm)
+    set_role('Gamma', pvms, is_gamma_pvm)
+    set_role('granter', pvms, is_granter_pvm)
+    set_role('sql_lab', pvms, is_sql_lab_pvm)
+
+    if conf.get('PUBLIC_ROLE_LIKE_GAMMA', False):
+        set_role('Public', pvms, is_gamma_pvm)
+
+    view_menu_set = db.session.query(models.SqlaTable).all()
+    create_missing_datasource_perms(view_menu_set)
+    create_missing_database_perms(view_menu_set)
+    create_missing_metrics_perm(view_menu_set)
+
+    # commit role and view menu updates
+    sm.get_session.commit()

@@ -466,10 +466,12 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
     def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
@@ -702,7 +704,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, table):
         table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.perm)
+        security.merge_perm(sm, 'datasource_access', table.get_perm())
         if table.schema:
             security.merge_perm(sm, 'schema_access', table.schema_perm)
 
@@ -1069,7 +1071,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        security.merge_perm(sm, 'datasource_access', datasource.perm)
+        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
         if datasource.schema:
             security.merge_perm(sm, 'schema_access', datasource.schema_perm)
 

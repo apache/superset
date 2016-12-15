@@ -333,7 +333,6 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
 def get_schema_perm(database, schema):
     if schema:
         return "[{}].[{}]".format(database, schema)
-    return database.perm
 
 
 def validate_json(obj):
