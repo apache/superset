@@ -29,7 +29,6 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
-    this.props.actions.updateChartStatus('success');
   }
 
   componentWillReceiveProps(nextProps) {
@@ -64,7 +63,10 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleResize() {
-    this.setState({ height: this.getHeight() });
+    clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(() => {
+      this.setState({ height: this.getHeight() });
+    }, 250);
   }
 
   toggleModal() {

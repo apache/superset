@@ -43,31 +43,39 @@ class ChartContainer extends React.Component {
     this.state = {
       selector: `#${props.containerId}`,
       mockSlice: {},
+      viz: {},
     };
   }
 
   componentWillMount() {
-    this.setState({ mockSlice: this.getMockedSliceObject(this.props) });
+    const mockSlice = this.getMockedSliceObject(this.props);
+    this.setState({
+      mockSlice,
+      viz: visMap[this.props.viz_type](mockSlice),
+    });
   }
 
   componentDidMount() {
-    this.renderVis();
+    this.state.viz.render();
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.chartStatus !== this.props.chartStatus
-      || nextProps.height !== this.props.height) {
-      this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    if (nextProps.chartStatus === 'loading') {
+      const mockSlice = this.getMockedSliceObject(nextProps);
+      this.setState({
+        mockSlice,
+        viz: visMap[nextProps.viz_type](mockSlice),
+      });
     }
   }
 
-  shouldComponentUpdate(nextProps) {
-    return (nextProps.chartStatus !== this.props.chartStatus
-      || nextProps.height !== this.props.height);
-  }
-
-  componentDidUpdate() {
-    this.renderVis();
+  componentDidUpdate(prevProps) {
+    if (this.props.chartStatus === 'loading') {
+      this.state.viz.render();
+    }
+    if (prevProps.height !== this.props.height) {
+      this.state.viz.resize();
+    }
   }
 
   getMockedSliceObject(props) {
@@ -96,7 +104,7 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(props.height, 10) - 100,
+        height: () => parseInt(this.props.height, 10) - 100,
 
         show: () => { this.render(); },
 
@@ -108,7 +116,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(props.height, 10) - 100,
+      height: () => parseInt(this.props.height, 10) - 100,
 
       selector: this.state.selector,
 
@@ -149,10 +157,6 @@ class ChartContainer extends React.Component {
     this.props.actions.removeChartAlert();
   }
 
-  renderVis() {
-    visMap[this.props.viz_type](this.state.mockSlice).render();
-  }
-
   renderChartTitle() {
     let title;
     if (this.props.slice_name) {
@@ -180,13 +184,21 @@ class ChartContainer extends React.Component {
     return (
       <div>
         {loading &&
-          <img alt="loading" width="25" src="/static/assets/images/loading.gif" />
+          <img
+            alt="loading"
+            width="25"
+            src="/static/assets/images/loading.gif"
+            style={{ position: 'absolute' }}
+          />
         }
         <div
           id={this.props.containerId}
           ref={(ref) => { this.chartContainerRef = ref; }}
           className={this.props.viz_type}
-          style={{ overflowX: 'auto' }}
+          style={{
+            overflowX: 'auto',
+            opacity: loading ? '0.25' : '1',
+          }}
         />
       </div>
     );
