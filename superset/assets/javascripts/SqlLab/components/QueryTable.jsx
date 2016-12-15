@@ -129,7 +129,10 @@ class QueryTable extends React.PureComponent {
           />
         );
       } else {
-        q.output = [q.schema, q.tempTable].filter((v) => (v)).join('.');
+        // if query was run using ctas and force_ctas_schema was set
+        // tempTable will have the schema
+        const schemaUsed = q.ctas && q.tempTable.includes('.') ? '' : q.schema;
+        q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (
         <ProgressBar

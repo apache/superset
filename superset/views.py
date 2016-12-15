@@ -2392,6 +2392,14 @@ class Superset(BaseSupersetView):
                 get_datasource_access_error_msg('{}'.format(rejected_tables)))
         session.commit()
 
+        select_as_cta = request.form.get('select_as_cta') == 'true'
+        tmp_table_name = request.form.get('tmp_table_name')
+        if select_as_cta and mydb.force_ctas_schema:
+            tmp_table_name = '{}.{}'.format(
+                mydb.force_ctas_schema,
+                tmp_table_name
+            )
+
         query = models.Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
@@ -2402,7 +2410,7 @@ class Superset(BaseSupersetView):
             tab_name=request.form.get('tab'),
             status=QueryStatus.PENDING if async else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
-            tmp_table_name=request.form.get('tmp_table_name'),
+            tmp_table_name=tmp_table_name,
             user_id=int(g.user.get_id()),
             client_id=request.form.get('client_id'),
         )
