@@ -56,11 +56,11 @@ class ChartContainer extends React.Component {
   }
 
   componentDidMount() {
-    this.renderVisOnChange();
+    this.state.viz.render();
   }
 
   componentWillReceiveProps(nextProps) {
-    if (nextProps.chartStatus !== this.props.chartStatus) {
+    if (nextProps.chartStatus === 'loading') {
       const mockSlice = this.getMockedSliceObject(nextProps);
       this.setState({
         mockSlice,
@@ -69,13 +69,13 @@ class ChartContainer extends React.Component {
     }
   }
 
-  shouldComponentUpdate(nextProps) {
-    return (nextProps.chartStatus !== this.props.chartStatus
-      || nextProps.height !== this.props.height);
-  }
-
   componentDidUpdate(prevProps) {
-    this.renderVisOnChange(prevProps.height !== this.props.height);
+    if (this.props.chartStatus === 'loading') {
+      this.state.viz.render();
+    }
+    if (prevProps.height !== this.props.height) {
+      this.state.viz.resize();
+    }
   }
 
   getMockedSliceObject(props) {
@@ -155,15 +155,6 @@ class ChartContainer extends React.Component {
 
   removeAlert() {
     this.props.actions.removeChartAlert();
-  }
-
-  renderVisOnChange(heightChange) {
-    if (this.props.chartStatus === 'loading') {
-      this.state.viz.render();
-    }
-    if (heightChange) {
-      this.state.viz.resize(this.state.chart);
-    }
   }
 
   renderChartTitle() {
