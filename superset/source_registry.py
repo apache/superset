@@ -36,7 +36,10 @@ class SourceRegistry(object):
                                schema, database_name):
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
-        db_ds = [d for d in datasources if d.database.name == database_name and
+
+        # Filter datasoures that don't have database.
+        db_ds = [d for d in datasources if d.database and
+                 d.database.name == database_name and
                  d.name == datasource_name and schema == schema]
         return db_ds[0]
 
