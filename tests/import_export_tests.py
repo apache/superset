@@ -55,6 +55,11 @@ class ImportExportTests(SupersetTestCase):
             'datasource_name': table_name,
             'database_name': db_name,
             'schema': '',
+            # Test for trailing commas
+            "metrics": [
+                "sum__signup_attempt_email",
+                "sum__signup_attempt_facebook",
+            ],
         }
 
         if table_name and not ds_id:
