@@ -1019,7 +1019,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             raise Exception(_(
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart"))
-
+        for m in metrics:
+            if m not in metrics_dict:
+                raise Exception(_("Metric '{}' is not valid".format(m)))
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
         timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
         timeseries_limit_metric_expr = None

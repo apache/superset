@@ -2185,10 +2185,17 @@ class Superset(BaseSupersetView):
                 dims.append(col)
             agg = config.get('agg')
             if agg:
-                metrics.append(models.SqlMetric(
-                    metric_name="{agg}__{column_name}".format(**locals()),
-                    expression="{agg}({column_name})".format(**locals()),
-                ))
+                if agg == 'count_distinct':
+                    metrics.append(models.SqlMetric(
+                        metric_name="{agg}__{column_name}".format(**locals()),
+                        expression="COUNT(DISTINCT {column_name})"
+                        .format(**locals()),
+                    ))
+                else:
+                    metrics.append(models.SqlMetric(
+                        metric_name="{agg}__{column_name}".format(**locals()),
+                        expression="{agg}({column_name})".format(**locals()),
+                    ))
         if not metrics:
             metrics.append(models.SqlMetric(
                 metric_name="count".format(**locals()),
