@@ -439,6 +439,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     def __repr__(self):
         return self.dashboard_title
 
+    def get_dashboard_title(self):
+        return self.dashboard_title
+
     @property
     def table_names(self):
         return ", ".join(

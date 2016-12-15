@@ -63,6 +63,7 @@ ALPHA_ONLY_PERMISSIONS = set([
     'database_access',
     'muldelete',
     'all_datasource_access',
+    'dashboard_access'
 ])
 READ_ONLY_PRODUCT = set(
     product(READ_ONLY_PERMISSION, READ_ONLY_MODELVIEWS))
@@ -214,6 +215,13 @@ def sync_role_definitions():
         if perm != database.perm:
             database.perm = perm
         merge_perm(sm, 'database_access', perm)
+    session.commit()
+
+    logging.info("Making sure all dashboard perms have been created")
+    dashboards = [o for o in session.query(models.Dashboard).all()]
+    for dashboard in dashboards:
+        perm = dashboard.get_dashboard_title()
+        sm.add_permission_view_menu('dashboard_access', perm)
     session.commit()
 
     logging.info("Making sure all metrics perms exist")
