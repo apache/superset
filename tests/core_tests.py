@@ -122,6 +122,25 @@ class CoreTests(SupersetTestCase):
         assert 'Energy' in self.get_resp(
             url.format(tbl_id, slice_id, copy_name, 'overwrite'))
 
+    def test_filter_endpoint(self):
+        self.login(username='admin')
+        slice_name = "Energy Sankey"
+        slice_id = self.get_slice(slice_name, db.session).id
+        db.session.commit()
+        tbl_id = self.table_ids.get('energy_usage')
+        table = db.session.query(models.SqlaTable).filter(models.SqlaTable.id == tbl_id)
+        table.filter_select_enabled = True
+        url = (
+            "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
+            "&metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
+            "slice_id={}&datasource_name=energy_usage&"
+            "datasource_id=1&datasource_type=table")
+
+        # Changing name
+        resp = self.get_resp(url.format(tbl_id, slice_id))
+        assert len(resp) > 0
+        assert 'Carbon Dioxide' in resp
+
     def test_slices(self):
         # Testing by hitting the two supported end points for all slices
         self.login(username='admin')
