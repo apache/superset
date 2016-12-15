@@ -129,7 +129,9 @@ class ImportMixin(object):
     @property
     def params_dict(self):
         if self.params:
-            return json.loads(self.params)
+            params = re.sub(",[ \t\r\n]+}", "}", self.params)
+            params = re.sub(",[ \t\r\n]+\]", "]", params)
+            return json.loads(params)
         else:
             return {}
 
