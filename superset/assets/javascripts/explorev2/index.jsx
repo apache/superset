@@ -6,6 +6,7 @@ import { createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
+import { enhancer } from '../reduxUtils';
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
 const $ = window.$ = require('jquery'); // eslint-disable-line
@@ -66,7 +67,7 @@ bootstrappedState.viz.form_data.filters =
   getFilters(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
 const store = createStore(exploreReducer, bootstrappedState,
-  compose(applyMiddleware(thunk))
+  compose(applyMiddleware(thunk), enhancer())
 );
 
 ReactDOM.render(
@@ -75,4 +76,3 @@ ReactDOM.render(
   </Provider>,
   exploreViewContainer
 );
-
