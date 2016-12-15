@@ -48,3 +48,9 @@ export function initialState(vizType = 'table', datasourceType = 'table') {
     isStarred: false,
   };
 }
+
+// Control Panel fields that re-render chart without need for 'Query button'
+export const autoQueryFields = [
+  'datasource',
+  'viz_type',
+];
