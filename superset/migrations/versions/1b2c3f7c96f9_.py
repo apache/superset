@@ -1,22 +1,22 @@
 """Add number of views as column to dashboards and slices
 
 Revision ID: 1b2c3f7c96f9
-Revises: e27bbff06636
+Revises: f1f2d4af5b90
 Create Date: 2016-12-15 16:32:31.909331
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '1b2c3f7c96f9'
-down_revision = 'e27bbff06636'
+down_revision = 'f1f2d4af5b90'
 
 from alembic import op
 import sqlalchemy as sa
 from superset import db, models
 
 def upgrade():
-  op.add_column('dashboards', sa.Column('views', sa.Integer, default=1, nullable=True))
-  op.add_column('slices', sa.Column('views', sa.Integer, default=1, nullable=True))
+  op.add_column('dashboards', sa.Column('views', sa.Integer, server_default='1', nullable=True))
+  op.add_column('slices', sa.Column('views', sa.Integer, server_default='1', nullable=True))
 
   Dash = models.Dashboard
   Log = models.Log

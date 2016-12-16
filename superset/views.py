@@ -1949,10 +1949,7 @@ class Superset(BaseSupersetView):
                 Dash,
             )
             .filter(
-                sqla.or_(
-                    Dash.created_by_fk == user_id,
-                    Dash.changed_by_fk == user_id,
-                )
+                Dash.created_by_fk == user_id,
             )
             .order_by(
                 Dash.changed_on.desc()
@@ -1979,10 +1976,7 @@ class Superset(BaseSupersetView):
         qry = (
             db.session.query(Slice)
             .filter(
-                sqla.or_(
-                    Slice.created_by_fk == user_id,
-                    Slice.changed_by_fk == user_id,
-                )
+                Slice.created_by_fk == user_id,
             )
             .order_by(Slice.changed_on.desc())
         )
