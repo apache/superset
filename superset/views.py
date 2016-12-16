@@ -1523,6 +1523,7 @@ class Superset(BaseSupersetView):
     def filter(self, datasource_type, datasource_id, column):
         """
         Endpoint to retrieve values for specified column.
+
         :param datasource_type: Type of datasource e.g. table
         :param datasource_id: Datasource id
         :param column: Column name to retrieve values for
@@ -1538,13 +1539,10 @@ class Superset(BaseSupersetView):
 
         if not datasource:
             flash(DATASOURCE_MISSING_ERR, "alert")
-            return flash(DATASOURCE_MISSING_ERR, "alert")
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
-                flash(
-                    __(get_datasource_access_error_msg(datasource.name)),
-                    "danger")
-                return json_error_response(DATASOURCE_ACCESS_ERR)
+            flash(get_datasource_access_error_msg(datasource.name), "danger")
+            return json_error_response(DATASOURCE_ACCESS_ERR)
 
         viz_type = request.args.get("viz_type")
         if not viz_type and datasource.default_endpoint:

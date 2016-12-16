@@ -1977,9 +1977,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                           from_dttm,
                           to_dttm,
                           limit=500):
-        """
-        Runs query against Druid to retrieve some values for the given column
-        """
+        """Retrieve some values for the given column"""
         # TODO: Use Lexicographic TopNMeticSpec onces supported by PyDruid
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))

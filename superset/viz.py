@@ -152,9 +152,7 @@ class BaseViz(object):
         return href(od)
 
     def get_filter_url(self):
-        """
-        Returns the URL to retrieve column values used in the filter dropdown
-        """
+        """Returns the URL to retrieve column values used in the filter"""
         data = self.orig_form_data.copy()
         # Remove unchecked checkboxes because HTML is weird like that
         ordered_data = MultiDict()
@@ -411,6 +409,7 @@ class BaseViz(object):
     def get_values_for_column(self, column):
         """
         Retrieves values for a column to be used by the filter dropdown.
+
         :param column: column name
         :return: JSON containing the some values for a column
         """
