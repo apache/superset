@@ -65,14 +65,20 @@ class QueryTable extends React.PureComponent {
   removeQuery(query) {
     this.props.actions.removeQuery(query);
   }
-
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
-      q.date = moment(q.startDttm).format('MMM Do YYYY');
+      const time = moment(q.startDttm).format().split('T');
+      q.time = (
+        <div>
+          <span>
+            {time[0]} <br /> {time[1]}
+          </span>
+        </div>
+      );
       q.user = (
         <button
           className="btn btn-link btn-xs"
@@ -123,7 +129,10 @@ class QueryTable extends React.PureComponent {
           />
         );
       } else {
-        q.output = [q.schema, q.tempTable].filter((v) => (v)).join('.');
+        // if query was run using ctas and force_ctas_schema was set
+        // tempTable will have the schema
+        const schemaUsed = q.ctas && q.tempTable.includes('.') ? '' : q.schema;
+        q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (
         <ProgressBar
@@ -188,6 +197,7 @@ class QueryTable extends React.PureComponent {
           columns={this.props.columns}
           className="table table-condensed"
           data={data}
+          itemsPerPage={50}
         />
       </div>
     );

@@ -14,6 +14,7 @@ const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
+  chartStatus: React.PropTypes.string.isRequired,
 };
 
 
@@ -28,7 +29,6 @@ class ExploreViewContainer extends React.Component {
 
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
-    this.props.actions.updateChartStatus('success');
   }
 
   componentWillReceiveProps(nextProps) {
@@ -63,7 +63,10 @@ class ExploreViewContainer extends React.Component {
   }
 
   handleResize() {
-    this.setState({ height: this.getHeight() });
+    clearTimeout(this.resizeTimer);
+    this.resizeTimer = setTimeout(() => {
+      this.setState({ height: this.getHeight() });
+    }, 250);
   }
 
   toggleModal() {
@@ -94,6 +97,7 @@ class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={this.onQuery.bind(this, this.props.form_data)}
               onSave={this.toggleModal.bind(this)}
+              disabled={this.props.chartStatus === 'loading'}
             />
             <br /><br />
             <ControlPanelsContainer
@@ -121,6 +125,7 @@ function mapStateToProps(state) {
   return {
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
+    chartStatus: state.chartStatus,
   };
 }
 

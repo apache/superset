@@ -116,11 +116,7 @@ class QuerySearch extends React.PureComponent {
     const url = this.insertParams('/superset/search_queries', params);
     $.getJSON(url, (data, status) => {
       if (status === 'success') {
-        const newQueriesArray = [];
-        for (const id in data) {
-          newQueriesArray.push(data[id]);
-        }
-        this.setState({ queriesArray: newQueriesArray, queriesLoading: false });
+        this.setState({ queriesArray: data, queriesLoading: false });
       }
     });
   }
@@ -143,6 +139,7 @@ class QuerySearch extends React.PureComponent {
             <DatabaseSelect
               onChange={this.onChange.bind(this)}
               databaseId={this.state.databaseId}
+              actions={this.props.actions}
             />
           </div>
           <div className="col-sm-4">
@@ -200,7 +197,7 @@ class QuerySearch extends React.PureComponent {
             <div className="scrollbar-content">
               <QueryTable
                 columns={[
-                  'state', 'db', 'user', 'date',
+                  'state', 'db', 'user', 'time',
                   'progress', 'rows', 'sql', 'querylink',
                 ]}
                 onUserClicked={this.onUserClicked.bind(this)}

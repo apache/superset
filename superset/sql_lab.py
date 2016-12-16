@@ -40,7 +40,7 @@ def dedup(l, suffix='__'):
     return new_l
 
 
-def create_table_as(sql, table_name, schema=None, override=False):
+def create_table_as(sql, table_name, override=False):
     """Reformats the query into the create table as query.
 
     Works only for the single select SQL statements, in all other cases
@@ -55,8 +55,6 @@ def create_table_as(sql, table_name, schema=None, override=False):
     # TODO(bkyryliuk): drop table if allowed, check the namespace and
     #                  the permissions.
     # TODO raise if multi-statement
-    if schema:
-        table_name = schema + '.' + table_name
     exec_sql = ''
     if override:
         exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
@@ -105,7 +103,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
                 query.user_id,
                 start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
         executed_sql = create_table_as(
-            executed_sql, query.tmp_table_name, database.force_ctas_schema)
+            executed_sql, query.tmp_table_name)
         query.select_as_cta_used = True
     elif (
             query.limit and superset_query.is_select() and

@@ -466,10 +466,12 @@ class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     }
 
     def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
     def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
+        if metric.is_restricted:
+            security.merge_perm(sm, 'metric_access', metric.get_perm())
 
 appbuilder.add_view_no_menu(SqlMetricInlineView)
 
@@ -702,7 +704,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, table):
         table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.perm)
+        security.merge_perm(sm, 'datasource_access', table.get_perm())
         if table.schema:
             security.merge_perm(sm, 'schema_access', table.schema_perm)
 
@@ -1069,7 +1071,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-        security.merge_perm(sm, 'datasource_access', datasource.perm)
+        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
         if datasource.schema:
             security.merge_perm(sm, 'schema_access', datasource.schema_perm)
 
@@ -1492,7 +1494,7 @@ class Superset(BaseSupersetView):
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": user_id,
-                "viz": json.loads(viz_obj.get_json())
+                "viz": json.loads(viz_obj.json_data)
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \
@@ -2185,10 +2187,17 @@ class Superset(BaseSupersetView):
                 dims.append(col)
             agg = config.get('agg')
             if agg:
-                metrics.append(models.SqlMetric(
-                    metric_name="{agg}__{column_name}".format(**locals()),
-                    expression="{agg}({column_name})".format(**locals()),
-                ))
+                if agg == 'count_distinct':
+                    metrics.append(models.SqlMetric(
+                        metric_name="{agg}__{column_name}".format(**locals()),
+                        expression="COUNT(DISTINCT {column_name})"
+                        .format(**locals()),
+                    ))
+                else:
+                    metrics.append(models.SqlMetric(
+                        metric_name="{agg}__{column_name}".format(**locals()),
+                        expression="{agg}({column_name})".format(**locals()),
+                    ))
         if not metrics:
             metrics.append(models.SqlMetric(
                 metric_name="count".format(**locals()),
@@ -2383,6 +2392,14 @@ class Superset(BaseSupersetView):
                 get_datasource_access_error_msg('{}'.format(rejected_tables)))
         session.commit()
 
+        select_as_cta = request.form.get('select_as_cta') == 'true'
+        tmp_table_name = request.form.get('tmp_table_name')
+        if select_as_cta and mydb.force_ctas_schema:
+            tmp_table_name = '{}.{}'.format(
+                mydb.force_ctas_schema,
+                tmp_table_name
+            )
+
         query = models.Query(
             database_id=int(database_id),
             limit=int(app.config.get('SQL_MAX_ROW', None)),
@@ -2393,7 +2410,7 @@ class Superset(BaseSupersetView):
             tab_name=request.form.get('tab'),
             status=QueryStatus.PENDING if async else QueryStatus.RUNNING,
             sql_editor_id=request.form.get('sql_editor_id'),
-            tmp_table_name=request.form.get('tmp_table_name'),
+            tmp_table_name=tmp_table_name,
             user_id=int(g.user.get_id()),
             client_id=request.form.get('client_id'),
         )
@@ -2593,9 +2610,14 @@ class Superset(BaseSupersetView):
         if to_time:
             query = query.filter(models.Query.start_time < int(to_time))
 
-        query_limit = config.get('QUERY_SEARCH_LIMIT', 5000)
-        sql_queries = query.limit(query_limit).all()
-        dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
+        query_limit = config.get('QUERY_SEARCH_LIMIT', 1000)
+        sql_queries = (
+            query.order_by(models.Query.start_time.asc())
+            .limit(query_limit)
+            .all()
+        )
+
+        dict_queries = [q.to_dict() for q in sql_queries]
 
         return Response(
             json.dumps(dict_queries, default=utils.json_int_dttm_ser),
