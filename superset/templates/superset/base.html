@@ -18,4 +18,16 @@
     {% with filename="common" %}
       {% include "superset/partials/_script_tag.html" %}
     {% endwith %}
+    <script>
+      // FAB hacks
+
+      $(document).ready( function() {
+        // Making the buttons not primary
+        $('.btn-primary').addClass('btn-default').removeClass('btn-primary');
+        // Setting the `+` button as primary
+        $('.fa-plus').parent().addClass('btn-primary').removeClass('btn-default');
+
+        $('.container').fadeIn();
+      });
+    </script>
   {% endblock %}
