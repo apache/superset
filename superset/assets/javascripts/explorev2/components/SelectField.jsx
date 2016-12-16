@@ -58,8 +58,18 @@ export default class SelectField extends React.Component {
     if (this.props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
       const values = choices.map((c) => c[0]);
-      if (values.indexOf(this.props.value) === -1) {
-        options.push({ value: this.props.value, label: this.props.value });
+      if (this.props.value) {
+        if (typeof this.props.value === 'object') {
+          this.props.value.forEach((v) => {
+            if (values.indexOf(v) === -1) {
+              options.push({ value: v, label: v });
+            }
+          });
+        } else {
+          if (values.indexOf(this.props.value) === -1) {
+            options.push({ value: this.props.value, label: this.props.value });
+          }
+        }
       }
     }
 
@@ -77,13 +87,19 @@ export default class SelectField extends React.Component {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?
       (<Creatable {...selectProps} />) : (<Select {...selectProps} />);
-
+    if (this.props.label) {
+      return (
+        <div id={`formControlsSelect-${slugify(this.props.label)}`}>
+          <ControlLabelWithTooltip
+            label={this.props.label}
+            description={this.props.description}
+          />
+          {selectWrap}
+        </div>
+      );
+    }
     return (
-      <div id={`formControlsSelect-${slugify(this.props.label)}`}>
-        <ControlLabelWithTooltip
-          label={this.props.label}
-          description={this.props.description}
-        />
+      <div>
         {selectWrap}
       </div>
     );

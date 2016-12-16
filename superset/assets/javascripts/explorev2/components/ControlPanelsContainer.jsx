@@ -102,6 +102,7 @@ class ControlPanelsContainer extends React.Component {
                 filters={this.props.form_data.filters}
                 actions={this.props.actions}
                 prefix={section.prefix}
+                datasource_id={this.props.form_data.datasource}
               />
             </ControlPanelSection>
           ))}

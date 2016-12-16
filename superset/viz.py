@@ -151,6 +151,34 @@ class BaseViz(object):
             del od['force']
         return href(od)
 
+    def get_filter_url(self):
+        """Returns the URL to retrieve column values used in the filter"""
+        data = self.orig_form_data.copy()
+        # Remove unchecked checkboxes because HTML is weird like that
+        ordered_data = MultiDict()
+        for key in sorted(data.keys()):
+            # if MultiDict is initialized with MD({key:[emptyarray]}),
+            # key is included in d.keys() but accessing it throws
+            try:
+                if data[key] is False:
+                    del data[key]
+                    continue
+            except IndexError:
+                pass
+
+            if isinstance(data, (MultiDict, ImmutableMultiDict)):
+                v = data.getlist(key)
+            else:
+                v = data.get(key)
+            if not isinstance(v, list):
+                v = [v]
+            for item in v:
+                ordered_data.add(key, item)
+        href = Href(
+            '/caravel/filter/{self.datasource.type}/'
+            '{self.datasource.id}/'.format(**locals()))
+        return href(ordered_data)
+
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
@@ -325,6 +353,7 @@ class BaseViz(object):
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
                 'query': self.query,
+                'filter_endpoint': self.filter_endpoint,
                 'standalone_endpoint': self.standalone_endpoint,
                 'column_formats': self.data['column_formats'],
             }
@@ -359,9 +388,11 @@ class BaseViz(object):
             'csv_endpoint': self.csv_endpoint,
             'form_data': self.form_data,
             'json_endpoint': self.json_endpoint,
+            'filter_endpoint': self.filter_endpoint,
             'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
+            'filter_select_enabled': self.datasource.filter_select_enabled,
             'column_formats': {
                 m.metric_name: m.d3format
                 for m in self.datasource.metrics
@@ -375,12 +406,44 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
 
+    def get_values_for_column(self, column):
+        """
+        Retrieves values for a column to be used by the filter dropdown.
+
+        :param column: column name
+        :return: JSON containing the some values for a column
+        """
+        form_data = self.form_data
+
+        since = form_data.get("since", "1 year ago")
+        from_dttm = utils.parse_human_datetime(since)
+        now = datetime.now()
+        if from_dttm > now:
+            from_dttm = now - (from_dttm - now)
+        until = form_data.get("until", "now")
+        to_dttm = utils.parse_human_datetime(until)
+        if from_dttm > to_dttm:
+            flasher("The date range doesn't seem right.", "danger")
+            from_dttm = to_dttm  # Making them identical to not raise
+
+        kwargs = dict(
+            column_name=column,
+            from_dttm=from_dttm,
+            to_dttm=to_dttm,
+        )
+        df = self.datasource.values_for_column(**kwargs)
+        return df[column].to_json()
+
     def get_data(self):
         return []
 
     @property
     def json_endpoint(self):
         return self.get_url(json_endpoint=True)
+
+    @property
+    def filter_endpoint(self):
+        return self.get_filter_url()
 
     @property
     def cache_key(self):

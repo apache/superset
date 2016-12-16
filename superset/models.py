@@ -32,6 +32,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 
 from pydruid.client import PyDruid
+from pydruid.utils.aggregators import count
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
@@ -866,6 +867,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     is_featured = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
@@ -976,6 +978,45 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         for col in columns:
             if col_name == col.column_name:
                 return col
+
+    def values_for_column(self,
+                          column_name,
+                          from_dttm,
+                          to_dttm,
+                          limit=500):
+        """Runs query against sqla to retrieve some
+        sample values for the given column.
+        """
+        granularity = self.main_dttm_col
+
+        cols = {col.column_name: col for col in self.columns}
+        target_col = cols[column_name]
+
+        tbl = table(self.table_name)
+        qry = select([target_col.sqla_col])
+        qry = qry.select_from(tbl)
+        qry = qry.distinct(column_name)
+        qry = qry.limit(limit)
+
+        if granularity:
+            dttm_col = cols[granularity]
+            timestamp = dttm_col.sqla_col.label('timestamp')
+            time_filter = [
+                timestamp >= text(dttm_col.dttm_sql_literal(from_dttm)),
+                timestamp <= text(dttm_col.dttm_sql_literal(to_dttm)),
+            ]
+            qry = qry.where(and_(*time_filter))
+
+        engine = self.database.get_sqla_engine()
+        sql = "{}".format(
+            qry.compile(
+                engine, compile_kwargs={"literal_binds": True}, ),
+        )
+
+        return pd.read_sql_query(
+            sql=sql,
+            con=engine
+        )
 
     def query(  # sqla
             self, groupby, metrics,
@@ -1594,6 +1635,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     datasource_name = Column(String(255), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=False)
     description = Column(Text)
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
@@ -1929,6 +1971,35 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             granularity['duration'] = utils.parse_human_timedelta(
                 period_name).total_seconds() * 1000
         return granularity
+
+    def values_for_column(self,
+                          column_name,
+                          from_dttm,
+                          to_dttm,
+                          limit=500):
+        """Retrieve some values for the given column"""
+        # TODO: Use Lexicographic TopNMeticSpec onces supported by PyDruid
+        from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+
+        qry = dict(
+            datasource=self.datasource_name,
+            granularity="all",
+            intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+            aggregations=dict(count=count("count")),
+            dimension=column_name,
+            metric="count",
+            threshold=limit,
+        )
+
+        client = self.cluster.get_pydruid_client()
+        client.topn(**qry)
+        df = client.export_pandas()
+
+        if df is None or df.size == 0:
+            raise Exception(_("No data was returned."))
+
+        return df
 
     def query(  # druid
             self, groupby, metrics,

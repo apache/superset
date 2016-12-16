@@ -646,7 +646,8 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'link', 'database', 'is_featured', 'changed_on_']
     add_columns = ['table_name', 'database', 'schema']
     edit_columns = [
-        'table_name', 'sql', 'is_featured', 'database', 'schema',
+        'table_name', 'sql', 'is_featured', 'filter_select_enabled',
+        'database', 'schema',
         'description', 'owner',
         'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
     show_columns = edit_columns + ['perm']
@@ -674,6 +675,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'database': _("Database"),
         'changed_on_': _("Last Changed"),
         'is_featured': _("Is Featured"),
+        'filter_select_enabled': _("Enable Filter Select"),
         'schema': _("Schema"),
         'default_endpoint': _("Default Endpoint"),
         'offset': _("Offset"),
@@ -1031,8 +1033,8 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
     related_views = [DruidColumnInlineView, DruidMetricInlineView]
     edit_columns = [
         'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'default_endpoint', 'offset',
-        'cache_timeout']
+        'is_featured', 'is_hidden', 'filter_select_enabled',
+        'default_endpoint', 'offset', 'cache_timeout']
     add_columns = edit_columns
     show_columns = add_columns + ['perm']
     page_size = 500
@@ -1051,6 +1053,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
         'owner': _("Owner"),
         'is_featured': _("Is Featured"),
         'is_hidden': _("Is Hidden"),
+        'filter_select_enabled': _("Enable Filter Select"),
         'default_endpoint': _("Default Endpoint"),
         'offset': _("Time Offset"),
         'cache_timeout': _("Cache Timeout"),
@@ -1494,7 +1497,8 @@ class Superset(BaseSupersetView):
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": user_id,
-                "viz": json.loads(viz_obj.json_data)
+                "viz": json.loads(viz_obj.json_data),
+                "filter_select": viz_obj.datasource.filter_select_enabled
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \
@@ -1512,6 +1516,53 @@ class Superset(BaseSupersetView):
                 can_download=slice_download_perm,
                 userid=g.user.get_id() if g.user else ''
             )
+
+    @api
+    @has_access_api
+    @expose("/filter/<datasource_type>/<datasource_id>/<column>/")
+    def filter(self, datasource_type, datasource_id, column):
+        """
+        Endpoint to retrieve values for specified column.
+
+        :param datasource_type: Type of datasource e.g. table
+        :param datasource_id: Datasource id
+        :param column: Column name to retrieve values for
+        :return:
+        """
+        # TODO: Cache endpoint by user, datasource and column
+        error_redirect = '/slicemodelview/list/'
+        datasource_class = models.SqlaTable \
+            if datasource_type == "table" else models.DruidDatasource
+
+        datasource = db.session.query(
+            datasource_class).filter_by(id=datasource_id).first()
+
+        if not datasource:
+            flash(DATASOURCE_MISSING_ERR, "alert")
+            return json_error_response(DATASOURCE_MISSING_ERR)
+        if not self.datasource_access(datasource):
+            flash(get_datasource_access_error_msg(datasource.name), "danger")
+            return json_error_response(DATASOURCE_ACCESS_ERR)
+
+        viz_type = request.args.get("viz_type")
+        if not viz_type and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
+        if not viz_type:
+            viz_type = "table"
+        try:
+            obj = viz.viz_types[viz_type](
+                datasource,
+                form_data=request.args,
+                slice_=None)
+        except Exception as e:
+            flash(str(e), "danger")
+            return redirect(error_redirect)
+        status = 200
+        payload = obj.get_values_for_column(column)
+        return Response(
+            payload,
+            status=status,
+            mimetype="application/json")
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
