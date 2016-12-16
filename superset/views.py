@@ -1430,6 +1430,8 @@ class Superset(BaseSupersetView):
 
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            slc.views = slc.views + 1
+            db.session.commit()
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1942,38 +1944,27 @@ class Superset(BaseSupersetView):
     @expose("/created_dashboards/<user_id>/", methods=['GET'])
     def created_dashboards(self, user_id):
         Dash = models.Dashboard  # noqa
-        Log = models.Log
         qry = (
             db.session.query(
                 Dash,
-                sqla.func.count(),
-                sqla.func.count(Log.user_id.distinct()),
             )
-            .join(Log)
             .filter(
                 sqla.or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
                 )
             )
-            .filter(
-                sqla.and_(
-                    Log.dashboard_id == Dash.id,
-                )
-            )
             .order_by(
                 Dash.changed_on.desc()
             )
-            .group_by(Dash.id)
         )
         payload = [{
-            'id': o[0].id,
-            'dashboard': o[0].dashboard_link(),
-            'title': o[0].dashboard_title,
-            'url': o[0].url,
-            'dttm': o[0].changed_on,
-            'views': o[1],
-            'distinct_users': o[2],
+            'id': o.id,
+            'dashboard': o.dashboard_link(),
+            'title': o.dashboard_title,
+            'url': o.url,
+            'dttm': o.changed_on,
+            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -1985,35 +1976,22 @@ class Superset(BaseSupersetView):
     def created_slices(self, user_id):
         """List of slices created by this user"""
         Slice = models.Slice  # noqa
-        Log = models.Log
         qry = (
-            db.session.query(
-                Slice,
-                sqla.func.count(),
-                sqla.func.count(Log.user_id.distinct()),
-            )
-            .join(Log)
+            db.session.query(Slice)
             .filter(
                 sqla.or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
                 )
             )
-            .filter(
-                sqla.and_(
-                    Log.slice_id == Slice.id,
-                )
-            )
             .order_by(Slice.changed_on.desc())
-            .group_by(Slice.id)
         )
         payload = [{
-            'id': o[0].id,
-            'title': o[0].slice_name,
-            'url': o[0].slice_url,
-            'dttm': o[0].changed_on,
-            'views': o[1],
-            'distinct_users': o[2],
+            'id': o.id,
+            'title': o.slice_name,
+            'url': o.slice_url,
+            'dttm': o.changed_on,
+            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2150,6 +2128,8 @@ class Superset(BaseSupersetView):
             qry = qry.filter_by(slug=dashboard_id)
 
         dash = qry.one()
+        dash.views = dash.views + 1
+        db.session.commit()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
             if not self.datasource_access(datasource):
