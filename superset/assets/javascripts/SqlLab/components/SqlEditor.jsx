@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  Button as BootstrapButton,
-  ButtonGroup,
   Col,
   FormGroup,
   InputGroup,
@@ -21,6 +19,7 @@ import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
 import { STATE_BSSTYLE_MAP } from '../constants.js';
+import RunQueryActionButton from './RunQueryActionButton';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -104,64 +103,6 @@ class SqlEditor extends React.PureComponent {
   }
 
   render() {
-    let runButtons = [];
-    let runText = 'Run Query';
-    let btnStyle = 'primary';
-    if (this.props.queryEditor.selectedText) {
-      runText = 'Run Selection';
-      btnStyle = 'warning';
-    }
-    if (this.props.database && this.props.database.allow_run_sync) {
-      runButtons.push(
-        <BootstrapButton
-          bsSize="small"
-          bsStyle={btnStyle}
-          style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this, false)}
-          disabled={!(this.props.queryEditor.dbId)}
-          key="run-btn"
-        >
-          <i className="fa fa-table" /> {runText}
-        </BootstrapButton>
-      );
-    }
-    if (this.props.database && this.props.database.allow_run_async) {
-      const asyncToolTip = 'Run query asynchronously';
-      runButtons.push(
-        <Button
-          bsSize="small"
-          bsStyle={btnStyle}
-          style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this, true)}
-          disabled={!(this.props.queryEditor.dbId)}
-          key="run-async-btn"
-          tooltip={asyncToolTip}
-        >
-          <i className="fa fa-table" /> Run Async
-        </Button>
-      );
-    }
-    runButtons = (
-      <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
-        {runButtons}
-      </ButtonGroup>
-    );
-    if (
-        this.props.latestQuery &&
-        ['running', 'pending'].indexOf(this.props.latestQuery.state) > -1) {
-      runButtons = (
-        <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
-          <BootstrapButton
-            bsStyle="primary"
-            bsSize="small"
-            style={{ width: '100px' }}
-            onClick={this.stopQuery.bind(this)}
-          >
-            <a className="fa fa-stop" /> Stop
-          </BootstrapButton>
-        </ButtonGroup>
-      );
-    }
     let limitWarning = null;
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
@@ -208,7 +149,13 @@ class SqlEditor extends React.PureComponent {
       <div className="sql-toolbar clearfix">
         <div className="pull-left">
           <Form inline>
-            {runButtons}
+            <RunQueryActionButton
+              queryEditor={this.props.queryEditor}
+              latestQuery={this.props.latestQuery}
+              database={this.props.database}
+              runQuery={this.runQuery.bind(this)}
+              stopQuery={this.stopQuery.bind(this)}
+            />
             {ctasControls}
           </Form>
         </div>
