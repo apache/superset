@@ -93,7 +93,7 @@ Follow these few simple steps to install Superset.::
     superset init
 
     # Start the web server on port 8088
-    superset runserver -p 8088
+    superset runserver
 
     # To start a development web server, use the -d switch
     # superset runserver -d
