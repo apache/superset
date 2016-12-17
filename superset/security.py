@@ -119,6 +119,14 @@ def sync_role_definitions():
     public = sm.add_role("Public")
     sql_lab = sm.add_role("sql_lab")
     granter = sm.add_role("granter")
+    dashboard_access = sm.add_role("dashboard_access")
+    dashboard_edit = sm.add_role("dashboard_edit")
+    slice_access = sm.add_role("slice_access")
+    slice_edit = sm.add_role("slice_edit")
+    datasource_access = sm.add_role("datasource_access")
+    datasource_edit = sm.add_role("datasource_edit")
+    manage_edit = sm.add_role("manage_edit")
+    user_role_edit = sm.add_role("user_role_edit")
 
     get_or_create_main_db()
 
@@ -193,6 +201,142 @@ def sync_role_definitions():
             sm.add_permission_role(granter, p)
         else:
             sm.del_permission_role(granter, p)
+
+    logging.info("Syncing dashboard_access perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Dashboards'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json', 'can_slice', 'can_dashboard',
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'DashboardModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'DashboardModelViewAsync'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_download', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+        ):
+            sm.add_permission_role(dashboard_access, p)
+        else:
+            sm.del_permission_role(dashboard_access, p)
+
+    logging.info("Syncing dashboard_edit perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Dashboards'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json', 'can_slice', 'can_dashboard',
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'mulexport'} and p.view_menu.name in {'DashboardModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'mulexport'} and p.view_menu.name in {'DashboardModelViewAsync'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_download', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+        ):
+            sm.add_permission_role(dashboard_edit, p)
+        else:
+            sm.del_permission_role(dashboard_edit, p)
+
+    logging.info("Syncing slice_access perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Slices'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json', 'can_slice', 
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'SliceModelView'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+        ):
+            sm.add_permission_role(slice_access, p)
+        else:
+            sm.del_permission_role(slice_access, p)
+
+    logging.info("Syncing slice_edit perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Slices'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json', 'can_slice', 'can_created_slices', 'can_fave_slices', 'can_add_slices',
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'SliceModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'SliceAddView'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+        ):
+            sm.add_permission_role(slice_edit, p)
+        else:
+            sm.del_permission_role(slice_edit, p)
+
+    logging.info("Syncing datasource_access perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Sources', 'Databases', 'Tables', 'Druid Clusters', 'Druid Datasources'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json',  
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'DatabaseView'}) or
+                (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'TableModelView'}) or
+                (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'DruidClusterModelView'}) or
+                (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'DruidDatasourceModelView'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+
+        ):
+            sm.add_permission_role(datasource_access, p)
+        else:
+            sm.del_permission_role(datasource_access, p)
+
+    logging.info("Syncing datasource_edit perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Sources', 'Databases', 'Tables', 'Druid Clusters', 'Druid Datasources', 'Refresh Druid Metadata', 'TableColumnInlineView', 'SqlMetricInlineView'} or
+                p.permission.name in {
+                    'can_explore', 'can_explore_json',  'can_testconn', 'can_checkbox', 'can_refresh_datasources',
+                    'all_datasource_access', 'all_database_access'} or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'DatabaseView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'TableModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'DruidClusterModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'DruidDatasourceModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'TableColumnInlineView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'SqlMetricInlineView'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+
+        ):
+            sm.add_permission_role(datasource_edit, p)
+        else:
+            sm.del_permission_role(datasource_edit, p)
+
+    logging.info("Syncing manage_edit perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Manage', 'Import Dashboards', 'Queries', 'CSS Templates'} or
+                p.permission.name in {} or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'QueryView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'CssTemplateModelView'}) or
+                (p.permission.name in {'can_add'} and p.view_menu.name in {'DashboardModelView'}) or
+                (p.permission.name in {'can_add'} and p.view_menu.name in {'SliceAddView'}) or
+                (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
+
+        ):
+            sm.add_permission_role(manage_edit, p)
+        else:
+            sm.del_permission_role(manage_edit, p)
+
+    logging.info("Syncing user_role_edit perms")
+    for p in perms:
+        if (
+                p.view_menu.name in {'Security', 'List Users', 'List Roles', "User's Statistics", 'Base Permissions', 'Views/Menus', 'Permission on Views/Menus', 'Access requests', 'Action Log'} or
+                p.permission.name in {} or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'can_userinfo', 'resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'Copy_Role', 'can_update_role', 'can_override_role_permissions'} and p.view_menu.name in {'RoleModelView'}) or
+                (p.permission.name in {'can_chart'} and p.view_menu.name in {'UserStatsChartView'}) or
+                (p.permission.name in {'can_list'} and p.view_menu.name in {'PermissionModelView'}) or
+                (p.permission.name in {'can_list'} and p.view_menu.name in {'ViewMenuModelView'}) or
+                (p.permission.name in {'can_list'} and p.view_menu.name in {'PermissionViewModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download', 'muldelete'} and p.view_menu.name in {'AccessRequestsModelView'}) or
+                (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'LogModelView'}) or
+                (p.permission.name in {'can_this_form_post', 'can_this_form_get'} and p.view_menu.name in {'ResetMyPasswordView'}) or 
+                (p.permission.name in {'can_this_form_post', 'can_this_form_get'} and p.view_menu.name in {'ResetPasswordView'}) or 
+                (p.permission.name in {'can_this_form_post', 'can_this_form_get'} and p.view_menu.name in {'UserInfoEditView'})
+        ):
+            sm.add_permission_role(user_role_edit, p)
+        else:
+            sm.del_permission_role(user_role_edit, p)
+
+
 
     logging.info("Making sure all data source perms have been created")
     session = db.session()
