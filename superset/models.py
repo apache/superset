@@ -2591,7 +2591,10 @@ class Query(Model):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
-        'Database', foreign_keys=[database_id], backref='queries')
+        'Database',
+        foreign_keys=[database_id],
+        backref=backref('queries', cascade='all, delete-orphan')
+    )
     user = relationship(
         'User',
         backref=backref('queries', cascade='all, delete-orphan'),
