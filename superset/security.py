@@ -208,7 +208,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Dashboards'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json', 'can_slice', 'can_created_dashboards', 'can_fave_dashboards',
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'DashboardModelView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'DashboardModelViewAsync'}) or
                 (p.permission.name in {'can_show', 'can_edit', 'can_download', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
@@ -223,7 +223,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Dashboards'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json', 'can_slice', 'can_created_dashboards', 'can_fave_dashboards',
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'mulexport'} and p.view_menu.name in {'DashboardModelView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download', 'mulexport'} and p.view_menu.name in {'DashboardModelViewAsync'}) or
                 (p.permission.name in {'can_show', 'can_edit', 'can_download', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
@@ -238,7 +238,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Slices'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json', 'can_slice', 'can_created_slices', 'can_fave_slices',
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'SliceModelView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_download'} and p.view_menu.name in {'SliceAsync'}) or
                 (p.permission.name in {'can_show', 'can_edit', 'can_userinfo','resetmypassword', 'userinfoedit'} and p.view_menu.name in {'UserDBModelView'}) 
@@ -253,7 +253,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Slices'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json', 'can_slice', 'can_created_slices', 'can_fave_slices', 'can_add_slices',
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'SliceModelView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'SliceAsync'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'SliceAddView'}) or
@@ -269,7 +269,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Sources', 'Databases', 'Tables', 'Druid Clusters', 'Druid Datasources'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json',  
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'DatabaseView'}) or
                 (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'DatabaseAsync'}) or
                 (p.permission.name in {'can_list', 'can_show'} and p.view_menu.name in {'TableModelView'}) or
@@ -289,7 +289,7 @@ def sync_role_definitions():
                 p.view_menu.name in {'Sources', 'Databases', 'Tables', 'Druid Clusters', 'Druid Datasources', 'Refresh Druid Metadata', 'TableColumnInlineView', 'SqlMetricInlineView'} or
                 p.permission.name in {
                     'can_explore', 'can_explore_json',  'can_testconn', 'can_checkbox', 'can_refresh_datasources',
-                    'all_datasource_access', 'all_database_access'} or
+                    'all_datasource_access', 'all_database_access', 'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'DatabaseView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'DatabaseAsync'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'muldelete', 'can_edit', 'can_download'} and p.view_menu.name in {'TableModelView'}) or
@@ -311,7 +311,7 @@ def sync_role_definitions():
     for p in perms:
         if (
                 p.view_menu.name in {'Manage', 'Import Dashboards', 'Queries', 'CSS Templates'} or
-                p.permission.name in {} or
+                p.permission.name in {'can_profile'} or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'QueryView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'CssTemplateModelView'}) or
                 (p.permission.name in {'can_list', 'can_show', 'can_add', 'can_delete', 'can_edit', 'can_download'} and p.view_menu.name in {'CssTemplateAsyncModelView'}) or
