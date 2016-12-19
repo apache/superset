@@ -401,3 +401,6 @@ def pessimistic_connection_handling(target):
         except:
             raise exc.DisconnectionError()
         cursor.close()
+
+def strip_sql(sql):
+    return sql
