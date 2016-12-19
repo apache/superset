@@ -69,6 +69,23 @@ class GridLayout extends React.Component {
     this.props.dashboard.onChange();
   }
 
+  doPrint(sliceId) {
+    const bdhtml = window.document.body.innerHTML;
+    // remove scroll and change style
+    $('.slice_container').attr('class', 'mySlice');
+    if ($('.dataTables_scrollBody').length > 0) {
+      $('.dataTables_scrollHead').attr('style', 'border: 0px;');
+      $('.dataTables_scrollBody').attr('style', '');
+    }
+    const html = $('#slice_' + sliceId + ' .mySlice').parent().parent()
+                .html();
+    window.document.body.innerHTML = html;
+    window.print();
+    window.document.body.innerHTML = bdhtml;
+    window.location.reload();
+    this.props.dashboard.onChange();
+  }
+
   serialize() {
     return this.state.layout.map(reactPos => ({
       slice_id: reactPos.i,
@@ -104,6 +121,7 @@ class GridLayout extends React.Component {
               slice={slice}
               removeSlice={this.removeSlice.bind(this, slice.slice_id)}
               expandedSlices={this.props.dashboard.metadata.expanded_slices}
+              doPrint={this.doPrint.bind(this, slice.slice_id)}
             />
           </div>
         ))}

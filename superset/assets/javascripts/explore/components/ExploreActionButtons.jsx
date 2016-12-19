@@ -3,6 +3,7 @@ import cx from 'classnames';
 import URLShortLinkButton from './URLShortLinkButton';
 import EmbedCodeButton from './EmbedCodeButton';
 import DisplayQueryButton from './DisplayQueryButton';
+import DownloadButton from './DownloadButton';
 
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
@@ -36,6 +37,8 @@ export default function ExploreActionButtons({ canDownload, slice }) {
       >
         <i className="fa fa-file-text-o"></i> .csv
       </a>
+
+      <DownloadButton slice={slice} />
 
       <DisplayQueryButton slice={slice} />
     </div>

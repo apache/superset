@@ -4,9 +4,10 @@ const propTypes = {
   slice: PropTypes.object.isRequired,
   removeSlice: PropTypes.func.isRequired,
   expandedSlices: PropTypes.object,
+  doPrint: PropTypes.func.isRequired,
 };
 
-function SliceCell({ expandedSlices, removeSlice, slice }) {
+function SliceCell({ expandedSlices, removeSlice, slice, doPrint }) {
   return (
     <div className="slice-cell" id={`${slice.token}-cell`}>
       <div className="chart-header">
@@ -40,6 +41,12 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
               </a>
               <a href={slice.slice_url} title="Explore chart" data-toggle="tooltip">
                 <i className="fa fa-share" />
+              </a>
+              <a title="print chart" data-toggle="tooltip">
+                <i
+                  className="fa fa-print"
+                  onClick={() => { doPrint(slice.slice_id); }}
+                />
               </a>
               <a
                 className="remove-chart"
