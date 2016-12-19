@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import React, { PropTypes } from 'react';
+import React from 'react';
 
 export default class DownloadButton extends React.Component {
 
