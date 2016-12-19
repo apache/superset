@@ -69,6 +69,21 @@ class GridLayout extends React.Component {
     this.props.dashboard.onChange();
   }
 
+  doPrint(sliceId) {
+    var bdhtml=window.document.body.innerHTML;
+    // 去掉滚动条,改变样式
+    $('.slice_container').attr('class', 'mySlice');
+    if($('.dataTables_scrollBody').length > 0){
+      $('.dataTables_scrollHead').attr('style', 'border: 0px;')
+      $('.dataTables_scrollBody').attr('style', '');
+    } 
+    var html = $("#slice_"+sliceId+" .mySlice").parent().parent().html();
+    window.document.body.innerHTML=html; //把需要打印的指定内容赋给body.innerHTML
+    window.print(); //调用浏览器的打印功能打印指定区域
+    window.document.body.innerHTML=bdhtml;//重新给页面内容赋值；
+    window.location.reload();
+  }
+
   serialize() {
     return this.state.layout.map(reactPos => ({
       slice_id: reactPos.i,
@@ -104,6 +119,7 @@ class GridLayout extends React.Component {
               slice={slice}
               removeSlice={this.removeSlice.bind(this, slice.slice_id)}
               expandedSlices={this.props.dashboard.metadata.expanded_slices}
+              doPrint={this.doPrint.bind(this, slice.slice_id)}
             />
           </div>
         ))}
