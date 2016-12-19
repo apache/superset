@@ -4,6 +4,8 @@ import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
 
+import ControlLabelWithTooltip from './ControlLabelWithTooltip';
+
 const fieldMap = {
   TextField,
   CheckboxField,
@@ -38,6 +40,7 @@ export default class FieldSet extends React.Component {
     const FieldClass = fieldMap[this.props.type];
     return (
       <div>
+        <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
         <FieldClass {...this.props} />
       </div>
     );

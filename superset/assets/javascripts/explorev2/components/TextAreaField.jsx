@@ -1,6 +1,5 @@
 import React, { PropTypes } from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -24,7 +23,6 @@ export default class TextAreaField extends React.Component {
   render() {
     return (
       <FormGroup controlId="formControlsTextarea">
-        <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
         <FormControl
           componentClass="textarea"
           placeholder="textarea"

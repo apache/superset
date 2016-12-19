@@ -1,5 +1,4 @@
 import React, { PropTypes } from 'react';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 import { slugify } from '../../modules/utils';
 import Select, { Creatable } from 'react-select';
 
@@ -99,7 +98,7 @@ export default class SelectField extends React.Component {
       );
     }
     return (
-      <div>
+      <div id={`formControlsSelect-${slugify(this.props.label)}`}>
         {selectWrap}
       </div>
     );
