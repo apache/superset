@@ -4,7 +4,7 @@ const propTypes = {
   slice: PropTypes.object.isRequired,
   removeSlice: PropTypes.func.isRequired,
   expandedSlices: PropTypes.object,
-  doPrint: PropTypes.func.isRequired
+  doPrint: PropTypes.func.isRequired,
 };
 
 function SliceCell({ expandedSlices, removeSlice, slice, doPrint }) {
