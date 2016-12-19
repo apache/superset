@@ -43,7 +43,7 @@ def run_server():
         '-d', '--debug', action='store_true',
         help='Start the web server in debug mode')
     gunicorn_parser.add_argument(
-        '-a', '--address', type=str, default='127.0.0.1',
+        '-a', '--address', type=str, default='0.0.0.0',
         help='Specify the address to which to bind the web server')
     gunicorn_parser.add_argument(
         '-p', '--port', type=int, default=8088,

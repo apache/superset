@@ -8,7 +8,9 @@ import { shallow } from 'enzyme';
 import Filter from '../../../../javascripts/explorev2/components/Filter';
 
 const defaultProps = {
-  actions: {},
+  actions: {
+    fetchFilterValues: () => ({}),
+  },
   filterColumnOpts: ['country_name'],
   filter: {
     id: 1,

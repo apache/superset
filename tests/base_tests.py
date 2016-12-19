@@ -40,16 +40,16 @@ class SupersetTestCase(unittest.TestCase):
         self.client = app.test_client()
         self.maxDiff = None
 
-        gamma_sqllab = sm.add_role("gamma_sqllab")
+        gamma_sqllab_role = sm.add_role("gamma_sqllab")
         for perm in sm.find_role('Gamma').permissions:
-            sm.add_permission_role(gamma_sqllab, perm)
+            sm.add_permission_role(gamma_sqllab_role, perm)
         db_perm = self.get_main_database(sm.get_session).perm
         security.merge_perm(sm, 'database_access', db_perm)
         db_pvm = sm.find_permission_view_menu(
             view_menu_name=db_perm, permission_name='database_access')
-        gamma_sqllab.permissions.append(db_pvm)
+        gamma_sqllab_role.permissions.append(db_pvm)
         for perm in sm.find_role('sql_lab').permissions:
-            sm.add_permission_role(gamma_sqllab, perm)
+            sm.add_permission_role(gamma_sqllab_role, perm)
 
         admin = appbuilder.sm.find_user('admin')
         if not admin:
@@ -65,12 +65,11 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Gamma'),
                 password='general')
 
-        gamma_sqllab = appbuilder.sm.find_user('gamma_sqllab')
-        if not gamma_sqllab:
-            gamma_sqllab = appbuilder.sm.add_user(
+        gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
+        if not gamma_sqllab_user:
+            appbuilder.sm.add_user(
                 'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
-                appbuilder.sm.find_role('gamma_sqllab'),
-                password='general')
+                gamma_sqllab_role, password='general')
 
         alpha = appbuilder.sm.find_user('alpha')
         if not alpha:
@@ -265,7 +264,4 @@ class SupersetTestCase(unittest.TestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
-
-
-
 

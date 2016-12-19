@@ -57,7 +57,6 @@ function nvd3Vis(slice) {
   let chart;
   let colorKey = 'key';
 
-
   const render = function () {
     d3.json(slice.jsonEndpoint(), function (error, payload) {
       slice.container.html('');
@@ -373,6 +372,8 @@ function nvd3Vis(slice) {
 
   const update = function () {
     if (chart && chart.update) {
+      chart.height(slice.height());
+      chart.width(slice.width());
       chart.update();
     }
   };

@@ -39,6 +39,7 @@ export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
+    clearable: false,
     default: null,
     choices: [],
     description: '',
@@ -47,6 +48,7 @@ export const fields = {
   viz_type: {
     type: 'SelectField',
     label: 'Viz',
+    clearable: false,
     default: 'table',
     choices: formatSelectOptions(Object.keys(visTypes)),
     description: 'The type of visualization to display',

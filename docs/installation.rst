@@ -304,6 +304,30 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
+
+MIDDLEWARE
+----------
+
+Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
+your `superset_config.py`. ``ADDITIONAL_MIDDLEWARE`` should be a list of your additional middleware classes.
+
+For example, to use AUTH_REMOTE_USER from behind a proxy server like nginx, you have to add a simple middleware class to
+add the value of ``HTTP_X_PROXY_REMOTE_USER`` (or any other custom header from the proxy) to Gunicorn's ``REMOTE_USER``
+environment variable: ::
+
+    class RemoteUserMiddleware(object):
+        def __init__(self, app):
+            self.app = app
+        def __call__(self, environ, start_response):
+            user = environ.pop('HTTP_X_PROXY_REMOTE_USER', None)
+            environ['REMOTE_USER'] = user
+            return self.app(environ, start_response)
+
+    ADDITIONAL_MIDDLEWARE = [RemoteUserMiddleware, ]
+
+*Adapted from http://flask.pocoo.org/snippets/69/*
+
+
 Upgrading
 ---------
 

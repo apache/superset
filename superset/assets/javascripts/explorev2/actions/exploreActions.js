@@ -93,6 +93,26 @@ export function changeFilter(filter, field, value) {
   return { type: CHANGE_FILTER, filter, field, value };
 }
 
+export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
+  return function (dispatch) {
+    $.ajax({
+      type: 'GET',
+      url: `/superset/filter/${datasource_type}/${datasource_id}/${col}/`,
+      success: (data) => {
+        dispatch(changeFilter(
+          filter,
+          'choices',
+          Object.keys(data).map((k) => ([`'${data[k]}'`, `'${data[k]}'`]))
+          )
+        );
+      },
+      error() {
+        dispatch(changeFilter(filter, 'choices', []));
+      },
+    });
+  };
+}
+
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
