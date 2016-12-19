@@ -34,8 +34,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class FieldSet extends React.Component {
-
+export default class FieldSet extends React.PureComponent {
   render() {
     const FieldClass = fieldMap[this.props.type];
     return (

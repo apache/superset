@@ -23,7 +23,6 @@ export default class CheckboxField extends React.Component {
   render() {
     return (
       <Checkbox
-        inline
         checked={this.props.value}
         onChange={this.onToggle.bind(this)}
       />
