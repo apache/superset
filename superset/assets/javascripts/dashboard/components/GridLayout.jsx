@@ -70,19 +70,20 @@ class GridLayout extends React.Component {
   }
 
   doPrint(sliceId) {
-    let bdhtml = window.document.body.innerHTML;
+    const bdhtml = window.document.body.innerHTML;
     // remove scroll and change style
     $('.slice_container').attr('class', 'mySlice');
     if ($('.dataTables_scrollBody').length > 0) {
       $('.dataTables_scrollHead').attr('style', 'border: 0px;');
       $('.dataTables_scrollBody').attr('style', '');
     }
-    let html = $('#slice_' + sliceId + ' .mySlice').parent().parent()
+    const html = $('#slice_' + sliceId + ' .mySlice').parent().parent()
                 .html();
-    window.document.body.innerHTML = html; 
-    window.print(); 
+    window.document.body.innerHTML = html;
+    window.print();
     window.document.body.innerHTML = bdhtml;
     window.location.reload();
+    this.props.dashboard.onChange();
   }
 
   serialize() {
