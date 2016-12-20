@@ -1,5 +1,4 @@
 import React from 'react';
-import { Well } from 'react-bootstrap';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { github } from 'react-syntax-highlighter/dist/styles';
 import ModalTrigger from '../../components/ModalTrigger';
@@ -45,11 +44,9 @@ class HighlightedSql extends React.Component {
     const props = this.props;
     let shownSql = props.shrink ? this.shrinkSql(props.sql) : props.sql;
     return (
-      <Well>
-        <SyntaxHighlighter language="sql" style={github}>
-          {shownSql}
-        </SyntaxHighlighter>
-      </Well>);
+      <SyntaxHighlighter language="sql" style={github}>
+        {shownSql}
+      </SyntaxHighlighter>);
   }
   generateModal() {
     const props = this.props;

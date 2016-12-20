@@ -87,6 +87,9 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         session.commit()
         raise Exception(query.error_message)
 
+    if store_results and not results_backend:
+        handle_error("Results backend isn't configured.")
+
     # Limit enforced only for retrieving the data, not for the CTA queries.
     superset_query = sql_parse.SupersetQuery(executed_sql)
     if not superset_query.is_select() and not database.allow_dml:
@@ -169,7 +172,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     payload['query'] = query.to_dict()
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
 
-    if store_results and results_backend:
+    if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
         results_backend.set(key, zlib.compress(payload))

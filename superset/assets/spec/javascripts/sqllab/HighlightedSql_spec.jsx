@@ -24,9 +24,9 @@ describe('HighlightedSql', () => {
   it('renders two SyntaxHighlighter in modal', () => {
     const wrapper = mount(
       <HighlightedSql sql={sql} rawSql="SELECT * FORM foo" shrink maxWidth={5} />);
-    const well = wrapper.find('.well');
-    expect(well).to.have.length(1);
-    well.simulate('click');
+    const pre = wrapper.find('pre');
+    expect(pre).to.have.length(1);
+    pre.simulate('click');
     const modalBody = mount(wrapper.state().modalBody);
     expect(modalBody.find(SyntaxHighlighter)).to.have.length(2);
   });
