@@ -534,7 +534,12 @@ class MarkupViz(BaseViz):
     verbose_name = _("Markup")
     fieldsets = ({
         'label': None,
-        'fields': ('markup_type', 'code')
+        'fields': (
+            'groupby',
+            'metrics',
+            'row_limit',
+            'markup_type', 'code',
+        )
     },)
     is_timeseries = False
 
@@ -544,10 +549,23 @@ class MarkupViz(BaseViz):
         if markup_type == "markdown":
             return markdown(code)
         elif markup_type == "html":
-            return code
+            list = []
+            df = self.get_df()
+            for i in range(0, len(df.index)):
+                d = {}
+                for j in range(0, len(df.columns)):
+                    d[df.columns[j]] = df.iloc[i, j]
+                list.insert(i, d)
+            code = code.replace('data = mySupersetData', 'data = ' +  str(list))
+        return code
 
     def get_data(self):
-        return dict(html=self.rendered())
+        df = self.get_df()
+        return dict(
+            html=self.rendered(),
+            records=df.to_dict(orient="records"),
+            columns=list(df.columns),
+        )
 
 
 class SeparatorViz(MarkupViz):
