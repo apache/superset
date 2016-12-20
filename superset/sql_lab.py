@@ -81,8 +81,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             query.tmp_table_name = 'tmp_{}_table_{}'.format(
                 query.user_id,
                 start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
-        executed_sql = superset_query.as_create_table(
-            executed_sql, query.tmp_table_name)
+        executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (
             query.limit and superset_query.is_select() and

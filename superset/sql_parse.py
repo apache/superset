@@ -75,24 +75,25 @@ class SupersetQuery(object):
                 self._alias_names.add(identifier.tokens[0].value)
         self.__extract_from_token(identifier)
 
-    def as_create_table(self, table_name, override=False):
+    def as_create_table(self, table_name, overwrite=False):
         """Reformats the query into the create table as query.
 
         Works only for the single select SQL statements, in all other cases
         the sql query is not modified.
         :param superset_query: string, sql query that will be executed
-        :param table_name: string, will contain the results of the query execution
-        :param override, boolean, table table_name will be dropped if true
+        :param table_name: string, will contain the results of the
+            query execution
+        :param overwrite, boolean, table table_name will be dropped if true
         :return: string, create table as query
         """
-        # TODO(bkyryliuk): enforce that all the columns have names. Presto requires it
-        #                  for the CTA operation.
+        # TODO(bkyryliuk): enforce that all the columns have names.
+        # Presto requires it for the CTA operation.
         # TODO(bkyryliuk): drop table if allowed, check the namespace and
         #                  the permissions.
         # TODO raise if multi-statement
         exec_sql = ''
         sql = self.stripped()
-        if override:
+        if overwrite:
             exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
         exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
         return exec_sql.format(**locals())
