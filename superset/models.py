@@ -2316,16 +2316,21 @@ class Log(Model):
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
+    duration_ms = Column(Integer)
+    referrer = Column(String(1024))
 
     @classmethod
     def log_this(cls, f):
         """Decorator to log user actions"""
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
+            start_dttm = datetime.now()
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
             d = request.args.to_dict()
+            post_data = request.form or {}
+            d.update(post_data)
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
             try:
@@ -2337,15 +2342,19 @@ class Log(Model):
                 params = json.dumps(d)
             except:
                 pass
+            value = f(*args, **kwargs)
             log = cls(
                 action=f.__name__,
                 json=params,
                 dashboard_id=d.get('dashboard_id') or None,
                 slice_id=slice_id,
+                duration_ms=(
+                    datetime.now() - start_dttm).total_seconds() * 1000,
+                referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
             db.session.add(log)
-            db.session.commit()
-            return f(*args, **kwargs)
+            db.session.flush()
+            return value
         return wrapper
 
 
