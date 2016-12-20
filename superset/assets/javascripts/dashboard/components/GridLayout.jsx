@@ -83,7 +83,6 @@ class GridLayout extends React.Component {
     window.print();
     window.document.body.innerHTML = bdhtml;
     window.location.reload();
-    this.props.dashboard.onChange();
   }
 
   serialize() {
