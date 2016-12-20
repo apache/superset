@@ -557,7 +557,7 @@ class MarkupViz(BaseViz):
                     d[df.columns[j]] = df.iloc[i, j]
                 list.insert(i, d)
             code = code.replace('data = mySupersetData', 'data = ' +  str(list))
-        return code
+            return code
 
     def get_data(self):
         df = self.get_df()
