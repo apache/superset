@@ -396,7 +396,6 @@ class BaseViz(object):
         payload['is_cached'] = is_cached
         return payload
 
-
     @property
     def data(self):
         """This is the data object serialized to the js layer"""

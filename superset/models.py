@@ -11,7 +11,6 @@ import logging
 import pickle
 import re
 import textwrap
-from collections import namedtuple
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
 
@@ -69,14 +68,13 @@ class QueryResult(object):
 
     """Object returned by the query interface"""
 
-    def __init__(
+    def __init__(  # noqa
             self,
             df,
             query,
             duration,
             status=QueryStatus.SUCCESS,
-            error_message=None
-        ):
+            error_message=None):
         self.df = df
         self.query = query
         self.duration = duration
