@@ -1891,7 +1891,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Refreshing datasource [{}]".format(name), "info")
         session.flush()
         datasource.cluster = cluster
-        datasource.merge = merge
+        datasource.merge_flag = merge
         session.flush()
 
         cols = datasource.latest_metadata()
