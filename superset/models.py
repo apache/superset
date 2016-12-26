@@ -1777,7 +1777,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         try:
             segment_metadata = client.segment_metadata(
                 datasource=self.datasource_name,
-                intervals=lbound + '/' + rbound)
+                intervals=lbound + '/' + rbound,
+                merge=self.merge_flag)
         except Exception as e:
             logging.warning("Failed first attempt to get latest segment")
             logging.exception(e)
@@ -1790,7 +1791,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             try:
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,
-                    intervals=lbound + '/' + rbound)
+                    intervals=lbound + '/' + rbound,
+                    merge=self.merge.flag)
             except Exception as e:
                 logging.warning("Failed 2nd attempt to get latest segment")
                 logging.exception(e)
