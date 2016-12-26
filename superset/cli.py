@@ -85,16 +85,17 @@ def load_examples(load_test_data):
 @manager.option(
     '-m', '--merge',
     help=(
-        "Specify using 'merge' property during operation. Default value is False "))
+        "Specify using 'merge' property during operation. "
+        "Default value is False "))
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
     from superset import models
-    if not merge:
-        merge = False
+    merge = True
     for cluster in session.query(models.DruidCluster).all():
         try:
-            cluster.refresh_datasources(datasource_name=datasource, merge_flag=merge)
+            cluster.refresh_datasources(datasource_name=datasource,
+                                        merge_flag=merge)
         except Exception as e:
             print(
                 "Error while processing cluster '{}'\n{}".format(
