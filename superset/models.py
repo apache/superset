@@ -1878,7 +1878,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         session.commit()
 
     @classmethod
-    def sync_to_db(cls, name, cluster):
+    def sync_to_db(cls, name, cluster, merge):
         """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
@@ -1891,6 +1891,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Refreshing datasource [{}]".format(name), "info")
         session.flush()
         datasource.cluster = cluster
+        datasource.merge = merge
         session.flush()
 
         cols = datasource.latest_metadata()
