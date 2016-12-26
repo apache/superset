@@ -1611,7 +1611,7 @@ class DruidCluster(Model, AuditMixinNullable):
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 if not datasource_name or datasource_name == datasource:
-                    DruidDatasource.sync_to_db(datasource, self)
+                    DruidDatasource.sync_to_db(datasource, self, merge_flag)
 
     @property
     def perm(self):
@@ -1792,7 +1792,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,
                     intervals=lbound + '/' + rbound,
-                    merge=self.merge.flag)
+                    merge=self.merge_flag)
             except Exception as e:
                 logging.warning("Failed 2nd attempt to get latest segment")
                 logging.exception(e)
