@@ -1602,7 +1602,7 @@ class DruidCluster(Model, AuditMixinNullable):
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
 
-    def refresh_datasources(self, datasource_name=None):
+    def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
 
         If ``datasource_name`` is specified, only that datasource is updated

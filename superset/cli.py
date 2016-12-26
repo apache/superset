@@ -91,7 +91,6 @@ def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
     from superset import models
-    merge = True
     for cluster in session.query(models.DruidCluster).all():
         try:
             cluster.refresh_datasources(datasource_name=datasource,
