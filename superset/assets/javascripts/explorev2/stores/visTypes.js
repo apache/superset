@@ -85,7 +85,68 @@ const visTypes = {
           ['y_axis_format', 'bottom_margin'],
           ['x_axis_label', 'y_axis_label'],
           ['reduce_x_ticks', 'contribution'],
-          ['show_controls'],
+          ['show_controls', 'bar_horizontal'],
+        ],
+      },
+    ],
+    fieldOverrides: {
+      groupby: {
+        label: 'Series',
+      },
+      columns: {
+        label: 'Breakdowns',
+        description: 'Defines how each series is broken down',
+      },
+    },
+  },
+
+  // add new style
+  linePlusBar: {
+    label: 'Distribution - LinePlusBar Chart',
+    controlPanelSections: [
+      {
+        label: 'Chart Options',
+        description: 'tooltip text here',
+        fieldSetRows: [
+            ['groupby'],
+            ['metrics'],
+            ['row_limit', 'bottom_margin'],
+            ['x_axis_label', 'x_axis_format'],
+            ['y_axis_label1', 'y_axis_format1'],
+            ['y_axis_label2', 'y_axis_format2'],
+            ['reduce_x_ticks', 'contribution'],
+        ],
+      },
+    ],
+    fieldOverrides: {
+      groupby: {
+        label: 'Series',
+      },
+      columns: {
+        label: 'Breakdowns',
+        description: 'Defines how each series is broken down',
+      },
+    },
+  },
+
+  multi: {
+    label: 'Distribution - Multi Chart',
+    controlPanelSections: [
+      {
+        label: 'Chart Options',
+        description: 'tooltip text here',
+        fieldSetRows: [
+            ['groupby'],
+            ['line', 'yAxis1'],
+            ['bar', 'yAxis2'],
+            ['area', 'yAxis3'],
+            ['scatter', 'yAxis4'],
+            ['row_limit', 'bottom_margin'],
+            ['x_axis_label', 'x_axis_format'],
+            ['y_axis_label1', 'y_axis_format1'],
+            ['y_axis_label2', 'y_axis_format2'],
+            ['y_domain1', 'y_domain2'],
+            ['reduce_x_ticks', 'contribution'],
         ],
       },
     ],

@@ -2500,6 +2500,10 @@ class Superset(BaseSupersetView):
         field_options = {
             'datasource': [(d.id, d.full_name) for d in datasources],
             'metrics': datasource.metrics_combo,
+            'line': datasource.metrics_combo,
+            'bar': datasource.metrics_combo,
+            'area': datasource.metrics_combo,
+            'scatter': datasource.metrics_combo,
             'order_by_cols': order_by_choices,
             'metric':  datasource.metrics_combo,
             'secondary_metric': datasource.metrics_combo,

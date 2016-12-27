@@ -148,6 +148,7 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+# CACHE_CONFIG = {'CACHE_TYPE': 'redis','CACHE_DEFAULT_TIMEOUT':30,'CACHE_KEY_PREFIX':'caravel_','CACHE_REDIS_HOST':'localhost','CACHE_REDIS_PORT':6379,'CACHE_REDIS_DB':1,'CACHE_REDIS_URL':'redis://root@localhost:6379/1',}
 
 # CORS Options
 ENABLE_CORS = False

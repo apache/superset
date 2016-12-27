@@ -60,6 +60,12 @@ class QuerySearch extends React.PureComponent {
         return epochTimeXDaysAgo(90);
       case '1 year ago':
         return epochTimeXYearsAgo(1);
+      case '3 year ago':
+        return epochTimeXYearsAgo(3);
+      case '5 year ago':
+        return epochTimeXYearsAgo(5);
+      case 'long long ago':
+        return epochTimeXYearsAgo(50);
       default:
         return null;
     }

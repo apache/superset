@@ -1025,6 +1025,118 @@ export const fields = {
     default: '',
     description: 'Labels for the marker lines',
   },
+
+  // extra style
+  line: {
+    type: 'SelectMultipleSortableField',
+    label: 'line',
+    choices: [],
+    default: [],
+    description: 'One or many lines to display',
+  },
+  bar: {
+    type: 'SelectMultipleSortableField',
+    label: 'bar',
+    choices: [],
+    default: [],
+    description: 'One or many bars to display',
+  },
+  area: {
+    type: 'SelectMultipleSortableField',
+    label: 'area',
+    choices: [],
+    default: [],
+    description: 'One or many areas to display',
+  },
+  scatter: {
+    type: 'SelectMultipleSortableField',
+    label: 'scatter',
+    choices: [],
+    default: [],
+    description: 'One or many scatters to display',
+  },
+  yAxis1: {
+    type: 'SelectField',
+    label: 'yAxis',
+    choices: formatSelectOptions([
+      'y1',
+      'y2',
+    ]),
+    default: 'y1',
+    description: 'choose the yAxias',
+  },
+  yAxis2: {
+    type: 'SelectField',
+    label: 'yAxis',
+    choices: formatSelectOptions([
+      'y1',
+      'y2',
+    ]),
+    default: 'y1',
+    description: 'choose the yAxias',
+  },
+  yAxis3: {
+    type: 'SelectField',
+    label: 'yAxis',
+    choices: formatSelectOptions([
+      'y1',
+      'y2',
+    ]),
+    default: 'y1',
+    description: 'choose the yAxias',
+  },
+  yAxis4: {
+    type: 'SelectField',
+    label: 'yAxis',
+    choices: formatSelectOptions([
+      'y1',
+      'y2',
+    ]),
+    default: 'y1',
+    description: 'choose the yAxias',
+  },
+  y_axis_format1: {
+    type: 'FreeFormSelectField',
+    label: 'Y axis format',
+    default: '.3s',
+    choices: D3_TIME_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+  y_axis_format2: {
+    type: 'FreeFormSelectField',
+    label: 'Y axis format',
+    default: '.3s',
+    choices: D3_TIME_FORMAT_OPTIONS,
+    description: D3_FORMAT_DOCS,
+  },
+  y_axis_label1: {
+    type: 'TextField',
+    label: 'Y1 Axis Label',
+    default: '',
+  },
+  y_axis_label2: {
+    type: 'TextField',
+    label: 'Y2 Axis Label',
+    default: '',
+  },
+  y_domain1: {
+    type: 'TextField',
+    label: 'Y1 domain',
+    default: '',
+    description: 'the range of y1, for example: 0,100, it means from 0 to 100',
+  },
+  y_domain2: {
+    type: 'TextField',
+    label: 'Y2 domain',
+    default: '',
+    description: 'the range of y2, for example: 0,100, it means from 0 to 100',
+  },
+  bar_horizontal: {
+    type: 'CheckboxField',
+    label: 'Horizontal Bars',
+    default: false,
+    description: '',
+  },
 };
 export default fields;
 
@@ -1055,4 +1167,5 @@ export const autoQueryFields = [
   'size',
   'row_limit',
   'max_bubble_size',
+  'bar_horizontal',
 ];
