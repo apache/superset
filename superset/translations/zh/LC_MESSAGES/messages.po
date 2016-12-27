@@ -500,6 +500,18 @@ msgstr "90天前"
 msgid "1 year ago"
 msgstr "1年前"
 
+#: caravel/forms.py:457 caravel/forms.py:473
+msgid "3 year ago"
+msgstr "3年前"
+
+#: caravel/forms.py:457 caravel/forms.py:474
+msgid "5 year ago"
+msgstr "5年前"
+
+#: caravel/forms.py:457 caravel/forms.py:475
+msgid "long long ago"
+msgstr "以前所有"
+
 #: caravel/forms.py:459
 msgid ""
 "Timestamp from filter. This supports free form typing and natural language as "
