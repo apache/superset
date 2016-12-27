@@ -486,10 +486,19 @@ class CoreTests(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
-        url = '/superset/fetch_datasource_metadata?datasource_type=table&' \
-              'datasource_id=1'
-        resp = json.loads(self.get_resp(url))
-        self.assertEqual(len(resp['field_options']), 21)
+        url = (
+            '/superset/fetch_datasource_metadata?'
+            'datasource_type=table&'
+            'datasource_id=1'
+        )
+        resp = self.get_json_resp(url)
+        keys = [
+            'name', 'filterable_cols', 'gb_cols', 'type', 'all_cols',
+            'order_by_choices', 'metrics_combo', 'granularity_sqla',
+            'time_grain_sqla', 'id',
+        ]
+        for k in keys:
+            self.assertIn(k, resp.keys())
 
     def test_fetch_all_tables(self):
         self.login(username='admin')

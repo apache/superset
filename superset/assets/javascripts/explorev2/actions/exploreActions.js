@@ -2,14 +2,14 @@
 const $ = window.$ = require('jquery');
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
-export function setFieldOptions(options) {
-  return { type: SET_FIELD_OPTIONS, options };
-}
-
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };
+}
+
+export const SET_DATASOURCE = 'SET_DATASOURCE';
+export function setDatasource(datasource) {
+  return { type: SET_DATASOURCE, datasource };
 }
 
 export const FETCH_STARTED = 'FETCH_STARTED';
@@ -27,7 +27,7 @@ export function fetchFailed(error) {
   return { type: FETCH_FAILED, error };
 }
 
-export function fetchFieldOptions(datasourceId, datasourceType) {
+export function fetchDatasourceMetadata(datasourceId, datasourceType) {
   return function (dispatch) {
     dispatch(fetchStarted());
 
@@ -38,7 +38,7 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
         type: 'GET',
         url,
         success: (data) => {
-          dispatch(setFieldOptions(data.field_options));
+          dispatch(setDatasource(data));
           dispatch(fetchSucceeded());
         },
         error(error) {
