@@ -205,7 +205,8 @@ def check_ownership(obj, raise_if_false=True):
 
 def get_user_roles():
     if g.user.is_anonymous():
-        return [appbuilder.sm.find_role('Public')]
+        public_role = config.get('AUTH_ROLE_PUBLIC')
+        return [appbuilder.sm.find_role(public_role)] if public_role else []
     return g.user.roles
 
 

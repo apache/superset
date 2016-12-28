@@ -33,7 +33,7 @@ setup(
         'markdown==2.6.6',
         'pandas==0.18.1',
         'parsedatetime==2.0.0',
-        'pydruid==0.3.0',
+        'pydruid==0.3.1',
         'PyHive>=0.2.1',
         'python-dateutil==2.5.3',
         'requests==2.10.0',
