@@ -714,8 +714,12 @@ export function sectionsToRender(vizType, datasourceType) {
   const timeSection = datasourceType === 'table' ?
     commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
   const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const sections = [datasourceAndVizType].concat(
-    viz.controlPanelSections, timeSection, sqlClause);
+  const sections = [].concat(
+    datasourceAndVizType,
+    timeSection,
+    viz.controlPanelSections,
+    sqlClause
+  );
   return sections;
 }
 
