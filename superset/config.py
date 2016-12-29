@@ -68,7 +68,7 @@ ENABLE_PROXY_FIX = False
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
 
-# Uncomment to setup Setup an App icon
+# Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
 
 # Druid query timezone
