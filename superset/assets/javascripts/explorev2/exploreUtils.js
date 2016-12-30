@@ -21,6 +21,7 @@ function formatStyles(styles) {
   const params = {};
   for (let i = 0; i < len; i++) {
     const style = styles[i];
+    params[`style_id_${i + 1}`] = style.id;
     params[`style_metric_${i + 1}`] = style.metric;
     params[`style_expr_${i + 1}`] = style.expr;
     params[`style_value_${i + 1}`] = style.value;

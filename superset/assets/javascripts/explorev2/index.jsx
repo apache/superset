@@ -69,12 +69,14 @@ function parseStyles(form_data) {
   for (let i = 0; i < 10; i++) {
     if (form_data[`style_metric_${i}`] && form_data[`style_expr_${i}`]) {
       styles.push({
+        id: form_data[`style_id_${i}`],
         metric: form_data[`style_metric_${i}`],
         expr: form_data[`style_expr_${i}`],
         value: form_data[`style_value_${i}`],
       });
     }
     /* eslint no-param-reassign: 0 */
+    delete form_data[`style_id_${i}`];
     delete form_data[`style_metric_${i}`];
     delete form_data[`style_expr_${i}`];
     delete form_data[`style_value_${i}`];
