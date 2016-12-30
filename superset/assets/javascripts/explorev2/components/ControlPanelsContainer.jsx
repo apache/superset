@@ -8,6 +8,9 @@ import visTypes, { sectionsToRender, commonControlPanelSections } from '../store
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import Filters from './Filters';
+import StyleModal from './StyleModal';
+
+const utils = require('../../modules/utils.js');
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -20,6 +23,13 @@ const propTypes = {
 };
 
 class ControlPanelsContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showModal: false,
+    };
+  }
+
   componentWillMount() {
     const datasource_id = this.props.form_data.datasource;
     const datasource_type = this.props.datasource_type;
@@ -59,7 +69,15 @@ class ControlPanelsContainer extends React.Component {
     this.props.actions.removeControlPanelAlert();
   }
 
+  toggleModal() {
+    this.setState({ showModal: !this.state.showModal });
+  }
+
   render() {
+    let flag = false;
+    if(this.props.form_data.viz_type === 'table') {
+      flag = true;
+    }
     return (
       <Panel>
         {this.props.alert &&
@@ -93,6 +111,35 @@ class ControlPanelsContainer extends React.Component {
                   ))}
                 </ControlPanelSection>
               ))}
+
+              {flag &&
+                <div className='panel panel-default'>
+                  <div className='panel-heading'>
+                    <div className='panel-title'>Setting style</div>
+                  </div>
+                  <div className='panel-body'>
+                    <button
+                      type='button'
+                      className='btn btn-sm btn-default'
+                      data-target="#save_modal"
+                      data-toggle="modal"
+                      onClick={this.toggleModal.bind(this)}
+                    >
+                      <i className='fa fa-plus'/> &nbsp; Setting Style
+                    </button>
+                  </div>
+                </div>
+              }
+
+              {this.state.showModal &&
+                <StyleModal
+                  onHide={this.toggleModal.bind(this)}
+                  actions={this.props.actions}
+                  form_data={this.props.form_data}
+                  styles={this.props.form_data.styles}
+                />
+              }
+
               {this.filterSectionsToRender().map((section) => (
                 <ControlPanelSection
                   key={section.label}

@@ -86,6 +86,38 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
+    [actions.ADD_STYLE]() {
+      console.log(state.viz.form_data.styles);
+      if(state.viz.form_data.styles === undefined){
+        state.viz.form_data.styles = [];
+      }
+      const newFormData = addToArr(state.viz.form_data, 'styles', action.style);
+      const newState = Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+      return newState;
+    },
+    [actions.REMOVE_STYLE]() {
+      const newFormData = removeFromArr(state.viz.form_data, 'styles', action.style);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
+    [actions.CHANGE_STYLE]() {
+      const changes = {};
+      changes[action.field] = action.value;
+      const newFormData = alterInArr(
+        state.viz.form_data, 'styles', action.style, changes);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
     [actions.SET_FIELD_VALUE]() {
       const newFormData = action.key === 'datasource' ?
         defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
