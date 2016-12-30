@@ -8,6 +8,7 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
     slice_id: null,
     datasource_name: null,
     filters: [],
+    styles: [],
   };
   const sections = sectionsToRender(vizType, datasourceType);
   sections.forEach((section) => {

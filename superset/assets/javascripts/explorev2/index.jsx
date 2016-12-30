@@ -64,6 +64,34 @@ function getFilters(form_data, datasource_type) {
 bootstrappedState.viz.form_data.filters =
   getFilters(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
+function parseStyles(form_data) {
+  const styles = [];
+  for (let i = 0; i < 10; i++) {
+    if (form_data[`style_metric_${i}`] && form_data[`style_expr_${i}`]) {
+      styles.push({
+        metric: form_data[`style_metric_${i}`],
+        expr: form_data[`style_expr_${i}`],
+        value: form_data[`style_value_${i}`],
+      });
+    }
+    /* eslint no-param-reassign: 0 */
+    delete form_data[`style_metric_${i}`];
+    delete form_data[`style_expr_${i}`];
+    delete form_data[`style_value_${i}`];
+  }
+  return styles;
+}
+
+function getStyles(form_data, datasource_type) {
+  if (datasource_type === 'table') {
+    return parseStyles(form_data);
+  }
+  return null;
+}
+
+bootstrappedState.viz.form_data.styles =
+  getStyles(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
+
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
 );
@@ -74,4 +102,3 @@ ReactDOM.render(
   </Provider>,
   exploreViewContainer
 );
-

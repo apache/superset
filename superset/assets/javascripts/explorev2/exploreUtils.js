@@ -13,6 +13,21 @@ function formatFilters(filters) {
   return params;
 }
 
+function formatStyles(styles) {
+  let len = 0;
+  if (styles !== undefined) {
+    len = styles.length;
+  }
+  const params = {};
+  for (let i = 0; i < len; i++) {
+    const style = styles[i];
+    params[`style_metric_${i + 1}`] = style.metric;
+    params[`style_expr_${i + 1}`] = style.expr;
+    params[`style_value_${i + 1}`] = style.value;
+  }
+  return params;
+}
+
 export function getParamObject(form_data, datasource_type, saveNewSlice) {
   const data = {
     // V2 tag temporarily for updating url
@@ -23,13 +38,16 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   };
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
-    if (form_data[field] !== null && field !== 'datasource' && field !== 'filters'
+    if (form_data[field] !== null && field !== 'datasource'
+      && field !== 'filters' && field !== 'styles'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }
   });
   const filterParams = formatFilters(form_data.filters);
   Object.assign(data, filterParams);
+  const styleParams = formatStyles(form_data.styles);
+  Object.assign(data, styleParams);
   return data;
 }
 

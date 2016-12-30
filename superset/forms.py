@@ -1253,6 +1253,19 @@ class FormFactory(object):
                     QueryForm, field_prefix + '_eq_' + str(i),
                     TextField(_("Super"), default=''))
 
+        # style_metric defaults to ''. styles with blank col will be ignored
+        for i in range(10):
+            setattr(QueryForm, 'style_metric_' + str(i),
+                    SelectField(
+                        _('Style 1'),
+                        default=col_choices[0][0],
+                        choices=col_choices))
+            setattr(QueryForm, 'style_expr_' + str(i),
+                TextField(_("Super"), default=''))
+            setattr(
+                QueryForm, 'style_value_' + str(i),
+                TextField(_("Super"), default=''))
+
         if time_fields:
             QueryForm.fieldsets = ({
                 'label': _('Time'),

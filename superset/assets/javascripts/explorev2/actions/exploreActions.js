@@ -93,6 +93,21 @@ export function changeFilter(filter, field, value) {
   return { type: CHANGE_FILTER, filter, field, value };
 }
 
+export const ADD_STYLE = 'ADD_STYLE';
+export function addStyle(style) {
+  return { type: ADD_STYLE, style };
+}
+
+export const REMOVE_STYLE = 'REMOVE_STYLE';
+export function removeStyle(style) {
+  return { type: REMOVE_STYLE, style };
+}
+
+export const CHANGE_STYLE = 'CHANGE_STYLE';
+export function changeStyle(style, field, value) {
+  return { type: CHANGE_STYLE, style, field, value };
+}
+
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
