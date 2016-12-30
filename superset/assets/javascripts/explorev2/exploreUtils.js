@@ -15,7 +15,7 @@ function formatFilters(filters) {
 
 function formatStyles(styles) {
   let len = 0;
-  if(styles !== undefined){
+  if (styles !== undefined) {
     len = styles.length;
   }
   const params = {};
@@ -38,7 +38,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   };
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
-    if (form_data[field] !== null && field !== 'datasource' && field !== 'filters' && field !== 'styles'
+    if (form_data[field] !== null && field !== 'datasource' 
+      && field !== 'filters' && field !== 'styles'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }

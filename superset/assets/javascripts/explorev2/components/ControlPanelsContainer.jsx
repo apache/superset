@@ -10,8 +10,6 @@ import FieldSetRow from './FieldSetRow';
 import Filters from './Filters';
 import StyleModal from './StyleModal';
 
-const utils = require('../../modules/utils.js');
-
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
@@ -75,7 +73,7 @@ class ControlPanelsContainer extends React.Component {
 
   render() {
     let flag = false;
-    if(this.props.form_data.viz_type === 'table') {
+    if (this.props.form_data.viz_type === 'table') {
       flag = true;
     }
     return (
@@ -113,19 +111,19 @@ class ControlPanelsContainer extends React.Component {
               ))}
 
               {flag &&
-                <div className='panel panel-default'>
-                  <div className='panel-heading'>
-                    <div className='panel-title'>Setting style</div>
+                <div className="panel panel-default">
+                  <div className="panel-heading">
+                    <div className="panel-title">Setting style</div>
                   </div>
-                  <div className='panel-body'>
+                  <div className="panel-body">
                     <button
-                      type='button'
-                      className='btn btn-sm btn-default'
+                      type="button"
+                      className="btn btn-sm btn-default"
                       data-target="#save_modal"
                       data-toggle="modal"
                       onClick={this.toggleModal.bind(this)}
                     >
-                      <i className='fa fa-plus'/> &nbsp; Setting Style
+                      <i className="fa fa-plus" /> &nbsp; Setting Style
                     </button>
                   </div>
                 </div>

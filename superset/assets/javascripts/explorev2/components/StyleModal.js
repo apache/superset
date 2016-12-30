@@ -1,6 +1,5 @@
 import React from 'react';
-import $ from 'jquery';
-import { Modal, Alert, Button, Radio } from 'react-bootstrap';
+import { Modal, Button} from 'react-bootstrap';
 import { connect } from 'react-redux';
 import shortid from 'shortid';
 import Style from './Style';
@@ -25,17 +24,10 @@ class StyleModal extends React.Component {
       value: null,
     });
   }
-  save(){
-    console.log('saving...');
-    console.log(this.props.form_data);
-    // this.props.onHide();
-  }
   render() {
     const stylesDiv = [];
     let i = 0; 
     this.props.styles.forEach((style) => {
-      console.log('style:');
-      console.log(style);
       i++;
       stylesDiv.push(
         <Style
@@ -48,40 +40,39 @@ class StyleModal extends React.Component {
     });
     return (
       <Modal
-          show
-          onHide={this.props.onHide}
-          bsStyle="large"
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>
-              Setting Table Style
-            </Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
+        show
+        onHide={this.props.onHide}
+        bsStyle="large"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Setting Table Style
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div>
             <div>
-              <div>
-                {stylesDiv}
-              </div>
-              <div className="row space-2">
-                <div className="col-lg-2">
-                  <Button
-                    id="add-button"
-                    bsSize="sm"
-                    onClick={this.addStyle.bind(this)}
-                  >
-                    <i className="fa fa-plus" /> &nbsp; Add Style
-                  </Button>
-                </div>
+              {stylesDiv}
+            </div>
+            <div className="row space-2">
+              <div className="col-lg-2">
+                <Button
+                  id="add-button"
+                  bsSize="sm"
+                  onClick={this.addStyle.bind(this)}
+                >
+                  <i className="fa fa-plus" /> &nbsp; Add Style
+                </Button>
               </div>
             </div>
-          </Modal.Body>
+          </div>
+        </Modal.Body>
 
         <Modal.Footer>
           <Button
             type="button"
             id="btn_modal_save"
             className="btn pull-left"
-            onClick={this.save.bind(this)}
           >
             Save
           </Button>

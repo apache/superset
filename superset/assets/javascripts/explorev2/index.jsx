@@ -82,7 +82,7 @@ function parseStyles(form_data) {
   return styles;
 }
 
-function getStyles(form_data, datasource_type) {
+function getStyles (form_data, datasource_type) {
   if (datasource_type === 'table') {
     return parseStyles(form_data);
   }

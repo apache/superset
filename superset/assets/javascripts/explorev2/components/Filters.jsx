@@ -32,8 +32,6 @@ class Filters extends React.Component {
     const filters = [];
     let i = 0;
     this.props.filters.forEach((filter) => {
-      console.log('filter:')
-      console.log(filter)
       // only display filters with current prefix
       i++;
       if (filter.prefix === this.props.prefix) {

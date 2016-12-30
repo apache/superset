@@ -87,8 +87,7 @@ export const exploreReducer = function (state, action) {
       );
     },
     [actions.ADD_STYLE]() {
-      console.log(state.viz.form_data.styles);
-      if(state.viz.form_data.styles === undefined){
+      if (state.viz.form_data.styles === undefined) {
         state.viz.form_data.styles = [];
       }
       const newFormData = addToArr(state.viz.form_data, 'styles', action.style);
