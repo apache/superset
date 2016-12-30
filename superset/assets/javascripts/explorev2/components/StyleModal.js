@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Button} from 'react-bootstrap';
+import { Modal, Button } from 'react-bootstrap';
 import { connect } from 'react-redux';
 import shortid from 'shortid';
 import Style from './Style';
@@ -26,7 +26,7 @@ class StyleModal extends React.Component {
   }
   render() {
     const stylesDiv = [];
-    let i = 0; 
+    let i = 0;
     this.props.styles.forEach((style) => {
       i++;
       stylesDiv.push(

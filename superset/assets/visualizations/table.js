@@ -88,7 +88,7 @@ function tableVis(slice) {
         }))
         .enter()
         .append('td')
-        /*.style('background-image', function (d) {
+        /* .style('background-image', function (d) {
           if (d.isMetric) {
             const perc = Math.round((d.val / maxes[d.col]) * 100);
             return (
@@ -97,18 +97,20 @@ function tableVis(slice) {
             );
           }
           return null;
-        })*/
+        }) */
         .attr('style', function (d) {
-          for (let i=1; i<10; i++) {
-            if (fd['style_metric_'+i] !== "") {
-              if (d.isMetric && d.col === fd['style_metric_'+i]) {
-                let expr = fd['style_expr_'+i].replace(/x/g, d.val);
-                //make '=' to '=='
+          for (let i = 1; i < 10; i++) {
+            if (fd['style_metric_' + i] !== '') {
+              if (d.isMetric && d.col === fd['style_metric_' + i]) {
+                let expr = fd['style_expr_' + i].replace(/x/g, d.val);
+                // make '=' to '=='
                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
                 // console.log(expr);
-                if ((expr.indexOf('$.inArray') === -1 && eval(expr)) 
+                if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
-                  return fd['style_value_'+i];
+                  return fd['style_value_' + i];
+                } else {
+                  return null;
                 }
               }
             } else {
