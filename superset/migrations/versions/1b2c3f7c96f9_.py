@@ -1,14 +1,14 @@
 """Add number of views as column to dashboards and slices
 
 Revision ID: 1b2c3f7c96f9
-Revises: f1f2d4af5b90
+Revises: 6414e83d82b7
 Create Date: 2016-12-15 16:32:31.909331
 
 """
 
 # revision identifiers, used by Alembic.
 revision = '1b2c3f7c96f9'
-down_revision = 'f1f2d4af5b90'
+down_revision = '6414e83d82b7'
 
 from alembic import op
 import sqlalchemy as sa
