@@ -2,26 +2,24 @@ import React, { PropTypes } from 'react';
 import Button from '../../components/Button';
 
 const propTypes = {
-  queryEditor: PropTypes.object.isRequired,
-  latestQuery: PropTypes.object.isRequired,
-  database: PropTypes.object.isRequired,
+  allowAsync: PropTypes.bool.isRequired,
+  dbId: PropTypes.number.isRequired,
+  queryState: PropTypes.string.isRequired,
   runQuery: PropTypes.func.isRequired,
+  selectedText: PropTypes.string,
   stopQuery: PropTypes.func.isRequired,
 };
 
 export default function RunQueryActionButton(props) {
-  const isSelected = props.queryEditor.selectedText;
-  const runBtnText = isSelected ? 'Run Selected Query' : 'Run Query';
-  const btnStyle = isSelected ? 'warning' : 'primary';
-  const hasAsync = props.database && props.database.allow_run_async;
-  const shouldShowStopBtn = props.latestQuery &&
-    ['running', 'pending'].indexOf(props.latestQuery.state) > -1;
+  const runBtnText = props.selectedText ? 'Run Selected Query' : 'Run Query';
+  const btnStyle = props.selectedText ? 'warning' : 'primary';
+  const shouldShowStopBtn = ['running', 'pending'].indexOf(props.queryState) > -1;
   const asyncToolTip = 'Run query asynchronously';
 
   const commonBtnProps = {
     bsSize: 'small',
     bsStyle: btnStyle,
-    disabled: !(props.queryEditor.dbId),
+    disabled: !(props.dbId),
   };
 
   const syncBtn = (
@@ -57,7 +55,7 @@ export default function RunQueryActionButton(props) {
   let button;
   if (shouldShowStopBtn) {
     button = stopBtn;
-  } else if (hasAsync) {
+  } else if (props.allowAsync) {
     button = asyncBtn;
   } else {
     button = syncBtn;
