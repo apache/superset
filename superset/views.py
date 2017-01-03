@@ -1799,7 +1799,7 @@ class Superset(BaseSupersetView):
         dashboard.json_metadata = json.dumps(md, indent=4)
 
     @has_access
-    @expose("/slices/list/", methods = ['GET'])
+    @expose("/slices/list/", methods=['GET'])
     def slices_view(self):
         """Retrieve all slices information"""
         session = db.session()
@@ -1814,13 +1814,15 @@ class Superset(BaseSupersetView):
         if slice_id:
             slices = slices.filter(models.Slice.id == slice_id)
         if slice_name:
-            slices = slices.filter( \
+            slices = slices.filter(
                 models.Slice.slice_name.like('%{}%'.format(slice_name)))
         if datasource_id:
             slices = slices.filter(models.Slice.datasource_id == datasource_id)
         if datasource_name:
-            slices = slices.filter( \
-                models.Slice.datasource_name.like('{%{}%}'.format(datasource_name)))
+            slices = slices.filter(
+                models.Slice.datasource_name
+                .like('{%{}%}'.format(datasource_name))
+            )
         if viz_type:
             slices = slices.filter(models.Slice.viz_type == viz_type)
         if owner:
