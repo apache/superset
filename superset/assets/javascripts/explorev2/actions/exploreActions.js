@@ -27,6 +27,11 @@ export function fetchFailed(error) {
   return { type: FETCH_FAILED, error };
 }
 
+export const SET_DATASOURCE = 'SET_DATASOURCE';
+export function setDatasource(datasource) {
+  return { type: SET_DATASOURCE, datasource };
+}
+
 export function fetchFieldOptions(datasourceId, datasourceType) {
   return function (dispatch) {
     dispatch(fetchStarted());
@@ -39,6 +44,7 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
         url,
         success: (data) => {
           dispatch(setFieldOptions(data.field_options));
+          dispatch(setDatasource(data.datasource));
           dispatch(fetchSucceeded());
         },
         error(error) {
@@ -114,8 +120,8 @@ export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(datasource_type, key, value, label) {
-  return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
+export function setFieldValue(datasource_type, key, value) {
+  return { type: SET_FIELD_VALUE, datasource_type, key, value };
 }
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';

@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import SelectField from '../../../../javascripts/explorev2/components/SelectField';
+import SelectField from '../../../../javascripts/explorev2/components/controls/SelectField';
 
 const defaultProps = {
   choices: [[10, 10], [20, 20]],

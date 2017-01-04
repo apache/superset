@@ -1,6 +1,6 @@
 import React, { PropTypes } from 'react';
 import { ControlLabel } from 'react-bootstrap';
-import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
+import InfoTooltipWithTrigger from '../../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
   label: PropTypes.string.isRequired,

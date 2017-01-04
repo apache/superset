@@ -42,14 +42,13 @@ export const exploreReducer = function (state, action) {
 
     [actions.SET_FIELD_OPTIONS]() {
       const newState = Object.assign({}, state);
-      const optionsByFieldName = action.options;
-      const fieldNames = Object.keys(optionsByFieldName);
+      const options = action.options;
 
-      fieldNames.forEach((fieldName) => {
+      Object.keys(options).forEach((fieldName) => {
         if (fieldName === 'filterable_cols') {
-          newState.filterColumnOpts = optionsByFieldName[fieldName];
+          newState.filterColumnOpts = options[fieldName];
         } else {
-          newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+          newState.fields[fieldName].choices = options[fieldName];
         }
       });
       return Object.assign({}, state, newState);
@@ -91,7 +90,6 @@ export const exploreReducer = function (state, action) {
         defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
         Object.assign({}, state.viz.form_data);
       if (action.key === 'datasource') {
-        newFormData.datasource_name = action.label;
         newFormData.slice_id = state.viz.form_data.slice_id;
         newFormData.slice_name = state.viz.form_data.slice_name;
         newFormData.viz_type = state.viz.form_data.viz_type;
@@ -106,6 +104,9 @@ export const exploreReducer = function (state, action) {
         state,
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
+    },
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasource: action.datasource });
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
       const vizUpdates = {

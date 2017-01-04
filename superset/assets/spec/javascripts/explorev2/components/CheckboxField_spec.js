@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import CheckboxField from '../../../../javascripts/explorev2/components/CheckboxField';
+import CheckboxField from '../../../../javascripts/explorev2/components/controls/CheckboxField';
 
 const defaultProps = {
   name: 'show_legend',
