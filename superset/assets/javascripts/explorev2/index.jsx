@@ -96,8 +96,8 @@ bootstrappedState.viz.form_data.styles =
 
 function getBaseStyle(form_data) {
   const baseStyle = {};
-  baseStyle[`headerValue`] = form_data.headerValue;
-  baseStyle[`bodyValue`] = form_data.bodyValue;
+  baseStyle['headerValue'] = form_data.headerValue;
+  baseStyle['bodyValue'] = form_data.bodyValue;
   return baseStyle;
 }
 

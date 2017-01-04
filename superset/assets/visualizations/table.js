@@ -61,7 +61,7 @@ function tableVis(slice) {
         .attr('width', '100%');
 
       // add header style
-      const headerStyle = fd["headerValue"];
+      const headerStyle = fd['headerValue'];
       table.append('thead').append('tr')
         .attr('style', headerStyle)
         .selectAll('th')
@@ -103,7 +103,7 @@ function tableVis(slice) {
         }) */
         .attr('style', function (d) {
           // add body style
-          const bodyStyle = fd["bodyValue"];
+          const bodyStyle = fd['bodyValue'];
           for (let i = 1; i < 10; i++) {
             if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {

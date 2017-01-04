@@ -73,7 +73,7 @@ class ControlPanelsContainer extends React.Component {
 
   render() {
     let flag = false;
-    if (this.props.form_data.viz_type === 'table' || this.props.form_data.viz_type === 'pivot_table') {
+    if (this.props.form_data.viz_type === 'table') {
       flag = true;
     }
     return (

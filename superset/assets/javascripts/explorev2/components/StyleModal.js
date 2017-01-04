@@ -103,37 +103,37 @@ class StyleModal extends React.Component {
           </div>
          }
          {this.state.flag2 &&
-          <div>
-            <div>
-              {stylesDiv}
-            </div>
-            <div className="row space-2">
-              <div className="col-lg-2">
-                <Button
-                  id="add-button"
-                  bsSize="sm"
-                  onClick={this.addStyle.bind(this)}
-                >
-                  <i className="fa fa-plus" /> &nbsp; 添加条件样式
-                </Button>
-              </div>
-            </div>
-          </div>
+           <div>
+             <div>
+               {stylesDiv}
+             </div>
+             <div className="row space-2">
+               <div className="col-lg-2">
+                 <Button
+                   id="add-button"
+                   bsSize="sm"
+                   onClick={this.addStyle.bind(this)}
+                 >
+                   <i className="fa fa-plus" /> &nbsp; 添加条件样式
+                 </Button>
+               </div>
+             </div>
+           </div>
          }
          {this.state.flag3 &&
-          <div>
-            <div className="row space-2">
-              <div className="col-lg-2">
-                <Button
-                  id="add-button"
-                  bsSize="sm"
-                  onClick={this.addInteraction.bind(this)}
-                >
-                  <i className="fa fa-plus" /> &nbsp; 添加导航交互
-                </Button>
-              </div>
-            </div>
-          </div>
+           <div>
+             <div className="row space-2">
+               <div className="col-lg-2">
+                 <Button
+                   id="add-button"
+                   bsSize="sm"
+                   onClick={this.addInteraction.bind(this)}
+                 >
+                   <i className="fa fa-plus" /> &nbsp; 添加导航交互
+                 </Button>
+               </div>
+             </div>
+           </div>
          }
         </Modal.Body>
 

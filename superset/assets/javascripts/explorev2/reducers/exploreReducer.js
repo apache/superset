@@ -115,9 +115,9 @@ export const exploreReducer = function (state, action) {
       );
     },
     [actions.CHANGE_BASE_STYLE]() {
-      const newObject = Object.assign({}, state.viz.form_data[`baseStyle`]);
+      const newObject = Object.assign({}, state.viz.form_data['baseStyle']);
       newObject[action.field] = action.value;
-      const newFormData = Object.assign({}, state.viz.form_data, { [`baseStyle`]: newObject });
+      const newFormData = Object.assign({}, state.viz.form_data, { ['baseStyle']: newObject });
       return Object.assign(
         {},
         state,
