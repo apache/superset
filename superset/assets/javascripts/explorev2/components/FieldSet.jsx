@@ -36,11 +36,11 @@ const defaultProps = {
 
 export default class FieldSet extends React.PureComponent {
   render() {
-    const FieldClass = fieldMap[this.props.type];
+    const FieldType = fieldMap[this.props.type];
     return (
       <div>
         <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
-        <FieldClass {...this.props} />
+        <FieldType {...this.props} />
       </div>
     );
   }
