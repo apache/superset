@@ -1,7 +1,4 @@
 import React from 'react';
-// import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
-import Select from 'react-select';
-import { Button } from 'react-bootstrap';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -34,7 +31,7 @@ export default class BaseStyle extends React.Component {
           </div>
         </div>
 
-        <div className="col-lg-12" style={{"margin-top": "20px"}}>
+        <div className="col-lg-12" style={{ 'margin-top': '20px' }}>
           <div className="col-lg-2">
             <span>表样式:</span>
           </div>

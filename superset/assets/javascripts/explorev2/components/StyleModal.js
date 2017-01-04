@@ -24,6 +24,7 @@ class StyleModal extends React.Component {
     this.state = {
       flag: true,
       flag2: false,
+      flag3: false,
     };
   }
   addStyle() {
@@ -35,7 +36,7 @@ class StyleModal extends React.Component {
     });
   }
   addInteraction() {
-    alert("hello, baby!");
+    alert('hello, baby!');
   }
   changeModal(type) {
     if (type === 1) {
@@ -79,25 +80,27 @@ class StyleModal extends React.Component {
           <Modal.Title>
             <div>
               <ul className="nav navbar-nav">
-                <li id="li" className="active" style={{"background-color": "#ccc"}}><a onClick={this.changeModal.bind(this, 1)}>基本样式</a></li>
+                <li id="li" className="active" style={{ 'background-color': '#ccc' }}>
+                  <a onClick={this.changeModal.bind(this, 1)}>基本样式</a>
+                </li>
                 <li id="li2"><a onClick={this.changeModal.bind(this, 2)}>条件样式</a></li>
                 <li id="li3"><a onClick={this.changeModal.bind(this, 3)}>导航交互</a></li>
               </ul>
             </div>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{"min-height": "200px"}}>
+        <Modal.Body style={{ 'min-height': '200px' }}>
         {this.state.flag &&
+          <div>
             <div>
-              <div>
-                <BaseStyle
-                  key={i}
-                  actions={this.props.actions}
-                  form_data={this.props.form_data}
-                  baseStyle={this.props.baseStyle}
-                />
-              </div>
+              <BaseStyle
+                key={i}
+                actions={this.props.actions}
+                form_data={this.props.form_data}
+                baseStyle={this.props.baseStyle}
+              />
             </div>
+          </div>
          }
          {this.state.flag2 &&
             <div>
