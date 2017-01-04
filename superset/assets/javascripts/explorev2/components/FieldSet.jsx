@@ -3,7 +3,16 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
-import { fieldTypes } from '../stores/fields';
+
+import ControlLabelWithTooltip from './ControlLabelWithTooltip';
+
+const fieldMap = {
+  TextField,
+  CheckboxField,
+  TextAreaField,
+  SelectField,
+};
+const fieldTypes = Object.keys(fieldMap);
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -18,68 +27,22 @@ const propTypes = {
     PropTypes.string,
     PropTypes.number,
     PropTypes.bool,
-    PropTypes.array]).isRequired,
+    PropTypes.array]),
 };
 
 const defaultProps = {
-  choices: null,
-  description: null,
-  places: null,
-  validators: null,
   onChange: () => {},
 };
 
-export default class FieldSet extends React.Component {
-  renderCheckBoxField() {
-    return (
-      <CheckboxField
-        {...this.props}
-      />);
-  }
-
-  renderTextAreaField() {
-    return (
-      <TextAreaField
-        {...this.props}
-      />);
-  }
-
-  renderSelectField(selectProps) {
-    return (
-      <SelectField
-        {...this.props}
-        {...selectProps}
-      />);
-  }
-
-  renderTextField() {
-    return (
-      <TextField
-        {...this.props}
-      />);
-  }
-
+export default class FieldSet extends React.PureComponent {
   render() {
-    const type = this.props.type;
-    const selectProps = {
-      SelectCustomMultiField: { multi: true, freeForm: true },
-      SelectMultipleSortableField: { multi: true, freeForm: false },
-      SelectField: { multi: false, freeForm: false },
-      FreeFormSelectField: { multi: false, freeForm: true },
-    };
-    let field;
-
-    if (type === 'CheckboxField') {
-      field = this.renderCheckBoxField();
-    } else if (Object.keys(selectProps).includes(type)) {
-      field = this.renderSelectField(selectProps[type]);
-    } else if (['TextField', 'IntegerField'].includes(type)) {
-      field = this.renderTextField();
-    } else if (type === 'TextAreaField') {
-      field = this.renderTextAreaField();
-    }
-
-    return field;
+    const FieldType = fieldMap[this.props.type];
+    return (
+      <div>
+        <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
+        <FieldType {...this.props} />
+      </div>
+    );
   }
 }
 

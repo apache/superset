@@ -19,3 +19,9 @@
   padding: 0 0 0 .5em;
   font-size: 14px;
 }
+
+.checkbox {
+    float: left;
+    margin-top: 0px;
+    margin-right: 3px;
+}

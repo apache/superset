@@ -1,6 +1,5 @@
 import React, { PropTypes } from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -24,10 +23,6 @@ export default class TextField extends React.Component {
   render() {
     return (
       <FormGroup controlId="formInlineName" bsSize="small">
-        <ControlLabelWithTooltip
-          label={this.props.label}
-          description={this.props.description}
-        />
         <FormControl
           type="text"
           placeholder=""

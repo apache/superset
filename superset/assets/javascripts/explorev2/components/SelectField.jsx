@@ -1,6 +1,4 @@
 import React, { PropTypes } from 'react';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
-import { slugify } from '../../modules/utils';
 import Select, { Creatable } from 'react-select';
 
 
@@ -87,17 +85,7 @@ export default class SelectField extends React.Component {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?
       (<Creatable {...selectProps} />) : (<Select {...selectProps} />);
-    if (this.props.label) {
-      return (
-        <div id={`formControlsSelect-${slugify(this.props.label)}`}>
-          <ControlLabelWithTooltip
-            label={this.props.label}
-            description={this.props.description}
-          />
-          {selectWrap}
-        </div>
-      );
-    }
+
     return (
       <div>
         {selectWrap}
