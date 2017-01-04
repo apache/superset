@@ -10,8 +10,8 @@ const propTypes = {
 };
 
 export default class Style extends React.Component {
-  changeMetric(style, colOpt) {
-    const val = (colOpt) ? colOpt.value : null;
+  changeMetric(style, col) {
+    const val = (col) ? col.value : null;
     this.props.actions.changeStyle(style, 'metric', val);
   }
   changeExpr(style, event) {

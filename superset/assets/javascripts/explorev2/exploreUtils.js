@@ -21,10 +21,18 @@ function formatStyles(styles) {
   const params = {};
   for (let i = 0; i < len; i++) {
     const style = styles[i];
+    params[`style_id_${i + 1}`] = style.id;
     params[`style_metric_${i + 1}`] = style.metric;
     params[`style_expr_${i + 1}`] = style.expr;
     params[`style_value_${i + 1}`] = style.value;
   }
+  return params;
+}
+
+function formatBaseStyle(baseStyle) {
+  const params = {};
+  params['headerValue'] = baseStyle.headerValue;
+  params['bodyValue'] = baseStyle.bodyValue;
   return params;
 }
 
@@ -39,7 +47,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource'
-      && field !== 'filters' && field !== 'styles'
+      && field !== 'filters' && field !== 'styles' && field !== 'baseStyle'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }
@@ -48,6 +56,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.assign(data, filterParams);
   const styleParams = formatStyles(form_data.styles);
   Object.assign(data, styleParams);
+  const baseStyleParams = formatBaseStyle(form_data.baseStyle);
+  Object.assign(data, baseStyleParams);
   return data;
 }
 

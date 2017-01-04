@@ -108,6 +108,11 @@ export function changeStyle(style, field, value) {
   return { type: CHANGE_STYLE, style, field, value };
 }
 
+export const CHANGE_BASE_STYLE = 'CHANGE_BASE_STYLE';
+export function changeBaseStyle(baseStyle, field, value) {
+  return { type: CHANGE_BASE_STYLE, baseStyle, field, value };
+}
+
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };

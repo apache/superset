@@ -135,6 +135,7 @@ class ControlPanelsContainer extends React.Component {
                   actions={this.props.actions}
                   form_data={this.props.form_data}
                   styles={this.props.form_data.styles}
+                  baseStyle={this.props.form_data.baseStyle}
                 />
               }
 

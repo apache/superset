@@ -60,7 +60,10 @@ function tableVis(slice) {
           'table-condensed table-hover dataTable no-footer', true)
         .attr('width', '100%');
 
+      // add header style
+      const headerStyle = fd['headerValue'];
       table.append('thead').append('tr')
+        .attr('style', headerStyle)
         .selectAll('th')
         .data(data.columns)
         .enter()
@@ -99,8 +102,10 @@ function tableVis(slice) {
           return null;
         }) */
         .attr('style', function (d) {
+          // add body style
+          const bodyStyle = fd['bodyValue'];
           for (let i = 1; i < 10; i++) {
-            if (fd['style_metric_' + i] !== '') {
+            if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {
                 let expr = fd['style_expr_' + i].replace(/x/g, d.val);
                 // make '=' to '=='
@@ -108,15 +113,15 @@ function tableVis(slice) {
                 // console.log(expr);
                 if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
-                  return fd['style_value_' + i];
-                } else {
-                  return null;
+                  // console.log(fd['style_value_' + i]);
+                  return bodyStyle + ';' + fd['style_value_' + i];
                 }
               }
             } else {
               break;
             }
           }
+          return bodyStyle;
         })
         .attr('title', (d) => {
           if (!isNaN(d.val)) {
