@@ -13,9 +13,9 @@ describe('RunQueryActionButton', () => {
     allowAsync: false,
     dbId: 1,
     queryState: 'pending',
-    runQuery: () => {},
+    runQuery: () => {}, // eslint-disable-line
     selectedText: null,
-    stopQuery: () => {},
+    stopQuery: () => {}, // eslint-disable-line
   };
 
   beforeEach(() => {
@@ -32,4 +32,3 @@ describe('RunQueryActionButton', () => {
     expect(wrapper.find(Button)).to.have.lengthOf(1);
   });
 });
-
