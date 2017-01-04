@@ -45,12 +45,12 @@ class StyleModal extends React.Component {
       $('#li2').attr('style', '');
       $('#li3').attr('style', '');
     } else if (type === 2) {
-      this.setState({ flag: false, flag2: true,  flag3: false });
+      this.setState({ flag: false, flag2: true, flag3: false });
       $('#li').attr('style', '');
       $('#li2').attr('style', 'background: #ccc');
       $('#li3').attr('style', '');
     } else {
-      this.setState({ flag: false, flag2: false,  flag3: true });
+      this.setState({ flag: false, flag2: false, flag3: true });
       $('#li').attr('style', '');
       $('#li2').attr('style', '');
       $('#li3').attr('style', 'background: #ccc');
@@ -103,37 +103,37 @@ class StyleModal extends React.Component {
           </div>
          }
          {this.state.flag2 &&
+          <div>
             <div>
-              <div>
-                {stylesDiv}
-              </div>
-              <div className="row space-2">
-                <div className="col-lg-2">
-                  <Button
-                    id="add-button"
-                    bsSize="sm"
-                    onClick={this.addStyle.bind(this)}
-                  >
-                    <i className="fa fa-plus" /> &nbsp; 添加条件样式
-                  </Button>
-                </div>
+              {stylesDiv}
+            </div>
+            <div className="row space-2">
+              <div className="col-lg-2">
+                <Button
+                  id="add-button"
+                  bsSize="sm"
+                  onClick={this.addStyle.bind(this)}
+                >
+                  <i className="fa fa-plus" /> &nbsp; 添加条件样式
+                </Button>
               </div>
             </div>
+          </div>
          }
          {this.state.flag3 &&
-            <div>
-              <div className="row space-2">
-                <div className="col-lg-2">
-                  <Button
-                    id="add-button"
-                    bsSize="sm"
-                    onClick={this.addInteraction.bind(this)}
-                  >
-                    <i className="fa fa-plus" /> &nbsp; 添加导航交互
-                  </Button>
-                </div>
+          <div>
+            <div className="row space-2">
+              <div className="col-lg-2">
+                <Button
+                  id="add-button"
+                  bsSize="sm"
+                  onClick={this.addInteraction.bind(this)}
+                >
+                  <i className="fa fa-plus" /> &nbsp; 添加导航交互
+                </Button>
               </div>
             </div>
+          </div>
          }
         </Modal.Body>
 

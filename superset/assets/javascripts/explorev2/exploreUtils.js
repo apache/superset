@@ -31,8 +31,8 @@ function formatStyles(styles) {
 
 function formatBaseStyle(baseStyle) {
   const params = {};
-  params["headerValue"] = baseStyle.headerValue;
-  params["bodyValue"] = baseStyle.bodyValue;
+  params[`headerValue`] = baseStyle.headerValue;
+  params[`bodyValue`] = baseStyle.bodyValue;
   return params;
 }
 
