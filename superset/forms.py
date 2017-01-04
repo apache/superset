@@ -490,7 +490,7 @@ class FormFactory(object):
                     ('1 year ago', _('1 year ago')),
                     ('3 year ago', _('3 year ago')),
                     ('5 year ago', _('5 year ago')),
-                    ('long long ago', _('long long ago')),
+                    ('100 year ago', _('long long ago')),
                 ),
                 "description": _(
                     "Timestamp from filter. This supports free form typing and "
@@ -506,6 +506,8 @@ class FormFactory(object):
                     ('28 days ago', _('28 days ago')),
                     ('90 days ago', _('90 days ago')),
                     ('1 year ago', _('1 year ago')),
+                    ('3 year ago', _('3 year ago')),
+                    ('5 year ago', _('5 year ago')),
                 )
             }),
             'max_bubble_size': (FreeFormSelectField, {
@@ -1240,6 +1242,7 @@ class FormFactory(object):
             op_choices = filter_choices if not is_having_filter else \
                 having_op_choices
             for i in range(10):
+                # filter
                 setattr(QueryForm, field_prefix + '_col_' + str(i),
                         SelectField(
                             _('Filter 1'),
@@ -1253,19 +1256,28 @@ class FormFactory(object):
                     QueryForm, field_prefix + '_eq_' + str(i),
                     TextField(_("Super"), default=''))
 
-                # style_expr defaults to ''
+                # style
                 setattr(QueryForm, 'style_id_' + str(i),
                     TextField(_("Super"), default=''))
                 setattr(QueryForm, 'style_metric_' + str(i),
                     SelectField(
                         _('Style 1'),
-                        default='viz.datasource.metrics_combo[0][0]',
+                        default=viz.datasource.metrics_combo[0][0],
                         choices=viz.datasource.metrics_combo))
                 setattr(QueryForm, 'style_expr_' + str(i),
                     TextField(_("Super"), default=''))
                 setattr(
                     QueryForm, 'style_value_' + str(i),
                     TextField(_("Super"), default=''))
+            
+            # baseStyle
+            setattr(
+                QueryForm, 'headerValue',
+                TextField(_("Super"), default=''))
+            setattr(
+                QueryForm, 'bodyValue',
+                TextField(_("Super"), default=''))
+
 
         if time_fields:
             QueryForm.fieldsets = ({

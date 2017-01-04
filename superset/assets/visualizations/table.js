@@ -23,8 +23,8 @@ function tableVis(slice) {
     function onSuccess(json) {
       const data = json.data;
       const fd = json.form_data;
-      // console.log("form_data:");
-      // console.log(fd);
+      console.log("form_data:");
+      console.log(fd);
       // Removing metrics (aggregates) that are strings
       const realMetrics = [];
       for (const k in data.records[0]) {
@@ -60,7 +60,10 @@ function tableVis(slice) {
           'table-condensed table-hover dataTable no-footer', true)
         .attr('width', '100%');
 
+      // add header style
+      let headerStyle = fd['headerValue'];
       table.append('thead').append('tr')
+        .attr('style', headerStyle)
         .selectAll('th')
         .data(data.columns)
         .enter()
@@ -99,23 +102,26 @@ function tableVis(slice) {
           return null;
         }) */
         .attr('style', function (d) {
+          // add body style
+          let bodyStyle = fd['bodyValue'];
           for (let i = 1; i < 10; i++) {
             if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {
                 let expr = fd['style_expr_' + i].replace(/x/g, d.val);
                 // make '=' to '=='
                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
-                // console.log(expr);
+                console.log(expr);
                 if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
-                  // console.log(fd['style_value_' + i]);
-                  return fd['style_value_' + i];
+                  console.log(fd['style_value_' + i]);
+                  return bodyStyle + ';' + fd['style_value_' + i];
                 }
               }
             } else {
               break;
             }
           }
+          return bodyStyle;
         })
         .attr('title', (d) => {
           if (!isNaN(d.val)) {

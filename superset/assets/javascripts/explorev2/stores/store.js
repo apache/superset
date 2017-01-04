@@ -9,6 +9,7 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
     datasource_name: null,
     filters: [],
     styles: [],
+    baseStyle: null,
   };
   const sections = sectionsToRender(vizType, datasourceType);
   sections.forEach((section) => {

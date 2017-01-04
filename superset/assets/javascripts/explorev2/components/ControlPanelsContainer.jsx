@@ -73,7 +73,7 @@ class ControlPanelsContainer extends React.Component {
 
   render() {
     let flag = false;
-    if (this.props.form_data.viz_type === 'table') {
+    if (this.props.form_data.viz_type === 'table' || this.props.form_data.viz_type === 'pivot_table') {
       flag = true;
     }
     return (
@@ -135,6 +135,7 @@ class ControlPanelsContainer extends React.Component {
                   actions={this.props.actions}
                   form_data={this.props.form_data}
                   styles={this.props.form_data.styles}
+                  baseStyle={this.props.form_data.baseStyle}
                 />
               }
 

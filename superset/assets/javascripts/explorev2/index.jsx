@@ -94,6 +94,16 @@ function getStyles(form_data, datasource_type) {
 bootstrappedState.viz.form_data.styles =
   getStyles(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
+function getBaseStyle(form_data) {
+  const baseStyle = {};
+  baseStyle['headerValue'] = form_data.headerValue;
+  baseStyle['bodyValue'] = form_data.bodyValue;
+  return baseStyle;
+}
+
+bootstrappedState.viz.form_data.baseStyle =
+  getBaseStyle(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
+
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))
 );
