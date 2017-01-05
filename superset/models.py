@@ -1571,16 +1571,15 @@ class DruidCluster(Model, AuditMixinNullable):
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
 
-    def refresh_datasources(self, datasource_name=None):
+    def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
-
         If ``datasource_name`` is specified, only that datasource is updated
         """
         self.druid_version = self.get_druid_version()
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 if not datasource_name or datasource_name == datasource:
-                    DruidDatasource.sync_to_db(datasource, self)
+                    DruidDatasource.sync_to_db(datasource, self, merge_flag)
 
     @property
     def perm(self):
@@ -1765,7 +1764,6 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
     is_restricted = Column(Boolean, default=False, nullable=True)
     d3format = Column(String(128))
 
-<<<<<<< c2d29fb54bbe8e57bdee03f4f4940469b48c2a92
     def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
 
@@ -1776,7 +1774,6 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 if not datasource_name or datasource_name == datasource:
                     DruidDatasource.sync_to_db(datasource, self, merge_flag)
-=======
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'datasource_name',
         'json', 'description', 'is_restricted', 'd3format'
@@ -1789,7 +1786,6 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         except Exception:
             obj = {}
         return obj
->>>>>>> Druid dashboard import
 
     @property
     def perm(self):
