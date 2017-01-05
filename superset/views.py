@@ -645,7 +645,7 @@ class TableModelView(SupersetModelView, DeleteMixin):  # noqa
         'changed_by_', 'changed_on_']
     order_columns = [
         'link', 'database', 'is_featured', 'changed_on_']
-    add_columns = ['table_name', 'database', 'schema']
+    add_columns = ['database', 'schema', 'table_name']
     edit_columns = [
         'table_name', 'sql', 'is_featured', 'filter_select_enabled',
         'database', 'schema',
