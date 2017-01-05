@@ -73,6 +73,7 @@ function parseStyles(form_data) {
         metric: form_data[`style_metric_${i}`],
         expr: form_data[`style_expr_${i}`],
         value: form_data[`style_value_${i}`],
+        icon: form_data[`style_icon_${i}`],
       });
     }
     /* eslint no-param-reassign: 0 */
@@ -80,6 +81,7 @@ function parseStyles(form_data) {
     delete form_data[`style_metric_${i}`];
     delete form_data[`style_expr_${i}`];
     delete form_data[`style_value_${i}`];
+    delete form_data[`style_icon_${i}`];
   }
   return styles;
 }
@@ -96,8 +98,8 @@ bootstrappedState.viz.form_data.styles =
 
 function getBaseStyle(form_data) {
   const baseStyle = {};
-  baseStyle['headerValue'] = form_data.headerValue;
-  baseStyle['bodyValue'] = form_data.bodyValue;
+  baseStyle.headerValue = form_data.headerValue;
+  baseStyle.bodyValue = form_data.bodyValue;
   return baseStyle;
 }
 

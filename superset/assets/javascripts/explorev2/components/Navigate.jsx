@@ -6,53 +6,53 @@ import { Button } from 'react-bootstrap';
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
   form_data: React.PropTypes.object.isRequired,
-  style: React.PropTypes.object.isRequired,
+  navigate: React.PropTypes.object.isRequired,
 };
 
-export default class Style extends React.Component {
-  changeMetric(style, col) {
+export default class Navigate extends React.Component {
+  changeMetric(navigate, col) {
     const val = (col) ? col.value : null;
-    this.props.actions.changeStyle(style, 'metric', val);
+    this.props.actions.changeNavigate(navigate, 'metric', val);
   }
-  changeExpr(style, event) {
-    this.props.actions.changeStyle(style, 'expr', event.target.value);
+  changeExpr(navigate, event) {
+    this.props.actions.changeNavigate(navigate, 'expr', event.target.value);
   }
-  changeValue(style, event) {
-    this.props.actions.changeStyle(style, 'value', event.target.value);
+  changeSlice(navigate, event) {
+    this.props.actions.changeNavigate(navigate, 'value', event.target.value);
   }
-  removeStyle(style) {
-    this.props.actions.removeStyle(style);
+  removeNavigate(navigate) {
+    this.props.actions.removeNavigate(navigate);
   }
   render() {
     return (
       <div>
         <div className="row space-1">
           <Select
-            className="col-lg-12"
+            className="col-lg-6"
             multi={false}
             name="select-column"
             placeholder="Select metric"
             options={this.props.form_data.metrics.map((o) => ({ value: o, label: o }))}
-            value={this.props.style.metric}
+            // value={this.props.navigate.metric}
             autosize={false}
-            onChange={this.changeMetric.bind(this, this.props.style)}
+            onChange={this.changeMetric.bind(this, this.props.navigate)}
           />
-        </div>
-        <div className="row space-1">
-          <div className="col-lg-4">
+          <div className="col-lg-6">
             <input
               type="text"
-              onChange={this.changeExpr.bind(this, this.props.style)}
-              value={this.props.style.expr}
+              onChange={this.changeExpr.bind(this, this.props.navigate)}
+              // value={this.props.navigate.expr}
               className="form-control input-sm"
               placeholder="阀值"
             />
           </div>
-          <div className="col-lg-6">
+        </div>
+        <div className="row space-1">
+          <div className="col-lg-10">
             <input
               type="text"
-              onChange={this.changeValue.bind(this, this.props.style)}
-              value={this.props.style.value}
+              // onChange={this.changeValue.bind(this, this.props.navigate)}
+              // value={this.props.navigate.value}
               className="form-control input-sm"
               placeholder="样式"
             />
@@ -61,7 +61,7 @@ export default class Style extends React.Component {
             <Button
               id="remove-button"
               bsSize="small"
-              onClick={this.removeStyle.bind(this, this.props.style)}
+              onClick={this.removeNavigate.bind(this, this.props.navigate)}
             >
               <i className="fa fa-minus" />
             </Button>
@@ -72,4 +72,4 @@ export default class Style extends React.Component {
   }
 }
 
-Style.propTypes = propTypes;
+Navigate.propTypes = propTypes;

@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import shortid from 'shortid';
 import Style from './Style';
 import BaseStyle from './BaseStyle';
+import Navigate from './Navigate';
 
 const propTypes = {
   onHide: React.PropTypes.func.isRequired,
@@ -33,10 +34,16 @@ class StyleModal extends React.Component {
       metric: null,
       expr: null,
       value: null,
+      icon: null,
     });
   }
-  addInteraction() {
-    alert('hello, baby!');
+  addNavigate() {
+    this.props.actions.addNavigate({
+      id: shortid.generate(),
+      metric: null,
+      expr: null,
+      slice: null,
+    });
   }
   changeModal(type) {
     if (type === 1) {
@@ -84,7 +91,6 @@ class StyleModal extends React.Component {
                   <a onClick={this.changeModal.bind(this, 1)}>基本样式</a>
                 </li>
                 <li id="li2"><a onClick={this.changeModal.bind(this, 2)}>条件样式</a></li>
-                <li id="li3"><a onClick={this.changeModal.bind(this, 3)}>导航交互</a></li>
               </ul>
             </div>
           </Modal.Title>
@@ -92,14 +98,12 @@ class StyleModal extends React.Component {
         <Modal.Body style={{ 'min-height': '200px' }}>
         {this.state.flag &&
           <div>
-            <div>
-              <BaseStyle
-                key={i}
-                actions={this.props.actions}
-                form_data={this.props.form_data}
-                baseStyle={this.props.baseStyle}
-              />
-            </div>
+            <BaseStyle
+              key={i}
+              actions={this.props.actions}
+              form_data={this.props.form_data}
+              baseStyle={this.props.baseStyle}
+            />
           </div>
          }
          {this.state.flag2 &&
@@ -122,14 +126,17 @@ class StyleModal extends React.Component {
          }
          {this.state.flag3 &&
            <div>
+             <div>
+               {navigatesDiv}
+             </div>
              <div className="row space-2">
                <div className="col-lg-2">
                  <Button
                    id="add-button"
                    bsSize="sm"
-                   onClick={this.addInteraction.bind(this)}
+                   onClick={this.addNavigate.bind(this)}
                  >
-                   <i className="fa fa-plus" /> &nbsp; 添加导航交互
+                   <i className="fa fa-plus" /> &nbsp; 添加导航
                  </Button>
                </div>
              </div>

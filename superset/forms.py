@@ -1236,6 +1236,8 @@ class FormFactory(object):
         filter_cols = self.choicify(
             ([''] + viz.datasource.filterable_column_names) or [''])
         having_cols = filter_cols + viz.datasource.metrics_combo
+        icon_choices = self.choicify(['', 'fa fa-arrow-up', 'fa fa-arrow-down', 'fa fa-angle-double-up', 'fa fa-angle-double-down', 
+                                      'fa fa-bar-chart', 'fa fa-line-chart', 'fa fa-pie-chart', 'fa fa-area-chart'])
         for field_prefix in filter_prefixes:
             is_having_filter = field_prefix == 'having'
             col_choices = filter_cols if not is_having_filter else having_cols
@@ -1269,6 +1271,11 @@ class FormFactory(object):
                 setattr(
                     QueryForm, 'style_value_' + str(i),
                     TextField(_("Super"), default=''))
+                setattr(QueryForm, 'style_icon_' + str(i),
+                    SelectField(
+                        _('Style 1'),
+                        default=icon_choices[0][0],
+                        choices=icon_choices))
             
             # baseStyle
             setattr(
