@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 
 import pandas as pd
 import numpy as np
-from flask import request
+from flask import request, url_for
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
@@ -140,13 +140,17 @@ class BaseViz(object):
             for item in v:
                 od.add(key, item)
 
-        base_endpoint = '/superset/explore'
-        if json_endpoint:
-            base_endpoint = '/superset/explore_json'
+        endpoint_kwargs = {
+            "datasource_id": self.datasource.id,
+            "datasource_type": self.datasource.type
+        }
 
-        href = Href(
-            '{base_endpoint}/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
+        if json_endpoint:
+            url = url_for('Superset.explore_json', **endpoint_kwargs)
+        else:
+            url = url_for('Superset.explore', **endpoint_kwargs)
+
+        href = Href(url)
         if for_cache_key and 'force' in od:
             del od['force']
         return href(od)
@@ -174,9 +178,12 @@ class BaseViz(object):
                 v = [v]
             for item in v:
                 ordered_data.add(key, item)
-        href = Href(
-            '/caravel/filter/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
+        href = Href(url_for(
+            'Superset.filter',
+            datasource_type=self.datasource.type,
+            datasource_id=self.datasource.id,
+            column=''
+        ))
         return href(ordered_data)
 
     def get_df(self, query_obj=None):

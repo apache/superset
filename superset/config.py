@@ -13,6 +13,8 @@ import imp
 import json
 import os
 
+from flask import url_for
+
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
@@ -68,8 +70,12 @@ ENABLE_PROXY_FIX = False
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
 
-# Uncomment to setup an App icon
-APP_ICON = "/static/assets/images/superset-logo@2x.png"
+
+# Uncomment to setup Setup an App icon. The APP_ICON can both be an executable
+# or a string to enable dynamic resolving of the path.
+def get_app_icon():
+    return url_for('static', filename="assets/images/superset-logo@2x.png")
+APP_ICON = get_app_icon
 
 # Druid query timezone
 # tz.tzutc() : Using utc timezone

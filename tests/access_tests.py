@@ -301,8 +301,9 @@ class RequestAccessTests(SupersetTestCase):
         approve_link_3 = ROLE_GRANT_LINK.format(
             'table', table_3_id, 'gamma', 'energy_usage_role',
             'energy_usage_role')
-        self.assertEqual(access_request3.roles_with_datasource,
-                         '<ul><li>{}</li></ul>'.format(approve_link_3))
+        with self.client.application.test_request_context():
+            self.assertEqual(access_request3.roles_with_datasource,
+                             '<ul><li>{}</li></ul>'.format(approve_link_3))
 
         # Request druid access, there are no roles have this table.
         druid_ds_4 = session.query(models.DruidDatasource).filter_by(
@@ -340,8 +341,9 @@ class RequestAccessTests(SupersetTestCase):
         approve_link_5 = ROLE_GRANT_LINK.format(
             'druid', druid_ds_5_id, 'gamma', 'druid_ds_2_role',
             'druid_ds_2_role')
-        self.assertEqual(access_request5.roles_with_datasource,
-                         '<ul><li>{}</li></ul>'.format(approve_link_5))
+        with self.client.application.test_request_context():
+            self.assertEqual(access_request5.roles_with_datasource,
+                             '<ul><li>{}</li></ul>'.format(approve_link_5))
 
         # cleanup
         gamma_user = sm.find_user(username='gamma')

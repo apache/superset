@@ -17,7 +17,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -605,7 +605,7 @@ class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
 appbuilder.add_link(
     'Import Dashboards',
     label=__("Import Dashboards"),
-    href='/superset/import_dashboards',
+    href='Superset.import_dashboards',
     icon="fa-cloud-upload",
     category='Manage',
     category_label=__("Manage"),
@@ -853,11 +853,11 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         for source in sources:
             ds = db.session.query(SourceRegistry.sources[source]).first()
             if ds is not None:
-                url = "/{}/list/".format(ds.baselink)
+                url = url_for(ds.baseview + ".list")
                 msg = _("Click on a {} link to create a Slice".format(source))
                 break
 
-        redirect_url = "/r/msg/?url={}&msg={}".format(url, msg)
+        redirect_url = url_for("R.msg") + "?url={}&msg={}".format(url, msg)
         return redirect(redirect_url)
 
 appbuilder.add_view(
@@ -956,7 +956,9 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
     def mulexport(self, items):
         ids = ''.join('&id={}'.format(d.id) for d in items)
         return redirect(
-            '/dashboardmodelview/export_dashboards_form?{}'.format(ids[1:]))
+            url_for('DashboardModelView.export_dashboards_form') +
+            '?{}'.format(ids[1:])
+        )
 
     @expose("/export_dashboards_form")
     def download_dashboards(self):
@@ -968,7 +970,7 @@ class DashboardModelView(SupersetModelView, DeleteMixin):  # noqa
                 mimetype="application/text")
         return self.render_template(
             'superset/export_dashboards.html',
-            dashboards_url='/dashboardmodelview/list'
+            dashboards_url=url_for('DashboardModelView.list')
         )
 
 
@@ -1114,7 +1116,7 @@ class R(BaseSupersetView):
             return redirect('/' + url.url)
         else:
             flash("URL to nowhere...", "danger")
-            return redirect('/')
+            return redirect(url_for('Superset.welcome'))
 
     @log_this
     @expose("/shortner/", methods=['POST', 'GET'])
@@ -1123,8 +1125,7 @@ class R(BaseSupersetView):
         obj = models.Url(url=url)
         db.session.add(obj)
         db.session.commit()
-        return("http://{request.headers[Host]}/r/{obj.id}".format(
-            request=request, obj=obj))
+        return url_for("R.index", url_id=obj.id)
 
     @expose("/msg/")
     def msg(self):
@@ -1273,7 +1274,7 @@ class Superset(BaseSupersetView):
                 db.session.add(access_request)
                 db.session.commit()
             flash(__("Access was requested"), "info")
-            return redirect('/')
+            return redirect(url_for('Superset.welcome'))
 
         return self.render_template(
             'superset/request_access.html',
@@ -1341,11 +1342,11 @@ class Superset(BaseSupersetView):
         else:
             flash(__("You have no permission to approve this request"),
                   "danger")
-            return redirect('/accessrequestsmodelview/list/')
+            return redirect(url_for('AccessRequestModelView.list'))
         for r in requests:
             session.delete(r)
         session.commit()
-        return redirect('/accessrequestsmodelview/list/')
+        return redirect(url_for('AccessRequestsModelView.list'))
 
     def get_viz(
             self,
@@ -1416,7 +1417,7 @@ class Superset(BaseSupersetView):
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
             db.session.commit()
-            return redirect('/dashboardmodelview/list/')
+            return redirect(url_for('DashboardModelView.list'))
         return self.render_template('superset/import_dashboards.html')
 
     @log_this
@@ -1431,7 +1432,7 @@ class Superset(BaseSupersetView):
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
-        error_redirect = '/slicemodelview/list/'
+        error_redirect = url_for('SliceModelView.list')
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = db.session.query(datasource_class).all()
         datasources = sorted(datasources, key=lambda ds: ds.full_name)
@@ -1453,11 +1454,11 @@ class Superset(BaseSupersetView):
             flash(
                 __(get_datasource_access_error_msg(viz_obj.datasource.name)),
                 "danger")
-            return redirect(
-                'superset/request_access/?'
-                'datasource_type={datasource_type}&'
-                'datasource_id={datasource_id}&'
-                ''.format(**locals()))
+            return redirect(url_for(
+                'Superset.request_access',
+                datasource_type=datasource_type,
+                datasource_id=datasource_id
+            ))
 
         if not viz_type and viz_obj.datasource.default_endpoint:
             return redirect(viz_obj.datasource.default_endpoint)
@@ -1532,7 +1533,7 @@ class Superset(BaseSupersetView):
         :return:
         """
         # TODO: Cache endpoint by user, datasource and column
-        error_redirect = '/slicemodelview/list/'
+        error_redirect = url_for('SliceModelView.list')
         datasource_class = models.SqlaTable \
             if datasource_type == "table" else models.DruidDatasource
 
@@ -1930,8 +1931,9 @@ class Superset(BaseSupersetView):
             if o.Dashboard.created_by:
                 user = o.Dashboard.created_by
                 d['creator'] = str(user)
-                d['creator_url'] = '/superset/profile/{}/'.format(
-                    user.username)
+                d['creator_url'] = url_for(
+                    'Superset.profile', username=user.username
+                )
             payload.append(d)
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2026,8 +2028,10 @@ class Superset(BaseSupersetView):
             if o.Slice.created_by:
                 user = o.Slice.created_by
                 d['creator'] = str(user)
-                d['creator_url'] = '/superset/profile/{}/'.format(
-                    user.username)
+                d['creator_url'] = url_for(
+                    'Superset.profile',
+                    username=user.username
+                )
             payload.append(d)
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2268,7 +2272,12 @@ class Superset(BaseSupersetView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items()])
-        url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
+        url = url_for(
+            'Superset.explore',
+            datasource_type='table',
+            datasource_id=table.id
+        )
+        url += "?{}".format(params)
         return redirect(url)
 
     @has_access
@@ -2350,7 +2359,7 @@ class Superset(BaseSupersetView):
         # Prevent exposing column fields to users that cannot access DB.
         if not self.datasource_access(t.perm):
             flash(get_datasource_access_error_msg(t.name), 'danger')
-            return redirect("/tablemodelview/list/")
+            return redirect(url_for("TableModelView.list"))
 
         fields = ", ".join(
             [quote(c.name) for c in t.columns] or "*")
@@ -2522,7 +2531,7 @@ class Superset(BaseSupersetView):
 
         if not self.database_access(query.database):
             flash(get_database_access_error_msg(query.database.database_name))
-            return redirect('/')
+            return redirect(url_for('Superset.welcome'))
 
         sql = query.select_sql or query.sql
         df = query.database.get_df(sql, query.schema)
@@ -2695,14 +2704,14 @@ class Superset(BaseSupersetView):
                         cluster_name, utils.error_msg_from_exception(e)),
                     "danger")
                 logging.exception(e)
-                return redirect('/druidclustermodelview/list/')
+                return redirect(url_for('DruidClusterModelView.list'))
             cluster.metadata_last_refreshed = datetime.now()
             flash(
                 "Refreshed metadata from cluster "
                 "[" + cluster.cluster_name + "]",
                 'info')
         session.commit()
-        return redirect("/druiddatasourcemodelview/list/")
+        return redirect(url_for("DruidDatasourceModelView.list"))
 
     @app.errorhandler(500)
     def show_traceback(self):
@@ -2779,7 +2788,7 @@ if config['DRUID_IS_ACTIVE']:
     appbuilder.add_link(
         "Refresh Druid Metadata",
         label=__("Refresh Druid Metadata"),
-        href='/superset/refresh_datasources/',
+        href='Superset.refresh_datasources',
         category='Sources',
         category_label=__("Sources"),
         category_icon='fa-database',
@@ -2810,16 +2819,21 @@ appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
 
 appbuilder.add_link(
     'SQL Editor',
-    href='/superset/sqllab',
+    href='Superset.sqllab',
     category_icon="fa-flask",
     icon="fa-flask",
     category='SQL Lab')
 appbuilder.add_link(
     'Query Search',
-    href='/superset/sqllab#search',
+    href='Superset.sqllab',
     icon="fa-search",
     category_icon="fa-flask",
     category='SQL Lab')
+
+# Hack to be able to use relative urls.
+qs_menu_item = appbuilder.menu.find('Query Search')
+qs_get_url = qs_menu_item.get_url
+qs_menu_item.get_url = lambda: qs_get_url() + '#search'
 
 
 @app.after_request

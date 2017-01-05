@@ -63,11 +63,12 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
-        resp = self.get_resp(slc.viz.csv_endpoint)
-        assert 'Jennifer,' in resp
+        with self.client.application.test_request_context():
+            resp = self.get_resp(slc.viz.csv_endpoint)
+            assert 'Jennifer,' in resp
 
-        resp = self.get_resp(slc.viz.json_endpoint)
-        assert '"Jennifer"' in resp
+            resp = self.get_resp(slc.viz.json_endpoint)
+            assert '"Jennifer"' in resp
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
@@ -146,13 +147,14 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         Slc = models.Slice
         urls = []
-        for slc in db.session.query(Slc).all():
-            urls += [
-                (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
-                (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
-                (slc.slice_name, 'slice_id_url', slc.slice_id_url),
-            ]
+        with self.client.application.test_request_context():
+            for slc in db.session.query(Slc).all():
+                urls += [
+                    (slc.slice_name, 'slice_url', slc.slice_url),
+                    (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
+                    (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
+                    (slc.slice_name, 'slice_id_url', slc.slice_id_url),
+                ]
         for name, method, url in urls:
             logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
@@ -170,10 +172,11 @@ class CoreTests(SupersetTestCase):
 
         Slc = models.Slice
         urls = []
-        for slc in db.session.query(Slc).all():
-            urls += [
-                (slc.slice_name, 'slice_url', slc.slice_url),
-            ]
+        with self.client.application.test_request_context():
+            for slc in db.session.query(Slc).all():
+                urls += [
+                    (slc.slice_name, 'slice_url', slc.slice_url),
+                ]
         for name, method, url in urls:
             print("[{name}]/[{method}]: {url}".format(**locals()))
             response = self.client.get(url)
@@ -181,17 +184,19 @@ class CoreTests(SupersetTestCase):
     def test_dashboard(self):
         self.login(username='admin')
         urls = {}
-        for dash in db.session.query(models.Dashboard).all():
-            urls[dash.dashboard_title] = dash.url
+        with self.client.application.test_request_context():
+            for dash in db.session.query(models.Dashboard).all():
+                urls[dash.dashboard_title] = dash.url
         for title, url in urls.items():
             assert escape(title) in self.client.get(url).data.decode('utf-8')
 
     def test_doctests(self):
         modules = [utils, models, sql_lab]
-        for mod in modules:
-            failed, tests = doctest.testmod(mod)
-            if failed:
-                raise Exception("Failed a doctest")
+        with self.client.application.test_request_context():
+            for mod in modules:
+                failed, tests = doctest.testmod(mod)
+                if failed:
+                    raise Exception("Failed a doctest")
 
     def test_misc(self):
         assert self.get_resp('/health') == "OK"
@@ -299,11 +304,12 @@ class CoreTests(SupersetTestCase):
         self.client.post(url, data=dict(data=json.dumps(data)))
         dash = db.session.query(models.Dashboard).filter_by(
             id=dash_id).first()
-        orig_json_data = json.loads(dash.json_data)
+        with self.client.application.test_request_context():
+            orig_json_data = json.loads(dash.json_data)
 
-        # Verify that copy matches original
-        url = '/superset/copy_dash/{}/'.format(dash_id)
-        resp = self.get_json_resp(url, data=dict(data=json.dumps(data)))
+            # Verify that copy matches original
+            url = '/superset/copy_dash/{}/'.format(dash_id)
+            resp = self.get_json_resp(url, data=dict(data=json.dumps(data)))
         self.assertEqual(resp['dashboard_title'], 'Copy Of Births')
         self.assertEqual(resp['position_json'], orig_json_data['position_json'])
         self.assertEqual(resp['metadata'], orig_json_data['metadata'])
@@ -317,12 +323,14 @@ class CoreTests(SupersetTestCase):
             slice_name="Mapbox Long/Lat").first()
         existing_slice = db.session.query(models.Slice).filter_by(
             slice_name="Name Cloud").first()
-        data = {
-            "slice_ids": [new_slice.data["slice_id"],
-                          existing_slice.data["slice_id"]]
-        }
+        with self.client.application.test_request_context():
+            data = {
+                "slice_ids": [new_slice.data["slice_id"],
+                              existing_slice.data["slice_id"]]
+            }
         url = '/superset/add_slices/{}/'.format(dash.id)
-        resp = self.client.post(url, data=dict(data=json.dumps(data)))
+        data = json.dumps(data)
+        resp = self.client.post(url, data=dict(data=data))
         assert "SLICES ADDED" in resp.data.decode('utf-8')
 
         dash = db.session.query(models.Dashboard).filter_by(
