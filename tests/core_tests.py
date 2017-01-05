@@ -47,7 +47,7 @@ class CoreTests(SupersetTestCase):
             '/login/',
             data=dict(username='admin', password='general'))
         self.assertIn('Welcome', resp)
-        
+
         resp = self.get_resp('/logout/', follow_redirects=True)
         self.assertIn('User confirmation needed', resp)
 
@@ -175,10 +175,8 @@ class CoreTests(SupersetTestCase):
     def test_add_slice(self):
         self.login(username='admin')
 
-        Slc = models.Slice
-        url = '/slicemodelview/add'
-
         # Click on the + to add a slice
+        url = '/slicemodelview/add'
         resp = self.client.get(url, follow_redirects=True)
         assert 'Click on a table link to create a Slice' in resp.data
 
