@@ -5,6 +5,7 @@ from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 import json
+import simplejson
 import logging
 import pickle
 import re
@@ -1390,16 +1391,22 @@ class Superset(BaseSupersetView):
                 status=404,
                 mimetype="application/json")
 
-        payload = ""
+        payload = {}
+        status = 200
         try:
-            payload = viz_obj.get_json()
+            payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
+            status = 500
             return json_error_response(utils.error_msg_from_exception(e))
 
+        if payload.get('status') == QueryStatus.FAILED:
+            status = 500
+
         return Response(
-            payload,
-            status=200,
+            simplejson.dumps(
+                payload, default=utils.json_int_dttm_ser, ignore_nan=True),
+            status=status,
             mimetype="application/json")
 
     @expose("/import_dashboards", methods=['GET', 'POST'])
@@ -2261,13 +2268,13 @@ class Superset(BaseSupersetView):
         db.session.commit()
         params = {
             'viz_type': viz_type,
-            'groupby': dims[0].column_name if dims else '',
-            'metrics': metrics[0].metric_name if metrics else '',
-            'metric': metrics[0].metric_name if metrics else '',
+            'groupby': dims[0].column_name if dims else None,
+            'metrics': metrics[0].metric_name if metrics else None,
+            'metric': metrics[0].metric_name if metrics else None,
             'since': '100 years ago',
             'limit': '0',
         }
-        params = "&".join([k + '=' + v for k, v in params.items()])
+        params = "&".join([k + '=' + v for k, v in params.items() if v])
         url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
         return redirect(url)
 

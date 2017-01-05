@@ -129,8 +129,8 @@ export function chartUpdateSucceeded(query) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(error) {
-  return { type: CHART_UPDATE_FAILED, error };
+export function chartUpdateFailed(error, query) {
+  return { type: CHART_UPDATE_FAILED, error, query };
 }
 
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';

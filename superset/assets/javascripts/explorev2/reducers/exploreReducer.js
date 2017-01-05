@@ -108,16 +108,14 @@ export const exploreReducer = function (state, action) {
       );
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
-      const vizUpdates = {
-        query: action.query,
-      };
       return Object.assign(
         {},
         state,
         {
           chartStatus: 'success',
-          viz: Object.assign({}, state.viz, vizUpdates),
-        });
+          viz: Object.assign({}, state.viz, { query: action.query }),
+        }
+      );
     },
     [actions.CHART_UPDATE_STARTED]() {
       const chartUpdateStartTime = now();
@@ -138,9 +136,12 @@ export const exploreReducer = function (state, action) {
         });
     },
     [actions.CHART_UPDATE_FAILED]() {
-      const chartUpdateEndTime = now();
-      return Object.assign({}, state,
-        { chartStatus: 'failed', chartAlert: action.error, chartUpdateEndTime });
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: action.error,
+        chartUpdateEndTime: now(),
+        viz: Object.assign({}, state.viz, { query: action.query }),
+      });
     },
     [actions.UPDATE_CHART_STATUS]() {
       const newState = Object.assign({}, state, { chartStatus: action.status });

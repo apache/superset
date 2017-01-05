@@ -405,3 +405,16 @@ def pessimistic_connection_handling(target):
         except:
             raise exc.DisconnectionError()
         cursor.close()
+
+
+class QueryStatus:
+
+    """Enum-type class for query statuses"""
+
+    CANCELLED = 'cancelled'
+    FAILED = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    SCHEDULED = 'scheduled'
+    SUCCESS = 'success'
+    TIMED_OUT = 'timed_out'
