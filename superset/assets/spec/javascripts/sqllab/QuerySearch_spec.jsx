@@ -19,13 +19,7 @@ describe('QuerySearch', () => {
   const wrapper = shallow(<QuerySearch {...mockedProps} />);
 
   it('should have four Select', () => {
-    expect(wrapper.find(Select)).to.have.length(4);
-  });
-
-  it('updates userId on user selects change', () => {
-    wrapper.find('[name="select-user"]')
-      .simulate('change', { value: 1 });
-    expect(wrapper.state().userId).to.equal(1);
+    expect(wrapper.find(Select)).to.have.length(3);
   });
 
   it('updates fromTime on user selects from time', () => {
