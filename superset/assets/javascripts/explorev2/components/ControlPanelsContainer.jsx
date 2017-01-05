@@ -22,6 +22,13 @@ const propTypes = {
 };
 
 class ControlPanelsContainer extends React.Component {
+  constructor() {
+    super();
+    this.fieldOverrides = this.fieldOverrides.bind(this);
+    this.getFieldData = this.getFieldData.bind(this);
+    this.removeAlert = this.removeAlert.bind(this);
+    this.onChange = this.onChange.bind(this);
+  }
   componentWillMount() {
     const datasource_id = this.props.form_data.datasource;
     const datasource_type = this.props.datasource_type;
@@ -41,7 +48,7 @@ class ControlPanelsContainer extends React.Component {
     this.props.actions.setFieldValue(this.props.datasource_type, name, value);
   }
   getFieldData(fs) {
-    const fieldOverrides = this.fieldOverrides.bind(this)();
+    const fieldOverrides = this.fieldOverrides();
     if (!this.props.fields) {
       return null;
     }
@@ -79,7 +86,7 @@ class ControlPanelsContainer extends React.Component {
               {this.props.alert}
               <i
                 className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
+                onClick={this.removeAlert}
                 style={{ cursor: 'pointer' }}
               />
             </Alert>
@@ -97,7 +104,7 @@ class ControlPanelsContainer extends React.Component {
                     <FieldSet
                       name={field}
                       key={`field-${field}`}
-                      onChange={this.onChange.bind(this)}
+                      onChange={this.onChange}
                       value={this.props.form_data[field]}
                       {...this.getFieldData(field)}
                     />
