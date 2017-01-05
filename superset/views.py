@@ -5,7 +5,7 @@ from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 import json
-import simplejson as sjson
+import simplejson
 import logging
 import pickle
 import re
@@ -1404,7 +1404,7 @@ class Superset(BaseSupersetView):
             status = 500
 
         return Response(
-            sjson.dumps(
+            simplejson.dumps(
                 payload, default=utils.json_int_dttm_ser, ignore_nan=True),
             status=status,
             mimetype="application/json")
