@@ -25,14 +25,15 @@ function formatStyles(styles) {
     params[`style_metric_${i + 1}`] = style.metric;
     params[`style_expr_${i + 1}`] = style.expr;
     params[`style_value_${i + 1}`] = style.value;
+    params[`style_icon_${i + 1}`] = style.icon;
   }
   return params;
 }
 
 function formatBaseStyle(baseStyle) {
   const params = {};
-  params['headerValue'] = baseStyle.headerValue;
-  params['bodyValue'] = baseStyle.bodyValue;
+  params.headerValue = baseStyle.headerValue;
+  params.bodyValue = baseStyle.bodyValue;
   return params;
 }
 

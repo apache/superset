@@ -113,6 +113,21 @@ export function changeBaseStyle(baseStyle, field, value) {
   return { type: CHANGE_BASE_STYLE, baseStyle, field, value };
 }
 
+export const ADD_NAVIGATE = 'ADD_NAVIGATE';
+export function addNavigate(navigate) {
+  return { type: ADD_NAVIGATE, navigate };
+}
+
+export const REMOVE_NAVIGATE = 'REMOVE_NAVIGATE';
+export function removeNavigate(stnavigateyle) {
+  return { type: REMOVE_NAVIGATE, navigate };
+}
+
+export const CHANGE_NAVIGATE = 'CHANGE_NAVIGATE';
+export function changeNavigate(navigate, field, value) {
+  return { type: CHANGE_NAVIGATE, navigate, field, value };
+}
+
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(datasource_type, key, value, label) {
   return { type: SET_FIELD_VALUE, datasource_type, key, value, label };

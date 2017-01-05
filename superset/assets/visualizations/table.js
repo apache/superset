@@ -23,8 +23,8 @@ function tableVis(slice) {
     function onSuccess(json) {
       const data = json.data;
       const fd = json.form_data;
-      // console.log("form_data:");
-      // console.log(fd);
+      console.log("form_data:");
+      console.log(fd);
       // Removing metrics (aggregates) that are strings
       const realMetrics = [];
       for (const k in data.records[0]) {
@@ -61,7 +61,7 @@ function tableVis(slice) {
         .attr('width', '100%');
 
       // add header style
-      const headerStyle = fd['headerValue'];
+      const headerStyle = fd.headerValue;
       table.append('thead').append('tr')
         .attr('style', headerStyle)
         .selectAll('th')
@@ -103,17 +103,17 @@ function tableVis(slice) {
         }) */
         .attr('style', function (d) {
           // add body style
-          const bodyStyle = fd['bodyValue'];
+          const bodyStyle = fd.bodyValue;
           for (let i = 1; i < 10; i++) {
             if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {
                 let expr = fd['style_expr_' + i].replace(/x/g, d.val);
                 // make '=' to '=='
                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
-                // console.log(expr);
+                console.log(expr);
                 if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
-                  // console.log(fd['style_value_' + i]);
+                  console.log(fd['style_value_' + i]);
                   return bodyStyle + ';' + fd['style_value_' + i];
                 }
               }
@@ -148,10 +148,28 @@ function tableVis(slice) {
           return (!d.isMetric) ? 'pointer' : '';
         })
         .html((d) => {
+          let html = '', icon = '';
           if (d.isMetric) {
-            return slice.d3format(d.col, d.val);
+            html = slice.d3format(d.col, d.val);
+          } else {
+            html = d.val;
           }
-          return d.val;
+          for (let i = 1; i < 10; i++) {
+            if (fd['style_expr_' + i] !== '') {
+              if (d.isMetric && d.col === fd['style_metric_' + i]) {
+                let expr = fd['style_expr_' + i].replace(/x/g, d.val);
+                // make '=' to '=='
+                expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+                if ((expr.indexOf('$.inArray') === -1 && eval(expr))
+                  || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
+                  icon = fd['style_icon_' + i];
+                }
+              }
+            } else {
+              break;
+            }
+          }
+          return html + '<i style="margin-left:20px;" class="'+ icon +'" aria-hidden="true"></i>'; 
         });
       const height = slice.height();
       let paging = false;

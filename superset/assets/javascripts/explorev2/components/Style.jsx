@@ -10,6 +10,17 @@ const propTypes = {
 };
 
 export default class Style extends React.Component {
+  constructor(props) {
+    super(props);
+    const iconChoices = [{ key: '无', value: '' }, 
+                         { key: '上升(单箭头)', value: 'fa fa-arrow-up' }, { key: '下降(单箭头)', value: 'fa fa-arrow-down' }, 
+                         { key: '上升(双箭头)', value: 'fa fa-angle-double-up' }, { key: '下降(双箭头)', value: 'fa fa-angle-double-down' }, 
+                         { key: '条形图', value: 'fa fa-bar-chart' }, { key: '折线图', value: 'fa fa-line-chart' }, 
+                         { key: '饼状图', value: 'fa fa-pie-chart' }, { key: '区域图', value: 'fa fa-area-chart' }];
+    this.state = {
+      iconChoices,
+    };
+  }
   changeMetric(style, col) {
     const val = (col) ? col.value : null;
     this.props.actions.changeStyle(style, 'metric', val);
@@ -20,6 +31,10 @@ export default class Style extends React.Component {
   changeValue(style, event) {
     this.props.actions.changeStyle(style, 'value', event.target.value);
   }
+  changeIcon(style, icon) {
+    const val = (icon) ? icon.value : null;
+    this.props.actions.changeStyle(style, 'icon', val);
+  }
   removeStyle(style) {
     this.props.actions.removeStyle(style);
   }
@@ -28,7 +43,7 @@ export default class Style extends React.Component {
       <div>
         <div className="row space-1">
           <Select
-            className="col-lg-12"
+            className="col-lg-7"
             multi={false}
             name="select-column"
             placeholder="Select metric"
@@ -37,9 +52,7 @@ export default class Style extends React.Component {
             autosize={false}
             onChange={this.changeMetric.bind(this, this.props.style)}
           />
-        </div>
-        <div className="row space-1">
-          <div className="col-lg-4">
+          <div className="col-lg-5">
             <input
               type="text"
               onChange={this.changeExpr.bind(this, this.props.style)}
@@ -48,7 +61,9 @@ export default class Style extends React.Component {
               placeholder="阀值"
             />
           </div>
-          <div className="col-lg-6">
+        </div>
+        <div className="row space-1">
+          <div className="col-lg-7">
             <input
               type="text"
               onChange={this.changeValue.bind(this, this.props.style)}
@@ -57,7 +72,17 @@ export default class Style extends React.Component {
               placeholder="样式"
             />
           </div>
-          <div className="col-lg-2">
+          <Select
+            className="col-lg-4"
+            multi={false}
+            name="select-column"
+            placeholder="Select icon"
+            options={this.state.iconChoices.map((o) => ({ label: o.key, value: o.value}))}
+            value={this.props.style.icon}
+            autosize={false}
+            onChange={this.changeIcon.bind(this, this.props.style)}
+          />
+          <div className="col-lg-1">
             <Button
               id="remove-button"
               bsSize="small"
