@@ -119,7 +119,7 @@ export function addNavigate(navigate) {
 }
 
 export const REMOVE_NAVIGATE = 'REMOVE_NAVIGATE';
-export function removeNavigate(stnavigateyle) {
+export function removeNavigate(navigate) {
   return { type: REMOVE_NAVIGATE, navigate };
 }
 

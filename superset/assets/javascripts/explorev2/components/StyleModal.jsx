@@ -77,7 +77,6 @@ class StyleModal extends React.Component {
         />
       );
     });
-    
     return (
       <Modal
         show
