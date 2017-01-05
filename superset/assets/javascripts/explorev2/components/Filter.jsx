@@ -1,13 +1,16 @@
 import React from 'react';
-// import { Tab, Row, Col, Nav, NavItem } from 'react-bootstrap';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
+import SelectField from './SelectField';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
   filterColumnOpts: React.PropTypes.array,
   prefix: React.PropTypes.string,
   filter: React.PropTypes.object.isRequired,
+  renderFilterSelect: React.PropTypes.bool,
+  datasource_type: React.PropTypes.string.isRequired,
+  datasource_id: React.PropTypes.number.isRequired,
 };
 
 const defaultProps = {
@@ -24,9 +27,22 @@ export default class Filter extends React.Component {
       opChoices,
     };
   }
+  componentWillMount() {
+    if (this.props.filter.col) {
+      this.props.actions.fetchFilterValues(
+        this.props.datasource_type,
+        this.props.datasource_id,
+        this.props.filter,
+        this.props.filter.col);
+    }
+  }
   changeCol(filter, colOpt) {
     const val = (colOpt) ? colOpt.value : null;
     this.props.actions.changeFilter(filter, 'col', val);
+    if (val) {
+      this.props.actions.fetchFilterValues(
+        this.props.datasource_type, this.props.datasource_id, filter, val);
+    }
   }
   changeOp(filter, opOpt) {
     const val = (opOpt) ? opOpt.value : null;
@@ -35,8 +51,34 @@ export default class Filter extends React.Component {
   changeValue(filter, event) {
     this.props.actions.changeFilter(filter, 'value', event.target.value);
   }
+  changeSelectValue(filter, name, value) {
+    this.props.actions.changeFilter(filter, 'value', value);
+  }
   removeFilter(filter) {
     this.props.actions.removeFilter(filter);
+  }
+  renderFilterFormField() {
+    if (this.props.renderFilterSelect) {
+      return (
+        <SelectField
+          multi
+          freeForm
+          name="filter-value"
+          value={this.props.filter.value}
+          choices={this.props.filter.choices ? this.props.filter.choices : []}
+          onChange={this.changeSelectValue.bind(this, this.props.filter)}
+        />
+      );
+    }
+    return (
+      <input
+        type="text"
+        onChange={this.changeValue.bind(this, this.props.filter)}
+        value={this.props.filter.value}
+        className="form-control input-sm"
+        placeholder="Filter value"
+      />
+    );
   }
   render() {
     return (
@@ -65,13 +107,7 @@ export default class Filter extends React.Component {
             onChange={this.changeOp.bind(this, this.props.filter)}
           />
           <div className="col-lg-6">
-            <input
-              type="text"
-              onChange={this.changeValue.bind(this, this.props.filter)}
-              value={this.props.filter.value}
-              className="form-control input-sm"
-              placeholder="Filter value"
-            />
+            {this.renderFilterFormField()}
           </div>
           <div className="col-lg-2">
             <Button

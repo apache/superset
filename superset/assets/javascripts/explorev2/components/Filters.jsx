@@ -7,9 +7,12 @@ import shortid from 'shortid';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
+  datasource_type: React.PropTypes.string.isRequired,
+  datasource_id: React.PropTypes.number.isRequired,
   filterColumnOpts: React.PropTypes.array,
   filters: React.PropTypes.array,
   prefix: React.PropTypes.string,
+  renderFilterSelect: React.PropTypes.bool,
 };
 
 const defaultProps = {
@@ -42,6 +45,9 @@ class Filters extends React.Component {
             actions={this.props.actions}
             prefix={this.props.prefix}
             filter={filter}
+            renderFilterSelect={this.props.renderFilterSelect}
+            datasource_type={this.props.datasource_type}
+            datasource_id={this.props.datasource_id}
           />
         );
       }
@@ -70,8 +76,10 @@ Filters.defaultProps = defaultProps;
 
 function mapStateToProps(state) {
   return {
+    datasource_type: state.datasource_type,
     filterColumnOpts: state.filterColumnOpts,
     filters: state.viz.form_data.filters,
+    renderFilterSelect: state.filter_select,
   };
 }
 

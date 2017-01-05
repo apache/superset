@@ -11,12 +11,17 @@
   left: 0px;
   right: 0px;
   bottom: 0px;
-  overflow: scroll;
+  overflow-y: auto;
   margin-right: 0px;
-  margin-bottom: 100px;
 }
 
 .fave-unfave-icon, .edit-desc-icon {
   padding: 0 0 0 .5em;
   font-size: 14px;
+}
+
+.checkbox {
+    float: left;
+    margin-top: 0px;
+    margin-right: 3px;
 }

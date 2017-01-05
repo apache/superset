@@ -7,6 +7,13 @@ import { d3format } from '../../modules/utils';
 import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
+import Timer from '../../components/Timer';
+
+const CHART_STATUS_MAP = {
+  failed: 'danger',
+  loading: 'warning',
+  success: 'success',
+};
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
@@ -19,11 +26,13 @@ const propTypes = {
   json_endpoint: PropTypes.string.isRequired,
   csv_endpoint: PropTypes.string.isRequired,
   standalone_endpoint: PropTypes.string.isRequired,
-  query: PropTypes.string.isRequired,
+  query: PropTypes.string,
   column_formats: PropTypes.object,
   data: PropTypes.any,
-  isChartLoading: PropTypes.bool,
+  chartStatus: PropTypes.string,
   isStarred: PropTypes.bool.isRequired,
+  chartUpdateStartTime: PropTypes.number.isRequired,
+  chartUpdateEndTime: PropTypes.number,
   alert: PropTypes.string,
   table_name: PropTypes.string,
 };
@@ -34,23 +43,39 @@ class ChartContainer extends React.Component {
     this.state = {
       selector: `#${props.containerId}`,
       mockSlice: {},
+      viz: {},
     };
   }
 
   componentWillMount() {
-    this.setState({ mockSlice: this.getMockedSliceObject(this.props) });
+    const mockSlice = this.getMockedSliceObject(this.props);
+    this.setState({
+      mockSlice,
+      viz: visMap[this.props.viz_type](mockSlice),
+    });
   }
 
   componentDidMount() {
-    this.renderVis();
+    this.state.viz.render();
   }
 
   componentWillReceiveProps(nextProps) {
-    this.setState({ mockSlice: this.getMockedSliceObject(nextProps) });
+    if (nextProps.chartStatus === 'loading') {
+      const mockSlice = this.getMockedSliceObject(nextProps);
+      this.setState({
+        mockSlice,
+        viz: visMap[nextProps.viz_type](mockSlice),
+      });
+    }
   }
 
-  componentDidUpdate() {
-    this.renderVis();
+  componentDidUpdate(prevProps) {
+    if (this.props.chartStatus === 'loading') {
+      this.state.viz.render();
+    }
+    if (prevProps.height !== this.props.height) {
+      this.state.viz.resize();
+    }
   }
 
   getMockedSliceObject(props) {
@@ -79,7 +104,7 @@ class ChartContainer extends React.Component {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(props.height, 10) - 100,
+        height: () => parseInt(this.props.height, 10) - 100,
 
         show: () => { this.render(); },
 
@@ -91,7 +116,7 @@ class ChartContainer extends React.Component {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(props.height, 10) - 100,
+      height: () => parseInt(this.props.height, 10) - 100,
 
       selector: this.state.selector,
 
@@ -105,8 +130,10 @@ class ChartContainer extends React.Component {
         {}
       ),
 
-      done: () => {
+      done: (payload) => {
         // finished rendering callback
+        // Todo: end timer and chartLoading set to success
+        props.actions.chartUpdateSucceeded(payload.query);
       },
 
       clearError: () => {
@@ -128,10 +155,6 @@ class ChartContainer extends React.Component {
 
   removeAlert() {
     this.props.actions.removeChartAlert();
-  }
-
-  renderVis() {
-    visMap[this.props.viz_type](this.state.mockSlice).render();
   }
 
   renderChartTitle() {
@@ -157,16 +180,26 @@ class ChartContainer extends React.Component {
         </Alert>
       );
     }
-    if (this.props.isChartLoading) {
-      return (<img alt="loading" width="25" src="/static/assets/images/loading.gif" />);
-    }
+    const loading = this.props.chartStatus === 'loading';
     return (
-      <div
-        id={this.props.containerId}
-        ref={(ref) => { this.chartContainerRef = ref; }}
-        className={this.props.viz_type}
-        style={{ overflowX: 'scroll' }}
-      />
+      <div>
+        {loading &&
+          <img
+            alt="loading"
+            width="25"
+            src="/static/assets/images/loading.gif"
+            style={{ position: 'absolute' }}
+          />
+        }
+        <div
+          id={this.props.containerId}
+          ref={(ref) => { this.chartContainerRef = ref; }}
+          className={this.props.viz_type}
+          style={{
+            opacity: loading ? '0.25' : '1',
+          }}
+        />
+      </div>
     );
   }
 
@@ -205,6 +238,13 @@ class ChartContainer extends React.Component {
               }
 
               <div className="pull-right">
+                <Timer
+                  startTime={this.props.chartUpdateStartTime}
+                  endTime={this.props.chartUpdateEndTime}
+                  isRunning={this.props.chartStatus === 'loading'}
+                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  style={{ fontSize: '10px', marginRight: '5px' }}
+                />
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
@@ -232,10 +272,12 @@ function mapStateToProps(state) {
     csv_endpoint: state.viz.csv_endpoint,
     json_endpoint: state.viz.json_endpoint,
     standalone_endpoint: state.viz.standalone_endpoint,
+    chartUpdateStartTime: state.chartUpdateStartTime,
+    chartUpdateEndTime: state.chartUpdateEndTime,
     query: state.viz.query,
     column_formats: state.viz.column_formats,
     data: state.viz.data,
-    isChartLoading: state.isChartLoading,
+    chartStatus: state.chartStatus,
     isStarred: state.isStarred,
     alert: state.chartAlert,
     table_name: state.viz.form_data.datasource_name,

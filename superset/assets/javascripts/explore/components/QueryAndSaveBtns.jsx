@@ -1,36 +1,46 @@
 import React, { PropTypes } from 'react';
+import { Button, ButtonGroup } from 'react-bootstrap';
 import classnames from 'classnames';
 
 const propTypes = {
   canAdd: PropTypes.string.isRequired,
   onQuery: PropTypes.func.isRequired,
   onSave: PropTypes.func,
+  disabled: PropTypes.bool,
 };
 
 const defaultProps = {
   onSave: () => {},
+  disabled: false,
 };
 
-export default function QueryAndSaveBtns({ canAdd, onQuery, onSave }) {
-  const saveClasses = classnames('btn btn-default btn-sm', {
+export default function QueryAndSaveBtns({ canAdd, onQuery, onSave, disabled }) {
+  const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
 
   return (
-    <div className="btn-group query-and-save">
-      <button id="query_button" type="button" className="btn btn-primary btn-sm" onClick={onQuery}>
-        <i className="fa fa-bolt"></i> Query
-      </button>
-      <button
-        type="button"
+    <ButtonGroup className="query-and-save">
+      <Button
+        id="query_button"
+        onClick={onQuery}
+        bsSize="small"
+        disabled={disabled}
+        bsStyle="primary"
+      >
+        <i className="fa fa-bolt" /> Query
+      </Button>
+      <Button
         className={saveClasses}
+        bsSize="small"
         data-target="#save_modal"
         data-toggle="modal"
+        disabled={disabled}
         onClick={onSave}
       >
         <i className="fa fa-plus-circle"></i> Save as
-      </button>
-    </div>
+      </Button>
+    </ButtonGroup>
   );
 }
 

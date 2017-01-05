@@ -1,16 +1,6 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import visTypes from './visTypes';
 
-export const fieldTypes = [
-  'CheckboxField',
-  'FreeFormSelectField',
-  'IntegerField',
-  'SelectCustomMultiField',
-  'SelectField',
-  'SelectMultipleSortableField',
-  'TextAreaFeild',
-  'TextField',
-];
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
 // input choices & options
@@ -39,6 +29,7 @@ export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
+    clearable: false,
     default: null,
     choices: [],
     description: '',
@@ -47,13 +38,16 @@ export const fields = {
   viz_type: {
     type: 'SelectField',
     label: 'Viz',
+    clearable: false,
     default: 'table',
     choices: formatSelectOptions(Object.keys(visTypes)),
     description: 'The type of visualization to display',
   },
 
   metrics: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'Metrics',
     choices: [],
     default: [],
@@ -61,7 +55,9 @@ export const fields = {
   },
 
   order_by_cols: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'Ordering',
     choices: [],
     default: [],
@@ -235,7 +231,9 @@ export const fields = {
   },
 
   groupby: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'Group by',
     choices: [],
     default: [],
@@ -243,7 +241,9 @@ export const fields = {
   },
 
   columns: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'Columns',
     choices: [],
     default: [],
@@ -251,7 +251,9 @@ export const fields = {
   },
 
   all_columns: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'Columns',
     choices: [],
     default: [],
@@ -275,7 +277,9 @@ export const fields = {
   },
 
   druid_time_origin: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Origin',
     choices: [
       ['', 'default'],
@@ -287,7 +291,9 @@ export const fields = {
   },
 
   bottom_margin: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Bottom Margin',
     choices: formatSelectOptions(['auto', 50, 75, 100, 125, 150, 200]),
     default: 'auto',
@@ -295,7 +301,9 @@ export const fields = {
   },
 
   granularity: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Time Granularity',
     default: 'one day',
     choices: formatSelectOptions([
@@ -336,7 +344,9 @@ export const fields = {
   },
 
   link_length: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Link Length',
     default: '200',
     choices: formatSelectOptions(['10', '25', '50', '75', '100', '150', '200', '250']),
@@ -344,7 +354,9 @@ export const fields = {
   },
 
   charge: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Charge',
     default: '-500',
     choices: formatSelectOptions([
@@ -387,7 +399,9 @@ export const fields = {
   },
 
   resample_rule: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Resample Rule',
     default: null,
     choices: formatSelectOptions(['', '1T', '1H', '1D', '7D', '1M', '1AS']),
@@ -395,7 +409,9 @@ export const fields = {
   },
 
   resample_how: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Resample How',
     default: null,
     choices: formatSelectOptions(['', 'mean', 'sum', 'median']),
@@ -403,7 +419,9 @@ export const fields = {
   },
 
   resample_fillmethod: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Resample Fill Method',
     default: null,
     choices: formatSelectOptions(['', 'ffill', 'bfill']),
@@ -411,7 +429,9 @@ export const fields = {
   },
 
   since: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Since',
     default: '7 days ago',
     choices: formatSelectOptions([
@@ -429,7 +449,9 @@ export const fields = {
   },
 
   until: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Until',
     default: 'now',
     choices: formatSelectOptions([
@@ -443,14 +465,18 @@ export const fields = {
   },
 
   max_bubble_size: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Max Bubble Size',
     default: '25',
     choices: formatSelectOptions(['5', '10', '15', '25', '50', '75', '100']),
   },
 
   whisker_options: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Whisker/outlier options',
     default: 'Tukey',
     description: 'Determines how whiskers and outliers are calculated.',
@@ -470,7 +496,9 @@ export const fields = {
   },
 
   number_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Number format',
     default: D3_TIME_FORMAT_OPTIONS[0],
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -478,14 +506,18 @@ export const fields = {
   },
 
   row_limit: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Row limit',
     default: null,
     choices: formatSelectOptions(ROW_LIMIT_OPTIONS),
   },
 
   limit: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Series limit',
     choices: formatSelectOptions(SERIES_LIMITS),
     default: 50,
@@ -611,7 +643,9 @@ export const fields = {
   },
 
   table_timestamp_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Table Timestamp Format',
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -619,7 +653,9 @@ export const fields = {
   },
 
   series_height: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Series Height',
     default: '25',
     choices: formatSelectOptions(['10', '25', '40', '50', '75', '100', '150', '200']),
@@ -627,7 +663,9 @@ export const fields = {
   },
 
   page_length: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Page Length',
     default: 0,
     choices: formatSelectOptions([0, 10, 25, 40, 50, 75, 100, 150, 200]),
@@ -635,7 +673,9 @@ export const fields = {
   },
 
   x_axis_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'X axis format',
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
@@ -643,7 +683,9 @@ export const fields = {
   },
 
   y_axis_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Y axis format',
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -866,7 +908,9 @@ export const fields = {
   },
 
   mapbox_label: {
-    type: 'SelectMultipleSortableField',
+    type: 'SelectField',
+    multi: true,
+    freeForm: false,
     label: 'label',
     choices: [],
     default: [],
@@ -892,7 +936,9 @@ export const fields = {
   },
 
   clustering_radius: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'Clustering Radius',
     default: '60',
     choices: formatSelectOptions([
@@ -970,7 +1016,9 @@ export const fields = {
   },
 
   mapbox_color: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    multi: false,
+    freeForm: true,
     label: 'RGB Color',
     default: 'rgb(0, 122, 135)',
     choices: [
@@ -982,6 +1030,48 @@ export const fields = {
       ['rgb(34, 139, 34)', 'Forest Green'],
     ],
     description: 'The color for points and clusters in RGB',
+  },
+
+  ranges: {
+    type: 'TextField',
+    label: 'Ranges',
+    default: '',
+    description: 'Ranges to highlight with shading',
+  },
+
+  range_labels: {
+    type: 'TextField',
+    label: 'Range labels',
+    default: '',
+    description: 'Labels for the ranges',
+  },
+
+  markers: {
+    type: 'TextField',
+    label: 'Markers',
+    default: '',
+    description: 'List of values to mark with triangles',
+  },
+
+  marker_labels: {
+    type: 'TextField',
+    label: 'Marker labels',
+    default: '',
+    description: 'Labels for the markers',
+  },
+
+  marker_lines: {
+    type: 'TextField',
+    label: 'Marker lines',
+    default: '',
+    description: 'List of values to mark with lines',
+  },
+
+  marker_line_labels: {
+    type: 'TextField',
+    label: 'Marker line labels',
+    default: '',
+    description: 'Labels for the marker lines',
   },
 };
 export default fields;

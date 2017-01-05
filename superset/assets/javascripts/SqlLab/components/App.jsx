@@ -49,7 +49,7 @@ class App extends React.PureComponent {
         <div className="container-fluid">
           <div className="row">
             <div className="col-md-12">
-              <QuerySearch height={this.state.contentHeight} />
+              <QuerySearch height={this.state.contentHeight} actions={this.props.actions} />
             </div>
           </div>
         </div>

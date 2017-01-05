@@ -25,7 +25,8 @@ export const commonControlPanelSections = {
   sqlClause: {
     label: 'SQL',
     fieldSetRows: [
-      ['where', 'having'],
+      ['where'],
+      ['having'],
     ],
     description: 'This section exposes ways to include snippets of SQL in your query',
   },
@@ -223,7 +224,8 @@ const visTypes = {
       {
         label: null,
         fieldSetRows: [
-          ['markup_type', 'code'],
+          ['markup_type'],
+          ['code'],
         ],
       },
     ],
@@ -349,6 +351,22 @@ const visTypes = {
           ['show_legend'],
           ['max_bubble_size'],
           ['x_axis_label', 'y_axis_label'],
+        ],
+      },
+    ],
+  },
+
+  bullet: {
+    label: 'Bullet Chart',
+    requiresTime: false,
+    controlPanelSections: [
+      {
+        label: null,
+        fieldSetRows: [
+          ['metric'],
+          ['ranges', 'range_labels'],
+          ['markers', 'marker_labels'],
+          ['marker_lines', 'marker_line_labels'],
         ],
       },
     ],
@@ -698,8 +716,11 @@ export function sectionsToRender(vizType, datasourceType) {
   const timeSection = datasourceType === 'table' ?
     commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
   const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const sections = [datasourceAndVizType].concat(
-    viz.controlPanelSections, timeSection, sqlClause);
+  const sections = [].concat(
+    datasourceAndVizType,
+    timeSection,
+    viz.controlPanelSections,
+    sqlClause
+  );
   return sections;
 }
-

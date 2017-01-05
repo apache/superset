@@ -64,15 +64,15 @@ export function addToArr(state, arrKey, obj) {
   return Object.assign({}, state, newState);
 }
 
-export function enhancer() {
-  let enhancerWithPersistState = compose(persistState());
+export function initEnhancer(persist = true) {
+  let enhancer = persist ? compose(persistState()) : compose();
   if (process.env.NODE_ENV === 'dev') {
     /* eslint-disable no-underscore-dangle */
     const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
     /* eslint-enable */
-    enhancerWithPersistState = composeEnhancers(persistState());
+    enhancer = persist ? composeEnhancers(persistState()) : composeEnhancers();
   }
-  return enhancerWithPersistState;
+  return enhancer;
 }
 
 export function areArraysShallowEqual(arr1, arr2) {

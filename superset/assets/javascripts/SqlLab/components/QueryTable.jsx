@@ -2,7 +2,7 @@ import React from 'react';
 
 import moment from 'moment';
 import { Table } from 'reactable';
-import { Label, ProgressBar } from 'react-bootstrap';
+import { Label, ProgressBar, Well } from 'react-bootstrap';
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
@@ -65,14 +65,20 @@ class QueryTable extends React.PureComponent {
   removeQuery(query) {
     this.props.actions.removeQuery(query);
   }
-
   render() {
     const data = this.props.queries.map((query) => {
       const q = Object.assign({}, query);
       if (q.endDttm) {
         q.duration = fDuration(q.startDttm, q.endDttm);
       }
-      q.date = moment(q.startDttm).format('MMM Do YYYY');
+      const time = moment(q.startDttm).format().split('T');
+      q.time = (
+        <div>
+          <span>
+            {time[0]} <br /> {time[1]}
+          </span>
+        </div>
+      );
       q.user = (
         <button
           className="btn btn-link btn-xs"
@@ -101,7 +107,9 @@ class QueryTable extends React.PureComponent {
         </div>
       );
       q.sql = (
-        <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
+        <Well>
+          <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
+        </Well>
       );
       if (q.resultsKey) {
         q.output = (
@@ -123,7 +131,10 @@ class QueryTable extends React.PureComponent {
           />
         );
       } else {
-        q.output = q.tempTable;
+        // if query was run using ctas and force_ctas_schema was set
+        // tempTable will have the schema
+        const schemaUsed = q.ctas && q.tempTable.includes('.') ? '' : q.schema;
+        q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (
         <ProgressBar
@@ -188,6 +199,7 @@ class QueryTable extends React.PureComponent {
           columns={this.props.columns}
           className="table table-condensed"
           data={data}
+          itemsPerPage={50}
         />
       </div>
     );

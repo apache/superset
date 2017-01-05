@@ -10,7 +10,7 @@ import unittest
 
 from mock import Mock, patch
 
-from superset import db, sm, utils
+from superset import db, sm, security
 from superset.models import DruidCluster, DruidDatasource
 
 from .base_tests import SupersetTestCase
@@ -100,6 +100,7 @@ class DruidTests(SupersetTestCase):
         cluster.get_datasources = Mock(return_value=['test_datasource'])
         cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()
+        cluster.refresh_datasources(merge_flag=True)
         datasource_id = cluster.datasources[0].id
         db.session.commit()
 
@@ -240,21 +241,21 @@ class DruidTests(SupersetTestCase):
             db.session)
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
-
-        sm.add_permission_view_menu('datasource_access', gamma_ds.perm)
-        sm.add_permission_view_menu('datasource_access', no_gamma_ds.perm)
-
         db.session.commit()
 
-        perm = sm.find_permission_view_menu('datasource_access', gamma_ds.perm)
+        security.merge_perm(sm, 'datasource_access', gamma_ds.perm)
+        security.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+
+        perm = sm.find_permission_view_menu(
+            'datasource_access', gamma_ds.get_perm())
         sm.add_permission_role(sm.find_role('Gamma'), perm)
-        db.session.commit()
+        sm.get_session.commit()
 
         self.login(username='gamma')
         url = '/druiddatasourcemodelview/list/'
         resp = self.get_resp(url)
-        assert 'datasource_for_gamma' in resp
-        assert 'datasource_not_for_gamma' not in resp
+        self.assertIn('datasource_for_gamma', resp)
+        self.assertNotIn('datasource_not_for_gamma', resp)
 
 
 if __name__ == '__main__':

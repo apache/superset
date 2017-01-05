@@ -1,6 +1,5 @@
 import React, { PropTypes } from 'react';
 import { Checkbox } from 'react-bootstrap';
-import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -24,12 +23,9 @@ export default class CheckboxField extends React.Component {
   render() {
     return (
       <Checkbox
-        inline
         checked={this.props.value}
         onChange={this.onToggle.bind(this)}
-      >
-        <ControlLabelWithTooltip label={this.props.label} description={this.props.description} />
-      </Checkbox>
+      />
     );
   }
 }

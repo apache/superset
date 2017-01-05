@@ -68,7 +68,7 @@ ENABLE_PROXY_FIX = False
 # Uncomment to setup Your App name
 APP_NAME = "Superset"
 
-# Uncomment to setup Setup an App icon
+# Uncomment to setup an App icon
 APP_ICON = "/static/assets/images/superset-logo@2x.png"
 
 # Druid query timezone
@@ -168,10 +168,11 @@ VIZ_TYPE_BLACKLIST = []
 DRUID_DATA_SOURCE_BLACKLIST = []
 
 # --------------------------------------------------
-# Modules and datasources to be registered
+# Modules, datasources and middleware to be registered
 # --------------------------------------------------
 DEFAULT_MODULE_DS_MAP = {'superset.models': ['DruidDatasource', 'SqlaTable']}
 ADDITIONAL_MODULE_DS_MAP = {}
+ADDITIONAL_MIDDLEWARE = []
 
 """
 1) http://docs.python-guide.org/en/latest/writing/logging/

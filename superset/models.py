@@ -32,6 +32,7 @@ from flask_appbuilder.models.decorators import renders
 from flask_babel import lazy_gettext as _
 
 from pydruid.client import PyDruid
+from pydruid.utils.aggregators import count
 from pydruid.utils.filters import Dimension, Filter
 from pydruid.utils.postaggregator import Postaggregator
 from pydruid.utils.having import Aggregation
@@ -52,7 +53,6 @@ from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
 
-import superset
 from superset import app, db, db_engine_specs, get_session, utils, sm
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
@@ -70,24 +70,13 @@ FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 def set_perm(mapper, connection, target):  # noqa
-    target.perm = target.get_perm()
-
-
-def init_metrics_perm(metrics=None):
-    """Create permissions for restricted metrics
-
-    :param metrics: a list of metrics to be processed, if not specified,
-        all metrics are processed
-    :type metrics: models.SqlMetric or models.DruidMetric
-    """
-    if not metrics:
-        metrics = []
-        for model in [SqlMetric, DruidMetric]:
-            metrics += list(db.session.query(model).all())
-
-    for metric in metrics:
-        if metric.is_restricted and metric.perm:
-            sm.add_permission_view_menu('metric_access', metric.perm)
+    if target.perm != target.get_perm():
+        link_table = target.__table__
+        connection.execute(
+            link_table.update()
+            .where(link_table.c.id == target.id)
+            .values(perm=target.get_perm())
+        )
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -860,8 +849,8 @@ class Database(Model, AuditMixinNullable):
         return (
             "[{obj.database_name}].(id:{obj.id})").format(obj=self)
 
-sqla.event.listen(Database, 'before_insert', set_perm)
-sqla.event.listen(Database, 'before_update', set_perm)
+sqla.event.listen(Database, 'after_insert', set_perm)
+sqla.event.listen(Database, 'after_update', set_perm)
 
 
 class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
@@ -878,6 +867,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     is_featured = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
@@ -989,6 +979,45 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             if col_name == col.column_name:
                 return col
 
+    def values_for_column(self,
+                          column_name,
+                          from_dttm,
+                          to_dttm,
+                          limit=500):
+        """Runs query against sqla to retrieve some
+        sample values for the given column.
+        """
+        granularity = self.main_dttm_col
+
+        cols = {col.column_name: col for col in self.columns}
+        target_col = cols[column_name]
+
+        tbl = table(self.table_name)
+        qry = select([target_col.sqla_col])
+        qry = qry.select_from(tbl)
+        qry = qry.distinct(column_name)
+        qry = qry.limit(limit)
+
+        if granularity:
+            dttm_col = cols[granularity]
+            timestamp = dttm_col.sqla_col.label('timestamp')
+            time_filter = [
+                timestamp >= text(dttm_col.dttm_sql_literal(from_dttm)),
+                timestamp <= text(dttm_col.dttm_sql_literal(to_dttm)),
+            ]
+            qry = qry.where(and_(*time_filter))
+
+        engine = self.database.get_sqla_engine()
+        sql = "{}".format(
+            qry.compile(
+                engine, compile_kwargs={"literal_binds": True}, ),
+        )
+
+        return pd.read_sql_query(
+            sql=sql,
+            con=engine
+        )
+
     def query(  # sqla
             self, groupby, metrics,
             granularity,
@@ -1019,7 +1048,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             raise Exception(_(
                 "Datetime column not provided as part table configuration "
                 "and is required by this type of chart"))
-
+        for m in metrics:
+            if m not in metrics_dict:
+                raise Exception(_("Metric '{}' is not valid".format(m)))
         metrics_exprs = [metrics_dict.get(m).sqla_col for m in metrics]
         timeseries_limit_metric = metrics_dict.get(timeseries_limit_metric)
         timeseries_limit_metric_expr = None
@@ -1338,8 +1369,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         return datasource.id
 
-sqla.event.listen(SqlaTable, 'before_insert', set_perm)
-sqla.event.listen(SqlaTable, 'before_update', set_perm)
+sqla.event.listen(SqlaTable, 'after_insert', set_perm)
+sqla.event.listen(SqlaTable, 'after_update', set_perm)
 
 
 class SqlMetric(Model, AuditMixinNullable, ImportMixin):
@@ -1571,7 +1602,7 @@ class DruidCluster(Model, AuditMixinNullable):
         ).format(obj=self)
         return json.loads(requests.get(endpoint).text)['version']
 
-    def refresh_datasources(self, datasource_name=None):
+    def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
 
         If ``datasource_name`` is specified, only that datasource is updated
@@ -1580,7 +1611,7 @@ class DruidCluster(Model, AuditMixinNullable):
         for datasource in self.get_datasources():
             if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 if not datasource_name or datasource_name == datasource:
-                    DruidDatasource.sync_to_db(datasource, self)
+                    DruidDatasource.sync_to_db(datasource, self, merge_flag)
 
     @property
     def perm(self):
@@ -1604,6 +1635,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
     datasource_name = Column(String(255), unique=True)
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=False)
     description = Column(Text)
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
@@ -1745,7 +1777,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         try:
             segment_metadata = client.segment_metadata(
                 datasource=self.datasource_name,
-                intervals=lbound + '/' + rbound)
+                intervals=lbound + '/' + rbound,
+                merge=self.merge_flag)
         except Exception as e:
             logging.warning("Failed first attempt to get latest segment")
             logging.exception(e)
@@ -1758,7 +1791,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             try:
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,
-                    intervals=lbound + '/' + rbound)
+                    intervals=lbound + '/' + rbound,
+                    merge=self.merge_flag)
             except Exception as e:
                 logging.warning("Failed 2nd attempt to get latest segment")
                 logging.exception(e)
@@ -1844,7 +1878,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
         session.commit()
 
     @classmethod
-    def sync_to_db(cls, name, cluster):
+    def sync_to_db(cls, name, cluster, merge):
         """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
@@ -1857,6 +1891,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             flasher("Refreshing datasource [{}]".format(name), "info")
         session.flush()
         datasource.cluster = cluster
+        datasource.merge_flag = merge
         session.flush()
 
         cols = datasource.latest_metadata()
@@ -1939,6 +1974,35 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
             granularity['duration'] = utils.parse_human_timedelta(
                 period_name).total_seconds() * 1000
         return granularity
+
+    def values_for_column(self,
+                          column_name,
+                          from_dttm,
+                          to_dttm,
+                          limit=500):
+        """Retrieve some values for the given column"""
+        # TODO: Use Lexicographic TopNMeticSpec onces supported by PyDruid
+        from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+
+        qry = dict(
+            datasource=self.datasource_name,
+            granularity="all",
+            intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+            aggregations=dict(count=count("count")),
+            dimension=column_name,
+            metric="count",
+            threshold=limit,
+        )
+
+        client = self.cluster.get_pydruid_client()
+        client.topn(**qry)
+        df = client.export_pandas()
+
+        if df is None or df.size == 0:
+            raise Exception(_("No data was returned."))
+
+        return df
 
     def query(  # druid
             self, groupby, metrics,
@@ -2236,8 +2300,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable):
                 filters = cond
         return filters
 
-sqla.event.listen(DruidDatasource, 'before_insert', set_perm)
-sqla.event.listen(DruidDatasource, 'before_update', set_perm)
+sqla.event.listen(DruidDatasource, 'after_insert', set_perm)
+sqla.event.listen(DruidDatasource, 'after_update', set_perm)
 
 
 class Log(Model):
@@ -2255,16 +2319,21 @@ class Log(Model):
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
     dt = Column(Date, default=date.today())
+    duration_ms = Column(Integer)
+    referrer = Column(String(1024))
 
     @classmethod
     def log_this(cls, f):
         """Decorator to log user actions"""
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
+            start_dttm = datetime.now()
             user_id = None
             if g.user:
                 user_id = g.user.get_id()
             d = request.args.to_dict()
+            post_data = request.form or {}
+            d.update(post_data)
             d.update(kwargs)
             slice_id = d.get('slice_id', 0)
             try:
@@ -2276,15 +2345,19 @@ class Log(Model):
                 params = json.dumps(d)
             except:
                 pass
+            value = f(*args, **kwargs)
             log = cls(
                 action=f.__name__,
                 json=params,
                 dashboard_id=d.get('dashboard_id') or None,
                 slice_id=slice_id,
+                duration_ms=(
+                    datetime.now() - start_dttm).total_seconds() * 1000,
+                referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
             db.session.add(log)
-            db.session.commit()
-            return f(*args, **kwargs)
+            db.session.flush()
+            return value
         return wrapper
 
 
@@ -2464,8 +2537,6 @@ class DruidColumn(Model, AuditMixinNullable):
                 session.add(metric)
                 session.flush()
 
-        init_metrics_perm(new_metrics)
-
 
 class FavStar(Model):
     __tablename__ = 'favstar'
@@ -2532,7 +2603,10 @@ class Query(Model):
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     database = relationship(
-        'Database', foreign_keys=[database_id], backref='queries')
+        'Database',
+        foreign_keys=[database_id],
+        backref=backref('queries', cascade='all, delete-orphan')
+    )
     user = relationship(
         'User',
         backref=backref('queries', cascade='all, delete-orphan'),

@@ -151,6 +151,34 @@ class BaseViz(object):
             del od['force']
         return href(od)
 
+    def get_filter_url(self):
+        """Returns the URL to retrieve column values used in the filter"""
+        data = self.orig_form_data.copy()
+        # Remove unchecked checkboxes because HTML is weird like that
+        ordered_data = MultiDict()
+        for key in sorted(data.keys()):
+            # if MultiDict is initialized with MD({key:[emptyarray]}),
+            # key is included in d.keys() but accessing it throws
+            try:
+                if data[key] is False:
+                    del data[key]
+                    continue
+            except IndexError:
+                pass
+
+            if isinstance(data, (MultiDict, ImmutableMultiDict)):
+                v = data.getlist(key)
+            else:
+                v = data.get(key)
+            if not isinstance(v, list):
+                v = [v]
+            for item in v:
+                ordered_data.add(key, item)
+        href = Href(
+            '/caravel/filter/{self.datasource.type}/'
+            '{self.datasource.id}/'.format(**locals()))
+        return href(ordered_data)
+
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
@@ -325,6 +353,7 @@ class BaseViz(object):
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
                 'query': self.query,
+                'filter_endpoint': self.filter_endpoint,
                 'standalone_endpoint': self.standalone_endpoint,
                 'column_formats': self.data['column_formats'],
             }
@@ -359,9 +388,11 @@ class BaseViz(object):
             'csv_endpoint': self.csv_endpoint,
             'form_data': self.form_data,
             'json_endpoint': self.json_endpoint,
+            'filter_endpoint': self.filter_endpoint,
             'standalone_endpoint': self.standalone_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
+            'filter_select_enabled': self.datasource.filter_select_enabled,
             'column_formats': {
                 m.metric_name: m.d3format
                 for m in self.datasource.metrics
@@ -375,12 +406,44 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
 
+    def get_values_for_column(self, column):
+        """
+        Retrieves values for a column to be used by the filter dropdown.
+
+        :param column: column name
+        :return: JSON containing the some values for a column
+        """
+        form_data = self.form_data
+
+        since = form_data.get("since", "1 year ago")
+        from_dttm = utils.parse_human_datetime(since)
+        now = datetime.now()
+        if from_dttm > now:
+            from_dttm = now - (from_dttm - now)
+        until = form_data.get("until", "now")
+        to_dttm = utils.parse_human_datetime(until)
+        if from_dttm > to_dttm:
+            flasher("The date range doesn't seem right.", "danger")
+            from_dttm = to_dttm  # Making them identical to not raise
+
+        kwargs = dict(
+            column_name=column,
+            from_dttm=from_dttm,
+            to_dttm=to_dttm,
+        )
+        df = self.datasource.values_for_column(**kwargs)
+        return df[column].to_json()
+
     def get_data(self):
         return []
 
     @property
     def json_endpoint(self):
         return self.get_url(json_endpoint=True)
+
+    @property
+    def filter_endpoint(self):
+        return self.get_filter_url()
 
     @property
     def cache_key(self):
@@ -894,6 +957,69 @@ class BubbleViz(NVD3Viz):
                 'key': k,
                 'values': v})
         return chart_data
+
+
+class BulletViz(NVD3Viz):
+
+    """Based on the NVD3 bullet chart"""
+
+    viz_type = "bullet"
+    verbose_name = _("Bullet Chart")
+    is_timeseries = False
+    fieldsets = ({
+        'label': None,
+        'fields': (
+            'metric',
+            'ranges', 'range_labels',
+            'markers', 'marker_labels',
+            'marker_lines', 'marker_line_labels',
+        )
+    },)
+
+    def query_obj(self):
+        form_data = self.form_data
+        d = super(BulletViz, self).query_obj()
+        self.metric = form_data.get('metric')
+
+        def as_strings(field):
+            value = form_data.get(field)
+            return value.split(',') if value else []
+
+        def as_floats(field):
+            return [float(x) for x in as_strings(field)]
+
+        self.ranges = as_floats('ranges')
+        self.range_labels = as_strings('range_labels')
+        self.markers = as_floats('markers')
+        self.marker_labels = as_strings('marker_labels')
+        self.marker_lines = as_floats('marker_lines')
+        self.marker_line_labels = as_strings('marker_line_labels')
+
+        d['metrics'] = [
+            self.metric,
+        ]
+        if not self.metric:
+            raise Exception("Pick a metric to display")
+        return d
+
+    def get_df(self, query_obj=None):
+        df = super(BulletViz, self).get_df(query_obj)
+        df = df.fillna(0)
+        df['metric'] = df[[self.metric]]
+        return df
+
+    def get_data(self):
+        df = self.get_df()
+        values = df['metric'].values
+        return {
+            'measures': values.tolist(),
+            'ranges': self.ranges or [0, values.max() * 1.1],
+            'rangeLabels': self.range_labels or None,
+            'markers': self.markers or None,
+            'markerLabels': self.marker_labels or None,
+            'markerLines': self.marker_lines or None,
+            'markerLineLabels': self.marker_line_labels or None,
+        }
 
 
 class BigNumberViz(BaseViz):
@@ -2008,6 +2134,7 @@ viz_types_list = [
     DistributionBarViz,
     DistributionPieViz,
     BubbleViz,
+    BulletViz,
     MarkupViz,
     WordCloudViz,
     BigNumberViz,
