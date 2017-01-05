@@ -5,7 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from builtins import object
-from datetime import date, datetime
+from datetime import date, datetime, time
 import decimal
 import functools
 import json
@@ -216,6 +216,8 @@ def base_json_conv(obj):
 
     if isinstance(obj, numpy.int64):
         return int(obj)
+    elif isinstance(obj, numpy.bool_):
+        return bool(obj)
     elif isinstance(obj, set):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
@@ -238,6 +240,8 @@ def json_iso_dttm_ser(obj):
     if isinstance(obj, datetime):
         obj = obj.isoformat()
     elif isinstance(obj, date):
+        obj = obj.isoformat()
+    elif isinstance(obj, time):
         obj = obj.isoformat()
     else:
         raise TypeError(
