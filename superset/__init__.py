@@ -8,7 +8,7 @@ import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 
-from flask import Flask, redirect, request
+from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_cache import Cache
@@ -29,6 +29,7 @@ if not app.debug:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)
+logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
 

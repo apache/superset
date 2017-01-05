@@ -23,7 +23,7 @@ import time
 
 from flask_babel import lazy_gettext as _
 
-from caravel import cache_util
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -59,42 +59,29 @@ class BaseEngineSpec(object):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:tables'.format(args[0].id))
-    def fetch_tables(cls, database):
-        """ Returns the dictionary with schemas and table list.
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type):
+        """ Returns the dictionary {schema : [result_set_name]}.
 
-        Empty schema corresponds to the list of all tables that are names
-        <schema>.<table>.
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
         """
-        schemas = database.inspector.get_schema_names()
-        tables = {}
-        all_tables = []
+        schemas = db.inspector.get_schema_names()
+        result_sets = {}
+        all_result_sets = []
         for schema in schemas:
-            tables[schema] = sorted(database.inspector.get_table_names(schema))
-            all_tables += ['{}.{}'.format(schema, t) for t in tables[schema]]
-        if all_tables:
-            tables[""] = all_tables
-        return tables
-
-    @classmethod
-    @cache_util.memoized_func(
-        timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:views'.format(args[0].id))
-    def fetch_views(cls, database):
-        schemas = database.inspector.get_schema_names()
-        views = {}
-        all_views = []
-        for schema in schemas:
-            try:
-                views[schema] = sorted(
-                    database.inspector.get_view_names(schema))
-                all_views += [
-                    '{}.{}'.format(schema, t) for t in tables[schema]]
-            except Exception as e:
-                pass
-        if all_views:
-            views[""] = all_views
-        return views
+            if datasource_type == 'table':
+                result_sets[schema] = sorted(
+                    db.inspector.get_table_names(schema))
+            elif datasource_type == 'view':
+                result_sets[schema] = sorted(
+                    db.inspector.get_view_names(schema))
+            all_result_sets += [
+                '{}.{}'.format(schema, t) for t in result_sets[schema]]
+        if all_result_sets:
+            result_sets[""] = all_result_sets
+        return result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -270,17 +257,24 @@ class PrestoEngineSpec(BaseEngineSpec):
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
-        key=lambda *args, **kwargs: 'db:{}:tables'.format(args[0].id))
-    def fetch_tables(cls, database):
-        tables_df = database.get_df(
-            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.TABLES
-               ORDER BY concat(table_schema, '.', table_name)""", None)
-        tables = defaultdict(list)
-        for _, row in tables_df.iterrows():
-            tables[row['table_schema']].append(row['table_name'])
-            tables[""].append('{}.{}'.format(
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type):
+        """ Returns the dictionary {schema : [result_set_name]}.
+
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
+        """
+        result_set_df = db.get_df(
+            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
+               ORDER BY concat(table_schema, '.', table_name)""".format(
+                datasource_type.upper()), None)
+        result_sets = defaultdict(list)
+        for _, row in result_set_df.iterrows():
+            result_sets[row['table_schema']].append(row['table_name'])
+            result_sets[""].append('{}.{}'.format(
                 row['table_schema'], row['table_name']))
-        return tables
+        return result_sets
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):

@@ -846,22 +846,23 @@ class Database(Model, AuditMixinNullable):
 
     def all_table_names(self, schema=None):
         if not schema:
-            schema = ""
-        return self.db_engine_spec.fetch_tables(self).get(schema, [])
+            tables_dict = self.db_engine_spec.fetch_result_sets(self, 'table')
+            return tables_dict.get("", [])
+        return sorted(self.inspector.get_table_names(schema))
 
     def all_view_names(self, schema=None):
         if not schema:
-            schema = ""
-        views_dict = self.db_engine_spec.fetch_views(self)
-        return views_dict.get(schema, [])
+            views_dict = self.db_engine_spec.fetch_result_sets(self, 'view')
+            return views_dict.get("", [])
+        views = []
+        try:
+            views = self.inspector.get_view_names(schema)
+        except Exception:
+            pass
+        return views
 
     def all_schema_names(self):
-        schema_names = sorted(self.db_engine_spec.fetch_tables(self).keys())
-        # first element in schema names is empty that contains all table names
-        if schema_names:
-            return schema_names[1:]
-        else:
-            return []
+        return sorted(self.inspector.get_schema_names())
 
     @property
     def db_engine_spec(self):
