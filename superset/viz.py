@@ -1253,6 +1253,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_data(self):
         df = self.get_df()
+        import ipdb
+        ipdb.set_trace()
         chart_data = self.to_series(df)
 
         time_compare = self.form_data.get('time_compare')
@@ -1269,6 +1271,111 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data += self.to_series(
                 df2, classed='superset', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
+        return chart_data
+
+
+class NVD3DualLineViz(NVD3Viz):
+
+    """A rich line chart with dual axis"""
+
+    viz_type = "dual_line"
+    verbose_name = _("Time Series - Dual Axis Line Chart")
+    sort_series = False
+    is_timeseries = True
+    fieldsets = ({
+        'label': _('Chart Options'),
+        'fields': ('x_axis_format',),
+    }, {
+        'label': _('Y Axis 1'),
+        'fields': (
+            'metric',
+            'y_axis_format'
+        ),
+    }, {
+        'label': _('Y Axis 2'),
+        'fields': (
+            'metric_2',
+            'y_axis_2_format'
+        ),
+    },)
+    form_overrides = {
+        'y_axis_format': {
+            'label': _('Left Axis Format'),
+            'description': _("Select the numeric column to draw the histogram"),
+        },
+        'metric': {
+            'label': _("Left Axis Metric"),
+        }
+    }
+
+    def get_df(self, query_obj=None):
+        if not query_obj:
+            query_obj = super(NVD3DualLineViz, self).query_obj()
+        metrics = [
+            self.form_data.get('metric'),
+            self.form_data.get('metric_2')
+        ]
+        query_obj['metrics'] = metrics
+        df = super(NVD3DualLineViz, self).get_df(query_obj)
+        df = df.fillna(0)
+        if self.form_data.get("granularity") == "all":
+            raise Exception("Pick a time granularity for your time series")
+
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            values=metrics)
+
+        return df
+
+    def to_series(self, df, classed=''):
+        cols = []
+        for col in df.columns:
+            if col == '':
+                cols.append('N/A')
+            elif col is None:
+                cols.append('NULL')
+            else:
+                cols.append(col)
+        df.columns = cols
+        series = df.to_dict('series')
+        chart_data = []
+        index_list = df.T.index.tolist()
+        for i in range(0, len(index_list)):
+            name = index_list[i]
+            ys = series[name]
+            if df[name].dtype.kind not in "biufc":
+                continue
+            df[DTTM_ALIAS] = pd.to_datetime(df.index, utc=False)
+            if isinstance(name, string_types):
+                series_title = name
+            else:
+                name = ["{}".format(s) for s in name]
+                series_title = ", ".join(name[1:])
+
+            d = {
+                "key": series_title,
+                "classed": classed,
+                "values": [
+                    {'x': ds, 'y': ys[ds] if ds in ys else None}
+                    for ds in df[DTTM_ALIAS]
+                ],
+                "yAxis": i+1,
+                "type": "line"
+            }
+            chart_data.append(d)
+        return chart_data
+
+    def get_data(self):
+        form_data = self.form_data
+        metric = form_data.get('metric')
+        metric_2 = form_data.get('metric_2')
+        if not metric:
+            raise Exception("Pick a metric for left axis!")
+        if not metric_2:
+            raise Exception("Pick a metric for right axis!")
+
+        df = self.get_df()
+        chart_data = self.to_series(df)
         return chart_data
 
 
@@ -2102,6 +2209,7 @@ viz_types_list = [
     TableViz,
     PivotTableViz,
     NVD3TimeSeriesViz,
+    NVD3DualLineViz,
     NVD3CompareTimeSeriesViz,
     NVD3TimeSeriesStackedViz,
     NVD3TimeSeriesBarViz,

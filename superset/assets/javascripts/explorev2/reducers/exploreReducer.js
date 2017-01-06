@@ -50,6 +50,9 @@ export const exploreReducer = function (state, action) {
           newState.filterColumnOpts = optionsByFieldName[fieldName];
         } else {
           newState.fields[fieldName].choices = optionsByFieldName[fieldName];
+          if (fieldName === 'metric' && state.viz.form_data.viz_type === 'dual_line') {
+            newState.fields.metric_2.choices = optionsByFieldName[fieldName];
+          }
         }
       });
       return Object.assign({}, state, newState);
