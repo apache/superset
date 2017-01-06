@@ -177,20 +177,16 @@ class CoreTests(SupersetTestCase):
 
         # Click on the + to add a slice
         url = '/slicemodelview/add'
-        resp = self.client.get(url, follow_redirects=True)
-        assert 'Click on a table link to create a Slice' in resp.data
+        resp = self.get_resp(url)
+        assert 'Click on a table link to create a Slice' in resp
 
         # Click on a table
         table = db.session.query(models.SqlaTable).first()
-        url = 'superset/explore_json/table/{}/'.format(table.id)
-        resp = self.client.get(url)
-        assert '200 OK' == resp.status
-
         url = 'superset/explore/table/{}/'.format(table.id)
-        resp = self.client.get(url)
-        assert 'Datasource & Chart Type' in resp.data
-        assert 'Save as' in resp.data
-        assert 'Query' in resp.data
+        resp = self.get_resp(url)
+        assert 'Datasource & Chart Type' in resp
+        assert 'Save as' in resp
+        assert 'Query' in resp
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
