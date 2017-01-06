@@ -12,8 +12,9 @@ import unittest
 
 import pandas as pd
 
-from superset import app, appbuilder, cli, db, models, sql_lab, dataframe
+from superset import app, appbuilder, cli, db, models, dataframe
 from superset.security import sync_role_definitions
+from superset.sql_parse import SupersetQuery
 
 from .base_tests import SupersetTestCase
 
@@ -35,38 +36,33 @@ class UtilityFunctionTests(SupersetTestCase):
 
     # TODO(bkyryliuk): support more cases in CTA function.
     def test_create_table_as(self):
-        select_query = "SELECT * FROM outer_space;"
-        updated_select_query = sql_lab.create_table_as(
-            select_query, "tmp")
-        self.assertEqual(
-            "CREATE TABLE tmp AS \nSELECT * FROM outer_space;",
-            updated_select_query)
+        q = SupersetQuery("SELECT * FROM outer_space;")
 
-        updated_select_query_with_drop = sql_lab.create_table_as(
-            select_query, "tmp", override=True)
-        self.assertEqual(
-            "DROP TABLE IF EXISTS tmp;\n"
-            "CREATE TABLE tmp AS \nSELECT * FROM outer_space;",
-            updated_select_query_with_drop)
-
-        select_query_no_semicolon = "SELECT * FROM outer_space"
-        updated_select_query_no_semicolon = sql_lab.create_table_as(
-            select_query_no_semicolon, "tmp")
         self.assertEqual(
             "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
-            updated_select_query_no_semicolon)
+            q.as_create_table("tmp"))
 
+        self.assertEqual(
+            "DROP TABLE IF EXISTS tmp;\n"
+            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
+            q.as_create_table("tmp", overwrite=True))
+
+        # now without a semicolon
+        q = SupersetQuery("SELECT * FROM outer_space")
+        self.assertEqual(
+            "CREATE TABLE tmp AS \nSELECT * FROM outer_space",
+            q.as_create_table("tmp"))
+
+        # now a multi-line query
         multi_line_query = (
             "SELECT * FROM planets WHERE\n"
-            "Luke_Father = 'Darth Vader';")
-        updated_multi_line_query = sql_lab.create_table_as(
-            multi_line_query, "tmp")
-        expected_updated_multi_line_query = (
-            "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n"
-            "Luke_Father = 'Darth Vader';")
+            "Luke_Father = 'Darth Vader'")
+        q = SupersetQuery(multi_line_query)
         self.assertEqual(
-            expected_updated_multi_line_query,
-            updated_multi_line_query)
+            "CREATE TABLE tmp AS \nSELECT * FROM planets WHERE\n"
+            "Luke_Father = 'Darth Vader'",
+            q.as_create_table("tmp")
+        )
 
 
 class CeleryTestCase(SupersetTestCase):

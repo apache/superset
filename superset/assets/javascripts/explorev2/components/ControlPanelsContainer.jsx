@@ -7,6 +7,7 @@ import { Panel, Alert } from 'react-bootstrap';
 import visTypes, { sectionsToRender, commonControlPanelSections } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
+import FieldSet from './FieldSet';
 import Filters from './Filters';
 
 const propTypes = {
@@ -17,48 +18,65 @@ const propTypes = {
   form_data: PropTypes.object.isRequired,
   y_axis_zero: PropTypes.any,
   alert: PropTypes.string,
+  exploreState: PropTypes.object.isRequired,
 };
 
 class ControlPanelsContainer extends React.Component {
+  constructor(props) {
+    super(props);
+    this.fieldOverrides = this.fieldOverrides.bind(this);
+    this.getFieldData = this.getFieldData.bind(this);
+    this.removeAlert = this.removeAlert.bind(this);
+    this.onChange = this.onChange.bind(this);
+  }
   componentWillMount() {
     const datasource_id = this.props.form_data.datasource;
     const datasource_type = this.props.datasource_type;
     if (datasource_id) {
-      this.props.actions.fetchFieldOptions(datasource_id, datasource_type);
+      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
     }
   }
-
   componentWillReceiveProps(nextProps) {
     if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
       if (nextProps.form_data.datasource) {
-        this.props.actions.fetchFieldOptions(
+        this.props.actions.fetchDatasourceMetadata(
           nextProps.form_data.datasource, nextProps.datasource_type);
       }
     }
   }
-
-  onChange(name, value, label) {
-    this.props.actions.setFieldValue(this.props.datasource_type, name, value, label);
+  onChange(name, value) {
+    this.props.actions.setFieldValue(this.props.datasource_type, name, value);
   }
-
+  getFieldData(fs) {
+    const fieldOverrides = this.fieldOverrides();
+    if (!this.props.fields) {
+      return null;
+    }
+    let fieldData = this.props.fields[fs] || {};
+    if (fieldOverrides.hasOwnProperty(fs)) {
+      const overrideData = fieldOverrides[fs];
+      fieldData = Object.assign({}, fieldData, overrideData);
+    }
+    if (fieldData.mapStateToProps) {
+      Object.assign(fieldData, fieldData.mapStateToProps(this.props.exploreState));
+    }
+    return fieldData;
+  }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
   }
-
   filterSectionsToRender() {
     const filterSections = this.props.datasource_type === 'table' ?
       [commonControlPanelSections.filters[0]] : commonControlPanelSections.filters;
     return filterSections;
   }
-
   fieldOverrides() {
     const viz = visTypes[this.props.form_data.viz_type];
-    return viz.fieldOverrides;
+    return viz.fieldOverrides || {};
   }
   removeAlert() {
     this.props.actions.removeControlPanelAlert();
   }
-
   render() {
     return (
       <div className="scrollbar-container">
@@ -68,7 +86,7 @@ class ControlPanelsContainer extends React.Component {
               {this.props.alert}
               <i
                 className="fa fa-close pull-right"
-                onClick={this.removeAlert.bind(this)}
+                onClick={this.removeAlert}
                 style={{ cursor: 'pointer' }}
               />
             </Alert>
@@ -81,12 +99,16 @@ class ControlPanelsContainer extends React.Component {
             >
               {section.fieldSetRows.map((fieldSets, i) => (
                 <FieldSetRow
-                  key={`${section.label}-fieldSetRow-${i}`}
-                  fieldSets={fieldSets}
-                  fieldOverrides={this.fieldOverrides()}
-                  onChange={this.onChange.bind(this)}
-                  fields={this.props.fields}
-                  form_data={this.props.form_data}
+                  key={`fieldsetrow-${i}`}
+                  fields={fieldSets.map(field => (
+                    <FieldSet
+                      name={field}
+                      key={`field-${field}`}
+                      onChange={this.onChange}
+                      value={this.props.form_data[field]}
+                      {...this.getFieldData(field)}
+                    />
+                  ))}
                 />
               ))}
             </ControlPanelSection>
@@ -119,6 +141,7 @@ function mapStateToProps(state) {
     alert: state.controlPanelAlert,
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
     fields: state.fields,
+    exploreState: state,
   };
 }
 

@@ -1253,8 +1253,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_data(self):
         df = self.get_df()
-        import ipdb
-        ipdb.set_trace()
         chart_data = self.to_series(df)
 
         time_compare = self.form_data.get('time_compare')
