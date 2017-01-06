@@ -1151,6 +1151,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data = sorted(chart_data, key=lambda x: x['key'])
         return chart_data
 
+
 class NVD3DualLineViz(NVD3Viz):
 
     """A rich line chart with dual axis"""
@@ -1159,12 +1160,10 @@ class NVD3DualLineViz(NVD3Viz):
     verbose_name = _("Time Series - Dual Axis Line Chart")
     sort_series = False
     is_timeseries = True
-    fieldsets = (
-    {
+    fieldsets = ({
         'label': _('Chart Options'),
         'fields': ('x_axis_format',),
-    },
-    {
+    }, {
         'label': _('Y Axis 1'),
         'fields': (
             'metric',
