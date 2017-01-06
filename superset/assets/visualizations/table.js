@@ -173,11 +173,12 @@ function tableVis(slice) {
           }
           // set icon color
           if (icon === 'fa fa-arrow-up' || icon === 'fa fa-angle-double-up') {
-            color = 'red;'
+            color = 'red;';
           } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
-            color = 'green';
+            color = 'green;';
           }
-          return html + '<i style="margin-left:20px;color:' + color + '" class="' + icon + '" aria-hidden="true"></i>';
+          return html + '<i style="margin-left:20px;color:' 
+                      + color + '" class="' + icon + '" aria-hidden="true"></i>';
         });
       const height = slice.height();
       let paging = false;

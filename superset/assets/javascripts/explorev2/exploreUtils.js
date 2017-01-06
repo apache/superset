@@ -56,7 +56,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource'
-      && field !== 'filters' && field !== 'styles' && field !== 'baseStyle' 
+      && field !== 'filters' && field !== 'styles' && field !== 'baseStyle'
       && field !== 'navigates' && field !== 'slices'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];

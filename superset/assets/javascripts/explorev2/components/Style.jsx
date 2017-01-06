@@ -12,15 +12,15 @@ const propTypes = {
 export default class Style extends React.Component {
   constructor(props) {
     super(props);
-    const iconChoices = [ { key: '无', value: ''},
-                          {key: '上升(单箭头)', value: 'fa fa-arrow-up' },
-                          { key: '下降(单箭头)', value: 'fa fa-arrow-down' },
-                          { key: '上升(双箭头)', value: 'fa fa-angle-double-up' },
-                          { key: '下降(双箭头)', value: 'fa fa-angle-double-down' },
-                          { key: '条形图', value: 'fa fa-bar-chart' },
-                          { key: '折线图', value: 'fa fa-line-chart' },
-                          { key: '饼状图', value: 'fa fa-pie-chart' },
-                          { key: '区域图', value: 'fa fa-area-chart' } ];
+    const iconChoices = [{ key: '无', value: '' },
+                         { key: '上升(单箭头)', value: 'fa fa-arrow-up' },
+                         { key: '下降(单箭头)', value: 'fa fa-arrow-down' },
+                         { key: '上升(双箭头)', value: 'fa fa-angle-double-up' },
+                         { key: '下降(双箭头)', value: 'fa fa-angle-double-down' },
+                         { key: '条形图', value: 'fa fa-bar-chart' },
+                         { key: '折线图', value: 'fa fa-line-chart' },
+                         { key: '饼状图', value: 'fa fa-pie-chart' },
+                         { key: '区域图', value: 'fa fa-area-chart' }];
     this.state = {
       iconChoices,
     };
