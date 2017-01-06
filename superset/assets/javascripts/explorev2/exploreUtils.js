@@ -14,12 +14,8 @@ function formatFilters(filters) {
 }
 
 function formatStyles(styles) {
-  let len = 0;
-  if (styles !== undefined) {
-    len = styles.length;
-  }
   const params = {};
-  for (let i = 0; i < len; i++) {
+  for (let i = 0; i < styles.length; i++) {
     const style = styles[i];
     params[`style_id_${i + 1}`] = style.id;
     params[`style_metric_${i + 1}`] = style.metric;
@@ -37,6 +33,18 @@ function formatBaseStyle(baseStyle) {
   return params;
 }
 
+function formatNavigates(navigates) {
+  const params = {};
+  for (let i = 0; i < navigates.length; i++) {
+    const navigate = navigates[i];
+    params[`navigate_id_${i + 1}`] = navigate.id;
+    params[`navigate_metric_${i + 1}`] = navigate.metric;
+    params[`navigate_expr_${i + 1}`] = navigate.expr;
+    params[`navigate_slice_${i + 1}`] = navigate.slice;
+  }
+  return params;
+}
+
 export function getParamObject(form_data, datasource_type, saveNewSlice) {
   const data = {
     // V2 tag temporarily for updating url
@@ -48,7 +56,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.keys(form_data).forEach((field) => {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource'
-      && field !== 'filters' && field !== 'styles' && field !== 'baseStyle'
+      && field !== 'filters' && field !== 'styles' && field !== 'baseStyle' 
+      && field !== 'navigates' && field !== 'slices'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }
@@ -59,6 +68,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.assign(data, styleParams);
   const baseStyleParams = formatBaseStyle(form_data.baseStyle);
   Object.assign(data, baseStyleParams);
+  const navigateParams = formatNavigates(form_data.navigates);
+  Object.assign(data, navigateParams);
   return data;
 }
 

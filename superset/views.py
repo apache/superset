@@ -1487,6 +1487,8 @@ class Superset(BaseSupersetView):
         elif request.args.get("standalone") == "true":
             return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
         elif request.args.get("V2") == "true" or is_in_explore_v2_beta:
+            slices = db.session.query(models.Slice).all()
+            
             # bootstrap data for explore V2
             bootstrap_data = {
                 "can_add": slice_add_perm,
@@ -1498,7 +1500,8 @@ class Superset(BaseSupersetView):
                 "datasource_name": viz_obj.datasource.name,
                 "datasource_type": datasource_type,
                 "user_id": user_id,
-                "viz": json.loads(viz_obj.get_json())
+                "viz": json.loads(viz_obj.get_json()),
+                "slices": [(s.id, s.slice_name) for s in slices]
             }
             table_name = viz_obj.datasource.table_name \
                 if datasource_type == 'table' \

@@ -11,12 +11,16 @@ const propTypes = {
   onHide: React.PropTypes.func.isRequired,
   actions: React.PropTypes.object.isRequired,
   form_data: React.PropTypes.object.isRequired,
-  styles: React.PropTypes.array,
+  styles: React.PropTypes.array.isRequired,
   baseStyle: React.PropTypes.Object,
+  navigates: React.PropTypes.array.isRequired,
+  slices: React.PropTypes.object.isRequired,
 };
 
 const defaultProps = {
   styles: [],
+  baseStyle: null,
+  navigates: [],
 };
 
 class StyleModal extends React.Component {
@@ -65,6 +69,7 @@ class StyleModal extends React.Component {
   }
   render() {
     const stylesDiv = [];
+    const navigatesDiv = [];
     let i = 0;
     this.props.styles.forEach((style) => {
       i++;
@@ -77,6 +82,19 @@ class StyleModal extends React.Component {
         />
       );
     });
+    this.props.navigates.forEach((navigate) => {
+      i++;
+      navigatesDiv.push(
+        <Navigate
+          key={i}
+          actions={this.props.actions}
+          form_data={this.props.form_data}
+          navigate={navigate}
+          slices={this.props.slices}
+        />
+      );
+    });
+
     return (
       <Modal
         show
@@ -87,15 +105,16 @@ class StyleModal extends React.Component {
           <Modal.Title>
             <div>
               <ul className="nav navbar-nav">
-                <li id="li" className="active" style={{ 'background-color': '#ccc' }}>
+                <li id="li" className="active" style={{ backgroundColor: '#ccc' }}>
                   <a onClick={this.changeModal.bind(this, 1)}>基本样式</a>
                 </li>
                 <li id="li2"><a onClick={this.changeModal.bind(this, 2)}>条件样式</a></li>
+                <li id="li3"><a onClick={this.changeModal.bind(this, 3)}>切片导航</a></li>
               </ul>
             </div>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ 'min-height': '200px' }}>
+        <Modal.Body style={{ minHeight: '200px' }}>
         {this.state.flag &&
           <div>
             <BaseStyle
@@ -158,6 +177,7 @@ function mapStateToProps(state) {
   return {
     styles: state.viz.form_data.styles,
     baseStyle: state.viz.form_data.baseStyle,
+    navigates: state.viz.form_data.navigates,
   };
 }
 

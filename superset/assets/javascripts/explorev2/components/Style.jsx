@@ -12,15 +12,15 @@ const propTypes = {
 export default class Style extends React.Component {
   constructor(props) {
     super(props);
-    const iconChoices = [{ key: '无', value: ''},
-                         {key: '上升(单箭头)', value: 'fa fa-arrow-up' },
-                         { key: '下降(单箭头)', value: 'fa fa-arrow-down' },
-                         { key: '上升(双箭头)', value: 'fa fa-angle-double-up' },
-                         { key: '下降(双箭头)', value: 'fa fa-angle-double-down' },
-                         { key: '条形图', value: 'fa fa-bar-chart' },
-                         { key: '折线图', value: 'fa fa-line-chart' },
-                         { key: '饼状图', value: 'fa fa-pie-chart' },
-                         { key: '区域图', value: 'fa fa-area-chart' }];
+    const iconChoices = [ { key: '无', value: ''},
+                          {key: '上升(单箭头)', value: 'fa fa-arrow-up' },
+                          { key: '下降(单箭头)', value: 'fa fa-arrow-down' },
+                          { key: '上升(双箭头)', value: 'fa fa-angle-double-up' },
+                          { key: '下降(双箭头)', value: 'fa fa-angle-double-down' },
+                          { key: '条形图', value: 'fa fa-bar-chart' },
+                          { key: '折线图', value: 'fa fa-line-chart' },
+                          { key: '饼状图', value: 'fa fa-pie-chart' },
+                          { key: '区域图', value: 'fa fa-area-chart' } ];
     this.state = {
       iconChoices,
     };
@@ -50,7 +50,7 @@ export default class Style extends React.Component {
             className="col-lg-7"
             multi={false}
             name="select-column"
-            placeholder="Select metric"
+            placeholder="指标"
             options={this.props.form_data.metrics.map((o) => ({ value: o, label: o }))}
             value={this.props.style.metric}
             autosize={false}
@@ -80,7 +80,7 @@ export default class Style extends React.Component {
             className="col-lg-4"
             multi={false}
             name="select-column"
-            placeholder="Select icon"
+            placeholder="图标"
             options={this.state.iconChoices.map((o) => ({ label: o.key, value: o.value }))}
             value={this.props.style.icon}
             autosize={false}

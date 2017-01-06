@@ -7,6 +7,7 @@ const propTypes = {
   actions: React.PropTypes.object.isRequired,
   form_data: React.PropTypes.object.isRequired,
   navigate: React.PropTypes.object.isRequired,
+  slices: React.PropTypes.object.isRequired,
 };
 
 export default class Navigate extends React.Component {
@@ -17,8 +18,9 @@ export default class Navigate extends React.Component {
   changeExpr(navigate, event) {
     this.props.actions.changeNavigate(navigate, 'expr', event.target.value);
   }
-  changeSlice(navigate, event) {
-    this.props.actions.changeNavigate(navigate, 'value', event.target.value);
+  changeSlice(navigate, col) {
+    const val = (col) ? col.value : null;
+    this.props.actions.changeNavigate(navigate, 'slice', val);
   }
   removeNavigate(navigate) {
     this.props.actions.removeNavigate(navigate);
@@ -31,9 +33,9 @@ export default class Navigate extends React.Component {
             className="col-lg-6"
             multi={false}
             name="select-column"
-            placeholder="Select metric"
+            placeholder="指标"
             options={this.props.form_data.metrics.map((o) => ({ value: o, label: o }))}
-            // value={this.props.navigate.metric}
+            value={this.props.navigate.metric}
             autosize={false}
             onChange={this.changeMetric.bind(this, this.props.navigate)}
           />
@@ -41,22 +43,23 @@ export default class Navigate extends React.Component {
             <input
               type="text"
               onChange={this.changeExpr.bind(this, this.props.navigate)}
-              // value={this.props.navigate.expr}
+              value={this.props.navigate.expr}
               className="form-control input-sm"
               placeholder="阀值"
             />
           </div>
         </div>
         <div className="row space-1">
-          <div className="col-lg-10">
-            <input
-              type="text"
-              // onChange={this.changeValue.bind(this, this.props.navigate)}
-              // value={this.props.navigate.value}
-              className="form-control input-sm"
-              placeholder="样式"
-            />
-          </div>
+          <Select
+            className="col-lg-10"
+            multi={false}
+            name="select-column"
+            placeholder="导航切片"
+            options={this.props.slices.map((o) => ({ value: o[0]+'', label: o[1] }))}
+            value={this.props.navigate.slice}
+            autosize={false}
+            onChange={this.changeSlice.bind(this, this.props.navigate)}
+          />
           <div className="col-lg-2">
             <Button
               id="remove-button"
