@@ -11,7 +11,6 @@ import logging
 import pickle
 import re
 import textwrap
-from collections import namedtuple
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
 
@@ -59,13 +58,30 @@ from superset.viz import viz_types
 from superset.jinja_context import get_template_processor
 from superset.utils import (
     flasher, MetricPermException, DimSelector, wrap_clause_in_parens,
-    DTTM_ALIAS,
+    DTTM_ALIAS, QueryStatus,
 )
-
 
 config = app.config
 
-QueryResult = namedtuple('namedtuple', ['df', 'query', 'duration'])
+
+class QueryResult(object):
+
+    """Object returned by the query interface"""
+
+    def __init__(  # noqa
+            self,
+            df,
+            query,
+            duration,
+            status=QueryStatus.SUCCESS,
+            error_message=None):
+        self.df = df
+        self.query = query
+        self.duration = duration
+        self.status = status
+        self.error_message = error_message
+
+
 FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
@@ -1195,13 +1211,22 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
-        df = pd.read_sql_query(
-            sql=sql,
-            con=engine
-        )
         sql = sqlparse.format(sql, reindent=True)
+        status = QueryStatus.SUCCESS
+        error_message = None
+        df = None
+        try:
+            df = pd.read_sql_query(sql, con=engine)
+        except Exception as e:
+            status = QueryStatus.FAILED
+            error_message = str(e)
+
         return QueryResult(
-            df=df, duration=datetime.now() - qry_start_dttm, query=sql)
+            status=status,
+            df=df,
+            duration=datetime.now() - qry_start_dttm,
+            query=sql,
+            error_message=error_message)
 
     def get_sqla_table_object(self):
         return self.database.get_table(self.table_name, schema=self.schema)
@@ -2546,16 +2571,6 @@ class FavStar(Model):
     class_name = Column(String(50))
     obj_id = Column(Integer)
     dttm = Column(DateTime, default=datetime.utcnow)
-
-
-class QueryStatus:
-    CANCELLED = 'cancelled'
-    FAILED = 'failed'
-    PENDING = 'pending'
-    RUNNING = 'running'
-    SCHEDULED = 'scheduled'
-    SUCCESS = 'success'
-    TIMED_OUT = 'timed_out'
 
 
 class Query(Model):
