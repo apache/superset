@@ -49,7 +49,14 @@ export default class EmbedCodeButton extends React.Component {
         <div>
           <div className="row">
             <div className="col-sm-10">
-              <textarea name="embedCode" value={html} rows="4" readOnly className="form-control input-sm"></textarea>
+              <textarea
+                name="embedCode"
+                value={html}
+                rows="4"
+                readOnly
+                className="form-control input-sm"
+              >
+              </textarea>
             </div>
             <div className="col-sm-2">
               <CopyToClipboard
