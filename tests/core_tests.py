@@ -178,7 +178,8 @@ class CoreTests(SupersetTestCase):
         # Click on the + to add a slice
         url = '/slicemodelview/add'
         resp = self.get_resp(url)
-        assert 'Click on a table link to create a Slice' in resp
+        assert 'Click on a' in resp
+        assert 'to create a Slice' in resp
 
         # Click on a table
         table = db.session.query(models.SqlaTable).first()
