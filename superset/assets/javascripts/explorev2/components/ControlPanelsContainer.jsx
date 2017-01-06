@@ -22,8 +22,8 @@ const propTypes = {
 };
 
 class ControlPanelsContainer extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.fieldOverrides = this.fieldOverrides.bind(this);
     this.getFieldData = this.getFieldData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);

@@ -579,7 +579,7 @@ export const fields = {
     default: null,
     description: 'This define the element to be plotted on the chart',
     mapStateToProps: (state) => ({
-      choices: state.datasource.gb_cols,
+      choices: (state.datasource) ? state.datasource.gb_cols : [],
     }),
   },
 
