@@ -18,6 +18,7 @@ const defaultProps = {
   choices: [],
   clearable: true,
   description: null,
+  editUrl: null,
   freeForm: false,
   label: null,
   multi: false,
