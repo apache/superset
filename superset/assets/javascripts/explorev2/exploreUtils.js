@@ -41,6 +41,7 @@ function formatNavigates(navigates) {
     params[`navigate_metric_${i + 1}`] = navigate.metric;
     params[`navigate_expr_${i + 1}`] = navigate.expr;
     params[`navigate_slice_${i + 1}`] = navigate.slice;
+    params[`navigate_open_${i + 1}`] = navigate.open;
   }
   return params;
 }

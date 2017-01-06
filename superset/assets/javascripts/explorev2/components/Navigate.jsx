@@ -11,6 +11,14 @@ const propTypes = {
 };
 
 export default class Navigate extends React.Component {
+  constructor(props) {
+    super(props);
+    const openChoices = [{ key: '弹框', value: 'modal' },
+                         { key: '新窗口', value: 'newWindow' }];
+    this.state = {
+      openChoices,
+    };
+  }
   changeMetric(navigate, col) {
     const val = (col) ? col.value : null;
     this.props.actions.changeNavigate(navigate, 'metric', val);
@@ -21,6 +29,10 @@ export default class Navigate extends React.Component {
   changeSlice(navigate, col) {
     const val = (col) ? col.value : null;
     this.props.actions.changeNavigate(navigate, 'slice', val);
+  }
+  changeOpen(navigate, col) {
+    const val = (col) ? col.value : null;
+    this.props.actions.changeNavigate(navigate, 'open', val);
   }
   removeNavigate(navigate) {
     this.props.actions.removeNavigate(navigate);
@@ -51,7 +63,7 @@ export default class Navigate extends React.Component {
         </div>
         <div className="row space-1">
           <Select
-            className="col-lg-10"
+            className="col-lg-6"
             multi={false}
             name="select-column"
             placeholder="导航切片"
@@ -59,6 +71,16 @@ export default class Navigate extends React.Component {
             value={this.props.navigate.slice}
             autosize={false}
             onChange={this.changeSlice.bind(this, this.props.navigate)}
+          />
+          <Select
+            className="col-lg-4"
+            multi={false}
+            name="select-column"
+            placeholder="打开方式"
+            options={this.state.openChoices.map((o) => ({ value: o.value+'', label: o.key }))}
+            value={this.props.navigate.open}
+            autosize={false}
+            onChange={this.changeOpen.bind(this, this.props.navigate)}
           />
           <div className="col-lg-2">
             <Button

@@ -1245,6 +1245,9 @@ class FormFactory(object):
         sliceIds = [(s.id) for s in slices]
         sliceIds = self.choicify(sliceIds)
 
+        # set navigate open
+        open_choices = self.choicify(['modal','newWindow'])
+
         for field_prefix in filter_prefixes:
             is_having_filter = field_prefix == 'having'
             col_choices = filter_cols if not is_having_filter else having_cols
@@ -1299,6 +1302,11 @@ class FormFactory(object):
                         _('Navigate 1'),
                         default=sliceIds[0][0],
                         choices=sliceIds))
+                setattr(QueryForm, 'navigate_open_' + str(i),
+                    SelectField(
+                        _('Navigate 1'),
+                        default=open_choices[0][0],
+                        choices=open_choices))
             
             # baseStyle
             setattr(

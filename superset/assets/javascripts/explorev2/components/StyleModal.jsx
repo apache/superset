@@ -47,6 +47,7 @@ class StyleModal extends React.Component {
       metric: null,
       expr: null,
       slice: null,
+      open: 'modal',
     });
   }
   changeModal(type) {

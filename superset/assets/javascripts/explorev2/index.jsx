@@ -116,6 +116,7 @@ function parseNavigates(form_data) {
         metric: form_data[`navigate_metric_${i}`],
         expr: form_data[`navigate_expr_${i}`],
         slice: form_data[`navigate_slice_${i}`],
+        open: form_data[`navigate_open_${i}`],
       });
     }
     /* eslint no-param-reassign: 0 */
@@ -123,6 +124,7 @@ function parseNavigates(form_data) {
     delete form_data[`navigate_metric_${i}`];
     delete form_data[`navigate_expr_${i}`];
     delete form_data[`navigate_slice_${i}`];
+    delete form_data[`navigate_open_${i}`];
   }
   return navigates;
 }
