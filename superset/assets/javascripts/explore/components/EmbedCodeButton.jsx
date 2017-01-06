@@ -35,7 +35,8 @@ export default class EmbedCodeButton extends React.Component {
       `  width="${this.state.width}"\n` +
       `  height="${this.state.height}"\n` +
       '  seamless\n' +
-      '  frameBorder="0" scrolling="no"\n' +
+      '  frameBorder="0"\n' +
+      '  scrolling="no"\n' +
       `  src="${srcLink}"\n` +
       '>\n' +
       '</iframe>'
