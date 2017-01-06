@@ -1,11 +1,11 @@
 import React, { PropTypes } from 'react';
 import Select, { Creatable } from 'react-select';
 
-
 const propTypes = {
   choices: PropTypes.array,
   clearable: PropTypes.bool,
   description: PropTypes.string,
+  editUrl: PropTypes.string,
   freeForm: PropTypes.bool,
   label: PropTypes.string,
   multi: PropTypes.bool,
@@ -89,6 +89,9 @@ export default class SelectField extends React.Component {
     return (
       <div>
         {selectWrap}
+        {this.props.editUrl &&
+          <a href={`${this.props.editUrl}/${this.props.value}`}>edit</a>
+        }
       </div>
     );
   }

@@ -31,6 +31,7 @@ export const fields = {
     label: 'Datasource',
     clearable: false,
     default: null,
+    editUrl: '/tablemodelview/edit',
     mapStateToProps: (state) => ({
       choices: state.datasources || [],
     }),
