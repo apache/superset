@@ -31,7 +31,7 @@ export default class BaseStyle extends React.Component {
           </div>
         </div>
 
-        <div className="col-lg-12" style={{ 'margin-top': '20px' }}>
+        <div className="col-lg-12" style={{ marginTop: '20px' }}>
           <div className="col-lg-2">
             <span>表样式:</span>
           </div>

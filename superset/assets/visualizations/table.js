@@ -150,6 +150,7 @@ function tableVis(slice) {
         .html((d) => {
           let html = '';
           let icon = '';
+          let color = 'black';
           if (d.isMetric) {
             html = slice.d3format(d.col, d.val);
           } else {
@@ -170,7 +171,14 @@ function tableVis(slice) {
               break;
             }
           }
-          return html + '<i style="margin-left:20px;" class="' + icon + '" aria-hidden="true"></i>';
+          // set icon color
+          if (icon === 'fa fa-arrow-up' || icon === 'fa fa-angle-double-up') {
+            color = 'red;';
+          } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
+            color = 'green;';
+          }
+          return html + '<i style="margin-left:20px;color:' 
+                      + color + '" class="' + icon + '" aria-hidden="true"></i>';
         });
       const height = slice.height();
       let paging = false;

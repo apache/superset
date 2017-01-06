@@ -34,6 +34,7 @@ const bootstrappedState = Object.assign(
 );
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
 bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
+bootstrappedState.viz.form_data.slices = bootstrapData.slices;
 
 function parseFilters(form_data, prefix = 'flt') {
   const filters = [];
@@ -105,6 +106,36 @@ function getBaseStyle(form_data) {
 
 bootstrappedState.viz.form_data.baseStyle =
   getBaseStyle(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
+
+function parseNavigates(form_data) {
+  const navigates = [];
+  for (let i = 0; i < 10; i++) {
+    if (form_data[`navigate_metric_${i}`] && form_data[`navigate_expr_${i}`]) {
+      navigates.push({
+        id: form_data[`navigate_id_${i}`],
+        metric: form_data[`navigate_metric_${i}`],
+        expr: form_data[`navigate_expr_${i}`],
+        slice: form_data[`navigate_slice_${i}`],
+      });
+    }
+    /* eslint no-param-reassign: 0 */
+    delete form_data[`navigate_id_${i}`];
+    delete form_data[`navigate_metric_${i}`];
+    delete form_data[`navigate_expr_${i}`];
+    delete form_data[`navigate_slice_${i}`];
+  }
+  return navigates;
+}
+
+function getNavigates(form_data, datasource_type) {
+  if (datasource_type === 'table') {
+    return parseNavigates(form_data);
+  }
+  return null;
+}
+
+bootstrappedState.viz.form_data.navigates =
+  getNavigates(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk))

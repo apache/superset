@@ -124,6 +124,34 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
+    [actions.ADD_NAVIGATE]() {
+      const newFormData = addToArr(state.viz.form_data, 'navigates', action.navigate);
+      const newState = Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+      return newState;
+    },
+    [actions.REMOVE_NAVIGATE]() {
+      const newFormData = removeFromArr(state.viz.form_data, 'navigates', action.navigate);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
+    [actions.CHANGE_NAVIGATE]() {
+      const changes = {};
+      changes[action.field] = action.value;
+      const newFormData = alterInArr(
+        state.viz.form_data, 'navigates', action.navigate, changes);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
     [actions.SET_FIELD_VALUE]() {
       const newFormData = action.key === 'datasource' ?
         defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
