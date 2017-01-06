@@ -129,7 +129,6 @@ function nvd3Vis(slice) {
 
           case 'dual_line':
             chart = nv.models.multiChart();
-            chart.xAxis.scale(d3.time.scale.utc());
             chart.interpolate('linear');
             break;
 
