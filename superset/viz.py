@@ -90,6 +90,9 @@ class BaseViz(object):
         self.groupby = self.form_data.get('groupby') or []
         self.reassignments()
 
+        self.status = None
+        self.error_message = None
+
     @classmethod
     def flat_form_fields(cls):
         l = set()
@@ -195,7 +198,10 @@ class BaseViz(object):
 
         # The datasource here can be different backend but the interface is common
         self.results = self.datasource.query(**query_obj)
+        self.status = self.results.status
+        self.error_message = self.results.error_message
         self.query = self.results.query
+
         df = self.results.df
         # Transform the timestamp we received from database to pandas supported
         # datetime format. If no python_date_format is specified, the pattern will
@@ -203,7 +209,9 @@ class BaseViz(object):
         # If the datetime format is unix, the parse will use the corresponding
         # parsing logic.
         if df is None or df.empty:
-            raise utils.NoDataException("No data.")
+            self.status = utils.QueryStatus.FAILED
+            self.error_message = "No data."
+            return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
                 if timestamp_format in ("epoch_s", "epoch_ms"):
@@ -213,8 +221,8 @@ class BaseViz(object):
                         df[DTTM_ALIAS], utc=False, format=timestamp_format)
                 if self.datasource.offset:
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
-        df.replace([np.inf, -np.inf], np.nan)
-        df = df.fillna(0)
+            df.replace([np.inf, -np.inf], np.nan)
+            df = df.fillna(0)
         return df
 
     @property
@@ -321,6 +329,11 @@ class BaseViz(object):
         return config.get("CACHE_DEFAULT_TIMEOUT")
 
     def get_json(self, force=False):
+        return json.dumps(
+            self.get_payload(force),
+            default=utils.json_int_dttm_ser, ignore_nan=True)
+
+    def get_payload(self, force=False):
         """Handles caching around the json payload retrieval"""
         cache_key = self.cache_key
         payload = None
@@ -344,18 +357,24 @@ class BaseViz(object):
         if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
+            try:
+                data = self.get_data()
+            except Exception as e:
+                data = None
 
             payload = {
-                'cache_timeout': cache_timeout,
                 'cache_key': cache_key,
+                'cache_timeout': cache_timeout,
+                'column_formats': self.data['column_formats'],
                 'csv_endpoint': self.csv_endpoint,
-                'data': self.get_data(),
+                'data': data,
+                'error': self.error_message,
+                'filter_endpoint': self.filter_endpoint,
                 'form_data': self.form_data,
                 'json_endpoint': self.json_endpoint,
                 'query': self.query,
-                'filter_endpoint': self.filter_endpoint,
                 'standalone_endpoint': self.standalone_endpoint,
-                'column_formats': self.data['column_formats'],
+                'status': self.status,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
@@ -375,11 +394,7 @@ class BaseViz(object):
                 logging.exception(e)
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
-        return self.json_dumps(payload)
-
-    def json_dumps(self, obj):
-        """Used by get_json, can be overridden to use specific switches"""
-        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
+        return payload
 
     @property
     def data(self):
@@ -508,23 +523,17 @@ class TableViz(BaseViz):
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         return d
 
-    def get_df(self, query_obj=None):
-        df = super(TableViz, self).get_df(query_obj)
+    def get_data(self):
+        df = self.get_df()
         if (
                 self.form_data.get("granularity") == "all" and
                 DTTM_ALIAS in df):
             del df[DTTM_ALIAS]
-        return df
 
-    def get_data(self):
-        df = self.get_df()
         return dict(
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
-
-    def json_dumps(self, obj):
-        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
@@ -566,8 +575,8 @@ class PivotTableViz(BaseViz):
         d['groupby'] = list(set(groupby) | set(columns))
         return d
 
-    def get_df(self, query_obj=None):
-        df = super(PivotTableViz, self).get_df(query_obj)
+    def get_data(self):
+        df = self.get_df()
         if (
                 self.form_data.get("granularity") == "all" and
                 DTTM_ALIAS in df):
@@ -579,10 +588,7 @@ class PivotTableViz(BaseViz):
             aggfunc=self.form_data.get('pandas_aggfunc'),
             margins=True,
         )
-        return df
-
-    def get_data(self):
-        return self.get_df().to_html(
+        return df.to_html(
             na_rep='',
             classes=(
                 "dataframe table table-striped table-bordered "
@@ -601,16 +607,12 @@ class MarkupViz(BaseViz):
     },)
     is_timeseries = False
 
-    def rendered(self):
+    def get_data(self):
         markup_type = self.form_data.get("markup_type")
         code = self.form_data.get("code", '')
         if markup_type == "markdown":
-            return markdown(code)
-        elif markup_type == "html":
-            return code
-
-    def get_data(self):
-        return dict(html=self.rendered())
+            code = markdown(code)
+        return dict(html=code)
 
 
 class SeparatorViz(MarkupViz):
@@ -690,11 +692,6 @@ class TreemapViz(BaseViz):
         )
     },)
 
-    def get_df(self, query_obj=None):
-        df = super(TreemapViz, self).get_df(query_obj)
-        df = df.set_index(self.form_data.get("groupby"))
-        return df
-
     def _nest(self, metric, df):
         nlevels = df.index.nlevels
         if nlevels == 1:
@@ -707,6 +704,7 @@ class TreemapViz(BaseViz):
 
     def get_data(self):
         df = self.get_df()
+        df = df.set_index(self.form_data.get("groupby"))
         chart_data = [{"name": metric, "children": self._nest(metric, df)}
                       for metric in df.columns]
         return chart_data
@@ -729,10 +727,6 @@ class CalHeatmapViz(BaseViz):
             'subdomain_granularity',
         ),
     },)
-
-    def get_df(self, query_obj=None):
-        df = super(CalHeatmapViz, self).get_df(query_obj)
-        return df
 
     def get_data(self):
         df = self.get_df()
@@ -1406,22 +1400,6 @@ class HistogramViz(BaseViz):
         d['columns'] = [numeric_column]
         return d
 
-    def get_df(self, query_obj=None):
-        """Returns a pandas dataframe based on the query object"""
-        if not query_obj:
-            query_obj = self.query_obj()
-
-        self.results = self.datasource.query(**query_obj)
-        self.query = self.results.query
-        df = self.results.df
-
-        if df is None or df.empty:
-            raise Exception("No data, to build histogram")
-
-        df.replace([np.inf, -np.inf], np.nan)
-        df = df.fillna(0)
-        return df
-
     def get_data(self):
         """Returns the chart data"""
         df = self.get_df()
@@ -1553,10 +1531,6 @@ class SunburstViz(BaseViz):
             'description': _("This defines the level of the hierarchy"),
         },
     }
-
-    def get_df(self, query_obj=None):
-        df = super(SunburstViz, self).get_df(query_obj)
-        return df
 
     def get_data(self):
         df = self.get_df()
