@@ -1133,6 +1133,8 @@ class NVD3TimeSeriesViz(NVD3Viz):
 
     def get_data(self):
         df = self.get_df()
+        import ipdb
+        ipdb.set_trace()
         chart_data = self.to_series(df)
 
         time_compare = self.form_data.get('time_compare')
@@ -1186,10 +1188,14 @@ class NVD3DualLineViz(NVD3Viz):
         }
     }
 
-    def get_df(self, metric, query_obj=None):
+    def get_df(self, query_obj=None):
         if not query_obj:
             query_obj = super(NVD3DualLineViz, self).query_obj()
-        query_obj['metrics'] = [metric]
+        metrics = [
+            self.form_data.get('metric'),
+            self.form_data.get('metric_2')
+        ]
+        query_obj['metrics'] = metrics
         df = super(NVD3DualLineViz, self).get_df(query_obj)
         df = df.fillna(0)
         if self.form_data.get("granularity") == "all":
@@ -1197,12 +1203,11 @@ class NVD3DualLineViz(NVD3Viz):
 
         df = df.pivot_table(
             index=DTTM_ALIAS,
-            values=[metric])
+            values=metrics)
 
         return df
 
-    def to_series(self, df, yAxis, metric, classed=''):
-        metrics = [metric]
+    def to_series(self, df, classed=''):
         cols = []
         for col in df.columns:
             if col == '':
@@ -1214,7 +1219,9 @@ class NVD3DualLineViz(NVD3Viz):
         df.columns = cols
         series = df.to_dict('series')
         chart_data = []
-        for name in df.T.index.tolist():
+        index_list = df.T.index.tolist()
+        for i in range(0, len(index_list)):
+            name = index_list[i]
             ys = series[name]
             if df[name].dtype.kind not in "biufc":
                 continue
@@ -1232,7 +1239,7 @@ class NVD3DualLineViz(NVD3Viz):
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
                     for ds in df[DTTM_ALIAS]
                 ],
-                "yAxis": yAxis,
+                "yAxis": i+1,
                 "type": "line"
             }
             chart_data.append(d)
@@ -1247,11 +1254,9 @@ class NVD3DualLineViz(NVD3Viz):
         if not metric_2:
             raise Exception("Pick a metric for right axis!")
 
-        df = self.get_df(metric)
-        df2 = self.get_df(metric_2)
-        chart_data = self.to_series(df, 1, metric)
-        chart_data2 = self.to_series(df2, 2, metric_2)
-        return chart_data + chart_data2
+        df = self.get_df()
+        chart_data = self.to_series(df)
+        return chart_data
 
 
 class NVD3TimeSeriesBarViz(NVD3TimeSeriesViz):
