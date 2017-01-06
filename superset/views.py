@@ -41,6 +41,7 @@ from superset import (
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
+from superset.sql_parse import SupersetQuery
 
 config = app.config
 log_this = models.Log.log_this
@@ -2229,7 +2230,8 @@ class Superset(BaseSupersetView):
         if not table:
             table = models.SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
-        table.sql = data.get('sql')
+        q = SupersetQuery(data.get('sql'))
+        table.sql = q.stripped()
         db.session.add(table)
         cols = []
         dims = []
