@@ -114,8 +114,8 @@ export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(datasource_type, key, value, label) {
-  return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
+export function setFieldValue(fieldName, value, validationErrors) {
+  return { type: SET_FIELD_VALUE, fieldName, value, validationErrors };
 }
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';

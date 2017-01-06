@@ -1,5 +1,6 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import visTypes from './visTypes';
+import * as v from '../validators';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -556,7 +557,7 @@ export const fields = {
   rolling_periods: {
     type: 'TextField',
     label: 'Periods',
-    validators: [],
+    validators: [v.integer],
     description: 'Defines the size of the rolling window function, ' +
                  'relative to the time granularity selected',
   },
@@ -902,7 +903,7 @@ export const fields = {
     type: 'TextField',
     label: 'Period Ratio',
     default: '',
-    validators: [],
+    validators: [v.integer],
     description: '[integer] Number of period to compare against, ' +
                  'this is relative to the granularity selected',
   },
@@ -1014,7 +1015,6 @@ export const fields = {
     type: 'TextField',
     label: 'Zoom',
     default: 11,
-    validators: [],
     description: 'Zoom level of the map',
     places: 8,
   },

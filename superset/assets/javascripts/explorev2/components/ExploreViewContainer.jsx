@@ -15,6 +15,7 @@ const propTypes = {
   actions: React.PropTypes.object.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
   chartStatus: React.PropTypes.string.isRequired,
+  fields: React.PropTypes.object.isRequired,
 };
 
 
@@ -74,6 +75,25 @@ class ExploreViewContainer extends React.Component {
   }
 
   render() {
+    const errors = [];
+    for (const fieldName in this.props.fields) {
+      const field = this.props.fields[fieldName];
+      if (field.validationErrors && field.validationErrors.length > 0) {
+        errors.push(
+          <div key={fieldName}>
+            <strong>{`[ ${field.label} ] `}</strong>
+            {field.validationErrors.join('. ')}
+          </div>
+        );
+      }
+    }
+    let errorMessage;
+    if (errors.length > 0) {
+      errorMessage = (
+        <div style={{ textAlign: 'left' }}>{errors}</div>
+      );
+    }
+
     return (
       <div
         id="explore-container"
@@ -98,8 +118,9 @@ class ExploreViewContainer extends React.Component {
               onQuery={this.onQuery.bind(this, this.props.form_data)}
               onSave={this.toggleModal.bind(this)}
               disabled={this.props.chartStatus === 'loading'}
+              errorMessage={errorMessage}
             />
-            <br /><br />
+            <br />
             <ControlPanelsContainer
               actions={this.props.actions}
               form_data={this.props.form_data}
@@ -126,6 +147,7 @@ function mapStateToProps(state) {
     datasource_type: state.datasource_type,
     form_data: state.viz.form_data,
     chartStatus: state.chartStatus,
+    fields: state.fields,
   };
 }
 
