@@ -36,7 +36,10 @@ class SourceRegistry(object):
                                schema, database_name):
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
-        db_ds = [d for d in datasources if d.database.name == database_name and
+
+        # Filter datasoures that don't have database.
+        db_ds = [d for d in datasources if d.database and
+                 d.database.name == database_name and
                  d.name == datasource_name and schema == schema]
         return db_ds[0]
 
@@ -65,16 +68,12 @@ class SourceRegistry(object):
     def get_eager_datasource(cls, session, datasource_type, datasource_id):
         """Returns datasource with columns and metrics."""
         datasource_class = SourceRegistry.sources[datasource_type]
-        if datasource_type == 'table':
-            return (
-                session.query(datasource_class)
-                .options(
-                    subqueryload(datasource_class.columns),
-                    subqueryload(datasource_class.metrics)
-                )
-                .filter_by(id=datasource_id)
-                .one()
+        return (
+            session.query(datasource_class)
+            .options(
+                subqueryload(datasource_class.columns),
+                subqueryload(datasource_class.metrics)
             )
-        # TODO: support druid datasources.
-        return session.query(datasource_class).filter_by(
-            id=datasource_id).first()
+            .filter_by(id=datasource_id)
+            .one()
+        )
