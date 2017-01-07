@@ -18,43 +18,44 @@ def upgrade():
   op.add_column('dashboards', sa.Column('views', sa.Integer, server_default='1', nullable=True))
   op.add_column('slices', sa.Column('views', sa.Integer, server_default='1', nullable=True))
 
-  Dash = models.Dashboard
-  Log = models.Log
-  qry = (
-    db.session.query(
-        Dash,
-        sa.func.count(),
+  if db.engine.name != 'postgresql':
+    Dash = models.Dashboard
+    Log = models.Log
+    qry = (
+      db.session.query(
+          Dash,
+          sa.func.count(),
+      )
+      .outerjoin(Log)
+      .filter(
+          sa.and_(
+              Log.dashboard_id == Dash.id,
+          )
+      )
+      .group_by(Dash)
     )
-    .outerjoin(Log)
-    .filter(
-        sa.and_(
-            Log.dashboard_id == Dash.id,
-        )
-    )
-    .group_by(Dash)
-  )
-  for dash_obj in qry.all():
-    dash_obj[0].views = dash_obj[1]
-  db.session.commit()
+    for dash_obj in qry.all():
+      dash_obj[0].views = dash_obj[1]
+    db.session.commit()
 
-  Slice = models.Slice
-  qry = (
-    db.session.query(
-        Slice,
-        sa.func.count(),
+    Slice = models.Slice
+    qry = (
+      db.session.query(
+          Slice,
+          sa.func.count(),
+      )
+      .outerjoin(Log)
+      .filter(
+          sa.and_(
+              Log.slice_id == Slice.id,
+          )
+      )
+      .group_by(Slice)
     )
-    .outerjoin(Log)
-    .filter(
-        sa.and_(
-            Log.slice_id == Slice.id,
-        )
-    )
-    .group_by(Slice)
-  )
-  for slice_obj in qry.all():
-    slice_obj[0].views = slice_obj[1]
-  db.session.commit()
-  db.session.close()
+    for slice_obj in qry.all():
+      slice_obj[0].views = slice_obj[1]
+    db.session.commit()
+    db.session.close()
 
 
 
