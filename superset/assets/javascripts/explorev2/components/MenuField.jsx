@@ -66,11 +66,11 @@ const selectedMenu = {
 };
 
 export default class MenuField extends React.Component {
-  constructor(props) { 
+  constructor(props) {
     super(props);
     selectedMenu.chart = this.props.value;
-    for (let viz in vizType) { 
-      if (vizType[viz].chart === this.props.value) { 
+    for (let viz in vizType) {
+      if (vizType[viz].chart === this.props.value) {
         selectedMenu.chart = vizType[viz].chart;
         selectedMenu.icon = vizType[viz].icon;
         break;
@@ -172,7 +172,7 @@ export default class MenuField extends React.Component {
             <span>
               <i className="fa fa-check-square icon-span"></i>
               <font size="2">提示器</font>
-             </span>
+            </span>
           </MenuItem>
           <Divider />
           <MenuItem key="table">
@@ -200,32 +200,32 @@ export default class MenuField extends React.Component {
                   <i className="fa fa-bar-chart icon-span"></i>
                   <font size="2">条形图(T)</font>
                 </span>
-               </MenuItem>
-             </SubMenu>
+              </MenuItem>
+            </SubMenu>
             <SubMenu title={lineTitle} key="4-2">
               <MenuItem key="multi">
-               <span>
-                 <i className="fa fa-line-chart icon-span"></i>
-                 <font size="2">线形图</font>
-               </span>
+                <span>
+                  <i className="fa fa-line-chart icon-span"></i>
+                  <font size="2">线形图</font>
+                </span>
               </MenuItem>
               <MenuItem key="line">
-               <span>
-                 <i className="fa fa-line-chart icon-span"></i>
-                 <font size="2">线形图(T)</font>
-               </span>
+                <span>
+                  <i className="fa fa-line-chart icon-span"></i>
+                  <font size="2">线形图(T)</font>
+                </span>
               </MenuItem>
               <MenuItem key="linePlusBar">
-               <span>
-                 <i className="fa fa-line-chart icon-span"></i>
-                 <font size="2">线形图(S)</font>
-               </span>
+                <span>
+                  <i className="fa fa-line-chart icon-span"></i>
+                  <font size="2">线形图(S)</font>
+                </span>
               </MenuItem>
               <MenuItem key="compare">
-               <span>
-                 <i className="fa fa-line-chart icon-span"></i>
-                 <font size="2">线形图(VS)</font>
-               </span>
+                <span>
+                  <i className="fa fa-line-chart icon-span"></i>
+                  <font size="2">线形图(VS)</font>
+                </span>
               </MenuItem>
             </SubMenu>
             <MenuItem key="linePlusBar">
@@ -263,10 +263,10 @@ export default class MenuField extends React.Component {
               </span>
             </MenuItem>
             <MenuItem key="5-2" disable="true">
-               <span>
-                 <i className="fa fa-line-chart icon-span"></i>
-                 <font size="2">雷达图</font>
-               </span>
+              <span>
+                <i className="fa fa-line-chart icon-span"></i>
+                <font size="2">雷达图</font>
+              </span>
             </MenuItem>
             <MenuItem key="5-3" disable="true">
               <span>
@@ -295,7 +295,7 @@ export default class MenuField extends React.Component {
             <MenuItem key="mapbox">
               <span>
                 <i className="fa fa-line-chart icon-span"></i>
-                  <font size="2">热力图</font>
+                <font size="2">热力图</font>
               </span>
             </MenuItem>
             <MenuItem key="treemap">
@@ -410,16 +410,16 @@ export default class MenuField extends React.Component {
       <div id={`formControlsSelect-${slugify(this.props.label)}`}>
         <div>
           <ControlLabelWithTooltip
-           label={this.props.label}
-           description={this.props.description}
+            label={this.props.label}
+            description={this.props.description}
           />
         </div>
         <div>
           <span style={{ float: 'left' }}>{MenuWrap}</span>
           <span style={{ paddingLeft: '5px' }}>
-           <font size="2">当前图形：</font>
-           <i className={`${selectedMenu.icon} icon-current-span`}></i>
-           <font size="2">{selectedMenu.chart}</font>
+            <font size="2">当前图形：</font>
+            <i className={`${selectedMenu.icon} icon-current-span`}></i>
+            <font size="2">{selectedMenu.chart}</font>
           </span>
         </div>
       </div>
