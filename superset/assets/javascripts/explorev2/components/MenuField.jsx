@@ -94,11 +94,13 @@ export default class MenuField extends React.Component {
       openAnimation: 'zoom',
       onClick: this.onChange.bind(this),
     };
-    const menuTitle = (<span>
-                          <i className="fa fa-bar-chart icon-span"></i>
-                          <font size="2">选择图形</font>
-                          <i className="fa fa-caret-down pull-right"></i>
-                       </span>);
+    const menuTitle = (
+        <span>
+          <i className="fa fa-bar-chart icon-span"></i>
+          <font size="2">选择图形</font>
+          <i className="fa fa-caret-down pull-right"></i>
+        </span>
+    );
     const baseTitle = (<span>
                          <i className="fa fa-bar-chart icon-span"></i>
                          <font size="2">基础图形</font>
@@ -389,18 +391,18 @@ export default class MenuField extends React.Component {
     return (
       <div id={`formControlsSelect-${slugify(this.props.label)}`}>
         <div>
-            <ControlLabelWithTooltip
-            label={this.props.label}
-            description={this.props.description}
-            />
+          <ControlLabelWithTooltip
+           label={this.props.label}
+           description={this.props.description}
+          />
         </div>
         <div>
-            <span style={{float: 'left'}}>{MenuWrap}</span>
-            <span style={{paddingLeft: '5px'}}>
-               <font size="2">当前图形：</font>
-               <i className={`${selectedMenu.icon} icon-current-span`}></i>
-               <font size="2">{selectedMenu.chart}</font>
-            </span>
+          <span style={{ float: 'left' }}>{MenuWrap}</span>
+          <span style={{ paddingLeft: '5px' }}>
+           <font size="2">当前图形：</font>
+           <i className={`${selectedMenu.icon} icon-current-span`}></i>
+           <font size="2">{selectedMenu.chart}</font>
+          </span>
         </div>
       </div>
     );
