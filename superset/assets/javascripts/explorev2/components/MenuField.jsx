@@ -95,11 +95,11 @@ export default class MenuField extends React.Component {
       onClick: this.onChange.bind(this),
     };
     const menuTitle = (
-        <span>
-          <i className="fa fa-bar-chart icon-span"></i>
-          <font size="2">选择图形</font>
-          <i className="fa fa-caret-down pull-right"></i>
-        </span>
+      <span>
+        <i className="fa fa-bar-chart icon-span"></i>
+        <font size="2">选择图形</font>
+        <i className="fa fa-caret-down pull-right"></i>
+      </span>
     );
     const baseTitle = (<span>
                          <i className="fa fa-bar-chart icon-span"></i>
