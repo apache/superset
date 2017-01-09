@@ -232,6 +232,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     owners = relationship("User", secondary=slice_user)
+    views = Column(Integer, default=1)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
@@ -437,9 +438,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
-
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
+    views = Column(Integer, default=1)
 
     def __repr__(self):
         return self.dashboard_title
@@ -670,6 +671,34 @@ class Queryable(object):
             return self.default_endpoint
         else:
             return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
+
+    @property
+    def data(self):
+        """data representation of the datasource sent to the frontend"""
+        gb_cols = [(col, col) for col in self.groupby_column_names]
+        all_cols = [(c, c) for c in self.column_names]
+        order_by_choices = []
+        for s in sorted(self.column_names):
+            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
+            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
+
+        d = {
+            'id': self.id,
+            'type': self.type,
+            'name': self.name,
+            'metrics_combo': self.metrics_combo,
+            'order_by_choices': order_by_choices,
+            'gb_cols': gb_cols,
+            'all_cols': all_cols,
+            'filterable_cols': self.filterable_column_names,
+        }
+        if (self.type == 'table'):
+            grains = self.database.grains() or []
+            if grains:
+                grains = [(g.name, g.name) for g in grains]
+            d['granularity_sqla'] = [(c, c) for c in self.dttm_cols]
+            d['time_grain_sqla'] = grains
+        return d
 
 
 class Database(Model, AuditMixinNullable):
@@ -2338,8 +2367,8 @@ class Log(Model):
     id = Column(Integer, primary_key=True)
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
-    dashboard_id = Column(Integer)
-    slice_id = Column(Integer)
+    dashboard_id = Column(Integer, ForeignKey('dashboards.id'))
+    slice_id = Column(Integer, ForeignKey('slices.id'))
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)

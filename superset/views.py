@@ -41,6 +41,7 @@ from superset import (
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
+from superset.sql_parse import SupersetQuery
 
 config = app.config
 log_this = models.Log.log_this
@@ -1437,6 +1438,8 @@ class Superset(BaseSupersetView):
 
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
+            slc.views = slc.views + 1
+            db.session.commit()
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1954,10 +1957,7 @@ class Superset(BaseSupersetView):
                 Dash,
             )
             .filter(
-                sqla.or_(
-                    Dash.created_by_fk == user_id,
-                    Dash.changed_by_fk == user_id,
-                )
+                Dash.created_by_fk == user_id,
             )
             .order_by(
                 Dash.changed_on.desc()
@@ -1969,6 +1969,7 @@ class Superset(BaseSupersetView):
             'title': o.dashboard_title,
             'url': o.url,
             'dttm': o.changed_on,
+            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -1983,10 +1984,7 @@ class Superset(BaseSupersetView):
         qry = (
             db.session.query(Slice)
             .filter(
-                sqla.or_(
-                    Slice.created_by_fk == user_id,
-                    Slice.changed_by_fk == user_id,
-                )
+                Slice.created_by_fk == user_id,
             )
             .order_by(Slice.changed_on.desc())
         )
@@ -1995,6 +1993,7 @@ class Superset(BaseSupersetView):
             'title': o.slice_name,
             'url': o.slice_url,
             'dttm': o.changed_on,
+            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2131,6 +2130,8 @@ class Superset(BaseSupersetView):
             qry = qry.filter_by(slug=dashboard_id)
 
         dash = qry.one()
+        dash.views = dash.views + 1
+        db.session.commit()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
             if not self.datasource_access(datasource):
@@ -2229,7 +2230,8 @@ class Superset(BaseSupersetView):
         if not table:
             table = models.SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
-        table.sql = data.get('sql')
+        q = SupersetQuery(data.get('sql'))
+        table.sql = q.stripped()
         db.session.add(table)
         cols = []
         dims = []
@@ -2544,65 +2546,24 @@ class Superset(BaseSupersetView):
     @expose("/fetch_datasource_metadata")
     @log_this
     def fetch_datasource_metadata(self):
-        session = db.session
         datasource_type = request.args.get('datasource_type')
         datasource_class = SourceRegistry.sources[datasource_type]
         datasource = (
-            session.query(datasource_class)
+            db.session.query(datasource_class)
             .filter_by(id=request.args.get('datasource_id'))
             .first()
         )
 
-        datasources = db.session.query(datasource_class).all()
-        datasources = sorted(datasources, key=lambda ds: ds.full_name)
-
         # Check if datasource exists
         if not datasource:
             return json_error_response(DATASOURCE_MISSING_ERR)
+
         # Check permission for datasource
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        gb_cols = [(col, col) for col in datasource.groupby_column_names]
-        all_cols = [(c, c) for c in datasource.column_names]
-        order_by_choices = []
-        for s in sorted(datasource.column_names):
-            order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
-            order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
-
-        field_options = {
-            'datasource': [(d.id, d.full_name) for d in datasources],
-            'metrics': datasource.metrics_combo,
-            'order_by_cols': order_by_choices,
-            'metric':  datasource.metrics_combo,
-            'secondary_metric': datasource.metrics_combo,
-            'groupby': gb_cols,
-            'columns': gb_cols,
-            'all_columns': all_cols,
-            'all_columns_x': all_cols,
-            'all_columns_y': all_cols,
-            'timeseries_limit_metric': [('', '')] + datasource.metrics_combo,
-            'series': gb_cols,
-            'entity': gb_cols,
-            'x': datasource.metrics_combo,
-            'y': datasource.metrics_combo,
-            'size': datasource.metrics_combo,
-            'mapbox_label': all_cols,
-            'point_radius': [(c, c) for c in (["Auto"] + datasource.column_names)],
-            'filterable_cols': datasource.filterable_column_names,
-        }
-
-        if (datasource_type == 'table'):
-            grains = datasource.database.grains()
-            grain_choices = []
-            if grains:
-                grain_choices = [(grain.name, grain.name) for grain in grains]
-            field_options['granularity_sqla'] = \
-                [(c, c) for c in datasource.dttm_cols]
-            field_options['time_grain_sqla'] = grain_choices
-
         return Response(
-            json.dumps({'field_options': field_options}),
+            json.dumps(datasource.data),
             mimetype="application/json"
         )
 

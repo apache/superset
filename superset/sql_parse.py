@@ -14,7 +14,8 @@ class SupersetQuery(object):
         self._table_names = set()
         self._alias_names = set()
         # TODO: multistatement support
-        for statement in sqlparse.parse(self.sql):
+        self._parsed = sqlparse.parse(self.sql)
+        for statement in self._parsed:
             self.__extract_from_token(statement)
         self._table_names = self._table_names - self._alias_names
 
@@ -25,6 +26,13 @@ class SupersetQuery(object):
     # TODO: use sqlparse for this check.
     def is_select(self):
         return self.sql.upper().startswith('SELECT')
+
+    def stripped(self):
+        sql = self.sql
+        if sql:
+            while sql[-1] in (' ', ';', '\n', '\t'):
+                sql = sql[:-1]
+            return sql
 
     @staticmethod
     def __precedes_table_name(token_value):
@@ -66,6 +74,29 @@ class SupersetQuery(object):
             if identifier.tokens[0].ttype == Name:
                 self._alias_names.add(identifier.tokens[0].value)
         self.__extract_from_token(identifier)
+
+    def as_create_table(self, table_name, overwrite=False):
+        """Reformats the query into the create table as query.
+
+        Works only for the single select SQL statements, in all other cases
+        the sql query is not modified.
+        :param superset_query: string, sql query that will be executed
+        :param table_name: string, will contain the results of the
+            query execution
+        :param overwrite, boolean, table table_name will be dropped if true
+        :return: string, create table as query
+        """
+        # TODO(bkyryliuk): enforce that all the columns have names.
+        # Presto requires it for the CTA operation.
+        # TODO(bkyryliuk): drop table if allowed, check the namespace and
+        #                  the permissions.
+        # TODO raise if multi-statement
+        exec_sql = ''
+        sql = self.stripped()
+        if overwrite:
+            exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
+        exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
+        return exec_sql.format(**locals())
 
     def __extract_from_token(self, token):
         if not hasattr(token, 'tokens'):

@@ -39,22 +39,9 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
-
-    [actions.SET_FIELD_OPTIONS]() {
-      const newState = Object.assign({}, state);
-      const optionsByFieldName = action.options;
-      const fieldNames = Object.keys(optionsByFieldName);
-
-      fieldNames.forEach((fieldName) => {
-        if (fieldName === 'filterable_cols') {
-          newState.filterColumnOpts = optionsByFieldName[fieldName];
-        } else {
-          newState.fields[fieldName].choices = optionsByFieldName[fieldName];
-        }
-      });
-      return Object.assign({}, state, newState);
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasource: action.datasource });
     },
-
     [actions.SET_FILTER_COLUMN_OPTS]() {
       return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
     },

@@ -11,7 +11,8 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend, sql_parse)
+    app, db, models, utils, dataframe, results_backend)
+from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
 QueryStatus = models.QueryStatus
@@ -40,28 +41,6 @@ def dedup(l, suffix='__'):
     return new_l
 
 
-def create_table_as(sql, table_name, override=False):
-    """Reformats the query into the create table as query.
-
-    Works only for the single select SQL statements, in all other cases
-    the sql query is not modified.
-    :param superset_query: string, sql query that will be executed
-    :param table_name: string, will contain the results of the query execution
-    :param override, boolean, table table_name will be dropped if true
-    :return: string, create table as query
-    """
-    # TODO(bkyryliuk): enforce that all the columns have names. Presto requires it
-    #                  for the CTA operation.
-    # TODO(bkyryliuk): drop table if allowed, check the namespace and
-    #                  the permissions.
-    # TODO raise if multi-statement
-    exec_sql = ''
-    if override:
-        exec_sql = 'DROP TABLE IF EXISTS {table_name};\n'
-    exec_sql += "CREATE TABLE {table_name} AS \n{sql}"
-    return exec_sql.format(**locals())
-
-
 @celery_app.task(bind=True)
 def get_sql_results(self, query_id, return_results=True, store_results=False):
     """Executes the sql query returns the results."""
@@ -76,7 +55,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         session.commit()  # HACK
     query = session.query(models.Query).filter_by(id=query_id).one()
     database = query.database
-    executed_sql = query.sql.strip().strip(';')
     db_engine_spec = database.db_engine_spec
 
     def handle_error(msg):
@@ -91,7 +69,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         handle_error("Results backend isn't configured.")
 
     # Limit enforced only for retrieving the data, not for the CTA queries.
-    superset_query = sql_parse.SupersetQuery(executed_sql)
+    superset_query = SupersetQuery(query.sql)
+    executed_sql = superset_query.stripped()
     if not superset_query.is_select() and not database.allow_dml:
         handle_error(
             "Only `SELECT` statements are allowed against this database")
@@ -105,8 +84,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             query.tmp_table_name = 'tmp_{}_table_{}'.format(
                 query.user_id,
                 start_dttm.strftime('%Y_%m_%d_%H_%M_%S'))
-        executed_sql = create_table_as(
-            executed_sql, query.tmp_table_name)
+        executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (
             query.limit and superset_query.is_select() and
