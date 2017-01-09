@@ -1,11 +1,10 @@
 import React, { PropTypes } from 'react';
 import ControlLabelWithTooltip from './ControlLabelWithTooltip';
 import { slugify } from '../../modules/utils';
-import Select, { Creatable } from 'react-select';
 import Menu, { SubMenu, Item as MenuItem, Divider } from 'rc-menu';
 import 'rc-menu/assets/index.css';
 
-require("./Components.css")
+require('./Components.css');
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -28,65 +27,65 @@ const defaultProps = {
 };
 
 const vizType = [
-    {chart:"area",icon:"fa fa-area-chart"},
-    {chart:"bar",icon:"fa fa-bar-chart"},
-    {chart:"big_number",icon:"fa fa-header"},
-    {chart:"big_number_total",icon:"fa fa-header"},
-    {chart:"box_plot",icon:"fa fa-bar-chart"},
-    {chart:"bubble",icon:"fa fa-bar-chart"},
-    {chart:"bullet",icon:"fa fa-bar-chart"},
-    {chart:"cal_heatmap",icon:"fa fa-bar-chart"},
-    {chart:"compare",icon:"fa fa-line-chart"},
-    {chart:"directed_force",icon:"fa fa-bar-chart"},
-    {chart:"dist_bar",icon:"fa fa-bar-chart"},
-    {chart:"filter_box",icon:"fa fa-check-square"},
-    {chart:"heatmap",icon:"fa fa-bar-chart"},
-    {chart:"histogram",icon:"fa fa-bar-chart"},
-    {chart:"horizon",icon:"fa fa-bar-chart"},
-    {chart:"iframe",icon:"fa fa-columns"},
-    {chart:"line",icon:"fa fa-line-chart"},
-    {chart:"mapbox",icon:"fa fa-bar-chart"},
-    {chart:"markup",icon:"fa fa-bar-chart"},
-    {chart:"para",icon:"fa fa-bar-chart"},
-    {chart:"pie",icon:"fa fa-pie-chart"},
-    {chart:"pivot_table",icon:"fa fa-table"},
-    {chart:"sankey",icon:"fa fa-bar-chart"},
-    {chart:"separator",icon:"fa fa-bar-chart"},
-    {chart:"sunburst",icon:"fa fa-bar-chart"},
-    {chart:"table",icon:"fa fa-table"},
-    {chart:"treemap",icon:"fa fa-bar-chart"},
-    {chart:"word_cloud",icon:"fa fa-bar-chart"},
-    {chart:"world_map",icon:"fa fa-map-marker"},
-    {chart:"linePlusBar",icon:"fa fa-line-chart"},
-    {chart:"multi",icon:"fa fa-line-chart"},
-]
+    { chart: "area", icon: "fa fa-area-chart" },
+    { chart: "bar", icon: "fa fa-bar-chart" },
+    { chart: "big_number", icon: "fa fa-header" },
+    { chart: "big_number_total", icon: "fa fa-header" },
+    { chart: "box_plot", icon: "fa fa-bar-chart" },
+    { chart: "bubble", icon: "fa fa-bar-chart" },
+    { chart: "bullet", icon: "fa fa-bar-chart" },
+    { chart: "cal_heatmap", icon: "fa fa-bar-chart" },
+    { chart: "compare", icon: "fa fa-line-chart" },
+    { chart: "directed_force", icon: "fa fa-bar-chart" },
+    { chart: "dist_bar", icon: "fa fa-bar-chart" },
+    { chart: "filter_box", icon: "fa fa-check-square" },
+    { chart: "heatmap", icon: "fa fa-bar-chart" },
+    { chart: "histogram", icon: "fa fa-bar-chart" },
+    { chart: "horizon", icon: "fa fa-bar-chart" },
+    { chart: "iframe", icon: "fa fa-columns" },
+    { chart: "line", icon: "fa fa-line-chart" },
+    { chart: "mapbox", icon: "fa fa-bar-chart" },
+    { chart: "markup", icon: "fa fa-bar-chart" },
+    { chart: "para", icon: "fa fa-bar-chart" },
+    { chart: "pie", icon: "fa fa-pie-chart" },
+    { chart: "pivot_table", icon: "fa fa-table" },
+    { chart: "sankey", icon: "fa fa-bar-chart" },
+    { chart: "separator", icon: "fa fa-bar-chart" },
+    { chart: "sunburst", icon: "fa fa-bar-chart" },
+    { chart: "table", icon: "fa fa-table" },
+    { chart: "treemap", icon: "fa fa-bar-chart" },
+    { chart: "word_cloud", icon: "fa fa-bar-chart" },
+    { chart: "world_map", icon: "fa fa-map-marker" },
+    { chart: "linePlusBar", icon: "fa fa-line-chart" },
+    { chart: "multi", icon: "fa fa-line-chart" },
+];
 
-var selectedMenu = {
-    chart:"",
-    icon: "",
-}
+let selectedMenu = {
+  chart:'',
+  icon: '',
+};
 
 export default class MenuField extends React.Component {
-  constructor(props) {
-      super(props);
-      selectedMenu.chart = this.props.value;
-      for (var viz in vizType) {
-        if (vizType[viz].chart === this.props.value) {
-            selectedMenu.chart = vizType[viz].chart;
-            selectedMenu.icon = vizType[viz].icon;
-            break;    
-        }
+  constructor(props) { 
+    super(props);
+    selectedMenu.chart = this.props.value;
+    for (var viz in vizType) { 
+      if (vizType[viz].chart === this.props.value) { 
+        selectedMenu.chart = vizType[viz].chart;
+        selectedMenu.icon = vizType[viz].icon;
+        break;    
+      }
     }
   }
   onChange(info) {
     let optionValue = info ? info.key : null;
     for (var viz in vizType) {
-        if (vizType[viz].chart === optionValue) {
-            selectedMenu.chart = vizType[viz].chart;
-            selectedMenu.icon = vizType[viz].icon;
-            this.props.onChange(this.props.name, optionValue); 
-            break;    
-        }
+      if (vizType[viz].chart === optionValue) {
+        selectedMenu.chart = vizType[viz].chart;
+        selectedMenu.icon = vizType[viz].icon;
+        this.props.onChange(this.props.name, optionValue); 
+        break;    
+      }
     }
   }
   render() {
@@ -205,7 +204,7 @@ export default class MenuField extends React.Component {
             </SubMenu>
             <MenuItem key="linePlusBar">
                 <span><i className="fa fa-line-chart icon-span"></i>
-                    <font size="2">条线图</font>
+                  <font size="2">条线图</font>
                 </span>
                 </MenuItem>
             <SubMenu title={areaTitle} key="4-4">
