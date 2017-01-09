@@ -183,14 +183,16 @@ class CoreTests(SupersetTestCase):
 
         tables = db.session.query(models.SqlaTable).all()
         for table in tables:
-            # Check that the /tablemodelview/list view contains each table and their show, edit, delete buttons
+            # Check that the /tablemodelview/list view contains each table and
+            # their show, edit, delete buttons
             assert table.name in resp
             assert '/superset/explore/table/{}'.format(table.id) in resp
             assert '/tablemodelview/show/{}'.format(table.id) in resp
             assert '/tablemodelview/edit/{}'.format(table.id) in resp
             assert '/tablemodelview/delete/{}'.format(table.id) in resp
 
-            # Visit each table's explore view and make sure some important functionality is there
+            # Visit each table's explore view and make sure some
+            # important functionality is there
             url = 'superset/explore/table/{}/'.format(table.id)
             explore_view = self.get_resp(url)
             assert '[{}] - untitled'.format(table.name) in explore_view
@@ -202,7 +204,6 @@ class CoreTests(SupersetTestCase):
         assert not '/tablemodelview/show/{}'.format(len(tables) + 1) in resp
         assert not '/tablemodelview/edit/{}'.format(len(tables) + 1) in resp
         assert not '/tablemodelview/delete/{}'.format(len(tables) + 1) in resp
-
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
