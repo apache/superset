@@ -1418,8 +1418,14 @@ class Superset(BaseSupersetView):
         if request.method == 'POST' and f:
             current_tt = int(time.time())
             data = pickle.load(f)
+            # TODO: import DRUID datasources
             for table in data['datasources']:
-                models.SqlaTable.import_obj(table, import_time=current_tt)
+                if table.type == 'table':
+                    models.SqlaTable.import_obj(table, import_time=current_tt)
+                else:
+                    models.DruidDatasource.import_obj(
+                        table, import_time=current_tt)
+            db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
