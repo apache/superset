@@ -69,22 +69,22 @@ export default class MenuField extends React.Component {
   constructor(props) { 
     super(props);
     selectedMenu.chart = this.props.value;
-    for (var viz in vizType) { 
+    for (let viz in vizType) { 
       if (vizType[viz].chart === this.props.value) { 
         selectedMenu.chart = vizType[viz].chart;
         selectedMenu.icon = vizType[viz].icon;
-        break;    
+        break;
       }
     }
   }
   onChange(info) {
-    let optionValue = info ? info.key : null;
-    for (var viz in vizType) {
+    const optionValue = info ? info.key : null;
+    for (let viz in vizType) {
       if (vizType[viz].chart === optionValue) {
         selectedMenu.chart = vizType[viz].chart;
         selectedMenu.icon = vizType[viz].icon;
-        this.props.onChange(this.props.name, optionValue); 
-        break;    
+        this.props.onChange(this.props.name, optionValue);
+        break;
       }
     }
   }
@@ -101,114 +101,132 @@ export default class MenuField extends React.Component {
         <i className="fa fa-caret-down pull-right"></i>
       </span>
     );
-    const baseTitle = (<span>
-                         <i className="fa fa-bar-chart icon-span"></i>
-                         <font size="2">基础图形</font>
-                         <i className="fa fa-caret-right pull-right"></i>
-                       </span>);
-    const barTitle = (<span>
-                        <i className="fa fa-bar-chart icon-span"></i>
-                        <font size="2">条形图</font>
-                        <i className="fa fa-caret-right pull-right"></i>
-                      </span>);
-    const lineTitle = (<span>
-                         <i className="fa fa-line-chart icon-span"></i>
-                         <font size="2">线形图</font>
-                         <i className="fa fa-caret-right pull-right"></i>
-                       </span>);
-    const areaTitle = (<span>
-                         <i className="fa fa-area-chart icon-span"></i>
-                         <font size="2">面积图</font>
-                         <i className="fa fa-caret-right pull-right"></i>
-                       </span>);
-    const advancedTitle = (<span>
-                             <i className="fa fa-external-link-square icon-span"></i>
-                             <font size="2">高级图</font>
-                             <i className="fa fa-caret-right pull-right"></i>
-                           </span>);
-    const meterTitle = (<span>
-                          <i className="fa fa-tachometer icon-span"></i>
-                          <font size="2">计量图</font>
-                          <i className="fa fa-caret-right pull-right"></i>
-                       </span>);
-    const hTitle = (<span>
-                      <i className="fa fa-header icon-span"></i>
-                      <font size="2">大字图</font>
-                      <i className="fa fa-caret-right pull-right"></i>
-                    </span>);
-    const mapTitle = (<span>
-                        <i className="fa fa-map-marker icon-span"></i>
-                        <font size="2">地图</font>
-                        <i className="fa fa-caret-right pull-right"></i>
-                      </span>);
-    const otherTitle = (<span>
-                          <i className="fa fa-ellipsis-h icon-span"></i>
-                          <font size="2">其他</font>
-                          <i className="fa fa-caret-right pull-right"></i>
-                        </span>);
+    const baseTitle = (
+      <span>
+        <i className="fa fa-bar-chart icon-span"></i>
+        <font size="2">基础图形</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const barTitle = (
+      <span>
+        <i className="fa fa-bar-chart icon-span"></i>
+        <font size="2">条形图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const lineTitle = (
+      <span>
+        <i className="fa fa-line-chart icon-span"></i>
+        <font size="2">线形图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const areaTitle = (
+      <span>
+        <i className="fa fa-area-chart icon-span"></i>
+        <font size="2">面积图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const advancedTitle = (
+      <span>
+        <i className="fa fa-external-link-square icon-span"></i>
+        <font size="2">高级图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const meterTitle = (
+      <span>
+        <i className="fa fa-tachometer icon-span"></i>
+        <font size="2">计量图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const hTitle = (
+      <span>
+        <i className="fa fa-header icon-span"></i>
+        <font size="2">大字图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const mapTitle = (
+      <span>
+        <i className="fa fa-map-marker icon-span"></i>
+        <font size="2">地图</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
+    const otherTitle = (
+      <span>
+        <i className="fa fa-ellipsis-h icon-span"></i>
+        <font size="2">其他</font>
+        <i className="fa fa-caret-right pull-right"></i>
+      </span>
+    );
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
-    const MenuWrap = 
-      (<Menu {...menuProps}>
-         <SubMenu title={menuTitle}>
-           <MenuItem key="filter_box">
-             <span>
-               <i className="fa fa-check-square icon-span"></i>
-               <font size="2">提示器</font>
+    const MenuWrap = (
+      <Menu {...menuProps}>
+        <SubMenu title={menuTitle}>
+          <MenuItem key="filter_box">
+            <span>
+              <i className="fa fa-check-square icon-span"></i>
+              <font size="2">提示器</font>
              </span>
-           </MenuItem>
-           <Divider />
-           <MenuItem key="table">
-             <span>
-               <i className="fa fa-table icon-span"></i>
-               <font size="2">表格</font>
-             </span>
-           </MenuItem>
-           <MenuItem key="pivot_table">
-             <span>
-               <i className="fa fa-table icon-span"></i>
-               <font size="2">数据透视表</font>
-             </span>
-           </MenuItem>
-           <SubMenu title={baseTitle} key="4">
-             <SubMenu title={barTitle} key="4-1">
-               <MenuItem key="dist_bar">
-                 <span>
-                   <i className="fa fa-bar-chart icon-span"></i>
-                   <font size="2">条形图</font>
-                 </span>
-               </MenuItem>
-               <MenuItem key="bar">
-                 <span>
-                   <i className="fa fa-bar-chart icon-span"></i>
-                   <font size="2">条形图(T)</font>
-                 </span>
+          </MenuItem>
+          <Divider />
+          <MenuItem key="table">
+            <span>
+              <i className="fa fa-table icon-span"></i>
+              <font size="2">表格</font>
+            </span>
+          </MenuItem>
+          <MenuItem key="pivot_table">
+            <span>
+              <i className="fa fa-table icon-span"></i>
+              <font size="2">数据透视表</font>
+            </span>
+          </MenuItem>
+          <SubMenu title={baseTitle} key="4">
+            <SubMenu title={barTitle} key="4-1">
+              <MenuItem key="dist_bar">
+                <span>
+                  <i className="fa fa-bar-chart icon-span"></i>
+                  <font size="2">条形图</font>
+                </span>
+              </MenuItem>
+              <MenuItem key="bar">
+                <span>
+                  <i className="fa fa-bar-chart icon-span"></i>
+                  <font size="2">条形图(T)</font>
+                </span>
                </MenuItem>
              </SubMenu>
-           <SubMenu title={lineTitle} key="4-2">
-             <MenuItem key="multi">
+            <SubMenu title={lineTitle} key="4-2">
+              <MenuItem key="multi">
                <span>
                  <i className="fa fa-line-chart icon-span"></i>
                  <font size="2">线形图</font>
                </span>
-             </MenuItem>
-             <MenuItem key="line">
+              </MenuItem>
+              <MenuItem key="line">
                <span>
                  <i className="fa fa-line-chart icon-span"></i>
                  <font size="2">线形图(T)</font>
                </span>
-             </MenuItem>
-             <MenuItem key="linePlusBar">
+              </MenuItem>
+              <MenuItem key="linePlusBar">
                <span>
                  <i className="fa fa-line-chart icon-span"></i>
                  <font size="2">线形图(S)</font>
                </span>
-             </MenuItem>
-             <MenuItem key="compare">
+              </MenuItem>
+              <MenuItem key="compare">
                <span>
                  <i className="fa fa-line-chart icon-span"></i>
                  <font size="2">线形图(VS)</font>
                </span>
-             </MenuItem>
+              </MenuItem>
             </SubMenu>
             <MenuItem key="linePlusBar">
               <span>
@@ -236,13 +254,13 @@ export default class MenuField extends React.Component {
                 <font size="2">饼形图</font>
               </span>
             </MenuItem>
-            </SubMenu>
-            <SubMenu title={advancedTitle} key="5">
-              <MenuItem key="bubble">
-                <span>
-                  <i className="fa fa-line-chart icon-span"></i>
-                  <font size="2">气泡图</font>
-                </span>
+          </SubMenu>
+          <SubMenu title={advancedTitle} key="5">
+            <MenuItem key="bubble">
+              <span>
+                <i className="fa fa-line-chart icon-span"></i>
+                <font size="2">气泡图</font>
+              </span>
             </MenuItem>
             <MenuItem key="5-2" disable="true">
                <span>
@@ -310,22 +328,22 @@ export default class MenuField extends React.Component {
                 <font size="2">环形图</font>
               </span>
             </MenuItem>
+          </SubMenu>
+          <SubMenu title={meterTitle} key="6">
+            <SubMenu title={hTitle} key="6-1">
+              <MenuItem key="big_number">
+                <span>
+                  <i className="fa fa-header icon-span"></i>
+                  <font size="2">大字图</font>
+                </span>
+              </MenuItem>
+              <MenuItem key="big_number_total">
+                <span>
+                  <i className="fa fa-header icon-span"></i>
+                  <font size="2">大字图(T)</font>
+                </span>
+              </MenuItem>
             </SubMenu>
-            <SubMenu title={meterTitle} key="6">
-              <SubMenu title={hTitle} key="6-1">
-                <MenuItem key="big_number">
-                  <span>
-                    <i className="fa fa-header icon-span"></i>
-                    <font size="2">大字图</font>
-                  </span>
-                </MenuItem>
-                <MenuItem key="big_number_total">
-                  <span>
-                    <i className="fa fa-header icon-span"></i>
-                    <font size="2">大字图(T)</font>
-                  </span>
-                </MenuItem>
-              </SubMenu>
             <MenuItem key="bullet">
               <span>
                 <i className="fa fa-space-shuttle icon-span"></i>
@@ -344,13 +362,13 @@ export default class MenuField extends React.Component {
                 <font size="2">云字图</font>
               </span>
             </MenuItem>
-            </SubMenu>
-            <SubMenu title={mapTitle} key="7">
-              <MenuItem key="world_map">
-                <span>
-                  <i className="fa fa-map-marker icon-span"></i>
-                  <font size="2">世界地图</font>
-                </span>
+          </SubMenu>
+          <SubMenu title={mapTitle} key="7">
+            <MenuItem key="world_map">
+              <span>
+                <i className="fa fa-map-marker icon-span"></i>
+                <font size="2">世界地图</font>
+              </span>
             </MenuItem>
             <MenuItem key="world_map1">
               <span>
@@ -358,36 +376,36 @@ export default class MenuField extends React.Component {
                 <font size="2">中国地图</font>
               </span>
             </MenuItem>
-            </SubMenu>
-            <SubMenu title={otherTitle} key="8">
-              <MenuItem key="markup1">
-                <span>
-                  <i className="fa fa-file-code-o icon-span"></i>
-                  <font size="2">叙述</font>
-                </span>
-              </MenuItem>
-              <MenuItem key="markup">
-                <span>
-                  <i className="fa fa-bar-chart icon-span"></i>
-                  <font size="2">标记</font>
-                </span>
-              </MenuItem>
-              <MenuItem key="iframe">
-                <span>
-                  <i className="fa fa-columns icon-span"></i>
-                  <font size="2">iframe</font>
-                </span>
-              </MenuItem>
-              <MenuItem key="separator">
-                <span>
-                  <i className="fa fa-minus icon-span"></i>
-                  <font size="2">separator</font>
-                </span>
-              </MenuItem>
-            </SubMenu>
-         </SubMenu>
-       </Menu>);
-
+          </SubMenu>
+          <SubMenu title={otherTitle} key="8">
+            <MenuItem key="markup1">
+              <span>
+                <i className="fa fa-file-code-o icon-span"></i>
+                <font size="2">叙述</font>
+              </span>
+            </MenuItem>
+            <MenuItem key="markup">
+              <span>
+                <i className="fa fa-bar-chart icon-span"></i>
+                <font size="2">标记</font>
+              </span>
+            </MenuItem>
+            <MenuItem key="iframe">
+              <span>
+                <i className="fa fa-columns icon-span"></i>
+                <font size="2">iframe</font>
+              </span>
+            </MenuItem>
+            <MenuItem key="separator">
+              <span>
+                <i className="fa fa-minus icon-span"></i>
+                <font size="2">separator</font>
+              </span>
+            </MenuItem>
+          </SubMenu>
+        </SubMenu>
+      </Menu>
+    );
     return (
       <div id={`formControlsSelect-${slugify(this.props.label)}`}>
         <div>
