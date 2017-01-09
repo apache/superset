@@ -4,6 +4,7 @@ import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
 import { fieldTypes } from '../stores/fields';
+import MenuField from './MenuField'
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -59,6 +60,14 @@ export default class FieldSet extends React.Component {
       />);
   }
 
+  renderMenuField(selectProps) {
+    return (
+      <MenuField
+        {...this.props}
+        {...selectProps}
+      />);
+  }
+
   render() {
     const type = this.props.type;
     const selectProps = {
@@ -77,6 +86,8 @@ export default class FieldSet extends React.Component {
       field = this.renderTextField();
     } else if (type === 'TextAreaField') {
       field = this.renderTextAreaField();
+    } else if (type === 'MenuField') {
+      field = this.renderMenuField(selectProps[type]);
     }
 
     return field;

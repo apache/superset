@@ -45,7 +45,7 @@ export const fields = {
   },
 
   viz_type: {
-    type: 'SelectField',
+    type: 'MenuField',
     label: 'Viz',
     default: 'table',
     choices: formatSelectOptions(Object.keys(visTypes)),
