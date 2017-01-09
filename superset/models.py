@@ -2597,7 +2597,7 @@ class Log(Model):
                 referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
             db.session.add(log)
-            db.session.flush()
+            db.session.commit()
             return value
         return wrapper
 
