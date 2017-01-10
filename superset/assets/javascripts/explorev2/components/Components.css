@@ -1,0 +1,41 @@
+.icon-span {
+    padding: 1px 8px 1px 2px;
+}
+.icon-current-span {
+    padding: 10px 8px 1px 2px;
+}
+.rc-menu-horizontal > .rc-menu-item,
+.rc-menu-horizontal > .rc-menu-submenu > .rc-menu-submenu-title {
+  padding: 5px 10px 5px 10px !important;
+}
+.rc-menu-vertical > .rc-menu-item,
+.rc-menu-inline > .rc-menu-item,
+.rc-menu-vertical > .rc-menu-submenu > .rc-menu-submenu-title,
+.rc-menu-inline > .rc-menu-submenu > .rc-menu-submenu-title {
+  padding: 5px 8px 5px 10px !important;
+}
+.rc-menu-submenu-horizontal > .rc-menu {
+  top: 100%;
+  left: 0;
+  position: absolute !important;
+  min-width: 120px;
+  margin-top: 4px;
+}
+.rc-menu-submenu-vertical > .rc-menu {
+  top: 0;
+  left: 100%;
+  position: absolute;
+  min-width: 120px !important;
+  margin-left: 4px;
+}
+.rc-menu-horizontal {
+  background-color: #00A699 !important;
+  border: none;
+  border-bottom: 1px solid transparent;
+  border-bottom: 1px solid #d9d9d9;
+  box-shadow: none;
+  color: #fff;
+}
+.rc-menu-submenu-selected {
+  background-color: #00A699 !important;
+}

@@ -87,7 +87,8 @@
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "topojson": "^1.6.22",
     "victory": "^0.12.1",
-    "viewport-mercator-project": "^2.1.0"
+    "viewport-mercator-project": "^2.1.0",
+    "rc-menu": "^5.0.8"
   },
   "devDependencies": {
     "babel": "^6.3.26",
