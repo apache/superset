@@ -72,6 +72,20 @@ function tableVis(slice) {
           return d;
         });
 
+      // get compare info from form_data
+      const compareMetricLefts = [];
+      const compareMetricRights = [];
+      const compareExprs = [];
+      const compareValues = [];
+      for (let i = 1; i < 10; i++) {
+        if (fd['compare_expr_' + i] !== '') {
+          compareMetricLefts.push(col(fd['compare_metricLeft_' + i]));
+          compareMetricRights.push(col(fd['compare_metricRight_' + i]));
+          compareExprs.push(fd['compare_expr_' + i]);
+          compareValues.push(fd['compare_value_' + i]);
+        }
+      }
+
       table.append('tbody')
         .selectAll('tr')
         .data(data.records)
@@ -103,7 +117,7 @@ function tableVis(slice) {
         }) */
         .attr('style', function (d) {
           // add body style
-          const bodyStyle = fd.bodyValue;
+          let bodyStyle = fd.bodyValue;
           for (let i = 1; i < 10; i++) {
             if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {
@@ -114,10 +128,26 @@ function tableVis(slice) {
                 if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
                   // console.log(fd['style_value_' + i]);
-                  return bodyStyle + ';' + fd['style_value_' + i];
+                  bodyStyle += fd['style_value_' + i] + ';';
                 }
               }
             } else {
+              break;
+            }
+          }
+          // add two colums compare style
+          for (let i = 0; i < compareExprs.length; i++) {
+            if (d.isMetric && d.col === fd['compare_metricLeft_' + (i + 1)]) {
+              const expr = compareExprs[i].replace('x', compareMetricLefts[i][0])
+                         .replace('y', compareMetricRights[i][0]).replace(/=/g, '==')
+                         .replace(/>==/g, '>=').replace(/<==/g, '<=');
+              // console.log(expr);
+              if (d.val === compareMetricLefts[i][0] && eval(expr)) {
+                bodyStyle += compareValues[i];
+              }
+              // delete the first element
+              compareMetricLefts[i].splice(0, 1);
+              compareMetricRights[i].splice(0, 1);
               break;
             }
           }
@@ -177,7 +207,7 @@ function tableVis(slice) {
           } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
             color = 'green;';
           }
-          return html + '<i style="margin-left:20px;color:' 
+          return html + '<i style="margin-left:20px;color:'
                       + color + '" class="' + icon + '" aria-hidden="true"></i>';
         });
       const height = slice.height();

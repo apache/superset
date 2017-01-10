@@ -113,6 +113,21 @@ export function changeBaseStyle(baseStyle, field, value) {
   return { type: CHANGE_BASE_STYLE, baseStyle, field, value };
 }
 
+export const ADD_COMPARE = 'ADD_COMPARE';
+export function addCompare(compare) {
+  return { type: ADD_COMPARE, compare };
+}
+
+export const REMOVE_COMPARE = 'REMOVE_COMPARE';
+export function removeCompare(compare) {
+  return { type: REMOVE_STYLE, compare };
+}
+
+export const CHANGE_COMPARE = 'CHANGE_COMPARE';
+export function changeCompare(compare, field, value) {
+  return { type: CHANGE_COMPARE, compare, field, value };
+}
+
 export const ADD_NAVIGATE = 'ADD_NAVIGATE';
 export function addNavigate(navigate) {
   return { type: ADD_NAVIGATE, navigate };
