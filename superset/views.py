@@ -2222,10 +2222,10 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
-    @expose("/sqllab_viz/")
+    @expose("/sqllab_viz/", methods=['POST'])
     @log_this
     def sqllab_viz(self):
-        data = json.loads(request.args.get('data'))
+        data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
         viz_type = data.get('chartType')
         table = (
@@ -2284,7 +2284,7 @@ class Superset(BaseSupersetView):
         }
         params = "&".join([k + '=' + v for k, v in params.items() if v])
         url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
-        return redirect(url)
+        return(url)
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
