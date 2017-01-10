@@ -262,10 +262,24 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_access', druid_ds_2_perm)
         self.assertIn(perm_view, druid_role.permissions)
 
+        # Case 5. Create new access request to table
+        # Grant user alpha access
+        # Check if gamma access request was deleted
+
+        # create request on energy usage
+        access_request5 = create_access_request('table', 'energy_usage', TEST_ROLE_NAME)
+        ds_5_id = access_request5.datasource_id
+        # grant Admin role
+        self.get_resp(GRANT_ROLE_REQUEST.format('table', ds_5_id, 'gamma', 'Admin'))
+        # previous requests on table should be cleaned up
+        access_requests = self.get_access_requests('gamma', 'table', ds_5_id)
+        self.assertFalse(access_requests)
+
         # cleanup
         gamma_user = sm.find_user(username='gamma')
         gamma_user.roles.remove(sm.find_role('druid_role'))
         gamma_user.roles.remove(sm.find_role(TEST_ROLE_NAME))
+        gamma_user.roles.remove(sm.find_role('Admin'))
         session.delete(sm.find_role('druid_role'))
         session.delete(sm.find_role(TEST_ROLE_NAME))
         session.commit()
