@@ -67,7 +67,7 @@ export default class Navigate extends React.Component {
             multi={false}
             name="select-column"
             placeholder="导航切片"
-            options={this.props.slices.map((o) => ({ value: o[0]+'', label: o[1] }))}
+            options={this.props.slices.map((o) => ({ value: o[0] + '', label: o[1] }))}
             value={this.props.navigate.slice}
             autosize={false}
             onChange={this.changeSlice.bind(this, this.props.navigate)}
@@ -77,7 +77,7 @@ export default class Navigate extends React.Component {
             multi={false}
             name="select-column"
             placeholder="打开方式"
-            options={this.state.openChoices.map((o) => ({ value: o.value+'', label: o.key }))}
+            options={this.state.openChoices.map((o) => ({ value: o.value + '', label: o.key }))}
             value={this.props.navigate.open}
             autosize={false}
             onChange={this.changeOpen.bind(this, this.props.navigate)}

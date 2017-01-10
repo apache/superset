@@ -71,7 +71,7 @@ class StyleModal extends React.Component {
       this.setState({ flag: false, flag2: true, flag3: false, flag4: false });
       $('ul li').attr('style', '');
       $('#li2').attr('style', 'background: #ccc');
-    } else if(type === 3) {
+    } else if (type === 3) {
       this.setState({ flag: false, flag2: false, flag3: true, flag4: false });
       $('ul li').attr('style', '');
       $('#li3').attr('style', 'background: #ccc');

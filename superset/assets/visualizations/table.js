@@ -23,8 +23,8 @@ function tableVis(slice) {
     function onSuccess(json) {
       const data = json.data;
       const fd = json.form_data;
-      console.log("form_data:");
-      console.log(fd);
+      // console.log("form_data:");
+      // console.log(fd);
       // Removing metrics (aggregates) that are strings
       const realMetrics = [];
       for (const k in data.records[0]) {
@@ -73,7 +73,10 @@ function tableVis(slice) {
         });
 
       // get compare info from form_data
-      const compareMetricLefts = [], compareMetricRights = [], compareExprs = [], compareValues = [];
+      const compareMetricLefts = [];
+      const compareMetricRights = [];
+      const compareExprs = [];
+      const compareValues = [];
       for (let i = 1; i < 10; i++) {
         if (fd['compare_expr_' + i] !== '') {
           compareMetricLefts.push(col(fd['compare_metricLeft_' + i]));
@@ -133,11 +136,13 @@ function tableVis(slice) {
             }
           }
           // add two colums compare style
-          for(let i = 0; i < compareExprs.length; i++) {
-            if (d.isMetric && d.col === fd['compare_metricLeft_' + (i+1)]) {
-              let expr = compareExprs[i].replace('x', compareMetricLefts[i][0]).replace('y', compareMetricRights[i][0]).replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+          for (let i = 0; i < compareExprs.length; i++) {
+            if (d.isMetric && d.col === fd['compare_metricLeft_' + (i + 1)]) {
+              const expr = compareExprs[i].replace('x', compareMetricLefts[i][0])
+                         .replace('y', compareMetricRights[i][0]).replace(/=/g, '==')
+                         .replace(/>==/g, '>=').replace(/<==/g, '<=');
               // console.log(expr);
-              if (d.val === compareMetricLefts[i][0] && eval(expr)){
+              if (d.val === compareMetricLefts[i][0] && eval(expr)) {
                 bodyStyle += compareValues[i];
               }
               // delete the first element
@@ -202,7 +207,7 @@ function tableVis(slice) {
           } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
             color = 'green;';
           }
-          return html + '<i style="margin-left:20px;color:' 
+          return html + '<i style="margin-left:20px;color:'
                       + color + '" class="' + icon + '" aria-hidden="true"></i>';
         });
       const height = slice.height();

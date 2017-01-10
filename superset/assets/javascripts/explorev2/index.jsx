@@ -110,7 +110,7 @@ bootstrappedState.viz.form_data.baseStyle =
 function parseCompares(form_data) {
   const compares = [];
   for (let i = 0; i < 10; i++) {
-    if (form_data[`compare_metricLeft_${i}`] && form_data[`compare_metricRight_${i}`] 
+    if (form_data[`compare_metricLeft_${i}`] && form_data[`compare_metricRight_${i}`]
         && form_data[`compare_expr_${i}`]) {
       compares.push({
         id: form_data[`compare_id_${i}`],
