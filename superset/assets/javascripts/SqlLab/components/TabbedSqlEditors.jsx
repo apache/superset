@@ -4,9 +4,10 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
-import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
+import { getParamFromQuery } from '../../../utils/common';
+const $ = require('jquery');
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -28,12 +29,21 @@ let queryCount = 1;
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const uri = window.location.toString();
+    const cleanUri = '/superset/sqllab';
+    let query = null;
     const search = window.location.search;
-    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
-    const query = search.substring(1);
+    if (search) {
+      const urlId = getParamFromQuery(search.substring(1), 'id');
+      $.ajax({
+        type: 'GET',
+        async: false,
+        url: `/kv/${urlId}`,
+        success(data) {
+          query = JSON.parse(data);
+        },
+      });
+    }
     this.state = {
-      uri,
       cleanUri,
       query,
       queriesArray: [],
@@ -44,12 +54,13 @@ class TabbedSqlEditors extends React.PureComponent {
   componentWillMount() {
     if (this.state.query) {
       queryCount++;
+      const newQuery = this.state.query;
       const queryEditorProps = {
-        title: getParamFromQuery(this.state.query, 'title'),
-        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
-        schema: getParamFromQuery(this.state.query, 'schema'),
-        autorun: getParamFromQuery(this.state.query, 'autorun'),
-        sql: getParamFromQuery(this.state.query, 'sql'),
+        title: newQuery.title ? newQuery.title : 'shared query',
+        dbId: newQuery.dbId ? parseInt(newQuery.dbId, 10) : null,
+        schema: newQuery.schema ? newQuery.schema : null,
+        autorun: newQuery.autorun ? newQuery.autorun : false,
+        sql: newQuery.sql ? newQuery.sql : 'SELECT ...',
       };
       this.props.actions.addQueryEditor(queryEditorProps);
       // Clean the url in browser history

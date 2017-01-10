@@ -11,6 +11,7 @@ import HighlightedSql from './HighlightedSql';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
 import { getLink } from '../../../utils/common';
+const $ = require('jquery');
 
 const propTypes = {
   columns: React.PropTypes.array,
@@ -42,6 +43,26 @@ class QueryTable extends React.PureComponent {
     const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
     const link = getLink(this.state.cleanUri, params);
     return encodeURI(link);
+  }
+  openQuery(dbId, schema, sql) {
+    const newQuery = {
+      dbId,
+      title: 'Untitled Query',
+      schema,
+      sql,
+    };
+    $.ajax({
+      type: 'POST',
+      url: '/kv/store/',
+      async: false,
+      data: {
+        baseUrl: 'superset/sqllab',
+        data: JSON.stringify(newQuery),
+      },
+      success: (url) => {
+        window.open(url);
+      },
+    });
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -98,12 +119,12 @@ class QueryTable extends React.PureComponent {
       q.started = moment(q.startDttm).format('HH:mm:ss');
       q.querylink = (
         <div style={{ width: '100px' }}>
-          <a
-            href={this.getQueryLink(q.dbId, q.sql)}
-            className="btn btn-primary btn-xs"
+          <button
+            className="btn btn-link btn-xs"
+            onClick={this.openQuery.bind(this, q.schema, q.dbId, q.sql)}
           >
             <i className="fa fa-external-link" />Open in SQL Editor
-          </a>
+          </button>
         </div>
       );
       q.sql = (

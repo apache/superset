@@ -1104,6 +1104,34 @@ def ping():
     return "OK"
 
 
+
+class KV(BaseSupersetView):
+
+    """ used for storing and retrieving key value pairs """
+
+    @log_this
+    @expose("/store/", methods=['POST', 'GET'])
+    def store(self):
+        value = request.form.get('data')
+        base_url = request.form.get('baseUrl')
+        obj = models.KeyValue(value=value)
+        db.session.add(obj)
+        db.session.commit()
+        return("http://{request.headers[Host]}/{base_url}?id={obj.id}".format(
+            request=request, base_url=base_url, obj=obj))
+
+    @log_this
+    @expose("/<key_id>/")
+    def get_value(self, key_id):
+        kv = db.session.query(models.KeyValue).filter_by(id=key_id).first()
+        if kv:
+            return Response(kv.value, status=200)
+        else:
+            return Response("Error: Value cannot be retrieved", status=404)
+
+appbuilder.add_view_no_menu(KV)
+
+
 class R(BaseSupersetView):
 
     """used for short urls"""
