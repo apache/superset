@@ -80,8 +80,6 @@ function eventsViz(slice) {
       .enter()
       .append('rect')
       .on('mouseover', function(d) {
-        console.log(d);
-        console.log(this);
         tip.show(d, this);
       })
       .on('mouseout', function(d) {
@@ -91,7 +89,7 @@ function eventsViz(slice) {
       .attr('y', 0)
       .attr('width', 0)
       .transition()
-      .delay((d, i) => i*50)
+      .delay((d, i) => i*10)
       .attr('x', d => xScale(d.ts))
       .attr('y', (d, i) => {
         const v = (
@@ -111,6 +109,8 @@ function eventsViz(slice) {
       })
       .attr('height',  height / (categories.length * TRACKS_PER_BAND))
       .style('opacity', 1)
+      .style('stroke', 'black')
+      .style('stroke-width', '1px')
       .style('fill', d => category21(d.category));
 
       slice.done(payload);

@@ -47,7 +47,7 @@ def get_slice_json(defaults, **kwargs):
 def load_session():
     tbl_name = "user_actions"
     filepath = os.path.join(DATA_FOLDER, 'fake_session_data.gz')
-    df = pd.read_csv(filepath, delimiter='|')
+    df = pd.read_csv(filepath, delimiter='|', encoding='utf-8')
     df.to_sql(
         tbl_name,
         db.engine,
