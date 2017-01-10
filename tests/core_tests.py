@@ -256,6 +256,17 @@ class CoreTests(SupersetTestCase):
         resp = self.client.post('/r/shortner/', data=data)
         assert '/r/' in resp.data.decode('utf-8')
 
+    def test_kv(self):
+        self.login(username='admin')
+        data = {
+            'dbId': 1,
+            'sql': 'sql ...',
+        }
+        resp = self.client.post('/kv/store/', data=data, baseUrl='superset/sqllab')
+        assert 'superset/sqllab' in resp.data.decode('utf-8')
+        kvs = db.session.query(models.KeyValue).all()
+        self.assertEqual(len(kvs), 1)
+
     def test_save_dash(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(

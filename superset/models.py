@@ -216,7 +216,7 @@ class KeyValue(Model, AuditMixinNullable):
 
     __tablename__ = 'keyvalue'
     id = Column(Integer, primary_key=True)
-    value = Column(String, nullable=False)
+    value = Column(Text, nullable=False)
 
 
 class CssTemplate(Model, AuditMixinNullable):

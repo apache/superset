@@ -20,7 +20,7 @@ def upgrade():
     sa.Column('created_on', sa.DateTime(), nullable=True),
     sa.Column('changed_on', sa.DateTime(), nullable=True),
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('value', sa.String(), nullable=True),
+    sa.Column('value', sa.Text(), nullable=False),
     sa.Column('changed_by_fk', sa.Integer(), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['changed_by_fk'], [u'ab_user.id'], ),
