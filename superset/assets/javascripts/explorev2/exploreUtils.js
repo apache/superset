@@ -33,6 +33,19 @@ function formatBaseStyle(baseStyle) {
   return params;
 }
 
+function formatCompares(compares) {
+  const params = {};
+  for (let i = 0; i < compares.length; i++) {
+    const compare = compares[i];
+    params[`compare_id_${i + 1}`] = compare.id;
+    params[`compare_metricLeft_${i + 1}`] = compare.metricLeft;
+    params[`compare_metricRight_${i + 1}`] = compare.metricRight;
+    params[`compare_expr_${i + 1}`] = compare.expr;
+    params[`compare_value_${i + 1}`] = compare.value;
+  }
+  return params;
+}
+
 function formatNavigates(navigates) {
   const params = {};
   for (let i = 0; i < navigates.length; i++) {
@@ -58,7 +71,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource'
       && field !== 'filters' && field !== 'styles' && field !== 'baseStyle'
-      && field !== 'navigates' && field !== 'slices'
+      && field !== 'compares' && field !== 'navigates' && field !== 'slices'
       && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }
@@ -69,6 +82,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   Object.assign(data, styleParams);
   const baseStyleParams = formatBaseStyle(form_data.baseStyle);
   Object.assign(data, baseStyleParams);
+  const compareParams = formatCompares(form_data.compares);
+  Object.assign(data, compareParams);
   const navigateParams = formatNavigates(form_data.navigates);
   Object.assign(data, navigateParams);
   return data;

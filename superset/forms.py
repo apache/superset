@@ -1287,6 +1287,25 @@ class FormFactory(object):
                         default=icon_choices[0][0],
                         choices=icon_choices))
                 
+                # compare
+                setattr(QueryForm, 'compare_id_' + str(i),
+                    TextField(_("Super"), default=''))
+                setattr(QueryForm, 'compare_metricLeft_' + str(i),
+                    SelectField(
+                        _('Compare 1'),
+                        default=viz.datasource.metrics_combo[0][0],
+                        choices=viz.datasource.metrics_combo))
+                setattr(QueryForm, 'compare_metricRight_' + str(i),
+                    SelectField(
+                        _('Compare 1'),
+                        default=viz.datasource.metrics_combo[0][0],
+                        choices=viz.datasource.metrics_combo))
+                setattr(QueryForm, 'compare_expr_' + str(i),
+                    TextField(_("Super"), default=''))
+                setattr(
+                    QueryForm, 'compare_value_' + str(i),
+                    TextField(_("Super"), default=''))
+                
                 # navigate
                 setattr(QueryForm, 'navigate_id_' + str(i),
                     TextField(_("Super"), default=''))

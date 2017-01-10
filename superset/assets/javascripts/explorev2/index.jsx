@@ -107,6 +107,39 @@ function getBaseStyle(form_data) {
 bootstrappedState.viz.form_data.baseStyle =
   getBaseStyle(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
+function parseCompares(form_data) {
+  const compares = [];
+  for (let i = 0; i < 10; i++) {
+    if (form_data[`compare_metricLeft_${i}`] && form_data[`compare_metricRight_${i}`] 
+        && form_data[`compare_expr_${i}`]) {
+      compares.push({
+        id: form_data[`compare_id_${i}`],
+        metricLeft: form_data[`compare_metricLeft_${i}`],
+        metricRight: form_data[`compare_metricRight_${i}`],
+        expr: form_data[`compare_expr_${i}`],
+        value: form_data[`compare_value_${i}`],
+      });
+    }
+    /* eslint no-param-reassign: 0 */
+    delete form_data[`compare_id_${i}`];
+    delete form_data[`compare_metricLeft_${i}`];
+    delete form_data[`compare_metricRight_${i}`];
+    delete form_data[`compare_expr_${i}`];
+    delete form_data[`compare_value_${i}`];
+  }
+  return compares;
+}
+
+function getCompares(form_data, datasource_type) {
+  if (datasource_type === 'table') {
+    return parseCompares(form_data);
+  }
+  return null;
+}
+
+bootstrappedState.viz.form_data.compares =
+  getCompares(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
+
 function parseNavigates(form_data) {
   const navigates = [];
   for (let i = 0; i < 10; i++) {

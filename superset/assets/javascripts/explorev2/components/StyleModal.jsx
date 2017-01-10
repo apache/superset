@@ -5,6 +5,7 @@ import { connect } from 'react-redux';
 import shortid from 'shortid';
 import Style from './Style';
 import BaseStyle from './BaseStyle';
+import Compare from './Compare';
 import Navigate from './Navigate';
 
 const propTypes = {
@@ -13,6 +14,7 @@ const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   styles: React.PropTypes.array.isRequired,
   baseStyle: React.PropTypes.Object,
+  compares: React.PropTypes.Object,
   navigates: React.PropTypes.array.isRequired,
   slices: React.PropTypes.object.isRequired,
 };
@@ -30,6 +32,7 @@ class StyleModal extends React.Component {
       flag: true,
       flag2: false,
       flag3: false,
+      flag4: false,
     };
   }
   addStyle() {
@@ -39,6 +42,15 @@ class StyleModal extends React.Component {
       expr: null,
       value: null,
       icon: null,
+    });
+  }
+  addCompare() {
+    this.props.actions.addCompare({
+      id: shortid.generate(),
+      metricLeft: null,
+      metricRight: null,
+      expr: null,
+      value: null,
     });
   }
   addNavigate() {
@@ -52,25 +64,28 @@ class StyleModal extends React.Component {
   }
   changeModal(type) {
     if (type === 1) {
-      this.setState({ flag: true, flag2: false, flag3: false });
+      this.setState({ flag: true, flag2: false, flag3: false, flag4: false });
+      $('ul li').attr('style', '');
       $('#li').attr('style', 'background: #ccc');
-      $('#li2').attr('style', '');
-      $('#li3').attr('style', '');
     } else if (type === 2) {
-      this.setState({ flag: false, flag2: true, flag3: false });
-      $('#li').attr('style', '');
+      this.setState({ flag: false, flag2: true, flag3: false, flag4: false });
+      $('ul li').attr('style', '');
       $('#li2').attr('style', 'background: #ccc');
-      $('#li3').attr('style', '');
-    } else {
-      this.setState({ flag: false, flag2: false, flag3: true });
-      $('#li').attr('style', '');
-      $('#li2').attr('style', '');
+    } else if(type === 3) {
+      this.setState({ flag: false, flag2: false, flag3: true, flag4: false });
+      $('ul li').attr('style', '');
       $('#li3').attr('style', 'background: #ccc');
+    } else {
+      this.setState({ flag: false, flag2: false, flag3: false, flag4: true });
+      $('ul li').attr('style', '');
+      $('#li4').attr('style', 'background: #ccc');
     }
   }
   render() {
     const stylesDiv = [];
+    const compareDiv = [];
     const navigatesDiv = [];
+
     let i = 0;
     this.props.styles.forEach((style) => {
       i++;
@@ -80,6 +95,17 @@ class StyleModal extends React.Component {
           actions={this.props.actions}
           form_data={this.props.form_data}
           style={style}
+        />
+      );
+    });
+    this.props.compares.forEach((compare) => {
+      i++;
+      compareDiv.push(
+        <Compare
+          key={i}
+          actions={this.props.actions}
+          form_data={this.props.form_data}
+          compare={compare}
         />
       );
     });
@@ -110,7 +136,8 @@ class StyleModal extends React.Component {
                   <a onClick={this.changeModal.bind(this, 1)}>基本样式</a>
                 </li>
                 <li id="li2"><a onClick={this.changeModal.bind(this, 2)}>条件样式</a></li>
-                <li id="li3"><a onClick={this.changeModal.bind(this, 3)}>切片导航</a></li>
+                <li id="li3"><a onClick={this.changeModal.bind(this, 3)}>列间比较</a></li>
+                <li id="li4"><a onClick={this.changeModal.bind(this, 4)}>切片导航</a></li>
               </ul>
             </div>
           </Modal.Title>
@@ -145,6 +172,24 @@ class StyleModal extends React.Component {
            </div>
          }
          {this.state.flag3 &&
+           <div>
+             <div>
+               {compareDiv}
+             </div>
+             <div className="row space-2">
+               <div className="col-lg-2">
+                 <Button
+                   id="add-button"
+                   bsSize="sm"
+                   onClick={this.addCompare.bind(this)}
+                 >
+                   <i className="fa fa-plus" /> &nbsp; 添加比较样式
+                 </Button>
+               </div>
+             </div>
+           </div>
+         }
+         {this.state.flag4 &&
            <div>
              <div>
                {navigatesDiv}
