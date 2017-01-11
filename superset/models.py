@@ -169,7 +169,7 @@ class AuditMixinNullable(AuditMixin):
         if not user:
             return ''
         url = '/superset/profile/{}/'.format(user.username)
-        return '<a href="{}">{}</a>'.format(url, escape(user) or '')
+        return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ''))
 
     @renders('created_by')
     def creator(self):  # noqa
@@ -2586,6 +2586,8 @@ class Log(Model):
             except:
                 pass
             value = f(*args, **kwargs)
+
+            sesh = db.session()
             log = cls(
                 action=f.__name__,
                 json=params,
@@ -2595,7 +2597,8 @@ class Log(Model):
                     datetime.now() - start_dttm).total_seconds() * 1000,
                 referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
-            db.session.flush()
+            sesh.add(log)
+            sesh.commit()
             return value
         return wrapper
 

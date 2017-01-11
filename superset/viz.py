@@ -1187,19 +1187,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        num_period_compare = form_data.get("num_period_compare")
-        if num_period_compare:
-            num_period_compare = int(num_period_compare)
-            prt = form_data.get('period_ratio_type')
-            if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
-            elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
-            else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
-
         rolling_periods = form_data.get("rolling_periods")
         rolling_type = form_data.get("rolling_type")
 
@@ -1212,6 +1199,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
         elif rolling_type == 'cumsum':
             df = df.cumsum()
+
+        num_period_compare = form_data.get("num_period_compare")
+        if num_period_compare:
+            num_period_compare = int(num_period_compare)
+            prt = form_data.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
+            df = df[num_period_compare:]
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
