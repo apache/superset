@@ -1,5 +1,4 @@
 import React, { PropTypes } from 'react';
-import { Panel } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
