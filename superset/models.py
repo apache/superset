@@ -2595,8 +2595,7 @@ class Log(Model):
                     datetime.now() - start_dttm).total_seconds() * 1000,
                 referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
-            db.session.add(log)
-            db.session.commit()
+            db.session.flush()
             return value
         return wrapper
 
