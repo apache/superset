@@ -4,6 +4,7 @@ import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 
 require('./table.css');
 const $ = require('jquery');
+require('jquery-ui');
 
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 import 'datatables.net';
@@ -11,6 +12,7 @@ import dt from 'datatables.net-bs';
 dt(window, $);
 
 function tableVis(slice) {
+  let count = 1;
   const fC = d3.format('0,000');
   let timestampFormatter;
   const container = $(slice.selector);
@@ -20,6 +22,84 @@ function tableVis(slice) {
       slice.error(xhr.responseText, xhr);
       return;
     }
+
+
+    // get slice by sliceId
+    function sliceUrl(sliceId) {
+      const navigateSlice = $.ajax({
+        url: '/superset/rest/api/sliceUrl',
+        async: false,
+        data: { sliceId: sliceId },
+        dataType: 'json',
+      });
+      return navigateSlice.responseText;
+    }
+
+    // add a modal
+    function showModal(title, url) {
+      const myModal = $('#newSlice').clone();
+      const modalCount = $('#modals').children().length;
+      myModal.attr('id', 'newSlice_' + modalCount);
+      $('#modals').append(myModal);
+      $('#newSlice_' + modalCount + ' iframe').attr('src', url);
+      $('#newSlice_' + modalCount + ' iframe').attr('id', 'iframe_' + modalCount);
+      $('#newSlice_' + modalCount + ' .modal-title').text(title);
+      myModal.attr('display', 'block');
+      myModal.draggable({
+        handle: '.modal-header',
+      });
+      myModal.modal({ show: true });
+      $('.modal-backdrop').each(function () {
+        $(this).attr('id', 'id_' + Math.random());
+      });
+    }
+
+    // add listener to get navigate message
+    $(document).ready(function () {
+      window.addEventListener('message', function (e) {
+        if (e.data.type === 'newWindow') {
+          window.open(e.data.url, null, null);
+        } else {
+           // make modal can be add only once
+          if ($('#newSlice_' + count).attr('id') === undefined) {
+            showModal(e.data.title, e.data.url);
+            count++;
+          }
+        }
+      }, false);
+    });
+
+    // add filter by change url
+    function addFilter(url, colArr) {
+      let newUrl = url;
+      for (let i = 0; i < colArr.length; i++) {
+        const flt = newUrl.match(/flt_col/g);
+        let nextFltIndex = 0;
+        if (flt === null || flt === '') {
+          nextFltIndex = 1;
+        } else {
+          nextFltIndex = flt.length + 1;
+        }
+        const col = colArr[i].col;
+        const val = colArr[i].val;
+        const nextFlt = '&flt_col_' + nextFltIndex + '=' + col + '&flt_op_' + nextFltIndex +
+            '=in&flt_eq_' + nextFltIndex + '=' + val;
+        newUrl += nextFlt;
+      }
+      return newUrl;
+    }
+
+
+    function GetQueryString(url, name) {
+      const reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+      const r = url.substring(url.indexOf('?')).substr(1).match(reg);
+      if (r != null) {
+        return unescape(r[2]);
+      }
+      return null;
+    }
+
+
     function onSuccess(json) {
       const data = json.data;
       const fd = json.form_data;
@@ -177,20 +257,59 @@ function tableVis(slice) {
         .attr('data-sort', function (d) {
           return (d.isMetric) ? d.val : null;
         })
+        // .on('click', function (d) {
+        //   if (!d.isMetric && fd.table_filter) {
+        //     const td = d3.select(this);
+        //     if (td.classed('filtered')) {
+        //       slice.removeFilter(d.col, [d.val]);
+        //       d3.select(this).classed('filtered', false);
+        //     } else {
+        //       d3.select(this).classed('filtered', true);
+        //       slice.addFilter(d.col, [d.val]);
+        //     }
+        //   }
+        // })
+        // .style('cursor', function (d) {
+        //   return (!d.isMetric) ? 'pointer' : '';
+        // })
         .on('click', function (d) {
-          if (!d.isMetric && fd.table_filter) {
-            const td = d3.select(this);
-            if (td.classed('filtered')) {
-              slice.removeFilter(d.col, [d.val]);
-              d3.select(this).classed('filtered', false);
-            } else {
-              d3.select(this).classed('filtered', true);
-              slice.addFilter(d.col, [d.val]);
+          for (let i = 1; i <= 10; i++) {
+            if (fd['navigate_expr_' + i] !== '') {
+              if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
+                let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
+                // make '=' to '=='
+                expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+                if (((expr.indexOf('$.inArray') === -1 && eval(expr))
+                || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1))) {
+                  const type = fd['navigate_open_' + i];
+                  const slc = JSON.parse(sliceUrl(fd['navigate_slice_' + i]));
+                  let url = slc.url;
+                  const title = slc.title;
+                  if (url != null) {
+                    const standlone = GetQueryString('standalone');
+                    if (standlone === null) {
+                      url = url.replace(/standalone=/, 'standalone=true');
+                    }
+                    const groupby = fd.groupby;
+                    const colArr = [];
+                    for (let j = 0; j < groupby.length; j++) {
+                      const ele = this.parentNode.childNodes[j];
+                      colArr.push({
+                        val: ele.title,
+                        col: groupby[j],
+                      });
+                    }
+                    url = addFilter(url, colArr);
+                    const postData = { url: url, title: title, type: type };
+                    window.parent.parent.postMessage(postData, '*');  // send message to navigate
+                  }
+                }
+              }
             }
           }
         })
         .style('cursor', function (d) {
-          return (!d.isMetric) ? 'pointer' : '';
+          return (d.isMetric) ? 'pointer' : '';
         })
         .html((d) => {
           let html = '';
