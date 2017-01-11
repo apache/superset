@@ -2283,8 +2283,7 @@ class Superset(BaseSupersetView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items() if v])
-        url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
-        return(url)
+        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
