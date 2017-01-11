@@ -12,7 +12,7 @@ import dt from 'datatables.net-bs';
 dt(window, $);
 
 function tableVis(slice) {
-  let count = 1 ;
+  let count = 1;
   const fC = d3.format('0,000');
   let timestampFormatter;
   const container = $(slice.selector);
@@ -26,78 +26,79 @@ function tableVis(slice) {
 
     // get slice by sliceId
     function sliceUrl(sliceId) {
-      let sliceUrl = $.ajax({
-          url: '/superset/rest/api/sliceUrl',
-          async: false,
-          data: { sliceId: sliceId },
-          dataType: 'json',
-        });
-      return sliceUrl.responseText;
+      let navigateSlice = $.ajax({
+        url: '/superset/rest/api/sliceUrl',
+        async: false,
+        data: { sliceId: sliceId },
+        dataType: 'json',
+      });
+      return navigateSlice.responseText;
     }
 
-    // add a modal  
+    // add a modal
     function showModal(title, url) {
-      let myModal = $('#newSlice').clone();
-      let count = $('#modals').children().length;
-      myModal.attr('id', 'newSlice_' + count);
-      $('#modals').append(myModal); 
-      $('#newSlice_' + count + ' iframe').attr('src', url);
-      $('#newSlice_' + count + ' iframe').attr('id', 'iframe_' + count);
-      $('#newSlice_' + count + ' .modal-title').text(title);
+      const myModal = $('#newSlice').clone();
+      const modalCount = $('#modals').children().length;
+      myModal.attr('id', 'newSlice_' + modalCount);
+      $('#modals').append(myModal);
+      $('#newSlice_' + modalCount + ' iframe').attr('src', url);
+      $('#newSlice_' + modalCount + ' iframe').attr('id', 'iframe_' + modalCount);
+      $('#newSlice_' + modalCount + ' .modal-title').text(title);
       myModal.attr('display', 'block');
       myModal.draggable({
         handle: '.modal-header',
       });
-      myModal.modal( {show: true });
+      myModal.modal({ show: true });
       $('.modal-backdrop').each(function () {
         $(this).attr('id', 'id_' + Math.random());
       });
     }
 
     // add listener to get navigate message
-    $(document).ready( function() {
-       window.addEventListener('message', function (e) {
-        if (e.data.type ==  'newWindow') {
-          window.open(e.data.url, null, null);
-        } else {
-          if ($('#newSlice_' + count).attr('id') === undefined) {  // make modal can be add only once
+    $(document).ready(function () {
+      window.addEventListener('message', function (e) {
+       if (e.data.type === 'newWindow') {
+         window.open(e.data.url, null, null);
+       } else {
+          // make modal can be add only once
+          if ($('#newSlice_' + count).attr('id') === undefined) { 
             showModal(e.data.title, e.data.url);
             count++;
           }
         }
-      }, false);
-     }); 
+     }, false);
+   });
 
     // add filter by change url
     function addFilter(url, colArr){
+      let newUrl = url;
       for (let i = 0; i < colArr.length; i++) {
-        let flt = url.match(/flt_col/g);
+        const flt = url.match(/flt_col/g);
         let nextFltIndex = 0;
         if (flt === null || flt === '') {
           nextFltIndex = 1;
         } else {
           nextFltIndex = flt.length + 1;
         }
-        let col = colArr[i].col;
-        let val = colArr[i].val;
-        let nextFlt = '&&flt_col_' + nextFltIndex + '=' + col + '&&flt_op_' + nextFltIndex +
-            '=in' + '&&flt_eq_' + nextFltIndex + '=' + val;
-        let newUrl = url + nextFlt;
+        const col = colArr[i].col;
+        const val = colArr[i].val;
+        const nextFlt = '&&flt_col_' + nextFltIndex + '=' + col + '&&flt_op_' + nextFltIndex +
+            '=in&&flt_eq_' + nextFltIndex + '=' + val;
+        newUrl += nextFlt;
       }
       return newUrl;
     }
 
 
     function GetQueryString(url, name) {
-      let reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
-      let r = url.substring(url.indexOf('?')).substr(1).match(reg);
+      const reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+      const r = url.substring(url.indexOf('?')).substr(1).match(reg);
       if (r != null) {
         return unescape(r[2]);
-      }
-      return null;
+      }return null;
     }
 
-   
+
     function onSuccess(json) {
       const data = json.data;
       const fd = json.form_data;
@@ -273,38 +274,38 @@ function tableVis(slice) {
         .on('click', function (d) {
           for (let i = 1; i <= 10; i++) {
             if (fd['navigate_expr_' + i] !== '') {
-               if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
-                 let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
-                 // make '=' to '=='
-                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
-                 if (((expr.indexOf('$.inArray') === -1 && eval(expr))
-                 || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1))) {
-                   const type = fd['navigate_open_' + i];
-                   const slc = JSON.parse(sliceUrl(fd['navigate_slice_' + i]));   
-                   let url = slc.url;
-                   const title = slc.title;
-                   if (url != null) {
-                     const standlone = GetQueryString('standalone');
-                     if (standlone === null) {
-                       url = url.replace(/standalone=/, 'standalone=true');
-                     }
-                     const groupby = fd.groupby;
-                     const colArr = [];
-                     for (let j = 0; j < groupby.length; j++) {
-                       const ele = this.parentNode.childNodes[j];
-                       colArr.push({
-                         val: ele.title,
-                         col: groupby[j],
-                        });
-                     }
-                     url = addFilter(url, colArr);
-                     const postData = { url: url, title: title, type: type };
-                     window.parent.parent.postMessage(postData, '*');  // send message to navigate
-                   }
-                 }
-               }
-            } 
-          }        
+              if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
+                let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
+                // make '=' to '=='
+                expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+                if (((expr.indexOf('$.inArray') === -1 && eval(expr))
+                || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1))) {
+                  const type = fd['navigate_open_' + i];
+                  const slc = JSON.parse(sliceUrl(fd['navigate_slice_' + i]));
+                  let url = slc.url;
+                  const title = slc.title;
+                  if (url != null) {
+                    const standlone = GetQueryString('standalone');
+                    if (standlone === null) {
+                      url = url.replace(/standalone=/, 'standalone=true');
+                    }
+                    const groupby = fd.groupby;
+                    const colArr = [];
+                    for (let j = 0; j < groupby.length; j++) {
+                      const ele = this.parentNode.childNodes[j];
+                      colArr.push({
+                        val: ele.title,
+                        col: groupby[j],
+                      });
+                    }
+                    url = addFilter(url, colArr);
+                    const postData = { url: url, title: title, type: type };
+                    window.parent.parent.postMessage(postData, '*');  // send message to navigate
+                  }
+                }
+              }
+            }
+          }      
         })
         .style('cursor', function (d) {
           return (d.isMetric) ? 'pointer' : '';
