@@ -4,7 +4,7 @@ import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 
 require('./table.css');
 const $ = require('jquery');
-const ui = require('jquery-ui');
+require('jquery-ui');
 
 require('datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css');
 import 'datatables.net';
@@ -12,7 +12,7 @@ import dt from 'datatables.net-bs';
 dt(window, $);
 
 function tableVis(slice) {
-  var count = 1 ;
+  let count = 1 ;
   const fC = d3.format('0,000');
   let timestampFormatter;
   const container = $(slice.selector);
@@ -23,91 +23,77 @@ function tableVis(slice) {
       return;
     }
 
-    function showDialog(url) { 
-      if(   document.all   ) {  //IE
-        var feature="dialogWidth:300px;dialogHeight:200px;status:no;help:no"; 
-        window.showModalDialog(url,null,feature); 
-        } 
-      else { //modelessDialog可以将modal换成dialog=yes 
-        var feature ="width=300,height=200,menubar=no,toolbar=no,location=no,"; 
-        feature+="scrollbars=no,status=no,modal=yes";   
-        window.open(url,null,feature); 
-        } 
-    } 
-
-      // add listener to get navigate message
-     $(document).ready(function(){
-      window.addEventListener('message',function(e){
-        if(e.data.type == 'newWindow'){
-          window.open(e.data.url,null,null);
-        }else{
-          if( $('#newSlice_'+count).attr('id') == undefined){  // make modal can be add only once
-            showModal(e.data.title,e.data.url);
-            count++;
-          }
-        }
-      },false);
-    });
 
     // get slice by sliceId
-    function sliceUrl(sliceId){
-        var sliceUrl=$.ajax({
-          url:"/superset/rest/api/sliceUrl",
-          async:false,
-          data: {'sliceId':sliceId},
-          dataType: "json"
+    function sliceUrl(sliceId) {
+      let sliceUrl = $.ajax({
+          url: '/superset/rest/api/sliceUrl',
+          async: false,
+          data: { sliceId: sliceId },
+          dataType: 'json',
         });
-        return sliceUrl.responseText;
+      return sliceUrl.responseText;
     }
 
     // add a modal 
-    function showModal(title,url){
+    function showModal(title, url) {
+      let myModal = $('#newSlice').clone();
+      let count = $('#modals').children().length;
+      myModal.attr('id', 'newSlice_' + count);
+      $('#modals').append(myModal); 
+      $('#newSlice_' + count + ' iframe').attr('src', url);
+      $('#newSlice_' + count + ' iframe').attr('id', 'iframe_' + count);
+      $('#newSlice_' + count + ' .modal-title').text(title);
+      myModal.attr('display', 'block');
+      myModal.draggable({
+        handle: '.modal-header',
+      });
+      myModal.modal( {show: true });
+      $('.modal-backdrop').each(function () {
+        $(this).attr('id', 'id_' + Math.random());
+      });
+    }
 
-        var myModal = $('#newSlice').clone();
-        var count = $('#modals').children().length;
-        myModal.attr('id','newSlice_'+count);
-        $('#modals').append(myModal);
-        
-        $('#newSlice_'+count+' iframe').attr('src',url);
-        $('#newSlice_'+count+' iframe').attr('id','iframe_'+count);
-        $('#newSlice_'+count+' .modal-title').text(title);
-
-        myModal.attr('display','block');
-        myModal.draggable({
-            handle: ".modal-header"
-        })
-       myModal.modal({show: true});
-       $('.modal-backdrop').each(function() {
-         $(this).attr('id', 'id_' + Math.random());
-       });
-    } 
+    // add listener to get navigate message
+    $(document).ready( function() {
+       window.addEventListener('message', function (e) {
+        if (e.data.type ==  'newWindow') {
+          window.open(e.data.url, null, null);
+        } else {
+          if ($('#newSlice_' + count).attr('id') === undefined) {  // make modal can be add only once
+            showModal(e.data.title, e.data.url);
+            count++;
+          }
+        }
+      }, false);
+     }); 
 
     // add filter by change url
-    function addFilter(url,col_arr){
-      for(let i = 0; i < col_arr.length; i++){
-        var flt = url.match(/flt_col/g);
-        var next_flt_index = 0;
-        if(flt == null || flt == ''){
-          next_flt_index = 1;
-        }else{
-          next_flt_index = flt.length + 1;
+    function addFilter(url, colArr){
+      for (let i = 0; i < colArr.length; i++) {
+        let flt = url.match(/flt_col/g);
+        let nextFltIndex = 0;
+        if (flt === null || flt === '') {
+          nextFltIndex = 1;
+        } else {
+          nextFltIndex = flt.length + 1;
         }
-        var col = col_arr[i].col;
-        var val = col_arr[i].val;
-        var next_flt = '&&flt_col_' + next_flt_index + '=' + col + '&&flt_op_' + next_flt_index +
-            '=in' + '&&flt_eq_' + next_flt_index + '=' + val;
-        url += next_flt;
+        let col = colArr[i].col;
+        let val = colArr[i].val;
+        let nextFlt = '&&flt_col_' + nextFltIndex + '=' + col + '&&flt_op_' + nextFltIndex +
+            '=in' + '&&flt_eq_' + nextFltIndex + '=' + val;
+        let newUrl = url + nextFlt;
       }
-      return url;
+      return newUrl;
     }
 
 
-    function GetQueryString(url, name){
-      var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
-      var r = url.substring(url.indexOf('?')).substr(1).match(reg);
-      if(r!=null){
-        return  unescape(r[2]);
-      } 
+    function GetQueryString(url, name) {
+      let reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+      let r = url.substring(url.indexOf('?')).substr(1).match(reg);
+      if (r != null) {
+        return unescape(r[2]);
+      }
       return null;
     }
 
@@ -284,45 +270,44 @@ function tableVis(slice) {
         // .style('cursor', function (d) {
         //   return (!d.isMetric) ? 'pointer' : '';
         // })
-        .on('click', function (d){
-          for(let i=1;i<=10;i++){
-            if(fd['navigate_expr_'+i]!== ''){
+        .on('click', function (d) {
+          for (let i = 1; i <= 10; i++) {
+            if (fd['navigate_expr_' + i] !== '') {
                if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
-                  let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
-                  // make '=' to '=='
-                  expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
-                  if(((expr.indexOf('$.inArray') === -1 && eval(expr))
-                  || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1))){
-                    let type = fd['navigate_open_'+i];
-                    let slc = JSON.parse(sliceUrl(fd['navigate_slice_'+i]));   
-                    let url = slc.url;
-                    let title = slc.title;
-                    if(url != null){
-                      let standlone = GetQueryString('standalone');
-                      if(standlone == null ){
-                        url = url.replace(/standalone=/,'standalone=true');
-                      }
-                      let groupby = fd.groupby;
-                      let col_arr = [];
-                      for(let i = 0; i<groupby.length; i++){
-                        let ele = this.parentNode.childNodes[i];
-                        col_arr.push({
-                          val: ele.title,
-                          col: groupby[i]
-                        })
-                      }
-                    url = addFilter(url,col_arr);
-                    let data = {url: url , title: title , type: type};
-                    
-                    window.parent.parent.postMessage(data, '*');  // send message to navigate
-                    }
-                  }
+                 let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
+                 // make '=' to '=='
+                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+                 if (((expr.indexOf('$.inArray') === -1 && eval(expr))
+                 || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1))) {
+                   const type = fd['navigate_open_' + i];
+                   const slc = JSON.parse(sliceUrl(fd['navigate_slice_' + i]));   
+                   let url = slc.url;
+                   const title = slc.title;
+                   if (url != null) {
+                     const standlone = GetQueryString('standalone');
+                     if (standlone === null) {
+                       url = url.replace(/standalone=/, 'standalone=true');
+                     }
+                     const groupby = fd.groupby;
+                     const colArr = [];
+                     for (let j = 0; j < groupby.length; j++) {
+                       const ele = this.parentNode.childNodes[j];
+                       colArr.push({
+                         val: ele.title,
+                         col: groupby[j],
+                        });
+                     }
+                     url = addFilter(url, colArr);
+                     const postData = { url: url, title: title, type: type };
+                     window.parent.parent.postMessage(postData, '*');  // send message to navigate
+                   }
+                 }
                }
             } 
           }        
         })
         .style('cursor', function (d) {
-          return  (d.isMetric) ? 'pointer' : '';
+          return (d.isMetric) ? 'pointer' : '';
         })
         .html((d) => {
           let html = '';
