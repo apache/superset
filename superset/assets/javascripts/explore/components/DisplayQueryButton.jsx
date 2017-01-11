@@ -2,7 +2,11 @@ import React, { PropTypes } from 'react';
 import ModalTrigger from './../../components/ModalTrigger';
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  query: PropTypes.string,
+};
+
+const defaultProps = {
+  query: '',
 };
 
 export default class DisplayQueryButton extends React.Component {
@@ -16,7 +20,7 @@ export default class DisplayQueryButton extends React.Component {
 
   beforeOpen() {
     this.setState({
-      viewSqlQuery: this.props.slice.viewSqlQuery,
+      viewSqlQuery: this.props.query,
     });
   }
 
@@ -35,3 +39,4 @@ export default class DisplayQueryButton extends React.Component {
 }
 
 DisplayQueryButton.propTypes = propTypes;
+DisplayQueryButton.defaultProps = defaultProps;

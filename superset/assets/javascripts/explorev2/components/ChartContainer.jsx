@@ -254,6 +254,7 @@ class ChartContainer extends React.Component {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
+                  query={this.props.query}
                 />
               </div>
             </div>
