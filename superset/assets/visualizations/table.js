@@ -29,7 +29,7 @@ function tableVis(slice) {
       const navigateSlice = $.ajax({
         url: '/superset/rest/api/sliceUrl',
         async: false,
-        data: { 'sliceId': sliceId },
+        data: { sliceId: sliceId },
         dataType: 'json',
       });
       return navigateSlice.responseText;
@@ -61,10 +61,10 @@ function tableVis(slice) {
           window.open(e.data.url, null, null);
         } else {
            // make modal can be add only once
-           if ($('#newSlice_' + count).attr('id') === undefined) {
-             showModal(e.data.title, e.data.url);
-             count++;
-           }
+          if ($('#newSlice_' + count).attr('id') === undefined) {
+            showModal(e.data.title, e.data.url);
+            count++;
+          }
         }
       }, false);
     });
@@ -86,7 +86,6 @@ function tableVis(slice) {
             '=in&flt_eq_' + nextFltIndex + '=' + val;
         newUrl += nextFlt;
       }
-      console.log(newUrl)
       return newUrl;
     }
 
@@ -300,9 +299,8 @@ function tableVis(slice) {
                         col: groupby[j],
                       });
                     }
-                    console.log(colArr)
                     url = addFilter(url, colArr);
-                    const postData = { 'url': url, 'title': title, 'type': type };
+                    const postData = { url: url, title: title, type: type };
                     window.parent.parent.postMessage(postData, '*');  // send message to navigate
                   }
                 }
