@@ -133,19 +133,19 @@ class SqlLabTests(SupersetTestCase):
         self.login('admin')
 
         # Test search queries on user Id
-        user = appbuilder.sm.find_user('admin')
+        user_id = appbuilder.sm.find_user('admin').id
         data = self.get_json_resp(
-            '/superset/search_queries?user_id={}'.format(user.id))
+            '/superset/search_queries?user_id={}'.format(user_id))
         self.assertEquals(2, len(data))
         user_ids = {k['userId'] for k in data}
-        self.assertEquals(set([user.id]), user_ids)
+        self.assertEquals(set([user_id]), user_ids)
 
-        user = appbuilder.sm.find_user('gamma_sqllab')
+        user_id = appbuilder.sm.find_user('gamma_sqllab').id
         resp = self.get_resp(
-            '/superset/search_queries?user_id={}'.format(user.id))
+            '/superset/search_queries?user_id={}'.format(user_id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
-        self.assertEquals(data[0]['userId'] , user.id)
+        self.assertEquals(data[0]['userId'] , user_id)
 
     def test_search_query_on_status(self):
         self.run_some_queries()
