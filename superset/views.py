@@ -1444,8 +1444,6 @@ class Superset(BaseSupersetView):
 
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slc.views = slc.views + 1
-            db.session.commit()
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1963,7 +1961,10 @@ class Superset(BaseSupersetView):
                 Dash,
             )
             .filter(
-                Dash.created_by_fk == user_id,
+                sqla.or_(
+                    Dash.created_by_fk == user_id,
+                    Dash.changed_by_fk == user_id,
+                )
             )
             .order_by(
                 Dash.changed_on.desc()
@@ -1975,7 +1976,6 @@ class Superset(BaseSupersetView):
             'title': o.dashboard_title,
             'url': o.url,
             'dttm': o.changed_on,
-            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -1990,7 +1990,10 @@ class Superset(BaseSupersetView):
         qry = (
             db.session.query(Slice)
             .filter(
-                Slice.created_by_fk == user_id,
+                sqla.or_(
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                )
             )
             .order_by(Slice.changed_on.desc())
         )
@@ -1999,7 +2002,6 @@ class Superset(BaseSupersetView):
             'title': o.slice_name,
             'url': o.slice_url,
             'dttm': o.changed_on,
-            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2136,8 +2138,6 @@ class Superset(BaseSupersetView):
             qry = qry.filter_by(slug=dashboard_id)
 
         dash = qry.one()
-        dash.views = dash.views + 1
-        db.session.commit()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
             if not self.datasource_access(datasource):

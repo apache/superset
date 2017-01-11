@@ -243,7 +243,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     cache_timeout = Column(Integer)
     perm = Column(String(1000))
     owners = relationship("User", secondary=slice_user)
-    views = Column(Integer, default=1)
 
     export_fields = ('slice_name', 'datasource_type', 'datasource_name',
                      'viz_type', 'params', 'cache_timeout')
@@ -442,9 +441,9 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     slices = relationship(
         'Slice', secondary=dashboard_slices, backref='dashboards')
     owners = relationship("User", secondary=dashboard_user)
+
     export_fields = ('dashboard_title', 'position_json', 'json_metadata',
                      'description', 'css', 'slug')
-    views = Column(Integer, default=1)
 
     def __repr__(self):
         return self.dashboard_title
@@ -2554,8 +2553,8 @@ class Log(Model):
     id = Column(Integer, primary_key=True)
     action = Column(String(512))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
-    dashboard_id = Column(Integer, ForeignKey('dashboards.id'))
-    slice_id = Column(Integer, ForeignKey('slices.id'))
+    dashboard_id = Column(Integer)
+    slice_id = Column(Integer)
     json = Column(Text)
     user = relationship('User', backref='logs', foreign_keys=[user_id])
     dttm = Column(DateTime, default=datetime.utcnow)
@@ -2596,8 +2595,7 @@ class Log(Model):
                     datetime.now() - start_dttm).total_seconds() * 1000,
                 referrer=request.referrer[:1000] if request.referrer else None,
                 user_id=user_id)
-            db.session.add(log)
-            db.session.commit()
+            db.session.flush()
             return value
         return wrapper
 
