@@ -73,8 +73,8 @@ class ExploreViewContainer extends React.Component {
   toggleModal() {
     this.setState({ showModal: !this.state.showModal });
   }
-
-  render() {
+  renderErrorMessage() {
+    // Returns an error message as a node if any errors are in the store
     const errors = [];
     for (const fieldName in this.props.fields) {
       const field = this.props.fields[fieldName];
@@ -93,7 +93,10 @@ class ExploreViewContainer extends React.Component {
         <div style={{ textAlign: 'left' }}>{errors}</div>
       );
     }
+    return errorMessage;
+  }
 
+  render() {
     return (
       <div
         id="explore-container"
@@ -118,7 +121,7 @@ class ExploreViewContainer extends React.Component {
               onQuery={this.onQuery.bind(this, this.props.form_data)}
               onSave={this.toggleModal.bind(this)}
               disabled={this.props.chartStatus === 'loading'}
-              errorMessage={errorMessage}
+              errorMessage={this.renderErrorMessage()}
             />
             <br />
             <ControlPanelsContainer

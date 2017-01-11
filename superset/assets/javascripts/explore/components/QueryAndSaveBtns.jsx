@@ -20,12 +20,8 @@ export default function QueryAndSaveBtns({ canAdd, onQuery, onSave, disabled, er
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
-  let qryButtonStyle = 'primary';
-  let qryButtonDisabled = disabled;
-  if (errorMessage) {
-    qryButtonStyle = 'danger';
-    qryButtonDisabled = true;
-  }
+  const qryButtonStyle = errorMessage ? 'danger' : 'primary';
+  const qryButtonDisabled = errorMessage ? true : disabled;
 
   return (
     <div>
