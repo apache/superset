@@ -42,6 +42,14 @@ export default class Style extends React.Component {
   removeStyle(style) {
     this.props.actions.removeStyle(style);
   }
+  renderOption(opt) {
+    return (
+      <div>
+        <i className={opt.value} />
+        <span style={{ marginLeft: '10px' }}>{opt.label}</span>
+      </div>
+      );
+  }
   render() {
     return (
       <div>
@@ -82,6 +90,7 @@ export default class Style extends React.Component {
             name="select-column"
             placeholder="图标"
             options={this.state.iconChoices.map((o) => ({ label: o.key, value: o.value }))}
+            optionRenderer={this.renderOption.bind(this)}
             value={this.props.style.icon}
             autosize={false}
             onChange={this.changeIcon.bind(this, this.props.style)}

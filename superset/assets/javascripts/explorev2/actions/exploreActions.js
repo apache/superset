@@ -135,7 +135,7 @@ export function addCompare(compare) {
 
 export const REMOVE_COMPARE = 'REMOVE_COMPARE';
 export function removeCompare(compare) {
-  return { type: REMOVE_STYLE, compare };
+  return { type: REMOVE_COMPARE, compare };
 }
 
 export const CHANGE_COMPARE = 'CHANGE_COMPARE';
