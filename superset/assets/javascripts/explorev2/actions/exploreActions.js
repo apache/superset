@@ -113,6 +113,21 @@ export function changeBaseStyle(baseStyle, field, value) {
   return { type: CHANGE_BASE_STYLE, baseStyle, field, value };
 }
 
+export const ADD_COL_STYLE = 'ADD_COL_STYLE';
+export function addColStyle(colStyle) {
+  return { type: ADD_COL_STYLE, colStyle };
+}
+
+export const REMOVE_COL_STYLE = 'REMOVE_COL_STYLE';
+export function removeColStyle(colStyle) {
+  return { type: REMOVE_COL_STYLE, colStyle };
+}
+
+export const CHANGE_COL_STYLE = 'CHANGE_COL_STYLE';
+export function changeColStyle(colStyle, field, value) {
+  return { type: CHANGE_COL_STYLE, colStyle, field, value };
+}
+
 export const ADD_COMPARE = 'ADD_COMPARE';
 export function addCompare(compare) {
   return { type: ADD_COMPARE, compare };

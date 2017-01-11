@@ -14,6 +14,7 @@ const propTypes = {
   form_data: React.PropTypes.object.isRequired,
   styles: React.PropTypes.array.isRequired,
   baseStyle: React.PropTypes.Object,
+  colStyles: React.PropTypes.array.isRequired,
   compares: React.PropTypes.Object,
   navigates: React.PropTypes.array.isRequired,
   slices: React.PropTypes.object.isRequired,
@@ -22,6 +23,7 @@ const propTypes = {
 const defaultProps = {
   styles: [],
   baseStyle: null,
+  colStyles: [],
   navigates: [],
 };
 
@@ -131,7 +133,7 @@ class StyleModal extends React.Component {
         <Modal.Header closeButton>
           <Modal.Title>
             <div>
-              <ul className="nav navbar-nav">
+              <ul className="nav navbar-nav" style={{ fontSize: '14px' }}>
                 <li id="li" className="active" style={{ backgroundColor: '#ccc' }}>
                   <a onClick={this.changeModal.bind(this, 1)}>基本样式</a>
                 </li>
@@ -142,7 +144,7 @@ class StyleModal extends React.Component {
             </div>
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body style={{ minHeight: '200px' }}>
+        <Modal.Body style={{ minHeight: '300px' }}>
         {this.state.flag &&
           <div>
             <BaseStyle
@@ -150,6 +152,7 @@ class StyleModal extends React.Component {
               actions={this.props.actions}
               form_data={this.props.form_data}
               baseStyle={this.props.baseStyle}
+              colStyles={this.props.colStyles}
             />
           </div>
          }

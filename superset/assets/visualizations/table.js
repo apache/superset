@@ -63,11 +63,11 @@ function tableVis(slice) {
       // add header style
       const headerStyle = fd.headerValue;
       table.append('thead').append('tr')
-        .attr('style', headerStyle)
         .selectAll('th')
         .data(data.columns)
         .enter()
         .append('th')
+        .attr('style', headerStyle)
         .text(function (d) {
           return d;
         });
@@ -118,6 +118,20 @@ function tableVis(slice) {
         .attr('style', function (d) {
           // add body style
           let bodyStyle = fd.bodyValue;
+
+          // add column style
+          for (let i = 1; i < 10; i++) {
+            if (fd['colStyle_value_' + i] !== '') {
+              if (d.col === fd['colStyle_metric_' + i]) {
+                bodyStyle += fd['colStyle_value_' + i] + ';';
+                break;
+              }
+            } else {
+              break;
+            }
+          }
+
+          // add condition style
           for (let i = 1; i < 10; i++) {
             if (fd['style_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['style_metric_' + i]) {
@@ -135,6 +149,7 @@ function tableVis(slice) {
               break;
             }
           }
+
           // add two colums compare style
           for (let i = 0; i < compareExprs.length; i++) {
             if (d.isMetric && d.col === fd['compare_metricLeft_' + (i + 1)]) {
@@ -151,6 +166,7 @@ function tableVis(slice) {
               break;
             }
           }
+          
           return bodyStyle;
         })
         .attr('title', (d) => {
@@ -203,9 +219,9 @@ function tableVis(slice) {
           }
           // set icon color
           if (icon === 'fa fa-arrow-up' || icon === 'fa fa-angle-double-up') {
-            color = 'red;';
-          } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
             color = 'green;';
+          } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
+            color = 'red;';
           }
           return html + '<i style="margin-left:20px;color:'
                       + color + '" class="' + icon + '" aria-hidden="true"></i>';

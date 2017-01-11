@@ -107,6 +107,34 @@ function getBaseStyle(form_data) {
 bootstrappedState.viz.form_data.baseStyle =
   getBaseStyle(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
 
+function parseColStyles(form_data) {
+  const colStyles = [];
+  for (let i = 0; i < 10; i++) {
+    if (form_data[`colStyle_metric_${i}`] && form_data[`colStyle_value_${i}`]) {
+      colStyles.push({
+        id: form_data[`colStyle_id_${i}`],
+        metric: form_data[`colStyle_metric_${i}`],
+        value: form_data[`colStyle_value_${i}`],
+      });
+    }
+    /* eslint no-param-reassign: 0 */
+    delete form_data[`colStyle_id_${i}`];
+    delete form_data[`colStyle_metric_${i}`];
+    delete form_data[`colStyle_value_${i}`];
+  }
+  return colStyles;
+}
+
+function getcolStyles(form_data, datasource_type) {
+  if (datasource_type === 'table') {
+    return parseColStyles(form_data);
+  }
+  return null;
+}
+
+bootstrappedState.viz.form_data.colStyles =
+  getcolStyles(bootstrappedState.viz.form_data, bootstrapData.datasource_type);
+
 function parseCompares(form_data) {
   const compares = [];
   for (let i = 0; i < 10; i++) {

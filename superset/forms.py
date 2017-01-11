@@ -1248,6 +1248,13 @@ class FormFactory(object):
         # set navigate open
         open_choices = self.choicify(['modal','newWindow'])
 
+        # get all columns
+        columnNames = []
+        for column in viz.datasource.groupby_column_names:
+            tup = (column, column)
+            columnNames.append(tup)
+        columns_choices = viz.datasource.metrics_combo + columnNames
+
         for field_prefix in filter_prefixes:
             is_having_filter = field_prefix == 'having'
             col_choices = filter_cols if not is_having_filter else having_cols
@@ -1286,6 +1293,18 @@ class FormFactory(object):
                         _('Style 1'),
                         default=icon_choices[0][0],
                         choices=icon_choices))
+                
+                # colStyle
+                setattr(QueryForm, 'colStyle_id_' + str(i),
+                    TextField(_("Super"), default=''))
+                setattr(QueryForm, 'colStyle_metric_' + str(i),
+                    SelectField(
+                        _('ColStyle 1'),
+                        default=columns_choices[0][0],
+                        choices=columns_choices))
+                setattr(
+                    QueryForm, 'colStyle_value_' + str(i),
+                    TextField(_("Super"), default=''))
                 
                 # compare
                 setattr(QueryForm, 'compare_id_' + str(i),
