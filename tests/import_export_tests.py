@@ -34,6 +34,9 @@ class ImportExportTests(SupersetTestCase):
         for table in session.query(models.SqlaTable):
             if 'remote_id' in table.params_dict:
                 session.delete(table)
+        for datasource in session.query(models.DruidDatasource):
+            if 'remote_id' in datasource.params_dict:
+                session.delete(datasource)
         session.commit()
 
     @classmethod
@@ -52,6 +55,11 @@ class ImportExportTests(SupersetTestCase):
             'datasource_name': table_name,
             'database_name': db_name,
             'schema': '',
+            # Test for trailing commas
+            "metrics": [
+                "sum__signup_attempt_email",
+                "sum__signup_attempt_facebook",
+            ],
         }
 
         if table_name and not ds_id:
@@ -79,7 +87,8 @@ class ImportExportTests(SupersetTestCase):
             json_metadata=json.dumps(json_metadata)
         )
 
-    def create_table(self, name, schema='', id=0, cols_names=[], metric_names=[]):
+    def create_table(
+            self, name, schema='', id=0, cols_names=[], metric_names=[]):
         params = {'remote_id': id, 'database_name': 'main'}
         table = models.SqlaTable(
             id=id,
@@ -93,6 +102,23 @@ class ImportExportTests(SupersetTestCase):
         for metric_name in metric_names:
             table.metrics.append(models.SqlMetric(metric_name=metric_name))
         return table
+
+    def create_druid_datasource(
+            self, name, id=0, cols_names=[], metric_names=[]):
+        params = {'remote_id': id, 'database_name': 'druid_test'}
+        datasource = models.DruidDatasource(
+            id=id,
+            datasource_name=name,
+            cluster_name='druid_test',
+            params=json.dumps(params)
+        )
+        for col_name in cols_names:
+            datasource.columns.append(
+                models.DruidColumn(column_name=col_name))
+        for metric_name in metric_names:
+            datasource.metrics.append(models.DruidMetric(
+                metric_name=metric_name))
+        return datasource
 
     def get_slice(self, slc_id):
         return db.session.query(models.Slice).filter_by(id=slc_id).first()
@@ -112,6 +138,10 @@ class ImportExportTests(SupersetTestCase):
     def get_table(self, table_id):
         return db.session.query(models.SqlaTable).filter_by(
             id=table_id).first()
+
+    def get_datasource(self, datasource_id):
+        return db.session.query(models.DruidDatasource).filter_by(
+            id=datasource_id).first()
 
     def get_table_by_name(self, name):
         return db.session.query(models.SqlaTable).filter_by(
@@ -138,6 +168,19 @@ class ImportExportTests(SupersetTestCase):
         self.assertEquals(expected_ds.table_name, actual_ds.table_name)
         self.assertEquals(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
         self.assertEquals(expected_ds.schema, actual_ds.schema)
+        self.assertEquals(len(expected_ds.metrics), len(actual_ds.metrics))
+        self.assertEquals(len(expected_ds.columns), len(actual_ds.columns))
+        self.assertEquals(
+            set([c.column_name for c in expected_ds.columns]),
+            set([c.column_name for c in actual_ds.columns]))
+        self.assertEquals(
+            set([m.metric_name for m in expected_ds.metrics]),
+            set([m.metric_name for m in actual_ds.metrics]))
+
+    def assert_datasource_equals(self, expected_ds, actual_ds):
+        self.assertEquals(
+            expected_ds.datasource_name, actual_ds.datasource_name)
+        self.assertEquals(expected_ds.main_dttm_col, actual_ds.main_dttm_col)
         self.assertEquals(len(expected_ds.metrics), len(actual_ds.metrics))
         self.assertEquals(len(expected_ds.columns), len(actual_ds.columns))
         self.assertEquals(
@@ -353,63 +396,131 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_table_no_metadata(self):
         table = self.create_table('pure_table', id=10001)
-        imported_t_id = models.SqlaTable.import_obj(table, import_time=1989)
-        imported_table = self.get_table(imported_t_id)
-        self.assert_table_equals(table, imported_table)
+        imported_id = models.SqlaTable.import_obj(table, import_time=1989)
+        imported = self.get_table(imported_id)
+        self.assert_table_equals(table, imported)
 
     def test_import_table_1_col_1_met(self):
         table = self.create_table(
             'table_1_col_1_met', id=10002,
             cols_names=["col1"], metric_names=["metric1"])
-        imported_t_id = models.SqlaTable.import_obj(table, import_time=1990)
-        imported_table = self.get_table(imported_t_id)
-        self.assert_table_equals(table, imported_table)
+        imported_id = models.SqlaTable.import_obj(table, import_time=1990)
+        imported = self.get_table(imported_id)
+        self.assert_table_equals(table, imported)
         self.assertEquals(
             {'remote_id': 10002, 'import_time': 1990, 'database_name': 'main'},
-            json.loads(imported_table.params))
+            json.loads(imported.params))
 
     def test_import_table_2_col_2_met(self):
         table = self.create_table(
             'table_2_col_2_met', id=10003, cols_names=['c1', 'c2'],
             metric_names=['m1', 'm2'])
-        imported_t_id = models.SqlaTable.import_obj(table, import_time=1991)
+        imported_id = models.SqlaTable.import_obj(table, import_time=1991)
 
-        imported_table = self.get_table(imported_t_id)
-        self.assert_table_equals(table, imported_table)
+        imported = self.get_table(imported_id)
+        self.assert_table_equals(table, imported)
 
     def test_import_table_override(self):
         table = self.create_table(
             'table_override', id=10003, cols_names=['col1'],
             metric_names=['m1'])
-        imported_t_id = models.SqlaTable.import_obj(table, import_time=1991)
+        imported_id = models.SqlaTable.import_obj(table, import_time=1991)
 
         table_over = self.create_table(
             'table_override', id=10003, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_table_over_id = models.SqlaTable.import_obj(
+        imported_over_id = models.SqlaTable.import_obj(
             table_over, import_time=1992)
 
-        imported_table_over = self.get_table(imported_table_over_id)
-        self.assertEquals(imported_t_id, imported_table_over.id)
+        imported_over = self.get_table(imported_over_id)
+        self.assertEquals(imported_id, imported_over.id)
         expected_table = self.create_table(
             'table_override', id=10003, metric_names=['new_metric1', 'm1'],
             cols_names=['col1', 'new_col1', 'col2', 'col3'])
-        self.assert_table_equals(expected_table, imported_table_over)
+        self.assert_table_equals(expected_table, imported_over)
 
     def test_import_table_override_idential(self):
         table = self.create_table(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_t_id = models.SqlaTable.import_obj(table, import_time=1993)
+        imported_id = models.SqlaTable.import_obj(table, import_time=1993)
 
         copy_table = self.create_table(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_t_id_copy = models.SqlaTable.import_obj(
+        imported_id_copy = models.SqlaTable.import_obj(
             copy_table, import_time=1994)
 
-        self.assertEquals(imported_t_id, imported_t_id_copy)
-        self.assert_table_equals(copy_table, self.get_table(imported_t_id))
+        self.assertEquals(imported_id, imported_id_copy)
+        self.assert_table_equals(copy_table, self.get_table(imported_id))
+
+    def test_import_druid_no_metadata(self):
+        datasource = self.create_druid_datasource('pure_druid', id=10001)
+        imported_id = models.DruidDatasource.import_obj(
+            datasource, import_time=1989)
+        imported = self.get_datasource(imported_id)
+        self.assert_datasource_equals(datasource, imported)
+
+    def test_import_druid_1_col_1_met(self):
+        datasource = self.create_druid_datasource(
+            'druid_1_col_1_met', id=10002,
+            cols_names=["col1"], metric_names=["metric1"])
+        imported_id = models.DruidDatasource.import_obj(
+            datasource, import_time=1990)
+        imported = self.get_datasource(imported_id)
+        self.assert_datasource_equals(datasource, imported)
+        self.assertEquals(
+            {'remote_id': 10002, 'import_time': 1990,
+             'database_name': 'druid_test'},
+            json.loads(imported.params))
+
+    def test_import_druid_2_col_2_met(self):
+        datasource = self.create_druid_datasource(
+            'druid_2_col_2_met', id=10003, cols_names=['c1', 'c2'],
+            metric_names=['m1', 'm2'])
+        imported_id = models.DruidDatasource.import_obj(
+            datasource, import_time=1991)
+        imported = self.get_datasource(imported_id)
+        self.assert_datasource_equals(datasource, imported)
+
+    def test_import_druid_override(self):
+        datasource = self.create_druid_datasource(
+            'druid_override', id=10003, cols_names=['col1'],
+            metric_names=['m1'])
+        imported_id = models.DruidDatasource.import_obj(
+            datasource, import_time=1991)
+
+        table_over = self.create_druid_datasource(
+            'druid_override', id=10003,
+            cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_over_id = models.DruidDatasource.import_obj(
+            table_over, import_time=1992)
+
+        imported_over = self.get_datasource(imported_over_id)
+        self.assertEquals(imported_id, imported_over.id)
+        expected_datasource = self.create_druid_datasource(
+            'druid_override', id=10003, metric_names=['new_metric1', 'm1'],
+            cols_names=['col1', 'new_col1', 'col2', 'col3'])
+        self.assert_datasource_equals(expected_datasource, imported_over)
+
+    def test_import_druid_override_idential(self):
+        datasource = self.create_druid_datasource(
+            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_id = models.DruidDatasource.import_obj(
+            datasource, import_time=1993)
+
+        copy_datasource = self.create_druid_datasource(
+            'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
+            metric_names=['new_metric1'])
+        imported_id_copy = models.DruidDatasource.import_obj(
+            copy_datasource, import_time=1994)
+
+        self.assertEquals(imported_id, imported_id_copy)
+        self.assert_datasource_equals(
+            copy_datasource, self.get_datasource(imported_id))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -19,7 +19,6 @@ class CreatedContent extends React.PureComponent {
   renderSliceTable() {
     const mutator = (data) => data.map(slice => ({
       slice: <a href={slice.url}>{slice.title}</a>,
-      views: slice.views,
       favorited: moment.utc(slice.dttm).fromNow(),
       _favorited: slice.dttm,
     }));
@@ -27,7 +26,7 @@ class CreatedContent extends React.PureComponent {
       <TableLoader
         dataEndpoint={`/superset/created_slices/${this.props.user.userId}/`}
         className="table table-condensed"
-        columns={['slice', 'favorited', 'views']}
+        columns={['slice', 'favorited']}
         mutator={mutator}
         noDataText="No slices"
         sortable
@@ -37,7 +36,6 @@ class CreatedContent extends React.PureComponent {
   renderDashboardTable() {
     const mutator = (data) => data.map(dash => ({
       dashboard: <a href={dash.url}>{dash.title}</a>,
-      views: dash.views,
       favorited: moment.utc(dash.dttm).fromNow(),
       _favorited: dash.dttm,
     }));
@@ -47,7 +45,7 @@ class CreatedContent extends React.PureComponent {
         mutator={mutator}
         dataEndpoint={`/superset/created_dashboards/${this.props.user.userId}/`}
         noDataText="No dashboards"
-        columns={['dashboard', 'favorited', 'views']}
+        columns={['dashboard', 'favorited']}
         sortable
       />
     );

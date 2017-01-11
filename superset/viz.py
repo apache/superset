@@ -379,10 +379,13 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
+            data = json.dumps(
+                payload,
+                default=utils.json_int_dttm_ser, ignore_nan=True
+            )
+            if PY3:
+                data = bytes(data, 'utf-8')
             try:
-                data = self.json_dumps(payload)
-                if PY3:
-                    data = bytes(data, 'utf-8')
                 cache.set(
                     cache_key,
                     zlib.compress(data),
