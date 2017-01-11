@@ -35,7 +35,7 @@ function tableVis(slice) {
       return sliceUrl.responseText;
     }
 
-    // add a modal 
+    // add a modal  
     function showModal(title, url) {
       let myModal = $('#newSlice').clone();
       let count = $('#modals').children().length;
