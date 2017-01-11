@@ -89,16 +89,18 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   });
   const filterParams = formatFilters(form_data.filters);
   Object.assign(data, filterParams);
-  const styleParams = formatStyles(form_data.styles);
-  Object.assign(data, styleParams);
-  const baseStyleParams = formatBaseStyle(form_data.baseStyle);
-  Object.assign(data, baseStyleParams);
-  const colStyleParams = formatColStyles(form_data.colStyles);
-  Object.assign(data, colStyleParams);
-  const compareParams = formatCompares(form_data.compares);
-  Object.assign(data, compareParams);
-  const navigateParams = formatNavigates(form_data.navigates);
-  Object.assign(data, navigateParams);
+  if (form_data.viz_type === 'table') {
+    const styleParams = formatStyles(form_data.styles);
+    Object.assign(data, styleParams);
+    const baseStyleParams = formatBaseStyle(form_data.baseStyle);
+    Object.assign(data, baseStyleParams);
+    const colStyleParams = formatColStyles(form_data.colStyles);
+    Object.assign(data, colStyleParams);
+    const compareParams = formatCompares(form_data.compares);
+    Object.assign(data, compareParams);
+    const navigateParams = formatNavigates(form_data.navigates);
+    Object.assign(data, navigateParams);
+  }
   return data;
 }
 
