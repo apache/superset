@@ -9,33 +9,16 @@ const defaultProps = {
   query: '',
 };
 
-export default class DisplayQueryButton extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      viewSqlQuery: '',
-    };
-    this.beforeOpen = this.beforeOpen.bind(this);
-  }
-
-  beforeOpen() {
-    this.setState({
-      viewSqlQuery: this.props.query,
-    });
-  }
-
-  render() {
-    const modalBody = (<pre>{this.state.viewSqlQuery}</pre>);
-    return (
-      <ModalTrigger
-        isButton
-        triggerNode={<span>Query</span>}
-        modalTitle="Query"
-        modalBody={modalBody}
-        beforeOpen={this.beforeOpen}
-      />
-    );
-  }
+export default function DisplayQueryButton({ query }) {
+  const modalBody = (<pre>{query}</pre>);
+  return (
+    <ModalTrigger
+      isButton
+      triggerNode={<span>Query</span>}
+      modalTitle="Query"
+      modalBody={modalBody}
+    />
+  );
 }
 
 DisplayQueryButton.propTypes = propTypes;
