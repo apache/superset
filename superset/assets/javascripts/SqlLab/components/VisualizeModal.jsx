@@ -116,13 +116,6 @@ class VisualizeModal extends React.PureComponent {
       success: (url) => {
         window.open(url);
       },
-      error: (error) => {
-        /* eslint no-console: 0 */
-        if (console && console.warn) {
-          console.warn('Something went wrong...');
-          console.warn(error);
-        }
-      },
     });
   }
   changeDatasourceName(event) {
