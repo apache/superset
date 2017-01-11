@@ -29,7 +29,7 @@ function tableVis(slice) {
       const navigateSlice = $.ajax({
         url: '/superset/rest/api/sliceUrl',
         async: false,
-        data: { sliceId: sliceId },
+        data: { 'sliceId': sliceId },
         dataType: 'json',
       });
       return navigateSlice.responseText;
@@ -73,7 +73,7 @@ function tableVis(slice) {
     function addFilter(url, colArr) {
       let newUrl = url;
       for (let i = 0; i < colArr.length; i++) {
-        const flt = url.match(/flt_col/g);
+        const flt = newUrl.match(/flt_col/g);
         let nextFltIndex = 0;
         if (flt === null || flt === '') {
           nextFltIndex = 1;
@@ -82,10 +82,11 @@ function tableVis(slice) {
         }
         const col = colArr[i].col;
         const val = colArr[i].val;
-        const nextFlt = '&&flt_col_' + nextFltIndex + '=' + col + '&&flt_op_' + nextFltIndex +
-            '=in&&flt_eq_' + nextFltIndex + '=' + val;
+        const nextFlt = '&flt_col_' + nextFltIndex + '=' + col + '&flt_op_' + nextFltIndex +
+            '=in&flt_eq_' + nextFltIndex + '=' + val;
         newUrl += nextFlt;
       }
+      console.log(newUrl)
       return newUrl;
     }
 
@@ -299,8 +300,9 @@ function tableVis(slice) {
                         col: groupby[j],
                       });
                     }
+                    console.log(colArr)
                     url = addFilter(url, colArr);
-                    const postData = { url: url, title: title, type: type };
+                    const postData = { 'url': url, 'title': title, 'type': type };
                     window.parent.parent.postMessage(postData, '*');  // send message to navigate
                   }
                 }
