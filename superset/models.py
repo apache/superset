@@ -169,7 +169,7 @@ class AuditMixinNullable(AuditMixin):
         if not user:
             return ''
         url = '/superset/profile/{}/'.format(user.username)
-        return '<a href="{}">{}</a>'.format(url, escape(user) or '')
+        return Markup('<a href="{}">{}</a>'.format(url, escape(user) or ''))
 
     @renders('created_by')
     def creator(self):  # noqa
