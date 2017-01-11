@@ -13,8 +13,7 @@ const propTypes = {
 
 const defaultProps = {
   placeholder: 'Select ...',
-  value: null,
-  valueRenderer: () => {},
+  valueRenderer: (o) => (<div>{o.label}</div>),
 };
 
 class AsyncSelect extends React.PureComponent {
