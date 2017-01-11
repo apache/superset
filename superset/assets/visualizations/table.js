@@ -26,7 +26,7 @@ function tableVis(slice) {
 
     // get slice by sliceId
     function sliceUrl(sliceId) {
-      let navigateSlice = $.ajax({
+      const navigateSlice = $.ajax({
         url: '/superset/rest/api/sliceUrl',
         async: false,
         data: { sliceId: sliceId },
@@ -57,20 +57,20 @@ function tableVis(slice) {
     // add listener to get navigate message
     $(document).ready(function () {
       window.addEventListener('message', function (e) {
-       if (e.data.type === 'newWindow') {
-         window.open(e.data.url, null, null);
-       } else {
-          // make modal can be add only once
-          if ($('#newSlice_' + count).attr('id') === undefined) { 
-            showModal(e.data.title, e.data.url);
-            count++;
-          }
+        if (e.data.type === 'newWindow') {
+          window.open(e.data.url, null, null);
+        } else {
+           // make modal can be add only once
+           if ($('#newSlice_' + count).attr('id') === undefined) {
+             showModal(e.data.title, e.data.url);
+             count++;
+           }
         }
-     }, false);
-   });
+      }, false);
+    });
 
     // add filter by change url
-    function addFilter(url, colArr){
+    function addFilter(url, colArr) {
       let newUrl = url;
       for (let i = 0; i < colArr.length; i++) {
         const flt = url.match(/flt_col/g);
@@ -95,7 +95,8 @@ function tableVis(slice) {
       const r = url.substring(url.indexOf('?')).substr(1).match(reg);
       if (r != null) {
         return unescape(r[2]);
-      }return null;
+      }
+      return null;
     }
 
 
@@ -305,7 +306,7 @@ function tableVis(slice) {
                 }
               }
             }
-          }      
+          }
         })
         .style('cursor', function (d) {
           return (d.isMetric) ? 'pointer' : '';
