@@ -341,6 +341,24 @@ function tableVis(slice) {
           } else if (icon === 'fa fa-arrow-down' || icon === 'fa fa-angle-double-down') {
             color = 'red;';
           }
+
+          //set link style
+          for (let i = 1; i < 10; i++) {
+            if (fd['navigate_expr_' + i] !== '') {
+              if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
+                let expr = fd['navigate_expr_' + i].replace(/x/g, d.val);
+                // make '=' to '=='
+                expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
+                if ((expr.indexOf('$.inArray') === -1 && eval(expr))
+                  || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
+                  html = "<span href='#'>" + html + "</span>";
+                }
+              }
+            } else {
+              break;
+            }
+          }
+
           return html + '<i style="margin-left:20px;color:'
                       + color + '" class="' + icon + '" aria-hidden="true"></i>';
         });
