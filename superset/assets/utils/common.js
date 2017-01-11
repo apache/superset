@@ -39,8 +39,19 @@ export function getParamFromQuery(query, param) {
   return null;
 }
 
-export function getLink(baseUrl, params) {
-  return baseUrl + '?' + params.join('&');
+export function getQueryLink(query, callback) {
+  $.ajax({
+    type: 'POST',
+    url: '/kv/store/',
+    async: false,
+    data: {
+      baseUrl: 'superset/sqllab',
+      data: JSON.stringify(query),
+    },
+    success: (url) => {
+      callback(url);
+    },
+  });
 }
 
 export function getParamsFromUrl() {

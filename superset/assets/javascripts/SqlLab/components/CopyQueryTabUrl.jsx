@@ -1,6 +1,6 @@
 import React from 'react';
 import CopyToClipboard from '../../components/CopyToClipboard';
-const $ = require('jquery');
+import { getQueryLink } from '../../../utils/common';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -16,18 +16,7 @@ export default class CopyQueryTabUrl extends React.PureComponent {
       autorun: qe.autorun,
       sql: qe.sql,
     };
-    $.ajax({
-      type: 'POST',
-      url: '/kv/store/',
-      async: false,
-      data: {
-        baseUrl: 'superset/sqllab',
-        data: JSON.stringify(sharedQuery),
-      },
-      success: (url) => {
-        callback(url);
-      },
-    });
+    getQueryLink(sharedQuery, callback);
   }
 
   render() {

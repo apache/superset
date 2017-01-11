@@ -10,8 +10,7 @@ import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
-import { getLink } from '../../../utils/common';
-const $ = require('jquery');
+import { getQueryLink } from '../../../utils/common';
 
 const propTypes = {
   columns: React.PropTypes.array,
@@ -39,10 +38,8 @@ class QueryTable extends React.PureComponent {
       activeQuery: null,
     };
   }
-  getQueryLink(dbId, sql) {
-    const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
-    const link = getLink(this.state.cleanUri, params);
-    return encodeURI(link);
+  callback(url) {
+    window.open(url);
   }
   openQuery(dbId, schema, sql) {
     const newQuery = {
@@ -51,18 +48,7 @@ class QueryTable extends React.PureComponent {
       schema,
       sql,
     };
-    $.ajax({
-      type: 'POST',
-      url: '/kv/store/',
-      async: false,
-      data: {
-        baseUrl: 'superset/sqllab',
-        data: JSON.stringify(newQuery),
-      },
-      success: (url) => {
-        window.open(url);
-      },
-    });
+    getQueryLink(newQuery, this.callback);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
