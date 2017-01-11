@@ -66,7 +66,15 @@ OBJECT_SPEC_PERMISSIONS = set([
 
 
 def merge_perm(sm, permission_name, view_menu_name):
-    pv = sm.find_permission_view_menu(permission_name, view_menu_name)
+    # Implementation copied from sm.find_permission_view_menu.
+    # TODO: use sm.find_permission_view_menu once issue
+    #       https://github.com/airbnb/superset/issues/1944 is resolved.
+    permission = sm.find_permission(permission_name)
+    view_menu = sm.find_view_menu(view_menu_name)
+    pv = None
+    if permission and view_menu:
+        pv = sm.get_session.query(sm.permissionview_model).filter_by(
+            permission=permission, view_menu=view_menu).first()
     if not pv and permission_name and view_menu_name:
         sm.add_permission_view_menu(permission_name, view_menu_name)
 
