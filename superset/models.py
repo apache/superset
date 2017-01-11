@@ -42,7 +42,6 @@ from sqlalchemy import (
     DateTime, Date, Table, Numeric,
     create_engine, MetaData, desc, asc, select, and_
 )
-
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import backref, relationship
@@ -209,6 +208,7 @@ class Url(Model, AuditMixinNullable):
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)
     url = Column(Text)
+
 
 class KeyValue(Model, AuditMixinNullable):
 

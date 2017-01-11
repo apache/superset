@@ -1104,16 +1104,16 @@ def ping():
     return "OK"
 
 
-
 class KV(BaseSupersetView):
 
-    """ used for storing and retrieving key value pairs """
+    """used for storing and retrieving key value pairs"""
 
     @log_this
     @expose("/store/", methods=['POST', 'GET'])
     def store(self):
         value = request.form.get('data')
-        base_url = request.form.get('baseUrl')
+        base_url = request.form.get('baseUrl') \
+            if request.form.get('baseUrl') else ''
         obj = models.KeyValue(value=value)
         db.session.add(obj)
         db.session.commit()
@@ -1775,7 +1775,7 @@ class Superset(BaseSupersetView):
         )
         tables = [t for t in database.all_table_names(schema) if
                   self.datasource_access_by_name(database, t, schema=schema)]
-        views = [v for v in database.all_table_names(schema) if
+        views = [v for v in database.all_view_names(schema) if
                  self.datasource_access_by_name(database, v, schema=schema)]
         payload = {'tables': tables, 'views': views}
         return Response(
