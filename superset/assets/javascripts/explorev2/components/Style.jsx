@@ -35,20 +35,20 @@ export default class Style extends React.Component {
   changeValue(style, event) {
     this.props.actions.changeStyle(style, 'value', event.target.value);
   }
-  renderOption(opt) {
-    return (
-        <div>
-          <i className={opt.value} />
-          <span style={{ marginLeft: '10px' }}>{opt.label}</span>
-        </div>
-      );
-  }
   changeIcon(style, icon) {
     const val = (icon) ? icon.value : null;
     this.props.actions.changeStyle(style, 'icon', val);
   }
   removeStyle(style) {
     this.props.actions.removeStyle(style);
+  }
+  renderOption(opt) {
+    return (
+      <div>
+        <i className={opt.value} />
+        <span style={{ marginLeft: '10px' }}>{opt.label}</span>
+      </div>
+      );
   }
   render() {
     return (

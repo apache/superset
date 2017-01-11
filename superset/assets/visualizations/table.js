@@ -342,7 +342,7 @@ function tableVis(slice) {
             color = 'red;';
           }
 
-          //set link style
+          // set link style
           for (let i = 1; i < 10; i++) {
             if (fd['navigate_expr_' + i] !== '') {
               if (d.isMetric && d.col === fd['navigate_metric_' + i]) {
@@ -351,7 +351,8 @@ function tableVis(slice) {
                 expr = expr.replace(/=/g, '==').replace(/>==/g, '>=').replace(/<==/g, '<=');
                 if ((expr.indexOf('$.inArray') === -1 && eval(expr))
                   || (expr.indexOf('$.inArray') !== -1 && eval(expr) !== -1)) {
-                  html = "<span href='#'>" + html + "</span>";
+                  html = '<a href="#">' + html + '</a>';
+                  break;
                 }
               }
             } else {
