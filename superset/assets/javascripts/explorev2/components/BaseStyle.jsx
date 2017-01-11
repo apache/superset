@@ -71,7 +71,7 @@ export default class BaseStyle extends React.Component {
         </div>
 
         <div className="col-lg-12" style={{ marginTop: '10px' }}>
-          <hr style={{ height: '1px', border:'none', borderTop: '1px solid #555555' }} />
+          <hr style={{ height: '1px', border: 'none', borderTop: '1px solid #555555' }} />
           <span style={{ fontSize: '14px' }}>列样式:</span>
           <div style={{ marginTop: '10px' }}>
             {colStylesDiv}

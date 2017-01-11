@@ -82,7 +82,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
     // filter out null fields
     if (form_data[field] !== null && field !== 'datasource'
       && field !== 'filters' && field !== 'styles' && field !== 'baseStyle'
-      && field !== 'colStyles' && field !== 'compares' && field !== 'navigates' 
+      && field !== 'colStyles' && field !== 'compares' && field !== 'navigates'
       && field !== 'slices' && !(saveNewSlice && field === 'slice_name')) {
       data[field] = form_data[field];
     }

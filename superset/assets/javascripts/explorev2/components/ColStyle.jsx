@@ -13,7 +13,7 @@ export default class ColStyle extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      metricChoices: this.props.form_data.groupby.concat(this.props.form_data.metrics)
+      metricChoices: this.props.form_data.groupby.concat(this.props.form_data.metrics),
     };
   }
   changeMetric(colStyle, col) {

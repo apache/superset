@@ -46,8 +46,6 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery(form_data) {
-    console.log('on query...')
-    console.log(form_data)
     this.props.actions.chartUpdateStarted();
     history.pushState(
       {},

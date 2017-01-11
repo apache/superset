@@ -166,7 +166,6 @@ function tableVis(slice) {
               break;
             }
           }
-          
           return bodyStyle;
         })
         .attr('title', (d) => {
