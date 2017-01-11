@@ -9,7 +9,9 @@ export function defaultFormData(vizType = 'table', datasourceType = 'table') {
     datasource_name: null,
     filters: [],
     styles: [],
-    baseStyle: null,
+    baseStyle: { 'headerValue': null, 'bodyValue': null },
+    colStyles: [],
+    compares: [],
     navigates: [],
   };
   const sections = sectionsToRender(vizType, datasourceType);

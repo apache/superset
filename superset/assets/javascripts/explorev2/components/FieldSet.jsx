@@ -4,7 +4,7 @@ import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
 import { fieldTypes } from '../stores/fields';
-import MenuField from './MenuField'
+import MenuField from './MenuField';
 
 const propTypes = {
   name: PropTypes.string.isRequired,

@@ -124,6 +124,34 @@ export const exploreReducer = function (state, action) {
         { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
       );
     },
+    [actions.ADD_COL_STYLE]() {
+      const newFormData = addToArr(state.viz.form_data, 'colStyles', action.colStyle);
+      const newState = Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+      return newState;
+    },
+    [actions.REMOVE_COL_STYLE]() {
+      const newFormData = removeFromArr(state.viz.form_data, 'colStyles', action.colStyle);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
+    [actions.CHANGE_COL_STYLE]() {
+      const changes = {};
+      changes[action.field] = action.value;
+      const newFormData = alterInArr(
+        state.viz.form_data, 'colStyles', action.colStyle, changes);
+      return Object.assign(
+        {},
+        state,
+        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+      );
+    },
     [actions.ADD_COMPARE]() {
       const newFormData = addToArr(state.viz.form_data, 'compares', action.compare);
       const newState = Object.assign(

@@ -69,7 +69,7 @@ export default class MenuField extends React.Component {
   constructor(props) {
     super(props);
     selectedMenu.chart = this.props.value;
-    for (let viz in vizType) {
+    for (const viz in vizType) {
       if (vizType[viz].chart === this.props.value) {
         selectedMenu.chart = vizType[viz].chart;
         selectedMenu.icon = vizType[viz].icon;
@@ -79,7 +79,7 @@ export default class MenuField extends React.Component {
   }
   onChange(info) {
     const optionValue = info ? info.key : null;
-    for (let viz in vizType) {
+    for (const viz in vizType) {
       if (vizType[viz].chart === optionValue) {
         selectedMenu.chart = vizType[viz].chart;
         selectedMenu.icon = vizType[viz].icon;
