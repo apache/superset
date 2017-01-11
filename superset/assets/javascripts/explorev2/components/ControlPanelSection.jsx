@@ -32,9 +32,16 @@ export default class ControlPanelSection extends React.Component {
 
   render() {
     return (
-      <Panel header={this.renderHeader()}>
-        {this.props.children}
-      </Panel>
+      <div className="panel panel-default control-panel-section">
+        <div className="panel-header">
+          <div className="panel-title">
+            {this.renderHeader()}
+          </div>
+        </div>
+        <div className="panel-body">
+          {this.props.children}
+        </div>
+      </div>
     );
   }
 }

@@ -25,3 +25,8 @@
     margin-top: 0px;
     margin-right: 3px;
 }
+
+.control-panel-section {
+  margin-bottom: 0px;
+  box-shadow: none;
+}
