@@ -1328,6 +1328,13 @@ class NVD3DualLineViz(NVD3Viz):
 
         return df
 
+    def query_obj(self):
+        d = super(NVD3DualLineViz, self).query_obj()
+        if self.form_data.get('metric') == self.form_data.get('metric_2'):
+            raise Exception("Please choose different metrics"
+                            " on left and right axis")
+        return d
+
     def to_series(self, df, classed=''):
         cols = []
         for col in df.columns:

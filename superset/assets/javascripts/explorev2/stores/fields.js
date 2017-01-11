@@ -85,6 +85,9 @@ export const fields = {
     choices: [],
     default: [],
     description: 'Choose a metric for right axis',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+    }),
   },
 
   stacked_style: {
@@ -711,7 +714,8 @@ export const fields = {
   },
 
   y_axis_2_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    freeForm: true,
     label: 'Right axis format',
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
