@@ -2,36 +2,24 @@ import React, { PropTypes } from 'react';
 import ModalTrigger from './../../components/ModalTrigger';
 
 const propTypes = {
-  slice: PropTypes.object.isRequired,
+  query: PropTypes.string,
 };
 
-export default class DisplayQueryButton extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      viewSqlQuery: '',
-    };
-    this.beforeOpen = this.beforeOpen.bind(this);
-  }
+const defaultProps = {
+  query: '',
+};
 
-  beforeOpen() {
-    this.setState({
-      viewSqlQuery: this.props.slice.viewSqlQuery,
-    });
-  }
-
-  render() {
-    const modalBody = (<pre>{this.state.viewSqlQuery}</pre>);
-    return (
-      <ModalTrigger
-        isButton
-        triggerNode={<span>Query</span>}
-        modalTitle="Query"
-        modalBody={modalBody}
-        beforeOpen={this.beforeOpen}
-      />
-    );
-  }
+export default function DisplayQueryButton({ query }) {
+  const modalBody = (<pre>{query}</pre>);
+  return (
+    <ModalTrigger
+      isButton
+      triggerNode={<span>Query</span>}
+      modalTitle="Query"
+      modalBody={modalBody}
+    />
+  );
 }
 
 DisplayQueryButton.propTypes = propTypes;
+DisplayQueryButton.defaultProps = defaultProps;
