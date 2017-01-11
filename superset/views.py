@@ -2815,6 +2815,18 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 return utils.error_msg_from_exception(e)
 
+    @expose("/rest/api/sliceUrl", methods=['GET', 'POST'])
+    def sliceUrl(self):
+        sliceId = request.args.get('sliceId')
+        if sliceId:
+            slc = db.session.query(models.Slice).filter_by(id=sliceId).one()
+            return json.dumps({
+                'url': slc.slice_url,
+                'title': slc.slice_name
+            })
+        else:
+            return null
+
 appbuilder.add_view_no_menu(Superset)
 
 if config['DRUID_IS_ACTIVE']:
