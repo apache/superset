@@ -1,5 +1,6 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import visTypes from './visTypes';
+import * as v from '../validators';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -51,6 +52,7 @@ export const fields = {
     type: 'SelectField',
     multi: true,
     label: 'Metrics',
+    validators: [v.nonEmpty],
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
@@ -508,6 +510,7 @@ export const fields = {
   treemap_ratio: {
     type: 'TextField',
     label: 'Ratio',
+    validators: [v.numeric],
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: 'Target aspect ratio for treemap tiles.',
   },
@@ -560,7 +563,7 @@ export const fields = {
   rolling_periods: {
     type: 'TextField',
     label: 'Periods',
-    validators: [],
+    validators: [v.integer],
     description: 'Defines the size of the rolling window function, ' +
                  'relative to the time granularity selected',
   },
@@ -659,6 +662,7 @@ export const fields = {
   compare_lag: {
     type: 'TextField',
     label: 'Comparison Period Lag',
+    validators: [v.integer],
     description: 'Based on granularity, number of time periods to compare against',
   },
 
@@ -785,6 +789,7 @@ export const fields = {
 
   size_from: {
     type: 'TextField',
+    validators: [v.integer],
     label: 'Font Size From',
     default: '20',
     description: 'Font size for the smallest value in the list',
@@ -792,6 +797,7 @@ export const fields = {
 
   size_to: {
     type: 'TextField',
+    validators: [v.integer],
     label: 'Font Size To',
     default: '150',
     description: 'Font size for the biggest value in the list',
@@ -907,7 +913,7 @@ export const fields = {
     type: 'TextField',
     label: 'Period Ratio',
     default: '',
-    validators: [],
+    validators: [v.integer],
     description: '[integer] Number of period to compare against, ' +
                  'this is relative to the granularity selected',
   },
@@ -924,6 +930,7 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
+    validators: [v.integer],
     default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
@@ -1011,6 +1018,7 @@ export const fields = {
     type: 'TextField',
     label: 'Opacity',
     default: 1,
+    validators: [v.numeric],
     description: 'Opacity of all clusters, points, and labels. ' +
                  'Between 0 and 1.',
   },
@@ -1018,8 +1026,8 @@ export const fields = {
   viewport_zoom: {
     type: 'TextField',
     label: 'Zoom',
+    validators: [v.numeric],
     default: 11,
-    validators: [],
     description: 'Zoom level of the map',
     places: 8,
   },
@@ -1028,6 +1036,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default latitude',
     default: 37.772123,
+    validators: [v.numeric],
     description: 'Latitude of default viewport',
     places: 8,
   },
@@ -1036,6 +1045,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default longitude',
     default: -122.405293,
+    validators: [v.numeric],
     description: 'Longitude of default viewport',
     places: 8,
   },

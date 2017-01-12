@@ -33,11 +33,7 @@ export default class SelectField extends React.Component {
     if (this.props.multi) {
       optionValue = opt ? opt.map((o) => o.value) : null;
     }
-    if (this.props.name === 'datasource' && optionValue !== null) {
-      this.props.onChange(this.props.name, optionValue, opt.label);
-    } else {
-      this.props.onChange(this.props.name, optionValue);
-    }
+    this.props.onChange(optionValue);
   }
   renderOption(opt) {
     if (this.props.name === 'viz_type') {

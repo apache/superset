@@ -28,7 +28,7 @@ describe('SelectField', () => {
   it('calls onChange when toggled', () => {
     const select = wrapper.find(Select);
     select.simulate('change', { value: 50 });
-    expect(defaultProps.onChange.calledWith('row_limit', 50)).to.be.true;
+    expect(defaultProps.onChange.calledWith(50)).to.be.true;
   });
 
   it('renders a Creatable for freeform', () => {
