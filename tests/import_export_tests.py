@@ -135,10 +135,6 @@ class ImportExportTests(SupersetTestCase):
         return db.session.query(models.Dashboard).filter_by(
             slug=dash_slug).first()
 
-    def get_table(self, table_id):
-        return db.session.query(models.SqlaTable).filter_by(
-            id=table_id).first()
-
     def get_datasource(self, datasource_id):
         return db.session.query(models.DruidDatasource).filter_by(
             id=datasource_id).first()
