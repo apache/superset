@@ -1,4 +1,5 @@
 import React, { PropTypes } from 'react';
+import { Panel } from 'react-bootstrap';
 import InfoTooltipWithTrigger from '../../components/InfoTooltipWithTrigger';
 
 const propTypes = {
@@ -31,16 +32,12 @@ export default class ControlPanelSection extends React.Component {
 
   render() {
     return (
-      <div className="panel panel-default control-panel-section">
-        <div className="panel-header">
-          <div className="panel-title">
-            {this.renderHeader()}
-          </div>
-        </div>
-        <div className="panel-body">
-          {this.props.children}
-        </div>
-      </div>
+      <Panel
+        className="control-panel-section"
+        header={this.renderHeader()}
+      >
+        {this.props.children}
+      </Panel>
     );
   }
 }
