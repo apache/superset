@@ -288,7 +288,11 @@ function tableVis(slice) {
                   if (url != null) {
                     const standlone = GetQueryString('standalone');
                     if (standlone === null) {
-                      url = url.replace(/standalone=/, 'standalone=true');
+                      if (url.indexOf('standalone') !== -1) {
+                        url = url.replace(/standalone=/, 'standalone=true');
+                      } else {
+                        url += '&standalone=true';
+                      }
                     }
                     const groupby = fd.groupby;
                     const colArr = [];
