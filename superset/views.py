@@ -1289,8 +1289,8 @@ class Superset(BaseSupersetView):
                 r.datasource_type, r.datasource_id, session)
             user = sm.get_user_by_id(r.created_by_fk)
             if sm._has_view_access(
-                user, "datasource_access", datasource.perm):
-                    session.delete(r)
+                    user, "datasource_access", datasource.perm):
+                session.delete(r)
         session.commit()
 
     @log_this
