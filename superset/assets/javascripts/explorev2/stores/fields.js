@@ -44,7 +44,11 @@ export const fields = {
     label: 'Visualization Type',
     clearable: false,
     default: 'table',
-    choices: formatSelectOptions(Object.keys(visTypes)),
+    choices: Object.keys(visTypes).map(vt => [
+      vt,
+      visTypes[vt].label,
+      `/static/assets/images/viz_thumbnails/${vt}.png`,
+    ]),
     description: 'The type of visualization to display',
   },
 
