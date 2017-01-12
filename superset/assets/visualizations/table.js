@@ -45,26 +45,26 @@ function tableVis(slice) {
         $(modals).attr('id', 'modals');
         document.body.append(modals);
       }
-      let myModal = document.createElement('div');
+      const myModal = document.createElement('div');
       const modalCount = $('#modals').children().length;
       $(myModal).attr('id', modalCount)
-      .attr('class' ,'modal fade')
-      .attr('role' ,'dialog')
+      .attr('class', 'modal fade')
+      .attr('role', 'dialog')
       .attr('aria-hidden', true)
-      .attr('id', 'newSlice_'+modalCount);
-      let modalDialog = document.createElement('div');
+      .attr('id', 'newSlice_' + modalCount);
+      const modalDialog = document.createElement('div');
       $(modalDialog).attr('class', 'modal-dialog');
-      let modalContent = document.createElement('div');
+      const modalContent = document.createElement('div');
       $(modalContent).attr('class', 'modal-content');
-      let modalHeader = document.createElement('div');
+      const modalHeader = document.createElement('div');
       $(modalHeader).attr('class', 'modal-header');
-      let modalTitle = document.createElement('h4');
+      const modalTitle = document.createElement('h4');
       $(modalTitle).attr('class', 'modal-title')
       .text(title);
-      let modalBody = document.createElement('div');
+      const modalBody = document.createElement('div');
       $(modalBody).attr('class', 'modal-body');
-      let iframe = document.createElement('iframe');
-      $(iframe).attr('id', 'iframe_'+modalCount)
+      const iframe = document.createElement('iframe');
+      $(iframe).attr('id', 'iframe_' + modalCount)
       .attr('src', url)
       .attr('height', '50%')
       .attr('width', '100%')
