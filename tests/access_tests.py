@@ -147,7 +147,7 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_access',
             updated_override_me.permissions[0].permission.name)
 
-    @mock.patch('superset.email.send_MIME_email')
+    @mock.patch('superset.utils.send_MIME_email')
     def test_approve(self, mock_send_mime):
         session = db.session
         TEST_ROLE_NAME = 'table_role'
@@ -228,7 +228,7 @@ class RequestAccessTests(SupersetTestCase):
             '[Superset] Access to the datasource {} was granted'.format(
                 self.get_table(ds_2_id).full_name), call_args[2]['Subject'])
         self.assertIn(TEST_ROLE_NAME, call_args[2].as_string())
-        self.assertIn('unicode_test', call_args[2].as_string())
+        self.assertIn('long_lat', call_args[2].as_string())
 
         # request was removed
         self.assertFalse(access_requests)

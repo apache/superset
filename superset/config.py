@@ -9,8 +9,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from superset import email
-
 import imp
 import json
 import os
@@ -149,7 +147,6 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
-IN_MEMORY_CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
 
 # CORS Options
 ENABLE_CORS = False
@@ -278,11 +275,6 @@ SMTP_USER = 'superset'
 SMTP_PORT = 25
 SMTP_PASSWORD = 'superset'
 SMTP_MAIL_FROM = 'superset@superset.com'
-
-try:
-    from superset_config import *  # noqa
-except ImportError:
-    pass
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')

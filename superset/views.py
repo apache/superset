@@ -36,7 +36,7 @@ from wtforms.validators import ValidationError
 
 import superset
 from superset import (
-    app, appbuilder, cache, db, email, models, sm, sql_lab, sql_parse,
+    app, appbuilder, cache, db, models, sm, sql_lab, sql_parse,
     results_backend, security, viz, utils,
 )
 from superset.source_registry import SourceRegistry
@@ -1331,9 +1331,9 @@ class Superset(BaseSupersetView):
                     user=requested_by.username,
                     role=role_to_grant,
                     datasource=datasource.full_name)
-                email.notify_user_about_perm_udate(
+                utils.notify_user_about_perm_udate(
                     g.user, requested_by, role, datasource,
-                    'email/role_granted.txt')
+                    'email/role_granted.txt', app.config)
                 flash(msg, "info")
 
             if role_to_extend:
@@ -1341,13 +1341,12 @@ class Superset(BaseSupersetView):
                     'email/datasource_access', datasource.perm)
                 role = sm.find_role(role_to_extend)
                 sm.add_permission_role(role, perm_view)
-                msg = __("Role %(r)s was extended to provide the access to the "
-                         "datasource %(ds)s", r=role_to_extend,
+                msg = __("Role %(r)s was extended to provide the access to "
+                         "the datasource %(ds)s", r=role_to_extend,
                          ds=datasource.full_name)
-                email.notify_user_about_perm_udate(
+                utils.notify_user_about_perm_udate(
                     g.user, requested_by, role, datasource,
-                    'email/role_extended.txt')
-
+                    'email/role_extended.txt', app.config)
                 flash(msg, "info")
 
         else:
