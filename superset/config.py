@@ -149,7 +149,7 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
-IN_MEMORY_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+IN_MEMORY_CACHE_CONFIG = {'CACHE_TYPE': 'simple'}
 
 # CORS Options
 ENABLE_CORS = False
@@ -270,13 +270,14 @@ except ImportError:
     pass
 
 # smtp server configuration
-smtp_host = 'localhost'
-smtp_starttls = True
-smtp_ssl = False
-smtp_user = 'superset'
-smtp_port = 25
-smtp_password = 'superset'
-smtp_mail_from = 'superset@superset.com'
+EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
+SMTP_HOST = 'localhost'
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = 'superset'
+SMTP_PORT = 25
+SMTP_PASSWORD = 'superset'
+SMTP_MAIL_FROM = 'superset@superset.com'
 
 try:
     from superset_config import *  # noqa
