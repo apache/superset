@@ -12,7 +12,8 @@ with open(PACKAGE_FILE) as package_file:
 
 def get_git_sha():
     try:
-         return subprocess.check_output(['git', 'rev-parse', 'HEAD']).strip()
+        s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
+        return s.strip()
     except:
         pass
 
