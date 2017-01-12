@@ -12,7 +12,7 @@ import dt from 'datatables.net-bs';
 dt(window, $);
 
 function tableVis(slice) {
-  let count = 1;
+  let count = 0;
   const fC = d3.format('0,000');
   let timestampFormatter;
   const container = $(slice.selector);
@@ -37,21 +37,64 @@ function tableVis(slice) {
 
     // add a modal
     function showModal(title, url) {
-      const myModal = $('#newSlice').clone();
+      let modals;
+      if ($('#modals').attr('id') !== undefined) {
+        modals = $('#modals');
+      } else {
+        modals = document.createElement('div');
+        $(modals).attr('id', 'modals');
+        document.body.append(modals);
+      }
+      let myModal = document.createElement('div');
       const modalCount = $('#modals').children().length;
-      myModal.attr('id', 'newSlice_' + modalCount);
-      $('#modals').append(myModal);
-      $('#newSlice_' + modalCount + ' iframe').attr('src', url);
-      $('#newSlice_' + modalCount + ' iframe').attr('id', 'iframe_' + modalCount);
-      $('#newSlice_' + modalCount + ' .modal-title').text(title);
-      myModal.attr('display', 'block');
-      myModal.draggable({
+      $(myModal).attr('id', modalCount)
+      .attr('class' ,'modal fade')
+      .attr('role' ,'dialog')
+      .attr('aria-hidden', true)
+      .attr('id', 'newSlice_'+modalCount);
+      let modalDialog = document.createElement('div');
+      $(modalDialog).attr('class', 'modal-dialog');
+      let modalContent = document.createElement('div');
+      $(modalContent).attr('class', 'modal-content');
+      let modalHeader = document.createElement('div');
+      $(modalHeader).attr('class', 'modal-header');
+      let modalTitle = document.createElement('h4');
+      $(modalTitle).attr('class', 'modal-title')
+      .text(title);
+      let modalBody = document.createElement('div');
+      $(modalBody).attr('class', 'modal-body');
+      let iframe = document.createElement('iframe');
+      $(iframe).attr('id', 'iframe_'+modalCount)
+      .attr('src', url)
+      .attr('height', '50%')
+      .attr('width', '100%')
+      .attr('frameborder', 0);
+      $(modalBody).append(iframe);
+      $(modalContent).append(modalHeader);
+      $(modalContent).append(modalBody);
+      $(modalHeader).append(modalTitle);
+      $(modalDialog).append(modalContent);
+      $(myModal).append(modalDialog);
+      $(modals).append(myModal);
+      $(myModal).draggable({
         handle: '.modal-header',
       });
-      myModal.modal({ show: true });
-      $('.modal-backdrop').each(function () {
-        $(this).attr('id', 'id_' + Math.random());
-      });
+      $(myModal).modal({ show: true });
+      // const myModal = $('#newSlice').clone();
+      // const modalCount = $('#modals').children().length;
+      // myModal.attr('id', 'newSlice_' + modalCount);
+      // $('#modals').append(myModal);
+      // $('#newSlice_' + modalCount + ' iframe').attr('src', url);
+      // $('#newSlice_' + modalCount + ' iframe').attr('id', 'iframe_' + modalCount);
+      // $('#newSlice_' + modalCount + ' .modal-title').text(title);
+      // myModal.attr('display', 'block');
+      // myModal.draggable({
+      //   handle: '.modal-header',
+      // });
+      // myModal.modal({ show: true });
+      // $('.modal-backdrop').each(function () {
+      //   $(this).attr('id', 'id_' + Math.random());
+      // });
     }
 
     // add listener to get navigate message
