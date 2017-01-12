@@ -28,6 +28,23 @@ const defaultProps = {
 export default class SelectField extends React.Component {
   constructor(props) {
     super(props);
+    this.state = { options: this.getOptions() };
+    this.onChange = this.onChange.bind(this);
+    this.renderOption = this.renderOption.bind(this);
+  }
+  onChange(opt) {
+    let optionValue = opt ? opt.value : null;
+    // if multi, return options values as an array
+    if (this.props.multi) {
+      optionValue = opt ? opt.map((o) => o.value) : null;
+    }
+    if (this.props.name === 'datasource' && optionValue !== null) {
+      this.props.onChange(this.props.name, optionValue, opt.label);
+    } else {
+      this.props.onChange(this.props.name, optionValue);
+    }
+  }
+  getOptions() {
     const options = this.props.choices.map((c) => {
       let label = c[0];
       if (c.length > 1) {
@@ -56,21 +73,7 @@ export default class SelectField extends React.Component {
         }
       }
     }
-    this.state = { options };
-    this.onChange = this.onChange.bind(this);
-    this.renderOption = this.renderOption.bind(this);
-  }
-  onChange(opt) {
-    let optionValue = opt ? opt.value : null;
-    // if multi, return options values as an array
-    if (this.props.multi) {
-      optionValue = opt ? opt.map((o) => o.value) : null;
-    }
-    if (this.props.name === 'datasource' && optionValue !== null) {
-      this.props.onChange(this.props.name, optionValue, opt.label);
-    } else {
-      this.props.onChange(this.props.name, optionValue);
-    }
+    return options;
   }
   renderOption(opt) {
     if (opt.imgSrc) {
