@@ -379,10 +379,7 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
-            data = json.dumps(
-                payload,
-                default=utils.json_int_dttm_ser, ignore_nan=True
-            )
+            data = self.json_dumps(payload)
             if PY3:
                 data = bytes(data, 'utf-8')
             try:
@@ -398,6 +395,9 @@ class BaseViz(object):
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return payload
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
 
     @property
     def data(self):
@@ -537,6 +537,9 @@ class TableViz(BaseViz):
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
