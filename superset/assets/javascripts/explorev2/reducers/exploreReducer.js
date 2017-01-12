@@ -30,7 +30,6 @@ export const exploreReducer = function (state, action) {
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },
-
     [actions.FETCH_DASHBOARDS_SUCCEEDED]() {
       return Object.assign({}, state, { dashboards: action.choices });
     },
@@ -74,24 +73,27 @@ export const exploreReducer = function (state, action) {
       );
     },
     [actions.SET_FIELD_VALUE]() {
-      const newFormData = action.key === 'datasource' ?
-        defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
-        Object.assign({}, state.viz.form_data);
-      if (action.key === 'datasource') {
+      let newFormData = Object.assign({}, state.viz.form_data);
+      if (action.fieldName === 'datasource') {
+        newFormData = defaultFormData(state.viz.form_data.viz_type, action.datasource_type);
         newFormData.datasource_name = action.label;
         newFormData.slice_id = state.viz.form_data.slice_id;
         newFormData.slice_name = state.viz.form_data.slice_name;
         newFormData.viz_type = state.viz.form_data.viz_type;
       }
-      if (action.key === 'viz_type') {
-        newFormData.previous_viz_type = state.viz.form_data.viz_type;
-      }
-      newFormData[action.key] = (action.value !== undefined)
-        ? action.value : (!state.viz.form_data[action.key]);
+      newFormData[action.fieldName] = action.value;
+
+      const fields = Object.assign({}, state.fields);
+      const field = fields[action.fieldName];
+      field.value = action.value;
+      field.validationErrors = action.validationErrors;
       return Object.assign(
         {},
         state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
+        {
+          fields,
+          viz: Object.assign({}, state.viz, { form_data: newFormData }),
+        }
       );
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {

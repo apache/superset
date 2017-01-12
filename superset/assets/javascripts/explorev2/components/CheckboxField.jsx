@@ -11,14 +11,12 @@ const propTypes = {
 
 const defaultProps = {
   value: false,
-  label: null,
-  description: null,
   onChange: () => {},
 };
 
 export default class CheckboxField extends React.Component {
   onToggle() {
-    this.props.onChange(this.props.name);
+    this.props.onChange(!this.props.value);
   }
   render() {
     return (

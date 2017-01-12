@@ -18,16 +18,17 @@ const defaultProps = {
 
 export default class TextField extends React.Component {
   onChange(event) {
-    this.props.onChange(this.props.name, event.target.value);
+    this.props.onChange(event.target.value);
   }
   render() {
+    const value = this.props.value || '';
     return (
       <FormGroup controlId="formInlineName" bsSize="small">
         <FormControl
           type="text"
           placeholder=""
           onChange={this.onChange.bind(this)}
-          value={this.props.value}
+          value={value}
         />
       </FormGroup>
     );

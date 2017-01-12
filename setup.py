@@ -1,5 +1,5 @@
-import imp
 import os
+import subprocess
 import json
 from setuptools import setup, find_packages
 
@@ -8,6 +8,28 @@ PACKAGE_DIR = os.path.join(BASE_DIR, 'superset', 'static', 'assets')
 PACKAGE_FILE = os.path.join(PACKAGE_DIR, 'package.json')
 with open(PACKAGE_FILE) as package_file:
     version_string = json.load(package_file)['version']
+
+
+def get_git_sha():
+    try:
+        s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
+        return s.strip()
+    except:
+        pass
+
+GIT_SHA = get_git_sha()
+version_info = {
+    'GIT_SHA': GIT_SHA,
+    'version': version_string,
+}
+print("-==-" * 15)
+print("VERSION: " + version_string)
+print("GIT SHA: " + GIT_SHA)
+print("-==-" * 15)
+
+with open(os.path.join(PACKAGE_DIR, 'version_info.json'), 'w') as version_file:
+    json.dump(version_info, version_file)
+
 
 setup(
     name='superset',
