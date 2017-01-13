@@ -33,6 +33,7 @@ from flask_appbuilder.const import (
 )
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
+from markdown import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
 from sqlalchemy import event, exc
@@ -120,6 +121,27 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+def js_string_to_python(item):
+    return None if item in ('null', 'undefined') else item
+
+
+def get_or_create_main_db(caravel):
+    db = caravel.db
+    config = caravel.app.config
+    DB = caravel.models.Database
+    logging.info("Creating database reference")
+    dbobj = db.session.query(DB).filter_by(database_name='main').first()
+    if not dbobj:
+        dbobj = DB(database_name="main")
+    logging.info(config.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.set_sqlalchemy_uri(config.get("SQLALCHEMY_DATABASE_URI"))
+    dbobj.expose_in_sqllab = True
+    dbobj.allow_run_sync = True
+    db.session.add(dbobj)
+    db.session.commit()
+    return dbobj
 
 
 class DimSelector(Having):

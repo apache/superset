@@ -213,8 +213,18 @@ export function mergeTable(table, query) {
   return { type: MERGE_TABLE, table, query };
 }
 
-export function addTable(query, tableName) {
+export function addTable(query, tableOpt) {
   return function (dispatch) {
+    const namePieces = tableOpt.value.split('.');
+    let tableName;
+    let schemaName;
+    if (namePieces.length === 1) {
+      schemaName = query.schema;
+      tableName = namePieces[0];
+    } else {
+      schemaName = namePieces[0];
+      tableName = namePieces[1];
+    }
     let url = `/superset/table/${query.dbId}/${tableName}/${query.schema}/`;
     $.get(url, (data) => {
       const dataPreviewQuery = {

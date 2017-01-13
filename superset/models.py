@@ -845,7 +845,12 @@ class Database(Model, AuditMixinNullable):
         return sqla.inspect(engine)
 
     def all_table_names(self, schema=None):
-        return sorted(self.inspector.get_table_names(schema))
+        if schema:
+            return sorted(self.inspector.get_table_names(schema))
+        try:
+            return self.db_engine_spec.all_table_full_names(self)
+        except NotImplementedError:
+            return sorted(self.inspector.get_table_names(schema))
 
     def all_view_names(self, schema=None):
         views = []
@@ -855,6 +860,7 @@ class Database(Model, AuditMixinNullable):
             pass
         return views
 
+    @utils.memoized
     def all_schema_names(self):
         return sorted(self.inspector.get_schema_names())
 

@@ -23,6 +23,8 @@ import time
 
 from flask_babel import lazy_gettext as _
 
+from caravel import cached_cls_func
+
 Grain = namedtuple('Grain', 'name label function')
 
 
@@ -53,6 +55,18 @@ class BaseEngineSpec(object):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    @cached_cls_func(timeout=120, key=lambda x: 'db:{}:tables'.format(x.id))
+    def all_table_full_names(cls, database):
+        schemas = database.all_schema_names()
+        if not schemas:
+            return database.all_table_names()
+        table_names = []
+        for schema in schemas:
+            table_names += ['{}.{}'.format(schema, t) for t in
+                            database.all_table_names(schema=schema)]
+        return table_names
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -220,6 +234,19 @@ class PrestoEngineSpec(BaseEngineSpec):
         {order_by_clause}
         {limit_clause}
         """).format(**locals())
+
+    @classmethod
+    def epoch_to_dttm(cls):
+        return "from_unixtime({col})"
+
+    @classmethod
+    @cached_cls_func(timeout=120, key=lambda x: 'db:{}:tables'.format(x.id))
+    def all_table_full_names(cls, database):
+        return database.get_df("""
+            SELECT concat(table_schema, '.', table_name) as fullname
+            FROM INFORMATION_SCHEMA.TABLES
+            ORDER BY concat(table_schema, '.', table_name)
+        """, None)['fullname'].tolist()
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):

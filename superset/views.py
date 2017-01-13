@@ -31,13 +31,12 @@ from flask_babel import gettext as __
 from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
-from werkzeug.routing import BaseConverter
 from wtforms.validators import ValidationError
 
 import superset
 from superset import (
-    app, appbuilder, cache, db, models, sm, sql_lab, sql_parse,
-    results_backend, security, viz, utils,
+    appbuilder, cache, db, models, viz, utils, app,
+    sm, sql_lab, sql_parse, results_backend, security, cached_view
 )
 from superset.utils import has_access
 from superset.source_registry import SourceRegistry
@@ -1783,46 +1782,58 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/all_tables/<db_id>")
-    def all_tables(self, db_id):
-        """Endpoint that returns all tables and views from the database"""
+    @expose("/schemas/<db_id>")
+    @cached_view(timeout=600)
+    def schemas(self, db_id):
+        # db_id = request.args.get('db_id')
         database = (
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
             .one()
         )
-        all_tables = []
-        all_views = []
-        schemas = database.all_schema_names()
-        for schema in schemas:
-            all_tables.extend(database.all_table_names(schema=schema))
-            all_views.extend(database.all_view_names(schema=schema))
-        if not schemas:
-            all_tables.extend(database.all_table_names())
-            all_views.extend(database.all_view_names())
-
         return Response(
-            json.dumps({"tables": all_tables, "views": all_views}),
+            json.dumps({'schemas': database.all_schema_names()}),
             mimetype="application/json")
 
     @api
     @has_access_api
-    @expose("/tables/<db_id>/<schema>")
+    @expose("/tables/<db_id>/<schema>/")
+    @cached_view(timeout=600)
     def tables(self, db_id, schema):
         """endpoint to power the calendar heatmap on the welcome page"""
-        schema = None if schema in ('null', 'undefined') else schema
+        schema = utils.js_string_to_python(schema)
+        substr = utils.js_string_to_python(request.args.get('substr'))
         database = (
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
             .one()
         )
-        tables = [t for t in database.all_table_names(schema) if
-                  self.datasource_access_by_name(database, t, schema=schema)]
-        views = [v for v in database.all_view_names(schema) if
-                 self.datasource_access_by_name(database, v, schema=schema)]
-        payload = {'tables': tables, 'views': views}
+        table_names = [
+            t for t in database.all_table_names(schema) if
+            self.datasource_access_by_name(database, t, schema=schema)]
+        view_names = [
+            v for v in database.all_view_names(schema) if
+            self.datasource_access_by_name(database, v, schema=schema)]
+        if substr:
+            table_names = [tn for tn in table_names if substr in tn]
+            view_names = [vn for vn in view_names if substr in vn]
+
+        max_items = config.get('MAX_TABLE_NAMES') or len(table_names)
+        total_items = len(table_names) + len(view_names)
+        max_tables = len(table_names)
+        max_views = len(view_names)
+        if total_items:
+            max_tables = max_items * len(table_names) // total_items
+            max_views = max_items * len(view_names) // total_items
+
+        payload = {
+            'tables': table_names[:max_tables],
+            'tables_length': len(table_names),
+            'views': view_names[:max_views],
+            'views_length': len(view_names),
+        }
         return Response(
             json.dumps(payload), mimetype="application/json")
 
@@ -2362,7 +2373,7 @@ class Superset(BaseSupersetView):
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = None if schema in ('null', 'undefined') else schema
+        schema = utils.js_string_to_python(schema)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
         indexes = []
@@ -2419,7 +2430,7 @@ class Superset(BaseSupersetView):
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
-        schema = None if schema in ('null', 'undefined') else schema
+        schema = utils.js_string_to_python(schema)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
