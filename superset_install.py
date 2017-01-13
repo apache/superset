@@ -279,7 +279,7 @@ def apple_installation():
 
 def detect_os():
 	detected_paltform = platform.platform().lower()
-	if "Darwin" in detected_paltform:
+	if "darwin" in detected_paltform:
 		os_name = 'Apple'
 	elif "ubuntu" in detected_paltform:
 		os_name = 'Ubuntu'
