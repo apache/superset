@@ -1,7 +1,6 @@
 /* eslint camelcase: 0 */
 import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
-import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 import { now } from '../../modules/dates';
 import { getExploreUrl } from '../exploreUtils';
 
@@ -40,37 +39,6 @@ export const exploreReducer = function (state, action) {
     },
     [actions.SET_DATASOURCE]() {
       return Object.assign({}, state, { datasource: action.datasource });
-    },
-    [actions.SET_FILTER_COLUMN_OPTS]() {
-      return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
-    },
-    [actions.ADD_FILTER]() {
-      const newFormData = addToArr(state.viz.form_data, 'filters', action.filter);
-      const newState = Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-      return newState;
-    },
-    [actions.REMOVE_FILTER]() {
-      const newFormData = removeFromArr(state.viz.form_data, 'filters', action.filter);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-    },
-    [actions.CHANGE_FILTER]() {
-      const changes = {};
-      changes[action.field] = action.value;
-      const newFormData = alterInArr(
-        state.viz.form_data, 'filters', action.filter, changes);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
     },
     [actions.SET_FIELD_VALUE]() {
       let newFormData = Object.assign({}, state.viz.form_data);

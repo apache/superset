@@ -3,7 +3,7 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
-
+import FilterField from './FilterField';
 import ControlHeader from './ControlHeader';
 
 const fieldMap = {
@@ -11,6 +11,7 @@ const fieldMap = {
   CheckboxField,
   TextAreaField,
   SelectField,
+  FilterField,
 };
 const fieldTypes = Object.keys(fieldMap);
 

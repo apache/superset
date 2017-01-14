@@ -1114,6 +1114,16 @@ export const fields = {
     default: '',
     description: 'Labels for the marker lines',
   },
+
+  filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.filterable_cols : [],
+    }),
+  },
 };
 export default fields;
 
