@@ -33,6 +33,7 @@ const bootstrappedState = Object.assign(
     chartUpdateStartTime: now(),
     chartUpdateEndTime: null,
     chartStatus: 'loading',
+    queryResponse: null,
   }
 );
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
