@@ -100,6 +100,10 @@ class SupersetTestCase(unittest.TestCase):
             session.add(druid_datasource2)
             session.commit()
 
+    def get_table(self, table_id):
+        return db.session.query(models.SqlaTable).filter_by(
+            id=table_id).first()
+
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
         if not obj:

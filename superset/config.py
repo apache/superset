@@ -266,5 +266,15 @@ try:
 except ImportError:
     pass
 
+# smtp server configuration
+EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
+SMTP_HOST = 'localhost'
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = 'superset'
+SMTP_PORT = 25
+SMTP_PASSWORD = 'superset'
+SMTP_MAIL_FROM = 'superset@superset.com'
+
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
