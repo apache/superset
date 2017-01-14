@@ -1,6 +1,6 @@
 const $ = window.$ = require('jquery');
 import React, { PropTypes } from 'react';
-import Select, { Creatable } from 'react-select';
+import Select from 'react-select';
 import { connect } from 'react-redux';
 import shortid from 'shortid';
 import { Button } from 'react-bootstrap';
@@ -11,6 +11,8 @@ const propTypes = {
   choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
+  filters: PropTypes.array,
+  datasource: PropTypes.Object,
   renderFilterSelect: PropTypes.bool,
   datasource_type: PropTypes.string.isRequired,
 };
@@ -83,13 +85,13 @@ class FilterField extends React.Component {
     if (!this.props.datasource) {
       return;
     }
-    const datasource_type = this.props.datasource_type;
-    const datasource_id = this.props.datasource.id;
+    const datasourceType = this.props.datasource_type;
+    const datasource = this.props.datasource;
     let choices = [];
     if (col) {
       $.ajax({
         type: 'GET',
-        url: `/superset/filter/${datasource_type}/${datasource_id}/${col}/`,
+        url: `/superset/filter/${datasourceType}/${datasource.id}/${col}/`,
         success: (data) => {
           choices = Object.keys(data).map((k) =>
             ([`'${data[k]}'`, `'${data[k]}'`]));
@@ -98,32 +100,6 @@ class FilterField extends React.Component {
       });
     }
   }
-  renderFilterFormField(filter) {
-    if (this.props.renderFilterSelect) {
-      if (!filter.choices) {
-        this.fetchFilterValues(filter.id, filter.col);
-      }
-      return (
-        <SelectField
-          multi
-          freeForm
-          name="filter-value"
-          value={filter.value}
-          choices={filter.choices}
-          onChange={this.changeFilter.bind(this, filter.id, 'value')}
-        />
-      );
-    }
-    return (
-      <input
-        type="text"
-        onChange={this.changeFilter.bind(this, filter.id, 'value')}
-        value={filter.value}
-        className="form-control input-sm"
-        placeholder="Filter value"
-      />
-    );
-  }
   prepareFilter(filter) {
     return (
       <div>
@@ -131,7 +107,7 @@ class FilterField extends React.Component {
           <Select
             className="col-lg-12"
             placeholder="Select column"
-            options={this.props.choices.map((c) => ({ value: c[0], label: c[1]}))}
+            options={this.props.choices.map((c) => ({ value: c[0], label: c[1] }))}
             value={filter.col}
             onChange={this.changeFilter.bind(this, filter.id, 'col')}
           />
@@ -158,7 +134,33 @@ class FilterField extends React.Component {
           </div>
         </div>
       </div>
-    )
+    );
+  }
+  renderFilterFormField(filter) {
+    if (this.props.renderFilterSelect) {
+      if (!filter.choices) {
+        this.fetchFilterValues(filter.id, filter.col);
+      }
+      return (
+        <SelectField
+          multi
+          freeForm
+          name="filter-value"
+          value={filter.value}
+          choices={filter.choices}
+          onChange={this.changeFilter.bind(this, filter.id, 'value')}
+        />
+      );
+    }
+    return (
+      <input
+        type="text"
+        onChange={this.changeFilter.bind(this, filter.id, 'value')}
+        value={filter.value}
+        className="form-control input-sm"
+        placeholder="Filter value"
+      />
+    );
   }
   render() {
     const filters = [];
