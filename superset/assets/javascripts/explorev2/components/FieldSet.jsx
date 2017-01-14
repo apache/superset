@@ -42,8 +42,11 @@ export default class FieldSet extends React.PureComponent {
     this.validate = this.validate.bind(this);
     this.onChange = this.onChange.bind(this);
   }
-  onChange(value) {
-    const validationErrors = this.validate(value);
+  onChange(value, errors) {
+    let validationErrors = this.validate(value);
+    if (errors && errors.length > 0) {
+      validationErrors = validationErrors.concat(errors);
+    }
     this.props.actions.setFieldValue(this.props.name, value, validationErrors);
   }
   validate(value) {

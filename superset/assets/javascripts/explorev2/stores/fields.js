@@ -514,7 +514,7 @@ export const fields = {
   treemap_ratio: {
     type: 'TextField',
     label: 'Ratio',
-    validators: [v.numeric],
+    isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: 'Target aspect ratio for treemap tiles.',
   },
@@ -567,7 +567,7 @@ export const fields = {
   rolling_periods: {
     type: 'TextField',
     label: 'Periods',
-    validators: [v.integer],
+    isInt: true,
     description: 'Defines the size of the rolling window function, ' +
                  'relative to the time granularity selected',
   },
@@ -666,7 +666,7 @@ export const fields = {
   compare_lag: {
     type: 'TextField',
     label: 'Comparison Period Lag',
-    validators: [v.integer],
+    isInt: true,
     description: 'Based on granularity, number of time periods to compare against',
   },
 
@@ -793,7 +793,7 @@ export const fields = {
 
   size_from: {
     type: 'TextField',
-    validators: [v.integer],
+    isInt: true,
     label: 'Font Size From',
     default: '20',
     description: 'Font size for the smallest value in the list',
@@ -801,7 +801,7 @@ export const fields = {
 
   size_to: {
     type: 'TextField',
-    validators: [v.integer],
+    isInt: true,
     label: 'Font Size To',
     default: '150',
     description: 'Font size for the biggest value in the list',
@@ -917,7 +917,7 @@ export const fields = {
     type: 'TextField',
     label: 'Period Ratio',
     default: '',
-    validators: [v.integer],
+    isInt: true,
     description: '[integer] Number of period to compare against, ' +
                  'this is relative to the granularity selected',
   },
@@ -934,7 +934,7 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
-    validators: [v.integer],
+    isInt: true,
     default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
@@ -1022,7 +1022,7 @@ export const fields = {
     type: 'TextField',
     label: 'Opacity',
     default: 1,
-    validators: [v.numeric],
+    isFloat: true,
     description: 'Opacity of all clusters, points, and labels. ' +
                  'Between 0 and 1.',
   },
@@ -1030,7 +1030,7 @@ export const fields = {
   viewport_zoom: {
     type: 'TextField',
     label: 'Zoom',
-    validators: [v.numeric],
+    isFloat: true,
     default: 11,
     description: 'Zoom level of the map',
     places: 8,
@@ -1040,7 +1040,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default latitude',
     default: 37.772123,
-    validators: [v.numeric],
+    isFloat: true,
     description: 'Latitude of default viewport',
     places: 8,
   },
@@ -1049,7 +1049,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default longitude',
     default: -122.405293,
-    validators: [v.numeric],
+    isFloat: true,
     description: 'Longitude of default viewport',
     places: 8,
   },
