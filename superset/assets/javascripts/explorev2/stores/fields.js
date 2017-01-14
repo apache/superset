@@ -37,12 +37,10 @@ export const fields = {
     label: 'Datasource',
     clearable: false,
     default: null,
-    mapStateToProps: (state) => {
-      return {
-        choices: state.datasources || [],
-        editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
-      };
-    },
+    mapStateToProps: (state) => ({
+      choices: state.datasources || [],
+      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
+    }),
     description: '',
   },
 

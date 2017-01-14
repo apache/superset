@@ -44,14 +44,12 @@ export default class SelectField extends React.Component {
   getOptions() {
     const options = this.props.choices.map((c) => {
       const label = c.length > 1 ? c[1] : c[0];
-      const options = {
+      const newOptions = {
         value: c[0],
         label,
       };
-
-      if (c[2]) { options.imgSrc = c[2]; }
-
-      return options;
+      if (c[2]) newOptions.imgSrc = c[2];
+      return newOptions;
     });
     if (this.props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
