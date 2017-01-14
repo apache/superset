@@ -187,7 +187,7 @@ def create_missing_metrics_perm(view_menu_set):
     for metric in metrics:
         if (metric.is_restricted and metric.perm and
                 metric.perm not in view_menu_set):
-            merge_perm('metric_access', metric.perm)
+            merge_perm(sm, 'metric_access', metric.perm)
 
 
 def sync_role_definitions():
