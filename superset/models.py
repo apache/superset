@@ -2018,7 +2018,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             segment_metadata = client.segment_metadata(
                 datasource=self.datasource_name,
                 intervals=lbound + '/' + rbound,
-                merge=self.merge_flag)
+                merge=self.merge_flag,
+                analysisTypes=config.get('DRUID_ANALYSIS_TYPES'))
         except Exception as e:
             logging.warning("Failed first attempt to get latest segment")
             logging.exception(e)
@@ -2032,7 +2033,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 segment_metadata = client.segment_metadata(
                     datasource=self.datasource_name,
                     intervals=lbound + '/' + rbound,
-                    merge=self.merge_flag)
+                    merge=self.merge_flag,
+                    analysisTypes=config.get('DRUID_ANALYSIS_TYPES'))
             except Exception as e:
                 logging.warning("Failed 2nd attempt to get latest segment")
                 logging.exception(e)

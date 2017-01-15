@@ -77,6 +77,7 @@ APP_ICON = "/static/assets/images/superset-logo@2x.png"
 # other tz can be overridden by providing a local_config
 DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
+DRUID_ANALYSIS_TYPES = ['cardinality']
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
