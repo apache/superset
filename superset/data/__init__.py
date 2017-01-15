@@ -55,6 +55,7 @@ def load_energy():
         if_exists='replace',
         chunksize=500,
         dtype={
+            'cluster': String(255),
             'source': String(255),
             'target': String(255),
             'value': Float(),
@@ -123,6 +124,7 @@ def load_energy():
             ],
             "having": "",
             "link_length": "200",
+            "graph_color": "cluster",
             "metric": "sum__value",
             "row_limit": "5000",
             "slice_name": "Force",

@@ -544,6 +544,8 @@ const visTypes = {
       {
         label: 'Force Layout',
         fieldSetRows: [
+          ['graph_color'],
+          ['graph_labels'],
           ['link_length'],
           ['charge'],
         ],

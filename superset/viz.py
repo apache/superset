@@ -1759,6 +1759,8 @@ class DirectedForceViz(BaseViz):
     }, {
         'label': _('Force Layout'),
         'fields': (
+            'graph_color',
+            'graph_labels',
             'link_length',
             'charge',
         )
@@ -1775,11 +1777,16 @@ class DirectedForceViz(BaseViz):
         if len(self.form_data['groupby']) != 2:
             raise Exception("Pick exactly 2 columns to 'Group By'")
         qry['metrics'] = [self.form_data['metric']]
+        if self.form_data['graph_color'] != 'None':
+            qry['groupby'] += [self.form_data['graph_color']]
         return qry
 
     def get_data(self):
         df = self.get_df()
-        df.columns = ['source', 'target', 'value']
+        if self.form_data['graph_color'] == 'None':
+            df.columns = ['source', 'target', 'value']
+        else:
+            df.columns = ['source', 'target', 'color', 'value']
         return df.to_dict(orient='records')
 
 

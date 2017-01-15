@@ -321,6 +321,17 @@ class FormFactory(object):
                 "choices": self.choicify(datasource.groupby_column_names),
                 "description": _("One or many fields to pivot as columns")
             }),
+            'graph_color': (SelectField, {
+                "label": _("Node Color"),
+                "default": None,
+                "choices": self.choicify([None] + datasource.column_names),
+                "description": _("Choose a source node dimension to color the nodes"),
+            }),
+            'graph_labels': (BetterBooleanField, {
+                "label": _("Node Labels"),
+                "default": True,
+                "description": _("Display labels on all node?")
+            }),
             'all_columns': (SelectMultipleSortableField, {
                 "label": _("Columns"),
                 "choices": self.choicify(datasource.column_names),
