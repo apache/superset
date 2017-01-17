@@ -1,6 +1,6 @@
 import React from 'react';
 import CopyToClipboard from '../../components/CopyToClipboard';
-import { getQueryLink } from '../../../utils/common';
+import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -16,7 +16,7 @@ export default class CopyQueryTabUrl extends React.PureComponent {
       autorun: qe.autorun,
       sql: qe.sql,
     };
-    getQueryLink(sharedQuery, callback);
+    storeQuery(sharedQuery, callback);
   }
 
   render() {

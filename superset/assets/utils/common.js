@@ -39,16 +39,17 @@ export function getParamFromQuery(query, param) {
   return null;
 }
 
-export function getQueryLink(query, callback) {
+export function storeQuery(query, callback) {
   $.ajax({
     type: 'POST',
     url: '/kv/store/',
     async: false,
     data: {
-      baseUrl: 'superset/sqllab',
       data: JSON.stringify(query),
     },
-    success: (url) => {
+    success: (data) => {
+      const baseUrl = window.location.origin + window.location.pathname;
+      const url = `${baseUrl}?id=${JSON.parse(data).id}`;
       callback(url);
     },
   });

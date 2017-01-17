@@ -7,7 +7,6 @@ import SqlEditor from './SqlEditor';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
 import { getParamFromQuery } from '../../../utils/common';
-const $ = require('jquery');
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -29,43 +28,38 @@ let queryCount = 1;
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const cleanUri = '/superset/sqllab';
-    let query = null;
-    const search = window.location.search;
-    if (search) {
-      const urlId = getParamFromQuery(search.substring(1), 'id');
-      $.ajax({
-        type: 'GET',
-        async: false,
-        url: `/kv/${urlId}`,
-        success(data) {
-          query = JSON.parse(data);
-        },
-      });
-    }
+    const sqlLabUrl = '/superset/sqllab';
     this.state = {
-      cleanUri,
-      query,
+      sqlLabUrl,
       queriesArray: [],
       dataPreviewQueries: [],
       hideLeftBar: false,
     };
   }
-  componentWillMount() {
-    if (this.state.query) {
-      queryCount++;
-      const newQuery = this.state.query;
-      const queryEditorProps = {
-        title: newQuery.title ? newQuery.title : 'shared query',
-        dbId: newQuery.dbId ? parseInt(newQuery.dbId, 10) : null,
-        schema: newQuery.schema ? newQuery.schema : null,
-        autorun: newQuery.autorun ? newQuery.autorun : false,
-        sql: newQuery.sql ? newQuery.sql : 'SELECT ...',
-      };
-      this.props.actions.addQueryEditor(queryEditorProps);
-      // Clean the url in browser history
-      window.history.replaceState({}, document.title, this.state.cleanUri);
+  componentDidMount() {
+    const search = window.location.search;
+    if (search) {
+      const queryString = search.substring(1);
+      const urlId = getParamFromQuery(queryString, 'id');
+      if (urlId) {
+        this.props.actions.popStoredQuery(urlId);
+      } else {
+        const newQueryEditor = {
+          title: getParamFromQuery(queryString, 'title'),
+          dbId: getParamFromQuery(queryString, 'dbid'),
+          schema: getParamFromQuery(queryString, 'schema'),
+          autorun: getParamFromQuery(queryString, 'autorun'),
+          sql: getParamFromQuery(queryString, 'sql'),
+        };
+        this.props.actions.addQueryEditor(newQueryEditor);
+      }
+      this.popNewTab();
     }
+  }
+  popNewTab() {
+    queryCount++;
+    // Clean the url in browser history
+    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
   componentWillReceiveProps(nextProps) {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];

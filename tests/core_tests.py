@@ -259,15 +259,28 @@ class CoreTests(SupersetTestCase):
     def test_kv(self):
         self.logout()
         self.login(username='admin')
-        data = {
-            'data': 'this is a test',
-        }
-        resp = self.client.post('/kv/store/', data=dict(data=json.dumps(data)))
+
+        try:
+            resp = self.client.post('/kv/store/', data=dict())
+        except Exception as e:
+            self.assertRaises(TypeError)
+
+        value = json.dumps({'data': 'this is a test'})
+        resp = self.client.post('/kv/store/', data=dict(data=value))
+        self.assertEqual(resp.status_code, 200)
         kv = db.session.query(models.KeyValue).first()
         kv_value = kv.value
-        assert 'this is a test' in kv_value
-        kv_id = 'id={}'.format(kv.id)
-        assert kv_id in resp.data.decode('utf-8')
+        self.assertEqual(json.loads(value), json.loads(kv_value))
+
+        resp = self.client.get('/kv/{}/'.format(kv.id))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(json.loads(value),
+            json.loads(resp.data.decode('utf-8')))
+
+        try:
+            resp = self.client.get('/kv/10001/')
+        except Exception as e:
+            self.assertRaises(TypeError)
 
     def test_save_dash(self, username='admin'):
         self.login(username=username)

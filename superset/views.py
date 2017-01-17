@@ -18,7 +18,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1106,28 +1106,31 @@ def ping():
 
 class KV(BaseSupersetView):
 
-    """used for storing and retrieving key value pairs"""
+    """Used for storing and retrieving key value pairs"""
 
     @log_this
-    @expose("/store/", methods=['POST', 'GET'])
+    @expose("/store/", methods=['POST'])
     def store(self):
-        value = request.form.get('data')
-        base_url = request.form.get('baseUrl') \
-            if request.form.get('baseUrl') else ''
-        obj = models.KeyValue(value=value)
-        db.session.add(obj)
-        db.session.commit()
-        return("http://{request.headers[Host]}/{base_url}?id={obj.id}".format(
-            request=request, base_url=base_url, obj=obj))
+        try:
+            value = request.form.get('data')
+            obj = models.KeyValue(value=value)
+            db.session.add(obj)
+            db.session.commit()
+        except Exception as e:
+            return json_error_response(e)
+        return Response(
+            json.dumps({'id': obj.id}),
+            status=200)
 
     @log_this
-    @expose("/<key_id>/")
+    @expose("/<key_id>/", methods=['GET'])
     def get_value(self, key_id):
-        kv = db.session.query(models.KeyValue).filter_by(id=key_id).first()
-        if kv:
-            return Response(kv.value, status=200)
-        else:
-            return Response("Error: Value cannot be retrieved", status=404)
+        kv = None
+        try:
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+        except Exception as e:
+            return json_error_response(e)
+        return Response(kv.value, status=200)
 
 appbuilder.add_view_no_menu(KV)
 

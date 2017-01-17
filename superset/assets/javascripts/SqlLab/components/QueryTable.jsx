@@ -10,7 +10,7 @@ import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
-import { getQueryLink } from '../../../utils/common';
+import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
   columns: React.PropTypes.array,
@@ -48,7 +48,7 @@ class QueryTable extends React.PureComponent {
       schema,
       sql,
     };
-    getQueryLink(newQuery, this.callback);
+    storeQuery(newQuery, this.callback);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -107,7 +107,7 @@ class QueryTable extends React.PureComponent {
         <div style={{ width: '100px' }}>
           <button
             className="btn btn-link btn-xs"
-            onClick={this.openQuery.bind(this, q.schema, q.dbId, q.sql)}
+            onClick={this.openQuery.bind(this, q.dbId, q.schema, q.sql)}
           >
             <i className="fa fa-external-link" />Open in SQL Editor
           </button>

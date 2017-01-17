@@ -210,7 +210,7 @@ class Url(Model, AuditMixinNullable):
     url = Column(Text)
 
 
-class KeyValue(Model, AuditMixinNullable):
+class KeyValue(Model):
 
     """Used for any type of key-value store"""
 
