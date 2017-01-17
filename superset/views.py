@@ -49,30 +49,34 @@ QueryStatus = models.QueryStatus
 
 
 class BaseSupersetView(BaseView):
-    def can_access(self, permission_name, view_name):
-        return utils.can_access(appbuilder.sm, permission_name, view_name)
+    def can_access(self, permission_name, view_name, user=None):
+        if not user:
+            user = g.user
+        return appbuilder.sm._has_view_access(
+            user, permission_name, view_name)
 
-    def all_datasource_access(self):
+    def all_datasource_access(self, user=None):
         return self.can_access(
-            "all_datasource_access", "all_datasource_access")
+            "all_datasource_access", "all_datasource_access", user)
 
-    def database_access(self, database):
+    def database_access(self, database, user=None):
         return (
-            self.can_access("all_database_access", "all_database_access") or
-            self.can_access("database_access", database.perm)
+            self.can_access(
+                "all_database_access", "all_database_access", user) or
+            self.can_access("database_access", database.perm, user)
         )
 
-    def schema_access(self, datasource):
+    def schema_access(self, datasource, user=None):
         return (
-            self.database_access(datasource.database) or
-            self.all_datasource_access() or
-            self.can_access("schema_access", datasource.schema_perm)
+            self.database_access(datasource.database, user) or
+            self.all_datasource_access(user) or
+            self.can_access("schema_access", datasource.schema_perm, user)
         )
 
-    def datasource_access(self, datasource):
+    def datasource_access(self, datasource, user=None):
         return (
-            self.schema_access(datasource) or
-            self.can_access("datasource_access", datasource.perm)
+            self.schema_access(datasource, user) or
+            self.can_access("datasource_access", datasource.perm, user)
         )
 
     def datasource_access_by_name(
@@ -1288,8 +1292,7 @@ class Superset(BaseSupersetView):
             datasource = SourceRegistry.get_datasource(
                 r.datasource_type, r.datasource_id, session)
             user = sm.get_user_by_id(r.created_by_fk)
-            if sm._has_view_access(
-                    user, "datasource_access", datasource.perm):
+            if self.datasource_access(datasource, user):
                 session.delete(r)
         session.commit()
 
