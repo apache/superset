@@ -9,6 +9,7 @@ Organizations
  - [Shopkick] (https://www.shopkick.com)
  - [Amino] (https://amino.com)
  - [Faasos] (http://faasos.com/)
+ - [Clark.de] (http://clark.de/)
 
 Projects
 ----------
