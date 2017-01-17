@@ -11,7 +11,6 @@ const propTypes = {
   choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
-  filters: PropTypes.array,
   datasource: PropTypes.Object,
   renderFilterSelect: PropTypes.bool,
   datasource_type: PropTypes.string.isRequired,
@@ -31,7 +30,6 @@ class FilterField extends React.Component {
     const opChoices = this.props.prefix === 'flt' ?
       ['in', 'not in'] : ['==', '!=', '>', '<', '>=', '<='];
     this.state = {
-      filters: props.filters,
       opChoices,
     };
   }
@@ -105,6 +103,7 @@ class FilterField extends React.Component {
       <div>
         <div className="row space-1">
           <Select
+            id="select-col"
             className="col-lg-12"
             placeholder="Select column"
             options={this.props.choices.map((c) => ({ value: c[0], label: c[1] }))}
@@ -114,6 +113,7 @@ class FilterField extends React.Component {
         </div>
         <div className="row space-1">
           <Select
+            id="select-op"
             className="col-lg-4"
             placeholder="Select operator"
             options={this.state.opChoices.map((o) => ({ value: o, label: o }))}
