@@ -5,7 +5,7 @@ require('bootstrap');
 import React from 'react';
 import { render } from 'react-dom';
 import { getInitialState, sqlLabReducer } from './reducers';
-import { enhancer } from '../reduxUtils';
+import { initEnhancer } from '../reduxUtils';
 import { createStore, compose, applyMiddleware } from 'redux';
 import { Provider } from 'react-redux';
 import thunkMiddleware from 'redux-thunk';
@@ -20,7 +20,7 @@ const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 const state = Object.assign({}, getInitialState(bootstrapData.defaultDbId), bootstrapData);
 
 let store = createStore(
-  sqlLabReducer, state, compose(applyMiddleware(thunkMiddleware), enhancer()));
+  sqlLabReducer, state, compose(applyMiddleware(thunkMiddleware), initEnhancer()));
 
 // jquery hack to highlight the navbar menu
 $('a:contains("SQL Lab")').parent().addClass('active');

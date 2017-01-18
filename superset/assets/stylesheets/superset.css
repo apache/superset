@@ -181,7 +181,7 @@ div.widget .chart-header a {
 }
 
 div.widget .slice_container {
-  overflow: auto;
+  overflow: hidden;
 }
 
 .navbar .alert {

@@ -2,7 +2,7 @@ import React from 'react';
 
 import moment from 'moment';
 import { Table } from 'reactable';
-import { Label, ProgressBar } from 'react-bootstrap';
+import { Label, ProgressBar, Well } from 'react-bootstrap';
 import Link from './Link';
 import VisualizeModal from './VisualizeModal';
 import ResultSet from './ResultSet';
@@ -107,7 +107,9 @@ class QueryTable extends React.PureComponent {
         </div>
       );
       q.sql = (
-        <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
+        <Well>
+          <HighlightedSql sql={q.sql} rawSql={q.executedSql} shrink maxWidth={60} />
+        </Well>
       );
       if (q.resultsKey) {
         q.output = (

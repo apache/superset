@@ -59,15 +59,19 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
-    def test_endpoints_for_a_slice(self):
+    def test_slice_json_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        resp = self.get_resp(slc.viz.json_endpoint)
+        assert '"Jennifer"' in resp
+
+    def test_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
         resp = self.get_resp(slc.viz.csv_endpoint)
         assert 'Jennifer,' in resp
-
-        resp = self.get_resp(slc.viz.json_endpoint)
-        assert '"Jennifer"' in resp
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
@@ -229,10 +233,11 @@ class CoreTests(SupersetTestCase):
         self.assertEqual(sqlalchemy_uri_decrypted, database.sqlalchemy_uri_decrypted)
 
     def test_warm_up_cache(self):
-        slice = db.session.query(models.Slice).first()
+        slc = self.get_slice("Girls", db.session)
         data = self.get_json_resp(
-            '/superset/warm_up_cache?slice_id={}'.format(slice.id))
-        assert data == [{'slice_id': slice.id, 'slice_name': slice.slice_name}]
+            '/superset/warm_up_cache?slice_id={}'.format(slc.id))
+
+        assert data == [{'slice_id': slc.id, 'slice_name': slc.slice_name}]
 
         data = self.get_json_resp(
             '/superset/warm_up_cache?table_name=energy_usage&db_name=main')
@@ -465,6 +470,7 @@ class CoreTests(SupersetTestCase):
 
     def test_table_metadata(self):
         maindb = self.get_main_database(db.session)
+        backend = maindb.backend
         data = self.get_json_resp(
             "/superset/table/{}/ab_user/null/".format(maindb.id))
         self.assertEqual(data['name'], 'ab_user')
@@ -472,7 +478,6 @@ class CoreTests(SupersetTestCase):
         assert data.get('selectStar').startswith('SELECT')
 
         # Engine specific tests
-        backend = maindb.backend
         if backend in ('mysql', 'postgresql'):
             self.assertEqual(data.get('primaryKey').get('type'), 'pk')
             self.assertEqual(
@@ -485,10 +490,19 @@ class CoreTests(SupersetTestCase):
 
     def test_fetch_datasource_metadata(self):
         self.login(username='admin')
-        url = '/superset/fetch_datasource_metadata?datasource_type=table&' \
-              'datasource_id=1'
-        resp = json.loads(self.get_resp(url))
-        self.assertEqual(len(resp['field_options']), 21)
+        url = (
+            '/superset/fetch_datasource_metadata?'
+            'datasource_type=table&'
+            'datasource_id=1'
+        )
+        resp = self.get_json_resp(url)
+        keys = [
+            'name', 'filterable_cols', 'gb_cols', 'type', 'all_cols',
+            'order_by_choices', 'metrics_combo', 'granularity_sqla',
+            'time_grain_sqla', 'id',
+        ]
+        for k in keys:
+            self.assertIn(k, resp.keys())
 
     def test_fetch_all_tables(self):
         self.login(username='admin')

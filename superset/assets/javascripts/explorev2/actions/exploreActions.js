@@ -2,14 +2,14 @@
 const $ = window.$ = require('jquery');
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
 
-export const SET_FIELD_OPTIONS = 'SET_FIELD_OPTIONS';
-export function setFieldOptions(options) {
-  return { type: SET_FIELD_OPTIONS, options };
-}
-
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {
   return { type: SET_DATASOURCE_TYPE, datasourceType };
+}
+
+export const SET_DATASOURCE = 'SET_DATASOURCE';
+export function setDatasource(datasource) {
+  return { type: SET_DATASOURCE, datasource };
 }
 
 export const FETCH_STARTED = 'FETCH_STARTED';
@@ -27,7 +27,7 @@ export function fetchFailed(error) {
   return { type: FETCH_FAILED, error };
 }
 
-export function fetchFieldOptions(datasourceId, datasourceType) {
+export function fetchDatasourceMetadata(datasourceId, datasourceType) {
   return function (dispatch) {
     dispatch(fetchStarted());
 
@@ -38,7 +38,7 @@ export function fetchFieldOptions(datasourceId, datasourceType) {
         type: 'GET',
         url,
         success: (data) => {
-          dispatch(setFieldOptions(data.field_options));
+          dispatch(setDatasource(data));
           dispatch(fetchSucceeded());
         },
         error(error) {
@@ -114,8 +114,8 @@ export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(datasource_type, key, value, label) {
-  return { type: SET_FIELD_VALUE, datasource_type, key, value, label };
+export function setFieldValue(fieldName, value, validationErrors) {
+  return { type: SET_FIELD_VALUE, fieldName, value, validationErrors };
 }
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -129,8 +129,8 @@ export function chartUpdateSucceeded(query) {
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(error) {
-  return { type: CHART_UPDATE_FAILED, error };
+export function chartUpdateFailed(error, query) {
+  return { type: CHART_UPDATE_FAILED, error, query };
 }
 
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';

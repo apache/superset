@@ -68,11 +68,6 @@ const px = function () {
       $('#timer').text(num.toFixed(2) + ' sec');
     };
     let qrystr = '';
-    const always = function () {
-      // Private f, runs after done and error
-      clearInterval(timer);
-      $('#timer').removeClass('btn-warning');
-    };
     slice = {
       data,
       container,
@@ -123,6 +118,13 @@ const px = function () {
         return utils.d3format(format, number);
       },
       /* eslint no-shadow: 0 */
+      always(data) {
+        clearInterval(timer);
+        $('#timer').removeClass('btn-warning');
+        if (data && data.query) {
+          slice.viewSqlQuery = data.query;
+        }
+      },
       done(payload) {
         Object.assign(data, payload);
 
@@ -131,14 +133,10 @@ const px = function () {
         container.fadeTo(0.5, 1);
         container.show();
 
-        if (data !== undefined) {
-          slice.viewSqlQuery = data.query;
-        }
-
-        $('#timer').removeClass('label-warning label-danger');
         $('#timer').addClass('label-success');
+        $('#timer').removeClass('label-warning label-danger');
         $('.query-and-save button').removeAttr('disabled');
-        always(data);
+        this.always(data);
         controller.done(this);
       },
       getErrorMsg(xhr) {
@@ -161,8 +159,9 @@ const px = function () {
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
         let errHtml = '';
+        let o;
         try {
-          const o = JSON.parse(msg);
+          o = JSON.parse(msg);
           if (o.error) {
             errorMsg = o.error;
           }
@@ -181,7 +180,7 @@ const px = function () {
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
         $('.query-and-save button').removeAttr('disabled');
-        always(data);
+        this.always(o);
         controller.error(this);
       },
       clearError() {

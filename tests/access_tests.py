@@ -5,6 +5,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import json
+import mock
 import unittest
 
 from superset import db, models, sm
@@ -146,8 +147,8 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_access',
             updated_override_me.permissions[0].permission.name)
 
-
-    def test_approve(self):
+    @mock.patch('superset.utils.send_MIME_email')
+    def test_approve(self, mock_send_mime):
         session = db.session
         TEST_ROLE_NAME = 'table_role'
         sm.add_role(TEST_ROLE_NAME)
@@ -188,6 +189,18 @@ class RequestAccessTests(SupersetTestCase):
         self.get_resp(GRANT_ROLE_REQUEST.format(
             'table', ds_1_id, 'gamma', TEST_ROLE_NAME))
 
+        # Test email content.
+        self.assertTrue(mock_send_mime.called)
+        call_args = mock_send_mime.call_args[0]
+        self.assertEqual([sm.find_user(username='gamma').email,
+                          sm.find_user(username='admin').email],
+                         call_args[1])
+        self.assertEqual(
+            '[Superset] Access to the datasource {} was granted'.format(
+                self.get_table(ds_1_id).full_name), call_args[2]['Subject'])
+        self.assertIn(TEST_ROLE_NAME, call_args[2].as_string())
+        self.assertIn('unicode_test', call_args[2].as_string())
+
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
         # request was removed
         self.assertFalse(access_requests)
@@ -204,6 +217,19 @@ class RequestAccessTests(SupersetTestCase):
         self.client.get(EXTEND_ROLE_REQUEST.format(
             'table', access_request2.datasource_id, 'gamma', TEST_ROLE_NAME))
         access_requests = self.get_access_requests('gamma', 'table', ds_2_id)
+
+        # Test email content.
+        self.assertTrue(mock_send_mime.called)
+        call_args = mock_send_mime.call_args[0]
+        self.assertEqual([sm.find_user(username='gamma').email,
+                          sm.find_user(username='admin').email],
+                         call_args[1])
+        self.assertEqual(
+            '[Superset] Access to the datasource {} was granted'.format(
+                self.get_table(ds_2_id).full_name), call_args[2]['Subject'])
+        self.assertIn(TEST_ROLE_NAME, call_args[2].as_string())
+        self.assertIn('long_lat', call_args[2].as_string())
+
         # request was removed
         self.assertFalse(access_requests)
         # table_role was extended to grant access to the long_lat table/

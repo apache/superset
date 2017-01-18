@@ -85,8 +85,12 @@ export function fetchQueryResults(query) {
       success(results) {
         dispatch(querySuccess(query, results));
       },
-      error() {
-        dispatch(queryFailed(query, 'Failed at retrieving results from the results backend'));
+      error(err) {
+        let msg = 'Failed at retrieving results from the results backend';
+        if (err.responseJSON && err.responseJSON.error) {
+          msg = err.responseJSON.error;
+        }
+        dispatch(queryFailed(query, msg));
       },
     });
   };

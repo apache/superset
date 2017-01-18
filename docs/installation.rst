@@ -80,7 +80,7 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user
+    # Create an admin user (you will be prompted to set username, first and last name before setting a password)
     fabmanager create-admin --app superset
 
     # Initialize the database
@@ -92,8 +92,8 @@ Follow these few simple steps to install Superset.::
     # Create default roles and permissions
     superset init
 
-    # Start the web server on port 8088
-    superset runserver -p 8088
+    # Start the web server on port 8088, use -p to bind to another port
+    superset runserver
 
     # To start a development web server, use the -d switch
     # superset runserver -d

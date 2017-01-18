@@ -220,7 +220,7 @@ class ResultSet extends React.PureComponent {
         </Button>
       );
     }
-    return (<Alert bsStyle="warning">The query returned no data</Alert>);
+    return <Alert bsStyle="warning">The query returned no data</Alert>;
   }
 }
 ResultSet.propTypes = propTypes;

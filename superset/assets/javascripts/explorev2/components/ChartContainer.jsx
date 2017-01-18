@@ -142,7 +142,13 @@ class ChartContainer extends React.Component {
       },
 
       error(msg) {
-        props.actions.chartUpdateFailed(msg);
+        let payload = { error: msg };
+        try {
+          payload = JSON.parse(msg);
+        } catch (e) {
+          // pass
+        }
+        props.actions.chartUpdateFailed(payload.error, payload.query);
       },
 
       d3format: (col, number) => {
@@ -248,6 +254,7 @@ class ChartContainer extends React.Component {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
+                  query={this.props.query}
                 />
               </div>
             </div>

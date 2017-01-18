@@ -3,83 +3,80 @@ import TextField from './TextField';
 import CheckboxField from './CheckboxField';
 import TextAreaField from './TextAreaField';
 import SelectField from './SelectField';
-import { fieldTypes } from '../stores/fields';
+
+import ControlHeader from './ControlHeader';
+
+const fieldMap = {
+  TextField,
+  CheckboxField,
+  TextAreaField,
+  SelectField,
+};
+const fieldTypes = Object.keys(fieldMap);
 
 const propTypes = {
+  actions: PropTypes.object.isRequired,
   name: PropTypes.string.isRequired,
   type: PropTypes.oneOf(fieldTypes).isRequired,
   label: PropTypes.string.isRequired,
   choices: PropTypes.arrayOf(PropTypes.array),
   description: PropTypes.string,
   places: PropTypes.number,
-  validators: PropTypes.any,
-  onChange: React.PropTypes.func,
+  validators: PropTypes.array,
+  validationErrors: PropTypes.array,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
     PropTypes.bool,
-    PropTypes.array]).isRequired,
+    PropTypes.array]),
 };
 
 const defaultProps = {
-  choices: null,
-  description: null,
-  places: null,
-  validators: null,
-  onChange: () => {},
+  validators: [],
+  validationErrors: [],
 };
 
-export default class FieldSet extends React.Component {
-  renderCheckBoxField() {
-    return (
-      <CheckboxField
-        {...this.props}
-      />);
+export default class FieldSet extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.validate = this.validate.bind(this);
+    this.onChange = this.onChange.bind(this);
   }
-
-  renderTextAreaField() {
-    return (
-      <TextAreaField
-        {...this.props}
-      />);
-  }
-
-  renderSelectField(selectProps) {
-    return (
-      <SelectField
-        {...this.props}
-        {...selectProps}
-      />);
-  }
-
-  renderTextField() {
-    return (
-      <TextField
-        {...this.props}
-      />);
-  }
-
-  render() {
-    const type = this.props.type;
-    const selectProps = {
-      SelectCustomMultiField: { multi: true, freeForm: true },
-      SelectMultipleSortableField: { multi: true, freeForm: false },
-      SelectField: { multi: false, freeForm: false },
-      FreeFormSelectField: { multi: false, freeForm: true },
-    };
-    let field;
-
-    if (type === 'CheckboxField') {
-      field = this.renderCheckBoxField();
-    } else if (Object.keys(selectProps).includes(type)) {
-      field = this.renderSelectField(selectProps[type]);
-    } else if (['TextField', 'IntegerField'].includes(type)) {
-      field = this.renderTextField();
-    } else if (type === 'TextAreaField') {
-      field = this.renderTextAreaField();
+  onChange(value, errors) {
+    let validationErrors = this.validate(value);
+    if (errors && errors.length > 0) {
+      validationErrors = validationErrors.concat(errors);
     }
-
-    return field;
+    this.props.actions.setFieldValue(this.props.name, value, validationErrors);
+  }
+  validate(value) {
+    const validators = this.props.validators;
+    const validationErrors = [];
+    if (validators && validators.length > 0) {
+      validators.forEach(f => {
+        const v = f(value);
+        if (v) {
+          validationErrors.push(v);
+        }
+      });
+    }
+    return validationErrors;
+  }
+  render() {
+    const FieldType = fieldMap[this.props.type];
+    return (
+      <div>
+        <ControlHeader
+          label={this.props.label}
+          description={this.props.description}
+          validationErrors={this.props.validationErrors}
+        />
+        <FieldType
+          onChange={this.onChange}
+          {...this.props}
+        />
+      </div>
+    );
   }
 }
 

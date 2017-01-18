@@ -20,7 +20,7 @@ CSRF_ENABLED = False
 SECRET_KEY = 'thisismyscretkey'
 WTF_CSRF_ENABLED = False
 PUBLIC_ROLE_LIKE_GAMMA = True
-
+AUTH_ROLE_PUBLIC = 'Public'
 
 class CeleryConfig(object):
     BROKER_URL = 'sqla+sqlite:///' + SQL_CELERY_DB_FILE_PATH

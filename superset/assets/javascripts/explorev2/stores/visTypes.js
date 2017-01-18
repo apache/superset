@@ -25,7 +25,8 @@ export const commonControlPanelSections = {
   sqlClause: {
     label: 'SQL',
     fieldSetRows: [
-      ['where', 'having'],
+      ['where'],
+      ['having'],
     ],
     description: 'This section exposes ways to include snippets of SQL in your query',
   },
@@ -137,6 +138,42 @@ const visTypes = {
     ],
   },
 
+  dual_line: {
+    label: 'Time Series - Dual Axis Line Chart',
+    requiresTime: true,
+    controlPanelSections: [
+      {
+        label: 'Chart Options',
+        fieldSetRows: [
+          ['x_axis_format'],
+        ],
+      },
+      {
+        label: 'Y Axis 1',
+        fieldSetRows: [
+          ['metric'],
+          ['y_axis_format'],
+        ],
+      },
+      {
+        label: 'Y Axis 2',
+        fieldSetRows: [
+          ['metric_2'],
+          ['y_axis_2_format'],
+        ],
+      },
+    ],
+    fieldOverrides: {
+      metric: {
+        label: 'Left Axis Metric',
+        description: 'Choose a metric for left axis',
+      },
+      y_axis_format: {
+        label: 'Left Axis Format',
+      },
+    },
+  },
+
   bar: {
     label: 'Time Series - Bar Chart',
     requiresTime: true,
@@ -223,7 +260,8 @@ const visTypes = {
       {
         label: null,
         fieldSetRows: [
-          ['markup_type', 'code'],
+          ['markup_type'],
+          ['code'],
         ],
       },
     ],
@@ -714,8 +752,11 @@ export function sectionsToRender(vizType, datasourceType) {
   const timeSection = datasourceType === 'table' ?
     commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
   const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
-  const sections = [datasourceAndVizType].concat(
-    viz.controlPanelSections, timeSection, sqlClause);
+  const sections = [].concat(
+    datasourceAndVizType,
+    timeSection,
+    viz.controlPanelSections,
+    sqlClause
+  );
   return sections;
 }
-
