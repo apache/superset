@@ -13,6 +13,7 @@ Organizations
  - [Yahoo!] (www.yahoo.com)
  - [Digit Game Studios] (https://www.digitgaming.com/)
  - [Brilliant.org] (https://brilliant.org/)
+ - [Qunar] (https://www.qunar.com/)
 
 Projects
 ----------
