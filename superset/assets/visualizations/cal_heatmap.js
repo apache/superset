@@ -8,9 +8,9 @@ require('../node_modules/cal-heatmap/cal-heatmap.css');
 const CalHeatMap = require('cal-heatmap');
 
 function calHeatmap(slice) {
-  const div = d3.select(slice.selector);
 
   const render = function () {
+    const div = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, json) {
       const data = json.data;
       if (error !== null) {

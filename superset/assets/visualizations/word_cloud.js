@@ -4,9 +4,9 @@ import cloudLayout from 'd3-cloud';
 import { category21 } from '../javascripts/modules/colors';
 
 function wordCloudChart(slice) {
-  const chart = d3.select(slice.selector);
 
   function refresh() {
+    const chart = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText, error);

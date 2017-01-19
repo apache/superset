@@ -7,9 +7,9 @@ require('./sunburst.css');
 
 // Modified from http://bl.ocks.org/kerryrodden/7090426
 function sunburstVis(slice) {
-  const container = d3.select(slice.selector);
 
   const render = function () {
+    const container = d3.select(slice.selector);
     // vars with shared scope within this function
     const margin = { top: 10, right: 5, bottom: 10, left: 5 };
     const containerWidth = slice.width();

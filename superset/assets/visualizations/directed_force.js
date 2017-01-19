@@ -5,9 +5,8 @@ require('./directed_force.css');
 
 /* Modified from http://bl.ocks.org/d3noob/5141278 */
 function directedForceVis(slice) {
-  const div = d3.select(slice.selector);
-
   const render = function () {
+    const div = d3.select(slice.selector);
     const width = slice.width();
     const height = slice.height() - 25;
     d3.json(slice.jsonEndpoint(), function (error, json) {
@@ -15,6 +14,7 @@ function directedForceVis(slice) {
         slice.error(error.responseText, error);
         return;
       }
+      console.log(json);
       const linkLength = json.form_data.link_length || 200;
       const charge = json.form_data.charge || -500;
 
@@ -91,6 +91,7 @@ function directedForceVis(slice) {
       const svg = div.append('svg')
       .attr('width', width)
       .attr('height', height);
+
 
       // build the arrow.
       svg.append('svg:defs').selectAll('marker')

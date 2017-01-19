@@ -6,7 +6,7 @@ require('./treemap.css');
 
 /* Modified from http://bl.ocks.org/ganeshv/6a8e9ada3ab7f2d88022 */
 function treemap(slice) {
-  const div = d3.select(slice.selector);
+  let div;
 
   const _draw = function (data, eltWidth, eltHeight, formData) {
     const margin = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -227,6 +227,7 @@ function treemap(slice) {
   };
 
   const render = function () {
+    div = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText, error);

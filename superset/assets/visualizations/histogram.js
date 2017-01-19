@@ -4,7 +4,7 @@ import d3 from 'd3';
 require('./histogram.css');
 
 function histogram(slice) {
-  const div = d3.select(slice.selector);
+  let div;
 
   const draw = function (data, numBins) {
     // Set Margins
@@ -128,6 +128,7 @@ function histogram(slice) {
   };
 
   const render = function () {
+    div = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText, error);
