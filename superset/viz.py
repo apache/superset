@@ -260,9 +260,15 @@ class BaseViz(object):
             if not (col and vals):
                 continue
             elif col in self.datasource.filterable_column_names:
-                # Quote values with comma to avoid conflict
-                vals = ["'{}'".format(x) if "," in x else x for x in vals]
-                filters += [(col, 'in', ",".join(vals))]
+                eq = []
+                for x in vals:
+                    x = str(x)  # cast to string to handle integer values
+                    if "," in x:
+                        # Quote values with comma to avoid conflict
+                        eq.append("'{}'".format(x))
+                    else:
+                        eq.append(x)
+                filters += [(col, 'in', ",".join(eq))]
         return filters
 
     def query_obj(self):
