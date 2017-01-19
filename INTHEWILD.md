@@ -12,6 +12,7 @@ Organizations
  - [Clark.de] (http://clark.de/)
  - [Yahoo!] (www.yahoo.com)
  - [Digit Game Studios] (https://www.digitgaming.com/)
+ - [Qunar] (https://www.qunar.com/)
 
 Projects
 ----------
