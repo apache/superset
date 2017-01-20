@@ -1286,20 +1286,18 @@ class Superset(BaseSupersetView):
             datasource_names=", ".join([o.name for o in datasources]),
         )
 
-    def clean_fulfilled_requests(self):
-        session = db.session
-        for r in session.query(DAR).all():
-            datasource = SourceRegistry.get_datasource(
-                r.datasource_type, r.datasource_id, session)
-            user = sm.get_user_by_id(r.created_by_fk)
-            if self.datasource_access(datasource, user):
-                session.delete(r)
-        session.commit()
-
     @log_this
     @has_access
     @expose("/approve")
     def approve(self):
+        def clean_fulfilled_requests(session):
+            for r in session.query(DAR).all():
+                datasource = SourceRegistry.get_datasource(
+                    r.datasource_type, r.datasource_id, session)
+                user = sm.get_user_by_id(r.created_by_fk)
+                if self.datasource_access(datasource, user):
+                    session.delete(r)
+            session.commit()
         datasource_type = request.args.get('datasource_type')
         datasource_id = request.args.get('datasource_id')
         created_by_username = request.args.get('created_by')
@@ -1361,7 +1359,7 @@ class Superset(BaseSupersetView):
                     g.user, requested_by, role, datasource,
                     'email/role_extended.txt', app.config)
                 flash(msg, "info")
-            self.clean_fulfilled_requests()
+            clean_fulfilled_requests(session)
         else:
             flash(__("You have no permission to approve this request"),
                   "danger")

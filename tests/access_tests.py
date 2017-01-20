@@ -8,7 +8,7 @@ import json
 import mock
 import unittest
 
-from superset import db, models, sm
+from superset import db, models, sm, security
 from superset.source_registry import SourceRegistry
 
 from .base_tests import SupersetTestCase
@@ -76,7 +76,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 
 class RequestAccessTests(SupersetTestCase):
 
-    requires_examples = False
+    requires_examples = True
 
     @classmethod
     def setUpClass(cls):
@@ -202,25 +202,93 @@ class RequestAccessTests(SupersetTestCase):
         access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
         self.assertFalse(access_requests)
 
-        # Case 2. Two access requests on same table from gamma and gamma2
+        # Case 2. Two access requests from gamma and gamma2
         # Gamma becomes alpha, gamma2 gets granted
         # Check if request by gamma has been deleted
 
         access_request3 = create_access_request(
             session, 'table', 'birth_names', TEST_ROLE_1, 'gamma')
         access_request4 = create_access_request(
-            session, 'table', 'birth_names', TEST_ROLE_1, 'gamma2')
+            session, 'table', 'birth_names', TEST_ROLE_2, 'gamma2')
         ds_3_id = access_request3.datasource_id
         # gamma becomes alpha
         alpha_role = sm.find_role('Alpha')
         gamma_user = sm.find_user(username='gamma')
         gamma_user.roles.append(alpha_role)
         session.commit()
-        # request by gamma2 is fulfilled
         self.client.get(EXTEND_ROLE_REQUEST.format(
-            'table', ds_3_id, 'gamma2', TEST_ROLE_1))
+            'table', ds_3_id, 'gamma2', TEST_ROLE_2))
         access_requests = self.get_access_requests('gamma', 'table', ds_3_id)
         self.assertFalse(access_requests)
+
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role('Alpha'))
+        session.commit()
+
+        # Case 3. Two access requests from gamma and gamma2
+        # Gamma gets database access, gamma2 access request granted
+        # Check if request by gamma has been deleted
+
+        access_request5 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
+        access_request6 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
+        ds_5_id = access_request5.datasource_id
+        # gamma gets granted database access
+        database = session.query(models.Database).first()
+        DB_ACCESS_ROLE = 'db_access_role'
+        sm.add_role(DB_ACCESS_ROLE)
+        security.merge_perm(
+            sm, 'database_access', database.perm)
+        sm.add_permission_role(
+            sm.find_role(DB_ACCESS_ROLE) , database.perm)
+        gamma_user.roles.append(sm.find_role(DB_ACCESS_ROLE))
+        session.commit()
+        # gamma2 request gets fulfilled
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_5_id, 'gamma2', TEST_ROLE_2))
+        access_requests = self.get_access_requests('gamma', 'table', ds_5_id)
+        self.assertFalse(access_requests)
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role(DB_ACCESS_ROLE))
+        session.commit()
+
+        # Case 4. Two access requests from gamma and gamma2
+        # Gamma gets schema access, gamma2 access request granted
+        # Check if request by gamma has been deleted
+
+        access_request7 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
+        access_request8 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
+        ds_7_id = access_request7.datasource_id
+        ds = session.query(models.SqlaTable).filter_by(
+            table_name='random_time_series').first()
+        SCHEMA_ACCESS_ROLE = 'schema_access_role'
+        sm.add_role(SCHEMA_ACCESS_ROLE)
+        ds.schema = 'test_schema'
+        security.merge_perm(
+            sm, 'schema_access', ds.schema_perm)
+        sm.add_permission_role(
+            sm.find_role(SCHEMA_ACCESS_ROLE) , ds.schema_perm)
+        gamma_user.roles.append(sm.find_role(SCHEMA_ACCESS_ROLE))
+        session.commit()
+        # gamma2 request gets fulfilled
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_7_id, 'gamma2', TEST_ROLE_2))
+        access_requests = self.get_access_requests('gamma', 'table', ds_7_id)
+        self.assertFalse(access_requests)
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role(SCHEMA_ACCESS_ROLE))
+
+
+        ds.schema = None
+        gamma_user.roles.remove(sm.find_role('test_role1'))
+        session.delete(sm.find_role(TEST_ROLE_1))
+        session.delete(sm.find_role(TEST_ROLE_2))
+        session.delete(sm.find_role(DB_ACCESS_ROLE))
+        session.delete(sm.find_role(SCHEMA_ACCESS_ROLE))
+        session.commit()
 
     @mock.patch('superset.utils.send_MIME_email')
     def test_approve(self, mock_send_mime):
