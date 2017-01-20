@@ -76,7 +76,7 @@ def create_access_request(session, ds_type, ds_name, role_name, user_name):
 
 class RequestAccessTests(SupersetTestCase):
 
-    requires_examples = True
+    requires_examples = False
 
     @classmethod
     def setUpClass(cls):
@@ -258,15 +258,15 @@ class RequestAccessTests(SupersetTestCase):
         # Check if request by gamma has been deleted
 
         access_request7 = create_access_request(
-            session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
+            session, 'table', 'wb_health_population', TEST_ROLE_1, 'gamma')
         access_request8 = create_access_request(
-            session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
+            session, 'table', 'wb_health_population', TEST_ROLE_2, 'gamma2')
         ds_7_id = access_request7.datasource_id
         ds = session.query(models.SqlaTable).filter_by(
-            table_name='random_time_series').first()
+            table_name='wb_health_population').first()
         SCHEMA_ACCESS_ROLE = 'schema_access_role'
         sm.add_role(SCHEMA_ACCESS_ROLE)
-        ds.schema = 'test_schema'
+        ds.schema = 'temp_schema'
         security.merge_perm(
             sm, 'schema_access', ds.schema_perm)
         sm.add_permission_role(
@@ -281,7 +281,8 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         gamma_user.roles.remove(sm.find_role(SCHEMA_ACCESS_ROLE))
 
-
+        ds = session.query(models.SqlaTable).filter_by(
+            table_name='wb_health_population').first()
         ds.schema = None
         gamma_user.roles.remove(sm.find_role('test_role1'))
         session.delete(sm.find_role(TEST_ROLE_1))

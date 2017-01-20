@@ -52,31 +52,31 @@ class BaseSupersetView(BaseView):
     def can_access(self, permission_name, view_name, user=None):
         if not user:
             user = g.user
-        return appbuilder.sm._has_view_access(
-            user, permission_name, view_name)
+        return utils.can_access(
+            appbuilder.sm, permission_name, view_name, g.user, user=user)
 
     def all_datasource_access(self, user=None):
         return self.can_access(
-            "all_datasource_access", "all_datasource_access", user)
+            "all_datasource_access", "all_datasource_access", user=user)
 
     def database_access(self, database, user=None):
         return (
             self.can_access(
-                "all_database_access", "all_database_access", user) or
-            self.can_access("database_access", database.perm, user)
+                "all_database_access", "all_database_access", user=user) or
+            self.can_access("database_access", database.perm, user=user)
         )
 
     def schema_access(self, datasource, user=None):
         return (
-            self.database_access(datasource.database, user) or
-            self.all_datasource_access(user) or
-            self.can_access("schema_access", datasource.schema_perm, user)
+            self.database_access(datasource.database, user=user) or
+            self.all_datasource_access(user=user) or
+            self.can_access("schema_access", datasource.schema_perm, user=user)
         )
 
     def datasource_access(self, datasource, user=None):
         return (
-            self.schema_access(datasource, user) or
-            self.can_access("datasource_access", datasource.perm, user)
+            self.schema_access(datasource, user=user) or
+            self.can_access("datasource_access", datasource.perm, user=user)
         )
 
     def datasource_access_by_name(
@@ -86,7 +86,7 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm):
+        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user, g.user):
             return True
 
         datasources = SourceRegistry.query_datasources_by_name(
