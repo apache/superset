@@ -7,8 +7,8 @@ d3.sankey = require('d3-sankey').sankey;
 require('./sankey.css');
 
 function sankeyVis(slice) {
-  const div = d3.select(slice.selector);
   const render = function () {
+    const div = d3.select(slice.selector);
     const margin = {
       top: 5,
       right: 5,

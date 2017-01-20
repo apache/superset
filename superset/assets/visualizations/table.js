@@ -13,9 +13,9 @@ dt(window, $);
 function tableVis(slice) {
   const fC = d3.format('0,000');
   let timestampFormatter;
-  const container = $(slice.selector);
 
   function refresh() {
+    const container = $(slice.selector);
     function onError(xhr) {
       slice.error(xhr.responseText, xhr);
       return;

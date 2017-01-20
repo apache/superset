@@ -7,7 +7,7 @@ const propTypes = {
   label: PropTypes.string,
   description: PropTypes.string,
   onChange: PropTypes.func,
-  value: PropTypes.oneOf([
+  value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
   ]),
