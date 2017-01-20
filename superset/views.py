@@ -2832,3 +2832,5 @@ def caravel(url):  # noqa
 
 
 # ---------------------------------------------------------------------
+
+from superset.plugins.views import *

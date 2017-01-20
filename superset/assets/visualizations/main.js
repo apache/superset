@@ -31,4 +31,8 @@ const vizMap = {
   world_map: require('./world_map.js'),
   dual_line: require('./nvd3_vis.js'),
 };
+var vizPluginMap = require('../../plugins/visualizations/main.js').default;
+for (var key in vizPluginMap) {
+  vizMap[key] = vizPluginMap[key];
+}
 export default vizMap;

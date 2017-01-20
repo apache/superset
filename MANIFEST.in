@@ -7,3 +7,5 @@ recursive-exclude superset/static/spec *
 recursive-exclude tests *
 recursive-include superset/data *
 recursive-include superset/migrations *
+recursive-include superset/plugins/static *
+recursive-include superset/plugins/templates *
