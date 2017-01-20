@@ -23,7 +23,7 @@ from flask import request
 from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
-from six import string_types, PY3
+from six import string_types, text_type, PY3
 from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
@@ -260,15 +260,9 @@ class BaseViz(object):
             if not (col and vals):
                 continue
             elif col in self.datasource.filterable_column_names:
-                eq = []
-                for x in vals:
-                    x = str(x)  # cast to string to handle integer values
-                    if "," in x:
-                        # Quote values with comma to avoid conflict
-                        eq.append("'{}'".format(x))
-                    else:
-                        eq.append(x)
-                filters += [(col, 'in', ",".join(eq))]
+                vals = map(text_type, vals)
+                vals = [u"'{}'".format(x) if "," in x else x for x in vals]
+                filters += [(col, 'in', ",".join(vals))]
         return filters
 
     def query_obj(self):
