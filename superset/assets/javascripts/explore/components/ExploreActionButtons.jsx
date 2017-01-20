@@ -7,10 +7,9 @@ import DisplayQueryButton from './DisplayQueryButton';
 const propTypes = {
   canDownload: PropTypes.oneOfType([PropTypes.string, PropTypes.bool]).isRequired,
   slice: PropTypes.object.isRequired,
-  query: PropTypes.string,
 };
 
-export default function ExploreActionButtons({ canDownload, slice, query }) {
+export default function ExploreActionButtons({ canDownload, slice }) {
   const exportToCSVClasses = cx('btn btn-default btn-sm', {
     'disabled disabledButton': !canDownload,
   });
@@ -38,7 +37,7 @@ export default function ExploreActionButtons({ canDownload, slice, query }) {
         <i className="fa fa-file-text-o"></i> .csv
       </a>
 
-      <DisplayQueryButton query={query} />
+      <DisplayQueryButton query={slice.data.query} />
     </div>
   );
 }
