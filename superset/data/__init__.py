@@ -295,7 +295,8 @@ def load_world_bank_health_n_pop():
                 max_bubble_size="50",
                 flt_col_1="country_code",
                 flt_op_1="not in",
-                flt_eq_1="TCA,MNP,DMA,MHL,MCO,SXM,CYM,TUV,IMY,KNA,ASM,ADO,AMA,PLW",
+                flt_eq_1="'TCA','MNP','DMA','MHL','MCO','SXM','CYM','TUV',"
+                         "'IMY','KNA','ASM','ADO','AMA','PLW'",
                 num_period_compare="10",)),
         Slice(
             slice_name="Rural Breakdown",
@@ -624,7 +625,7 @@ def load_birth_names():
                 defaults,
                 groupby=['name'],
                 flt_col_1='gender',
-                flt_eq_1="girl", row_limit=50)),
+                flt_eq_1="'girl'", row_limit=50)),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -634,7 +635,7 @@ def load_birth_names():
                 defaults,
                 groupby=['name'],
                 flt_col_1='gender',
-                flt_eq_1="boy",
+                flt_eq_1="'boy'",
                 row_limit=50)),
         Slice(
             slice_name="Participants",
@@ -660,7 +661,7 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                flt_eq_1="other", viz_type="dist_bar",
+                flt_eq_1="'other'", viz_type="dist_bar",
                 metrics=['sum__sum_girls', 'sum__sum_boys'],
                 groupby=['state'], flt_op_1='not in', flt_col_1='state')),
         Slice(
@@ -726,7 +727,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="big_number_total", granularity="ds",
-                flt_col_1='gender', flt_eq_1='girl',
+                flt_col_1='gender', flt_eq_1='"girl"',
                 subheader='total female participants')),
     ]
     for slc in slices:
