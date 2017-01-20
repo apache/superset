@@ -276,10 +276,10 @@ MapboxViz.propTypes = {
 function mapbox(slice) {
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
-  const div = d3.select(slice.selector);
   let clusterer;
 
   const render = function () {
+    const div = d3.select(slice.selector);
     d3.json(slice.jsonEndpoint(), function (error, json) {
       if (error !== null) {
         slice.error(error.responseText);

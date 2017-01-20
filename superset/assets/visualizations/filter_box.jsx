@@ -110,9 +110,8 @@ FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
 function filterBox(slice) {
-  const d3token = d3.select(slice.selector);
-
   const refresh = function () {
+    const d3token = d3.select(slice.selector);
     d3token.selectAll('*').remove();
 
     // filter box should ignore the dashboard's filters
