@@ -139,6 +139,9 @@ class MySQLEngineSpec(BaseEngineSpec):
               "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER"),
         Grain("year", _('year'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFYEAR({col}) - 1 DAY))"),
+        Grain("week_start_monday", _('week_start_monday'),
+              "DATE(DATE_SUB({col}, "
+              "INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))"),
     )
 
     @classmethod
