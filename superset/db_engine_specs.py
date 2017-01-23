@@ -17,11 +17,10 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
+from flask_babel import lazy_gettext as _
 import inspect
 import textwrap
 import time
-
-from flask_babel import lazy_gettext as _
 
 from superset import cache_util
 
@@ -61,7 +60,7 @@ class BaseEngineSpec(object):
         timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
     def fetch_result_sets(cls, db, datasource_type):
-        """ Returns the dictionary {schema : [result_set_name]}.
+        """Returns the dictionary {schema : [result_set_name]}.
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -251,15 +250,11 @@ class PrestoEngineSpec(BaseEngineSpec):
         """).format(**locals())
 
     @classmethod
-    def epoch_to_dttm(cls):
-        return "from_unixtime({col})"
-
-    @classmethod
     @cache_util.memoized_func(
         timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
     def fetch_result_sets(cls, db, datasource_type):
-        """ Returns the dictionary {schema : [result_set_name]}.
+        """Returns the dictionary {schema : [result_set_name]}.
 
         Datasource_type can be 'table' or 'view'.
         Empty schema corresponds to the list of full names of the all
@@ -270,7 +265,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                ORDER BY concat(table_schema, '.', table_name)""".format(
                 datasource_type.upper()), None)
         result_sets = defaultdict(list)
-        for _, row in result_set_df.iterrows():
+        for unused, row in result_set_df.iterrows():
             result_sets[row['table_schema']].append(row['table_name'])
             result_sets[""].append('{}.{}'.format(
                 row['table_schema'], row['table_name']))

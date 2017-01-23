@@ -556,14 +556,6 @@ class CoreTests(SupersetTestCase):
         for k in keys:
             self.assertIn(k, resp.keys())
 
-    def test_fetch_all_tables(self):
-        self.login(username='admin')
-        database = self.get_main_database(db.session)
-        url = '/superset/all_tables/{}'.format(database.id)
-        resp = json.loads(self.get_resp(url))
-        self.assertIn('tables', resp)
-        self.assertIn('views', resp)
-
     def test_user_profile(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)

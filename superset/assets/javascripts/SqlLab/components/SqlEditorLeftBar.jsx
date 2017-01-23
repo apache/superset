@@ -65,28 +65,17 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (!this.props.queryEditor.dbId || !input) {
       return Promise.resolve({ options: [] });
     }
-    // issues with redirects
     return fetch(
-        `/superset/tables/${this.props.queryEditor.dbId}/${this.props.queryEditor.schema}/${input}`,
-        {
-          method: 'GET',
-          mode: 'no-cors',
-          credentials: 'include',
-          headers: {
-            'Access-Control-Allow-Origin':'<origin> | *',
-            'Accept': 'application/json, application/xml, text/plain, text/html, *.*',
-            'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8'
-          },
-        })
-		.then((response) =>{ return response.json() })
-		.then((json) => {
-          this.setState({ tableLength: json.tableLength });
-          return {options: json.options};
-		});
+          `/superset/tables/${this.props.queryEditor.dbId}/`
+          `${this.props.queryEditor.schema}/${input}`,
+          { method: 'GET', credentials: 'include' }
+        )
+        .then(response => response.json())
+		.then(json => ({ options: json.options }));
   }
   fetchTables(dbId, schema, substr) {
     if (dbId) {
-      this.setState({ tableLoading: true, tableOptions: []});
+      this.setState({ tableLoading: true, tableOptions: [] });
       const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
       $.get(url, (data) => {
         this.setState({
@@ -106,11 +95,11 @@ class SqlEditorLeftBar extends React.PureComponent {
     let tableName = namePieces[0];
     let schemaName = this.props.queryEditor.schema;
     if (namePieces.length === 1) {
-      this.setState({ tableName: tableName });
+      this.setState({ tableName });
     } else {
       schemaName = namePieces[0];
       tableName = namePieces[1];
-      this.setState({ tableName: tableName });
+      this.setState({ tableName });
       this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
       this.fetchTables(this.props.queryEditor.dbId, schemaName);
     }
@@ -190,15 +179,13 @@ class SqlEditorLeftBar extends React.PureComponent {
               onChange={this.changeTable.bind(this)}
               options={this.state.tableOptions}
             />}
-            {!this.props.queryEditor.schema &&  <Select.Async
+            {!this.props.queryEditor.schema && <Select.Async
               name="async-select-table"
               ref="selectTable"
-              // isLoading={this.state.tableLoading}
               value={this.state.tableName}
-              placeholder={`Type to search ...`}
+              placeholder={"Type to search .."}
               autosize={false}
               onChange={this.changeTable.bind(this)}
-              // options={this.state.tableOptions}
               loadOptions={this.getTableNamesBySubStr.bind(this)}
             />}
           </div>

@@ -44,34 +44,7 @@ class SourceRegistry(object):
         return db_ds[0]
 
     @classmethod
-    def query_datasources_by_names(
-            cls, session, database, datasource_names, schema=None):
-        """Datasource_names can be a list or a single name."""
-        datasource_class = SourceRegistry.sources[database.type]
-        if not hasattr(datasource_names, '__iter__'):
-            datasource_names = [datasource_names]
-        datasource_set = set(datasource_names)
-
-        if database.type == 'table':
-            query = (
-                session.query(datasource_class)
-                .filter_by(database_id=database.id)
-                .filter(datasource_class.table_name.in_(datasource_set)))
-            if schema:
-                query = query.filter_by(schema=schema)
-            return query.all()
-        if database.type == 'druid':
-            return (
-                session.query(datasource_class)
-                .filter_by(cluster_name=database.id)
-                .filter(datasource_class.datasource_name.in_(datasource_set))
-                .all()
-            )
-        return None
-
-    @classmethod
     def query_datasources_by_permissions(cls, session, database, permissions):
-        """Datasource_names can be a list or a single name."""
         datasource_class = SourceRegistry.sources[database.type]
         return (
             session.query(datasource_class)

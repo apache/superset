@@ -90,7 +90,7 @@ class BaseSupersetView(BaseView):
         if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user):
             return True
 
-        datasources = SourceRegistry.query_datasources_by_names(
+        datasources = SourceRegistry.query_datasources_by_name(
             db.session, database, datasource_name, schema=schema)
         for datasource in datasources:
             if self.can_access("datasource_access", datasource.perm):
@@ -2166,8 +2166,8 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(json.dumps(
-                [{"slice_id": session.id, "slice_name": session.slice_name}
-                 for session in slices]))
+            [{"slice_id": session.id, "slice_name": session.slice_name}
+             for session in slices]))
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
