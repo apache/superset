@@ -1,0 +1,10 @@
+{% import "appbuilder/general/lib.html" as lib %}
+{% extends "appbuilder/general/widgets/list.html" %}
+
+    {% block list_header %}
+        {{ super() }}
+        <a href="/csvtodatabaseview/form" class="btn btn-sm btn-primary" id="uploadbutton"
+           title="Add a new database table based on a local CSV file" rel="tooltip" data-toggle="tooltip">
+           <i class="fa fa-table"> Add CSV Table to Database </i>
+        </a>
+    {% endblock %}
