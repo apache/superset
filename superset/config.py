@@ -16,6 +16,8 @@ import os
 from dateutil import tz
 from flask_appbuilder.security.manager import AUTH_DB
 
+from werkzeug.contrib.cache import FileSystemCache
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 DATA_DIR = os.path.join(os.path.expanduser('~'), '.superset')
 if not os.path.exists(DATA_DIR):
@@ -222,7 +224,13 @@ CELERY_CONFIG = CeleryConfig
 """
 CELERY_CONFIG = None
 SQL_CELERY_DB_FILE_PATH = os.path.join(DATA_DIR, 'celerydb.sqlite')
-SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(DATA_DIR, 'celery_results.sqlite')
+SQL_CELERY_RESULTS_DB_FILE_PATH = os.path.join(
+    DATA_DIR, 'celery_results.sqlite')
+
+SQL_LAB_CACHE_DIR = os.path.join(DATA_DIR, 'sqllab_cache')
+if not os.path.exists(SQL_LAB_CACHE_DIR):
+    os.makedirs(SQL_LAB_CACHE_DIR)
+RESULTS_BACKEND = FileSystemCache(SQL_LAB_CACHE_DIR, default_timeout=60*24*7)
 
 # static http headers to be served by your Superset server.
 # The following example prevents iFrame from other domains
