@@ -1,4 +1,4 @@
-from superset import simple_cache
+from superset import tables_cache
 from flask import request
 
 
@@ -17,12 +17,12 @@ def memoized_func(timeout=5 * 60, key=view_cache_key):
     def wrap(f):
         def wrapped_f(cls, *args, **kwargs):
             cache_key = key(*args, **kwargs)
-            o = simple_cache.get(cache_key)
+            o = tables_cache.get(cache_key)
             if o is not None:
                 return o
             o = f(cls, *args, **kwargs)
             print('cache_key: {}'.format(cache_key))
-            simple_cache.set(cache_key, o, timeout=timeout)
+            tables_cache.set(cache_key, o, timeout=timeout)
             return o
         return wrapped_f
     return wrap

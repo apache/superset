@@ -37,8 +37,7 @@ db = SQLA(app)
 utils.pessimistic_connection_handling(db.engine.pool)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
-
-simple_cache = Cache(app, config=app.config.get('IN_MEMORY_CACHE_CONFIG'))
+tables_cache = Cache(app, config=app.config.get('TABLE_NAMES_CACHE_CONFIG'))
 
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")

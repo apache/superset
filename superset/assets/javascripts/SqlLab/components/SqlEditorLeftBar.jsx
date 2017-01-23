@@ -195,7 +195,7 @@ class SqlEditorLeftBar extends React.PureComponent {
               ref="selectTable"
               // isLoading={this.state.tableLoading}
               value={this.state.tableName}
-              placeholder={`Add a table (${this.state.tableLength})`}
+              placeholder={`Type to search ...`}
               autosize={false}
               onChange={this.changeTable.bind(this)}
               // options={this.state.tableOptions}
