@@ -2,7 +2,6 @@
 import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
-import { getExploreUrl } from '../exploreUtils';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -70,34 +69,30 @@ export const exploreReducer = function (state, action) {
         state,
         {
           chartStatus: 'success',
-          viz: Object.assign({}, state.viz, { query: action.query }),
+          queryResponse: action.queryResponse,
         }
       );
     },
     [actions.CHART_UPDATE_STARTED]() {
-      const chartUpdateStartTime = now();
-      const form_data = Object.assign({}, state.viz.form_data);
-      const datasource_type = state.datasource_type;
-      const vizUpdates = {
-        json_endpoint: getExploreUrl(form_data, datasource_type, 'json'),
-        csv_endpoint: getExploreUrl(form_data, datasource_type, 'csv'),
-        standalone_endpoint:
-          getExploreUrl(form_data, datasource_type, 'standalone'),
-      };
       return Object.assign({}, state,
         {
           chartStatus: 'loading',
           chartUpdateEndTime: null,
-          chartUpdateStartTime,
-          viz: Object.assign({}, state.viz, vizUpdates),
+          chartUpdateStartTime: now(),
         });
+    },
+    [actions.CHART_RENDERING_FAILED]() {
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+      });
     },
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.error,
+        chartAlert: action.queryResponse.error,
         chartUpdateEndTime: now(),
-        viz: Object.assign({}, state.viz, { query: action.query }),
+        queryResponse: action.queryResponse,
       });
     },
     [actions.UPDATE_CHART_STATUS]() {
@@ -108,7 +103,10 @@ export const exploreReducer = function (state, action) {
       return newState;
     },
     [actions.REMOVE_CHART_ALERT]() {
-      return Object.assign({}, state, { chartAlert: null });
+      if (state.chartAlert !== null) {
+        return Object.assign({}, state, { chartAlert: null });
+      }
+      return state;
     },
     [actions.SAVE_SLICE_FAILED]() {
       return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });

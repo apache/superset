@@ -222,14 +222,19 @@ const px = function () {
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
-        this.viz.render();
+        $.getJSON(this.jsonEndpoint(), queryResponse => {
+          try {
+            vizMap[data.form_data.viz_type](this, queryResponse);
+            this.done(queryResponse);
+          } catch (e) {
+            this.error('An error occurred while rendering the visualization: ' + e);
+          }
+        }).fail(err => {
+          this.error(err.responseText, err);
+        });
       },
       resize() {
-        token.find('img.loading').show();
-        container.fadeTo(0.5, 0.25);
-        container.css('height', this.height());
-        this.viz.render();
-        this.viz.resize();
+        this.render();
       },
       addFilter(col, vals) {
         controller.addFilter(sliceId, col, vals);
@@ -247,7 +252,6 @@ const px = function () {
         controller.removeFilter(sliceId, col, vals);
       },
     };
-    slice.viz = vizMap[data.form_data.viz_type](slice);
     return slice;
   };
   // Export public functions

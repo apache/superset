@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+import { getExploreUrl } from '../exploreUtils';
 
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {
@@ -89,13 +90,18 @@ export function chartUpdateStarted() {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(query) {
-  return { type: CHART_UPDATE_SUCCEEDED, query };
+export function chartUpdateSucceeded(queryResponse) {
+  return { type: CHART_UPDATE_SUCCEEDED, queryResponse };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(error, query) {
-  return { type: CHART_UPDATE_FAILED, error, query };
+export function chartUpdateFailed(queryResponse) {
+  return { type: CHART_UPDATE_FAILED, queryResponse };
+}
+
+export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
+export function chartRenderingFailed(error) {
+  return { type: CHART_RENDERING_FAILED, error };
 }
 
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';
@@ -166,4 +172,17 @@ export function saveSlice(url) {
 export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
 export function updateChartStatus(status) {
   return { type: UPDATE_CHART_STATUS, status };
+}
+
+export const RUN_QUERY = 'RUN_QUERY';
+export function runQuery(formData, datasourceType) {
+  return function (dispatch) {
+    dispatch(updateChartStatus('loading'));
+    const url = getExploreUrl(formData, datasourceType, 'json');
+    $.getJSON(url, function (queryResponse) {
+      dispatch(chartUpdateSucceeded(queryResponse));
+    }).fail(function (err) {
+      dispatch(chartUpdateFailed(err));
+    });
+  };
 }
