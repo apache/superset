@@ -1215,13 +1215,7 @@ class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
 
     def post_add(self, datasource):
         datasource.generate_metrics()
-<<<<<<< HEAD
-        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
-        if datasource.schema:
-            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
-=======
         security.merge_perm(sm, 'datasource_access', datasource.perm)
->>>>>>> 38c54c32298f14baf510cb614848fa029a2e24de
 
     def post_update(self, datasource):
         self.post_add(datasource)
