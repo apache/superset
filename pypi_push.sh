@@ -1,3 +1,4 @@
+rm superset/assets/dist/*
 cd superset/assets/
 rm build/*
 npm run prod
