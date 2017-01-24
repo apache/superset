@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import ast
 from collections import OrderedDict
 import functools
 import json
@@ -1350,7 +1351,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '').strip() for types in splitted]
+                values = [types.strip() for types in splitted]
+                # attempt to get the values type if they are not in quotes
+                if not col_obj.is_string:
+                    values = [ast.literal_eval(v) for v in values]
+                else:
+                    values = [v.replace("'", '').strip() for v in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
