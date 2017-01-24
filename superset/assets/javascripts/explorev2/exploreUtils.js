@@ -1,5 +1,4 @@
 /* eslint camelcase: 0 */
-const $ = require('jquery');
 function formatFilters(filters) {
   // outputs an object of url params of filters
   // prefix can be 'flt' or 'having'
@@ -38,9 +37,8 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
 }
 
 export function getExploreUrl(form_data, datasource_type, endpoint = 'base') {
-  const data = getParamObject(form_data, datasource_type);
-  const params = `${datasource_type}/` +
-    `${form_data.datasource}/?${$.param(data, true)}`;
+  let params = `${datasource_type}/${form_data.datasource}/`;
+  params += '?form_data=' + encodeURIComponent(JSON.stringify(form_data));
   switch (endpoint) {
     case 'base':
       return `/superset/explore/${params}`;

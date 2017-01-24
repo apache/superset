@@ -12,6 +12,7 @@ import logging
 import pickle
 import re
 import textwrap
+import urllib
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
 
@@ -51,10 +52,9 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
-from werkzeug.datastructures import ImmutableMultiDict
-
 from superset import (
-    app, db, db_engine_specs, get_session, utils, sm, import_util
+    app, db, db_engine_specs, get_session, utils, sm, import_util,
+    cast_form_data,
 )
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
@@ -314,19 +314,16 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def slice_url(self):
         """Defines the url to access the slice"""
-        try:
-            slice_params = json.loads(self.params)
-        except Exception as e:
-            logging.exception(e)
-            slice_params = {}
-        slice_params['slice_id'] = self.id
-        slice_params['json'] = "false"
-        slice_params['slice_name'] = self.slice_name
-        from werkzeug.urls import Href
-        href = Href(
+        form_data = json.loads(self.params)
+        form_data = cast_form_data(form_data)
+        form_data['slice_id'] = self.id
+        form_data['slice_name'] = self.slice_name
+        form_data['viz_type'] = self.viz_type
+        print(form_data)
+        return (
             "/superset/explore/{obj.datasource_type}/"
-            "{obj.datasource_id}/".format(obj=self))
-        return href(slice_params)
+            "{obj.datasource_id}/?form_data={params}".format(
+                obj=self, params=urllib.quote(json.dumps(form_data))))
 
     @property
     def slice_id_url(self):
@@ -354,21 +351,15 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             url_params_multidict or self.params.
         :rtype: :py:class:viz.BaseViz
         """
-        slice_params = json.loads(self.params)  # {}
+        slice_params = json.loads(self.params)
         slice_params['slice_id'] = self.id
         slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
-        if url_params_multidict:
-            slice_params.update(url_params_multidict)
-            to_del = [k for k in slice_params if k not in url_params_multidict]
-            for k in to_del:
-                del slice_params[k]
 
-        immutable_slice_params = ImmutableMultiDict(slice_params)
-        return viz_types[immutable_slice_params.get('viz_type')](
+        return viz_types[slice_params.get('viz_type')](
             self.datasource,
-            form_data=immutable_slice_params,
+            form_data=slice_params,
             slice_=self
         )
 
@@ -1417,6 +1408,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
+        print(sql)
+        logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         status = QueryStatus.SUCCESS
         error_message = None
