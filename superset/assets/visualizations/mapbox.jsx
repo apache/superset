@@ -4,7 +4,7 @@ import d3 from 'd3';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/src/overlays/scatterplot.react.js';
+import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react.js';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
