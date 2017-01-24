@@ -53,7 +53,7 @@ class BaseSupersetView(BaseView):
         if not user:
             user = g.user
         return utils.can_access(
-            appbuilder.sm, permission_name, view_name, g.user, user=user)
+            appbuilder.sm, permission_name, view_name, user)
 
     def all_datasource_access(self, user=None):
         return self.can_access(
@@ -86,7 +86,7 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user, g.user):
+        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user):
             return True
 
         datasources = SourceRegistry.query_datasources_by_name(
