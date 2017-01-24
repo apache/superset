@@ -78,41 +78,6 @@ export function saveFaveStar(sliceId, isStarred) {
   };
 }
 
-export const ADD_FILTER = 'ADD_FILTER';
-export function addFilter(filter) {
-  return { type: ADD_FILTER, filter };
-}
-
-export const REMOVE_FILTER = 'REMOVE_FILTER';
-export function removeFilter(filter) {
-  return { type: REMOVE_FILTER, filter };
-}
-
-export const CHANGE_FILTER = 'CHANGE_FILTER';
-export function changeFilter(filter, field, value) {
-  return { type: CHANGE_FILTER, filter, field, value };
-}
-
-export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
-  return function (dispatch) {
-    $.ajax({
-      type: 'GET',
-      url: `/superset/filter/${datasource_type}/${datasource_id}/${col}/`,
-      success: (data) => {
-        dispatch(changeFilter(
-          filter,
-          'choices',
-          Object.keys(data).map((k) => ([`'${data[k]}'`, `'${data[k]}'`]))
-          )
-        );
-      },
-      error() {
-        dispatch(changeFilter(filter, 'choices', []));
-      },
-    });
-  };
-}
-
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(fieldName, value, validationErrors) {
   return { type: SET_FIELD_VALUE, fieldName, value, validationErrors };

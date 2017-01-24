@@ -178,7 +178,7 @@ class BaseViz(object):
             for item in v:
                 ordered_data.add(key, item)
         href = Href(
-            '/caravel/filter/{self.datasource.type}/'
+            '/superset/filter/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         return href(ordered_data)
 

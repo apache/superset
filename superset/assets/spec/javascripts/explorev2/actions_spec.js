@@ -15,15 +15,4 @@ describe('reducers', () => {
       actions.setFieldValue('show_legend', true));
     expect(newState.viz.form_data.show_legend).to.equal(true);
   });
-  it('adds a filter given a new filter', () => {
-    const newState = exploreReducer(initialState('table'),
-      actions.addFilter({
-        id: 1,
-        prefix: 'flt',
-        col: null,
-        op: null,
-        value: null,
-      }));
-    expect(newState.viz.form_data.filters).to.have.length(1);
-  });
 });

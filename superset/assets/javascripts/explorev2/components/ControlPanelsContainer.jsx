@@ -4,11 +4,10 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import visTypes, { sectionsToRender, commonControlPanelSections } from '../stores/visTypes';
+import visTypes, { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import FieldSet from './FieldSet';
-import Filters from './Filters';
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -58,11 +57,6 @@ class ControlPanelsContainer extends React.Component {
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
   }
-  filterSectionsToRender() {
-    const filterSections = this.props.datasource_type === 'table' ?
-      [commonControlPanelSections.filters[0]] : commonControlPanelSections.filters;
-    return filterSections;
-  }
   fieldOverrides() {
     const viz = visTypes[this.props.form_data.viz_type];
     return viz.fieldOverrides || {};
@@ -100,26 +94,12 @@ class ControlPanelsContainer extends React.Component {
                       value={this.props.form_data[fieldName]}
                       validationErrors={this.props.fields[fieldName].validationErrors}
                       actions={this.props.actions}
+                      prefix={section.prefix}
                       {...this.getFieldData(fieldName)}
                     />
                   ))}
                 />
               ))}
-            </ControlPanelSection>
-          ))}
-          {this.filterSectionsToRender().map((section) => (
-            <ControlPanelSection
-              key={section.label}
-              label={section.label}
-              tooltip={section.description}
-            >
-              <Filters
-                filterColumnOpts={[]}
-                filters={this.props.form_data.filters}
-                actions={this.props.actions}
-                prefix={section.prefix}
-                datasource_id={this.props.form_data.datasource}
-              />
             </ControlPanelSection>
           ))}
         </Panel>

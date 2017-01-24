@@ -680,6 +680,7 @@ class Queryable(object):
         """data representation of the datasource sent to the frontend"""
         gb_cols = [(col, col) for col in self.groupby_column_names]
         all_cols = [(c, c) for c in self.column_names]
+        filter_cols = [(c, c) for c in self.filterable_column_names]
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
@@ -693,7 +694,8 @@ class Queryable(object):
             'order_by_choices': order_by_choices,
             'gb_cols': gb_cols,
             'all_cols': all_cols,
-            'filterable_cols': self.filterable_column_names,
+            'filterable_cols': filter_cols,
+            'filter_select': self.filter_select_enabled,
         }
         if (self.type == 'table'):
             grains = self.database.grains() or []
