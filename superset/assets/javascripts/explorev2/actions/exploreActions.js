@@ -182,7 +182,7 @@ export function runQuery(formData, datasourceType) {
     $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
     }).fail(function (err) {
-      dispatch(chartUpdateFailed(err));
+      dispatch(chartUpdateFailed(err.responseJSON));
     });
   };
 }
