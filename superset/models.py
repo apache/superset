@@ -695,6 +695,7 @@ class Queryable(object):
             'gb_cols': gb_cols,
             'all_cols': all_cols,
             'filterable_cols': filter_cols,
+            'filter_select': self.filter_select_enabled,
         }
         if (self.type == 'table'):
             grains = self.database.grains() or []

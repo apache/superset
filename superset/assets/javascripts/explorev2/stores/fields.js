@@ -1122,6 +1122,7 @@ export const fields = {
     description: '',
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.filterable_cols : [],
+      datasource: state.datasource,
     }),
   },
 };

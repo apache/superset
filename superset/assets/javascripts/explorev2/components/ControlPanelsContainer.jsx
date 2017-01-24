@@ -94,6 +94,7 @@ class ControlPanelsContainer extends React.Component {
                       value={this.props.form_data[fieldName]}
                       validationErrors={this.props.fields[fieldName].validationErrors}
                       actions={this.props.actions}
+                      prefix={section.prefix}
                       {...this.getFieldData(fieldName)}
                     />
                   ))}

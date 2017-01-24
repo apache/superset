@@ -1,19 +1,13 @@
-const $ = window.$ = require('jquery');
 import React, { PropTypes } from 'react';
-import Select from 'react-select';
-import { connect } from 'react-redux';
-import shortid from 'shortid';
-import { Button } from 'react-bootstrap';
-import SelectField from './SelectField';
+import { Button, Row, Col } from 'react-bootstrap';
+import Filter from './Filter';
 
 const propTypes = {
   prefix: PropTypes.string,
   choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
-  datasource: PropTypes.Object,
-  renderFilterSelect: PropTypes.bool,
-  datasource_type: PropTypes.string.isRequired,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
@@ -21,157 +15,49 @@ const defaultProps = {
   choices: [],
   onChange: () => {},
   value: [],
-  renderFilterSelect: false,
 };
 
-class FilterField extends React.Component {
+export default class FilterField extends React.Component {
   constructor(props) {
     super(props);
-    const opChoices = this.props.prefix === 'flt' ?
+    this.opChoices = props.prefix === 'flt' ?
       ['in', 'not in'] : ['==', '!=', '>', '<', '>=', '<='];
-    this.state = {
-      opChoices,
-    };
   }
   addFilter() {
-    const newFilters = this.props.value;
+    const newFilters = Object.assign([], this.props.value);
     newFilters.push({
-      id: shortid.generate(),
       prefix: this.props.prefix,
       col: null,
       op: 'in',
-      value: this.props.renderFilterSelect ? [] : '',
+      value: this.props.datasource.filter_select ? [] : '',
     });
     this.props.onChange(newFilters);
   }
-  removeFilter(id) {
-    const newFilters = [];
-    this.props.value.forEach((f) => {
-      if (f.id !== id) {
-        newFilters.push(f);
-      }
-    });
+  changeFilter(index, field, value) {
+    const newFilters = Object.assign([], this.props.value);
+    const modifiedFilter = Object.assign({}, newFilters[index]);
+    modifiedFilter[field] = value;
+    newFilters.splice(index, 1, modifiedFilter);
     this.props.onChange(newFilters);
   }
-  changeInArray(id, field, value) {
-    const newFilters = [];
-    this.props.value.forEach((f) => {
-      if (f.id !== id) {
-        newFilters.push(f);
-      } else {
-        const modifiedFilter = Object.assign({}, f);
-        modifiedFilter[field] = value;
-        newFilters.push(modifiedFilter);
-      }
-    });
-    this.props.onChange(newFilters);
-  }
-  changeFilter(id, field, event) {
-    let value = event;
-    if (event && event.target) {
-      value = event.target.value;
-    }
-    if (event && event.value) {
-      value = event.value;
-    }
-    this.changeInArray(id, field, value);
-    if (field === 'col' && value !== null && this.props.renderFilterSelect) {
-      this.fetchFilterValues(id, value);
-    }
-  }
-  fetchFilterValues(id, col) {
-    if (!this.props.datasource) {
-      return;
-    }
-    const datasourceType = this.props.datasource_type;
-    const datasource = this.props.datasource;
-    let choices = [];
-    if (col) {
-      $.ajax({
-        type: 'GET',
-        url: `/superset/filter/${datasourceType}/${datasource.id}/${col}/`,
-        success: (data) => {
-          choices = Object.keys(data).map((k) =>
-            ([`'${data[k]}'`, `'${data[k]}'`]));
-          this.changeInArray(id, 'choices', choices);
-        },
-      });
-    }
-  }
-  prepareFilter(filter) {
-    return (
-      <div>
-        <div className="row space-1">
-          <Select
-            id="select-col"
-            className="col-lg-12"
-            placeholder="Select column"
-            options={this.props.choices.map((c) => ({ value: c[0], label: c[1] }))}
-            value={filter.col}
-            onChange={this.changeFilter.bind(this, filter.id, 'col')}
-          />
-        </div>
-        <div className="row space-1">
-          <Select
-            id="select-op"
-            className="col-lg-4"
-            placeholder="Select operator"
-            options={this.state.opChoices.map((o) => ({ value: o, label: o }))}
-            value={filter.op}
-            onChange={this.changeFilter.bind(this, filter.id, 'op')}
-          />
-          <div className="col-lg-6">
-            {this.renderFilterFormField(filter)}
-          </div>
-          <div className="col-lg-2">
-            <Button
-              id="remove-button"
-              bsSize="small"
-              onClick={this.removeFilter.bind(this, filter.id)}
-            >
-              <i className="fa fa-minus" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  renderFilterFormField(filter) {
-    if (this.props.renderFilterSelect) {
-      if (!filter.choices) {
-        this.fetchFilterValues(filter.id, filter.col);
-      }
-      return (
-        <SelectField
-          multi
-          freeForm
-          name="filter-value"
-          value={filter.value}
-          choices={filter.choices}
-          onChange={this.changeFilter.bind(this, filter.id, 'value')}
-        />
-      );
-    }
-    return (
-      <input
-        type="text"
-        onChange={this.changeFilter.bind(this, filter.id, 'value')}
-        value={filter.value}
-        className="form-control input-sm"
-        placeholder="Filter value"
-      />
-    );
+  removeFilter(index) {
+    this.props.onChange(this.props.value.filter((f, i) => i !== index));
   }
   render() {
     const filters = [];
-    let i = 0;
-    this.props.value.forEach((filter) => {
+    this.props.value.forEach((filter, i) => {
       // only display filters with current prefix
-      i++;
       if (filter.prefix === this.props.prefix) {
         const filterBox = (
           <div key={i}>
-           {this.prepareFilter(filter)}
+            <Filter
+              filter={filter}
+              choices={this.props.choices}
+              opChoices={this.opChoices}
+              datasource={this.props.datasource}
+              removeFilter={this.removeFilter.bind(this, i)}
+              changeFilter={this.changeFilter.bind(this, i)}
+            />
           </div>
         );
         filters.push(filterBox);
@@ -180,8 +66,8 @@ class FilterField extends React.Component {
     return (
       <div>
         {filters}
-        <div className="row space-2">
-          <div className="col-lg-2">
+        <Row className="space-2">
+          <Col md={2}>
             <Button
               id="add-button"
               bsSize="sm"
@@ -189,8 +75,8 @@ class FilterField extends React.Component {
             >
               <i className="fa fa-plus" /> &nbsp; Add Filter
             </Button>
-          </div>
-        </div>
+          </Col>
+        </Row>
       </div>
     );
   }
@@ -198,14 +84,3 @@ class FilterField extends React.Component {
 
 FilterField.propTypes = propTypes;
 FilterField.defaultProps = defaultProps;
-
-function mapStateToProps(state) {
-  return {
-    datasource_type: state.datasource_type,
-    datasource: state.datasource,
-    renderFilterSelect: state.filter_select,
-  };
-}
-
-export { FilterField };
-export default connect(mapStateToProps, () => ({}))(FilterField);
