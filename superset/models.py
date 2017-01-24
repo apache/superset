@@ -1353,7 +1353,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 splitted = FillterPattern.split(eq)[1::2]
                 values = [types.strip() for types in splitted]
                 # attempt to get the values type if they are not in quotes
-                if '"' not in values[0] and "'" not in values[0]:
+                if not col_obj.is_string:
                     values = [ast.literal_eval(v) for v in values]
                 else:
                     values = [v.replace("'", '').strip() for v in values]
