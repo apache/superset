@@ -4,6 +4,7 @@ import json
 import logging
 import pandas as pd
 import sqlalchemy
+import sys
 import uuid
 import zlib
 
@@ -19,6 +20,7 @@ QueryStatus = models.QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
+py3k = sys.version_info >= (3, 0)
 
 def dedup(l, suffix='__'):
     """De-duplicates a list of string by suffixing a counter
@@ -153,7 +155,14 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
-        results_backend.set(key, zlib.compress(payload))
+        if py3k:
+            if isinstance(payload, str):
+                results_backend.set(key, zlib.compress(bytes(payload, "utf-8")))
+            else:
+                results_backend.set(key, zlib.compress(payload))
+        else:
+            results_backend.set(key, zlib.compress(payload))
+
         query.results_key = key
 
     session.flush()
