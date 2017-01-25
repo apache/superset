@@ -47,7 +47,7 @@ class UtilsTestCase(unittest.TestCase):
         mock_now.return_value = datetime(2016, 12, 1)
         self.assertEquals(parse_human_timedelta('now'), timedelta(0))
 
-    def test_zlib_json_conversion(self):
+    def test_zlib_compression(self):
         json_str = """{"test": 1}"""
         blob = zlib_compress(json_str)
         got_str = zlib_uncompress_to_string(blob)
