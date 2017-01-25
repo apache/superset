@@ -20,7 +20,7 @@ class SourceRegistry(object):
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
-            .one()
+            .first()
         )
 
     @classmethod
