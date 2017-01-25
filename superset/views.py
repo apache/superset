@@ -1295,7 +1295,9 @@ class Superset(BaseSupersetView):
                 datasource = SourceRegistry.get_datasource(
                     r.datasource_type, r.datasource_id, session)
                 user = sm.get_user_by_id(r.created_by_fk)
-                if self.datasource_access(datasource, user):
+                if not datasource or \
+                   self.datasource_access(datasource, user):
+                    # datasource doesnot exist anymore
                     session.delete(r)
             session.commit()
         datasource_type = request.args.get('datasource_type')
