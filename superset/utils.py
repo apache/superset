@@ -539,4 +539,4 @@ def zlib_uncompress_to_string(blob):
             return decompressed
         return decompressed.decode("utf-8")
     else:
-        return json.loads(zlib.decompress(blob))
+        return zlib.decompress(blob)
