@@ -2413,7 +2413,7 @@ class Superset(BaseSupersetView):
                 if isinstance(json_payload, str):
                     obj = json.loads(json_payload)
                 else:
-                    obj = json.loads(json_payload.decode("utf-8") )
+                    obj = json.loads(json_payload.decode("utf-8"))
             else:
                 obj = json.loads(json_payload)
 
