@@ -8,7 +8,11 @@ function formatFilters(filters) {
     const filter = filters[i];
     params[`${filter.prefix}_col_${i + 1}`] = filter.col;
     params[`${filter.prefix}_op_${i + 1}`] = filter.op;
-    params[`${filter.prefix}_eq_${i + 1}`] = filter.value;
+    if (filter.value.constructor === Array) {
+      params[`${filter.prefix}_eq_${i + 1}`] = filter.value.join(',');
+    } else {
+      params[`${filter.prefix}_eq_${i + 1}`] = filter.value;
+    }
   }
   return params;
 }

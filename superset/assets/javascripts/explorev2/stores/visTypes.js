@@ -60,11 +60,15 @@ export const commonControlPanelSections = {
         'Leave the value field empty to filter empty strings or nulls' +
         'For filters with comma in values, wrap them in single quotes' +
         "as in <NY, 'Tahoe, CA', DC>",
+      prefix: 'flt',
+      fieldSetRows: [['filters']],
     },
     {
       label: 'Result Filters',
       description: 'The filters to apply after post-aggregation.' +
         'Leave the value field empty to filter empty strings or nulls',
+      prefix: 'having',
+      fieldSetRows: [['filters']],
     },
   ],
 };
@@ -751,12 +755,15 @@ export function sectionsToRender(vizType, datasourceType) {
   const viz = visTypes[vizType];
   const timeSection = datasourceType === 'table' ?
     commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
-  const { datasourceAndVizType, sqlClause } = commonControlPanelSections;
+  const { datasourceAndVizType, sqlClause, filters } = commonControlPanelSections;
+  const filtersToRender =
+    datasourceType === 'table' ? filters[0] : filters;
   const sections = [].concat(
     datasourceAndVizType,
     timeSection,
     viz.controlPanelSections,
-    sqlClause
+    sqlClause,
+    filtersToRender
   );
   return sections;
 }
