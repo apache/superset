@@ -8,10 +8,8 @@ import json
 import logging
 import pickle
 import re
-import sys
 import time
 import traceback
-import zlib
 
 import functools
 import sqlalchemy as sqla
@@ -42,7 +40,6 @@ from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
 from superset.sql_parse import SupersetQuery
 
-py3k = sys.version_info >= (3, 0)
 
 config = app.config
 log_this = models.Log.log_this
@@ -2407,16 +2404,8 @@ class Superset(BaseSupersetView):
 
         blob = results_backend.get(key)
         if blob:
-            json_payload = zlib.decompress(blob)
-            obj = {}
-            if py3k:
-                if isinstance(json_payload, str):
-                    obj = json.loads(json_payload)
-                else:
-                    obj = json.loads(json_payload.decode("utf-8"))
-            else:
-                obj = json.loads(json_payload)
-
+            json_payload = utils.zlib_uncompress_to_string(blob)
+            obj = json.loads(json_payload)
             db_id = obj['query']['dbId']
             session = db.session()
             mydb = session.query(models.Database).filter_by(id=db_id).one()

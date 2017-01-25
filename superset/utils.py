@@ -16,7 +16,9 @@ import pytz
 import smtplib
 import sqlalchemy as sa
 import signal
+import sys
 import uuid
+import zlib
 
 from builtins import object
 from datetime import date, datetime, time
@@ -34,7 +36,7 @@ from sqlalchemy.types import TypeDecorator, TEXT
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
-
+PY3K = sys.version_info >= (3, 0)
 EPOCH = datetime(1970, 1, 1)
 DTTM_ALIAS = '__timestamp'
 
@@ -513,3 +515,28 @@ def get_email_address_list(address_string):
         else:
             address_string = [address_string]
     return address_string
+
+
+def zlib_compress(data):
+    if PY3K:
+        if isinstance(data, str):
+            return zlib.compress(bytes(data, "utf-8"))
+        else:
+            return zlib.compress(data)
+    else:
+        return zlib.compress(data)
+
+
+def zlib_uncompress_to_string(blob):
+    if PY3K:
+        decompressed = ""
+        if isinstance(blob, bytes):
+            decompressed = zlib.decompress(blob)
+        else:
+            decompressed = zlib.decompress(bytes(blob, "utf-8"))
+
+        if isinstance(decompressed, str):
+            return decompressed
+        return decompressed.decode("utf-8")
+    else:
+        return json.loads(zlib.decompress(blob))
