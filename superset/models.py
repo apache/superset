@@ -932,7 +932,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL',)
     date_types = ('DATE', 'TIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
