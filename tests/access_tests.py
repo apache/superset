@@ -8,7 +8,7 @@ import json
 import mock
 import unittest
 
-from superset import db, models, sm
+from superset import db, models, sm, security
 from superset.source_registry import SourceRegistry
 
 from .base_tests import SupersetTestCase
@@ -45,6 +45,38 @@ ROLE_ALL_PERM_DATA = {
     ]
 }
 
+EXTEND_ROLE_REQUEST = (
+    '/superset/approve?datasource_type={}&datasource_id={}&'
+    'created_by={}&role_to_extend={}')
+GRANT_ROLE_REQUEST = (
+    '/superset/approve?datasource_type={}&datasource_id={}&'
+    'created_by={}&role_to_grant={}')
+TEST_ROLE_1 = 'test_role1'
+TEST_ROLE_2 = 'test_role2'
+DB_ACCESS_ROLE = 'db_access_role'
+SCHEMA_ACCESS_ROLE = 'schema_access_role'
+
+def create_access_request(session, ds_type, ds_name, role_name, user_name):
+    ds_class = SourceRegistry.sources[ds_type]
+    # TODO: generalize datasource names
+    if ds_type == 'table':
+        ds = session.query(ds_class).filter(
+            ds_class.table_name == ds_name).first()
+    else:
+        ds = session.query(ds_class).filter(
+            ds_class.datasource_name == ds_name).first()
+    ds_perm_view = sm.find_permission_view_menu(
+        'datasource_access', ds.perm)
+    sm.add_permission_role(sm.find_role(role_name), ds_perm_view)
+    access_request = models.DatasourceAccessRequest(
+        datasource_id=ds.id,
+        datasource_type=ds_type,
+        created_by_fk=sm.find_user(username=user_name).id,
+    )
+    session.add(access_request)
+    session.commit()
+    return access_request
+
 
 class RequestAccessTests(SupersetTestCase):
 
@@ -53,12 +85,20 @@ class RequestAccessTests(SupersetTestCase):
     @classmethod
     def setUpClass(cls):
         sm.add_role('override_me')
+        sm.add_role(TEST_ROLE_1)
+        sm.add_role(TEST_ROLE_2)
+        sm.add_role(DB_ACCESS_ROLE)
+        sm.add_role(SCHEMA_ACCESS_ROLE)
         db.session.commit()
 
     @classmethod
     def tearDownClass(cls):
         override_me = sm.find_role('override_me')
         db.session.delete(override_me)
+        db.session.delete(sm.find_role(TEST_ROLE_1))
+        db.session.delete(sm.find_role(TEST_ROLE_2))
+        db.session.delete(sm.find_role(DB_ACCESS_ROLE))
+        db.session.delete(sm.find_role(SCHEMA_ACCESS_ROLE))
         db.session.commit()
 
     def setUp(self):
@@ -147,46 +187,150 @@ class RequestAccessTests(SupersetTestCase):
             'datasource_access',
             updated_override_me.permissions[0].permission.name)
 
+    def test_clean_requests_after_role_extend(self):
+        session = db.session
+
+        # Case 1. Gamma and gamma2 requested test_role1 on energy_usage access
+        # Gamma already has role test_role1
+        # Extend test_role1 with energy_usage access for gamma2
+        # Check if access request for gamma at energy_usage was deleted
+
+        # gamma2 and gamma request table_role on energy usage
+        access_request1 = create_access_request(
+            session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma2')
+        ds_1_id = access_request1.datasource_id
+        access_request2 = create_access_request(
+            session, 'table', 'random_time_series', TEST_ROLE_1, 'gamma')
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertTrue(access_requests)
+        # gamma gets test_role1
+        self.get_resp(GRANT_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma', TEST_ROLE_1))
+        # extend test_role1 with access on energy usage
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma2', TEST_ROLE_1))
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertFalse(access_requests)
+
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role('test_role1'))
+
+    def test_clean_requests_after_alpha_grant(self):
+        session = db.session
+
+        # Case 2. Two access requests from gamma and gamma2
+        # Gamma becomes alpha, gamma2 gets granted
+        # Check if request by gamma has been deleted
+
+        access_request1 = create_access_request(
+            session, 'table', 'birth_names', TEST_ROLE_1, 'gamma')
+        access_request2 = create_access_request(
+            session, 'table', 'birth_names', TEST_ROLE_2, 'gamma2')
+        ds_1_id = access_request1.datasource_id
+        # gamma becomes alpha
+        alpha_role = sm.find_role('Alpha')
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.append(alpha_role)
+        session.commit()
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertTrue(access_requests)
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma2', TEST_ROLE_2))
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertFalse(access_requests)
+
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role('Alpha'))
+        session.commit()
+
+    def test_clean_requests_after_db_grant(self):
+        session = db.session
+
+        # Case 3. Two access requests from gamma and gamma2
+        # Gamma gets database access, gamma2 access request granted
+        # Check if request by gamma has been deleted
+
+        gamma_user = sm.find_user(username='gamma')
+        access_request1 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_1, 'gamma')
+        access_request2 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_2, 'gamma2')
+        ds_1_id = access_request1.datasource_id
+        # gamma gets granted database access
+        database = session.query(models.Database).first()
+
+        security.merge_perm(
+            sm, 'database_access', database.perm)
+        ds_perm_view = sm.find_permission_view_menu(
+            'database_access', database.perm)
+        sm.add_permission_role(
+            sm.find_role(DB_ACCESS_ROLE) , ds_perm_view)
+        gamma_user.roles.append(sm.find_role(DB_ACCESS_ROLE))
+        session.commit()
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertTrue(access_requests)
+        # gamma2 request gets fulfilled
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma2', TEST_ROLE_2))
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+
+        self.assertFalse(access_requests)
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role(DB_ACCESS_ROLE))
+        session.commit()
+
+    def test_clean_requests_after_schema_grant(self):
+        session = db.session
+
+        # Case 4. Two access requests from gamma and gamma2
+        # Gamma gets schema access, gamma2 access request granted
+        # Check if request by gamma has been deleted
+
+        gamma_user = sm.find_user(username='gamma')
+        access_request1 = create_access_request(
+            session, 'table', 'wb_health_population', TEST_ROLE_1, 'gamma')
+        access_request2 = create_access_request(
+            session, 'table', 'wb_health_population', TEST_ROLE_2, 'gamma2')
+        ds_1_id = access_request1.datasource_id
+        ds = session.query(models.SqlaTable).filter_by(
+            table_name='wb_health_population').first()
+
+
+        ds.schema = 'temp_schema'
+        security.merge_perm(
+            sm, 'schema_access', ds.schema_perm)
+        schema_perm_view = sm.find_permission_view_menu(
+            'schema_access', ds.schema_perm)
+        sm.add_permission_role(
+            sm.find_role(SCHEMA_ACCESS_ROLE) , schema_perm_view)
+        gamma_user.roles.append(sm.find_role(SCHEMA_ACCESS_ROLE))
+        session.commit()
+        # gamma2 request gets fulfilled
+        self.client.get(EXTEND_ROLE_REQUEST.format(
+            'table', ds_1_id, 'gamma2', TEST_ROLE_2))
+        access_requests = self.get_access_requests('gamma', 'table', ds_1_id)
+        self.assertFalse(access_requests)
+        gamma_user = sm.find_user(username='gamma')
+        gamma_user.roles.remove(sm.find_role(SCHEMA_ACCESS_ROLE))
+
+        ds = session.query(models.SqlaTable).filter_by(
+            table_name='wb_health_population').first()
+        ds.schema = None
+
+        session.commit()
+
     @mock.patch('superset.utils.send_MIME_email')
     def test_approve(self, mock_send_mime):
         session = db.session
         TEST_ROLE_NAME = 'table_role'
         sm.add_role(TEST_ROLE_NAME)
 
-        def create_access_request(ds_type, ds_name, role_name):
-            ds_class = SourceRegistry.sources[ds_type]
-            # TODO: generalize datasource names
-            if ds_type == 'table':
-                ds = session.query(ds_class).filter(
-                    ds_class.table_name == ds_name).first()
-            else:
-                ds = session.query(ds_class).filter(
-                    ds_class.datasource_name == ds_name).first()
-            ds_perm_view = sm.find_permission_view_menu(
-                'datasource_access', ds.perm)
-            sm.add_permission_role(sm.find_role(role_name), ds_perm_view)
-            access_request = models.DatasourceAccessRequest(
-                datasource_id=ds.id,
-                datasource_type=ds_type,
-                created_by_fk=sm.find_user(username='gamma').id,
-            )
-            session.add(access_request)
-            session.commit()
-            return access_request
-
-        EXTEND_ROLE_REQUEST = (
-            '/superset/approve?datasource_type={}&datasource_id={}&'
-            'created_by={}&role_to_extend={}')
-        GRANT_ROLE_REQUEST = (
-            '/superset/approve?datasource_type={}&datasource_id={}&'
-            'created_by={}&role_to_grant={}')
-
         # Case 1. Grant new role to the user.
 
         access_request1 = create_access_request(
-            'table', 'unicode_test', TEST_ROLE_NAME)
+            session, 'table', 'unicode_test', TEST_ROLE_NAME, 'gamma')
         ds_1_id = access_request1.datasource_id
-        self.get_resp(GRANT_ROLE_REQUEST.format(
+        resp = self.get_resp(GRANT_ROLE_REQUEST.format(
             'table', ds_1_id, 'gamma', TEST_ROLE_NAME))
 
         # Test email content.
@@ -210,7 +354,8 @@ class RequestAccessTests(SupersetTestCase):
 
         # Case 2. Extend the role to have access to the table
 
-        access_request2 = create_access_request('table', 'long_lat', TEST_ROLE_NAME)
+        access_request2 = create_access_request(
+            session, 'table', 'long_lat', TEST_ROLE_NAME, 'gamma')
         ds_2_id = access_request2.datasource_id
         long_lat_perm = access_request2.datasource.perm
 
@@ -241,7 +386,8 @@ class RequestAccessTests(SupersetTestCase):
         # Case 3. Grant new role to the user to access the druid datasource.
 
         sm.add_role('druid_role')
-        access_request3 = create_access_request('druid', 'druid_ds_1', 'druid_role')
+        access_request3 = create_access_request(
+            session, 'druid', 'druid_ds_1', 'druid_role', 'gamma')
         self.get_resp(GRANT_ROLE_REQUEST.format(
             'druid', access_request3.datasource_id, 'gamma', 'druid_role'))
 
@@ -251,7 +397,8 @@ class RequestAccessTests(SupersetTestCase):
 
         # Case 4. Extend the role to have access to the druid datasource
 
-        access_request4 = create_access_request('druid', 'druid_ds_2', 'druid_role')
+        access_request4 = create_access_request(
+            session, 'druid', 'druid_ds_2', 'druid_role', 'gamma')
         druid_ds_2_perm = access_request4.datasource.perm
 
         self.client.get(EXTEND_ROLE_REQUEST.format(
