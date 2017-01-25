@@ -22,6 +22,7 @@ celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
 py3k = sys.version_info >= (3, 0)
 
+
 def dedup(l, suffix='__'):
     """De-duplicates a list of string by suffixing a counter
 
