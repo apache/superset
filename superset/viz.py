@@ -178,7 +178,7 @@ class BaseViz(object):
             for item in v:
                 ordered_data.add(key, item)
         href = Href(
-            '/caravel/filter/{self.datasource.type}/'
+            '/superset/filter/{self.datasource.type}/'
             '{self.datasource.id}/'.format(**locals()))
         return href(ordered_data)
 
@@ -269,7 +269,7 @@ class BaseViz(object):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
-        metrics = form_data.get("metrics") or ['count']
+        metrics = form_data.get("metrics") or []
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -360,8 +360,11 @@ class BaseViz(object):
             try:
                 data = self.get_data()
             except Exception as e:
+                logging.exception(e)
+                if not self.error_message:
+                    self.error_message = str(e)
+                self.status = utils.QueryStatus.FAILED
                 data = None
-
             payload = {
                 'cache_key': cache_key,
                 'cache_timeout': cache_timeout,
@@ -379,10 +382,10 @@ class BaseViz(object):
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(
                 cache_timeout))
+            data = self.json_dumps(payload)
+            if PY3:
+                data = bytes(data, 'utf-8')
             try:
-                data = self.json_dumps(payload)
-                if PY3:
-                    data = bytes(data, 'utf-8')
                 cache.set(
                     cache_key,
                     zlib.compress(data),
@@ -395,6 +398,9 @@ class BaseViz(object):
                 cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return payload
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_int_dttm_ser, ignore_nan=True)
 
     @property
     def data(self):
@@ -534,6 +540,9 @@ class TableViz(BaseViz):
             records=df.to_dict(orient="records"),
             columns=list(df.columns),
         )
+
+    def json_dumps(self, obj):
+        return json.dumps(obj, default=utils.json_iso_dttm_ser)
 
 
 class PivotTableViz(BaseViz):
@@ -1184,19 +1193,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             dft = df.T
             df = (dft / dft.sum()).T
 
-        num_period_compare = form_data.get("num_period_compare")
-        if num_period_compare:
-            num_period_compare = int(num_period_compare)
-            prt = form_data.get('period_ratio_type')
-            if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
-            elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
-            else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
-
         rolling_periods = form_data.get("rolling_periods")
         rolling_type = form_data.get("rolling_type")
 
@@ -1209,6 +1205,19 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
         elif rolling_type == 'cumsum':
             df = df.cumsum()
+
+        num_period_compare = form_data.get("num_period_compare")
+        if num_period_compare:
+            num_period_compare = int(num_period_compare)
+            prt = form_data.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
+            df = df[num_period_compare:]
         return df
 
     def to_series(self, df, classed='', title_suffix=''):
@@ -1324,6 +1333,13 @@ class NVD3DualLineViz(NVD3Viz):
             values=metrics)
 
         return df
+
+    def query_obj(self):
+        d = super(NVD3DualLineViz, self).query_obj()
+        if self.form_data.get('metric') == self.form_data.get('metric_2'):
+            raise Exception("Please choose different metrics"
+                            " on left and right axis")
+        return d
 
     def to_series(self, df, classed=''):
         cols = []

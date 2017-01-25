@@ -3,9 +3,8 @@ import d3 from 'd3';
 
 require('./histogram.css');
 
-function histogram(slice) {
+function histogram(slice, payload) {
   const div = d3.select(slice.selector);
-
   const draw = function (data, numBins) {
     // Set Margins
     const margin = {
@@ -127,25 +126,9 @@ function histogram(slice) {
     .classed('minor', true);
   };
 
-  const render = function () {
-    d3.json(slice.jsonEndpoint(), function (error, json) {
-      if (error !== null) {
-        slice.error(error.responseText, error);
-        return;
-      }
-
-      const numBins = Number(json.form_data.link_length) || 10;
-
-      div.selectAll('*').remove();
-      draw(json.data, numBins);
-      slice.done(json);
-    });
-  };
-
-  return {
-    render,
-    resize: render,
-  };
+  const numBins = Number(payload.form_data.link_length) || 10;
+  div.selectAll('*').remove();
+  draw(payload.data, numBins);
 }
 
 module.exports = histogram;

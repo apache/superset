@@ -1,5 +1,6 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
 import visTypes from './visTypes';
+import * as v from '../validators';
 
 const D3_FORMAT_DOCS = 'D3 format syntax: https://github.com/d3/d3-format';
 
@@ -25,6 +26,11 @@ const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
+const MAP_DATASOURCE_TYPE_TO_EDIT_URL = {
+  table: '/tablemodelview/edit',
+  druid: '/druiddatasourcemodelview/edit',
+};
+
 export const fields = {
   datasource: {
     type: 'SelectField',
@@ -33,6 +39,7 @@ export const fields = {
     default: null,
     mapStateToProps: (state) => ({
       choices: state.datasources || [],
+      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
     }),
     description: '',
   },
@@ -42,7 +49,11 @@ export const fields = {
     label: 'Visualization Type',
     clearable: false,
     default: 'table',
-    choices: formatSelectOptions(Object.keys(visTypes)),
+    choices: Object.keys(visTypes).map(vt => [
+      vt,
+      visTypes[vt].label,
+      `/static/assets/images/viz_thumbnails/${vt}.png`,
+    ]),
     description: 'The type of visualization to display',
   },
 
@@ -50,6 +61,7 @@ export const fields = {
     type: 'SelectField',
     multi: true,
     label: 'Metrics',
+    validators: [v.nonEmpty],
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
@@ -84,6 +96,9 @@ export const fields = {
     choices: [],
     default: [],
     description: 'Choose a metric for right axis',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+    }),
   },
 
   stacked_style: {
@@ -504,6 +519,7 @@ export const fields = {
   treemap_ratio: {
     type: 'TextField',
     label: 'Ratio',
+    isFloat: true,
     default: 0.5 * (1 + Math.sqrt(5)),  // d3 default, golden ratio
     description: 'Target aspect ratio for treemap tiles.',
   },
@@ -556,7 +572,7 @@ export const fields = {
   rolling_periods: {
     type: 'TextField',
     label: 'Periods',
-    validators: [],
+    isInt: true,
     description: 'Defines the size of the rolling window function, ' +
                  'relative to the time granularity selected',
   },
@@ -655,6 +671,7 @@ export const fields = {
   compare_lag: {
     type: 'TextField',
     label: 'Comparison Period Lag',
+    isInt: true,
     description: 'Based on granularity, number of time periods to compare against',
   },
 
@@ -710,7 +727,8 @@ export const fields = {
   },
 
   y_axis_2_format: {
-    type: 'FreeFormSelectField',
+    type: 'SelectField',
+    freeForm: true,
     label: 'Right axis format',
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
@@ -780,6 +798,7 @@ export const fields = {
 
   size_from: {
     type: 'TextField',
+    isInt: true,
     label: 'Font Size From',
     default: '20',
     description: 'Font size for the smallest value in the list',
@@ -787,6 +806,7 @@ export const fields = {
 
   size_to: {
     type: 'TextField',
+    isInt: true,
     label: 'Font Size To',
     default: '150',
     description: 'Font size for the biggest value in the list',
@@ -902,7 +922,7 @@ export const fields = {
     type: 'TextField',
     label: 'Period Ratio',
     default: '',
-    validators: [],
+    isInt: true,
     description: '[integer] Number of period to compare against, ' +
                  'this is relative to the granularity selected',
   },
@@ -919,6 +939,7 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
+    isInt: true,
     default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
@@ -1006,6 +1027,7 @@ export const fields = {
     type: 'TextField',
     label: 'Opacity',
     default: 1,
+    isFloat: true,
     description: 'Opacity of all clusters, points, and labels. ' +
                  'Between 0 and 1.',
   },
@@ -1013,8 +1035,8 @@ export const fields = {
   viewport_zoom: {
     type: 'TextField',
     label: 'Zoom',
+    isFloat: true,
     default: 11,
-    validators: [],
     description: 'Zoom level of the map',
     places: 8,
   },
@@ -1023,6 +1045,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default latitude',
     default: 37.772123,
+    isFloat: true,
     description: 'Latitude of default viewport',
     places: 8,
   },
@@ -1031,6 +1054,7 @@ export const fields = {
     type: 'TextField',
     label: 'Default longitude',
     default: -122.405293,
+    isFloat: true,
     description: 'Longitude of default viewport',
     places: 8,
   },
@@ -1098,6 +1122,17 @@ export const fields = {
     label: 'Marker line labels',
     default: '',
     description: 'Labels for the marker lines',
+  },
+
+  filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.filterable_cols : [],
+      datasource: state.datasource,
+    }),
   },
 };
 export default fields;

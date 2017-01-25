@@ -3,7 +3,7 @@ import React from 'react';
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
-import DatabaseSelect from './DatabaseSelect';
+import AsyncSelect from '../../components/AsyncSelect';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -43,6 +43,17 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.fetchTables(val, this.props.queryEditor.schema);
       this.fetchSchemas(val);
     }
+  }
+  dbMutator(data) {
+    const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
+    this.props.actions.setDatabases(data.result);
+    if (data.result.length === 0) {
+      this.props.actions.addAlert({
+        bsStyle: 'danger',
+        msg: "It seems you don't have access to any database",
+      });
+    }
+    return options;
   }
   resetState() {
     this.props.actions.resetState();
@@ -103,15 +114,17 @@ class SqlEditorLeftBar extends React.PureComponent {
         <div className="clearfix sql-toolbar scrollbar-content">
           {networkAlert}
           <div>
-            <DatabaseSelect
+            <AsyncSelect
+              dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
               onChange={this.onChange.bind(this)}
-              databaseId={this.props.queryEditor.dbId}
-              actions={this.props.actions}
+              value={this.props.queryEditor.dbId}
               valueRenderer={(o) => (
                 <div>
                   <span className="text-muted">Database:</span> {o.label}
                 </div>
               )}
+              mutator={this.dbMutator.bind(this)}
+              placeholder="Select a database"
             />
           </div>
           <div className="m-t-5">

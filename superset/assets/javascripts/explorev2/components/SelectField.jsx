@@ -1,11 +1,11 @@
 import React, { PropTypes } from 'react';
 import Select, { Creatable } from 'react-select';
 
-
 const propTypes = {
   choices: PropTypes.array,
   clearable: PropTypes.bool,
   description: PropTypes.string,
+  editUrl: PropTypes.string,
   freeForm: PropTypes.bool,
   label: PropTypes.string,
   multi: PropTypes.bool,
@@ -18,6 +18,7 @@ const defaultProps = {
   choices: [],
   clearable: true,
   description: null,
+  editUrl: null,
   freeForm: false,
   label: null,
   multi: false,
@@ -26,36 +27,33 @@ const defaultProps = {
 };
 
 export default class SelectField extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { options: this.getOptions() };
+    this.onChange = this.onChange.bind(this);
+    this.renderOption = this.renderOption.bind(this);
+  }
   onChange(opt) {
     let optionValue = opt ? opt.value : null;
     // if multi, return options values as an array
     if (this.props.multi) {
       optionValue = opt ? opt.map((o) => o.value) : null;
     }
-    if (this.props.name === 'datasource' && optionValue !== null) {
-      this.props.onChange(this.props.name, optionValue, opt.label);
-    } else {
-      this.props.onChange(this.props.name, optionValue);
-    }
+    this.props.onChange(optionValue);
   }
-  renderOption(opt) {
-    if (this.props.name === 'viz_type') {
-      const url = `/static/assets/images/viz_thumbnails/${opt.value}.png`;
-      return (
-        <div>
-          <img className="viz-thumb-option" src={url} alt={opt.value} />
-          <span>{opt.value}</span>
-        </div>
-      );
-    }
-    return opt.label;
-  }
-  render() {
-    const choices = this.props.choices;
-    const options = choices.map((c) => ({ value: c[0], label: c[1] }));
+  getOptions() {
+    const options = this.props.choices.map((c) => {
+      const label = c.length > 1 ? c[1] : c[0];
+      const newOptions = {
+        value: c[0],
+        label,
+      };
+      if (c[2]) newOptions.imgSrc = c[2];
+      return newOptions;
+    });
     if (this.props.freeForm) {
       // For FreeFormSelect, insert value into options if not exist
-      const values = choices.map((c) => c[0]);
+      const values = this.props.choices.map((c) => c[0]);
       if (this.props.value) {
         if (typeof this.props.value === 'object') {
           this.props.value.forEach((v) => {
@@ -70,25 +68,41 @@ export default class SelectField extends React.Component {
         }
       }
     }
-
+    return options;
+  }
+  renderOption(opt) {
+    if (opt.imgSrc) {
+      return (
+        <div>
+          <img className="viz-thumb-option" src={opt.imgSrc} alt={opt.value} />
+          <span>{opt.label}</span>
+        </div>
+      );
+    }
+    return opt.label;
+  }
+  render() {
+    //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectProps = {
       multi: this.props.multi,
       name: `select-${this.props.name}`,
-      placeholder: `Select (${choices.length})`,
-      options,
+      placeholder: `Select (${this.state.options.length})`,
+      options: this.state.options,
       value: this.props.value,
       autosize: false,
       clearable: this.props.clearable,
-      onChange: this.onChange.bind(this),
-      optionRenderer: this.renderOption.bind(this),
+      onChange: this.onChange,
+      optionRenderer: this.renderOption,
     };
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
     const selectWrap = this.props.freeForm ?
       (<Creatable {...selectProps} />) : (<Select {...selectProps} />);
-
     return (
       <div>
         {selectWrap}
+        {this.props.editUrl &&
+          <a href={`${this.props.editUrl}/${this.props.value}`}>edit</a>
+        }
       </div>
     );
   }

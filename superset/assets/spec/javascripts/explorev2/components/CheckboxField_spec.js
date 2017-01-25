@@ -26,6 +26,6 @@ describe('CheckboxField', () => {
   it('calls onChange when toggled', () => {
     const checkbox = wrapper.find(Checkbox);
     checkbox.simulate('change', { value: true });
-    expect(defaultProps.onChange.calledWith('show_legend')).to.be.true;
+    expect(defaultProps.onChange.calledWith(true)).to.be.true;
   });
 });

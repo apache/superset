@@ -4,11 +4,10 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import visTypes, { sectionsToRender, commonControlPanelSections } from '../stores/visTypes';
+import visTypes, { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import FieldSet from './FieldSet';
-import Filters from './Filters';
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -27,7 +26,6 @@ class ControlPanelsContainer extends React.Component {
     this.fieldOverrides = this.fieldOverrides.bind(this);
     this.getFieldData = this.getFieldData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
-    this.onChange = this.onChange.bind(this);
   }
   componentWillMount() {
     const datasource_id = this.props.form_data.datasource;
@@ -44,14 +42,8 @@ class ControlPanelsContainer extends React.Component {
       }
     }
   }
-  onChange(name, value) {
-    this.props.actions.setFieldValue(this.props.datasource_type, name, value);
-  }
   getFieldData(fs) {
     const fieldOverrides = this.fieldOverrides();
-    if (!this.props.fields) {
-      return null;
-    }
     let fieldData = this.props.fields[fs] || {};
     if (fieldOverrides.hasOwnProperty(fs)) {
       const overrideData = fieldOverrides[fs];
@@ -64,11 +56,6 @@ class ControlPanelsContainer extends React.Component {
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
-  }
-  filterSectionsToRender() {
-    const filterSections = this.props.datasource_type === 'table' ?
-      [commonControlPanelSections.filters[0]] : commonControlPanelSections.filters;
-    return filterSections;
   }
   fieldOverrides() {
     const viz = visTypes[this.props.form_data.viz_type];
@@ -100,32 +87,19 @@ class ControlPanelsContainer extends React.Component {
               {section.fieldSetRows.map((fieldSets, i) => (
                 <FieldSetRow
                   key={`fieldsetrow-${i}`}
-                  fields={fieldSets.map(field => (
+                  fields={fieldSets.map(fieldName => (
                     <FieldSet
-                      name={field}
-                      key={`field-${field}`}
-                      onChange={this.onChange}
-                      value={this.props.form_data[field]}
-                      {...this.getFieldData(field)}
+                      name={fieldName}
+                      key={`field-${fieldName}`}
+                      value={this.props.form_data[fieldName]}
+                      validationErrors={this.props.fields[fieldName].validationErrors}
+                      actions={this.props.actions}
+                      prefix={section.prefix}
+                      {...this.getFieldData(fieldName)}
                     />
                   ))}
                 />
               ))}
-            </ControlPanelSection>
-          ))}
-          {this.filterSectionsToRender().map((section) => (
-            <ControlPanelSection
-              key={section.label}
-              label={section.label}
-              tooltip={section.description}
-            >
-              <Filters
-                filterColumnOpts={[]}
-                filters={this.props.form_data.filters}
-                actions={this.props.actions}
-                prefix={section.prefix}
-                datasource_id={this.props.form_data.datasource}
-              />
             </ControlPanelSection>
           ))}
         </Panel>

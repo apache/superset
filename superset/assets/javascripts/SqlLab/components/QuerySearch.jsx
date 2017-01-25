@@ -3,10 +3,10 @@ import React from 'react';
 import { Button } from 'react-bootstrap';
 import Select from 'react-select';
 import QueryTable from './QueryTable';
-import DatabaseSelect from './DatabaseSelect';
 import { now, epochTimeXHoursAgo,
   epochTimeXDaysAgo, epochTimeXYearsAgo } from '../../modules/dates';
 import { STATUS_OPTIONS, TIME_OPTIONS } from '../constants';
+import AsyncSelect from '../../components/AsyncSelect';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -27,9 +27,6 @@ class QuerySearch extends React.PureComponent {
       queriesArray: [],
       queriesLoading: true,
     };
-  }
-  componentWillMount() {
-    this.fetchUsers();
   }
   componentDidMount() {
     this.refreshQueries();
@@ -89,18 +86,23 @@ class QuerySearch extends React.PureComponent {
   changeSearch(event) {
     this.setState({ searchText: event.target.value });
   }
-  fetchUsers() {
-    this.setState({ userLoading: true });
-    const url = '/users/api/read';
-    $.getJSON(url, (data, status) => {
-      if (status === 'success') {
-        const options = [];
-        for (let i = 0; i < data.pks.length; i++) {
-          options.push({ value: data.pks[i], label: data.result[i].username });
-        }
-        this.setState({ userOptions: options, userLoading: false });
-      }
-    });
+  userMutator(data) {
+    const options = [];
+    for (let i = 0; i < data.pks.length; i++) {
+      options.push({ value: data.pks[i], label: data.result[i].username });
+    }
+    return options;
+  }
+  dbMutator(data) {
+    const options = data.result.map((db) => ({ value: db.id, label: db.database_name }));
+    this.props.actions.setDatabases(data.result);
+    if (data.result.length === 0) {
+      this.props.actions.addAlert({
+        bsStyle: 'danger',
+        msg: "It seems you don't have access to any database",
+      });
+    }
+    return options;
   }
   refreshQueries() {
     this.setState({ queriesLoading: true });
@@ -125,21 +127,19 @@ class QuerySearch extends React.PureComponent {
       <div>
         <div id="search-header" className="row space-1">
           <div className="col-sm-2">
-            <Select
-              name="select-user"
-              placeholder="[User]"
-              options={this.state.userOptions}
+            <AsyncSelect
+              dataEndpoint="/users/api/read"
+              mutator={this.userMutator}
               value={this.state.userId}
-              isLoading={this.state.userLoading}
-              autosize={false}
               onChange={this.changeUser.bind(this)}
             />
           </div>
           <div className="col-sm-2">
-            <DatabaseSelect
+            <AsyncSelect
               onChange={this.onChange.bind(this)}
-              databaseId={this.state.databaseId}
-              actions={this.props.actions}
+              dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
+              value={this.state.databaseId}
+              mutator={this.dbMutator.bind(this)}
             />
           </div>
           <div className="col-sm-4">

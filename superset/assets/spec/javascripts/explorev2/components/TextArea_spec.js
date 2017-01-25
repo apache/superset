@@ -27,6 +27,6 @@ describe('SelectField', () => {
   it('calls onChange when toggled', () => {
     const select = wrapper.find(FormControl);
     select.simulate('change', { target: { value: 'x' } });
-    expect(defaultProps.onChange.calledWith('x_axis_label', 'x')).to.be.true;
+    expect(defaultProps.onChange.calledWith('x')).to.be.true;
   });
 });

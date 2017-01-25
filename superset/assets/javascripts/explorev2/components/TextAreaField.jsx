@@ -18,7 +18,7 @@ const defaultProps = {
 
 export default class TextAreaField extends React.Component {
   onChange(event) {
-    this.props.onChange(this.props.name, event.target.value);
+    this.props.onChange(event.target.value);
   }
   render() {
     return (

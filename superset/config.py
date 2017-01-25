@@ -35,7 +35,7 @@ SUPERSET_WORKERS = 2
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'
 SUPERSET_WEBSERVER_PORT = 8088
 SUPERSET_WEBSERVER_TIMEOUT = 60
-
+EMAIL_NOTIFICATIONS = False
 CUSTOM_SECURITY_MANAGER = None
 # ---------------------------------------------------------
 
@@ -77,6 +77,7 @@ APP_ICON = "/static/assets/images/superset-logo@2x.png"
 # other tz can be overridden by providing a local_config
 DRUID_IS_ACTIVE = True
 DRUID_TZ = tz.tzutc()
+DRUID_ANALYSIS_TYPES = ['cardinality']
 
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
@@ -265,6 +266,16 @@ try:
     print('Loaded your LOCAL configuration')
 except ImportError:
     pass
+
+# smtp server configuration
+EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
+SMTP_HOST = 'localhost'
+SMTP_STARTTLS = True
+SMTP_SSL = False
+SMTP_USER = 'superset'
+SMTP_PORT = 25
+SMTP_PASSWORD = 'superset'
+SMTP_MAIL_FROM = 'superset@superset.com'
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')

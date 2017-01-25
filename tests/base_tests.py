@@ -65,6 +65,13 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Gamma'),
                 password='general')
 
+        gamma2 = appbuilder.sm.find_user('gamma2')
+        if not gamma2:
+            appbuilder.sm.add_user(
+                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
+                appbuilder.sm.find_role('Gamma'),
+                password='general')
+
         gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
         if not gamma_sqllab_user:
             appbuilder.sm.add_user(
@@ -99,6 +106,10 @@ class SupersetTestCase(unittest.TestCase):
             )
             session.add(druid_datasource2)
             session.commit()
+
+    def get_table(self, table_id):
+        return db.session.query(models.SqlaTable).filter_by(
+            id=table_id).first()
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()

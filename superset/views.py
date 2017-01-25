@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 from datetime import datetime, timedelta
 import json
-import simplejson
 import logging
 import pickle
 import re
@@ -36,8 +35,8 @@ from wtforms.validators import ValidationError
 
 import superset
 from superset import (
-    appbuilder, cache, db, models, viz, utils, app,
-    sm, sql_lab, sql_parse, results_backend, security,
+    app, appbuilder, cache, db, models, sm, sql_lab, sql_parse,
+    results_backend, security, viz, utils,
 )
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -50,30 +49,34 @@ QueryStatus = models.QueryStatus
 
 
 class BaseSupersetView(BaseView):
-    def can_access(self, permission_name, view_name):
-        return utils.can_access(appbuilder.sm, permission_name, view_name)
+    def can_access(self, permission_name, view_name, user=None):
+        if not user:
+            user = g.user
+        return utils.can_access(
+            appbuilder.sm, permission_name, view_name, user)
 
-    def all_datasource_access(self):
+    def all_datasource_access(self, user=None):
         return self.can_access(
-            "all_datasource_access", "all_datasource_access")
+            "all_datasource_access", "all_datasource_access", user=user)
 
-    def database_access(self, database):
+    def database_access(self, database, user=None):
         return (
-            self.can_access("all_database_access", "all_database_access") or
-            self.can_access("database_access", database.perm)
+            self.can_access(
+                "all_database_access", "all_database_access", user=user) or
+            self.can_access("database_access", database.perm, user=user)
         )
 
-    def schema_access(self, datasource):
+    def schema_access(self, datasource, user=None):
         return (
-            self.database_access(datasource.database) or
-            self.all_datasource_access() or
-            self.can_access("schema_access", datasource.schema_perm)
+            self.database_access(datasource.database, user=user) or
+            self.all_datasource_access(user=user) or
+            self.can_access("schema_access", datasource.schema_perm, user=user)
         )
 
-    def datasource_access(self, datasource):
+    def datasource_access(self, datasource, user=None):
         return (
-            self.schema_access(datasource) or
-            self.can_access("datasource_access", datasource.perm)
+            self.schema_access(datasource, user=user) or
+            self.can_access("datasource_access", datasource.perm, user=user)
         )
 
     def datasource_access_by_name(
@@ -83,7 +86,7 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm):
+        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user):
             return True
 
         datasources = SourceRegistry.query_datasources_by_name(
@@ -1287,6 +1290,16 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/approve")
     def approve(self):
+        def clean_fulfilled_requests(session):
+            for r in session.query(DAR).all():
+                datasource = SourceRegistry.get_datasource(
+                    r.datasource_type, r.datasource_id, session)
+                user = sm.get_user_by_id(r.created_by_fk)
+                if not datasource or \
+                   self.datasource_access(datasource, user):
+                    # datasource doesnot exist anymore
+                    session.delete(r)
+            session.commit()
         datasource_type = request.args.get('datasource_type')
         datasource_id = request.args.get('datasource_id')
         created_by_username = request.args.get('created_by')
@@ -1325,21 +1338,30 @@ class Superset(BaseSupersetView):
             if role_to_grant:
                 role = sm.find_role(role_to_grant)
                 requested_by.roles.append(role)
-                flash(__(
+                msg = __(
                     "%(user)s was granted the role %(role)s that gives access "
                     "to the %(datasource)s",
                     user=requested_by.username,
                     role=role_to_grant,
-                    datasource=datasource.full_name), "info")
+                    datasource=datasource.full_name)
+                utils.notify_user_about_perm_udate(
+                    g.user, requested_by, role, datasource,
+                    'email/role_granted.txt', app.config)
+                flash(msg, "info")
 
             if role_to_extend:
                 perm_view = sm.find_permission_view_menu(
-                    'datasource_access', datasource.perm)
-                sm.add_permission_role(sm.find_role(role_to_extend), perm_view)
-                flash(__("Role %(r)s was extended to provide the access to"
-                         " the datasource %(ds)s",
-                         r=role_to_extend, ds=datasource.full_name), "info")
-
+                    'email/datasource_access', datasource.perm)
+                role = sm.find_role(role_to_extend)
+                sm.add_permission_role(role, perm_view)
+                msg = __("Role %(r)s was extended to provide the access to "
+                         "the datasource %(ds)s", r=role_to_extend,
+                         ds=datasource.full_name)
+                utils.notify_user_about_perm_udate(
+                    g.user, requested_by, role, datasource,
+                    'email/role_extended.txt', app.config)
+                flash(msg, "info")
+            clean_fulfilled_requests(session)
         else:
             flash(__("You have no permission to approve this request"),
                   "danger")
@@ -1405,8 +1427,7 @@ class Superset(BaseSupersetView):
             status = 500
 
         return Response(
-            simplejson.dumps(
-                payload, default=utils.json_int_dttm_ser, ignore_nan=True),
+            viz_obj.json_dumps(payload),
             status=status,
             mimetype="application/json")
 
@@ -1418,8 +1439,14 @@ class Superset(BaseSupersetView):
         if request.method == 'POST' and f:
             current_tt = int(time.time())
             data = pickle.load(f)
+            # TODO: import DRUID datasources
             for table in data['datasources']:
-                models.SqlaTable.import_obj(table, import_time=current_tt)
+                if table.type == 'table':
+                    models.SqlaTable.import_obj(table, import_time=current_tt)
+                else:
+                    models.DruidDatasource.import_obj(
+                        table, import_time=current_tt)
+            db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
                     dashboard, import_time=current_tt)
@@ -1438,8 +1465,6 @@ class Superset(BaseSupersetView):
 
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
-            slc.views = slc.views + 1
-            db.session.commit()
 
         error_redirect = '/slicemodelview/list/'
         datasource_class = SourceRegistry.sources[datasource_type]
@@ -1957,7 +1982,10 @@ class Superset(BaseSupersetView):
                 Dash,
             )
             .filter(
-                Dash.created_by_fk == user_id,
+                sqla.or_(
+                    Dash.created_by_fk == user_id,
+                    Dash.changed_by_fk == user_id,
+                )
             )
             .order_by(
                 Dash.changed_on.desc()
@@ -1969,7 +1997,6 @@ class Superset(BaseSupersetView):
             'title': o.dashboard_title,
             'url': o.url,
             'dttm': o.changed_on,
-            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -1984,7 +2011,10 @@ class Superset(BaseSupersetView):
         qry = (
             db.session.query(Slice)
             .filter(
-                Slice.created_by_fk == user_id,
+                sqla.or_(
+                    Slice.created_by_fk == user_id,
+                    Slice.changed_by_fk == user_id,
+                )
             )
             .order_by(Slice.changed_on.desc())
         )
@@ -1993,7 +2023,6 @@ class Superset(BaseSupersetView):
             'title': o.slice_name,
             'url': o.slice_url,
             'dttm': o.changed_on,
-            'views': o.views,
         } for o in qry.all()]
         return Response(
             json.dumps(payload, default=utils.json_int_dttm_ser),
@@ -2130,8 +2159,6 @@ class Superset(BaseSupersetView):
             qry = qry.filter_by(slug=dashboard_id)
 
         dash = qry.one()
-        dash.views = dash.views + 1
-        db.session.commit()
         datasources = {slc.datasource for slc in dash.slices}
         for datasource in datasources:
             if not self.datasource_access(datasource):
@@ -2216,10 +2243,10 @@ class Superset(BaseSupersetView):
         return Response(status=201)
 
     @has_access
-    @expose("/sqllab_viz/")
+    @expose("/sqllab_viz/", methods=['POST'])
     @log_this
     def sqllab_viz(self):
-        data = json.loads(request.args.get('data'))
+        data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
         viz_type = data.get('chartType')
         table = (
@@ -2277,8 +2304,7 @@ class Superset(BaseSupersetView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items() if v])
-        url = '/superset/explore/table/{table.id}/?{params}'.format(**locals())
-        return redirect(url)
+        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
@@ -2690,6 +2716,8 @@ class Superset(BaseSupersetView):
     @expose("/profile/<username>/")
     def profile(self, username):
         """User profile page"""
+        if not username and g.user:
+            username = g.user.username
         user = (
             db.session.query(ab_models.User)
             .filter_by(username=username)
