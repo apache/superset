@@ -43,7 +43,6 @@ export function initialState(vizType = 'table', datasourceType = 'table') {
     datasources: null,
     datasource_type: null,
     filterColumnOpts: [],
-    filter_select: false,
     fields,
     viz: defaultViz(vizType, datasourceType),
     isStarred: false,

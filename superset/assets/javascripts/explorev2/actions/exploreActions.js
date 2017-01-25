@@ -1,6 +1,7 @@
 /* eslint camelcase: 0 */
 const $ = window.$ = require('jquery');
 const FAVESTAR_BASE_URL = '/superset/favstar/slice';
+import { getExploreUrl } from '../exploreUtils';
 
 export const SET_DATASOURCE_TYPE = 'SET_DATASOURCE_TYPE';
 export function setDatasourceType(datasourceType) {
@@ -78,41 +79,6 @@ export function saveFaveStar(sliceId, isStarred) {
   };
 }
 
-export const ADD_FILTER = 'ADD_FILTER';
-export function addFilter(filter) {
-  return { type: ADD_FILTER, filter };
-}
-
-export const REMOVE_FILTER = 'REMOVE_FILTER';
-export function removeFilter(filter) {
-  return { type: REMOVE_FILTER, filter };
-}
-
-export const CHANGE_FILTER = 'CHANGE_FILTER';
-export function changeFilter(filter, field, value) {
-  return { type: CHANGE_FILTER, filter, field, value };
-}
-
-export function fetchFilterValues(datasource_type, datasource_id, filter, col) {
-  return function (dispatch) {
-    $.ajax({
-      type: 'GET',
-      url: `/superset/filter/${datasource_type}/${datasource_id}/${col}/`,
-      success: (data) => {
-        dispatch(changeFilter(
-          filter,
-          'choices',
-          Object.keys(data).map((k) => ([`'${data[k]}'`, `'${data[k]}'`]))
-          )
-        );
-      },
-      error() {
-        dispatch(changeFilter(filter, 'choices', []));
-      },
-    });
-  };
-}
-
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
 export function setFieldValue(fieldName, value, validationErrors) {
   return { type: SET_FIELD_VALUE, fieldName, value, validationErrors };
@@ -124,13 +90,18 @@ export function chartUpdateStarted() {
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
-export function chartUpdateSucceeded(query) {
-  return { type: CHART_UPDATE_SUCCEEDED, query };
+export function chartUpdateSucceeded(queryResponse) {
+  return { type: CHART_UPDATE_SUCCEEDED, queryResponse };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
-export function chartUpdateFailed(error, query) {
-  return { type: CHART_UPDATE_FAILED, error, query };
+export function chartUpdateFailed(queryResponse) {
+  return { type: CHART_UPDATE_FAILED, queryResponse };
+}
+
+export const CHART_RENDERING_FAILED = 'CHART_RENDERING_FAILED';
+export function chartRenderingFailed(error) {
+  return { type: CHART_RENDERING_FAILED, error };
 }
 
 export const UPDATE_EXPLORE_ENDPOINTS = 'UPDATE_EXPLORE_ENDPOINTS';
@@ -201,4 +172,17 @@ export function saveSlice(url) {
 export const UPDATE_CHART_STATUS = 'UPDATE_CHART_STATUS';
 export function updateChartStatus(status) {
   return { type: UPDATE_CHART_STATUS, status };
+}
+
+export const RUN_QUERY = 'RUN_QUERY';
+export function runQuery(formData, datasourceType) {
+  return function (dispatch) {
+    dispatch(updateChartStatus('loading'));
+    const url = getExploreUrl(formData, datasourceType, 'json');
+    $.getJSON(url, function (queryResponse) {
+      dispatch(chartUpdateSucceeded(queryResponse));
+    }).fail(function (err) {
+      dispatch(chartUpdateFailed(err));
+    });
+  };
 }

@@ -4,6 +4,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import ast
 from collections import OrderedDict
 import functools
 import json
@@ -680,6 +681,7 @@ class Queryable(object):
         """data representation of the datasource sent to the frontend"""
         gb_cols = [(col, col) for col in self.groupby_column_names]
         all_cols = [(c, c) for c in self.column_names]
+        filter_cols = [(c, c) for c in self.filterable_column_names]
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
@@ -693,7 +695,8 @@ class Queryable(object):
             'order_by_choices': order_by_choices,
             'gb_cols': gb_cols,
             'all_cols': all_cols,
-            'filterable_cols': self.filterable_column_names,
+            'filterable_cols': filter_cols,
+            'filter_select': self.filter_select_enabled,
         }
         if (self.type == 'table'):
             grains = self.database.grains() or []
@@ -1348,7 +1351,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '').strip() for types in splitted]
+                values = [types.strip() for types in splitted]
+                # attempt to get the values type if they are not in quotes
+                if not col_obj.is_string:
+                    values = [ast.literal_eval(v) for v in values]
+                else:
+                    values = [v.replace("'", '').strip() for v in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -2194,7 +2202,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         granularity = {'type': 'period'}
         if timezone:
-            granularity['timezone'] = timezone
+            granularity['timeZone'] = timezone
 
         if origin:
             dttm = utils.parse_human_datetime(origin)

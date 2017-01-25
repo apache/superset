@@ -63,13 +63,13 @@ class SupersetTemplateException(SupersetException):
     pass
 
 
-def can_access(security_manager, permission_name, view_name):
+def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    try:
-        return security_manager.has_access(permission_name, view_name)
-    except:
-        pass
-    return False
+    return (
+        sm.is_item_public(permission_name, view_name) or
+        (not user.is_anonymous() and
+         sm._has_view_access(user, permission_name, view_name))
+    )
 
 
 def flasher(msg, severity=None):
@@ -436,7 +436,7 @@ def notify_user_about_perm_udate(
     subject = __('[Superset] Access to the datasource %(name)s was granted',
                  name=datasource.full_name)
     send_email_smtp(user.email, subject, msg, config, bcc=granter.email,
-                    dryrun=config.get('EMAIL_NOTIFICATIONS'))
+                    dryrun=not config.get('EMAIL_NOTIFICATIONS'))
 
 
 def send_email_smtp(to, subject, html_content, config, files=None,
@@ -478,7 +478,7 @@ def send_email_smtp(to, subject, html_content, config, files=None,
                 Name=basename
             ))
 
-    send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun)
+    send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
 
 
 def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):

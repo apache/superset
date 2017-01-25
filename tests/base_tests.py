@@ -65,6 +65,13 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Gamma'),
                 password='general')
 
+        gamma2 = appbuilder.sm.find_user('gamma2')
+        if not gamma2:
+            appbuilder.sm.add_user(
+                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
+                appbuilder.sm.find_role('Gamma'),
+                password='general')
+
         gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
         if not gamma_sqllab_user:
             appbuilder.sm.add_user(

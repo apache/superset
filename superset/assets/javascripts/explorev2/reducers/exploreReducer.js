@@ -1,9 +1,7 @@
 /* eslint camelcase: 0 */
 import { defaultFormData } from '../stores/store';
 import * as actions from '../actions/exploreActions';
-import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
 import { now } from '../../modules/dates';
-import { getExploreUrl } from '../exploreUtils';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -41,37 +39,6 @@ export const exploreReducer = function (state, action) {
     [actions.SET_DATASOURCE]() {
       return Object.assign({}, state, { datasource: action.datasource });
     },
-    [actions.SET_FILTER_COLUMN_OPTS]() {
-      return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
-    },
-    [actions.ADD_FILTER]() {
-      const newFormData = addToArr(state.viz.form_data, 'filters', action.filter);
-      const newState = Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-      return newState;
-    },
-    [actions.REMOVE_FILTER]() {
-      const newFormData = removeFromArr(state.viz.form_data, 'filters', action.filter);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-    },
-    [actions.CHANGE_FILTER]() {
-      const changes = {};
-      changes[action.field] = action.value;
-      const newFormData = alterInArr(
-        state.viz.form_data, 'filters', action.filter, changes);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-    },
     [actions.SET_FIELD_VALUE]() {
       let newFormData = Object.assign({}, state.viz.form_data);
       if (action.fieldName === 'datasource') {
@@ -102,34 +69,30 @@ export const exploreReducer = function (state, action) {
         state,
         {
           chartStatus: 'success',
-          viz: Object.assign({}, state.viz, { query: action.query }),
+          queryResponse: action.queryResponse,
         }
       );
     },
     [actions.CHART_UPDATE_STARTED]() {
-      const chartUpdateStartTime = now();
-      const form_data = Object.assign({}, state.viz.form_data);
-      const datasource_type = state.datasource_type;
-      const vizUpdates = {
-        json_endpoint: getExploreUrl(form_data, datasource_type, 'json'),
-        csv_endpoint: getExploreUrl(form_data, datasource_type, 'csv'),
-        standalone_endpoint:
-          getExploreUrl(form_data, datasource_type, 'standalone'),
-      };
       return Object.assign({}, state,
         {
           chartStatus: 'loading',
           chartUpdateEndTime: null,
-          chartUpdateStartTime,
-          viz: Object.assign({}, state.viz, vizUpdates),
+          chartUpdateStartTime: now(),
         });
+    },
+    [actions.CHART_RENDERING_FAILED]() {
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+      });
     },
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.error,
+        chartAlert: action.queryResponse.error,
         chartUpdateEndTime: now(),
-        viz: Object.assign({}, state.viz, { query: action.query }),
+        queryResponse: action.queryResponse,
       });
     },
     [actions.UPDATE_CHART_STATUS]() {
@@ -140,7 +103,10 @@ export const exploreReducer = function (state, action) {
       return newState;
     },
     [actions.REMOVE_CHART_ALERT]() {
-      return Object.assign({}, state, { chartAlert: null });
+      if (state.chartAlert !== null) {
+        return Object.assign({}, state, { chartAlert: null });
+      }
+      return state;
     },
     [actions.SAVE_SLICE_FAILED]() {
       return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });

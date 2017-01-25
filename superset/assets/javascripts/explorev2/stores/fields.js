@@ -26,15 +26,20 @@ const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
+const MAP_DATASOURCE_TYPE_TO_EDIT_URL = {
+  table: '/tablemodelview/edit',
+  druid: '/druiddatasourcemodelview/edit',
+};
+
 export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
     clearable: false,
     default: null,
-    editUrl: '/tablemodelview/edit',
     mapStateToProps: (state) => ({
       choices: state.datasources || [],
+      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
     }),
     description: '',
   },
@@ -1117,6 +1122,17 @@ export const fields = {
     label: 'Marker line labels',
     default: '',
     description: 'Labels for the marker lines',
+  },
+
+  filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.filterable_cols : [],
+      datasource: state.datasource,
+    }),
   },
 };
 export default fields;
