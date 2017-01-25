@@ -8,10 +8,9 @@ import json
 import logging
 import pickle
 import re
-import sys
 import time
 import traceback
-import zlib
+import sys
 
 import functools
 import sqlalchemy as sqla
@@ -41,6 +40,7 @@ from superset import (
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
 from superset.sql_parse import SupersetQuery
+
 
 config = app.config
 log_this = models.Log.log_this
@@ -95,6 +95,17 @@ class BaseSupersetView(BaseView):
             if self.can_access("datasource_access", datasource.perm):
                 return True
         return False
+
+    def table_accessible(self, database, full_table_name, schema_name=None):
+        table_name_pieces = full_table_name.split(".")
+        if len(table_name_pieces) == 2:
+            table_schema = table_name_pieces[0]
+            table_name = table_name_pieces[1]
+        else:
+            table_schema = schema_name
+            table_name = table_name_pieces[0]
+        return self.datasource_access_by_name(
+            database, table_name, schema=table_schema)
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -2414,20 +2425,29 @@ class Superset(BaseSupersetView):
     @log_this
     def results(self, key):
         """Serves a key off of the results backend"""
+
         if not results_backend:
             return json_error_response("Results backend isn't configured")
 
         blob = results_backend.get(key)
         if blob:
-            json_payload = zlib.decompress(blob)
+            json_payload = utils.zlib_uncompress_to_string(blob)
             obj = json.loads(json_payload)
             db_id = obj['query']['dbId']
             session = db.session()
             mydb = session.query(models.Database).filter_by(id=db_id).one()
 
-            if not self.database_access(mydb):
+            superset_query = sql_parse.SupersetQuery(obj['query']['executedSql'])
+            schema = obj['query'].get("schema")
+            schema = schema if schema else None
+
+            # check tables + schema are ok
+            rejected_tables = [
+                t for t in superset_query.tables if not
+                self.table_accessible(mydb, t, schema_name=schema)]
+            if rejected_tables:
                 return json_error_response(
-                    get_database_access_error_msg(mydb.database_name))
+                    get_datasource_access_error_msg('{}'.format(rejected_tables)))
 
             return Response(
                 json_payload,
@@ -2437,7 +2457,7 @@ class Superset(BaseSupersetView):
             return Response(
                 json.dumps({
                     'error': (
-                        "Data could not be retrived. You may want to "
+                        "Data could not be retrieved. You may want to "
                         "re-run the query."
                     )
                 }),
@@ -2449,16 +2469,6 @@ class Superset(BaseSupersetView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        def table_accessible(database, full_table_name, schema_name=None):
-            table_name_pieces = full_table_name.split(".")
-            if len(table_name_pieces) == 2:
-                table_schema = table_name_pieces[0]
-                table_name = table_name_pieces[1]
-            else:
-                table_schema = schema_name
-                table_name = table_name_pieces[0]
-            return self.datasource_access_by_name(
-                database, table_name, schema=table_schema)
 
         async = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
@@ -2477,7 +2487,7 @@ class Superset(BaseSupersetView):
 
         rejected_tables = [
             t for t in superset_query.tables if not
-            table_accessible(mydb, t, schema_name=schema)]
+            self.table_accessible(mydb, t, schema_name=schema)]
         if rejected_tables:
             return json_error_response(
                 get_datasource_access_error_msg('{}'.format(rejected_tables)))

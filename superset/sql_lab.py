@@ -5,7 +5,6 @@ import logging
 import pandas as pd
 import sqlalchemy
 import uuid
-import zlib
 
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
@@ -153,7 +152,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
-        results_backend.set(key, zlib.compress(payload))
+        results_backend.set(key, utils.zlib_compress(payload))
         query.results_key = key
 
     session.flush()
