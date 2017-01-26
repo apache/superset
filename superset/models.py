@@ -2660,7 +2660,7 @@ class Query(Model):
     rows = Column(Integer)
     error_message = Column(Text)
     # key used to store the results in the results backend
-    results_key = Column(String(64))
+    results_key = Column(String(64), index=True)
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds

@@ -96,6 +96,24 @@ class BaseSupersetView(BaseView):
                 return True
         return False
 
+    def datasource_access_by_fullname(
+            self, database, full_table_name, schema):
+        table_name_pieces = full_table_name.split(".")
+        if len(table_name_pieces) == 2:
+            table_schema = table_name_pieces[0]
+            table_name = table_name_pieces[1]
+        else:
+            table_schema = schema
+            table_name = table_name_pieces[0]
+        return self.datasource_access_by_name(
+            database, table_name, schema=table_schema)
+
+    def rejected_datasources(self, sql, database, schema):
+        superset_query = sql_parse.SupersetQuery(sql)
+        return [
+            t for t in superset_query.tables if not
+            self.datasource_access_by_fullname(database, t, schema)]
+
 
 class ListWidgetWithCheckboxes(ListWidget):
     """An alternative to list view that renders Boolean fields as checkboxes
@@ -2419,18 +2437,19 @@ class Superset(BaseSupersetView):
 
         blob = results_backend.get(key)
         if blob:
-            json_payload = zlib.decompress(blob)
-            obj = json.loads(json_payload)
-            db_id = obj['query']['dbId']
-            session = db.session()
-            mydb = session.query(models.Database).filter_by(id=db_id).one()
-
-            if not self.database_access(mydb):
-                return json_error_response(
-                    get_database_access_error_msg(mydb.database_name))
+            query = (
+                db.session.query(models.Query)
+                .filter_by(results_key=key)
+                .one()
+            )
+            rejected_tables = self.rejected_datasources(
+                query.sql, query.database, query.schema)
+            if rejected_tables:
+                return json_error_response(get_datasource_access_error_msg(
+                    '{}'.format(rejected_tables)))
 
             return Response(
-                json_payload,
+                zlib.decompress(blob),
                 status=200,
                 mimetype="application/json")
         else:
@@ -2449,20 +2468,10 @@ class Superset(BaseSupersetView):
     @log_this
     def sql_json(self):
         """Runs arbitrary sql and returns and json"""
-        def table_accessible(database, full_table_name, schema_name=None):
-            table_name_pieces = full_table_name.split(".")
-            if len(table_name_pieces) == 2:
-                table_schema = table_name_pieces[0]
-                table_name = table_name_pieces[1]
-            else:
-                table_schema = schema_name
-                table_name = table_name_pieces[0]
-            return self.datasource_access_by_name(
-                database, table_name, schema=table_schema)
-
         async = request.form.get('runAsync') == 'true'
         sql = request.form.get('sql')
         database_id = request.form.get('database_id')
+        schema = request.form.get('schema') or None
 
         session = db.session()
         mydb = session.query(models.Database).filter_by(id=database_id).one()
@@ -2471,16 +2480,10 @@ class Superset(BaseSupersetView):
             json_error_response(
                 'Database with id {} is missing.'.format(database_id))
 
-        superset_query = sql_parse.SupersetQuery(sql)
-        schema = request.form.get('schema')
-        schema = schema if schema else None
-
-        rejected_tables = [
-            t for t in superset_query.tables if not
-            table_accessible(mydb, t, schema_name=schema)]
+        rejected_tables = self.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
-            return json_error_response(
-                get_datasource_access_error_msg('{}'.format(rejected_tables)))
+            return json_error_response(get_datasource_access_error_msg(
+                '{}'.format(rejected_tables)))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
@@ -2555,8 +2558,10 @@ class Superset(BaseSupersetView):
             .one()
         )
 
-        if not self.database_access(query.database):
-            flash(get_database_access_error_msg(query.database.database_name))
+        rejected_tables = self.rejected_datasources(
+            query.sql, query.database, query.schema)
+        if rejected_tables:
+            flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
             return redirect('/')
 
         sql = query.select_sql or query.sql
