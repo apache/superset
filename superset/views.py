@@ -22,7 +22,7 @@ from flask import (
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_appbuilder.security.decorators import has_access, has_access_api
+from flask_appbuilder.security.decorators import has_access_api
 from flask_appbuilder.widgets import ListWidget
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla import models as ab_models
@@ -39,6 +39,7 @@ from superset import (
     app, appbuilder, cache, db, models, sm, sql_lab, sql_parse,
     results_backend, security, viz, utils,
 )
+from superset.utils import has_access
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
 from superset.sql_parse import SupersetQuery
