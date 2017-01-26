@@ -1,12 +1,9 @@
-require('es6-promise').polyfill();
-require('isomorphic-fetch');
 const $ = window.$ = require('jquery');
 import React from 'react';
 import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
-import fetch from 'isomorphic-fetch';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -34,7 +31,7 @@ class SqlEditorLeftBar extends React.PureComponent {
   }
   componentWillMount() {
     this.fetchSchemas(this.props.queryEditor.dbId);
-    this.fetchTables(this.props.queryEditor.dbId);
+    this.fetchTables(this.props.queryEditor.dbId, this.props.queryEditor.schema);
   }
   onChange(db) {
     const val = (db) ? db.value : null;
@@ -65,14 +62,11 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (!this.props.queryEditor.dbId || !input) {
       return Promise.resolve({ options: [] });
     }
-    return fetch(
-          `/superset/tables/${this.props.queryEditor.dbId}/`
-          `${this.props.queryEditor.schema}/${input}`,
-          { method: 'GET', credentials: 'include' }
-        )
-        .then(response => response.json())
-		.then(json => ({ options: json.options }));
+    const url = `/superset/tables/${this.props.queryEditor.dbId}/\
+${this.props.queryEditor.schema}/${input}`;
+    return $.get(url).then((data) => ({ options: data.options }));
   }
+  // TODO: move fetching methods to the actions.
   fetchTables(dbId, schema, substr) {
     if (dbId) {
       this.setState({ tableLoading: true, tableOptions: [] });
@@ -104,6 +98,8 @@ class SqlEditorLeftBar extends React.PureComponent {
       this.fetchTables(this.props.queryEditor.dbId, schemaName);
     }
     this.setState({ tableLoading: true });
+    // TODO: handle setting the tableLoading state depending on success or
+    //       failure of the addTable async call in the action.
     this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
     this.setState({ tableLoading: false });
   }
@@ -169,25 +165,29 @@ class SqlEditorLeftBar extends React.PureComponent {
             />
           </div>
           <div className="m-t-5">
-            {this.props.queryEditor.schema && <Select
-              name="select-table"
-              ref="selectTable"
-              isLoading={this.state.tableLoading}
-              value={this.state.tableName}
-              placeholder={`Add a table (${this.state.tableOptions.length})`}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              options={this.state.tableOptions}
-            />}
-            {!this.props.queryEditor.schema && <Select.Async
-              name="async-select-table"
-              ref="selectTable"
-              value={this.state.tableName}
-              placeholder={"Type to search .."}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              loadOptions={this.getTableNamesBySubStr.bind(this)}
-            />}
+            {this.props.queryEditor.schema &&
+              <Select
+                name="select-table"
+                ref="selectTable"
+                isLoading={this.state.tableLoading}
+                value={this.state.tableName}
+                placeholder={`Add a table (${this.state.tableOptions.length})`}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                options={this.state.tableOptions}
+              />
+            }
+            {!this.props.queryEditor.schema &&
+              <Select.Async
+                name="async-select-table"
+                ref="selectTable"
+                value={this.state.tableName}
+                placeholder={"Type to search ..."}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                loadOptions={this.getTableNamesBySubStr.bind(this)}
+              />
+            }
           </div>
           <hr />
           <div className="m-t-5">

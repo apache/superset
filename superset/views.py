@@ -114,6 +114,7 @@ class BaseSupersetView(BaseView):
         return [
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]
+
     def accessible_by_user(self, database, datasource_names, schema=None):
         if self.database_access(database) or self.all_datasource_access():
             return datasource_names
@@ -1791,7 +1792,6 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/schemas/<db_id>")
     def schemas(self, db_id):
-        # db_id = request.args.get('db_id')
         database = (
             db.session
             .query(models.Database)

@@ -21,7 +21,6 @@ def memoized_func(timeout=5 * 60, key=view_cache_key):
             if o is not None:
                 return o
             o = f(cls, *args, **kwargs)
-            print('cache_key: {}'.format(cache_key))
             tables_cache.set(cache_key, o, timeout=timeout)
             return o
         return wrapped_f
