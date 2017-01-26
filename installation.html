@@ -34,7 +34,7 @@
               href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
-        <link rel="next" title="Tutorial" href="tutorial.html"/>
+        <link rel="next" title="Tutorial for Superset Administrators" href="tutorial.html"/>
         <link rel="prev" title="Superset’s documentation" href="index.html"/> 
 
   
@@ -59,6 +59,9 @@
           
           </a>
 
+          
+            
+            
           
 
           
@@ -93,66 +96,19 @@
 <li class="toctree-l2"><a class="reference internal" href="#ssl-access-to-databases">SSL Access to databases</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#druid">Druid</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#cors">CORS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#middleware">MIDDLEWARE</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#upgrading">Upgrading</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sql-lab">SQL Lab</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#making-your-own-build">Making your own build</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="security.html#provided-roles">Provided Roles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="security.html#admin">Admin</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#alpha">Alpha</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#gamma">Gamma</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="security.html#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
-<li class="toctree-l2"><a class="reference internal" href="security.html#customizing">Customizing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="security.html#permissions">Permissions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#restricting-access-to-a-subset-of-data-sources">Restricting access to a subset of data sources</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#restricting-the-access-to-some-metrics">Restricting the access to some metrics</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#quick-intro">Quick Intro</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-creation">Dashboard Creation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-filtering">Dashboard Filtering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#customize-css-and-dashboard-themes">Customize CSS and dashboard themes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#slice-annotations">Slice Annotations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#adding-a-table">Adding a Table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#define-sql-expressions">Define SQL Expressions</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
-<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#supported">Supported</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#aggregations">Aggregations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#post-aggregations">Post-Aggregations</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#not-yet-supported">Not yet supported</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#can-i-query-join-multiple-tables-at-one-time">Can I query/join multiple tables at one time?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-big-can-my-data-source-be">How BIG can my data source be?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-do-i-create-my-own-visualization">How do I create my own visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-are-my-queries-timing-out">Why are my queries timing out?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 </ul>
 
             
@@ -271,7 +227,7 @@ and <code class="docutils literal"><span class="pre">setuptools</span></code> li
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="c1"># Install superset</span>
 <span class="n">pip</span> <span class="n">install</span> <span class="n">superset</span>
 
-<span class="c1"># Create an admin user</span>
+<span class="c1"># Create an admin user (you will be prompted to set username, first and last name before setting a password)</span>
 <span class="n">fabmanager</span> <span class="n">create</span><span class="o">-</span><span class="n">admin</span> <span class="o">--</span><span class="n">app</span> <span class="n">superset</span>
 
 <span class="c1"># Initialize the database</span>
@@ -283,8 +239,8 @@ and <code class="docutils literal"><span class="pre">setuptools</span></code> li
 <span class="c1"># Create default roles and permissions</span>
 <span class="n">superset</span> <span class="n">init</span>
 
-<span class="c1"># Start the web server on port 8088</span>
-<span class="n">superset</span> <span class="n">runserver</span> <span class="o">-</span><span class="n">p</span> <span class="mi">8088</span>
+<span class="c1"># Start the web server on port 8088, use -p to bind to another port</span>
+<span class="n">superset</span> <span class="n">runserver</span>
 
 <span class="c1"># To start a development web server, use the -d switch</span>
 <span class="c1"># superset runserver -d</span>
@@ -413,6 +369,10 @@ connect to the databases you want to access through Superset.</p>
 <td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">pyhive</span></code></td>
 <td><code class="docutils literal"><span class="pre">jdbc+hive://</span></code></td>
 </tr>
+<tr class="row-odd"><td>Greenplum</td>
+<td><code class="docutils literal"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">psycopg2</span></code></td>
+<td><code class="docutils literal"><span class="pre">postgresql+psycopg2://</span></code></td>
+</tr>
 </tbody>
 </table>
 <p>Note that many other database are supported, the main criteria being the
@@ -430,7 +390,7 @@ complies with the Flask-Cache specifications.</p>
 SimpleCache (in-memory), or the local filesystem). If you are going to use
 Memcached please use the pylibmc client library as python-memcached does
 not handle storing binary data correctly. If you use Redis, please install
-[python-redis](<a class="reference external" href="https://pypi.python.org/pypi/redis">https://pypi.python.org/pypi/redis</a>).</p>
+<cite>python-redis &lt;https://pypi.python.org/pypi/redis&gt;</cite>.</p>
 <p>For setting your timeouts, this is done in the Superset metadata and goes
 up the &#8220;timeout searchpath&#8221;, from your slice configuration, to your
 data source&#8217;s configuration, to your database&#8217;s and ultimately falls back
@@ -495,6 +455,26 @@ metadata from your Druid cluster(s)</p>
 <li><code class="docutils literal"><span class="pre">CORS_OPTIONS</span></code>: options passed to Flask-CORS (<cite>documentation &lt;http://flask-cors.corydolphin.com/en/latest/api.html#extension&gt;</cite>)</li>
 </ul>
 </div>
+<div class="section" id="middleware">
+<h2>MIDDLEWARE<a class="headerlink" href="#middleware" title="Permalink to this headline">¶</a></h2>
+<p>Superset allows you to add your own middleware. To add your own middleware, update the <code class="docutils literal"><span class="pre">ADDITIONAL_MIDDLEWARE</span></code> key in
+your <cite>superset_config.py</cite>. <code class="docutils literal"><span class="pre">ADDITIONAL_MIDDLEWARE</span></code> should be a list of your additional middleware classes.</p>
+<p>For example, to use AUTH_REMOTE_USER from behind a proxy server like nginx, you have to add a simple middleware class to
+add the value of <code class="docutils literal"><span class="pre">HTTP_X_PROXY_REMOTE_USER</span></code> (or any other custom header from the proxy) to Gunicorn&#8217;s <code class="docutils literal"><span class="pre">REMOTE_USER</span></code>
+environment variable:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">RemoteUserMiddleware</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">app</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">app</span> <span class="o">=</span> <span class="n">app</span>
+    <span class="k">def</span> <span class="nf">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">):</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">environ</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;HTTP_X_PROXY_REMOTE_USER&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">environ</span><span class="p">[</span><span class="s1">&#39;REMOTE_USER&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">app</span><span class="p">(</span><span class="n">environ</span><span class="p">,</span> <span class="n">start_response</span><span class="p">)</span>
+
+<span class="n">ADDITIONAL_MIDDLEWARE</span> <span class="o">=</span> <span class="p">[</span><span class="n">RemoteUserMiddleware</span><span class="p">,</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p><em>Adapted from http://flask.pocoo.org/snippets/69/</em></p>
+</div>
 <div class="section" id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Permalink to this headline">¶</a></h2>
 <p>Upgrading should be as straightforward as running:</p>
@@ -534,7 +514,7 @@ your environment.:</p>
 <div class="highlight-default"><div class="highlight"><pre><span></span># assuming $SUPERSET_HOME as the root of the repo
 cd $SUPERSET_HOME/superset/assets
 npm install
-npm run prod
+npm run build
 cd $SUPERSET_HOME
 python setup.py install
 </pre></div>
@@ -549,7 +529,7 @@ python setup.py install
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="tutorial.html" class="btn btn-neutral float-right" title="Tutorial for Superset Administrators" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
         <a href="index.html" class="btn btn-neutral" title="Superset’s documentation" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>

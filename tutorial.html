@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Tutorial &mdash; Superset&#39;s documentation  documentation</title>
+  <title>Tutorial for Superset Administrators &mdash; Superset&#39;s documentation  documentation</title>
   
 
   
@@ -60,6 +60,9 @@
           </a>
 
           
+            
+            
+          
 
           
 <div role="search">
@@ -78,81 +81,20 @@
             
             
                 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#getting-started">Getting Started</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caching">Caching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#schemas-postgres-redshift">Schemas (Postgres &amp; Redshift)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#ssl-access-to-databases">SSL Access to databases</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#druid">Druid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#cors">CORS</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#upgrading">Upgrading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#sql-lab">SQL Lab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#making-your-own-build">Making your own build</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial for Superset Administrators</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#connecting-to-a-new-database">Connecting to a new database</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#adding-a-new-table">Adding a new table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#exploring-your-data">Exploring your data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-a-slice-and-dashboard">Creating a slice and dashboard</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial</a></li>
-<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="security.html#provided-roles">Provided Roles</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="security.html#admin">Admin</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#alpha">Alpha</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#gamma">Gamma</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="security.html#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
-<li class="toctree-l2"><a class="reference internal" href="security.html#customizing">Customizing</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="security.html#permissions">Permissions</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#restricting-access-to-a-subset-of-data-sources">Restricting access to a subset of data sources</a></li>
-<li class="toctree-l3"><a class="reference internal" href="security.html#restricting-the-access-to-some-metrics">Restricting the access to some metrics</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#quick-intro">Quick Intro</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-creation">Dashboard Creation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-filtering">Dashboard Filtering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#customize-css-and-dashboard-themes">Customize CSS and dashboard themes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#slice-annotations">Slice Annotations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#adding-a-table">Adding a Table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#define-sql-expressions">Define SQL Expressions</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="security.html">Security</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
-<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#supported">Supported</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#aggregations">Aggregations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#post-aggregations">Post-Aggregations</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#not-yet-supported">Not yet supported</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#can-i-query-join-multiple-tables-at-one-time">Can I query/join multiple tables at one time?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-big-can-my-data-source-be">How BIG can my data source be?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-do-i-create-my-own-visualization">How do I create my own visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-are-my-queries-timing-out">Why are my queries timing out?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 </ul>
 
             
@@ -183,7 +125,7 @@
   <ul class="wy-breadcrumbs">
     <li><a href="index.html">Docs</a> &raquo;</li>
       
-    <li>Tutorial</li>
+    <li>Tutorial for Superset Administrators</li>
       <li class="wy-breadcrumbs-aside">
         
           
@@ -195,72 +137,212 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="tutorial">
-<h1>Tutorial<a class="headerlink" href="#tutorial" title="Permalink to this headline">¶</a></h1>
-<p>This basic linear tutorial will take you through connecting to a database,
-adding a table, creating a slice and a dashboard. First you&#8217;ll need to tell
-Superset where to find the database you want to
-query. First go to the database menu</p>
-<a class="reference internal image-reference" href="_images/db_menu.png"><img alt="_images/db_menu.png" src="_images/db_menu.png" style="width: 151.2px; height: 104.4px;" /></a>
-<p>Now click on the <code class="docutils literal"><span class="pre">+</span></code> button to add a new entry</p>
-<a class="reference internal image-reference" href="_images/db_plus.png"><img alt="_images/db_plus.png" src="_images/db_plus.png" style="width: 170.4px; height: 170.4px;" /></a>
-<p>Fill in an arbitrary reference name for the database, and you SQLAlchemy
-URI. To figure out how to construct your URI, check out the
-<a class="reference external" href="http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html">SQLAlchemy documentation</a>.
-Then you can test your connection. If it works, you&#8217;ll see a positive popup
-and list of the tables that SQLAlchemy has found for that URI.</p>
-<a class="reference internal image-reference" href="_images/db_added.png"><img alt="_images/db_added.png" src="_images/db_added.png" style="width: 637.2px; height: 375.6px;" /></a>
-<p>Once your database has been added, it&#8217;s time to add your table. Navigate
-using the navigation bar at the top to <code class="docutils literal"><span class="pre">Sources</span> <span class="pre">-&gt;</span> <span class="pre">Tables</span></code> and click the
-plus (<code class="docutils literal"><span class="pre">+</span></code>) sign there (similar to the one ).</p>
-<p>Now enter the name of the table in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">Name</span></code> textbox, and select
-the database you just created in the <code class="docutils literal"><span class="pre">Database</span></code> dropdown, hit save. At this
-moment, Superset fetched the column names, their data types and tries to guess
-which fields are metrics in dimensions. From the list view, edit the table
-that you just created by clicking the tiny pen icon.</p>
-<a class="reference internal image-reference" href="_images/pen.png"><img alt="_images/pen.png" src="_images/pen.png" style="width: 130.2px; height: 39.0px;" /></a>
-<p>Now you&#8217;re in the table editor, click on the &#8220;List Table Column&#8221; tab,
-showing you the list of columns in your table as well as their data types.</p>
-<a class="reference internal image-reference" href="_images/matrix.png"><img alt="_images/matrix.png" src="_images/matrix.png" style="width: 652.8px; height: 287.4px;" /></a>
-<p>Click the checkboxes here that inform Superset how your columns should be
-shown in the explore view, and which metrics should be created. Make sure
-to inform Superset about your date columns. You could also create
-&#8220;SQL expression&#8221; columns here, or metrics in that tab as aggregate expressions,
-but let&#8217;s not do that just yet. Hit <code class="docutils literal"><span class="pre">save</span></code>.</p>
-<p>You should now be back in the <code class="docutils literal"><span class="pre">Table</span> <span class="pre">List</span></code> view. Click on the name of the
-table you just created. You enter the &#8220;Explore&#8221; view for your table.</p>
-<a class="reference internal image-reference" href="_images/explore.png"><img alt="_images/explore.png" src="_images/explore.png" style="width: 529.2px; height: 349.2px;" /></a>
-<p>The next step is to create a Slice. First, make sure to use a time filter
-that is relevant.</p>
-<div class="admonition note">
-<p class="first admonition-title">Note</p>
-<p class="last">You can use some &#8220;natural language time expressions&#8221;
-either as relative (as in <code class="docutils literal"><span class="pre">now</span></code>, <code class="docutils literal"><span class="pre">4</span> <span class="pre">weeks</span> <span class="pre">ago</span></code>, or <code class="docutils literal"><span class="pre">1</span> <span class="pre">year</span> <span class="pre">ago</span></code>) as well
-as hard date or time expressions (as in <code class="docutils literal"><span class="pre">3015</span></code>, <code class="docutils literal"><span class="pre">3016-01-01</span></code> or
-<code class="docutils literal"><span class="pre">May</span></code>).</p>
+  <div class="section" id="tutorial-for-superset-administrators">
+<h1>Tutorial for Superset Administrators<a class="headerlink" href="#tutorial-for-superset-administrators" title="Permalink to this headline">¶</a></h1>
+<p>This tutorial targets a Superset administrator: someone configuring Superset
+for an organization on behalf of users. We&#8217;ll show you how to connect Superset
+to a new database and configure a table in that database for analysis. You&#8217;ll
+also explore the data you&#8217;ve exposed and add a visualization to a dashboard
+so that you get a feel for the end-to-end user experience.</p>
+<div class="section" id="connecting-to-a-new-database">
+<h2>Connecting to a new database<a class="headerlink" href="#connecting-to-a-new-database" title="Permalink to this headline">¶</a></h2>
+<p>We assume you already have a database configured and can connect to it from the
+instance on which you’re running Superset. If you’re just testing Superset and
+want to explore sample data, you can load some
+<a class="reference external" href="https://wiki.postgresql.org/wiki/Sample_Databases">sample PostgreSQL datasets</a>
+into a fresh DB, or configure the
+<a class="reference external" href="https://github.com/dylburger/noaa-ghcn-weather-data">example weather data</a>
+we use here.</p>
+<p>Under the <strong>Sources</strong> menu, select the <em>Databases</em> option:</p>
+<a class="reference internal image-reference" href="_images/tutorial_01_sources_database.png"><img alt="_images/tutorial_01_sources_database.png" src="_images/tutorial_01_sources_database.png" style="width: 316.4px; height: 187.6px;" /></a>
+<p>On the resulting page, click on the green plus sign, near the top left:</p>
+<a class="reference internal image-reference" href="_images/tutorial_02_add_database.png"><img alt="_images/tutorial_02_add_database.png" src="_images/tutorial_02_add_database.png" style="width: 369.6px; height: 232.4px;" /></a>
+<p>You can configure a number of advanced options on this page, but for
+this walkthrough, you’ll only need to do <strong>two things</strong>:</p>
+<ol class="arabic simple">
+<li>Name your database connection:</li>
+</ol>
+<a class="reference internal image-reference" href="_images/tutorial_03_database_name.png"><img alt="_images/tutorial_03_database_name.png" src="_images/tutorial_03_database_name.png" style="width: 554.4px; height: 98.0px;" /></a>
+<ol class="arabic simple" start="2">
+<li>Provide the SQLAlchemy Connection URI and test the connection:</li>
+</ol>
+<a class="reference internal image-reference" href="_images/tutorial_04_sqlalchemy_connection_string.png"><img alt="_images/tutorial_04_sqlalchemy_connection_string.png" src="_images/tutorial_04_sqlalchemy_connection_string.png" style="width: 1071.0px; height: 196.0px;" /></a>
+<p>This example shows the connection string for our test weather database.
+As noted in the text below the URI, you should refer to the SQLAlchemy
+documentation on
+<a class="reference external" href="http://docs.sqlalchemy.org/en/rel_1_0/core/engines.html#database-urls">creating new connection URIs</a>
+for your target database.</p>
+<p>Click the <strong>Test Connection</strong> button to confirm things work end to end.
+Once Superset can successfully connect and authenticate, you should see
+a popup like this:</p>
+<a class="reference internal image-reference" href="_images/tutorial_05_connection_popup.png"><img alt="_images/tutorial_05_connection_popup.png" src="_images/tutorial_05_connection_popup.png" style="width: 562.0px; height: 277.0px;" /></a>
+<p>Moreover, you should also see the list of tables Superset can read from
+the schema you’re connected to, at the bottom of the page:</p>
+<a class="reference internal image-reference" href="_images/tutorial_06_list_of_tables.png"><img alt="_images/tutorial_06_list_of_tables.png" src="_images/tutorial_06_list_of_tables.png" style="width: 963.2px; height: 127.4px;" /></a>
+<p>If the connection looks good, save the configuration by clicking the <strong>Save</strong>
+button at the bottom of the page:</p>
+<a class="reference internal image-reference" href="_images/tutorial_07_save_button.png"><img alt="_images/tutorial_07_save_button.png" src="_images/tutorial_07_save_button.png" style="width: 187.6px; height: 85.4px;" /></a>
 </div>
-<p>Alter the form&#8217;s option and click <code class="docutils literal"><span class="pre">Query</span></code> until you get to an interesting
-cut of data, and click <code class="docutils literal"><span class="pre">SAVE</span> <span class="pre">AS</span></code>, enter a name, and you just created your first
-slice.</p>
-<a class="reference internal image-reference" href="_images/created.png"><img alt="_images/created.png" src="_images/created.png" style="width: 529.8px; height: 250.2px;" /></a>
-<p>This slice is now accessible in the slice list from the
-<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Slices</span></code> at any time. Note that this view is easily filterable and
-searchable.</p>
-<a class="reference internal image-reference" href="_images/search.png"><img alt="_images/search.png" src="_images/search.png" style="width: 304.2px; height: 307.8px;" /></a>
-<p>Now let&#8217;s create a dashboard. A dashboard is simply a collection of slices
-with metadata around their sizes, positions, CSS style and a few other things.
-Navigate to the dashboard list view <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboard</span></code> and click the plus
-(<code class="docutils literal"><span class="pre">+</span></code>) sign. In the form, enter a name and pick the slice you just created.</p>
-<a class="reference internal image-reference" href="_images/new_dash.png"><img alt="_images/new_dash.png" src="_images/new_dash.png" style="width: 274.2px; height: 211.2px;" /></a>
-<p>Hit <code class="docutils literal"><span class="pre">Save</span></code>, you should be back in <code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboard</span></code>. Now enter your
-new dashboard.</p>
-<a class="reference internal image-reference" href="_images/in_new_dash.png"><img alt="_images/in_new_dash.png" src="_images/in_new_dash.png" style="width: 467.4px; height: 379.2px;" /></a>
-<p>Here you are. You can now resize and move the different slice(s), style them
-in the CSS modal window, and save right from here. For now, renaming the
-dashboard or adding on a new slice is done through the dashboard edit view,
-which is the same form as you used when you originally created the dashboard,
-and is accessible by clicking the <code class="docutils literal"><span class="pre">edit</span></code> pen icon from the dashboard list
-view (<code class="docutils literal"><span class="pre">Menu</span> <span class="pre">-&gt;</span> <span class="pre">Dashboards</span></code>)</p>
+<div class="section" id="adding-a-new-table">
+<h2>Adding a new table<a class="headerlink" href="#adding-a-new-table" title="Permalink to this headline">¶</a></h2>
+<p>Now that you’ve configured a database, you’ll need to add specific tables
+to Superset that you’d like to query.</p>
+<p>Under the <strong>Sources</strong> menu, select the <em>Tables</em> option:</p>
+<a class="reference internal image-reference" href="_images/tutorial_08_sources_tables.png"><img alt="_images/tutorial_08_sources_tables.png" src="_images/tutorial_08_sources_tables.png" style="width: 315.0px; height: 187.6px;" /></a>
+<p>On the resulting page, click on the green plus sign, near the top left:</p>
+<a class="reference internal image-reference" href="_images/tutorial_09_add_new_table.png"><img alt="_images/tutorial_09_add_new_table.png" src="_images/tutorial_09_add_new_table.png" style="width: 322.0px; height: 232.4px;" /></a>
+<p>You only need a few pieces of information to add a new table to Superset:</p>
+<ul class="simple">
+<li>The name of the table</li>
+</ul>
+<a class="reference internal image-reference" href="_images/tutorial_10_table_name.png"><img alt="_images/tutorial_10_table_name.png" src="_images/tutorial_10_table_name.png" style="width: 772.8px; height: 130.2px;" /></a>
+<ul class="simple">
+<li>The target database from the <strong>Database</strong> drop-down menu (i.e. the one
+you just added above)</li>
+</ul>
+<a class="reference internal image-reference" href="_images/tutorial_11_choose_db.png"><img alt="_images/tutorial_11_choose_db.png" src="_images/tutorial_11_choose_db.png" style="width: 387.8px; height: 229.6px;" /></a>
+<ul class="simple">
+<li>Optionally, the database schema. If the table exists in the “default” schema
+(e.g. the <em>public</em> schema in PostgreSQL or Redshift), you can leave the schema
+field blank.</li>
+</ul>
+<p>Click on the <strong>Save</strong> button to save the configuration:</p>
+<a class="reference internal image-reference" href="_images/tutorial_07_save_button.png"><img alt="_images/tutorial_07_save_button.png" src="_images/tutorial_07_save_button.png" style="width: 187.6px; height: 85.4px;" /></a>
+<p>When redirected back to the list of tables, you should see a message indicating
+that your table was created:</p>
+<a class="reference internal image-reference" href="_images/tutorial_12_table_creation_success_msg.png"><img alt="_images/tutorial_12_table_creation_success_msg.png" src="_images/tutorial_12_table_creation_success_msg.png" style="width: 1260.0px; height: 89.6px;" /></a>
+<p>This message also directs you to edit the table configuration. We’ll edit a limited
+portion of the configuration now - just to get you started - and leave the rest for
+a more advanced tutorial.</p>
+<p>Click on the edit button next to the table you’ve created:</p>
+<a class="reference internal image-reference" href="_images/tutorial_13_edit_table_config.png"><img alt="_images/tutorial_13_edit_table_config.png" src="_images/tutorial_13_edit_table_config.png" style="width: 509.6px; height: 180.6px;" /></a>
+<p>On the resulting page, click on the <strong>List Table Column</strong> tab. Here, you’ll define the
+way you can use specific columns of your table when exploring your data. We’ll run
+through these options to describe their purpose:</p>
+<ul class="simple">
+<li>If you want users to group metrics by a specific field, mark it as <strong>Groupable</strong>.</li>
+<li>If you need to filter on a specific field, mark it as <strong>Filterable</strong>.</li>
+<li>Is this field something you’d like to get the distinct count of? Check the <strong>Count
+Distinct</strong> box.</li>
+<li>Is this a metric you want to sum, or get basic summary statistics for? The <strong>Sum</strong>,
+<strong>Min</strong>, and <strong>Max</strong> columns will help.</li>
+<li>The <strong>is temporal</strong> field should be checked for any date or time fields. We’ll cover
+how this manifests itself in analyses in a moment.</li>
+</ul>
+<p>Here’s how we’ve configured fields for the weather data. Even for measures like the
+weather measurements (precipitation, snowfall, etc.), it’s ideal to group and filter
+by these values:</p>
+<img alt="_images/tutorial_14_field_config.png" src="_images/tutorial_14_field_config.png" />
+<p>As with the configurations above, click the <strong>Save</strong> button to save these settings.</p>
+</div>
+<div class="section" id="exploring-your-data">
+<h2>Exploring your data<a class="headerlink" href="#exploring-your-data" title="Permalink to this headline">¶</a></h2>
+<p>To start exploring your data, simply click on the table name you just created in
+the list of available tables:</p>
+<img alt="_images/tutorial_15_click_table_name.png" src="_images/tutorial_15_click_table_name.png" />
+<p>By default, you’ll be presented with a Table View:</p>
+<img alt="_images/tutorial_16_datasource_chart_type.png" src="_images/tutorial_16_datasource_chart_type.png" />
+<p>Let’s walk through a basic query to get the count of all records in our table.
+First, we’ll need to change the <strong>Since</strong> filter to capture the range of our data.
+You can use simple phrases to apply these filters, like &#8220;3 years ago&#8221;:</p>
+<img alt="_images/tutorial_17_choose_time_range.png" src="_images/tutorial_17_choose_time_range.png" />
+<p>The upper limit for time, the <strong>Until</strong> filter, defaults to &#8220;now&#8221;, which may or may
+not be what you want.</p>
+<p>Look for the Metrics section under the <strong>GROUP BY</strong> header, and start typing &#8220;Count&#8221;
+- you’ll see a list of metrics matching what you type:</p>
+<img alt="_images/tutorial_18_choose_metric.png" src="_images/tutorial_18_choose_metric.png" />
+<p>Select the <em>COUNT(*)</em> metric, then click the green <strong>Query</strong> button near the top
+of the explore:</p>
+<img alt="_images/tutorial_19_click_query.png" src="_images/tutorial_19_click_query.png" />
+<p>You’ll see your results in the table:</p>
+<img alt="_images/tutorial_20_count_star_result.png" src="_images/tutorial_20_count_star_result.png" />
+<p>Let’s group this by the <em>weather_description</em> field to get the count of records by
+the type of weather recorded by adding it to the <em>Group by</em> section:</p>
+<img alt="_images/tutorial_21_group_by.png" src="_images/tutorial_21_group_by.png" />
+<p>and run the query:</p>
+<img alt="_images/tutorial_22_group_by_result.png" src="_images/tutorial_22_group_by_result.png" />
+<p>Let’s find a more useful data point: the top 10 times and places that recorded the
+highest temperature in 2015.</p>
+<p>We replace <em>weather_description</em> with <em>latitude</em>, <em>longitude</em> and <em>measurement_date</em> in the
+<em>Group by</em> section:</p>
+<img alt="_images/tutorial_23_group_by_more_dimensions.png" src="_images/tutorial_23_group_by_more_dimensions.png" />
+<p>And replace <em>COUNT(*)</em> with <em>max__measurement_flag</em>:</p>
+<img alt="_images/tutorial_24_max_metric.png" src="_images/tutorial_24_max_metric.png" />
+<p>The <em>max__measurement_flag</em> metric was created when we checked the box under <strong>Max</strong> and
+next to the <em>measurement_flag</em> field, indicating that this field was numeric and that
+we wanted to find its maximum value when grouped by specific fields.</p>
+<p>In our case, <em>measurement_flag</em> is the value of the measurement taken, which clearly
+depends on the type of measurement (the researchers recorded different values for
+precipitation and temperature). Therefore, we must filter our query only on records
+where the <em>weather_description</em> is equal to &#8220;Maximum temperature&#8221;, which we do in
+the <strong>Filters</strong> section at the bottom of the explore:</p>
+<img alt="_images/tutorial_25_max_temp_filter.png" src="_images/tutorial_25_max_temp_filter.png" />
+<p>Finally, since we only care about the top 10 measurements, we limit our results to
+10 records using the <em>Row limit</em> option under the <strong>Options</strong> header:</p>
+<img alt="_images/tutorial_26_row_limit.png" src="_images/tutorial_26_row_limit.png" />
+<p>We click <strong>Query</strong> and get the following results:</p>
+<img alt="_images/tutorial_27_top_10_max_temps.png" src="_images/tutorial_27_top_10_max_temps.png" />
+<p>In this dataset, the maximum temperature is recorded in tenths of a degree Celsius.
+The top value of 1370, measured in the middle of Nevada, is equal to 137 C, or roughly
+278 degrees F. It’s unlikely this value was correctly recorded. We’ve already been able
+to investigate some outliers with Superset, but this just scratches the surface of what
+we can do.</p>
+<p>You may want to do a couple more things with this measure:</p>
+<ul class="simple">
+<li>The default formatting shows values like 1.37k, which may be difficult for some
+users to read. It’s likely you may want to see the full, comma-separated value.
+You can change the formatting of any measure by editing its config (<em>Edit Table
+Config &gt; List Sql Metric &gt; Edit Metric &gt; D3Format</em>)</li>
+<li>Moreover, you may want to see the temperature measurements in plain degrees C,
+not tenths of a degree. Or you may want to convert the temperature to degrees
+Fahrenheit. You can change the SQL that gets executed agains the database, baking
+the logic into the measure itself (<em>Edit Table Config &gt; List Sql Metric &gt; Edit
+Metric &gt; SQL Expression</em>)</li>
+</ul>
+<p>For now, though, let’s create a better visualization of these data and add it to
+a dashboard.</p>
+<p>We change the Chart Type to &#8220;Distribution - Bar Chart&#8221;:</p>
+<img alt="_images/tutorial_28_bar_chart.png" src="_images/tutorial_28_bar_chart.png" />
+<p>Our filter on Maximum temperature measurements was retained, but the query and
+formatting options are dependent on the chart type, so you’ll have to set the
+values again:</p>
+<img alt="_images/tutorial_29_bar_chart_series_metrics.png" src="_images/tutorial_29_bar_chart_series_metrics.png" />
+<p>You should note the extensive formatting options for this chart: the ability to
+set axis labels, margins, ticks, etc. To make the data presentable to a broad
+audience, you’ll want to apply many of these to slices that end up in dashboards.
+For now, though, we run our query and get the following chart:</p>
+<a class="reference internal image-reference" href="_images/tutorial_30_bar_chart_results.png"><img alt="_images/tutorial_30_bar_chart_results.png" src="_images/tutorial_30_bar_chart_results.png" style="width: 956.9px; height: 435.4px;" /></a>
+</div>
+<div class="section" id="creating-a-slice-and-dashboard">
+<h2>Creating a slice and dashboard<a class="headerlink" href="#creating-a-slice-and-dashboard" title="Permalink to this headline">¶</a></h2>
+<p>This view might be interesting to researchers, so let’s save it. In Superset,
+a saved query is called a <strong>Slice</strong>.</p>
+<p>To create a slice, click the <strong>Save as</strong> button near the top-left of the
+explore:</p>
+<img alt="_images/tutorial_19_click_query.png" src="_images/tutorial_19_click_query.png" />
+<p>A popup should appear, asking you to name the slice, and optionally add it to a
+dashboard. Since we haven’t yet created any dashboards, we can create one and
+immediately add our slice to it. Let’s do it:</p>
+<a class="reference internal image-reference" href="_images/tutorial_31_save_slice_to_dashboard.png"><img alt="_images/tutorial_31_save_slice_to_dashboard.png" src="_images/tutorial_31_save_slice_to_dashboard.png" style="width: 432.6px; height: 268.8px;" /></a>
+<p>Click Save, which will direct you back to your original query. We see that
+our slice and dashboard were successfully created:</p>
+<a class="reference internal image-reference" href="_images/tutorial_32_save_slice_confirmation.png"><img alt="_images/tutorial_32_save_slice_confirmation.png" src="_images/tutorial_32_save_slice_confirmation.png" style="width: 611.8px; height: 105.7px;" /></a>
+<p>Let’s check out our new dashboard. We click on the <strong>Dashboards</strong> menu:</p>
+<img alt="_images/tutorial_33_dashboard.png" src="_images/tutorial_33_dashboard.png" />
+<p>and find the dashboard we just created:</p>
+<img alt="_images/tutorial_34_weather_dashboard.png" src="_images/tutorial_34_weather_dashboard.png" />
+<p>Things seemed to have worked - our slice is here!</p>
+<a class="reference internal image-reference" href="_images/tutorial_35_slice_on_dashboard.png"><img alt="_images/tutorial_35_slice_on_dashboard.png" src="_images/tutorial_35_slice_on_dashboard.png" style="width: 464.8px; height: 397.6px;" /></a>
+<p>But it’s a bit smaller than we might like. Luckily, you can adjust the size
+of slices in a dashboard by clicking, holding and dragging the bottom-right
+corner to your desired dimensions:</p>
+<a class="reference internal image-reference" href="_images/tutorial_36_adjust_dimensions.gif"><img alt="_images/tutorial_36_adjust_dimensions.gif" src="_images/tutorial_36_adjust_dimensions.gif" style="width: 576.0px; height: 297.6px;" /></a>
+<p>After adjusting the size, you’ll be asked to click on the icon near the
+top-right of the dashboard to save the new configuration.</p>
+<p>Congrats! You’ve successfully linked, analyzed, and visualized data in Superset.
+There are a wealth of other table configuration and visualization options, so
+please start exploring and creating slices and dashboards of your own.</p>
+</div>
 </div>
 
 

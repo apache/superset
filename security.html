@@ -35,7 +35,7 @@
         <link rel="search" title="Search" href="search.html"/>
     <link rel="top" title="Superset&#39;s documentation  documentation" href="index.html"/>
         <link rel="next" title="SQL Lab" href="sqllab.html"/>
-        <link rel="prev" title="Tutorial" href="tutorial.html"/> 
+        <link rel="prev" title="Tutorial for Superset Administrators" href="tutorial.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -60,6 +60,9 @@
           </a>
 
           
+            
+            
+          
 
           
 <div role="search">
@@ -78,32 +81,14 @@
             
             
                 <ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#getting-started">Getting Started</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#os-dependencies">OS dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#python-virtualenv">Python virtualenv</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#python-s-setup-tools-and-pip">Python&#8217;s setup tools and pip</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#superset-installation-and-initialization">Superset installation and initialization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#configuration-behind-a-load-balancer">Configuration behind a load balancer</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#configuration">Configuration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#database-dependencies">Database dependencies</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#caching">Caching</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#deeper-sqlalchemy-integration">Deeper SQLAlchemy integration</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#schemas-postgres-redshift">Schemas (Postgres &amp; Redshift)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#ssl-access-to-databases">SSL Access to databases</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#druid">Druid</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#cors">CORS</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#upgrading">Upgrading</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#sql-lab">SQL Lab</a></li>
-<li class="toctree-l2"><a class="reference internal" href="installation.html#making-your-own-build">Making your own build</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation &amp; Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Tutorial for Superset Administrators</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Security</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#provided-roles">Provided Roles</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#admin">Admin</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#alpha">Alpha</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#gamma">Gamma</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sql-lab">sql_lab</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#managing-gamma-per-data-source-access">Managing Gamma per data source access</a></li>
@@ -115,44 +100,11 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#feature-overview">Feature Overview</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#extra-features">Extra features</a></li>
-<li class="toctree-l2"><a class="reference internal" href="sqllab.html#templating-with-jinja">Templating with Jinja</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="sqllab.html#available-macros">Available macros</a></li>
-</ul>
-</li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#quick-intro">Quick Intro</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-creation">Dashboard Creation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#dashboard-filtering">Dashboard Filtering</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#customize-css-and-dashboard-themes">Customize CSS and dashboard themes</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#slice-annotations">Slice Annotations</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#adding-a-table">Adding a Table</a></li>
-<li class="toctree-l2"><a class="reference internal" href="videos.html#define-sql-expressions">Define SQL Expressions</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="sqllab.html">SQL Lab</a></li>
+<li class="toctree-l1"><a class="reference internal" href="videos.html">Videos</a></li>
 <li class="toctree-l1"><a class="reference internal" href="gallery.html">Gallery</a></li>
-<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#supported">Supported</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#aggregations">Aggregations</a></li>
-<li class="toctree-l3"><a class="reference internal" href="druid.html#post-aggregations">Post-Aggregations</a></li>
-</ul>
-</li>
-<li class="toctree-l2"><a class="reference internal" href="druid.html#not-yet-supported">Not yet supported</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#can-i-query-join-multiple-tables-at-one-time">Can I query/join multiple tables at one time?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-big-can-my-data-source-be">How BIG can my data source be?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-do-i-create-my-own-visualization">How do I create my own visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-are-my-queries-timing-out">Why are my queries timing out?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#why-is-the-map-not-visible-in-the-mapbox-visualization">Why is the map not visible in the mapbox visualization?</a></li>
-<li class="toctree-l2"><a class="reference internal" href="faq.html#how-to-add-dynamic-filters-to-a-dashboard">How to add dynamic filters to a dashboard?</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="druid.html">Druid</a></li>
+<li class="toctree-l1"><a class="reference internal" href="faq.html">FAQ</a></li>
 </ul>
 
             
@@ -202,8 +154,18 @@
 FAB provides authentication, user management, permissions and roles.</p>
 <div class="section" id="provided-roles">
 <h2>Provided Roles<a class="headerlink" href="#provided-roles" title="Permalink to this headline">¶</a></h2>
-<p>Superset ships with 3 roles that are handled by Superset itself. You can
-assume that these 3 roles will stay up-to-date as Superset evolves.</p>
+<p>Superset ships with a set of roles that are handled by Superset itself.
+You can assume that these roles will stay up-to-date as Superset evolves.
+Even though it&#8217;s possible for <code class="docutils literal"><span class="pre">Admin</span></code> usrs to do so, it is not recommended
+that you alter these roles in any way by removing
+or adding permissions to them as these roles will be re-synchronized to
+their original values as you run your next <code class="docutils literal"><span class="pre">superset</span> <span class="pre">init</span></code> command.</p>
+<p>Since it&#8217;s not recommended to alter the roles described here, it&#8217;s right
+to assume that your security strategy should be to compose user access based
+on these base roles and roles that you create. For instance you could
+create a role <code class="docutils literal"><span class="pre">Financial</span> <span class="pre">Analyst</span></code> that would be made of set of permissions
+to a set of data sources (tables) and/or databases. Users would then be
+granted <code class="docutils literal"><span class="pre">Gamma</span></code>, <code class="docutils literal"><span class="pre">Financial</span> <span class="pre">Analyst</span></code>, and perhaps <code class="docutils literal"><span class="pre">sql_lab</span></code>.</p>
 <div class="section" id="admin">
 <h3>Admin<a class="headerlink" href="#admin" title="Permalink to this headline">¶</a></h3>
 <p>Admins have all possible rights, including granting or revoking rights from
@@ -225,6 +187,12 @@ users are not able to alter or add data sources. We assume that they are
 mostly content consumers, though they can create slices and dashboards.</p>
 <p>Also note that when Gamma users look at the dashboards and slices list view,
 they will only see the objects that they have access to.</p>
+</div>
+<div class="section" id="sql-lab">
+<h3>sql_lab<a class="headerlink" href="#sql-lab" title="Permalink to this headline">¶</a></h3>
+<p>The <code class="docutils literal"><span class="pre">sql_lab</span></code> role grants access to SQL Lab. Note that while <code class="docutils literal"><span class="pre">Admin</span></code>
+users have access to all databases by default, both <code class="docutils literal"><span class="pre">Alpha</span></code> and <code class="docutils literal"><span class="pre">Gamma</span></code>
+users need to be given access on a per database basis.</p>
 </div>
 </div>
 <div class="section" id="managing-gamma-per-data-source-access">
@@ -324,7 +292,7 @@ is dependent on revenue.</p>
         <a href="sqllab.html" class="btn btn-neutral float-right" title="SQL Lab" accesskey="n">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="tutorial.html" class="btn btn-neutral" title="Tutorial" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="tutorial.html" class="btn btn-neutral" title="Tutorial for Superset Administrators" accesskey="p"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   
