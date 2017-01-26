@@ -1,6 +1,6 @@
 import sqlparse
 from sqlparse.sql import IdentifierList, Identifier
-from sqlparse.tokens import Keyword, Name
+from sqlparse.tokens import DML, Keyword, Name
 
 RESULT_OPERATIONS = {'UNION', 'INTERSECT', 'EXCEPT'}
 PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
@@ -9,7 +9,6 @@ PRECEDES_TABLE_NAME = {'FROM', 'JOIN', 'DESC', 'DESCRIBE', 'WITH'}
 # TODO: some sql_lab logic here.
 class SupersetQuery(object):
     def __init__(self, sql_statement):
-        self._tokens = []
         self.sql = sql_statement
         self._table_names = set()
         self._alias_names = set()
@@ -23,9 +22,8 @@ class SupersetQuery(object):
     def tables(self):
         return self._table_names
 
-    # TODO: use sqlparse for this check.
     def is_select(self):
-        return self.sql.upper().startswith('SELECT')
+        return self._parsed[0].get_type() == 'SELECT'
 
     def stripped(self):
         sql = self.sql
