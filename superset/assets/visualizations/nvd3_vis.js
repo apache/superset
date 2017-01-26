@@ -3,11 +3,13 @@ import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 const d3 = require('d3');
 const nv = require('nvd3');
+import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/fields';
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
 require('./nvd3_vis.css');
 
+const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
@@ -290,6 +292,11 @@ function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
+    // if x axis format is a date format, rotate label 90 degrees
+    if (isTimeSeries) {
+      chart.xAxis.rotateLabels(90);
+    }
+
     if (chart.hasOwnProperty('x2Axis')) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
@@ -362,6 +369,22 @@ function nvd3Vis(slice, payload) {
       .style('stroke-opacity', 1)
       .style('fill-opacity', 1);
     }
+
+    // Hack to adjust margins to accomodate long x axis tick labels,
+    // has to be done only after the chart has been rendered once,
+    // then we adjust the bottom margin and render again.
+    if (isTimeSeries) {
+      // get height of formatted axis label
+      const xAxisHeight = $('.nv-x.nv-axis .tick text')[0].getBoundingClientRect().height;
+      chart.margin({ bottom: xAxisHeight + 40 });
+      svg
+      .datum(payload.data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
+    }
+
     return chart;
   };
 
