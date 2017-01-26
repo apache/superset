@@ -357,7 +357,7 @@ class CoreTests(SupersetTestCase):
             WHERE first_name='admin'
         """
         client_id = "{}".format(random.getrandbits(64))[:10]
-        self.run_sql(sql, client_id)
+        self.run_sql(sql, client_id, raise_on_error=True)
 
         resp = self.get_resp('/superset/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp))

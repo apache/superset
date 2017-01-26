@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 from datetime import datetime, timedelta
 import json
 import logging
+import pandas as pd
 import pickle
 import re
 import sys
@@ -2563,11 +2564,19 @@ class Superset(BaseSupersetView):
         if rejected_tables:
             flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
             return redirect('/')
-
-        sql = query.select_sql or query.sql
-        df = query.database.get_df(sql, query.schema)
-        # TODO(bkyryliuk): add compression=gzip for big files.
-        csv = df.to_csv(index=False, encoding='utf-8')
+        blob = None
+        if results_backend and query.results_key:
+            blob = results_backend.get(query.results_key)
+        if blob:
+            json_payload = zlib.decompress(blob)
+            obj = json.loads(json_payload)
+            df = pd.DataFrame.from_records(obj['data'])
+            csv = df.to_csv(index=False, encoding='utf-8')
+        else:
+            sql = query.select_sql or query.executed_sql
+            df = query.database.get_df(sql, query.schema)
+            # TODO(bkyryliuk): add compression=gzip for big files.
+            csv = df.to_csv(index=False, encoding='utf-8')
         response = Response(csv, mimetype='text/csv')
         response.headers['Content-Disposition'] = (
             'attachment; filename={}.csv'.format(query.name))
