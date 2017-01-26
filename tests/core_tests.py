@@ -180,17 +180,9 @@ class CoreTests(SupersetTestCase):
         resp = self.get_resp(url)
         assert 'Click on a' in resp
 
-        tables = db.session.query(models.SqlaTable).all()
-        for table in tables:
-            assert table.name in resp
-            assert '/superset/explore/table/{}'.format(table.id) in resp
-
-            url = 'superset/explore/table/{}/'.format(table.id)
-            explore_view = self.get_resp(url)
-            assert '[{}] - untitled'.format(table.name) in explore_view
-            assert 'Datasource & Chart Type' in explore_view
-            assert 'Save as' in explore_view
-            assert 'Query' in explore_view
+        table = db.session.query(models.SqlaTable).first()
+        assert table.name in resp
+        assert '/superset/explore/table/{}'.format(table.id) in resp
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
