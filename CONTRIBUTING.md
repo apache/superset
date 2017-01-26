@@ -60,21 +60,6 @@ If you've written Markdown before, you'll find the reStructuredText format famil
 Superset uses [Sphinx](http://www.sphinx-doc.org/en/1.5.1/) to convert the rst files
 in `docs/` to the final HTML output users see.
 
-To make changes to the rst files and build the docs using Sphinx, you'll need to install
-a handful of developer dependencies. This will likely involve installing more than you'll
-need to *just* edit the documentation, but it shouldn't take much work.
-
-First, since Superset uses the [mysqlclient](https://pypi.python.org/pypi/mysqlclient)
-package, you'll have to install some of the MySQL development files. If you're running
-Mac OS X, you can use [Homebrew](http://brew.sh/) to install these:
-
-    brew install mysql-connector-c
-
-If you're running Linux or Unix, use your package manager to install the MySQL dev
-packages, e.g. on Ubuntu:
-
-    sudo apt-get install libmysqlclient-dev
-
 Before you start changing the docs, you'll want to
 [fork the Superset project on Github](https://help.github.com/articles/fork-a-repo/).
 Once that new repository has been created, clone it on your local machine:
@@ -88,11 +73,11 @@ to manage the Python packages you're about to install:
     virtualenv superset-dev
     source superset-dev/bin/activate
 
-Finally, install the required Python dependencies by running this command
-from the root of the Superset code that you checked out above:
+Finally, to make changes to the rst files and build the docs using Sphinx, 
+you'll need to install a handful of dependencies from the repo you cloned:
 
     cd superset
-    pip install -r dev-reqs.txt
+    pip install -r dev-reqs-for-docs.txt
 
 To get the feel for how to edit and build the docs, let's edit a file, build
 the docs and see our changes in action. First, you'll want to
