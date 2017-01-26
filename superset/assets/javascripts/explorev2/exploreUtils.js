@@ -37,7 +37,7 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
 }
 
 export function getExploreUrl(form_data, datasource_type, endpoint = 'base') {
-  let params = `${datasource_type}/${form_data.datasource}/`;
+  let params = `${datasource_type}/${form_data.datasource_id}/`;
   params += '?form_data=' + encodeURIComponent(JSON.stringify(form_data));
   switch (endpoint) {
     case 'base':

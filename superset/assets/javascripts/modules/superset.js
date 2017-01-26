@@ -4,6 +4,7 @@ const utils = require('./utils');
 // vis sources
 /* eslint camel-case: 0 */
 import vizMap from '../../visualizations/main.js';
+import { getExploreUrl } from '../explorev2/exploreUtils';
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -55,11 +56,12 @@ const px = function () {
   }
   const Slice = function (data, controller) {
     let timer;
-    const token = $('#' + data.token);
-    const containerId = data.token + '_con';
+    const token = $('#token_' + data.slice_id);
+    const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
+    data.json_endpoint = getExploreUrl(data.form_data, 'table', 'json');
     const origJsonEndpoint = data.json_endpoint;
     let dttm = 0;
     const stopwatch = function () {

@@ -309,31 +309,37 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         except Exception as e:
             logging.exception(e)
             d['error'] = str(e)
-        d['slice_id'] = self.id
-        d['slice_name'] = self.slice_name
-        d['description'] = self.description
-        d['slice_url'] = self.slice_url
-        d['edit_url'] = self.edit_url
-        d['description_markeddown'] = self.description_markeddown
-        return d
+        return {
+            'slice_id': self.id,
+            'slice_name': self.slice_name,
+            'datasource': self.datasource_name,
+            'description': self.description,
+            'slice_url': self.slice_url,
+            'edit_url': self.edit_url,
+            'description_markeddown': self.description_markeddown,
+            'form_data': self.form_data,
+        }
 
     @property
     def json_data(self):
         return json.dumps(self.data)
 
     @property
-    def slice_url(self):
-        """Defines the url to access the slice"""
+    def form_data(self):
         form_data = json.loads(self.params)
         form_data = cast_form_data(form_data)
         form_data['slice_id'] = self.id
         form_data['slice_name'] = self.slice_name
         form_data['viz_type'] = self.viz_type
-        print(form_data)
+        return form_data
+
+    @property
+    def slice_url(self):
+        """Defines the url to access the slice"""
         return (
             "/superset/explore/{obj.datasource_type}/"
             "{obj.datasource_id}/?form_data={params}".format(
-                obj=self, params=urllib.quote(json.dumps(form_data))))
+                obj=self, params=urllib.quote(json.dumps(self.form_data))))
 
     @property
     def slice_id_url(self):

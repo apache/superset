@@ -8,6 +8,7 @@ import ExploreActionButtons from '../../explore/components/ExploreActionButtons'
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
+import { getExploreUrl } from '../exploreUtils';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -111,9 +112,10 @@ class ChartContainer extends React.PureComponent {
       },
 
       data: {
-        csv_endpoint: props.queryResponse.csv_endpoint,
-        json_endpoint: props.queryResponse.json_endpoint,
-        standalone_endpoint: props.queryResponse.standalone_endpoint,
+        csv_endpoint: getExploreUrl(this.props.form_data, this.props.datasource_type, 'csv'),
+        json_endpoint: getExploreUrl(this.props.form_data, this.props.datasource_type, 'json'),
+        standalone_endpoint: getExploreUrl(
+          this.props.form_data, this.props.datasource_type, 'standalone'),
       },
 
     };
@@ -237,6 +239,7 @@ function mapStateToProps(state) {
     slice_id: state.viz.form_data.slice_id,
     slice_name: state.viz.form_data.slice_name,
     viz_type: state.viz.form_data.viz_type,
+    form_data: state.viz.form_data,
     can_download: state.can_download,
     chartUpdateStartTime: state.chartUpdateStartTime,
     chartUpdateEndTime: state.chartUpdateEndTime,
@@ -247,6 +250,7 @@ function mapStateToProps(state) {
     alert: state.chartAlert,
     table_name: state.viz.form_data.datasource_name,
     queryResponse: state.queryResponse,
+    datasource_type: state.datasource_type,
   };
 }
 

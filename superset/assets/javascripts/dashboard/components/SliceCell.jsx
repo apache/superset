@@ -67,13 +67,13 @@ function SliceCell({ expandedSlices, removeSlice, slice }) {
       </div>
       <div className="row chart-container">
         <input type="hidden" value="false" />
-        <div id={slice.token} className="token col-md-12">
+        <div id={'token_' + slice.slice_id} className="token col-md-12">
           <img
             src="/static/assets/images/loading.gif"
             className="loading"
             alt="loading"
           />
-          <div className="slice_container" id={slice.token + '_con'}></div>
+          <div className="slice_container" id={'con_' + slice.slice_id}></div>
         </div>
       </div>
     </div>
