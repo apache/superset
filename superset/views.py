@@ -1396,7 +1396,7 @@ class Superset(BaseSupersetView):
         if not form_data:
             form_data = request.form.get("form_data")
         if not form_data:
-            form_data = {}
+            form_data = '{}'
         return json.loads(form_data)
 
     def get_viz(
@@ -1414,7 +1414,7 @@ class Superset(BaseSupersetView):
             return slc.get_viz()
         else:
             form_data=self.get_form_data()
-            viz_type = form_data.get('viz_type')
+            viz_type = form_data.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
             viz_obj = viz.viz_types[viz_type](
@@ -1495,7 +1495,6 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
-
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
         slc = None
@@ -1516,6 +1515,7 @@ class Superset(BaseSupersetView):
                 args=request.args)
         except Exception as e:
             flash('{}'.format(e), "danger")
+            logging.exception(e)
             return redirect(error_redirect)
 
         if not viz_obj.datasource:

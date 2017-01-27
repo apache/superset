@@ -276,7 +276,9 @@ export const fields = {
     type: 'SelectField',
     multi: true,
     label: 'Columns',
-    choices: [],
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.gb_cols : [],
+    }),
     default: [],
     description: 'One or many fields to pivot as columns',
   },
@@ -782,6 +784,7 @@ export const fields = {
   pandas_aggfunc: {
     type: 'SelectField',
     label: 'Aggregation function',
+    clearable: false,
     choices: formatSelectOptions([
       'sum',
       'mean',

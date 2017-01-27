@@ -23,7 +23,6 @@ const defaultProps = {
   label: null,
   multi: false,
   onChange: () => {},
-  value: '',
 };
 
 export default class SelectField extends React.Component {
