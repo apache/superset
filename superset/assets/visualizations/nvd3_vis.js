@@ -1,4 +1,5 @@
 // JS
+import $ from 'jquery';
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 const d3 = require('d3');
@@ -377,7 +378,7 @@ function nvd3Vis(slice, payload) {
     // then we adjust the bottom margin and render again.
     if (isTimeSeries) {
       // get height of formatted axis labels
-      const labelEls = document.getElementsByClassName('.nv-x.nv-axis .tick text');
+      const labelEls = $('.nv-x.nv-axis .tick text');
       const labelHeights = labelEls.map(i => labelEls[i].getBoundingClientRect().height);
       const xAxisHeight = Math.max.apply(Math, labelHeights);
 
