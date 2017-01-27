@@ -376,17 +376,15 @@ function nvd3Vis(slice, payload) {
     // then we measure the height of the labels (they are rotated 90 degrees),
     // then we adjust the bottom margin and render again.
     if (isTimeSeries) {
-      //get height of formatted axis labels
-      const labelEls = $('.nv-x.nv-axis .tick text');
-      const labelHeights = labelEls.map((i) => {
-        return labelEls[i].getBoundingClientRect().height;
-      });
+      // get height of formatted axis labels
+      const labelEls = document.getElementsByClassName('.nv-x.nv-axis .tick text');
+      const labelHeights = labelEls.map(i => labelEls[i].getBoundingClientRect().height);
       const xAxisHeight = Math.max.apply(Math, labelHeights);
 
       // set new bottom margin to accomodate labels
       chart.margin({ bottom: xAxisHeight + 40 });
 
-      //render chart
+      // render chart
       svg
       .datum(payload.data)
       .transition().duration(500)
