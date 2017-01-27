@@ -577,4 +577,3 @@ def has_access(f):
             next=request.path))
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
->>>>>>> upstream/master
