@@ -197,7 +197,7 @@ class ResultSet extends React.PureComponent {
             </div>
           </div>
         );
-      } else if (query.resultsKey) {
+      } else if (query.resultsKey && !(data && data.length === 0)) {
         return (
           <div>
             <Alert bsStyle="warning">This query was run asynchronously &nbsp;
