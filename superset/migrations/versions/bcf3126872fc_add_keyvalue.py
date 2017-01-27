@@ -1,14 +1,14 @@
 """Add keyvalue table
 
 Revision ID: bcf3126872fc
-Revises: 1296d28ec131
+Revises: f18570e03440
 Create Date: 2017-01-10 11:47:56.306938
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'bcf3126872fc'
-down_revision = '1296d28ec131'
+down_revision = 'f18570e03440'
 
 from alembic import op
 import sqlalchemy as sa
