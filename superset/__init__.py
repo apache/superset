@@ -27,10 +27,7 @@ with open(APP_DIR + '/assets/dist/backendSync.json', 'r') as f:
 def cast_form_data(form_data):
     d = {}
     fields = frontend_config.get('fields', {})
-    print('0982--' * 10)
-    print(fields)
     for k, v in form_data.items():
-        print([k, v])
         field_config = fields.get(k, {})
         ft = field_config.get('type')
         if ft == 'CheckboxField':
