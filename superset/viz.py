@@ -596,9 +596,10 @@ class PivotTableViz(BaseViz):
                 # since data are always recognized as float type, use .0f
                 # to omit the decimal part for integer values
                 list.append(
-                    lambda x: '' if np.isnan(x)
-                            else '{:,.0f}'.format(x) if x - np.around(x) == 0
-                            else '{:,}'.format(x))
+                    lambda x:
+                        '' if np.isnan(x)
+                        else '{:,.0f}'.format(x) if x - np.around(x) == 0
+                        else '{:,}'.format(x))
             # for other data types, no formatting
             else:
                 list.append(None)
