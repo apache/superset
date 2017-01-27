@@ -524,8 +524,7 @@ def get_email_address_list(address_string):
 
 
 def zlib_compress(data):
-    """
-    compress things in a py2/3 safe fashion
+    """compress things in a py2/3 safe fashion
 
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
@@ -541,8 +540,7 @@ def zlib_compress(data):
 
 
 def zlib_uncompress_to_string(blob):
-    """
-    uncompress things to a string in a py2/3 safe fashion
+    """uncompress things to a string in a py2/3 safe fashion
 
     >>> json_str = '{"test": 1}'
     >>> blob = zlib_compress(json_str)
