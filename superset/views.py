@@ -1677,7 +1677,8 @@ class Superset(BaseSupersetView):
         datasource_id = args.get('datasource_id')
 
         if action in ('saveas'):
-            d.pop('slice_id')  # don't save old slice_id
+            if 'slice_id' in d:
+                d.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
         slc.params = json.dumps(d, indent=4, sort_keys=True)
