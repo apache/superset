@@ -18,7 +18,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup)
+    g, request, redirect, flash, Response, render_template, Markup, url_for)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -1127,6 +1127,37 @@ def ping():
     return "OK"
 
 
+class KV(BaseSupersetView):
+
+    """Used for storing and retrieving key value pairs"""
+
+    @log_this
+    @expose("/store/", methods=['POST'])
+    def store(self):
+        try:
+            value = request.form.get('data')
+            obj = models.KeyValue(value=value)
+            db.session.add(obj)
+            db.session.commit()
+        except Exception as e:
+            return json_error_response(e)
+        return Response(
+            json.dumps({'id': obj.id}),
+            status=200)
+
+    @log_this
+    @expose("/<key_id>/", methods=['GET'])
+    def get_value(self, key_id):
+        kv = None
+        try:
+            kv = db.session.query(models.KeyValue).filter_by(id=key_id).one()
+        except Exception as e:
+            return json_error_response(e)
+        return Response(kv.value, status=200)
+
+appbuilder.add_view_no_menu(KV)
+
+
 class R(BaseSupersetView):
 
     """used for short urls"""
@@ -1788,7 +1819,7 @@ class Superset(BaseSupersetView):
         )
         tables = [t for t in database.all_table_names(schema) if
                   self.datasource_access_by_name(database, t, schema=schema)]
-        views = [v for v in database.all_table_names(schema) if
+        views = [v for v in database.all_view_names(schema) if
                  self.datasource_access_by_name(database, v, schema=schema)]
         payload = {'tables': tables, 'views': views}
         return Response(
