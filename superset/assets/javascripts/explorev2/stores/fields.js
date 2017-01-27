@@ -939,7 +939,6 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
-    isInt: true,
     default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +

@@ -932,7 +932,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL',)
     date_types = ('DATE', 'TIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
@@ -1386,8 +1386,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         if is_timeseries and timeseries_limit and groupby:
             # some sql dialects require for order by expressions
-            # to also be in the select clause
-            inner_select_exprs += [main_metric_expr]
+            # to also be in the select clause -- others, e.g. vertica,
+            # require a unique inner alias
+            inner_main_metric_expr = main_metric_expr.label('mme_inner__')
+            inner_select_exprs += [inner_main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
             inner_time_filter = dttm_col.get_time_filter(
@@ -1396,7 +1398,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             )
             subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
             subq = subq.group_by(*inner_groupby_exprs)
-            ob = main_metric_expr
+            ob = inner_main_metric_expr
             if timeseries_limit_metric_expr is not None:
                 ob = timeseries_limit_metric_expr
             subq = subq.order_by(desc(ob))
@@ -2202,7 +2204,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         granularity = {'type': 'period'}
         if timezone:
-            granularity['timezone'] = timezone
+            granularity['timeZone'] = timezone
 
         if origin:
             dttm = utils.parse_human_datetime(origin)
@@ -2658,7 +2660,7 @@ class Query(Model):
     rows = Column(Integer)
     error_message = Column(Text)
     # key used to store the results in the results backend
-    results_key = Column(String(64))
+    results_key = Column(String(64), index=True)
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds
