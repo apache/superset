@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import copy
 import hashlib
 import logging
+import traceback
 import uuid
 import zlib
 
@@ -262,6 +263,7 @@ class BaseViz(object):
         if not payload:
             is_cached = False
             cache_timeout = self.cache_timeout
+            stacktrace = None
             try:
                 data = self.get_data()
             except Exception as e:
@@ -270,6 +272,7 @@ class BaseViz(object):
                     self.error_message = str(e)
                 self.status = utils.QueryStatus.FAILED
                 data = None
+                stacktrace = traceback.format_exc()
             payload = {
                 'cache_key': cache_key,
                 'cache_timeout': cache_timeout,
@@ -280,6 +283,7 @@ class BaseViz(object):
                 'form_data': self.form_data,
                 'query': self.query,
                 'status': self.status,
+                'stacktrace': stacktrace,
             }
             payload['cached_dttm'] = datetime.now().isoformat().split('.')[0]
             logging.info("Caching for the next {} seconds".format(

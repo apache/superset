@@ -80,9 +80,6 @@ def load_energy():
         params=textwrap.dedent("""\
         {
             "collapsed_fieldsets": "",
-            "datasource_id": "3",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
             "flt_col_0": "source",
             "flt_eq_0": "",
             "flt_op_0": "in",
@@ -111,9 +108,6 @@ def load_energy():
         {
             "charge": "-500",
             "collapsed_fieldsets": "",
-            "datasource_id": "1",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
             "flt_col_0": "source",
             "flt_eq_0": "",
             "flt_op_0": "in",
@@ -145,9 +139,6 @@ def load_energy():
             "all_columns_y": "target",
             "canvas_image_rendering": "pixelated",
             "collapsed_fieldsets": "",
-            "datasource_id": "1",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
             "flt_col_0": "source",
             "flt_eq_0": "",
             "flt_op_0": "in",
@@ -202,9 +193,6 @@ def load_world_bank_health_n_pop():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
-        "datasource_name": "birth_names",
-        "datasource_type": "table",
         "limit": "25",
         "granularity": "year",
         "groupby": [],
@@ -596,9 +584,6 @@ def load_birth_names():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
-        "datasource_name": "birth_names",
-        "datasource_type": "table",
         "flt_op_1": "in",
         "limit": "25",
         "granularity": "ds",
@@ -851,9 +836,6 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "3",
-        "datasource_name": "unicode_test",
-        "datasource_type": "table",
         "flt_op_1": "in",
         "granularity": "date",
         "groupby": [],
@@ -934,13 +916,11 @@ def load_random_time_series_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "6",
-        "datasource_name": "random_time_series",
-        "datasource_type": "table",
         "granularity": "day",
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
+        "metric": "epoch_ms",
         "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
@@ -1002,9 +982,6 @@ def load_long_lat_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "7",
-        "datasource_name": "long_lat",
-        "datasource_type": "table",
         "granularity": "day",
         "since": "2014-01-01",
         "until": "now",
@@ -1085,9 +1062,6 @@ def load_multiformat_time_series_data():
     for i, col in enumerate(tbl.columns):
         slice_data = {
             "granularity_sqla": col.column_name,
-            "datasource_id": "8",
-            "datasource_name": "multiformat_time_series",
-            "datasource_type": "table",
             "granularity": "day",
             "row_limit": config.get("ROW_LIMIT"),
             "since": "1 year ago",

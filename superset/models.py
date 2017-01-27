@@ -331,6 +331,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data['slice_id'] = self.id
         form_data['slice_name'] = self.slice_name
         form_data['viz_type'] = self.viz_type
+        form_data['datasource_id'] = self.datasource_id
         return form_data
 
     @property
@@ -1445,7 +1446,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
-        print(sql)
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
         status = QueryStatus.SUCCESS

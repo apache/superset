@@ -182,8 +182,10 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg, status=None):
+def json_error_response(msg, status=None, stacktrace=None):
     data = {'error': msg}
+    if stacktrace:
+        data['stacktrace'] = stacktrace
     status = status if status else 500
     return Response(
         json.dumps(data), status=status, mimetype="application/json")
@@ -1451,8 +1453,6 @@ class Superset(BaseSupersetView):
             form_data = request.form.get("form_data")
         if not form_data:
             form_data = {}
-        print("-=*=-" * 10)
-        print(form_data)
         return json.loads(form_data)
 
     def get_viz(
@@ -1496,7 +1496,9 @@ class Superset(BaseSupersetView):
                 args=request.args)
         except Exception as e:
             logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
 
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)

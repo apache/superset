@@ -43,6 +43,7 @@ class ChartContainer extends React.PureComponent {
   }
 
   renderViz() {
+    console.log('rendering viz');
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
     try {
@@ -54,8 +55,11 @@ class ChartContainer extends React.PureComponent {
 
   componentDidUpdate(prevProps) {
     if (
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height
+        (
+          prevProps.queryResponse !== this.props.queryResponse ||
+          prevProps.height !== this.props.height
+        ) &&
+        !this.props.queryResponse.error
       ) {
       this.renderViz();
     }
