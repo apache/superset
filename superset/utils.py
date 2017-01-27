@@ -524,6 +524,13 @@ def get_email_address_list(address_string):
 
 
 def zlib_compress(data):
+    """
+    compress things in a py2/3 safe fashion
+
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    """
+
     if PY3K:
         if isinstance(data, str):
             return zlib.compress(bytes(data, "utf-8"))
@@ -534,6 +541,16 @@ def zlib_compress(data):
 
 
 def zlib_uncompress_to_string(blob):
+    """
+    uncompress things to a string in a py2/3 safe fashion
+
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    >>> got_str = zlib_uncompress_to_string(blob)
+    >>> got_str == json_str
+    True
+    """
+
     if PY3K:
         decompressed = ""
         if isinstance(blob, bytes):
@@ -546,6 +563,7 @@ def zlib_uncompress_to_string(blob):
         return decompressed.decode("utf-8")
     else:
         return zlib.decompress(blob)
+
 
 # Forked from the flask_appbuilder.security.decorators
 # TODO(bkyryliuk): contribute it back to FAB
