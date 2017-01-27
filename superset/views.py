@@ -2439,17 +2439,7 @@ class Superset(BaseSupersetView):
 
         blob = results_backend.get(key)
         if blob:
-<<<<<<< HEAD
-            json_payload = utils.zlib_uncompress_to_string(blob)
-            obj = json.loads(json_payload)
-            db_id = obj['query']['dbId']
-            session = db.session()
-            mydb = session.query(models.Database).filter_by(id=db_id).one()
 
-            if not self.database_access(mydb):
-                return json_error_response(
-                    get_database_access_error_msg(mydb.database_name))
-=======
             query = (
                 db.session.query(models.Query)
                 .filter_by(results_key=key)
@@ -2460,10 +2450,9 @@ class Superset(BaseSupersetView):
             if rejected_tables:
                 return json_error_response(get_datasource_access_error_msg(
                     '{}'.format(rejected_tables)))
->>>>>>> upstream/master
 
             return Response(
-                zlib.decompress(blob),
+                utils.zlib_uncompress_to_string(blob),
                 status=200,
                 mimetype="application/json")
         else:
