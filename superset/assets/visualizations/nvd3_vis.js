@@ -292,6 +292,7 @@ function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
+    const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
       chart.xAxis.rotateLabels(90);
