@@ -20,6 +20,7 @@ const exploreViewContainer = document.getElementById('js-explore-view-container'
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 
 import { exploreReducer } from './reducers/exploreReducer';
+//const bootstrapData.viz.form_data = applyDefaultFormData(bootstrapData.viz.form_data);
 
 const bootstrappedState = Object.assign(
   initialState(bootstrapData.viz.form_data.viz_type, bootstrapData.datasource_type), {
@@ -35,8 +36,6 @@ const bootstrappedState = Object.assign(
     queryResponse: null,
   }
 );
-bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
-bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
 
 function parseFilters(form_data, prefix = 'flt') {
   const filters = [];
