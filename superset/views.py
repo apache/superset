@@ -2570,7 +2570,7 @@ class Superset(BaseSupersetView):
         if results_backend and query.results_key:
             blob = results_backend.get(query.results_key)
         if blob:
-            json_payload = zlib.decompress(blob)
+            json_payload = utils.zlib_uncompress_to_string(blob)
             obj = json.loads(json_payload)
             df = pd.DataFrame.from_records(obj['data'])
             csv = df.to_csv(index=False, encoding='utf-8')
