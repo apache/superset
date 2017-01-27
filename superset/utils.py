@@ -291,6 +291,10 @@ def json_int_dttm_ser(obj):
     return obj
 
 
+def json_dumps_w_dates(payload):
+    return json.dumps(payload, default=json_int_dttm_ser)
+
+
 def error_msg_from_exception(e):
     """Translate exception into error message
 

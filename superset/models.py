@@ -9,8 +9,10 @@ from collections import OrderedDict
 import functools
 import json
 import logging
+import numpy
 import pickle
 import re
+import six
 import textwrap
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
@@ -789,6 +791,18 @@ class Database(Model, AuditMixinNullable):
         cur = eng.execute(sql, schema=schema)
         cols = [col[0] for col in cur.cursor.description]
         df = pd.DataFrame(cur.fetchall(), columns=cols)
+
+        def needs_conversion(df_series):
+            if df_series.empty:
+                return False
+            for df_type in [list, dict]:
+                if isinstance(df_series[0], df_type):
+                    return True
+            return False
+
+        for k, v in df.dtypes.iteritems():
+            if v.type == numpy.object_ and needs_conversion(df[k]):
+                df[k] = df[k].apply(utils.json_dumps_w_dates)
         return df
 
     def compile_sqla_query(self, qry, schema=None):
