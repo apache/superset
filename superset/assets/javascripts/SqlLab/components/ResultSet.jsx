@@ -198,6 +198,10 @@ class ResultSet extends React.PureComponent {
           </div>
         );
       } else if (query.resultsKey) {
+        if (results && data && data.length === 0) {
+          // if fetched result contains zero rows of data
+          return <Alert bsStyle="warning">The asynchronous query returned no data</Alert>;
+        }
         return (
           <div>
             <Alert bsStyle="warning">This query was run asynchronously &nbsp;
