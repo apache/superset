@@ -1,6 +1,8 @@
 // JS
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+import { customizeToolTip } from '../javascripts/modules/utils';
+
 const d3 = require('d3');
 const nv = require('nvd3');
 
@@ -345,8 +347,11 @@ function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     if (vizType === 'dual_line') {
-      chart.yAxis1.tickFormat(d3.format(fd.y_axis_format));
-      chart.yAxis2.tickFormat(d3.format(fd.y_axis_2_format));
+      const yAxisFormatter1 = d3.format(fd.y_axis_format);
+      const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
+      chart.yAxis1.tickFormat(yAxisFormatter1);
+      chart.yAxis2.tickFormat(yAxisFormatter2);
+      customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
       chart.showLegend(true);
       chart.margin({ right: 50 });
     }
