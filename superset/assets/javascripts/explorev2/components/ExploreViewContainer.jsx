@@ -31,6 +31,13 @@ class ExploreViewContainer extends React.Component {
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
     this.runQuery();
+
+    const datasource_id = this.props.form_data.datasource_id;
+    const datasource_type = this.props.datasource_type;
+    if (datasource_id) {
+      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
+    }
+    this.props.actions.fetchDatasources();
   }
 
   componentWillReceiveProps(nextProps) {
@@ -156,7 +163,7 @@ function mapStateToProps(state) {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
     fields: state.fields,
-    form_data: state.viz.form_data,
+    form_data: state.form_data,
   };
 }
 

@@ -3,11 +3,12 @@ import path from 'path';
 import { fields } from './explorev2/stores/fields';
 
 function exportFile(fileLocation, content) {
-  fs.writeFile(fileLocation, content, function(err) {
+  fs.writeFile(fileLocation, content, function (err) {
     if (err) {
-        console.log(`File ${fileLocation} was not saved... :(`);
+      console.log(`File ${fileLocation} was not saved... :(`);
+    } else {
+      console.log(`File ${fileLocation} was saved!`);
     }
-    console.log(`File ${fileLocation} was saved!`);
   });
 }
 

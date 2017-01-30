@@ -9,21 +9,43 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { isStarred: action.isStarred });
     },
 
-    [actions.FETCH_STARTED]() {
+    [actions.FETCH_DATASOURCE_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
 
-    [actions.FETCH_SUCCEEDED]() {
+    [actions.FETCH_DATASOURCE_SUCCEEDED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: false });
     },
 
-    [actions.FETCH_FAILED]() {
+    [actions.FETCH_DATASOURCE_FAILED]() {
       // todo(alanna) handle failure/error state
       return Object.assign({}, state,
         {
           isDatasourceMetaLoading: false,
           controlPanelAlert: action.error,
         });
+    },
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasource: action.datasource });
+    },
+    [actions.FETCH_DATASOURCES_STARTED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: true });
+    },
+
+    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: false });
+    },
+
+    [actions.FETCH_DATASOURCES_FAILED]() {
+      // todo(alanna) handle failure/error state
+      return Object.assign({}, state,
+        {
+          isDatasourcesLoading: false,
+          controlPanelAlert: action.error,
+        });
+    },
+    [actions.SET_DATASOURCES]() {
+      return Object.assign({}, state, { datasources: action.datasources });
     },
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
@@ -36,17 +58,14 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasource: action.datasource });
-    },
     [actions.SET_FIELD_VALUE]() {
-      let newFormData = Object.assign({}, state.viz.form_data);
+      let newFormData = Object.assign({}, state.form_data);
       if (action.fieldName === 'datasource') {
-        newFormData = defaultFormData(state.viz.form_data.viz_type, action.datasource_type);
+        newFormData = defaultFormData(state.form_data.viz_type, action.datasource_type);
         newFormData.datasource_name = action.label;
-        newFormData.slice_id = state.viz.form_data.slice_id;
-        newFormData.slice_name = state.viz.form_data.slice_name;
-        newFormData.viz_type = state.viz.form_data.viz_type;
+        newFormData.slice_id = state.form_data.slice_id;
+        newFormData.slice_name = state.form_data.slice_name;
+        newFormData.viz_type = state.form_data.viz_type;
       }
       newFormData[action.fieldName] = action.value;
 

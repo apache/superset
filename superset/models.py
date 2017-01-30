@@ -705,6 +705,11 @@ class Queryable(object):
             'all_cols': all_cols,
             'filterable_cols': filter_cols,
             'filter_select': self.filter_select_enabled,
+            'column_formats': {
+                m.metric_name: m.d3format
+                for m in self.metrics
+                if m.d3format
+            },
         }
         if self.type == 'table':
             grains = self.database.grains() or []

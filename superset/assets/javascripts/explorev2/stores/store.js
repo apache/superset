@@ -3,35 +3,27 @@ import { sectionsToRender } from './visTypes';
 import fields from './fields';
 
 export function applyDefaultFormData(
-    form_data, vizType = 'table', datasourceType = 'table') {
+    form_data, datasourceType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,
     datasource_name: null,
     filters: [],
   };
-  const sections = sectionsToRender(vizType, datasourceType);
+  const sections = sectionsToRender(form_data.viz_type, datasourceType);
   sections.forEach((section) => {
     section.fieldSetRows.forEach((fieldSetRow) => {
       fieldSetRow.forEach((k) => {
-        data[k] = fields[k].default;
+        const def = fields[k].default;
+        if (typeof def === "function") {
+          data[k] = def(fields[k]);
+        } else {
+          data[k] = def;
+        }
       });
     });
   });
   return Object.assign(data, form_data);
-}
-
-// Control Panel fields that re-render chart without need for 'Query button'
-export function initialState(vizType = 'table', datasourceType = 'table') {
-  return {
-    dashboards: [],
-    isDatasourceMetaLoading: false,
-    datasources: null,
-    datasource_type: null,
-    filterColumnOpts: [],
-    fields,
-    isStarred: false,
-  };
 }
 
 export const autoQueryFields = [

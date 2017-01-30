@@ -752,7 +752,6 @@ const visTypes = {
 export default visTypes;
 
 export function sectionsToRender(vizType, datasourceType) {
-
   const viz = visTypes[vizType];
   const timeSection = datasourceType === 'table' ?
     commonControlPanelSections.sqlaTimeSeries : commonControlPanelSections.druidTimeSeries;
