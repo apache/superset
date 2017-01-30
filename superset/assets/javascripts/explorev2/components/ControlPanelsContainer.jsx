@@ -27,13 +27,6 @@ class ControlPanelsContainer extends React.Component {
     this.getFieldData = this.getFieldData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
   }
-  componentWillMount() {
-    const datasource_id = this.props.form_data.datasource;
-    const datasource_type = this.props.datasource_type;
-    if (datasource_id) {
-      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
-    }
-  }
   componentWillReceiveProps(nextProps) {
     if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
       if (nextProps.form_data.datasource) {

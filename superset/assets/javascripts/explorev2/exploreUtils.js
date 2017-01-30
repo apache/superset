@@ -16,6 +16,32 @@ function formatFilters(filters) {
   return params;
 }
 
+export function parseFilters(form_data, prefix = 'flt') {
+  const filters = [];
+  for (let i = 0; i <= 10; i++) {
+    if (form_data[`${prefix}_col_${i}`] && form_data[`${prefix}_op_${i}`]) {
+      filters.push({
+        prefix,
+        col: form_data[`${prefix}_col_${i}`],
+        op: form_data[`${prefix}_op_${i}`],
+        value: form_data[`${prefix}_eq_${i}`],
+      });
+    }
+    /* eslint no-param-reassign: 0 */
+    delete form_data[`${prefix}_col_${i}`];
+    delete form_data[`${prefix}_op_${i}`];
+    delete form_data[`${prefix}_eq_${i}`];
+  }
+  return filters;
+}
+
+export function getFilters(form_data, datasource_type) {
+  if (datasource_type === 'table') {
+    return parseFilters(form_data);
+  }
+  return parseFilters(form_data).concat(parseFilters(form_data, 'having'));
+}
+
 export function getParamObject(form_data, datasource_type, saveNewSlice) {
   const data = {
     // V2 tag temporarily for updating url

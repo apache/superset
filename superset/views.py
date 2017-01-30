@@ -162,7 +162,8 @@ def json_error_response(msg, status=None, stacktrace=None):
         data['stacktrace'] = stacktrace
     status = status if status else 500
     return Response(
-        json.dumps(data), status=status, mimetype="application/json")
+        json.dumps(data),
+        status=status, mimetype="application/json")
 
 
 def api(f):
@@ -1207,12 +1208,25 @@ class Superset(BaseSupersetView):
         role = sm.find_role(role_name)
         role.user = existing_users
         sm.get_session.commit()
-        return Response(json.dumps({
+        return self.json_response({
             'role': role_name,
             '# missing users': len(missing_users),
             '# granted': len(existing_users),
             'created_users': created_users,
-        }), status=201)
+        }, status=201)
+
+    def json_response(self, obj, status=200):
+        return Response(
+            json.dumps(obj, default=utils.json_int_dttm_ser),
+            status=status,
+            mimetype="application/json")
+
+    @has_access_api
+    @expose("/datasources/")
+    def datasources(self):
+        datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        return self.json_response(datasources)
 
     @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
@@ -1262,10 +1276,10 @@ class Superset(BaseSupersetView):
                 role.permissions.append(view_menu_perm)
                 granted_perms.append(view_menu_perm.view_menu.name)
         db.session.commit()
-        return Response(json.dumps({
+        return self.json_response({
             'granted': granted_perms,
             'requested': list(db_ds_names)
-        }), status=201)
+        }, status=201)
 
     @log_this
     @has_access
@@ -1446,8 +1460,7 @@ class Superset(BaseSupersetView):
 
         if not self.datasource_access(viz_obj.datasource):
             return Response(
-                json.dumps(
-                    {'error': DATASOURCE_ACCESS_ERR}),
+                json.dumps({'error': DATASOURCE_ACCESS_ERR}),
                 status=404,
                 mimetype="application/json")
 
@@ -1464,8 +1477,7 @@ class Superset(BaseSupersetView):
             status = 500
 
         return Response(
-            viz_obj.json_dumps(payload),
-            status=status,
+            viz_obj.json_dumps(payload), status=status,
             mimetype="application/json")
 
     @expose("/import_dashboards", methods=['GET', 'POST'])
@@ -1495,6 +1507,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
+        datasource_id = int(datasource_id)
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
         slc = None
@@ -1504,27 +1517,19 @@ class Superset(BaseSupersetView):
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
         error_redirect = '/slicemodelview/list/'
-        datasource_class = SourceRegistry.sources[datasource_type]
-        datasources = db.session.query(datasource_class).all()
-        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+        datasource = (
+            db.session.query(SourceRegistry.sources[datasource_type])
+            .filter_by(id=datasource_id)
+            .one()
+        )
 
-        try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                args=request.args)
-        except Exception as e:
-            flash('{}'.format(e), "danger")
-            logging.exception(e)
-            return redirect(error_redirect)
-
-        if not viz_obj.datasource:
+        if not datasource:
             flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
 
-        if not self.datasource_access(viz_obj.datasource):
+        if not self.datasource_access(datasource):
             flash(
-                __(get_datasource_access_error_msg(viz_obj.datasource.name)),
+                __(get_datasource_access_error_msg(datasource.name)),
                 "danger")
             return redirect(
                 'superset/request_access/?'
@@ -1532,8 +1537,8 @@ class Superset(BaseSupersetView):
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
 
-        if not viz_type and viz_obj.datasource.default_endpoint:
-            return redirect(viz_obj.datasource.default_endpoint)
+        if not viz_type and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
@@ -1546,10 +1551,6 @@ class Superset(BaseSupersetView):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
-        # find out if user is in explore v2 beta group
-        # and set flag `is_in_explore_v2_beta`
-        is_in_explore_v2_beta = sm.find_role('explore-v2-beta') in get_user_roles()
-
         # handle different endpoints
         if request.args.get("csv") == "true":
             payload = viz_obj.get_csv()
@@ -1560,23 +1561,22 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
             return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
-        # bootstrap data for explore V2
+
+        form_data = self.get_form_data()
+        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
             "can_edit": slice_edit_perm,
             # TODO: separate endpoint for fetching datasources
-            "datasources": [(d.id, d.full_name) for d in datasources],
+            "form_data": form_data,
             "datasource_id": datasource_id,
-            "datasource_name": viz_obj.datasource.name,
             "datasource_type": datasource_type,
             "user_id": user_id,
-            "viz": json.loads(viz_obj.json_data),
-            "filter_select": viz_obj.datasource.filter_select_enabled
         }
-        table_name = viz_obj.datasource.table_name \
+        table_name = datasource.table_name \
             if datasource_type == 'table' \
-            else viz_obj.datasource.datasource_name
+            else datasource.datasource_name
         return self.render_template(
             "superset/explorev2.html",
             bootstrap_data=json.dumps(bootstrap_data),
@@ -1779,9 +1779,7 @@ class Superset(BaseSupersetView):
             all_tables.extend(database.all_table_names())
             all_views.extend(database.all_view_names())
 
-        return Response(
-            json.dumps({"tables": all_tables, "views": all_views}),
-            mimetype="application/json")
+        return self.json_response({"tables": all_tables, "views": all_views})
 
     @api
     @has_access_api
@@ -1800,8 +1798,7 @@ class Superset(BaseSupersetView):
         views = [v for v in database.all_table_names(schema) if
                  self.datasource_access_by_name(database, v, schema=schema)]
         payload = {'tables': tables, 'views': views}
-        return Response(
-            json.dumps(payload), mimetype="application/json")
+        return self.json_response(payload)
 
     @api
     @has_access_api

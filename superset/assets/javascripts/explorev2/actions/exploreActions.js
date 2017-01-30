@@ -13,24 +13,44 @@ export function setDatasource(datasource) {
   return { type: SET_DATASOURCE, datasource };
 }
 
-export const FETCH_STARTED = 'FETCH_STARTED';
-export function fetchStarted() {
-  return { type: FETCH_STARTED };
+export const SET_DATASOURCES = 'SET_DATASOURCES';
+export function setDatasources(datasources) {
+  return { type: SET_DATASOURCES, datasources };
 }
 
-export const FETCH_SUCCEEDED = 'FETCH_SUCCEEDED';
-export function fetchSucceeded() {
-  return { type: FETCH_SUCCEEDED };
+export const FETCH_DATASOURCE_STARTED = 'FETCH_DATASOURCE_STARTED';
+export function fetchDatasourceStarted() {
+  return { type: FETCH_DATASOURCE_STARTED };
 }
 
-export const FETCH_FAILED = 'FETCH_FAILED';
-export function fetchFailed(error) {
-  return { type: FETCH_FAILED, error };
+export const FETCH_DATASOURCE_SUCCEEDED = 'FETCH_DATASOURCE_SUCCEEDED';
+export function fetchDatasourceSucceeded() {
+  return { type: FETCH_DATASOURCE_SUCCEEDED };
+}
+
+export const FETCH_DATASOURCE_FAILED = 'FETCH_DATASOURCE_FAILED';
+export function fetchDatasourceFailed(error) {
+  return { type: FETCH_DATASOURCE_FAILED, error };
+}
+
+export const FETCH_DATASOURCES_STARTED = 'FETCH_DATASOURCES_STARTED';
+export function fetchDatasourcesStarted() {
+  return { type: FETCH_DATASOURCES_STARTED };
+}
+
+export const FETCH_DATASOURCES_SUCCEEDED = 'FETCH_DATASOURCES_SUCCEEDED';
+export function fetchDatasourcesSucceeded() {
+  return { type: FETCH_DATASOURCES_SUCCEEDED };
+}
+
+export const FETCH_DATASOURCES_FAILED = 'FETCH_DATASOURCES_FAILED';
+export function fetchDatasourcesFailed(error) {
+  return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
 export function fetchDatasourceMetadata(datasourceId, datasourceType) {
   return function (dispatch) {
-    dispatch(fetchStarted());
+    dispatch(fetchDatasourceStarted());
 
     if (datasourceId) {
       const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
@@ -40,15 +60,33 @@ export function fetchDatasourceMetadata(datasourceId, datasourceType) {
         url,
         success: (data) => {
           dispatch(setDatasource(data));
-          dispatch(fetchSucceeded());
+          dispatch(fetchDatasourceSucceeded());
         },
         error(error) {
-          dispatch(fetchFailed(error.responseJSON.error));
+          dispatch(fetchDatasourceFailed(error.responseJSON.error));
         },
       });
     } else {
-      dispatch(fetchFailed('Please select a datasource'));
+      dispatch(fetchDatasourceFailed('Please select a datasource'));
     }
+  };
+}
+
+export function fetchDatasources() {
+  return function (dispatch) {
+    dispatch(fetchDatasourcesStarted());
+    const url = '/superset/datasources/';
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (data) => {
+        dispatch(setDatasources(data));
+        dispatch(fetchDatasourcesSucceeded());
+      },
+      error(error) {
+        dispatch(fetchDatasourcesFailed(error.responseJSON.error));
+      },
+    });
   };
 }
 
@@ -126,7 +164,7 @@ export function fetchDashboardsSucceeded(choices) {
 
 export const FETCH_DASHBOARDS_FAILED = 'FETCH_DASHBOARDS_FAILED';
 export function fetchDashboardsFailed(userId) {
-  return { type: FETCH_FAILED, userId };
+  return { type: FETCH_DASHBOARDS_FAILED, userId };
 }
 
 export function fetchDashboards(userId) {

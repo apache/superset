@@ -18,20 +18,19 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
+  alert: PropTypes.string,
   can_download: PropTypes.bool.isRequired,
+  chartStatus: PropTypes.string,
+  chartUpdateEndTime: PropTypes.number,
+  chartUpdateStartTime: PropTypes.number.isRequired,
+  column_formats: PropTypes.object,
+  containerId: PropTypes.string.isRequired,
+  height: PropTypes.string.isRequired,
+  isStarred: PropTypes.bool.isRequired,
   slice_id: PropTypes.number.isRequired,
   slice_name: PropTypes.string.isRequired,
-  viz_type: PropTypes.string.isRequired,
-  height: PropTypes.string.isRequired,
-  containerId: PropTypes.string.isRequired,
-  query: PropTypes.string,
-  column_formats: PropTypes.object,
-  chartStatus: PropTypes.string,
-  isStarred: PropTypes.bool.isRequired,
-  chartUpdateStartTime: PropTypes.number.isRequired,
-  chartUpdateEndTime: PropTypes.number,
-  alert: PropTypes.string,
   table_name: PropTypes.string,
+  viz_type: PropTypes.string.isRequired,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -43,11 +42,11 @@ class ChartContainer extends React.PureComponent {
   }
 
   renderViz() {
-    console.log('rendering viz');
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
+    visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
     try {
-      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+      //visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -68,7 +67,7 @@ class ChartContainer extends React.PureComponent {
   getMockedSliceObject() {
     const props = this.props;
     return {
-      viewSqlQuery: props.query,
+      viewSqlQuery: this.props.queryResponse.query,
       containerId: props.containerId,
       selector: this.state.selector,
       container: {
@@ -239,22 +238,21 @@ ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
-    containerId: `slice-container-${state.viz.form_data.slice_id}`,
-    slice_id: state.viz.form_data.slice_id,
-    slice_name: state.viz.form_data.slice_name,
-    viz_type: state.viz.form_data.viz_type,
-    form_data: state.viz.form_data,
-    can_download: state.can_download,
-    chartUpdateStartTime: state.chartUpdateStartTime,
-    chartUpdateEndTime: state.chartUpdateEndTime,
-    query: state.viz.query,
-    column_formats: state.viz.column_formats,
-    chartStatus: state.chartStatus,
-    isStarred: state.isStarred,
     alert: state.chartAlert,
-    table_name: state.viz.form_data.datasource_name,
-    queryResponse: state.queryResponse,
+    can_download: state.can_download,
+    chartStatus: state.chartStatus,
+    chartUpdateEndTime: state.chartUpdateEndTime,
+    chartUpdateStartTime: state.chartUpdateStartTime,
+    column_formats: state.datasource ? state.datasource.column_formats : null,
+    containerId: `slice-container-${state.form_data.slice_id}`,
     datasource_type: state.datasource_type,
+    form_data: state.form_data,
+    isStarred: state.isStarred,
+    queryResponse: state.queryResponse,
+    slice_id: state.form_data.slice_id,
+    slice_name: state.form_data.slice_name,
+    table_name: state.form_data.datasource_name,
+    viz_type: state.form_data.viz_type,
   };
 }
 

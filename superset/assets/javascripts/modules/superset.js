@@ -5,6 +5,7 @@ const utils = require('./utils');
 /* eslint camel-case: 0 */
 import vizMap from '../../visualizations/main.js';
 import { getExploreUrl } from '../explorev2/exploreUtils';
+import { applyDefaultFormData } from '../explorev2/stores/store';
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -61,8 +62,9 @@ const px = function () {
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
-    data.json_endpoint = getExploreUrl(data.form_data, 'table', 'json');
-    const origJsonEndpoint = data.json_endpoint;
+    const formData = applyDefaultFormData(data.form_data, data.form_data.viz_type, 'table');
+    const jsonEndpoint = getExploreUrl(formData, 'table', 'json');
+    const origJsonEndpoint = jsonEndpoint;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -77,7 +79,7 @@ const px = function () {
       selector,
       querystring() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         if (controller.type === 'dashboard') {
           parser.href = origJsonEndpoint;
           let flts = controller.effectiveExtraFilters(sliceId);
@@ -102,7 +104,7 @@ const px = function () {
       },
       jsonEndpoint() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         let endpoint = parser.pathname + this.querystring();
         if (endpoint.charAt(0) !== '/') {
           // Known issue for IE <= 11:
@@ -225,8 +227,9 @@ const px = function () {
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
         $.getJSON(this.jsonEndpoint(), queryResponse => {
+          vizMap[formData.viz_type](this, queryResponse);
           try {
-            vizMap[data.form_data.viz_type](this, queryResponse);
+            //vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);

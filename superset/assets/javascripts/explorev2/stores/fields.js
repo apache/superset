@@ -83,7 +83,7 @@ export const fields = {
   metric: {
     type: 'SelectField',
     label: 'Metric',
-    default: null,
+    clearable: false,
     description: 'Choose the metric',
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],

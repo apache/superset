@@ -276,7 +276,6 @@ class BaseViz(object):
             payload = {
                 'cache_key': cache_key,
                 'cache_timeout': cache_timeout,
-                'column_formats': self.data['column_formats'],
                 'data': data,
                 'error': self.error_message,
                 'filter_endpoint': self.filter_endpoint,
@@ -317,11 +316,6 @@ class BaseViz(object):
             'token': self.token,
             'viz_name': self.viz_type,
             'filter_select_enabled': self.datasource.filter_select_enabled,
-            'column_formats': {
-                m.metric_name: m.d3format
-                for m in self.datasource.metrics
-                if m.d3format
-            },
         }
         return content
 
@@ -821,8 +815,7 @@ class BigNumberViz(BaseViz):
         form_data = self.form_data
         df = self.get_df()
         df.sort_values(by=df.columns[0], inplace=True)
-        compare_lag = form_data.get("compare_lag", "")
-        compare_lag = int(compare_lag) if compare_lag and compare_lag.isdigit() else 0
+        compare_lag = form_data.get("compare_lag")
         return {
             'data': df.values.tolist(),
             'compare_lag': compare_lag,
