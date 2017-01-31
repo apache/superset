@@ -343,6 +343,7 @@ function renderExploreActions() {
     <ExploreActionButtons
       canDownload={exploreActionsEl.getAttribute('data-can-download')}
       slice={slice}
+      query={slice.viewSqlQuery}
     />,
     exploreActionsEl
   );
