@@ -2,8 +2,7 @@
 import { sectionsToRender } from './visTypes';
 import fields from './fields';
 
-export function applyDefaultFormData(
-    form_data, datasourceType = 'table') {
+export function applyDefaultFormData(form_data, datasourceType = 'table') {
   const data = {
     slice_name: null,
     slice_id: null,
