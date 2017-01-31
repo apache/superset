@@ -61,24 +61,27 @@ export default class Filter extends React.Component {
       if (!filter.choices) {
         this.fetchFilterValues(filter.col);
       }
+    }
+    if (this.props.opChoices.indexOf('==') !== -1) {
+      // druid having filter
       return (
-        <SelectField
-          multi
-          freeForm
-          name="filter-value"
+        <input
+          type="text"
+          onChange={this.changeFilter.bind(this, 'val')}
           value={filter.value}
-          choices={filter.choices}
-          onChange={this.changeFilter.bind(this, 'value')}
+          className="form-control input-sm"
+          placeholder="Filter value"
         />
       );
     }
     return (
-      <input
-        type="text"
-        onChange={this.changeFilter.bind(this, 'value')}
-        value={filter.value}
-        className="form-control input-sm"
-        placeholder="Filter value"
+      <SelectField
+        multi
+        freeForm
+        name="filter-value"
+        value={filter.val}
+        choices={filter.choices || []}
+        onChange={this.changeFilter.bind(this, 'val')}
       />
     );
   }

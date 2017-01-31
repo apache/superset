@@ -8,7 +8,6 @@ import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
 import { getFieldsState } from './stores/store';
-import { getFilters } from './exploreUtils';
 
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
@@ -23,7 +22,6 @@ const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstr
 import { exploreReducer } from './reducers/exploreReducer';
 const formData = bootstrapData.form_data;
 const fields = getFieldsState(bootstrapData, formData);
-fields.filters.value = getFilters(formData, bootstrapData.datasource_type);
 delete bootstrapData.form_data;
 
 // Initial state
@@ -40,7 +38,6 @@ const bootstrappedState = Object.assign(
     queryResponse: null,
   }
 );
-
 
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false))

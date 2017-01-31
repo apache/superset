@@ -144,15 +144,16 @@ class BaseViz(object):
         """Processes the filters for the query"""
         form_data = self.form_data
         # Building filters
+        flts = []
+        if is_having_filter and 'having_filters' in form_data:
+            flts = form_data['having_filters']
+        if not is_having_filter and 'filters' in form_data:
+            flts = form_data['filters']
         filters = []
-        field_prefix = 'flt' if not is_having_filter else 'having'
-        for i in range(1, 10):
-            col = form_data.get(field_prefix + "_col_" + str(i))
-            op = form_data.get(field_prefix + "_op_" + str(i))
-            eq = form_data.get(field_prefix + "_eq_" + str(i))
-            if col and op and eq is not None:
-                filters.append((col, op, eq))
-
+        for flt in flts:
+            if 'col' in flt and 'op' in flt and 'val' in flt:
+                vals = ','.join(flt['val'])
+                filters.append((flt['col'], flt['op'], vals))
         if is_having_filter:
             return filters
 

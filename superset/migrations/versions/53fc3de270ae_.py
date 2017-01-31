@@ -1,17 +1,17 @@
-"""update_slice_model_json
+"""update filters for slice model
 
-Revision ID: db0c65b146bd
-Revises: f18570e03440
-Create Date: 2017-01-24 12:31:06.541746
+Revision ID: 53fc3de270ae
+Revises: db0c65b146bd
+Create Date: 2017-01-31 10:18:49.071296
 
 """
 
 # revision identifiers, used by Alembic.
-revision = 'db0c65b146bd'
-down_revision = 'f18570e03440'
+revision = '53fc3de270ae'
+down_revision = 'db0c65b146bd'
 
 from alembic import op
-from superset import db, cast_form_data
+from superset import db, cast_filter_data
 import json
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
@@ -36,7 +36,7 @@ def upgrade():
 
     for slc in session.query(Slice).all():
         d = json.loads(slc.params)
-        d = cast_form_data(d)
+        d = cast_filter_data(d)
         slc.params = json.dumps(d)
         session.merge(slc)
         session.commit()

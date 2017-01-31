@@ -2505,9 +2505,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 cond = ~(Dimension(col) == eq)
             elif op in ('in', 'not in'):
                 fields = []
-                # Distinguish quoted values with regular value types
-                splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '') for types in splitted]
+                values = eq
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()
