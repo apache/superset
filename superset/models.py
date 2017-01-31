@@ -1456,7 +1456,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             status = QueryStatus.FAILED
             error_message = str(e)
 
-        print(sql)
         return QueryResult(
             status=status,
             df=df,
