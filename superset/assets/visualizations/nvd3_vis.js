@@ -296,7 +296,7 @@ function nvd3Vis(slice, payload) {
     const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
     // if x axis format is a date format, rotate label 90 degrees
     if (isTimeSeries) {
-      chart.xAxis.rotateLabels(90);
+      chart.xAxis.rotateLabels(45);
     }
 
     if (chart.hasOwnProperty('x2Axis')) {
@@ -383,7 +383,10 @@ function nvd3Vis(slice, payload) {
       const xAxisHeight = Math.max.apply(Math, labelHeights);
 
       // set new bottom margin to accomodate labels
-      chart.margin({ bottom: xAxisHeight + 40 });
+      chart.margin({
+        bottom: xAxisHeight + 40,
+        right: xAxisHeight,
+      });
 
       // render chart
       svg
