@@ -564,7 +564,7 @@ class FormFactory(object):
             }),
             'row_limit': (FreeFormSelectField, {
                 "label": _('Row limit'),
-                "default": config.get("ROW_LIMIT"),
+                "default": config.get("VIZ_ROW_LIMIT"),
                 "choices": self.choicify(
                     [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000])
             }),
