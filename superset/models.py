@@ -1274,8 +1274,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         template_processor = get_template_processor(
             table=self, database=self.database)
 
-        print('columns: {}'.format(columns))
-
         # For backward compatibility
         if granularity not in self.dttm_cols:
             granularity = self.main_dttm_col
