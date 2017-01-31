@@ -1874,7 +1874,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
     __tablename__ = 'datasources'
     id = Column(Integer, primary_key=True)
-    datasource_name = Column(String(255), unique=True)
+    datasource_name = Column(String(255))
     is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=False)
@@ -2156,7 +2156,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
         session = get_session()
-        datasource = session.query(cls).filter_by(datasource_name=name).first()
+        datasource = session.query(cls).join(DruidCluster).filter(
+            cls.datasource_name == name,
+            DruidCluster.cluster_name == str(cluster)).first()
         if not datasource:
             datasource = cls(datasource_name=name)
             session.add(datasource)

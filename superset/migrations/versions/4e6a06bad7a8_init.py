@@ -67,8 +67,7 @@ def upgrade():
     sa.Column('cluster_name', sa.String(length=250), sa.ForeignKey("clusters.cluster_name"), nullable=True),
     sa.Column('created_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
     sa.Column('changed_by_fk', sa.Integer(), sa.ForeignKey("ab_user.id"), nullable=True),
-    sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('datasource_name')
+    sa.PrimaryKeyConstraint('id')
     )
     op.create_table('tables',
     sa.Column('created_on', sa.DateTime(), nullable=False),
