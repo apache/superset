@@ -34,9 +34,6 @@ class ExploreViewContainer extends React.Component {
 
     const datasource_id = this.props.form_data.datasource_id;
     const datasource_type = this.props.datasource_type;
-    if (datasource_id) {
-      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
-    }
     this.props.actions.fetchDatasources();
   }
 

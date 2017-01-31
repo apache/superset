@@ -23,6 +23,8 @@ const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstr
 
 import { exploreReducer } from './reducers/exploreReducer';
 const form_data = applyDefaultFormData(bootstrapData.form_data, bootstrapData.datasource_type);
+console.log(bootstrapData);
+console.log(form_data);
 
 // Initial state
 const bootstrappedState = Object.assign(
