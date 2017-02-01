@@ -176,9 +176,8 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
 
         # Click on the + to add a slice
-        url = '/slicemodelview/add'
+        url = '/tablemodelview/list/'
         resp = self.get_resp(url)
-        assert 'Click on a' in resp
 
         table = db.session.query(models.SqlaTable).first()
         assert table.name in resp
