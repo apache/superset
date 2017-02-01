@@ -7,7 +7,6 @@ import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
-import { autoQueryFields } from '../stores/fields';
 import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
@@ -30,15 +29,16 @@ class ExploreViewContainer extends React.Component {
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
     this.runQuery();
+    this.props.actions.resetFields();
     this.props.actions.fetchDatasources();
   }
 
   componentWillReceiveProps(nextProps) {
-    const refreshChart = Object.keys(nextProps.fields).some((field) => (
-      nextProps.fields[field].value !== this.props.fields[field].value
-      && autoQueryFields.indexOf(field) !== -1)
-    );
-    if (refreshChart) {
+    // Reset fields and run a query if the datasource or viz_type has changed
+    if (
+        nextProps.fields.datasource.value !== this.props.fields.datasource.value ||
+        nextProps.fields.viz_type.value !== this.props.fields.viz_type.value) {
+      this.props.actions.resetFields();
       this.onQuery();
     }
   }

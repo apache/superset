@@ -3,9 +3,30 @@ import { sectionsToRender } from './visTypes';
 import fields from './fields';
 import visTypes, { fieldNames } from './visTypes';
 
-export function getFieldsState(state, form_data, datasourceType = 'table') {
+export function getFormDataFromFields(fields) {
+  const formData = {};
+  Object.keys(fields).forEach(fieldName => {
+    formData[fieldName] = fields[fieldName].value;
+  });
+  return formData;
+}
+
+export function getFieldsState(state, form_data) {
+  /*
+  * Gets a new fields object to put in the state. The fields object
+  * is similar to the configuration field with only the fields
+  * related to the current viz_type, materializes mapStateToProps functions,
+  * adds value keys coming from form_data passed here. This can't be an action creator
+  * just yet because it's used in both the explore and dashboard views.
+  * */
+
+  // Getting a list of active field names for the current viz
   const fieldNames = [];
-  sectionsToRender(form_data.viz_type, datasourceType).forEach(section => section.fieldSetRows.forEach(fsr => fsr.forEach(f => fieldNames.push(f))));
+  sectionsToRender(form_data.viz_type, state.datasource.type).forEach(
+    section => section.fieldSetRows.forEach(
+      fsr => fsr.forEach(
+        f => fieldNames.push(f))));
+
   const viz = visTypes[form_data.viz_type];
   const fieldOverrides = viz.fieldOverrides || {};
   const fieldsState = {};

@@ -90,6 +90,7 @@ export default class SelectField extends React.PureComponent {
   }
   render() {
     //  Tab, comma or Enter will trigger a new option created for FreeFormSelect
+    console.log(this.props.name, this.props.value);
     const selectProps = {
       multi: this.props.multi,
       name: `select-${this.props.name}`,
