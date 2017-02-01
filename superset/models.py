@@ -1320,6 +1320,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             for s in columns:
                 select_exprs.append(cols[s].sqla_col)
             metrics_exprs = []
+        elif not is_timeseries:
+            # use all columns if none were specified
+            for col_obj in cols.values():
+                select_exprs.append(col_obj.sqla_col)
+                metrics_exprs = []
+            row_limit = row_limit or 100
 
         if granularity:
 
