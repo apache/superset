@@ -224,3 +224,8 @@ export function runQuery(formData, datasourceType) {
     });
   };
 }
+
+export const RESET_FIELDS = 'RESET_FIELDS';
+export function resetFields(datasourceType) {
+  return { type: RESET_FIELDS };
+}

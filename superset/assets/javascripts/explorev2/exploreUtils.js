@@ -44,9 +44,6 @@ export function getFilters(form_data, datasource_type) {
 
 export function getParamObject(form_data, datasource_type, saveNewSlice) {
   const data = {
-    // V2 tag temporarily for updating url
-    // Todo: remove after launch
-    V2: true,
     datasource_id: form_data.datasource,
     datasource_type,
   };

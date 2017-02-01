@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { defaultFormData } from '../stores/store';
+import { getFieldsState, getFormDataFromFields } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
 
@@ -59,28 +59,12 @@ export const exploreReducer = function (state, action) {
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
     [actions.SET_FIELD_VALUE]() {
-      let newFormData = Object.assign({}, state.form_data);
-      if (action.fieldName === 'datasource') {
-        newFormData = defaultFormData(state.form_data.viz_type, action.datasource_type);
-        newFormData.datasource_name = action.label;
-        newFormData.slice_id = state.form_data.slice_id;
-        newFormData.slice_name = state.form_data.slice_name;
-        newFormData.viz_type = state.form_data.viz_type;
-      }
-      newFormData[action.fieldName] = action.value;
-
       const fields = Object.assign({}, state.fields);
-      const field = fields[action.fieldName];
+      const field = Object.assign({}, fields[action.fieldName]);
       field.value = action.value;
       field.validationErrors = action.validationErrors;
-      return Object.assign(
-        {},
-        state,
-        {
-          fields,
-          viz: Object.assign({}, state.viz, { form_data: newFormData }),
-        }
-      );
+      fields[action.fieldName] = field;
+      return Object.assign({}, state, { fields });
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
       return Object.assign(
@@ -132,6 +116,10 @@ export const exploreReducer = function (state, action) {
     },
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return Object.assign({}, state, { saveModalAlert: null });
+    },
+    [actions.RESET_FIELDS]() {
+      const fields = getFieldsState(state, getFormDataFromFields(state.fields));
+      return Object.assign({}, state, { fields });
     },
   };
   if (action.type in actionHandlers) {
