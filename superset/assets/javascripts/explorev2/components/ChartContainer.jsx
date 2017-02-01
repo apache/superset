@@ -18,7 +18,7 @@ const CHART_STATUS_MAP = {
 const propTypes = {
   actions: PropTypes.object.isRequired,
   can_download: PropTypes.bool.isRequired,
-  slice_id: PropTypes.string.isRequired,
+  slice_id: PropTypes.number.isRequired,
   slice_name: PropTypes.string.isRequired,
   viz_type: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
@@ -43,9 +43,9 @@ class ChartContainer extends React.PureComponent {
 
   renderViz() {
     const mockSlice = this.getMockedSliceObject();
+    this.setState({ mockSlice });
     try {
       visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
-      this.setState({ mockSlice });
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }

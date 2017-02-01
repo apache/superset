@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import logging
 import os
+import json
 from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
@@ -20,6 +21,26 @@ from superset import utils
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
+
+with open(APP_DIR + '/assets/dist/backendSync.json', 'r') as f:
+    frontend_config = json.load(f)
+def cast_form_data(form_data):
+    d = {}
+    fields = frontend_config.get('fields', {})
+    print('0982--' * 10)
+    print(fields)
+    for k, v in form_data.items():
+        print([k, v])
+        field_config = fields.get(k, {})
+        ft = field_config.get('type')
+        if ft == 'CheckboxField':
+            v = True if v == 'true' else False
+        elif ft == 'TextField' and field_config.get('isInt'):
+            v = int(v)
+        elif ft == 'TextField' and field_config.get('isFloat'):
+            v = float(v)
+        d[k] = v
+    return d
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)

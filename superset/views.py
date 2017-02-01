@@ -32,7 +32,6 @@ from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
-from wtforms.validators import ValidationError
 
 import superset
 from superset import (
@@ -331,7 +330,7 @@ def validate_json(form, field):  # noqa
         json.loads(field.data)
     except Exception as e:
         logging.exception(e)
-        raise ValidationError("json isn't valid")
+        raise Exception("json isn't valid")
 
 
 def generate_download_headers(extension):
@@ -1422,6 +1421,16 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
+    def get_form_data(self):
+        form_data = request.args.get("form_data")
+        if not form_data:
+            form_data = request.form.get("form_data")
+        if not form_data:
+            form_data = {}
+        print("-=*=-" * 10)
+        print(form_data)
+        return json.loads(form_data)
+
     def get_viz(
             self,
             slice_id=None,
@@ -1429,14 +1438,21 @@ class Superset(BaseSupersetView):
             datasource_type=None,
             datasource_id=None):
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=slice_id)
+                .one()
+            )
             return slc.get_viz()
         else:
-            viz_type = args.get('viz_type', 'table')
+            form_data=self.get_form_data()
+            viz_type = form_data.get('viz_type')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
             viz_obj = viz.viz_types[viz_type](
-                datasource, request.args if request.args else args)
+                datasource,
+                form_data=form_data,
+            )
             return viz_obj
 
     @has_access
@@ -1509,6 +1525,7 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
+
         viz_type = request.args.get("viz_type")
         slice_id = request.args.get('slice_id')
         slc = None
@@ -1528,11 +1545,11 @@ class Superset(BaseSupersetView):
                 datasource_id=datasource_id,
                 args=request.args)
         except Exception as e:
-            flash('{}'.format(e), "alert")
+            flash('{}'.format(e), "danger")
             return redirect(error_redirect)
 
         if not viz_obj.datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
+            flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
 
         if not self.datasource_access(viz_obj.datasource):
@@ -1573,37 +1590,28 @@ class Superset(BaseSupersetView):
                 mimetype="application/csv")
         elif request.args.get("standalone") == "true":
             return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
-        elif request.args.get("V2") == "true" or is_in_explore_v2_beta:
-            # bootstrap data for explore V2
-            bootstrap_data = {
-                "can_add": slice_add_perm,
-                "can_download": slice_download_perm,
-                "can_edit": slice_edit_perm,
-                # TODO: separate endpoint for fetching datasources
-                "datasources": [(d.id, d.full_name) for d in datasources],
-                "datasource_id": datasource_id,
-                "datasource_name": viz_obj.datasource.name,
-                "datasource_type": datasource_type,
-                "user_id": user_id,
-                "viz": json.loads(viz_obj.json_data),
-                "filter_select": viz_obj.datasource.filter_select_enabled
-            }
-            table_name = viz_obj.datasource.table_name \
-                if datasource_type == 'table' \
-                else viz_obj.datasource.datasource_name
-            return self.render_template(
-                "superset/explorev2.html",
-                bootstrap_data=json.dumps(bootstrap_data),
-                slice=slc,
-                table_name=table_name)
-        else:
-            return self.render_template(
-                "superset/explore.html",
-                viz=viz_obj, slice=slc, datasources=datasources,
-                can_add=slice_add_perm, can_edit=slice_edit_perm,
-                can_download=slice_download_perm,
-                userid=g.user.get_id() if g.user else ''
-            )
+        # bootstrap data for explore V2
+        bootstrap_data = {
+            "can_add": slice_add_perm,
+            "can_download": slice_download_perm,
+            "can_edit": slice_edit_perm,
+            # TODO: separate endpoint for fetching datasources
+            "datasources": [(d.id, d.full_name) for d in datasources],
+            "datasource_id": datasource_id,
+            "datasource_name": viz_obj.datasource.name,
+            "datasource_type": datasource_type,
+            "user_id": user_id,
+            "viz": json.loads(viz_obj.json_data),
+            "filter_select": viz_obj.datasource.filter_select_enabled
+        }
+        table_name = viz_obj.datasource.table_name \
+            if datasource_type == 'table' \
+            else viz_obj.datasource.datasource_name
+        return self.render_template(
+            "superset/explorev2.html",
+            bootstrap_data=json.dumps(bootstrap_data),
+            slice=slc,
+            table_name=table_name)
 
     @api
     @has_access_api
