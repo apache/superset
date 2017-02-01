@@ -35,12 +35,17 @@ export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
+    isLoading: true,
     clearable: false,
     default: null,
-    mapStateToProps: (state) => ({
-      choices: state.datasources || [],
-      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
-    }),
+    mapStateToProps: (state) => {
+      const datasources = state.datasources || [];
+      return {
+        choices: datasources,
+        isLoading: datasources.length === 0,
+        editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
+      }
+    },
     description: '',
   },
 
@@ -85,8 +90,9 @@ export const fields = {
     label: 'Metric',
     clearable: false,
     description: 'Choose the metric',
+    default: field => field.choices !== null ? field.choices[0][0] : null,
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      choices: (state.datasource) ? state.datasource.metrics_combo : null,
     }),
   },
 
@@ -410,28 +416,28 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: null,
+    default: field => field.choices ? field.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: (state.datasource) ? state.datasource.all_cols : null,
     }),
   },
 
   time_grain_sqla: {
     type: 'SelectField',
     label: 'Time Grain',
-    default: 'Time Column',
+    default: field => field.choices !== null ? field.choices[0][0] : null,
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +
                  'The options here are defined on a per database ' +
                  'engine basis in the Superset source code.',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.time_grain_sqla : [],
+      choices: (state.datasource) ? state.datasource.time_grain_sqla : null,
     }),
   },
 
@@ -1013,7 +1019,7 @@ export const fields = {
                  'Either a numerical column or `Auto`, which scales the point based ' +
                  'on the largest cluster',
     mapStateToProps: (state) => ({
-      choices: state.fields.point_radius.choices,
+      // choices: state.fields.point_radius.choices,
     }),
   },
 

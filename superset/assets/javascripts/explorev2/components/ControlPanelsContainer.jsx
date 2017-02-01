@@ -8,6 +8,7 @@ import visTypes, { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import FieldSet from './FieldSet';
+import fields from '../stores/fields';
 
 const propTypes = {
   datasource_type: PropTypes.string.isRequired,
@@ -23,9 +24,8 @@ const propTypes = {
 class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.fieldOverrides = this.fieldOverrides.bind(this);
-    this.getFieldData = this.getFieldData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
+    this.getFieldData = this.getFieldData.bind(this);
   }
   componentWillReceiveProps(nextProps) {
     if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
@@ -35,24 +35,15 @@ class ControlPanelsContainer extends React.Component {
       }
     }
   }
-  getFieldData(fs) {
-    const fieldOverrides = this.fieldOverrides();
-    let fieldData = this.props.fields[fs] || {};
-    if (fieldOverrides.hasOwnProperty(fs)) {
-      const overrideData = fieldOverrides[fs];
-      fieldData = Object.assign({}, fieldData, overrideData);
+  getFieldData(fieldName) {
+    const mapStateToProps = fields[fieldName].mapStateToProps;
+    if (mapStateToProps) {
+      return Object.assign({}, this.props.fields[fieldName], mapStateToProps(this.props.exploreState));
     }
-    if (fieldData.mapStateToProps) {
-      Object.assign(fieldData, fieldData.mapStateToProps(this.props.exploreState));
-    }
-    return fieldData;
+    return this.props.fields[fieldName];
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
-  }
-  fieldOverrides() {
-    const viz = visTypes[this.props.form_data.viz_type];
-    return viz.fieldOverrides || {};
   }
   removeAlert() {
     this.props.actions.removeControlPanelAlert();

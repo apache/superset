@@ -310,14 +310,14 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             logging.exception(e)
             d['error'] = str(e)
         return {
-            'slice_id': self.id,
-            'slice_name': self.slice_name,
             'datasource': self.datasource_name,
             'description': self.description,
-            'slice_url': self.slice_url,
-            'edit_url': self.edit_url,
             'description_markeddown': self.description_markeddown,
+            'edit_url': self.edit_url,
             'form_data': self.form_data,
+            'slice_id': self.id,
+            'slice_name': self.slice_name,
+            'slice_url': self.slice_url,
         }
 
     @property
@@ -332,6 +332,8 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data['slice_name'] = self.slice_name
         form_data['viz_type'] = self.viz_type
         form_data['datasource_id'] = self.datasource_id
+        form_data['datasource'] = (
+            str(self.datasource_id) + '__' + self.datasource_type)
         return form_data
 
     @property
@@ -685,6 +687,15 @@ class Queryable(object):
             return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
+    def column_formats(self):
+        return {
+            m.metric_name: m.d3format
+            for m in self.metrics
+            if m.d3format
+        }
+
+
+    @property
     def data(self):
         """data representation of the datasource sent to the frontend"""
         gb_cols = [(col, col) for col in self.groupby_column_names]
@@ -705,11 +716,7 @@ class Queryable(object):
             'all_cols': all_cols,
             'filterable_cols': filter_cols,
             'filter_select': self.filter_select_enabled,
-            'column_formats': {
-                m.metric_name: m.d3format
-                for m in self.metrics
-                if m.d3format
-            },
+            'column_formats': self.column_formats,
         }
         if self.type == 'table':
             grains = self.database.grains() or []
