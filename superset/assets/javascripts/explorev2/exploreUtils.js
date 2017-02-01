@@ -62,7 +62,6 @@ export function getParamObject(form_data, datasource_type, saveNewSlice) {
   return data;
 }
 
-//TODO
 export function getExploreUrl(form_data, dummy, endpoint = 'base') {
   const [datasource_id, datasource_type] = form_data.datasource.split('__');
   let params = `${datasource_type}/${datasource_id}/`;

@@ -15,8 +15,8 @@ const propTypes = {
   datasource_type: React.PropTypes.string.isRequired,
   chartStatus: React.PropTypes.string.isRequired,
   fields: React.PropTypes.object.isRequired,
+  form_data: React.PropTypes.object.isRequired,
 };
-
 
 class ExploreViewContainer extends React.Component {
   constructor(props) {
@@ -30,9 +30,6 @@ class ExploreViewContainer extends React.Component {
   componentDidMount() {
     window.addEventListener('resize', this.handleResize.bind(this));
     this.runQuery();
-
-    const datasource_id = this.props.fields.datasource.value;
-    const datasource_type = this.props.datasource_type;
     this.props.actions.fetchDatasources();
   }
 
@@ -55,8 +52,7 @@ class ExploreViewContainer extends React.Component {
     history.pushState(
       {},
       document.title,
-      getExploreUrl(this.props.form_data),
-    );
+      getExploreUrl(this.props.form_data));
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
     this.props.actions.removeChartAlert();
@@ -156,7 +152,9 @@ ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
   const form_data = {};
-  Object.keys(state.fields).forEach(f => form_data[f] = state.fields[f].value);
+  Object.keys(state.fields).forEach(f => {
+    form_data[f] = state.fields[f].value;
+  });
   return {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,

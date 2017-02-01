@@ -4,7 +4,7 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import visTypes, { sectionsToRender } from '../stores/visTypes';
+import { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
 import FieldSetRow from './FieldSetRow';
 import FieldSet from './FieldSet';
@@ -36,9 +36,9 @@ class ControlPanelsContainer extends React.Component {
     }
   }
   getFieldData(fieldName) {
-    const mapStateToProps = fields[fieldName].mapStateToProps;
-    if (mapStateToProps) {
-      return Object.assign({}, this.props.fields[fieldName], mapStateToProps(this.props.exploreState));
+    const mapF = fields[fieldName].mapStateToProps;
+    if (mapF) {
+      return Object.assign({}, this.props.fields[fieldName], mapF(this.props.exploreState));
     }
     return this.props.fields[fieldName];
   }
