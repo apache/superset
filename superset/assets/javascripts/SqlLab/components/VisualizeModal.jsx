@@ -103,7 +103,7 @@ class VisualizeModal extends React.PureComponent {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
-      sql: this.props.query.sql,
+      sql: this.props.query.executedSql,
       dbId: this.props.query.dbId,
     };
     $.ajax({
