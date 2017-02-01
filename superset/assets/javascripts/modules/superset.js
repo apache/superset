@@ -230,9 +230,8 @@ const px = function () {
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
         $.getJSON(this.jsonEndpoint(), queryResponse => {
-          vizMap[formData.viz_type](this, queryResponse);
           try {
-            //vizMap[formData.viz_type](this, queryResponse);
+            vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);

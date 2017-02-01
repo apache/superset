@@ -80,7 +80,6 @@ class GridLayout extends React.Component {
   }
 
   render() {
-    console.log(this.state.slices);
     return (
       <ResponsiveReactGridLayout
         className="layout"

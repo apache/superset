@@ -21,7 +21,9 @@ const exploreViewContainer = document.getElementById('js-explore-view-container'
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 
 import { exploreReducer } from './reducers/exploreReducer';
-const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
+const formData = bootstrapData.form_data;
+const fields = getFieldsState(bootstrapData, formData);
+fields.filters.value = getFilters(formData, bootstrapData.datasource_type);
 delete bootstrapData.form_data;
 
 // Initial state
@@ -38,9 +40,7 @@ const bootstrappedState = Object.assign(
     queryResponse: null,
   }
 );
-console.log(bootstrappedState);
 
-//bootstrappedState.form_data.filters = getFilters(form_data, bootstrapData.datasource_type);
 
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false))

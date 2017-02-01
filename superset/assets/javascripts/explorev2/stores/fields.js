@@ -44,7 +44,7 @@ export const fields = {
         choices: datasources,
         isLoading: datasources.length === 0,
         editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
-      }
+      };
     },
     description: '',
   },

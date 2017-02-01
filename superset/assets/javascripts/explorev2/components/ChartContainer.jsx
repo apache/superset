@@ -43,9 +43,8 @@ class ChartContainer extends React.PureComponent {
   renderViz() {
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
-    visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
     try {
-      //visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
+      visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -114,10 +113,10 @@ class ChartContainer extends React.PureComponent {
       },
 
       data: {
-        csv_endpoint: getExploreUrl(this.props.form_data, this.props.datasource_type, 'csv'),
-        json_endpoint: getExploreUrl(this.props.form_data, this.props.datasource_type, 'json'),
+        csv_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'csv'),
+        json_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'json'),
         standalone_endpoint: getExploreUrl(
-          this.props.form_data, this.props.datasource_type, 'standalone'),
+          this.props.formData, this.props.datasource_type, 'standalone'),
       },
 
     };
@@ -236,8 +235,10 @@ class ChartContainer extends React.PureComponent {
 ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const form_data = {};
-  Object.keys(state.fields).forEach(f => form_data[f] = state.fields[f].value);
+  const formData = {};
+  Object.keys(state.fields).forEach(f => {
+    formData[f] = state.fields[f].value;
+  });
   return {
     alert: state.chartAlert,
     can_download: state.can_download,
@@ -247,12 +248,12 @@ function mapStateToProps(state) {
     column_formats: state.datasource ? state.datasource.column_formats : null,
     containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
     datasource_type: state.datasource_type,
-    form_data,
+    formData,
     isStarred: state.isStarred,
     queryResponse: state.queryResponse,
     slice: state.slice,
-    table_name: form_data.datasource_name,
-    viz_type: form_data.viz_type,
+    table_name: formData.datasource_name,
+    viz_type: formData.viz_type,
   };
 }
 
