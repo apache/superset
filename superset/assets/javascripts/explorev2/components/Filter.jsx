@@ -6,14 +6,15 @@ import SelectField from './SelectField';
 
 const propTypes = {
   choices: PropTypes.array,
-  opChoices: PropTypes.array,
   changeFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   filter: PropTypes.object.isRequired,
   datasource: PropTypes.object,
+  having: PropTypes.bool,
 };
 
 const defaultProps = {
+  having: false,
   changeFilter: () => {},
   removeFilter: () => {},
   choices: [],
@@ -21,6 +22,11 @@ const defaultProps = {
 };
 
 export default class Filter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.opChoices = this.props.having ? ['==', '!=', '>', '<', '>=', '<=']
+      : ['in', 'not in'];
+  }
   fetchFilterValues(col) {
     if (!this.props.datasource) {
       return;
@@ -62,7 +68,7 @@ export default class Filter extends React.Component {
         this.fetchFilterValues(filter.col);
       }
     }
-    if (this.props.opChoices.indexOf('==') !== -1) {
+    if (this.props.having) {
       // druid having filter
       return (
         <input
@@ -105,7 +111,7 @@ export default class Filter extends React.Component {
             <Select
               id="select-op"
               placeholder="Select operator"
-              options={this.props.opChoices.map((o) => ({ value: o, label: o }))}
+              options={this.opChoices.map((o) => ({ value: o, label: o }))}
               value={filter.op}
               onChange={this.changeFilter.bind(this, 'op')}
             />

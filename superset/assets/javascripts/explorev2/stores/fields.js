@@ -1140,7 +1140,6 @@ export const fields = {
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.filterable_cols : [],
       datasource: state.datasource,
-      opChoices: ['in', 'not in'],
     }),
   },
 
@@ -1153,7 +1152,6 @@ export const fields = {
       choices: (state.datasource) ? state.datasource.metrics_combo
         .concat(state.datasource.filterable_cols) : [],
       datasource: state.datasource,
-      opChoices: ['==', '!=', '>', '<', '>=', '<='],
     }),
   },
 };

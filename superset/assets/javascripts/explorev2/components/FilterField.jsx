@@ -3,11 +3,11 @@ import { Button, Row, Col } from 'react-bootstrap';
 import Filter from './Filter';
 
 const propTypes = {
+  name: PropTypes.string,
   choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
   datasource: PropTypes.object,
-  opChoices: PropTypes.array.isRequired,
 };
 
 const defaultProps = {
@@ -42,9 +42,9 @@ export default class FilterField extends React.Component {
       const filterBox = (
         <div key={i}>
           <Filter
+            having={this.props.name === 'having_filters'}
             filter={filter}
             choices={this.props.choices}
-            opChoices={this.props.opChoices}
             datasource={this.props.datasource}
             removeFilter={this.removeFilter.bind(this, i)}
             changeFilter={this.changeFilter.bind(this, i)}

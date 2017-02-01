@@ -17,7 +17,6 @@ from flask_migrate import Migrate
 from superset.source_registry import SourceRegistry
 from werkzeug.contrib.fixers import ProxyFix
 from superset import utils
-import re
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -39,40 +38,6 @@ def cast_form_data(form_data):
             v = float(v)
         d[k] = v
     return d
-
-def cast_filter_data(form_data):
-    flts = []
-    having_flts = []
-    fd = form_data
-    filter_pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
-    for i in range(0, 10):
-        for prefix in ['flt', 'having']:
-            col_str = '{}_col_{}'.format(prefix, i)
-            op_str = '{}_op_{}'.format(prefix, i)
-            val_str = '{}_eq_{}'.format(prefix, i)
-            if col_str in fd and op_str in fd and val_str in fd \
-               and len(fd[val_str]) > 0:
-                f = {}
-                f['col'] = fd[col_str]
-                f['op'] = fd[op_str]
-                if prefix == 'flt':
-                    # transfer old strings in filter value to list
-                    splitted = filter_pattern.split(fd[val_str])[1::2]
-                    values = [types.replace("'", '').strip() for types in splitted]
-                    f['val'] = values
-                    flts.append(f)
-                if prefix == 'having':
-                    f['val'] = fd[val_str]
-                    having_flts.append(f)
-            if col_str in fd:
-                del fd[col_str]
-            if op_str in fd:
-                del fd[op_str]
-            if val_str in fd:
-                del fd[val_str]
-    fd['filters'] = flts
-    fd['having_filters'] = having_flts
-    return fd
 
 
 app = Flask(__name__)
