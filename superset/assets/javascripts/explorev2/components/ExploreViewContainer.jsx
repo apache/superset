@@ -11,7 +11,6 @@ import { autoQueryFields } from '../stores/fields';
 import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
-  form_data: React.PropTypes.object.isRequired,
   actions: React.PropTypes.object.isRequired,
   datasource_type: React.PropTypes.string.isRequired,
   chartStatus: React.PropTypes.string.isRequired,
@@ -32,14 +31,14 @@ class ExploreViewContainer extends React.Component {
     window.addEventListener('resize', this.handleResize.bind(this));
     this.runQuery();
 
-    const datasource_id = this.props.form_data.datasource_id;
+    const datasource_id = this.props.fields.datasource.value;
     const datasource_type = this.props.datasource_type;
     this.props.actions.fetchDatasources();
   }
 
   componentWillReceiveProps(nextProps) {
-    const refreshChart = Object.keys(nextProps.form_data).some((field) => (
-      nextProps.form_data[field] !== this.props.form_data[field]
+    const refreshChart = Object.keys(nextProps.fields).some((field) => (
+      nextProps.fields[field].value !== this.props.fields[field].value
       && autoQueryFields.indexOf(field) !== -1)
     );
     if (refreshChart) {
@@ -56,7 +55,7 @@ class ExploreViewContainer extends React.Component {
     history.pushState(
       {},
       document.title,
-      getExploreUrl(this.props.form_data, this.props.datasource_type)
+      getExploreUrl(this.props.form_data),
     );
     // remove alerts when query
     this.props.actions.removeControlPanelAlert();
@@ -156,11 +155,13 @@ class ExploreViewContainer extends React.Component {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
+  const form_data = {};
+  Object.keys(state.fields).forEach(f => form_data[f] = state.fields[f].value);
   return {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
     fields: state.fields,
-    form_data: state.form_data,
+    form_data,
   };
 }
 

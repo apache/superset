@@ -27,8 +27,7 @@ const propTypes = {
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
-  slice_id: PropTypes.number.isRequired,
-  slice_name: PropTypes.string.isRequired,
+  slice: PropTypes.object.isRequired,
   table_name: PropTypes.string,
   viz_type: PropTypes.string.isRequired,
 };
@@ -130,8 +129,8 @@ class ChartContainer extends React.PureComponent {
 
   renderChartTitle() {
     let title;
-    if (this.props.slice_name) {
-      title = this.props.slice_name;
+    if (this.props.slice) {
+      title = this.props.slice.slice_name;
     } else {
       title = `[${this.props.table_name}] - untitled`;
     }
@@ -186,10 +185,10 @@ class ChartContainer extends React.PureComponent {
             >
               {this.renderChartTitle()}
 
-              {this.props.slice_id &&
+              {this.props.slice &&
                 <span>
                   <FaveStar
-                    sliceId={this.props.slice_id}
+                    sliceId={this.props.slice.slice_id}
                     actions={this.props.actions}
                     isStarred={this.props.isStarred}
                   />
@@ -200,7 +199,7 @@ class ChartContainer extends React.PureComponent {
                   >
                     <a
                       className="edit-desc-icon"
-                      href={`/slicemodelview/edit/${this.props.slice_id}`}
+                      href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
                     >
                       <i className="fa fa-edit" />
                     </a>
@@ -237,6 +236,8 @@ class ChartContainer extends React.PureComponent {
 ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
+  const form_data = {};
+  Object.keys(state.fields).forEach(f => form_data[f] = state.fields[f].value);
   return {
     alert: state.chartAlert,
     can_download: state.can_download,
@@ -244,15 +245,14 @@ function mapStateToProps(state) {
     chartUpdateEndTime: state.chartUpdateEndTime,
     chartUpdateStartTime: state.chartUpdateStartTime,
     column_formats: state.datasource ? state.datasource.column_formats : null,
-    containerId: `slice-container-${state.form_data.slice_id}`,
+    containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
     datasource_type: state.datasource_type,
-    form_data: state.form_data,
+    form_data,
     isStarred: state.isStarred,
     queryResponse: state.queryResponse,
-    slice_id: state.form_data.slice_id,
-    slice_name: state.form_data.slice_name,
-    table_name: state.form_data.datasource_name,
-    viz_type: state.form_data.viz_type,
+    slice: state.slice,
+    table_name: form_data.datasource_name,
+    viz_type: form_data.viz_type,
   };
 }
 

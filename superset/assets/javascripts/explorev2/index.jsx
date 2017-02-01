@@ -7,8 +7,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
-import { applyDefaultFormData } from './stores/store';
-import { fields } from './stores/fields';
+import { getFieldsState } from './stores/store';
 import { getFilters } from './exploreUtils';
 
 
@@ -22,9 +21,8 @@ const exploreViewContainer = document.getElementById('js-explore-view-container'
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 
 import { exploreReducer } from './reducers/exploreReducer';
-const form_data = applyDefaultFormData(bootstrapData.form_data, bootstrapData.datasource_type);
-console.log(bootstrapData);
-console.log(form_data);
+const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
+delete bootstrapData.form_data;
 
 // Initial state
 const bootstrappedState = Object.assign(
@@ -35,14 +33,14 @@ const bootstrappedState = Object.assign(
     dashboards: [],
     fields,
     filterColumnOpts: [],
-    form_data,
     isDatasourceMetaLoading: false,
     isStarred: false,
     queryResponse: null,
   }
 );
+console.log(bootstrappedState);
 
-bootstrappedState.form_data.filters = getFilters(form_data, bootstrapData.datasource_type);
+//bootstrappedState.form_data.filters = getFilters(form_data, bootstrapData.datasource_type);
 
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false))

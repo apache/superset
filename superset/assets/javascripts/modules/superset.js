@@ -62,7 +62,7 @@ const px = function () {
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
-    const formData = applyDefaultFormData(data.form_data, data.form_data.viz_type, 'table');
+    const formData = applyDefaultFormData(data.form_data);
     const jsonEndpoint = getExploreUrl(formData, 'table', 'json');
     const origJsonEndpoint = jsonEndpoint;
     let dttm = 0;
@@ -118,8 +118,11 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        const format = data.column_formats[col];
-        return utils.d3format(format, number);
+        if (data.column_formats) {
+          const format = data.column_formats[col];
+          return utils.d3format(format, number);
+        }
+        return utils.d3format('.3s', number);
       },
       /* eslint no-shadow: 0 */
       always(data) {

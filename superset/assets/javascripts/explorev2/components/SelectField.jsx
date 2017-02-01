@@ -7,6 +7,7 @@ const propTypes = {
   description: PropTypes.string,
   editUrl: PropTypes.string,
   freeForm: PropTypes.bool,
+  isLoading: PropTypes.bool,
   label: PropTypes.string,
   multi: PropTypes.bool,
   name: PropTypes.string.isRequired,
@@ -20,6 +21,7 @@ const defaultProps = {
   description: null,
   editUrl: null,
   freeForm: false,
+  isLoading: false,
   label: null,
   multi: false,
   onChange: () => {},
@@ -96,6 +98,7 @@ export default class SelectField extends React.PureComponent {
       value: this.props.value,
       autosize: false,
       clearable: this.props.clearable,
+      isLoading: this.props.isLoading,
       onChange: this.onChange,
       optionRenderer: this.renderOption,
     };

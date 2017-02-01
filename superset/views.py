@@ -1507,12 +1507,13 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
+        form_data = self.get_form_data()
         datasource_id = int(datasource_id)
-        viz_type = request.args.get("viz_type")
-        slice_id = request.args.get('slice_id')
-        slc = None
+        viz_type = form_data.get("viz_type")
+        slice_id = form_data.get('slice_id')
         user_id = g.user.get_id() if g.user else None
 
+        slc = None
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
@@ -1562,7 +1563,6 @@ class Superset(BaseSupersetView):
         elif request.args.get("standalone") == "true":
             return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
 
-        form_data = self.get_form_data()
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
         bootstrap_data = {
             "can_add": slice_add_perm,
@@ -1573,6 +1573,7 @@ class Superset(BaseSupersetView):
             "form_data": form_data,
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
+            "slice": slc.data if slc else None,
             "user_id": user_id,
         }
         table_name = datasource.table_name \

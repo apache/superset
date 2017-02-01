@@ -80,6 +80,7 @@ class GridLayout extends React.Component {
   }
 
   render() {
+    console.log(this.state.slices);
     return (
       <ResponsiveReactGridLayout
         className="layout"
@@ -98,7 +99,7 @@ class GridLayout extends React.Component {
             id={'slice_' + slice.slice_id}
             key={slice.slice_id}
             data-slice-id={slice.slice_id}
-            className={`widget ${slice.viz_name}`}
+            className={`widget ${slice.form_data.viz_type}`}
           >
             <SliceCell
               slice={slice}
