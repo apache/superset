@@ -2399,7 +2399,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if len(groupby) == 0:
             del qry['dimensions']
             client.timeseries(**qry)
-        if len(groupby) == 1:
+        if not having_filters and len(groupby) == 1:
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
