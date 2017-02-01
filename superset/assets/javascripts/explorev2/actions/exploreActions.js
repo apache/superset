@@ -215,7 +215,7 @@ export function updateChartStatus(status) {
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, datasourceType) {
   return function (dispatch) {
-    dispatch(updateChartStatus('loading'));
+    dispatch(chartUpdateStarted('loading'));
     const url = getExploreUrl(formData, datasourceType, 'json');
     $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
