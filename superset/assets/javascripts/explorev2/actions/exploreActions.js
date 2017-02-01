@@ -226,6 +226,6 @@ export function runQuery(formData, datasourceType) {
 }
 
 export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetFields(datasourceType) {
+export function resetFields() {
   return { type: RESET_FIELDS };
 }

@@ -1,12 +1,11 @@
 /* eslint camelcase: 0 */
-import { sectionsToRender } from './visTypes';
 import fields from './fields';
-import visTypes, { fieldNames } from './visTypes';
+import visTypes, { sectionsToRender } from './visTypes';
 
-export function getFormDataFromFields(fields) {
+export function getFormDataFromFields(fieldsState) {
   const formData = {};
-  Object.keys(fields).forEach(fieldName => {
-    formData[fieldName] = fields[fieldName].value;
+  Object.keys(fieldsState).forEach(fieldName => {
+    formData[fieldName] = fieldsState[fieldName].value;
   });
   return formData;
 }
@@ -49,9 +48,11 @@ export const autoQueryFields = [
   'viz_type',
 ];
 
-export function applyDefaultFormData (form_data, state = {}) {
-  const fields = getFieldsState(state, form_data);
+export function applyDefaultFormData(form_data, state = {}) {
+  const fieldsState = getFieldsState(state, form_data);
   const formData = {};
-  Object.keys(fields).forEach(k => formData[k] = fields[k].value);
+  Object.keys(fieldsState).forEach(k => {
+    formData[k] = fieldsState[k].value;
+  });
   return formData;
 }
