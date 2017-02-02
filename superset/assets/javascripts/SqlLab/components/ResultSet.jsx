@@ -46,6 +46,10 @@ class ResultSet extends React.PureComponent {
         this.clearQueryResults(nextProps.query)
       );
     }
+    if (nextProps.query.resultsKey
+      && nextProps.query.resultsKey !== this.props.query.resultsKey) {
+      this.fetchResults(nextProps.query);
+    }
   }
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
@@ -195,16 +199,6 @@ class ResultSet extends React.PureComponent {
                 hideFilterInput
               />
             </div>
-          </div>
-        );
-      } else if (query.resultsKey && !(data && data.length === 0)) {
-        return (
-          <div>
-            <Alert bsStyle="warning">This query was run asynchronously &nbsp;
-              <Button bsSize="sm" onClick={this.fetchResults.bind(this, query)}>
-                Fetch results
-              </Button>
-            </Alert>
           </div>
         );
       }

@@ -30,6 +30,7 @@ with open(PACKAGE_FILE) as package_file:
     VERSION_STRING = json.load(package_file)['version']
 
 ROW_LIMIT = 50000
+VIZ_ROW_LIMIT = 10000
 SUPERSET_WORKERS = 2
 
 SUPERSET_WEBSERVER_ADDRESS = '0.0.0.0'

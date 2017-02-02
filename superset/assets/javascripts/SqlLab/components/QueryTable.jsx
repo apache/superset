@@ -140,7 +140,7 @@ class QueryTable extends React.PureComponent {
       } else {
         // if query was run using ctas and force_ctas_schema was set
         // tempTable will have the schema
-        const schemaUsed = q.ctas && q.tempTable.includes('.') ? '' : q.schema;
+        const schemaUsed = q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
         q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (

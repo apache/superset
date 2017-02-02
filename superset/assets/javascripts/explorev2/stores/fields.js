@@ -18,7 +18,7 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
-const TIME_STAMP_OPTIONS = [
+export const TIME_STAMP_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
