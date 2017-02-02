@@ -3,6 +3,7 @@ import $ from 'jquery';
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import { customizeToolTip } from '../javascripts/modules/utils';
+import throttle from 'lodash.throttle';
 
 const d3 = require('d3');
 const nv = require('nvd3');
@@ -402,11 +403,18 @@ function nvd3Vis(slice, payload) {
       .call(chart);
     }
 
+    // on scroll, hide tooltips. throttle to only 4x/second.
+    $(window).scroll(throttle(hideTooltips, 250));
+
     return chart;
   };
 
   const graph = drawGraph();
   nv.addGraph(graph);
+}
+
+function hideTooltips() {
+  $('.nvtooltip').css({ opacity: 0 });
 }
 
 module.exports = nvd3Vis;
