@@ -27,14 +27,6 @@ class ControlPanelsContainer extends React.Component {
     this.removeAlert = this.removeAlert.bind(this);
     this.getFieldData = this.getFieldData.bind(this);
   }
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
-      if (nextProps.form_data.datasource) {
-        this.props.actions.fetchDatasourceMetadata(
-          nextProps.form_data.datasource, nextProps.datasource_type);
-      }
-    }
-  }
   getFieldData(fieldName) {
     const mapF = fields[fieldName].mapStateToProps;
     if (mapF) {

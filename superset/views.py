@@ -1517,6 +1517,13 @@ class Superset(BaseSupersetView):
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
+        if request.args.get("csv") == "true":
+            return Response(
+                viz_obj.get_csv(),
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv")
+
         payload = {}
         try:
             payload = viz_obj.get_payload()
@@ -1600,18 +1607,8 @@ class Superset(BaseSupersetView):
             return self.save_or_overwrite_slice(
                 request.args, slc, slice_add_perm, slice_edit_perm)
 
-        # handle different endpoints
-        if request.args.get("csv") == "true":
-            payload = viz_obj.get_csv()
-            return Response(
-                payload,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv")
-        elif request.args.get("standalone") == "true":
-            return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
-
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+        standalone = request.args.get("standalone") == "true"
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
@@ -1622,6 +1619,7 @@ class Superset(BaseSupersetView):
             "datasource_id": datasource_id,
             "datasource_type": datasource_type,
             "slice": slc.data if slc else None,
+            "standalone": standalone,
             "user_id": user_id,
         }
         table_name = datasource.table_name \
@@ -1631,6 +1629,7 @@ class Superset(BaseSupersetView):
             "superset/explorev2.html",
             bootstrap_data=json.dumps(bootstrap_data),
             slice=slc,
+            standalone_mode=standalone,
             table_name=table_name)
 
     @api
@@ -2617,11 +2616,12 @@ class Superset(BaseSupersetView):
     @expose("/fetch_datasource_metadata")
     @log_this
     def fetch_datasource_metadata(self):
-        datasource_type = request.args.get('datasource_type')
+        datasource_id, datasource_type = (
+            request.args.get('datasourceKey').split('__'))
         datasource_class = SourceRegistry.sources[datasource_type]
         datasource = (
             db.session.query(datasource_class)
-            .filter_by(id=request.args.get('datasource_id'))
+            .filter_by(id=int(datasource_id))
             .first()
         )
 

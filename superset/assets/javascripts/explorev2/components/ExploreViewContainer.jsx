@@ -8,6 +8,7 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import { getFormDataFromFields } from '../stores/store';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -32,13 +33,13 @@ class ExploreViewContainer extends React.Component {
     window.addEventListener('resize', this.handleResize.bind(this));
   }
 
-  componentWillReceiveProps(nextProps) {
-    // Reset fields and run a query if the datasource or viz_type has changed
-    if (
-        nextProps.fields.datasource.value !== this.props.fields.datasource.value ||
-        nextProps.fields.viz_type.value !== this.props.fields.viz_type.value) {
+  componentWillReceiveProps(np) {
+    if (np.fields.viz_type.value !== this.props.fields.viz_type.value) {
       this.props.actions.resetFields();
       this.props.actions.triggerQuery();
+    }
+    if (np.fields.datasource.value !== this.props.fields.datasource.value) {
+      this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
   }
 
@@ -106,8 +107,18 @@ class ExploreViewContainer extends React.Component {
     }
     return errorMessage;
   }
+  renderChartContainer() {
+    return (
+      <ChartContainer
+        actions={this.props.actions}
+        height={this.state.height}
+      />);
+  }
 
   render() {
+    if (this.props.standalone) {
+      return this.renderChartContainer();
+    }
     return (
       <div
         id="explore-container"
@@ -142,10 +153,7 @@ class ExploreViewContainer extends React.Component {
             />
           </div>
           <div className="col-sm-8">
-            <ChartContainer
-              actions={this.props.actions}
-              height={this.state.height}
-            />
+            {this.renderChartContainer()}
           </div>
         </div>
       </div>
@@ -156,15 +164,13 @@ class ExploreViewContainer extends React.Component {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const form_data = {};
-  Object.keys(state.fields).forEach(f => {
-    form_data[f] = state.fields[f].value;
-  });
+  const form_data = getFormDataFromFields(state.fields);
   return {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
     fields: state.fields,
     form_data,
+    standalone: state.standalone,
     triggerQuery: state.triggerQuery,
   };
 }
