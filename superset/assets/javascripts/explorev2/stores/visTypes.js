@@ -61,15 +61,13 @@ export const commonControlPanelSections = {
         'Leave the value field empty to filter empty strings or nulls' +
         'For filters with comma in values, wrap them in single quotes' +
         "as in <NY, 'Tahoe, CA', DC>",
-      prefix: 'flt',
       fieldSetRows: [['filters']],
     },
     {
       label: 'Result Filters',
       description: 'The filters to apply after post-aggregation.' +
         'Leave the value field empty to filter empty strings or nulls',
-      prefix: 'having',
-      fieldSetRows: [['filters']],
+      fieldSetRows: [['having_filters']],
     },
   ],
 };
@@ -434,6 +432,7 @@ const visTypes = {
   },
 
   big_number_total: {
+    label: 'Big Number',
     controlPanelSections: [
       {
         label: null,

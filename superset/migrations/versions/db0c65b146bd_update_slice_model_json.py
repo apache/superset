@@ -1,14 +1,14 @@
 """update_slice_model_json
 
 Revision ID: db0c65b146bd
-Revises: 1296d28ec131
+Revises: f18570e03440
 Create Date: 2017-01-24 12:31:06.541746
 
 """
 
 # revision identifiers, used by Alembic.
 revision = 'db0c65b146bd'
-down_revision = '1296d28ec131'
+down_revision = 'f18570e03440'
 
 from alembic import op
 from superset import db, cast_form_data

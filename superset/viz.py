@@ -140,32 +140,6 @@ class BaseViz(object):
             return {}
         return json.loads(extra_filters)
 
-    def query_filters(self, is_having_filter=False):
-        """Processes the filters for the query"""
-        form_data = self.form_data
-        # Building filters
-        filters = []
-        field_prefix = 'flt' if not is_having_filter else 'having'
-        for i in range(1, 10):
-            col = form_data.get(field_prefix + "_col_" + str(i))
-            op = form_data.get(field_prefix + "_op_" + str(i))
-            eq = form_data.get(field_prefix + "_eq_" + str(i))
-            if col and op and eq is not None:
-                filters.append((col, op, eq))
-
-        if is_having_filter:
-            return filters
-
-        # Extra filters (coming from dashboard)
-        for col, vals in self.get_extra_filters().items():
-            if not (col and vals):
-                continue
-            elif col in self.datasource.filterable_column_names:
-                # Quote values with comma to avoid conflict
-                vals = ["'{}'".format(x) if "," in x else x for x in vals]
-                filters += [(col, 'in', ",".join(vals))]
-        return filters
-
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
@@ -197,10 +171,24 @@ class BaseViz(object):
         extras = {
             'where': form_data.get("where", ''),
             'having': form_data.get("having", ''),
-            'having_druid': self.query_filters(is_having_filter=True),
+            'having_druid': form_data.get('having_filters') \
+                if 'having_filters' in form_data else [],
             'time_grain_sqla': form_data.get("time_grain_sqla", ''),
             'druid_time_origin': form_data.get("druid_time_origin", ''),
         }
+        filters = form_data['filters'] if 'filters' in form_data \
+                else []
+        for col, vals in self.get_extra_filters().items():
+            if not (col and vals):
+                continue
+            elif col in self.datasource.filterable_column_names:
+                # Quote values with comma to avoid conflict
+                vals = ["'{}'".format(x) if "," in x else x for x in vals]
+                filters += [{
+                    'col': col,
+                    'op': 'in',
+                    'val': ",".join(vals),
+                }]
         d = {
             'granularity': granularity,
             'from_dttm': from_dttm,
@@ -209,7 +197,7 @@ class BaseViz(object):
             'groupby': groupby,
             'metrics': metrics,
             'row_limit': row_limit,
-            'filter': self.query_filters(),
+            'filter': filters,
             'timeseries_limit': limit,
             'extras': extras,
             'timeseries_limit_metric': timeseries_limit_metric,
