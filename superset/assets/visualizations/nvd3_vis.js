@@ -409,6 +409,11 @@ function nvd3Vis(slice, payload) {
     return chart;
   };
 
+  // hide tooltips before rendering chart, if the chart is being re-rendered sometimes
+  // there are left over tooltips in the dom,
+  // this will clear them before rendering the chart again.
+  hideTooltips();
+
   const graph = drawGraph();
   nv.addGraph(graph);
 }
