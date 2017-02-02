@@ -59,6 +59,10 @@ const addTotalBarValues = function (chart, data, stacked) {
     });
 };
 
+function hideTooltips() {
+  $('.nvtooltip').css({ opacity: 0 });
+}
+
 function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
@@ -416,10 +420,6 @@ function nvd3Vis(slice, payload) {
 
   const graph = drawGraph();
   nv.addGraph(graph);
-}
-
-function hideTooltips() {
-  $('.nvtooltip').css({ opacity: 0 });
 }
 
 module.exports = nvd3Vis;
