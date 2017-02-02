@@ -191,7 +191,7 @@ const horizonChart = function () {
 };
 
 function horizonViz(slice, payload) {
-  const fd = payload.form_data;
+  const fd = slice.formData;
   const div = d3.select(slice.selector);
   div.selectAll('*').remove();
   let extent;

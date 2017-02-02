@@ -229,3 +229,13 @@ export const RESET_FIELDS = 'RESET_FIELDS';
 export function resetFields() {
   return { type: RESET_FIELDS };
 }
+
+export const TRIGGER_QUERY = 'TRIGGER_QUERY';
+export function triggerQuery() {
+  return { type: TRIGGER_QUERY };
+}
+
+export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
+export function renderTriggered() {
+  return { type: RENDER_TRIGGERED };
+}

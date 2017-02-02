@@ -319,9 +319,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         form_data = json.loads(self.params)
         form_data = cast_form_data(form_data)
         form_data['slice_id'] = self.id
-        form_data['slice_name'] = self.slice_name
         form_data['viz_type'] = self.viz_type
-        form_data['datasource_id'] = self.datasource_id
         form_data['datasource'] = (
             str(self.datasource_id) + '__' + self.datasource_type)
         return form_data
@@ -684,13 +682,9 @@ class Queryable(object):
             if m.d3format
         }
 
-
     @property
     def data(self):
         """data representation of the datasource sent to the frontend"""
-        gb_cols = [(col, col) for col in self.groupby_column_names]
-        all_cols = [(c, c) for c in self.column_names]
-        filter_cols = [(c, c) for c in self.filterable_column_names]
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
@@ -702,9 +696,9 @@ class Queryable(object):
             'name': self.name,
             'metrics_combo': self.metrics_combo,
             'order_by_choices': order_by_choices,
-            'gb_cols': gb_cols,
-            'all_cols': all_cols,
-            'filterable_cols': filter_cols,
+            'gb_cols': utils.choicify(self.groupby_column_names),
+            'all_cols': utils.choicify(self.column_names),
+            'filterable_cols': utils.choicify(self.filterable_column_names),
             'filter_select': self.filter_select_enabled,
             'column_formats': self.column_formats,
         }
@@ -712,7 +706,7 @@ class Queryable(object):
             grains = self.database.grains() or []
             if grains:
                 grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = [(c, c) for c in self.dttm_cols]
+            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
         return d
 
@@ -1154,7 +1148,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     @property
     def dttm_cols(self):
         l = [c.column_name for c in self.columns if c.is_dttm]
-        if self.main_dttm_col not in l:
+        if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
 

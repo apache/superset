@@ -178,7 +178,7 @@ class BaseViz(object):
         limit = int(form_data.get("limit", 0))
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
-            form_data.get("row_limit", config.get("ROW_LIMIT")))
+            form_data.get("row_limit") or config.get("ROW_LIMIT"))
         since = (
             extra_filters.get('__from') or form_data.get("since", "1 year ago")
         )

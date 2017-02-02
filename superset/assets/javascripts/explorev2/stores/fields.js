@@ -67,10 +67,10 @@ export const fields = {
     multi: true,
     label: 'Metrics',
     validators: [v.nonEmpty],
+    default: field => field.choices !== null ? [field.choices[0][0]] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
-    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -423,7 +423,7 @@ export const fields = {
                  'filter below is applied against this column or ' +
                  'expression',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.all_cols : null,
+      choices: (state.datasource) ? state.datasource.granularity_sqla : null,
     }),
   },
 
@@ -824,6 +824,7 @@ export const fields = {
   show_brush: {
     type: 'CheckboxField',
     label: 'Range Filter',
+    renderTrigger: true,
     default: false,
     description: 'Whether to display the time range interactive selector',
   },
@@ -866,6 +867,7 @@ export const fields = {
   show_legend: {
     type: 'CheckboxField',
     label: 'Legend',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the legend (toggles)',
   },
@@ -880,6 +882,7 @@ export const fields = {
   rich_tooltip: {
     type: 'CheckboxField',
     label: 'Rich Tooltip',
+    renderTrigger: true,
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
                  'point in time',
@@ -1141,6 +1144,12 @@ export const fields = {
       choices: (state.datasource) ? state.datasource.filterable_cols : [],
       datasource: state.datasource,
     }),
+  },
+  slice_id: {
+    type: 'HiddenField',
+    label: 'Slice ID',
+    hidden: true,
+    description: 'The id of the active slice',
   },
 };
 export default fields;
