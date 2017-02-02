@@ -198,6 +198,7 @@ export const fields = {
   show_markers: {
     type: 'CheckboxField',
     label: 'Show Markers',
+    renderTrigger: true,
     default: false,
     description: 'Show data points as circle markers on the lines',
   },
@@ -729,6 +730,7 @@ export const fields = {
     type: 'SelectField',
     freeForm: true,
     label: 'Y axis format',
+    renderTrigger: true,
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -875,6 +877,7 @@ export const fields = {
   x_axis_showminmax: {
     type: 'CheckboxField',
     label: 'X bounds',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the min and max values of the X axis',
   },

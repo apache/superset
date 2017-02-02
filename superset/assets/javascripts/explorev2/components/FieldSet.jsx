@@ -69,7 +69,7 @@ export default class FieldSet extends React.PureComponent {
   }
   render() {
     const FieldType = fieldMap[this.props.type];
-    const divStyle = this.props.hidden ? {display: 'none'} : null;
+    const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (
       <div style={divStyle}>
         <ControlHeader
