@@ -588,22 +588,22 @@ class PivotTableViz(BaseViz):
     Helper method to build the formatters for pivot table
     """
     def build_formatters(self, df):
-        list = []
+        formatter_list = []
         for (column, dtype) in df.dtypes.iteritems():
             # for number data types, use comma separated raw format
             if dtype == np.dtype('int64') or dtype == np.dtype('float64'):
                 # use empty string instead of nan for missing data
                 # since data are always recognized as float type, use .0f
                 # to omit the decimal part for integer values
-                list.append(
+                formatter_list.append(
                     lambda x:
                         '' if np.isnan(x)
                         else '{:,.0f}'.format(x) if x - np.around(x) == 0
                         else '{:,}'.format(x))
             # for other data types, no formatting
             else:
-                list.append(None)
-        return list
+                formatter_list.append(None)
+        return formatter_list
 
     def get_data(self):
         df = self.get_df()
