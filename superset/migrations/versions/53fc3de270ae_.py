@@ -59,9 +59,6 @@ class Slice(Base):
     """Declarative class to do query in upgrade"""
     __tablename__ = 'slices'
     id = Column(Integer, primary_key=True)
-    datasource_id = Column(Integer)
-    druid_datasource_id = Column(Integer)
-    table_id = Column(Integer)
     datasource_type = Column(String(200))
     params = Column(Text)
 

@@ -1159,7 +1159,8 @@ export const fields = {
         .concat(state.datasource.filterable_cols) : [],
       datasource: state.datasource,
     }),
-    
+  },
+
   slice_id: {
     type: 'HiddenField',
     label: 'Slice ID',
