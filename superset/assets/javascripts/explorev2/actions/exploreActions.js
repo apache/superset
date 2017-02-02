@@ -48,27 +48,25 @@ export function fetchDatasourcesFailed(error) {
   return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
-export function fetchDatasourceMetadata(datasourceId, datasourceType) {
+export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false) {
   return function (dispatch) {
     dispatch(fetchDatasourceStarted());
-
-    if (datasourceId) {
-      const params = [`datasource_id=${datasourceId}`, `datasource_type=${datasourceType}`];
-      const url = '/superset/fetch_datasource_metadata?' + params.join('&');
-      $.ajax({
-        type: 'GET',
-        url,
-        success: (data) => {
-          dispatch(setDatasource(data));
-          dispatch(fetchDatasourceSucceeded());
-        },
-        error(error) {
-          dispatch(fetchDatasourceFailed(error.responseJSON.error));
-        },
-      });
-    } else {
-      dispatch(fetchDatasourceFailed('Please select a datasource'));
-    }
+    const url = `/superset/fetch_datasource_metadata?datasourceKey=${datasourceKey}`;
+    $.ajax({
+      type: 'GET',
+      url,
+      success: (data) => {
+        dispatch(setDatasource(data));
+        dispatch(fetchDatasourceSucceeded());
+        dispatch(resetFields());
+        if (alsoTriggerQuery) {
+          dispatch(triggerQuery());
+        }
+      },
+      error(error) {
+        dispatch(fetchDatasourceFailed(error.responseJSON.error));
+      },
+    });
   };
 }
 

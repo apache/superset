@@ -35,6 +35,17 @@ export function getFieldsState(state, form_data) {
       Object.assign(field, field.mapStateToProps(state));
       delete field.mapStateToProps;
     }
+
+    // If the value is not valid anymore based on choices, clear it
+    if (field.choices && k !== 'datasource' && form_data[k]) {
+      const choiceValues = field.choices.map(c => c[0]);
+      if (field.multi && form_data[k].length > 0 && choiceValues.indexOf(form_data[k][0]) < 0) {
+        delete form_data[k];
+      } else if (!field.multi && choiceValues.indexOf(form_data[k]) < 0) {
+        //delete form_data[k];
+      }
+    }
+
     if (typeof field.default === 'function') {
       field.default = field.default(field);
     }

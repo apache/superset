@@ -39,10 +39,12 @@ export default class SelectField extends React.PureComponent {
       const options = this.getOptions(nextProps);
       this.setState({ options });
 
+      /*
       // if value isn't valid anymore, set to null
       if (nextProps.value && nextProps.name !== 'datasource' && options.map(o => o.value).indexOf(nextProps.value) < 0) {
         this.onChange(null);
       }
+      */
     }
   }
   onChange(opt) {
