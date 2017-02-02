@@ -3,6 +3,7 @@ import $ from 'jquery';
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
 import { customizeToolTip } from '../javascripts/modules/utils';
+import throttle from 'lodash.throttle';
 
 const d3 = require('d3');
 const nv = require('nvd3');
@@ -57,6 +58,10 @@ const addTotalBarValues = function (chart, data, stacked) {
       t.attr('x', xPos + rectWidth / 2 - labelWidth / 2); // fine tune
     });
 };
+
+function hideTooltips() {
+  $('.nvtooltip').css({ opacity: 0 });
+}
 
 function nvd3Vis(slice, payload) {
   let chart;
@@ -402,8 +407,16 @@ function nvd3Vis(slice, payload) {
       .call(chart);
     }
 
+    // on scroll, hide tooltips. throttle to only 4x/second.
+    $(window).scroll(throttle(hideTooltips, 250));
+
     return chart;
   };
+
+  // hide tooltips before rendering chart, if the chart is being re-rendered sometimes
+  // there are left over tooltips in the dom,
+  // this will clear them before rendering the chart again.
+  hideTooltips();
 
   const graph = drawGraph();
   nv.addGraph(graph);
