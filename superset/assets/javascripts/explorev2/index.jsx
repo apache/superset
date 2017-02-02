@@ -7,8 +7,6 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
-import { getFilters } from './exploreUtils';
-import * as actions from './actions/exploreActions';
 import { getFieldsState } from './stores/store';
 
 

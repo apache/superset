@@ -4,7 +4,7 @@ import { describe, it } from 'mocha';
 import { shallow, mount } from 'enzyme';
 import { OverlayTrigger } from 'react-bootstrap';
 
-import EmbedCodeButton from '../../../../javascripts/explore/components/EmbedCodeButton';
+import EmbedCodeButton from '../../../../javascripts/explorev2/components/EmbedCodeButton';
 
 describe('EmbedCodeButton', () => {
   const defaultProps = {

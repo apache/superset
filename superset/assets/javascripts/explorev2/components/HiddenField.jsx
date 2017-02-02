@@ -1,6 +1,5 @@
 import React, { PropTypes } from 'react';
-import { FormGroup, FormControl } from 'react-bootstrap';
-import * as v from '../validators';
+import { FormControl } from 'react-bootstrap';
 
 const propTypes = {
   onChange: PropTypes.func,
@@ -14,20 +13,10 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class HiddenField extends React.Component {
-  constructor(props) {
-    super(props);
-  }
+export default class HiddenField extends React.PureComponent {
   render() {
     // This wouldn't be necessary but might as well
-    return (
-      <FormGroup controlId="formInlineName" bsSize="small">
-        <FormControl
-          type="hidden"
-          value={this.props.value}
-        />
-      </FormGroup>
-    );
+    return <FormControl type="hidden" value={this.props.value} />;
   }
 }
 
