@@ -2,24 +2,31 @@
 import React from 'react';
 import Select from 'react-select';
 import { Button } from 'react-bootstrap';
+import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import Filter from '../../../../javascripts/explorev2/components/Filter';
 
 const defaultProps = {
-  actions: {
-    fetchFilterValues: () => ({}),
+  choices: ['country_name'],
+  opChoices: ['in', 'not in'],
+  changeFilter: sinon.spy(),
+  removeFilter: () => {
+    // noop
   },
-  filterColumnOpts: ['country_name'],
   filter: {
     id: 1,
     prefix: 'flt',
-    col: 'country_name',
-    eq: 'in',
-    value: 'China',
+    col: null,
+    op: 'in',
+    value: '',
   },
-  prefix: 'flt',
+  datasource: {
+    id: 1,
+    type: 'table',
+    filter_select: false,
+  },
 };
 
 describe('Filter', () => {
@@ -35,9 +42,19 @@ describe('Filter', () => {
     ).to.equal(true);
   });
 
-  it('renders two select, one button and one input', () => {
+  it('renders two selects, one button and one input', () => {
     expect(wrapper.find(Select)).to.have.lengthOf(2);
     expect(wrapper.find(Button)).to.have.lengthOf(1);
     expect(wrapper.find('input')).to.have.lengthOf(1);
+  });
+
+  it('calls changeFilter when select is changed', () => {
+    const selectCol = wrapper.find('#select-col');
+    selectCol.simulate('change', { value: 'col' });
+    const selectOp = wrapper.find('#select-op');
+    selectOp.simulate('change', { value: 'in' });
+    const input = wrapper.find('input');
+    input.simulate('change', { target: { value: 'x' } });
+    expect(defaultProps.changeFilter).to.have.property('callCount', 3);
   });
 });

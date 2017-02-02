@@ -15,7 +15,7 @@ def get_git_sha():
         s = str(subprocess.check_output(['git', 'rev-parse', 'HEAD']))
         return s.strip()
     except:
-        pass
+        return ""
 
 GIT_SHA = get_git_sha()
 version_info = {

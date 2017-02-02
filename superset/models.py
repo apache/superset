@@ -4,12 +4,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import ast
 from collections import OrderedDict
 import functools
 import json
 import logging
+import numpy
 import pickle
 import re
+import six
 import textwrap
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
@@ -208,6 +211,15 @@ class Url(Model, AuditMixinNullable):
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)
     url = Column(Text)
+
+
+class KeyValue(Model):
+
+    """Used for any type of key-value store"""
+
+    __tablename__ = 'keyvalue'
+    id = Column(Integer, primary_key=True)
+    value = Column(Text, nullable=False)
 
 
 class CssTemplate(Model, AuditMixinNullable):
@@ -680,6 +692,7 @@ class Queryable(object):
         """data representation of the datasource sent to the frontend"""
         gb_cols = [(col, col) for col in self.groupby_column_names]
         all_cols = [(c, c) for c in self.column_names]
+        filter_cols = [(c, c) for c in self.filterable_column_names]
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
@@ -693,7 +706,8 @@ class Queryable(object):
             'order_by_choices': order_by_choices,
             'gb_cols': gb_cols,
             'all_cols': all_cols,
-            'filterable_cols': self.filterable_column_names,
+            'filterable_cols': filter_cols,
+            'filter_select': self.filter_select_enabled,
         }
         if (self.type == 'table'):
             grains = self.database.grains() or []
@@ -777,6 +791,18 @@ class Database(Model, AuditMixinNullable):
         cur = eng.execute(sql, schema=schema)
         cols = [col[0] for col in cur.cursor.description]
         df = pd.DataFrame(cur.fetchall(), columns=cols)
+
+        def needs_conversion(df_series):
+            if df_series.empty:
+                return False
+            for df_type in [list, dict]:
+                if isinstance(df_series[0], df_type):
+                    return True
+            return False
+
+        for k, v in df.dtypes.iteritems():
+            if v.type == numpy.object_ and needs_conversion(df[k]):
+                df[k] = df[k].apply(utils.json_dumps_w_dates)
         return df
 
     def compile_sqla_query(self, qry, schema=None):
@@ -929,7 +955,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG')
+    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL',)
     date_types = ('DATE', 'TIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
@@ -1296,7 +1322,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             metrics_exprs = []
 
         if granularity:
-
             @compiles(ColumnClause)
             def visit_column(element, compiler, **kw):
                 """Patch for sqlalchemy bug
@@ -1348,7 +1373,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '').strip() for types in splitted]
+                values = [types.strip() for types in splitted]
+                # attempt to get the values type if they are not in quotes
+                if not col_obj.is_string:
+                    values = [ast.literal_eval(v) for v in values]
+                else:
+                    values = [v.replace("'", '').strip() for v in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -1378,8 +1408,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         if is_timeseries and timeseries_limit and groupby:
             # some sql dialects require for order by expressions
-            # to also be in the select clause
-            inner_select_exprs += [main_metric_expr]
+            # to also be in the select clause -- others, e.g. vertica,
+            # require a unique inner alias
+            inner_main_metric_expr = main_metric_expr.label('mme_inner__')
+            inner_select_exprs += [inner_main_metric_expr]
             subq = select(inner_select_exprs)
             subq = subq.select_from(tbl)
             inner_time_filter = dttm_col.get_time_filter(
@@ -1388,7 +1420,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             )
             subq = subq.where(and_(*(where_clause_and + [inner_time_filter])))
             subq = subq.group_by(*inner_groupby_exprs)
-            ob = main_metric_expr
+            ob = inner_main_metric_expr
             if timeseries_limit_metric_expr is not None:
                 ob = timeseries_limit_metric_expr
             subq = subq.order_by(desc(ob))
@@ -2194,7 +2226,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         granularity = {'type': 'period'}
         if timezone:
-            granularity['timezone'] = timezone
+            granularity['timeZone'] = timezone
 
         if origin:
             dttm = utils.parse_human_datetime(origin)
@@ -2366,7 +2398,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if len(groupby) == 0:
             del qry['dimensions']
             client.timeseries(**qry)
-        if len(groupby) == 1:
+        if not having_filters and len(groupby) == 1:
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit
@@ -2650,7 +2682,7 @@ class Query(Model):
     rows = Column(Integer)
     error_message = Column(Text)
     # key used to store the results in the results backend
-    results_key = Column(String(64))
+    results_key = Column(String(64), index=True)
 
     # Using Numeric in place of DateTime for sub-second precision
     # stored as seconds since epoch, allowing for milliseconds

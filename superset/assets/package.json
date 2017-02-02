@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.15.2",
+  "version": "0.15.4",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -58,6 +58,7 @@
     "immutable": "^3.8.1",
     "jquery": "^2.2.1",
     "jquery-ui": "1.10.5",
+    "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^0.26.0",
     "moment": "^2.14.1",
     "moments": "0.0.2",

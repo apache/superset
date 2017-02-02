@@ -18,7 +18,7 @@ const ROW_LIMIT_OPTIONS = [10, 50, 100, 250, 500, 1000, 5000, 10000, 50000];
 
 const SERIES_LIMITS = [0, 5, 10, 25, 50, 100, 500];
 
-const TIME_STAMP_OPTIONS = [
+export const TIME_STAMP_OPTIONS = [
   ['smart_date', 'Adaptative formating'],
   ['%m/%d/%Y', '%m/%d/%Y | 01/14/2019'],
   ['%Y-%m-%d', '%Y-%m-%d | 2019-01-14'],
@@ -26,15 +26,20 @@ const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
+const MAP_DATASOURCE_TYPE_TO_EDIT_URL = {
+  table: '/tablemodelview/edit',
+  druid: '/druiddatasourcemodelview/edit',
+};
+
 export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
     clearable: false,
     default: null,
-    editUrl: '/tablemodelview/edit',
     mapStateToProps: (state) => ({
       choices: state.datasources || [],
+      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
     }),
     description: '',
   },
@@ -934,7 +939,6 @@ export const fields = {
   time_compare: {
     type: 'TextField',
     label: 'Time Shift',
-    isInt: true,
     default: null,
     description: 'Overlay a timeseries from a ' +
                  'relative time period. Expects relative time delta ' +
@@ -1117,6 +1121,17 @@ export const fields = {
     label: 'Marker line labels',
     default: '',
     description: 'Labels for the marker lines',
+  },
+
+  filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.filterable_cols : [],
+      datasource: state.datasource,
+    }),
   },
 };
 export default fields;

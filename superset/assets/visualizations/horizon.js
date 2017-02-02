@@ -190,53 +190,38 @@ const horizonChart = function () {
   return my;
 };
 
-function horizonViz(slice) {
-  function refresh() {
-    d3.json(slice.jsonEndpoint(), function (error, payload) {
-      const fd = payload.form_data;
-      if (error) {
-        slice.error(error.responseText, error);
-        return;
-      }
-
-      const div = d3.select(slice.selector);
-      div.selectAll('*').remove();
-      let extent;
-      if (fd.horizon_color_scale === 'overall') {
-        let allValues = [];
-        payload.data.forEach(function (d) {
-          allValues = allValues.concat(d.values);
-        });
-        extent = d3.extent(allValues, (d) => d.y);
-      } else if (fd.horizon_color_scale === 'change') {
-        payload.data.forEach(function (series) {
-          const t0y = series.values[0].y;  // value at time 0
-          series.values = series.values.map((d) =>
-            Object.assign({}, d, { y: d.y - t0y })
-          );
-        });
-      }
-      div.selectAll('.horizon')
-      .data(payload.data)
-      .enter()
-      .append('div')
-      .attr('class', 'horizon')
-      .each(function (d, i) {
-        horizonChart()
-        .height(fd.series_height)
-        .width(slice.width())
-        .extent(extent)
-        .title(d.key)
-        .call(this, d.values, i);
-      });
-
-      slice.done(payload);
+function horizonViz(slice, payload) {
+  const fd = payload.form_data;
+  const div = d3.select(slice.selector);
+  div.selectAll('*').remove();
+  let extent;
+  if (fd.horizon_color_scale === 'overall') {
+    let allValues = [];
+    payload.data.forEach(function (d) {
+      allValues = allValues.concat(d.values);
+    });
+    extent = d3.extent(allValues, (d) => d.y);
+  } else if (fd.horizon_color_scale === 'change') {
+    payload.data.forEach(function (series) {
+      const t0y = series.values[0].y;  // value at time 0
+      series.values = series.values.map((d) =>
+        Object.assign({}, d, { y: d.y - t0y })
+      );
     });
   }
-  return {
-    render: refresh,
-    resize: refresh,
-  };
+  div.selectAll('.horizon')
+  .data(payload.data)
+  .enter()
+  .append('div')
+  .attr('class', 'horizon')
+  .each(function (d, i) {
+    horizonChart()
+    .height(fd.series_height)
+    .width(slice.width())
+    .extent(extent)
+    .title(d.key)
+    .call(this, d.values, i);
+  });
 }
 
 module.exports = horizonViz;
