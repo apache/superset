@@ -648,12 +648,14 @@ export const fields = {
   x_axis_label: {
     type: 'TextField',
     label: 'X Axis Label',
+    renderTrigger: true,
     default: '',
   },
 
   y_axis_label: {
     type: 'TextField',
     label: 'Y Axis Label',
+    renderTrigger: true,
     default: '',
   },
 
@@ -895,6 +897,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Y Axis Zero',
     default: false,
+    renderTrigger: true,
     description: 'Force the Y axis to start at 0 instead of the minimum value',
   },
 
@@ -902,6 +905,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Y Log Scale',
     default: false,
+    renderTrigger: true,
     description: 'Use a log scale for the Y axis',
   },
 
@@ -909,6 +913,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'X Log Scale',
     default: false,
+    renderTrigger: true,
     description: 'Use a log scale for the X axis',
   },
 
