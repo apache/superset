@@ -62,7 +62,7 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {!this.props.isDatasourceMetaLoading && this.sectionsToRender().map((section) => (
+          {this.sectionsToRender().map((section) => (
             <ControlPanelSection
               key={section.label}
               label={section.label}

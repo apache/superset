@@ -417,14 +417,16 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: field => field.choices ? field.choices[0][0] : null,
+    default: field => {
+      return field.choices.length > 0 ? field.choices[0][0] : null;
+    },
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.granularity_sqla : null,
+      choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
   },
 
@@ -723,6 +725,7 @@ export const fields = {
     type: 'SelectField',
     freeForm: true,
     label: 'X axis format',
+    renderTrigger: true,
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -766,6 +769,7 @@ export const fields = {
   line_interpolation: {
     type: 'SelectField',
     label: 'Line Style',
+    renderTrigger: true,
     choices: formatSelectOptions(['linear', 'basis', 'cardinal',
       'monotone', 'step-before', 'step-after']),
     default: 'linear',
