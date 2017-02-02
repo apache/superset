@@ -215,7 +215,7 @@ export function updateChartStatus(status) {
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, datasourceType) {
   return function (dispatch) {
-    dispatch(updateChartStatus('loading'));
+    dispatch(chartUpdateStarted('loading'));
     const url = getExploreUrl(formData, datasourceType, 'json');
     $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
@@ -226,6 +226,16 @@ export function runQuery(formData, datasourceType) {
 }
 
 export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetFields(datasourceType) {
+export function resetFields() {
   return { type: RESET_FIELDS };
+}
+
+export const TRIGGER_QUERY = 'TRIGGER_QUERY';
+export function triggerQuery() {
+  return { type: TRIGGER_QUERY };
+}
+
+export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';
+export function renderTriggered() {
+  return { type: RENDER_TRIGGERED };
 }

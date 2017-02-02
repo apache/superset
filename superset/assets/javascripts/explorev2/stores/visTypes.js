@@ -12,6 +12,7 @@ export const commonControlPanelSections = {
     fieldSetRows: [
       ['datasource'],
       ['viz_type'],
+      ['slice_id'],
     ],
   },
   sqlaTimeSeries: {

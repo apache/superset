@@ -19,10 +19,10 @@ require('./main.css');
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 
-import { exploreReducer } from './reducers/exploreReducer';
-const formData = bootstrapData.form_data;
-const fields = getFieldsState(bootstrapData, formData);
+const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
+
+import { exploreReducer } from './reducers/exploreReducer';
 
 // Initial state
 const bootstrappedState = Object.assign(
@@ -36,6 +36,8 @@ const bootstrappedState = Object.assign(
     isDatasourceMetaLoading: false,
     isStarred: false,
     queryResponse: null,
+    triggerQuery: true,
+    triggerRender: false,
   }
 );
 

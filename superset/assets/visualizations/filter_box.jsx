@@ -113,13 +113,12 @@ function filterBox(slice, payload) {
   d3token.selectAll('*').remove();
 
   // filter box should ignore the dashboard's filters
-  // TODO FUCK
   // const url = slice.jsonEndpoint({ extraFilters: false });
-  const fd = payload.form_data;
+  const fd = slice.formData;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
-  payload.form_data.groupby.forEach((f) => {
+  fd.groupby.forEach((f) => {
     filtersChoices[f] = payload.data[f];
   });
   ReactDOM.render(

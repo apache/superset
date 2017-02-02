@@ -16,7 +16,7 @@ function tableVis(slice, payload) {
   let timestampFormatter;
 
   const data = payload.data;
-  const fd = payload.form_data;
+  const fd = slice.formData;
   // Removing metrics (aggregates) that are strings
   const realMetrics = [];
   for (const k in data.records[0]) {

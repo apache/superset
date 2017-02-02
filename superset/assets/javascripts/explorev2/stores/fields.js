@@ -67,10 +67,10 @@ export const fields = {
     multi: true,
     label: 'Metrics',
     validators: [v.nonEmpty],
+    default: field => field.choices !== null ? [field.choices[0][0]] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
-    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -198,6 +198,7 @@ export const fields = {
   show_markers: {
     type: 'CheckboxField',
     label: 'Show Markers',
+    renderTrigger: true,
     default: false,
     description: 'Show data points as circle markers on the lines',
   },
@@ -423,7 +424,7 @@ export const fields = {
                  'filter below is applied against this column or ' +
                  'expression',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.all_cols : null,
+      choices: (state.datasource) ? state.datasource.granularity_sqla : null,
     }),
   },
 
@@ -729,6 +730,7 @@ export const fields = {
     type: 'SelectField',
     freeForm: true,
     label: 'Y axis format',
+    renderTrigger: true,
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -824,6 +826,7 @@ export const fields = {
   show_brush: {
     type: 'CheckboxField',
     label: 'Range Filter',
+    renderTrigger: true,
     default: false,
     description: 'Whether to display the time range interactive selector',
   },
@@ -866,6 +869,7 @@ export const fields = {
   show_legend: {
     type: 'CheckboxField',
     label: 'Legend',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the legend (toggles)',
   },
@@ -873,6 +877,7 @@ export const fields = {
   x_axis_showminmax: {
     type: 'CheckboxField',
     label: 'X bounds',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the min and max values of the X axis',
   },
@@ -880,6 +885,7 @@ export const fields = {
   rich_tooltip: {
     type: 'CheckboxField',
     label: 'Rich Tooltip',
+    renderTrigger: true,
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
                  'point in time',
@@ -1153,6 +1159,12 @@ export const fields = {
         .concat(state.datasource.filterable_cols) : [],
       datasource: state.datasource,
     }),
+    
+  slice_id: {
+    type: 'HiddenField',
+    label: 'Slice ID',
+    hidden: true,
+    description: 'The id of the active slice',
   },
 };
 export default fields;

@@ -513,3 +513,7 @@ def get_email_address_list(address_string):
         else:
             address_string = [address_string]
     return address_string
+
+def choicify(values):
+    """Takes an iterable and makes an iterable of tuples with it"""
+    return [(v, v) for v in values]
