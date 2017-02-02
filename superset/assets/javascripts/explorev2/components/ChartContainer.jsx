@@ -226,13 +226,12 @@ class ChartContainer extends React.PureComponent {
                   status={CHART_STATUS_MAP[this.props.chartStatus]}
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
-                {this.state.mockSlice &&
-                  <ExploreActionButtons
-                    slice={this.state.mockSlice}
-                    canDownload={this.props.can_download}
-                    query={this.props.queryResponse.query}
-                  />
-                }
+                <ExploreActionButtons
+                  slice={this.state.mockSlice}
+                  canDownload={this.props.can_download}
+                  queryEndpoint={getExploreUrl(
+                    this.props.formData, this.props.datasource_type, 'query')}
+                />
               </div>
             </div>
           }

@@ -1486,6 +1486,19 @@ class Superset(BaseSupersetView):
                 headers=generate_download_headers("csv"),
                 mimetype="application/csv")
 
+        if request.args.get("query") == "true":
+            try:
+                query = viz_obj.get_query()
+            except Exception as e:
+                return Response(
+                    json.dumps({'error': e}),
+                    status=404,
+                    mimetype="application/json")
+            return Response(
+                json.dumps({'query': query}),
+                status=200,
+                mimetype="application/json")
+
         payload = {}
         status = 200
         try:

@@ -12,6 +12,8 @@ export function getExploreUrl(form_data, dummy, endpoint = 'base') {
       return `/superset/explore_json/${params}&csv=true`;
     case 'standalone':
       return `/superset/explore/${params}&standalone=true`;
+    case 'query':
+      return `/superset/explore_json/${params}&query=true`;
     default:
       return `/superset/explore/${params}`;
   }

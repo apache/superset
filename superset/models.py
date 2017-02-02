@@ -1237,7 +1237,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             con=engine
         )
 
-    def query(  # sqla
+    def get_query_str(  # sqla
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -1428,6 +1428,10 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
+        return sql, engine, qry_start_dttm
+
+    def query(self, sql, engine, qry_start_dttm):
+        start_dttm = datetime.now()
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -1436,7 +1440,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         except Exception as e:
             status = QueryStatus.FAILED
             error_message = str(e)
-
+        print(datetime.now() - start_dttm)
         return QueryResult(
             status=status,
             df=df,
@@ -2266,7 +2270,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         return df
 
-    def query(  # druid
+    def get_query_str(  # druid
             self, groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -2459,6 +2463,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             client.groupby(**qry)
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
+        return query_str, client, qry_start_dttm
+
+    def query(query_str, client, qry_start_dttm):
         df = client.export_pandas()
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
