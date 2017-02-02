@@ -38,7 +38,7 @@ export function getFieldsState(state, form_data) {
     if (typeof field.default === 'function') {
       field.default = field.default(field);
     }
-    field.value = (form_data[k] !== undefined) ? form_data[k] : field.default;
+    field.value = form_data[k] !== undefined ? form_data[k] : field.default;
     fieldsState[k] = field;
   });
   return fieldsState;

@@ -8,7 +8,7 @@ require('./parallel_coordinates.css');
 
 function parallelCoordVis(slice, payload) {
   $('#code').attr('rows', '15');
-  const fd = payload.form_data;
+  const fd = slice.formData;
   const data = payload.data;
 
   let cols = fd.metrics;

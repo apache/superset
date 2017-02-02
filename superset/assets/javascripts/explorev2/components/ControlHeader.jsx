@@ -6,14 +6,16 @@ const propTypes = {
   label: PropTypes.string.isRequired,
   description: PropTypes.string,
   validationErrors: PropTypes.array,
+  renderTrigger: PropTypes.bool,
 };
 
 const defaultProps = {
   description: null,
   validationErrors: [],
+  renderTrigger: false,
 };
 
-export default function ControlHeader({ label, description, validationErrors }) {
+export default function ControlHeader({ label, description, validationErrors, renderTrigger }) {
   const hasError = (validationErrors.length > 0);
   return (
     <ControlLabel>
@@ -38,7 +40,25 @@ export default function ControlHeader({ label, description, validationErrors }) 
         </span>
       }
       {description &&
-        <InfoTooltipWithTrigger label={label} tooltip={description} />
+        <span>
+          <InfoTooltipWithTrigger label={label} tooltip={description} />
+          {' '}
+        </span>
+      }
+      {renderTrigger &&
+        <span>
+          <OverlayTrigger
+            placement="right"
+            overlay={
+              <Tooltip id={'rendertrigger-tooltip'}>
+                Takes effect on chart immediatly
+              </Tooltip>
+            }
+          >
+            <i className="fa fa-bolt text-muted" />
+          </OverlayTrigger>
+          {' '}
+        </span>
       }
     </ControlLabel>
   );

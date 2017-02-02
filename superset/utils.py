@@ -529,8 +529,6 @@ def get_email_address_list(address_string):
     return address_string
 
 
-# Forked from the flask_appbuilder.security.decorators
-# TODO(bkyryliuk): contribute it back to FAB
 def has_access(f):
     """
         Use this decorator to enable granular security permissions to your
@@ -538,6 +536,9 @@ def has_access(f):
         associated to users.
 
         By default the permission's name is the methods name.
+
+        Forked from the flask_appbuilder.security.decorators
+        TODO(bkyryliuk): contribute it back to FAB
     """
     if hasattr(f, '_permission_name'):
         permission_str = f._permission_name
@@ -559,3 +560,8 @@ def has_access(f):
             next=request.path))
     f._permission_name = permission_str
     return functools.update_wrapper(wraps, f)
+
+
+def choicify(values):
+    """Takes an iterable and makes an iterable of tuples with it"""
+    return [(v, v) for v in values]

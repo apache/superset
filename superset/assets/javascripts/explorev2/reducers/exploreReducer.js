@@ -64,7 +64,11 @@ export const exploreReducer = function (state, action) {
       field.value = action.value;
       field.validationErrors = action.validationErrors;
       fields[action.fieldName] = field;
-      return Object.assign({}, state, { fields });
+      const changes = { fields };
+      if (field.renderTrigger) {
+        changes.triggerRender = true;
+      }
+      return Object.assign({}, state, changes);
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
       return Object.assign(
@@ -82,12 +86,18 @@ export const exploreReducer = function (state, action) {
           chartStatus: 'loading',
           chartUpdateEndTime: null,
           chartUpdateStartTime: now(),
+          triggerQuery: false,
         });
     },
     [actions.CHART_RENDERING_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
         chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+      });
+    },
+    [actions.TRIGGER_QUERY]() {
+      return Object.assign({}, state, {
+        triggerQuery: true,
       });
     },
     [actions.CHART_UPDATE_FAILED]() {
@@ -120,6 +130,9 @@ export const exploreReducer = function (state, action) {
     [actions.RESET_FIELDS]() {
       const fields = getFieldsState(state, getFormDataFromFields(state.fields));
       return Object.assign({}, state, { fields });
+    },
+    [actions.RENDER_TRIGGERED]() {
+      return Object.assign({}, state, { triggerRender: false });
     },
   };
   if (action.type in actionHandlers) {

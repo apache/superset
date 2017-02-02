@@ -7,8 +7,9 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
-import { getFieldsState } from './stores/store';
 import { getFilters } from './exploreUtils';
+import * as actions from './actions/exploreActions';
+import { getFieldsState } from './stores/store';
 
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
@@ -20,11 +21,10 @@ require('./main.css');
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
 
-import { exploreReducer } from './reducers/exploreReducer';
-const formData = bootstrapData.form_data;
-const fields = getFieldsState(bootstrapData, formData);
-fields.filters.value = getFilters(formData, bootstrapData.datasource_type);
+const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
+
+import { exploreReducer } from './reducers/exploreReducer';
 
 // Initial state
 const bootstrappedState = Object.assign(
@@ -38,9 +38,10 @@ const bootstrappedState = Object.assign(
     isDatasourceMetaLoading: false,
     isStarred: false,
     queryResponse: null,
+    triggerQuery: true,
+    triggerRender: false,
   }
 );
-
 
 const store = createStore(exploreReducer, bootstrappedState,
   compose(applyMiddleware(thunk), initEnhancer(false))

@@ -4,7 +4,7 @@ import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
-import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
+import ExploreActionButtons from './ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
@@ -41,8 +41,10 @@ class ChartContainer extends React.PureComponent {
   }
 
   renderViz() {
+    this.props.actions.renderTriggered();
     const mockSlice = this.getMockedSliceObject();
     this.setState({ mockSlice });
+    console.log(mockSlice);
     try {
       visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
     } catch (e) {
@@ -54,7 +56,8 @@ class ChartContainer extends React.PureComponent {
     if (
         (
           prevProps.queryResponse !== this.props.queryResponse ||
-          prevProps.height !== this.props.height
+          prevProps.height !== this.props.height ||
+          this.props.triggerRender
         ) &&
         !this.props.queryResponse.error
       ) {
@@ -68,6 +71,7 @@ class ChartContainer extends React.PureComponent {
       viewSqlQuery: this.props.queryResponse.query,
       containerId: props.containerId,
       selector: this.state.selector,
+      formData: this.props.formData,
       container: {
         html: (data) => {
           // this should be a callback to clear the contents of the slice container
@@ -211,7 +215,7 @@ class ChartContainer extends React.PureComponent {
                   startTime={this.props.chartUpdateStartTime}
                   endTime={this.props.chartUpdateEndTime}
                   isRunning={this.props.chartStatus === 'loading'}
-                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  status={CHART_STATUS_MAP[this.props.chartStatus]}
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
                 {this.state.mockSlice &&
@@ -254,6 +258,7 @@ function mapStateToProps(state) {
     slice: state.slice,
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
+    triggerRender: state.triggerRender,
   };
 }
 

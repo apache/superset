@@ -8,8 +8,9 @@ const directedForceVis = function (slice, json) {
   const div = d3.select(slice.selector);
   const width = slice.width();
   const height = slice.height() - 25;
-  const linkLength = json.form_data.link_length || 200;
-  const charge = json.form_data.charge || -500;
+  const fd = slice.formData;
+  const linkLength = fd.link_length || 200;
+  const charge = fd.charge || -500;
 
   const links = json.data;
   const nodes = {};

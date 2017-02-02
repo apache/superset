@@ -6,7 +6,7 @@ import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
-import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
+import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
 
 const propTypes = {
@@ -15,6 +15,7 @@ const propTypes = {
   chartStatus: React.PropTypes.string.isRequired,
   fields: React.PropTypes.object.isRequired,
   form_data: React.PropTypes.object.isRequired,
+  triggerQuery: React.PropTypes.bool.isRequired,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -27,10 +28,13 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
-    window.addEventListener('resize', this.handleResize.bind(this));
-    this.runQuery();
-    this.props.actions.resetFields();
     this.props.actions.fetchDatasources();
+    window.addEventListener('resize', this.handleResize.bind(this));
+  }
+  componentDidUpdate() {
+    if (this.props.triggerQuery) {
+      this.runQuery();
+    }
   }
 
   componentWillReceiveProps(nextProps) {
@@ -39,7 +43,7 @@ class ExploreViewContainer extends React.Component {
         nextProps.fields.datasource.value !== this.props.fields.datasource.value ||
         nextProps.fields.viz_type.value !== this.props.fields.viz_type.value) {
       this.props.actions.resetFields();
-      this.onQuery();
+      this.props.actions.triggerQuery();
     }
   }
 
@@ -48,14 +52,15 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery() {
+    // remove alerts when query
+    this.props.actions.removeControlPanelAlert();
+    this.props.actions.removeChartAlert();
+
     this.runQuery();
     history.pushState(
       {},
       document.title,
       getExploreUrl(this.props.form_data));
-    // remove alerts when query
-    this.props.actions.removeControlPanelAlert();
-    this.props.actions.removeChartAlert();
   }
 
   getHeight() {
@@ -133,7 +138,6 @@ class ExploreViewContainer extends React.Component {
               actions={this.props.actions}
               form_data={this.props.form_data}
               datasource_type={this.props.datasource_type}
-              onQuery={this.onQuery.bind(this)}
             />
           </div>
           <div className="col-sm-8">
@@ -160,6 +164,7 @@ function mapStateToProps(state) {
     datasource_type: state.datasource_type,
     fields: state.fields,
     form_data,
+    triggerQuery: state.triggerQuery,
   };
 }
 
