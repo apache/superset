@@ -1378,7 +1378,12 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         where_clause_and = []
         having_clause_and = []
-        for col, op, eq in filter:
+        for flt in filter:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = ','.join(flt['val'])
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 split = FilterPattern.split(eq)[1::2]
@@ -2521,7 +2526,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
     @staticmethod
     def get_filters(raw_filters):
         filters = None
-        for col, op, eq in raw_filters:
+        for flt in raw_filters:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
             cond = None
             if op == '==':
                 cond = Dimension(col) == eq
@@ -2574,7 +2584,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             '<=': '>'
         }
 
-        for col, op, eq in raw_filters:
+        for flt in raw_filters:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
             cond = None
             if op in ['==', '>', '<']:
                 cond = self._get_having_obj(col, op, eq)

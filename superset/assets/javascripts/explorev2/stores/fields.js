@@ -1148,6 +1148,18 @@ export const fields = {
       datasource: state.datasource,
     }),
   },
+
+  having_filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.metrics_combo
+        .concat(state.datasource.filterable_cols) : [],
+      datasource: state.datasource,
+    }),
+    
   slice_id: {
     type: 'HiddenField',
     label: 'Slice ID',

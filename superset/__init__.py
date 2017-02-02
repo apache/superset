@@ -39,6 +39,7 @@ def cast_form_data(form_data):
         d[k] = v
     return d
 
+
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
