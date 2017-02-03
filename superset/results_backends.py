@@ -35,7 +35,7 @@ class S3Cache(BaseCache):
         self.default_timeout = default_timeout
 
         self.s3_client = boto3.client('s3')
-        self.bucket = self.s3_resource.Bucket(config.get('S3_CACHE_BUCKET'))
+        self.bucket = config.get('S3_CACHE_BUCKET')
         self.key_prefix = config.get('S3_CACHE_KEY_PREFIX')
 
     def get(self, key):
@@ -140,7 +140,7 @@ class S3Cache(BaseCache):
     def _key_exists(self, key):
         """Determine whether the given key exists in the bucket."""
         try:
-            response = self.s3_client.head_object(
+            self.s3_client.head_object(
                 Bucket=self.bucket,
                 Key=self._full_s3_key(key)
             )
