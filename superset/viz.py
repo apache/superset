@@ -149,7 +149,7 @@ class BaseViz(object):
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
         )
-        limit = int(form_data.get("limit", 0))
+        limit = int(form_data.get("limit") or 0)
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
