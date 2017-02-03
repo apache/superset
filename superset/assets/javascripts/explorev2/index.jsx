@@ -7,7 +7,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
-import { getFieldsState } from './stores/store';
+import { getFieldsState, getFormDataFromFields } from './stores/store';
 
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
@@ -32,6 +32,7 @@ const bootstrappedState = Object.assign(
     chartUpdateStartTime: now(),
     dashboards: [],
     fields,
+    latestQueryFormData: getFormDataFromFields(fields),
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,

@@ -1440,7 +1440,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         except Exception as e:
             status = QueryStatus.FAILED
             error_message = str(e)
-        print(datetime.now() - start_dttm)
+
         return QueryResult(
             status=status,
             df=df,
