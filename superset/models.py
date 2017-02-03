@@ -1376,7 +1376,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 values = [types.strip() for types in splitted]
                 # attempt to get the values type if they are not in quotes
                 if not col_obj.is_string:
-                    values = [ast.literal_eval(v) for v in values]
+                    try:
+                        values = [ast.literal_eval(v) for v in values]
+                    except Exception as e:
+                        logging.info(utils.error_msg_from_exception(e))
+                        values = [v.replace("'", '').strip() for v in values]
                 else:
                     values = [v.replace("'", '').strip() for v in values]
                 cond = col_obj.sqla_col.in_(values)
