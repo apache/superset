@@ -48,6 +48,16 @@ export function fetchDatasourcesFailed(error) {
   return { type: FETCH_DATASOURCES_FAILED, error };
 }
 
+export const RESET_FIELDS = 'RESET_FIELDS';
+export function resetFields() {
+  return { type: RESET_FIELDS };
+}
+
+export const TRIGGER_QUERY = 'TRIGGER_QUERY';
+export function triggerQuery() {
+  return { type: TRIGGER_QUERY };
+}
+
 export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false) {
   return function (dispatch) {
     dispatch(fetchDatasourceStarted());
@@ -221,16 +231,6 @@ export function runQuery(formData, datasourceType) {
       dispatch(chartUpdateFailed(err.responseJSON));
     });
   };
-}
-
-export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetFields() {
-  return { type: RESET_FIELDS };
-}
-
-export const TRIGGER_QUERY = 'TRIGGER_QUERY';
-export function triggerQuery() {
-  return { type: TRIGGER_QUERY };
 }
 
 export const RENDER_TRIGGERED = 'RENDER_TRIGGERED';

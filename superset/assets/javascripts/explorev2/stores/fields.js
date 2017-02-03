@@ -417,9 +417,7 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: field => {
-      return field.choices.length > 0 ? field.choices[0][0] : null;
-    },
+    default: field => field.choices.length > 0 ? field.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
@@ -1034,7 +1032,7 @@ export const fields = {
                  'Either a numerical column or `Auto`, which scales the point based ' +
                  'on the largest cluster',
     mapStateToProps: (state) => ({
-      // choices: state.fields.point_radius.choices,
+      choices: [].concat(state.datasource.all_cols, [['Auto', 'Auto']]),
     }),
   },
 
