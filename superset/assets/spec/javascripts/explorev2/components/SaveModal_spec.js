@@ -14,10 +14,8 @@ const defaultProps = {
     saveSlice: sinon.spy(),
   },
   form_data: defaultFormData,
-  datasource_id: 1,
-  datasource_name: 'birth_names',
-  datasource_type: 'table',
   user_id: 1,
+  slice: {},
 };
 
 describe('SaveModal', () => {

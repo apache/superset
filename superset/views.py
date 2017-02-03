@@ -1605,7 +1605,11 @@ class Superset(BaseSupersetView):
         action = request.args.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                request.args, slc, slice_add_perm, slice_edit_perm)
+                request.args,
+                slc, slice_add_perm,
+                slice_edit_perm,
+                datasource_id,
+                datasource_type)
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
         standalone = request.args.get("standalone") == "true"
@@ -1676,37 +1680,21 @@ class Superset(BaseSupersetView):
         return json_success(obj.get_values_for_column(column))
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_edit_perm):
+            self, args, slc, slice_add_perm, slice_edit_perm,
+            datasource_id, datasource_type):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-
-        # TODO use form processing form wtforms
-        d = args.to_dict(flat=False)
-        del d['action']
-        if 'previous_viz_type' in d:
-            del d['previous_viz_type']
-
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns',
-                   'mapbox_label', 'order_by_cols')
-        for k in d:
-            v = d.get(k)
-            if k in as_list and not isinstance(v, list):
-                d[k] = [v] if v else []
-            if k not in as_list and isinstance(v, list):
-                d[k] = v[0]
-
-        datasource_type = args.get('datasource_type')
-        datasource_id = args.get('datasource_id')
+        form_data = self.get_form_data()
 
         if action in ('saveas'):
-            if 'slice_id' in d:
-                d.pop('slice_id')  # don't save old slice_id
+            if 'slice_id' in form_data:
+                form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
-        slc.params = json.dumps(d, indent=4, sort_keys=True)
+        slc.params = json.dumps(form_data)
         slc.datasource_name = args.get('datasource_name')
-        slc.viz_type = args.get('viz_type')
+        slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
         slc.slice_name = slice_name
@@ -1745,13 +1733,9 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if request.args.get('goto_dash') == 'true':
-            if request.args.get('V2') == 'true':
-                return dash.url
-            return redirect(dash.url)
+            return dash.url
         else:
-            if request.args.get('V2') == 'true':
-                return slc.slice_url
-            return redirect(slc.slice_url)
+            return slc.slice_url
 
     def save_slice(self, slc):
         session = db.session()
