@@ -26,8 +26,8 @@ class S3Cache(BaseCache):
     Adapted from examples in
     https://github.com/pallets/werkzeug/blob/master/werkzeug/contrib/cache.py.
 
-    Timeout parameters are ignored as S3 doesn't support key-level expiration. To expire
-    keys, set up an expiration policy as described in
+    Timeout parameters are ignored as S3 doesn't support key-level expiration.
+    To expire keys, set up an expiration policy as described in
     https://aws.amazon.com/blogs/aws/amazon-s3-object-expiration/.
     """
 
@@ -50,7 +50,11 @@ class S3Cache(BaseCache):
             value_file = StringIO.StringIO()
 
             try:
-                self.s3_client.download_fileobj(self.bucket, self._full_s3_key(key), value_file)
+                self.s3_client.download_fileobj(
+                    self.bucket,
+                    self._full_s3_key(key),
+                    value_file
+                )
             except Exception as e:
                 logging.warn('Exception while trying to get %s: %s', key, e)
                 return None
@@ -102,7 +106,11 @@ class S3Cache(BaseCache):
 
         try:
             value_file.seek(0)
-            self.s3_client.upload_fileobj(value_file, self.bucket, self._full_s3_key(key))
+            self.s3_client.upload_fileobj(
+                value_file,
+                self.bucket,
+                self._full_s3_key(key)
+            )
         except Exception as e:
             logging.warn('Exception while trying to set %s: %s', key, e)
             return False
