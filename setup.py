@@ -42,6 +42,7 @@ setup(
     zip_safe=False,
     scripts=['superset/bin/superset'],
     install_requires=[
+        'boto3==1.4.4',
         'celery==3.1.23',
         'cryptography==1.5.3',
         'flask-appbuilder==1.8.1',
