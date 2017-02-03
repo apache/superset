@@ -41,6 +41,7 @@ class S3Cache(BaseCache):
 
     def get(self, key):
         """Look up key in the cache and return the value for it.
+
         :param key: the key to be looked up.
         :returns: The value if it exists and is readable, else ``None``.
         """
@@ -64,6 +65,7 @@ class S3Cache(BaseCache):
 
     def delete(self, key):
         """Delete `key` from the cache.
+
         :param key: the key to delete.
         :returns: Whether the key existed and has been deleted.
         :rtype: boolean
@@ -72,7 +74,7 @@ class S3Cache(BaseCache):
             return False
         else:
             try:
-                response = self.s3_client.delete_objects(
+                self.s3_client.delete_objects(
                     Bucket=self.bucket,
                     Delete={
                         'Objects': [
@@ -89,8 +91,10 @@ class S3Cache(BaseCache):
                 return True
 
     def set(self, key, value, timeout=None):
-        """Add a new key/value to the cache (overwrites value, if key already
-        exists in the cache).
+        """Add a new key/value to the cache.
+
+        If the key already exists, the existing value is overwritten.
+
         :param key: the key to set
         :param value: the value for the key
         :param timeout: the cache timeout for the key in seconds (if not
@@ -118,8 +122,8 @@ class S3Cache(BaseCache):
             return True
 
     def add(self, key, value, timeout=None):
-        """Works like :meth:`set` but does not overwrite the values of already
-        existing keys.
+        """Works like :meth:`set` but does not overwrite existing values.
+
         :param key: the key to set
         :param value: the value for the key
         :param timeout: the cache timeout for the key in seconds (if not
@@ -135,8 +139,9 @@ class S3Cache(BaseCache):
             return self.set(key, value, timeout=timeout)
 
     def clear(self):
-        """Clears the cache.  Keep in mind that not all caches support
-        completely clearing the cache.
+        """Clears the cache.
+
+        Keep in mind that not all caches support completely clearing the cache.
         :returns: Whether the cache has been cleared.
         :rtype: boolean
         """
@@ -153,7 +158,7 @@ class S3Cache(BaseCache):
                 Bucket=self.bucket,
                 Key=self._full_s3_key(key)
             )
-        except Exception as e:
+        except Exception:
             # head_object throws an exception when object doesn't exist
             return False
         else:
