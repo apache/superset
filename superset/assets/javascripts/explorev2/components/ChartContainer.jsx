@@ -67,6 +67,10 @@ class ChartContainer extends React.PureComponent {
 
   getMockedSliceObject() {
     const props = this.props;
+    const getHeight = () => {
+      const headerHeight = this.props.standalone ? 0 : 100;
+      return parseInt(props.height, 10) - headerHeight;
+    };
     return {
       viewSqlQuery: this.props.queryResponse.query,
       containerId: props.containerId,
@@ -83,7 +87,7 @@ class ChartContainer extends React.PureComponent {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(props.height, 10) - 100,
+        height: getHeight,
         show: () => { },
         get: (n) => ($(this.state.selector).get(n)),
         find: (classname) => ($(this.state.selector).find(classname)),
@@ -91,7 +95,7 @@ class ChartContainer extends React.PureComponent {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(props.height, 10) - 100,
+      height: getHeight,
 
       setFilter: () => {
         // set filter according to data in store

@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import React from 'react';
+import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
@@ -11,12 +11,14 @@ import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromFields } from '../stores/store';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  datasource_type: React.PropTypes.string.isRequired,
-  chartStatus: React.PropTypes.string.isRequired,
-  fields: React.PropTypes.object.isRequired,
-  form_data: React.PropTypes.object.isRequired,
-  triggerQuery: React.PropTypes.bool.isRequired,
+  actions: PropTypes.object.isRequired,
+  datasource_type: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string.isRequired,
+  fields: PropTypes.object.isRequired,
+  forcedHeight: PropTypes.string.isRequired,
+  form_data: PropTypes.object.isRequired,
+  standalone: PropTypes.bool.isRequired,
+  triggerQuery: PropTypes.bool.isRequired,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -66,7 +68,10 @@ class ExploreViewContainer extends React.Component {
   }
 
   getHeight() {
-    const navHeight = 90;
+    if (this.props.forcedHeight) {
+      return this.props.forcedHeight + 'px';
+    }
+    const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
   }
 
@@ -172,6 +177,7 @@ function mapStateToProps(state) {
     form_data,
     standalone: state.standalone,
     triggerQuery: state.triggerQuery,
+    forcedHeight: state.forced_height,
   };
 }
 

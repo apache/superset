@@ -1573,6 +1573,7 @@ class Superset(BaseSupersetView):
             "slice": slc.data if slc else None,
             "standalone": standalone,
             "user_id": user_id,
+            "forced_height": request.args.get('height'),
         }
         table_name = datasource.table_name \
             if datasource_type == 'table' \
