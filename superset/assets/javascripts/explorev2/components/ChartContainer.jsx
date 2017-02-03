@@ -9,6 +9,7 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
+import { getFormDataFromFields } from '../stores/store';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -176,6 +177,9 @@ class ChartContainer extends React.PureComponent {
   }
 
   render() {
+    if (this.props.standalone) {
+      return this.renderChart();
+    }
     return (
       <div className="chart-container">
         <Panel
@@ -238,10 +242,7 @@ class ChartContainer extends React.PureComponent {
 ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const formData = {};
-  Object.keys(state.fields).forEach(f => {
-    formData[f] = state.fields[f].value;
-  });
+  const formData = getFormDataFromFields(state.fields);
   return {
     alert: state.chartAlert,
     can_download: state.can_download,
@@ -255,6 +256,7 @@ function mapStateToProps(state) {
     isStarred: state.isStarred,
     queryResponse: state.queryResponse,
     slice: state.slice,
+    standalone: state.standalone,
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
     triggerRender: state.triggerRender,
