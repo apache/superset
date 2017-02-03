@@ -35,6 +35,7 @@ class S3Cache(BaseCache):
         self.default_timeout = default_timeout
 
         self.s3_client = boto3.client('s3')
+
         self.bucket = config.get('S3_CACHE_BUCKET')
         self.key_prefix = config.get('S3_CACHE_KEY_PREFIX')
 

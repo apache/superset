@@ -1,4 +1,5 @@
 import cPickle
+
 import mock
 
 from superset import app, results_backends
@@ -44,7 +45,7 @@ class ResultsBackendsTests(SupersetTestCase):
         self.assertEquals(call_args[1], 'test-bucket')
         self.assertEquals(call_args[2], 'test-prefix/test-key')
 
-    def test_s3_cache_exception(self):
+    def test_s3_cache_set_exception(self):
         self.mock_s3_client.upload_fileobj.side_effect = Exception('Something bad happened!')
         result = self.s3_cache.set('test-key', 'test-value')
 
