@@ -21,12 +21,13 @@ export function getFieldsState(state, form_data) {
 
   // Getting a list of active field names for the current viz
   const fieldNames = [];
-  sectionsToRender(form_data.viz_type, state.datasource.type).forEach(
+  const formData = Object.assign({}, form_data);
+  sectionsToRender(formData.viz_type, state.datasource.type).forEach(
     section => section.fieldSetRows.forEach(
       fsr => fsr.forEach(
         f => fieldNames.push(f))));
 
-  const viz = visTypes[form_data.viz_type];
+  const viz = visTypes[formData.viz_type];
   const fieldOverrides = viz.fieldOverrides || {};
   const fieldsState = {};
   fieldNames.forEach((k) => {
@@ -37,19 +38,20 @@ export function getFieldsState(state, form_data) {
     }
 
     // If the value is not valid anymore based on choices, clear it
-    if (field.choices && k !== 'datasource' && form_data[k]) {
+    if (field.choices && k !== 'datasource' && formData[k]) {
       const choiceValues = field.choices.map(c => c[0]);
-      if (field.multi && form_data[k].length > 0 && choiceValues.indexOf(form_data[k][0]) < 0) {
-        delete form_data[k];
-      } else if (!field.multi && choiceValues.indexOf(form_data[k]) < 0) {
+      if (field.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
+        delete formData[k];
+      } else if (!field.multi && choiceValues.indexOf(formData[k]) < 0) {
         //delete form_data[k];
+        // TODO what's not working here?
       }
     }
 
     if (typeof field.default === 'function') {
       field.default = field.default(field);
     }
-    field.value = form_data[k] !== undefined ? form_data[k] : field.default;
+    field.value = formData[k] !== undefined ? formData[k] : field.default;
     fieldsState[k] = field;
   });
   return fieldsState;
