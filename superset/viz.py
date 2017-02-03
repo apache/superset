@@ -106,9 +106,8 @@ class BaseViz(object):
                 timestamp_format = dttm_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
-        query_str, engine, start_dttm = self.datasource.get_query_str(**query_obj)
-        self.query = query_str
-        self.results = self.datasource.query(query_str, engine, start_dttm)
+        self.results = self.datasource.query(query_obj)
+        self.query = self.results.query
         self.status = self.results.status
         self.error_message = self.results.error_message
 
@@ -311,11 +310,6 @@ class BaseViz(object):
         df = self.get_df()
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
-
-    def get_query(self):
-        query_obj = self.query_obj()
-        query_str, engine, start_dttm = self.datasource.get_query_str(**query_obj)
-        return query_str
 
     def get_values_for_column(self, column):
         """
