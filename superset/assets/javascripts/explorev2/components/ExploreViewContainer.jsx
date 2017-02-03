@@ -138,7 +138,6 @@ class ExploreViewContainer extends React.Component {
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}
           form_data={this.props.form_data}
-          datasource_type={this.props.datasource_type}
         />
       }
         <div className="row">
