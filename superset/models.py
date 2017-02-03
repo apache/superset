@@ -1379,7 +1379,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         where_clause_and = []
         having_clause_and = []
         for flt in filter:
-            if not all(s and flt.get(s) in flt for s in ['col', 'op', 'val']):
+            if not all([flt.get(s) for s in ['col', 'op', 'val']]):
                 continue
             col = flt['col']
             op = flt['op']

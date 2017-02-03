@@ -15,7 +15,7 @@ const propTypes = {
   datasource_type: PropTypes.string.isRequired,
   chartStatus: PropTypes.string.isRequired,
   fields: PropTypes.object.isRequired,
-  forcedHeight: PropTypes.string.isRequired,
+  forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
