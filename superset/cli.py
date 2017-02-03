@@ -144,8 +144,10 @@ def refresh_druid(datasource, merge):
     session.commit()
 
 
-@manager.command
-def worker():
+@manager.option(
+    '-w', '--workers', default=config.get("SUPERSET_CELERY_WORKERS", 32),
+    help="Number of celery server workers to fire up")
+def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
     # celery -A tasks worker --loglevel=info
     print("Starting SQL Celery worker.")
@@ -159,5 +161,6 @@ def worker():
         'broker': config.get('CELERY_CONFIG').BROKER_URL,
         'loglevel': 'INFO',
         'traceback': True,
+        'concurrency': int(workers),
     }
     c_worker.run(**options)
