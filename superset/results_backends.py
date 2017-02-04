@@ -8,9 +8,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 try:
-   import cPickle as pickle
+    import cPickle as pickle
 except:
-   import pickle
+    import pickle
 
 import logging
 import StringIO
