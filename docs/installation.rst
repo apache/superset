@@ -80,7 +80,7 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user
+    # Create an admin user (you will be prompted to set username, first and last name before setting a password)
     fabmanager create-admin --app superset
 
     # Initialize the database
@@ -373,6 +373,6 @@ your environment.::
     # assuming $SUPERSET_HOME as the root of the repo
     cd $SUPERSET_HOME/superset/assets
     npm install
-    npm run prod
+    npm run build
     cd $SUPERSET_HOME
     python setup.py install

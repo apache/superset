@@ -9,6 +9,11 @@ Organizations
  - [Shopkick] (https://www.shopkick.com)
  - [Amino] (https://amino.com)
  - [Faasos] (http://faasos.com/)
+ - [Clark.de] (http://clark.de/)
+ - [Yahoo!] (www.yahoo.com)
+ - [Digit Game Studios] (https://www.digitgaming.com/)
+ - [Brilliant.org] (https://brilliant.org/)
+ - [Qunar] (https://www.qunar.com/)
 
 Projects
 ----------

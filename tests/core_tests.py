@@ -74,15 +74,19 @@ class CoreTests(SupersetTestCase):
             '/superset/slice/{}/?standalone=true'.format(slc.id))
         assert 'List Roles' not in resp
 
-    def test_endpoints_for_a_slice(self):
+    def test_slice_json_endpoint(self):
+        self.login(username='admin')
+        slc = self.get_slice("Girls", db.session)
+
+        resp = self.get_resp(slc.viz.json_endpoint)
+        assert '"Jennifer"' in resp
+
+    def test_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
         resp = self.get_resp(slc.viz.csv_endpoint)
         assert 'Jennifer,' in resp
-
-        resp = self.get_resp(slc.viz.json_endpoint)
-        assert '"Jennifer"' in resp
 
     def test_admin_only_permissions(self):
         def assert_admin_permission_in(role_name, assert_func):
@@ -278,6 +282,32 @@ class CoreTests(SupersetTestCase):
         resp = self.client.post('/r/shortner/', data=data)
         assert '/r/' in resp.data.decode('utf-8')
 
+    def test_kv(self):
+        self.logout()
+        self.login(username='admin')
+
+        try:
+            resp = self.client.post('/kv/store/', data=dict())
+        except Exception as e:
+            self.assertRaises(TypeError)
+
+        value = json.dumps({'data': 'this is a test'})
+        resp = self.client.post('/kv/store/', data=dict(data=value))
+        self.assertEqual(resp.status_code, 200)
+        kv = db.session.query(models.KeyValue).first()
+        kv_value = kv.value
+        self.assertEqual(json.loads(value), json.loads(kv_value))
+
+        resp = self.client.get('/kv/{}/'.format(kv.id))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(json.loads(value),
+            json.loads(resp.data.decode('utf-8')))
+
+        try:
+            resp = self.client.get('/kv/10001/')
+        except Exception as e:
+            self.assertRaises(TypeError)
+
     def test_save_dash(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
@@ -379,7 +409,7 @@ class CoreTests(SupersetTestCase):
             WHERE first_name='admin'
         """
         client_id = "{}".format(random.getrandbits(64))[:10]
-        self.run_sql(sql, client_id)
+        self.run_sql(sql, client_id, raise_on_error=True)
 
         resp = self.get_resp('/superset/csv/{}'.format(client_id))
         data = csv.reader(io.StringIO(resp))
@@ -492,6 +522,7 @@ class CoreTests(SupersetTestCase):
 
     def test_table_metadata(self):
         maindb = self.get_main_database(db.session)
+        backend = maindb.backend
         data = self.get_json_resp(
             "/superset/table/{}/ab_user/null/".format(maindb.id))
         self.assertEqual(data['name'], 'ab_user')
@@ -499,7 +530,6 @@ class CoreTests(SupersetTestCase):
         assert data.get('selectStar').startswith('SELECT')
 
         # Engine specific tests
-        backend = maindb.backend
         if backend in ('mysql', 'postgresql'):
             self.assertEqual(data.get('primaryKey').get('type'), 'pk')
             self.assertEqual(

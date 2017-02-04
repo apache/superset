@@ -25,7 +25,6 @@ const bootstrappedState = Object.assign(
   initialState(bootstrapData.viz.form_data.viz_type, bootstrapData.datasource_type), {
     can_edit: bootstrapData.can_edit,
     can_download: bootstrapData.can_download,
-    filter_select: bootstrapData.filter_select,
     datasources: bootstrapData.datasources,
     datasource_type: bootstrapData.datasource_type,
     viz: bootstrapData.viz,
@@ -33,6 +32,7 @@ const bootstrappedState = Object.assign(
     chartUpdateStartTime: now(),
     chartUpdateEndTime: null,
     chartStatus: 'loading',
+    queryResponse: null,
   }
 );
 bootstrappedState.viz.form_data.datasource = parseInt(bootstrapData.datasource_id, 10);
@@ -40,7 +40,7 @@ bootstrappedState.viz.form_data.datasource_name = bootstrapData.datasource_name;
 
 function parseFilters(form_data, prefix = 'flt') {
   const filters = [];
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i <= 10; i++) {
     if (form_data[`${prefix}_col_${i}`] && form_data[`${prefix}_op_${i}`]) {
       filters.push({
         prefix,

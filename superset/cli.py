@@ -28,6 +28,43 @@ def init():
 
 
 @manager.option(
+    '-d', '--debug', action='store_true',
+    help="Start the web server in debug mode")
+@manager.option(
+    '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
+    help="Specify the address to which to bind the web server")
+@manager.option(
+    '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
+    help="Specify the port on which to run the web server")
+@manager.option(
+    '-w', '--workers', default=config.get("SUPERSET_WORKERS", 2),
+    help="Number of gunicorn web server workers to fire up")
+@manager.option(
+    '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
+    help="Specify the timeout (seconds) for the gunicorn web server")
+def runserver(debug, address, port, timeout, workers):
+    """Starts a Superset web server"""
+    debug = debug or config.get("DEBUG")
+    if debug:
+        app.run(
+            host='0.0.0.0',
+            port=int(port),
+            threaded=True,
+            debug=True)
+    else:
+        cmd = (
+            "gunicorn "
+            "-w {workers} "
+            "--timeout {timeout} "
+            "-b {address}:{port} "
+            "--limit-request-line 0 "
+            "--limit-request-field_size 0 "
+            "superset:app").format(**locals())
+        print("Starting server with command: " + cmd)
+        Popen(cmd, shell=True).wait()
+
+
+@manager.option(
     '-v', '--verbose', action='store_true',
     help="Show extra information")
 def version(verbose):
@@ -107,8 +144,10 @@ def refresh_druid(datasource, merge):
     session.commit()
 
 
-@manager.command
-def worker():
+@manager.option(
+    '-w', '--workers', default=config.get("SUPERSET_CELERY_WORKERS", 32),
+    help="Number of celery server workers to fire up")
+def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
     # celery -A tasks worker --loglevel=info
     print("Starting SQL Celery worker.")
@@ -122,5 +161,6 @@ def worker():
         'broker': config.get('CELERY_CONFIG').BROKER_URL,
         'loglevel': 'INFO',
         'traceback': True,
+        'concurrency': int(workers),
     }
     c_worker.run(**options)

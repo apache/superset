@@ -1,5 +1,4 @@
 // JS
-const $ = require('jquery');
 import d3 from 'd3';
 
 import React from 'react';
@@ -109,41 +108,29 @@ class FilterBox extends React.Component {
 FilterBox.propTypes = propTypes;
 FilterBox.defaultProps = defaultProps;
 
-function filterBox(slice) {
+function filterBox(slice, payload) {
   const d3token = d3.select(slice.selector);
+  d3token.selectAll('*').remove();
 
-  const refresh = function () {
-    d3token.selectAll('*').remove();
-
-    // filter box should ignore the dashboard's filters
-    const url = slice.jsonEndpoint({ extraFilters: false });
-    $.getJSON(url, (payload) => {
-      const fd = payload.form_data;
-      const filtersChoices = {};
-      // Making sure the ordering of the fields matches the setting in the
-      // dropdown as it may have been shuffled while serialized to json
-      payload.form_data.groupby.forEach((f) => {
-        filtersChoices[f] = payload.data[f];
-      });
-      ReactDOM.render(
-        <FilterBox
-          filtersChoices={filtersChoices}
-          onChange={slice.setFilter}
-          showDateFilter={fd.date_filter}
-          origSelectedValues={slice.getFilters() || {}}
-        />,
-        document.getElementById(slice.containerId)
-      );
-      slice.done(payload);
-    })
-    .fail(function (xhr) {
-      slice.error(xhr.responseText, xhr);
-    });
-  };
-  return {
-    render: refresh,
-    resize: () => {},
-  };
+  // filter box should ignore the dashboard's filters
+  // TODO FUCK
+  // const url = slice.jsonEndpoint({ extraFilters: false });
+  const fd = payload.form_data;
+  const filtersChoices = {};
+  // Making sure the ordering of the fields matches the setting in the
+  // dropdown as it may have been shuffled while serialized to json
+  payload.form_data.groupby.forEach((f) => {
+    filtersChoices[f] = payload.data[f];
+  });
+  ReactDOM.render(
+    <FilterBox
+      filtersChoices={filtersChoices}
+      onChange={slice.setFilter}
+      showDateFilter={fd.date_filter}
+      origSelectedValues={slice.getFilters() || {}}
+    />,
+    document.getElementById(slice.containerId)
+  );
 }
 
 module.exports = filterBox;

@@ -9,7 +9,7 @@ const propTypes = {
 function FieldSetRow(props) {
   const colSize = NUM_COLUMNS / props.fields.length;
   return (
-    <div className="row space-2">
+    <div className="row space-1">
       {props.fields.map((field, i) => (
         <div className={`col-lg-${colSize} col-xs-12`} key={i} >
           {field}

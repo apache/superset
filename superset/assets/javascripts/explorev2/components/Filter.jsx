@@ -1,124 +1,125 @@
-import React from 'react';
+const $ = window.$ = require('jquery');
+import React, { PropTypes } from 'react';
 import Select from 'react-select';
-import { Button } from 'react-bootstrap';
+import { Button, Row, Col } from 'react-bootstrap';
 import SelectField from './SelectField';
 
 const propTypes = {
-  actions: React.PropTypes.object.isRequired,
-  filterColumnOpts: React.PropTypes.array,
-  prefix: React.PropTypes.string,
-  filter: React.PropTypes.object.isRequired,
-  renderFilterSelect: React.PropTypes.bool,
-  datasource_type: React.PropTypes.string.isRequired,
-  datasource_id: React.PropTypes.number.isRequired,
+  choices: PropTypes.array,
+  opChoices: PropTypes.array,
+  changeFilter: PropTypes.func,
+  removeFilter: PropTypes.func,
+  filter: PropTypes.object.isRequired,
+  datasource: PropTypes.object,
 };
 
 const defaultProps = {
-  filterColumnOpts: [],
-  prefix: 'flt',
+  changeFilter: () => {},
+  removeFilter: () => {},
+  choices: [],
+  datasource: null,
 };
 
 export default class Filter extends React.Component {
-  constructor(props) {
-    super(props);
-    const opChoices = this.props.prefix === 'flt' ?
-      ['in', 'not in'] : ['==', '!=', '>', '<', '>=', '<='];
-    this.state = {
-      opChoices,
-    };
-  }
-  componentWillMount() {
-    if (this.props.filter.col) {
-      this.props.actions.fetchFilterValues(
-        this.props.datasource_type,
-        this.props.datasource_id,
-        this.props.filter,
-        this.props.filter.col);
+  fetchFilterValues(col) {
+    if (!this.props.datasource) {
+      return;
+    }
+    const datasource = this.props.datasource;
+    let choices = [];
+    if (col) {
+      $.ajax({
+        type: 'GET',
+        url: `/superset/filter/${datasource.type}/${datasource.id}/${col}/`,
+        success: (data) => {
+          choices = Object.keys(data).map((k) =>
+            ([`'${data[k]}'`, `'${data[k]}'`]));
+          this.props.changeFilter('choices', choices);
+        },
+      });
     }
   }
-  changeCol(filter, colOpt) {
-    const val = (colOpt) ? colOpt.value : null;
-    this.props.actions.changeFilter(filter, 'col', val);
-    if (val) {
-      this.props.actions.fetchFilterValues(
-        this.props.datasource_type, this.props.datasource_id, filter, val);
+  changeFilter(field, event) {
+    let value = event;
+    if (event && event.target) {
+      value = event.target.value;
     }
-  }
-  changeOp(filter, opOpt) {
-    const val = (opOpt) ? opOpt.value : null;
-    this.props.actions.changeFilter(filter, 'op', val);
-  }
-  changeValue(filter, event) {
-    this.props.actions.changeFilter(filter, 'value', event.target.value);
-  }
-  changeSelectValue(filter, name, value) {
-    this.props.actions.changeFilter(filter, 'value', value);
+    if (event && event.value) {
+      value = event.value;
+    }
+    this.props.changeFilter(field, value);
+    if (field === 'col' && value !== null && this.props.datasource.filter_select) {
+      this.fetchFilterValues(value);
+    }
   }
   removeFilter(filter) {
-    this.props.actions.removeFilter(filter);
+    this.props.removeFilter(filter);
   }
-  renderFilterFormField() {
-    if (this.props.renderFilterSelect) {
+  renderFilterFormField(filter) {
+    const datasource = this.props.datasource;
+    if (datasource && datasource.filter_select) {
+      if (!filter.choices) {
+        this.fetchFilterValues(filter.col);
+      }
       return (
         <SelectField
           multi
           freeForm
           name="filter-value"
-          value={this.props.filter.value}
-          choices={this.props.filter.choices ? this.props.filter.choices : []}
-          onChange={this.changeSelectValue.bind(this, this.props.filter)}
+          value={filter.value}
+          choices={filter.choices}
+          onChange={this.changeFilter.bind(this, 'value')}
         />
       );
     }
     return (
       <input
         type="text"
-        onChange={this.changeValue.bind(this, this.props.filter)}
-        value={this.props.filter.value}
+        onChange={this.changeFilter.bind(this, 'value')}
+        value={filter.value}
         className="form-control input-sm"
         placeholder="Filter value"
       />
     );
   }
   render() {
+    const filter = this.props.filter;
     return (
       <div>
-        <div className="row space-1">
-          <Select
-            className="col-lg-12"
-            multi={false}
-            name="select-column"
-            placeholder="Select column"
-            options={this.props.filterColumnOpts.map((o) => ({ value: o, label: o }))}
-            value={this.props.filter.col}
-            autosize={false}
-            onChange={this.changeCol.bind(this, this.props.filter)}
-          />
-        </div>
-        <div className="row space-1">
-          <Select
-            className="col-lg-4"
-            multi={false}
-            name="select-op"
-            placeholder="Select operator"
-            options={this.state.opChoices.map((o) => ({ value: o, label: o }))}
-            value={this.props.filter.op}
-            autosize={false}
-            onChange={this.changeOp.bind(this, this.props.filter)}
-          />
-          <div className="col-lg-6">
-            {this.renderFilterFormField()}
-          </div>
-          <div className="col-lg-2">
+        <Row className="space-1">
+          <Col md={12}>
+            <Select
+              id="select-col"
+              placeholder="Select column"
+              options={this.props.choices.map((c) => ({ value: c[0], label: c[1] }))}
+              value={filter.col}
+              onChange={this.changeFilter.bind(this, 'col')}
+            />
+          </Col>
+        </Row>
+        <Row className="space-1">
+          <Col md={3}>
+            <Select
+              id="select-op"
+              placeholder="Select operator"
+              options={this.props.opChoices.map((o) => ({ value: o, label: o }))}
+              value={filter.op}
+              onChange={this.changeFilter.bind(this, 'op')}
+            />
+          </Col>
+          <Col md={7}>
+            {this.renderFilterFormField(filter)}
+          </Col>
+          <Col md={2}>
             <Button
               id="remove-button"
               bsSize="small"
-              onClick={this.removeFilter.bind(this, this.props.filter)}
+              onClick={this.removeFilter.bind(this)}
             >
               <i className="fa fa-minus" />
             </Button>
-          </div>
-        </div>
+          </Col>
+        </Row>
       </div>
     );
   }

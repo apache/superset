@@ -7,48 +7,32 @@ require('../node_modules/cal-heatmap/cal-heatmap.css');
 
 const CalHeatMap = require('cal-heatmap');
 
-function calHeatmap(slice) {
+function calHeatmap(slice, payload) {
   const div = d3.select(slice.selector);
+  const data = payload.data;
 
-  const render = function () {
-    d3.json(slice.jsonEndpoint(), function (error, json) {
-      const data = json.data;
-      if (error !== null) {
-        slice.error(error.responseText, error);
-        return;
-      }
+  div.selectAll('*').remove();
+  const cal = new CalHeatMap();
 
-      div.selectAll('*').remove();
-      const cal = new CalHeatMap();
+  const timestamps = data.timestamps;
+  const extents = d3.extent(Object.keys(timestamps), (key) => timestamps[key]);
+  const step = (extents[1] - extents[0]) / 5;
 
-      const timestamps = data.timestamps;
-      const extents = d3.extent(Object.keys(timestamps), (key) => timestamps[key]);
-      const step = (extents[1] - extents[0]) / 5;
-
-      try {
-        cal.init({
-          start: data.start,
-          data: timestamps,
-          itemSelector: slice.selector,
-          tooltip: true,
-          domain: data.domain,
-          subDomain: data.subdomain,
-          range: data.range,
-          browsing: true,
-          legend: [extents[0], extents[0] + step, extents[0] + step * 2, extents[0] + step * 3],
-        });
-      } catch (e) {
-        slice.error(e);
-      }
-
-      slice.done(json);
+  try {
+    cal.init({
+      start: data.start,
+      data: timestamps,
+      itemSelector: slice.selector,
+      tooltip: true,
+      domain: data.domain,
+      subDomain: data.subdomain,
+      range: data.range,
+      browsing: true,
+      legend: [extents[0], extents[0] + step, extents[0] + step * 2, extents[0] + step * 3],
     });
-  };
-
-  return {
-    render,
-    resize: render,
-  };
+  } catch (e) {
+    slice.error(e);
+  }
 }
 
 module.exports = calHeatmap;

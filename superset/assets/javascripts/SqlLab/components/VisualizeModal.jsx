@@ -4,6 +4,7 @@ import { Alert, Button, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
+import $ from 'jquery';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -102,10 +103,20 @@ class VisualizeModal extends React.PureComponent {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
-      sql: this.props.query.sql,
+      sql: this.props.query.executedSql,
       dbId: this.props.query.dbId,
     };
-    window.open('/superset/sqllab_viz/?data=' + JSON.stringify(vizOptions));
+    $.ajax({
+      type: 'POST',
+      url: '/superset/sqllab_viz/',
+      async: false,
+      data: {
+        data: JSON.stringify(vizOptions),
+      },
+      success: (url) => {
+        window.open(url);
+      },
+    });
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });
