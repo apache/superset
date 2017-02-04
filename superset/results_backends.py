@@ -12,12 +12,8 @@ try:
 except ImportError:
     import pickle
 
+import io
 import logging
-
-try:
-    import StringIO
-except ImportError:
-    import io as StringIO
 
 import boto3
 from werkzeug.contrib.cache import BaseCache
@@ -56,7 +52,7 @@ class S3Cache(BaseCache):
         if not self._key_exists(key):
             return None
         else:
-            value_file = StringIO.StringIO()
+            value_file = io.BytesIO()
 
             try:
                 self.s3_client.download_fileobj(
@@ -117,7 +113,7 @@ class S3Cache(BaseCache):
                   ``pickle.PickleError``.
         :rtype: boolean
         """
-        value_file = StringIO.StringIO()
+        value_file = io.BytesIO()
         pickle.dump(value, value_file)
 
         try:
