@@ -9,7 +9,7 @@ from __future__ import unicode_literals
 
 try:
     import cPickle as pickle
-except:
+except ImportError:
     import pickle
 
 import logging
