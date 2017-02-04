@@ -57,7 +57,9 @@ class S3Cache(BaseCache):
                     value_file
                 )
             except Exception as e:
-                logging.warn('Exception while trying to get %s: %s', key, e)
+                logging.warn('Error while trying to get key %s', key)
+                logging.exception(e)
+
                 return None
             else:
                 value_file.seek(0)
@@ -85,7 +87,9 @@ class S3Cache(BaseCache):
                     }
                 )
             except Exception as e:
-                logging.warn('Exception while trying to delete %s: %s', key, e)
+                logging.warn('Error while trying to delete key %s', key)
+                logging.exception(e)
+
                 return False
             else:
                 return True
@@ -116,7 +120,9 @@ class S3Cache(BaseCache):
                 self._full_s3_key(key)
             )
         except Exception as e:
-            logging.warn('Exception while trying to set %s: %s', key, e)
+            logging.warn('Error while trying to set key %s', key)
+            logging.exception(e)
+
             return False
         else:
             return True
