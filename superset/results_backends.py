@@ -13,7 +13,11 @@ except:
     import pickle
 
 import logging
-import StringIO
+
+try:
+    import StringIO
+except ImportError:
+    import io as StringIO
 
 import boto3
 from werkzeug.contrib.cache import BaseCache
