@@ -7,7 +7,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import cPickle
+try:
+   import cPickle as pickle
+except:
+   import pickle
+
 import logging
 import StringIO
 
@@ -63,7 +67,7 @@ class S3Cache(BaseCache):
                 return None
             else:
                 value_file.seek(0)
-                return cPickle.load(value_file)
+                return pickle.load(value_file)
 
     def delete(self, key):
         """Delete `key` from the cache.
@@ -110,7 +114,7 @@ class S3Cache(BaseCache):
         :rtype: boolean
         """
         value_file = StringIO.StringIO()
-        cPickle.dump(value, value_file)
+        pickle.dump(value, value_file)
 
         try:
             value_file.seek(0)

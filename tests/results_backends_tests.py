@@ -1,4 +1,7 @@
-import cPickle
+try:
+    import cPickle as pickle
+except:
+    import pickle
 
 import mock
 
@@ -24,7 +27,7 @@ class ResultsBackendsTests(SupersetTestCase):
 
     @staticmethod
     def _mock_download_fileobj(bucket, key, value_file):
-        value_file.write(cPickle.dumps('%s:%s' % (bucket, key)))
+        value_file.write(pickle.dumps('%s:%s' % (bucket, key)))
 
     @staticmethod
     def _mock_key_exists(key):
@@ -41,7 +44,7 @@ class ResultsBackendsTests(SupersetTestCase):
 
         call_args = self.mock_s3_client.upload_fileobj.call_args_list[0][0]
 
-        self.assertEquals(cPickle.loads(call_args[0].getvalue()), 'test-value')
+        self.assertEquals(pickle.loads(call_args[0].getvalue()), 'test-value')
         self.assertEquals(call_args[1], 'test-bucket')
         self.assertEquals(call_args[2], 'test-prefix/test-key')
 
@@ -109,7 +112,7 @@ class ResultsBackendsTests(SupersetTestCase):
 
         call_args = self.mock_s3_client.upload_fileobj.call_args_list[0][0]
 
-        self.assertEquals(cPickle.loads(call_args[0].getvalue()), 'test-value')
+        self.assertEquals(pickle.loads(call_args[0].getvalue()), 'test-value')
         self.assertEquals(call_args[1], 'test-bucket')
         self.assertEquals(call_args[2], 'test-prefix/test-key2')
 
