@@ -66,7 +66,7 @@ class ResultsBackendsTests(SupersetTestCase):
         self.assertEquals(result, None)
         self.assertFalse(self.mock_s3_client.download_fileobj.called)
 
-    def test_s3_cache_get_s3_exception(self):
+    def test_s3_cache_get_exception(self):
         self.mock_s3_client.download_fileobj.side_effect = Exception('Something bad happened')
         result = self.s3_cache.get('test-key')
 
