@@ -9,8 +9,10 @@ from collections import OrderedDict
 import functools
 import json
 import logging
+import numpy
 import pickle
 import re
+import six
 import textwrap
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
@@ -209,6 +211,15 @@ class Url(Model, AuditMixinNullable):
     __tablename__ = 'url'
     id = Column(Integer, primary_key=True)
     url = Column(Text)
+
+
+class KeyValue(Model):
+
+    """Used for any type of key-value store"""
+
+    __tablename__ = 'keyvalue'
+    id = Column(Integer, primary_key=True)
+    value = Column(Text, nullable=False)
 
 
 class CssTemplate(Model, AuditMixinNullable):
@@ -780,6 +791,18 @@ class Database(Model, AuditMixinNullable):
         cur = eng.execute(sql, schema=schema)
         cols = [col[0] for col in cur.cursor.description]
         df = pd.DataFrame(cur.fetchall(), columns=cols)
+
+        def needs_conversion(df_series):
+            if df_series.empty:
+                return False
+            for df_type in [list, dict]:
+                if isinstance(df_series[0], df_type):
+                    return True
+            return False
+
+        for k, v in df.dtypes.iteritems():
+            if v.type == numpy.object_ and needs_conversion(df[k]):
+                df[k] = df[k].apply(utils.json_dumps_w_dates)
         return df
 
     def compile_sqla_query(self, qry, schema=None):
@@ -1299,7 +1322,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             metrics_exprs = []
 
         if granularity:
-
             @compiles(ColumnClause)
             def visit_column(element, compiler, **kw):
                 """Patch for sqlalchemy bug
@@ -1354,7 +1376,11 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 values = [types.strip() for types in splitted]
                 # attempt to get the values type if they are not in quotes
                 if not col_obj.is_string:
-                    values = [ast.literal_eval(v) for v in values]
+                    try:
+                        values = [ast.literal_eval(v) for v in values]
+                    except Exception as e:
+                        logging.info(utils.error_msg_from_exception(e))
+                        values = [v.replace("'", '').strip() for v in values]
                 else:
                     values = [v.replace("'", '').strip() for v in values]
                 cond = col_obj.sqla_col.in_(values)
@@ -2376,7 +2402,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if len(groupby) == 0:
             del qry['dimensions']
             client.timeseries(**qry)
-        if len(groupby) == 1:
+        if not having_filters and len(groupby) == 1:
             qry['threshold'] = timeseries_limit or 1000
             if row_limit and granularity == 'all':
                 qry['threshold'] = row_limit

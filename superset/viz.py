@@ -269,7 +269,7 @@ class BaseViz(object):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
-        metrics = form_data.get("metrics") or []
+        metrics = form_data.get("metrics") or ['count']
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -1514,7 +1514,8 @@ class HistogramViz(BaseViz):
     def query_obj(self):
         """Returns the query object for this visualization"""
         d = super(HistogramViz, self).query_obj()
-        d['row_limit'] = self.form_data.get('row_limit', int(config.get('ROW_LIMIT')))
+        d['row_limit'] = self.form_data.get(
+            'row_limit', int(config.get('VIZ_ROW_LIMIT')))
         numeric_column = self.form_data.get('all_columns_x')
         if numeric_column is None:
             raise Exception("Must have one numeric column specified")

@@ -256,6 +256,32 @@ class CoreTests(SupersetTestCase):
         resp = self.client.post('/r/shortner/', data=data)
         assert '/r/' in resp.data.decode('utf-8')
 
+    def test_kv(self):
+        self.logout()
+        self.login(username='admin')
+
+        try:
+            resp = self.client.post('/kv/store/', data=dict())
+        except Exception as e:
+            self.assertRaises(TypeError)
+
+        value = json.dumps({'data': 'this is a test'})
+        resp = self.client.post('/kv/store/', data=dict(data=value))
+        self.assertEqual(resp.status_code, 200)
+        kv = db.session.query(models.KeyValue).first()
+        kv_value = kv.value
+        self.assertEqual(json.loads(value), json.loads(kv_value))
+
+        resp = self.client.get('/kv/{}/'.format(kv.id))
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(json.loads(value),
+            json.loads(resp.data.decode('utf-8')))
+
+        try:
+            resp = self.client.get('/kv/10001/')
+        except Exception as e:
+            self.assertRaises(TypeError)
+
     def test_save_dash(self, username='admin'):
         self.login(username=username)
         dash = db.session.query(models.Dashboard).filter_by(
