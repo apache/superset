@@ -10,6 +10,12 @@ import 'datatables.net';
 import dt from 'datatables.net-bs';
 dt(window, $);
 
+function textFormatter(text) {
+  // The first replace turns the sequence \r\n into <br />.
+  // The second replace replaces any \r or \n characters found on their own within the string.
+  return text.replace(/\r\n/g, '<br />').replace(/[\r\n]/g, '<br />');
+}
+
 function tableVis(slice, payload) {
   const container = $(slice.selector);
   const fC = d3.format('0,000');
@@ -71,6 +77,9 @@ function tableVis(slice, payload) {
       let val = row[c];
       if (c === 'timestamp') {
         val = timestampFormatter(val);
+      }
+      if (typeof(val) === 'string') {
+        val = textFormatter(val);
       }
       return {
         col: c,
