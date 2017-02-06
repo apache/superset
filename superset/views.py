@@ -2481,11 +2481,14 @@ class Superset(BaseSupersetView):
             if rejected_tables:
                 return json_error_response(get_datasource_access_error_msg(
                     '{}'.format(rejected_tables)))
-
+            payload = zlib.decompress(blob)
+            display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
+            if display_limit:
+                payload_json = json.loads(payload)
+                payload_json['data'] = payload_json['data'][:display_limit]
             return Response(
-                zlib.decompress(blob),
-                status=200,
-                mimetype="application/json")
+                json.dumps(payload_json, default=utils.json_iso_dttm_ser),
+                status=200, mimetype="application/json")
         else:
             return Response(
                 json.dumps({
