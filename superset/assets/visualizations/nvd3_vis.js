@@ -418,8 +418,7 @@ function nvd3Vis(slice, payload) {
   // this will clear them before rendering the chart again.
   hideTooltips();
 
-  const graph = drawGraph();
-  nv.addGraph(graph);
+  nv.addGraph(drawGraph);
 }
 
 module.exports = nvd3Vis;
