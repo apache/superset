@@ -87,7 +87,7 @@ class QueryResult(object):
         self.error_message = error_message
 
 
-FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
+FilterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 def set_perm(mapper, connection, target):  # noqa
@@ -709,7 +709,7 @@ class Queryable(object):
             'filterable_cols': filter_cols,
             'filter_select': self.filter_select_enabled,
         }
-        if (self.type == 'table'):
+        if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
                 grains = [(g.name, g.name) for g in grains]
@@ -969,7 +969,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         return self.column_name
 
     @property
-    def isnum(self):
+    def is_num(self):
         return any([t in self.type.upper() for t in self.num_types])
 
     @property
@@ -1173,7 +1173,7 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
     @property
     def num_cols(self):
-        return [c.column_name for c in self.columns if c.isnum]
+        return [c.column_name for c in self.columns if c.is_num]
 
     @property
     def any_dttm_col(self):
@@ -1372,8 +1372,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
         for col, op, eq in filter:
             col_obj = cols[col]
             if op in ('in', 'not in'):
-                splitted = FillterPattern.split(eq)[1::2]
-                values = [types.strip() for types in splitted]
+                split = FilterPattern.split(eq)[1::2]
+                values = [types.strip() for types in split]
                 # attempt to get the values type if they are not in quotes
                 if not col_obj.is_string:
                     try:
@@ -1496,8 +1496,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 dbcol = TableColumn(column_name=col.name, type=datatype)
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
-                dbcol.sum = dbcol.isnum
-                dbcol.avg = dbcol.isnum
+                dbcol.sum = dbcol.is_num
+                dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
 
             db.session.merge(self)
@@ -1690,7 +1690,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         return self.column_name
 
     @property
-    def isnum(self):
+    def is_num(self):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT', 'INT')
 
     @property
@@ -1714,7 +1714,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         else:
             corrected_type = self.type
 
-        if self.sum and self.isnum:
+        if self.sum and self.is_num:
             mt = corrected_type.lower() + 'Sum'
             name = 'sum__' + self.column_name
             metrics.append(DruidMetric(
@@ -1725,7 +1725,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
 
-        if self.avg and self.isnum:
+        if self.avg and self.is_num:
             mt = corrected_type.lower() + 'Avg'
             name = 'avg__' + self.column_name
             metrics.append(DruidMetric(
@@ -1736,7 +1736,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
 
-        if self.min and self.isnum:
+        if self.min and self.is_num:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
             metrics.append(DruidMetric(
@@ -1746,7 +1746,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
-        if self.max and self.isnum:
+        if self.max and self.is_num:
             mt = corrected_type.lower() + 'Max'
             name = 'max__' + self.column_name
             metrics.append(DruidMetric(
@@ -1922,7 +1922,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
     @property
     def num_cols(self):
-        return [c.column_name for c in self.columns if c.isnum]
+        return [c.column_name for c in self.columns if c.is_num]
 
     @property
     def name(self):
@@ -2043,7 +2043,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         max_time = parse(max_time)
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
-        # realtime segments, which trigged a bug (fixed in druid 0.8.2).
+        # realtime segments, which triggered a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         lbound = (max_time - timedelta(days=7)).isoformat()
         rbound = max_time.isoformat()
@@ -2076,7 +2076,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 logging.exception(e)
         if segment_metadata:
             return segment_metadata[-1]['columns']
-
 
     def generate_metrics(self):
         for col in self.columns:
@@ -2521,8 +2520,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             elif op in ('in', 'not in'):
                 fields = []
                 # Distinguish quoted values with regular value types
-                splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '') for types in splitted]
+                split = FilterPattern.split(eq)[1::2]
+                values = [types.replace("'", '') for types in split]
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()
