@@ -67,6 +67,10 @@ class ExploreViewContainer extends React.Component {
       getExploreUrl(this.props.form_data));
   }
 
+  onStop() {
+    this.props.actions.chartUpdateStopped();
+  }
+
   getHeight() {
     if (this.props.forcedHeight) {
       return this.props.forcedHeight + 'px';
@@ -146,7 +150,8 @@ class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={this.onQuery.bind(this)}
               onSave={this.toggleModal.bind(this)}
-              disabled={this.props.chartStatus === 'loading'}
+              onStop={this.onStop.bind(this)}
+              loading={this.props.chartStatus === 'loading'}
               errorMessage={this.renderErrorMessage()}
             />
             <br />

@@ -140,6 +140,11 @@ export function chartUpdateSucceeded(queryResponse) {
   return { type: CHART_UPDATE_SUCCEEDED, queryResponse };
 }
 
+export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
+export function chartUpdateStopped() {
+  return { type: CHART_UPDATE_STOPPED };
+}
+
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
 export function chartUpdateFailed(queryResponse) {
   return { type: CHART_UPDATE_FAILED, queryResponse };
@@ -223,7 +228,7 @@ export function updateChartStatus(status) {
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, datasourceType) {
   return function (dispatch) {
-    dispatch(chartUpdateStarted('loading'));
+    dispatch(chartUpdateStarted());
     const url = getExploreUrl(formData, datasourceType, 'json');
     $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
