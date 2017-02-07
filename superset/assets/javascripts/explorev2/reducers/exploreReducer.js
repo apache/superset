@@ -71,9 +71,6 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, changes);
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
-      if (state.chartStatus === 'stopped') {
-        return state;
-      }
       return Object.assign(
         {},
         state,
@@ -90,6 +87,7 @@ export const exploreReducer = function (state, action) {
           chartUpdateEndTime: null,
           chartUpdateStartTime: now(),
           triggerQuery: false,
+          queryRequest: action.queryRequest,
         });
     },
     [actions.CHART_UPDATE_STOPPED]() {
@@ -111,9 +109,6 @@ export const exploreReducer = function (state, action) {
       });
     },
     [actions.CHART_UPDATE_FAILED]() {
-      if (state.chartStatus === 'stopped') {
-        return state;
-      }
       return Object.assign({}, state, {
         chartStatus: 'failed',
         chartAlert: action.queryResponse.error,

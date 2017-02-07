@@ -25,9 +25,8 @@ export default function QueryAndSaveBtns(
   });
   const qryButtonStyle = errorMessage ? 'danger' : 'primary';
   const saveButtonDisabled = errorMessage ? true : loading;
-  const qryOrStropButton = loading ? (
+  const qryOrStopButton = loading ? (
     <Button
-      id="stop_button"
       onClick={onStop}
       bsStyle="warning"
     >
@@ -35,7 +34,6 @@ export default function QueryAndSaveBtns(
     </Button>
   ) : (
     <Button
-      id="query_button"
       onClick={onQuery}
       bsStyle={qryButtonStyle}
     >
@@ -46,7 +44,7 @@ export default function QueryAndSaveBtns(
   return (
     <div>
       <ButtonGroup className="query-and-save">
-        {qryOrStropButton}
+        {qryOrStopButton}
         <Button
           className={saveClasses}
           data-target="#save_modal"

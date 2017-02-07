@@ -43,7 +43,7 @@ export function getFieldsState(state, form_data) {
       if (field.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
         delete formData[k];
       } else if (!field.multi && choiceValues.indexOf(formData[k]) < 0) {
-        //delete form_data[k];
+        // delete form_data[k];
         // TODO what's not working here?
       }
     }

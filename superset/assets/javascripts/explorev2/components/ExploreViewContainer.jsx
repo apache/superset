@@ -19,6 +19,7 @@ const propTypes = {
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
+  queryRequest: PropTypes.object,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -68,7 +69,7 @@ class ExploreViewContainer extends React.Component {
   }
 
   onStop() {
-    this.props.actions.chartUpdateStopped();
+    this.props.actions.chartUpdateStopped(this.props.queryRequest);
   }
 
   getHeight() {
@@ -182,6 +183,7 @@ function mapStateToProps(state) {
     standalone: state.standalone,
     triggerQuery: state.triggerQuery,
     forcedHeight: state.forced_height,
+    queryRequest: state.queryRequest,
   };
 }
 
