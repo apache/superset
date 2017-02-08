@@ -24,20 +24,6 @@ CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
 with open(APP_DIR + '/assets/dist/backendSync.json', 'r') as f:
     frontend_config = json.load(f)
-def cast_form_data(form_data):
-    d = {}
-    fields = frontend_config.get('fields', {})
-    for k, v in form_data.items():
-        field_config = fields.get(k, {})
-        ft = field_config.get('type')
-        if ft == 'CheckboxField':
-            v = True if v == 'true' else False
-        elif ft == 'TextField' and field_config.get('isInt'):
-            v = int(v)
-        elif ft == 'TextField' and field_config.get('isFloat'):
-            v = float(v)
-        d[k] = v
-    return d
 
 
 app = Flask(__name__)

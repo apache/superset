@@ -11,10 +11,12 @@ revision = 'db0c65b146bd'
 down_revision = 'f18570e03440'
 
 from alembic import op
-from superset import db, cast_form_data
 import json
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, Text
+
+from superset import db
+from superset.legacy import cast_form_data
 
 Base = declarative_base()
 

@@ -223,7 +223,7 @@ class BaseViz(object):
 
     @property
     def cache_key(self):
-        s = str((k, v) for k, v in self.form_data.items())
+        s = str((k, self.form_data[k]) for k in sorted(self.form_data.keys()))
         return hashlib.md5(s.encode('utf-8')).hexdigest()
 
     def get_payload(self, force=False):
