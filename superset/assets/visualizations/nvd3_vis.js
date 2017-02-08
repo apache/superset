@@ -386,7 +386,7 @@ function nvd3Vis(slice, payload) {
     // - has to be done only after the chart has been rendered once
     // - measure the width or height of the labels (x axis labels are rotated 45 degrees so we use height),
     // - adjust margins based on these measures and render again
-    if (isTimeSeries) {
+    if (isTimeSeries && vizType !== 'bar') {
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x', 'height')
       const marginPad = width * .05;
       const chartMargins = {
