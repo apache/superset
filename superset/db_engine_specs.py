@@ -21,6 +21,7 @@ from flask_babel import lazy_gettext as _
 from superset import utils
 
 import inspect
+import re
 import textwrap
 import time
 
@@ -105,6 +106,10 @@ class BaseEngineSpec(object):
         For example Presto needs to double `%` characters
         """
         return sql
+
+    @classmethod
+    def patch(cls):
+        pass
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -331,6 +336,87 @@ class PrestoEngineSpec(BaseEngineSpec):
                 error_dict['message']
             )
         return utils.error_msg_from_exception(e)
+
+
+class HiveEngineSpec(PrestoEngineSpec):
+    engine = 'hive'
+
+    @classmethod
+    def patch(cls):
+        from pyhive import hive
+        from superset.db_engines import hive as patched_hive
+        from superset.db_engines.TCLIService import (
+            constants as patched_constants,
+            ttypes as patched_ttypes,
+            TCLIService as patched_TCLIService)
+
+        hive.TCLIService = patched_TCLIService
+        hive.constants = patched_constants
+        hive.ttypes = patched_ttypes
+        hive.Cursor.fetch_logs = patched_hive.fetch_logs
+
+    @classmethod
+    def progress(cls, logs):
+        # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
+        jobs_stats_r = re.compile(
+            r'.*INFO.*Total jobs = (?P<max_jobs>[0-9]+)')
+        # 17/02/07 19:37:08 INFO ql.Driver: Launching Job 2 out of 5
+        launching_job_r = re.compile(
+            '.*INFO.*Launching Job (?P<job_number>[0-9]+) out of '
+            '(?P<max_jobs>[0-9]+)')
+        # 17/02/07 19:36:58 INFO exec.Task: 2017-02-07 19:36:58,152 Stage-18
+        # map = 0%,  reduce = 0%
+        stage_progress = re.compile(
+            r'.*INFO.*Stage-(?P<stage_number>[0-9]+).*'
+            r'map = (?P<map_progress>[0-9]+)%.*'
+            r'reduce = (?P<reduce_progress>[0-9]+)%.*')
+        total_jobs = None
+        current_job = None
+        stages = {}
+        lines = logs.splitlines()
+        for line in lines:
+            match = jobs_stats_r.match(line)
+            if match:
+                total_jobs = int(match.groupdict()['max_jobs'])
+            match = launching_job_r.match(line)
+            if match:
+                current_job = int(match.groupdict()['job_number'])
+                stages = {}
+            match = stage_progress.match(line)
+            if match:
+                stage_number = int(match.groupdict()['stage_number'])
+                map_progress = int(match.groupdict()['map_progress'])
+                reduce_progress = int(match.groupdict()['reduce_progress'])
+                stages[stage_number] = (map_progress + reduce_progress) / 2
+
+        if not total_jobs or not current_job:
+            return 0
+        stage_progress = sum(
+            stages.values()) / len(stages.values()) if stages else 0
+
+        progress = (
+            100 * (current_job - 1) / total_jobs + stage_progress / total_jobs
+        )
+        return int(progress)
+
+    @classmethod
+    def handle_cursor(cls, cursor, query, session):
+        """Updates progress information"""
+        from pyhive import hive
+        unfinished_states = (
+            hive.ttypes.TOperationState.INITIALIZED_STATE,
+            hive.ttypes.TOperationState.RUNNING_STATE,
+        )
+        polled = cursor.poll()
+        while polled.operationState in unfinished_states:
+            resp = cursor.fetch_logs()
+            if resp and resp.log:
+                progress = cls.progress(resp.log.splitlines())
+                if progress > query.progress:
+                    query.progress = progress
+                session.commit()
+            time.sleep(2)
+            polled = cursor.poll()
 
 
 class MssqlEngineSpec(BaseEngineSpec):

@@ -80,7 +80,8 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     engine = 'presto'
 
     @staticmethod
-    def _partition_query(table_name, limit=0, order_by=None, filters=None):
+    def _partition_query(
+            table_name, limit=0, order_by=None, filters=None):
         """Returns a partition query
 
         :param table_name: the name of the table to get partitions from
@@ -123,6 +124,10 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
             schema, table_name = table_name.split('.')
         return table_name, schema
 
+    @staticmethod
+    def _latest_partition_from_df(df):
+        return df.to_records(index=False)[0][0]
+
     def latest_partition(self, table_name):
         """Returns the latest (max) partition value for a table
 
@@ -145,7 +150,7 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         part_field = indexes[0]['column_names'][0]
         sql = self._partition_query(table_name, 1, [(part_field, True)])
         df = self.database.get_df(sql, schema)
-        return df.to_records(index=False)[0][0]
+        return self._latest_partition_from_df(df)
 
     def latest_sub_partition(self, table_name, **kwargs):
         """Returns the latest (max) partition value for a table
@@ -192,6 +197,24 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         if df.empty:
             return ''
         return df.to_dict()[field_to_return][0]
+
+
+class HiveTemplateProcessor(PrestoTemplateProcessor):
+    engine = 'hive'
+
+    @staticmethod
+    def _latest_partition_from_df(df):
+        """Hive partitions look like ds={partition name}"""
+        return df.ix[:, 0].max().split('=')[1]
+
+    @staticmethod
+    def latest_sub_partition(self, table_name, **kwargs):
+        pass
+
+    @staticmethod
+    def _partition_query(
+            table_name, limit=0, order_by=None, filters=None):
+        return "SHOW PARTITIONS {table_name}".format(**locals())
 
 
 template_processors = {}
