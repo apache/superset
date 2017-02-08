@@ -90,7 +90,7 @@ export const fields = {
     label: 'Metric',
     clearable: false,
     description: 'Choose the metric',
-    default: field => field.choices !== null ? field.choices[0][0] : null,
+    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : null,
     }),
@@ -417,7 +417,7 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: field => field.choices.length > 0 ? field.choices[0][0] : null,
+    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
@@ -431,7 +431,7 @@ export const fields = {
   time_grain_sqla: {
     type: 'SelectField',
     label: 'Time Grain',
-    default: field => field.choices !== null ? field.choices[0][0] : null,
+    default: field => field.choices && field.choices.length ? field.choices[0][0] : null,
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +

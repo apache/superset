@@ -10,6 +10,15 @@ export function getFormDataFromFields(fieldsState) {
   return formData;
 }
 
+export function getFieldNames(vizType, datasourceType) {
+  const fieldNames = [];
+  sectionsToRender(vizType, datasourceType).forEach(
+    section => section.fieldSetRows.forEach(
+      fsr => fsr.forEach(
+        f => fieldNames.push(f))));
+  return fieldNames;
+}
+
 export function getFieldsState(state, form_data) {
   /*
   * Gets a new fields object to put in the state. The fields object
@@ -20,12 +29,8 @@ export function getFieldsState(state, form_data) {
   * */
 
   // Getting a list of active field names for the current viz
-  const fieldNames = [];
   const formData = Object.assign({}, form_data);
-  sectionsToRender(formData.viz_type, state.datasource.type).forEach(
-    section => section.fieldSetRows.forEach(
-      fsr => fsr.forEach(
-        f => fieldNames.push(f))));
+  const fieldNames = getFieldNames(formData.viz_type, state.datasource.type);
 
   const viz = visTypes[formData.viz_type];
   const fieldOverrides = viz.fieldOverrides || {};
@@ -43,7 +48,7 @@ export function getFieldsState(state, form_data) {
       if (field.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
         delete formData[k];
       } else if (!field.multi && choiceValues.indexOf(formData[k]) < 0) {
-        //delete form_data[k];
+        // delete form_data[k];
         // TODO what's not working here?
       }
     }
@@ -56,16 +61,26 @@ export function getFieldsState(state, form_data) {
   });
   return fieldsState;
 }
+
+export function applyDefaultFormData(form_data) {
+  const datasourceType = form_data.datasource.split('__')[1];
+  const fieldNames = getFieldNames(form_data.viz_type, datasourceType);
+  const formData = {};
+  fieldNames.forEach(k => {
+    if (!form_data[k]) {
+      if (typeof fields[k].default === 'function') {
+        formData[k] = fields[k].default(fields[k]);
+      } else {
+        formData[k] = fields[k].default;
+      }
+    } else {
+      formData[k] = form_data[k];
+    }
+  });
+  return formData;
+}
+
 export const autoQueryFields = [
   'datasource',
   'viz_type',
 ];
-
-export function applyDefaultFormData(form_data, state = {}) {
-  const fieldsState = getFieldsState(state, form_data);
-  const formData = {};
-  Object.keys(fieldsState).forEach(k => {
-    formData[k] = fieldsState[k].value;
-  });
-  return formData;
-}
