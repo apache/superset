@@ -382,21 +382,28 @@ function nvd3Vis(slice, payload) {
       .style('fill-opacity', 1);
     }
 
-    // Hack to adjust margins to accomodate long x axis tick labels,
-    // has to be done only after the chart has been rendered once,
-    // then we measure the height of the labels (they are rotated 90 degrees),
-    // then we adjust the bottom margin and render again.
+    // Hack to adjust margins to accommodate long axis tick labels.
+    // - has to be done only after the chart has been rendered once
+    // - measure the width or height of the labels (x axis labels are rotated 45 degrees so we use height),
+    // - adjust margins based on these measures and render again
     if (isTimeSeries) {
-      // get height of formatted axis labels
-      const labelEls = $('.nv-x.nv-axis .tick text');
-      const labelHeights = labelEls.map(i => labelEls[i].getBoundingClientRect().height);
-      const xAxisHeight = Math.max.apply(Math, labelHeights);
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x', 'height')
+      const marginPad = width * .05;
+      const chartMargins = {
+        bottom: maxXAxisLabelHeight + marginPad,
+        right: maxXAxisLabelHeight + marginPad,
+      };
 
-      // set new bottom margin to accomodate labels
-      chart.margin({
-        bottom: xAxisHeight + 40,
-        right: xAxisHeight,
-      });
+      if (vizType === 'dual_line') {
+        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2', 'width');
+        // use y axis width if it's wider than axis width/height
+        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+          axis.right = maxYAxis2LabelWidth + marginPad;
+        }
+      }
+
+      // apply margins
+      chart.margin(chartMargins);
 
       // render chart
       svg
@@ -420,6 +427,15 @@ function nvd3Vis(slice, payload) {
 
   const graph = drawGraph();
   nv.addGraph(graph);
+}
+
+function getMaxLabelSize(container, axisClass, widthOrHeight) {
+  // axis class = .nv-y2  // second y axis on dual line chart
+  // axis class = .nv-x  // x axis on time series line chart
+  const labelEls = container.find(`.${axisClass} .tick text`);
+  const labelDimensions = labelEls.map(i => labelEls[i].getBoundingClientRect()[widthOrHeight]);
+  const max = Math.max.apply(Math, labelDimensions);
+  return max;
 }
 
 module.exports = nvd3Vis;
