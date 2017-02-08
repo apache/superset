@@ -1110,7 +1110,7 @@ def load_multiformat_time_series_data():
 
 
 def load_misc_dashboard():
-    """Loading a dasbhoard featuring misc charts"""
+    """Loading a dashboard featuring misc charts"""
 
     print("Creating the dashboard")
     db.session.expunge_all()
