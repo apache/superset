@@ -367,7 +367,6 @@ function nvd3Vis(slice, payload) {
       chart.yAxis2.tickFormat(yAxisFormatter2);
       customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
       chart.showLegend(true);
-      chart.margin({ right: 50 });
     }
     svg
     .datum(payload.data)
