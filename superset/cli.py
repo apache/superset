@@ -50,7 +50,8 @@ def runserver(debug, address, port, timeout, workers):
             host='0.0.0.0',
             port=int(port),
             threaded=True,
-            debug=True)
+            debug=True,
+            use_reloader=False)
     else:
         cmd = (
             "gunicorn "
