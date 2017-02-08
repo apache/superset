@@ -79,10 +79,10 @@ def datetime_conversion_rate(data_series):
     success = 0
     total = 0
     for value in data_series:
-        total = total + 1
+        total += 1
         try:
             pd.to_datetime(value)
-            success = success + 1
+            success += 1
         except Exception:
             continue
     return 100 * success / total

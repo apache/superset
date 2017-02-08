@@ -329,8 +329,8 @@ def markdown(s, markup_wrap=False):
     return s
 
 
-def readfile(filepath):
-    with open(filepath) as f:
+def readfile(file_path):
+    with open(file_path) as f:
         content = f.read()
     return content
 

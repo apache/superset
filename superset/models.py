@@ -12,7 +12,6 @@ import logging
 import numpy
 import pickle
 import re
-import six
 import textwrap
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
@@ -233,10 +232,10 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 slice_user = Table('slice_user', Model.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('slice_id', Integer, ForeignKey('slices.id'))
-)
+                   Column('id', Integer, primary_key=True),
+                   Column('user_id', Integer, ForeignKey('ab_user.id')),
+                   Column('slice_id', Integer, ForeignKey('slices.id'))
+                   )
 
 
 class Slice(Model, AuditMixinNullable, ImportMixin):
@@ -1987,7 +1986,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
     def import_obj(cls, i_datasource, import_time=None):
         """Imports the datasource from the object to the database.
 
-         Metrics and columns and datasource will be overrided if exists.
+         Metrics and columns and datasource will be overridden if exists.
          This function can be used to import/export dashboards between multiple
          superset instances. Audit metadata isn't copies over.
         """
@@ -2258,7 +2257,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                           to_dttm,
                           limit=500):
         """Retrieve some values for the given column"""
-        # TODO: Use Lexicographic TopNMeticSpec onces supported by PyDruid
+        # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 

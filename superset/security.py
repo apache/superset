@@ -9,22 +9,22 @@ from flask_appbuilder.security.sqla import models as ab_models
 from superset import conf, db, models, sm, source_registry
 
 
-READ_ONLY_MODELVIEWS = {
+READ_ONLY_MODEL_VIEWS = {
     'DatabaseAsync',
     'DatabaseView',
     'DruidClusterModelView',
 }
 
-GAMMA_READ_ONLY_MODELVIEWS = {
+GAMMA_READ_ONLY_MODEL_VIEWS = {
     'SqlMetricInlineView',
     'TableColumnInlineView',
     'TableModelView',
     'DruidColumnInlineView',
     'DruidDatasourceModelView',
     'DruidMetricInlineView',
-} | READ_ONLY_MODELVIEWS
+} | READ_ONLY_MODEL_VIEWS
 
-ADMIN_ONLY_VIEW_MENUES = {
+ADMIN_ONLY_VIEW_MENUS = {
     'AccessRequestsModelView',
     'Manage',
     'SQL Lab',
@@ -103,15 +103,15 @@ def get_or_create_main_db():
 
 def is_admin_only(pvm):
     # not readonly operations on read only model views allowed only for admins
-    if (pvm.view_menu.name in READ_ONLY_MODELVIEWS and
+    if (pvm.view_menu.name in READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
-    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUES or
+    return (pvm.view_menu.name in ADMIN_ONLY_VIEW_MENUS or
             pvm.permission.name in ADMIN_ONLY_PERMISSIONS)
 
 
 def is_alpha_only(pvm):
-    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODELVIEWS and
+    if (pvm.view_menu.name in GAMMA_READ_ONLY_MODEL_VIEWS and
             pvm.permission.name not in READ_ONLY_PERMISSION):
         return True
     return pvm.permission.name in ALPHA_ONLY_PERMISSIONS
