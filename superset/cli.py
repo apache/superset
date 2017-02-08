@@ -10,9 +10,6 @@ from celery.bin import worker as celery_worker
 from datetime import datetime
 from subprocess import Popen
 
-import warnings
-from flask.exthook import ExtDeprecationWarning
-warnings.simplefilter('ignore', ExtDeprecationWarning)
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
