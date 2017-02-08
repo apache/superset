@@ -74,6 +74,7 @@ const px = function () {
     let qrystr = '';
     slice = {
       data,
+      formData,
       container,
       containerId,
       selector,
