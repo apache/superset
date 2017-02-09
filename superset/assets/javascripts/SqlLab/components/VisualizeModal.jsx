@@ -58,7 +58,8 @@ class VisualizeModal extends React.PureComponent {
     const uniqueId = shortid.generate();
     let datasourceName = uniqueId;
     if (query) {
-      datasourceName = query.db ? `${query.db}-` : '';
+      datasourceName = query.user ? `${query.user}-` : '';
+      datasourceName += query.db ? `${query.db}-` : '';
       datasourceName += `${query.tab}-${uniqueId}`;
     }
     return datasourceName;
