@@ -66,6 +66,7 @@ function hideTooltips() {
 function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
+  const isExplore = $('#explore-container').length === 1;
 
   slice.container.html('');
   slice.clearError();
@@ -387,7 +388,7 @@ function nvd3Vis(slice, payload) {
     // - adjust margins based on these measures and render again
     if (isTimeSeries && vizType !== 'bar') {
       const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x', 'height')
-      const marginPad = width * .05;
+      const marginPad = isExplore ? width * .01 : width * .03;
       const chartMargins = {
         bottom: maxXAxisLabelHeight + marginPad,
         right: maxXAxisLabelHeight + marginPad,
