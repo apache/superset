@@ -6,7 +6,7 @@ import Select from 'react-select';
 import { connect } from 'react-redux';
 
 const propTypes = {
-  can_edit: PropTypes.bool,
+  can_overwrite: PropTypes.bool,
   onHide: PropTypes.func.isRequired,
   actions: PropTypes.object.isRequired,
   form_data: PropTypes.object,
@@ -26,7 +26,7 @@ class SaveModal extends React.Component {
       newSliceName: '',
       dashboards: [],
       alert: null,
-      action: 'overwrite',
+      action: 'saveas',
       addToDash: 'noSave',
     };
   }
@@ -140,7 +140,7 @@ class SaveModal extends React.Component {
             </Alert>
           }
           <Radio
-            disabled={!this.props.can_edit}
+            disabled={!this.props.can_overwrite}
             checked={this.state.action === 'overwrite'}
             onChange={this.changeAction.bind(this, 'overwrite')}
           >
@@ -229,7 +229,7 @@ function mapStateToProps(state) {
   return {
     datasource: state.datasource,
     slice: state.slice,
-    can_edit: state.can_edit,
+    can_overwrite: state.can_overwrite,
     user_id: state.user_id,
     dashboards: state.dashboards,
     alert: state.saveModalAlert,
