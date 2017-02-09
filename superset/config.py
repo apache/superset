@@ -81,7 +81,7 @@ APP_ICON = "/static/assets/images/superset-logo@2x.png"
 # See: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 # other tz can be overridden by providing a local_config
 DRUID_IS_ACTIVE = True
-DRUID_TZ = tz.gettz('Africa/Abidjan')
+DRUID_TZ = tz.tzutc()
 DRUID_ANALYSIS_TYPES = ['cardinality']
 
 # ----------------------------------------------------
