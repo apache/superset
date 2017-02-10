@@ -31,6 +31,9 @@ def init():
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
+    '-r', '--reloader', default=config.get("FLASK_USE_RELOAD"),
+    help="Specify the flask whether to use the auto-reloader")
+@manager.option(
     '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
     help="Specify the address to which to bind the web server")
 @manager.option(
@@ -42,7 +45,7 @@ def init():
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, address, port, timeout, workers):
+def runserver(debug, reloader, address, port, timeout, workers):
     """Starts a Superset web server"""
     debug = debug or config.get("DEBUG")
     if debug:
@@ -51,7 +54,7 @@ def runserver(debug, address, port, timeout, workers):
             port=int(port),
             threaded=True,
             debug=True,
-            use_reloader=False)
+            use_reloader=(str(reloader) == 'True'))
     else:
         cmd = (
             "gunicorn "
