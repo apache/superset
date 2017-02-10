@@ -1446,7 +1446,17 @@ class Superset(BaseSupersetView):
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
-        return redirect(viz_obj.get_url(**request.args))
+        endpoint = (
+            '/superset/explore/{}/{}?form_data={}'
+            .format(
+                viz_obj.datasource.type,
+                viz_obj.datasource.id,
+                json.dumps(viz_obj.form_data)
+            )
+        )
+        if request.args.get("standalone") == "true":
+            endpoint += '&standalone=true'
+        return redirect(endpoint)
 
     @log_this
     @has_access_api
