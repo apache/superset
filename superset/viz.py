@@ -163,8 +163,7 @@ class BaseViz(object):
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
-            flasher("The date range doesn't seem right.", "danger")
-            from_dttm = to_dttm  # Making them identical to not raise
+            raise Exception("From date cannot be larger than to date")
 
         # extras are used to query elements specific to a datasource type
         # for instance the extra where clause that applies only to Tables
@@ -329,8 +328,7 @@ class BaseViz(object):
         until = form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
-            flasher("The date range doesn't seem right.", "danger")
-            from_dttm = to_dttm  # Making them identical to not raise
+            raise Exception("From date cannot be larger than to date")
 
         kwargs = dict(
             column_name=column,
