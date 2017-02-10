@@ -33,9 +33,9 @@ def cast_form_data(form_data):
         if ft == 'CheckboxField':
             v = True if v == 'true' else False
         elif ft == 'TextField' and field_config.get('isInt'):
-            v = int(v)
+            v = int(v) if v != '' else None
         elif ft == 'TextField' and field_config.get('isFloat'):
-            v = float(v)
+            v = float(v) if v != '' else None
         d[k] = v
     return d
 
