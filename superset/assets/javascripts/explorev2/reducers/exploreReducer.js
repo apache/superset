@@ -87,6 +87,14 @@ export const exploreReducer = function (state, action) {
           chartUpdateEndTime: null,
           chartUpdateStartTime: now(),
           triggerQuery: false,
+          queryRequest: action.queryRequest,
+        });
+    },
+    [actions.CHART_UPDATE_STOPPED]() {
+      return Object.assign({}, state,
+        {
+          chartStatus: 'stopped',
+          chartAlert: 'Updating chart was stopped',
         });
     },
     [actions.CHART_RENDERING_FAILED]() {

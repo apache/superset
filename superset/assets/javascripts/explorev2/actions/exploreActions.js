@@ -131,13 +131,21 @@ export function setFieldValue(fieldName, value, validationErrors) {
 }
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
-export function chartUpdateStarted() {
-  return { type: CHART_UPDATE_STARTED };
+export function chartUpdateStarted(queryRequest) {
+  return { type: CHART_UPDATE_STARTED, queryRequest };
 }
 
 export const CHART_UPDATE_SUCCEEDED = 'CHART_UPDATE_SUCCEEDED';
 export function chartUpdateSucceeded(queryResponse) {
   return { type: CHART_UPDATE_SUCCEEDED, queryResponse };
+}
+
+export const CHART_UPDATE_STOPPED = 'CHART_UPDATE_STOPPED';
+export function chartUpdateStopped(queryRequest) {
+  if (queryRequest) {
+    queryRequest.abort();
+  }
+  return { type: CHART_UPDATE_STOPPED };
 }
 
 export const CHART_UPDATE_FAILED = 'CHART_UPDATE_FAILED';
@@ -223,13 +231,15 @@ export function updateChartStatus(status) {
 export const RUN_QUERY = 'RUN_QUERY';
 export function runQuery(formData, datasourceType) {
   return function (dispatch) {
-    dispatch(chartUpdateStarted('loading'));
     const url = getExploreUrl(formData, datasourceType, 'json');
-    $.getJSON(url, function (queryResponse) {
+    const queryRequest = $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
     }).fail(function (err) {
-      dispatch(chartUpdateFailed(err.responseJSON));
+      if (err.statusText !== 'abort') {
+        dispatch(chartUpdateFailed(err.responseJSON));
+      }
     });
+    dispatch(chartUpdateStarted(queryRequest));
   };
 }
 

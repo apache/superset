@@ -19,6 +19,7 @@ const propTypes = {
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
   triggerQuery: PropTypes.bool.isRequired,
+  queryRequest: PropTypes.object,
 };
 
 class ExploreViewContainer extends React.Component {
@@ -65,6 +66,10 @@ class ExploreViewContainer extends React.Component {
       {},
       document.title,
       getExploreUrl(this.props.form_data));
+  }
+
+  onStop() {
+    this.props.actions.chartUpdateStopped(this.props.queryRequest);
   }
 
   getHeight() {
@@ -146,7 +151,8 @@ class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={this.onQuery.bind(this)}
               onSave={this.toggleModal.bind(this)}
-              disabled={this.props.chartStatus === 'loading'}
+              onStop={this.onStop.bind(this)}
+              loading={this.props.chartStatus === 'loading'}
               errorMessage={this.renderErrorMessage()}
             />
             <br />
@@ -177,6 +183,7 @@ function mapStateToProps(state) {
     standalone: state.standalone,
     triggerQuery: state.triggerQuery,
     forcedHeight: state.forced_height,
+    queryRequest: state.queryRequest,
   };
 }
 
