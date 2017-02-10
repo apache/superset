@@ -84,3 +84,15 @@ export const autoQueryFields = [
   'datasource',
   'viz_type',
 ];
+
+const defaultFields = Object.assign({}, fields);
+Object.keys(fields).forEach((f) => {
+  defaultFields[f].value = fields[f].default;
+});
+
+const defaultState = {
+  fields: defaultFields,
+  form_data: getFormDataFromFields(defaultFields),
+};
+
+export { defaultFields, defaultState };
