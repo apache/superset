@@ -186,6 +186,11 @@ def api(f):
 
     return functools.update_wrapper(wraps, f)
 
+def is_owner(obj, user):
+    """ Check if user is owner of the slice """
+    if obj.owners and user in obj.owners:
+        return True
+    return False
 
 def check_ownership(obj, raise_if_false=True):
     """Meant to be used in `pre_update` hooks on models to enforce ownership
@@ -1550,7 +1555,7 @@ class Superset(BaseSupersetView):
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
-        slice_edit_perm = check_ownership(slc, raise_if_false=False)
+        slice_overwrite_perm = is_owner(slc, g.user)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         # handle save or overwrite
@@ -1559,7 +1564,7 @@ class Superset(BaseSupersetView):
             return self.save_or_overwrite_slice(
                 request.args,
                 slc, slice_add_perm,
-                slice_edit_perm,
+                slice_overwrite_perm,
                 datasource_id,
                 datasource_type)
 
@@ -1568,7 +1573,7 @@ class Superset(BaseSupersetView):
         bootstrap_data = {
             "can_add": slice_add_perm,
             "can_download": slice_download_perm,
-            "can_edit": slice_edit_perm,
+            "can_overwrite": slice_overwrite_perm,
             "datasource": datasource.data,
             # TODO: separate endpoint for fetching datasources
             "form_data": form_data,
@@ -1637,7 +1642,7 @@ class Superset(BaseSupersetView):
             mimetype="application/json")
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_edit_perm,
+            self, args, slc, slice_add_perm, slice_overwrite_perm,
             datasource_id, datasource_type):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
@@ -1661,7 +1666,7 @@ class Superset(BaseSupersetView):
 
         if action in ('saveas') and slice_add_perm:
             self.save_slice(slc)
-        elif action == 'overwrite' and slice_edit_perm:
+        elif action == 'overwrite' and slice_overwrite_perm:
             self.overwrite_slice(slc)
 
         # Adding slice to a dashboard if requested
@@ -1705,15 +1710,11 @@ class Superset(BaseSupersetView):
         flash(msg, "info")
 
     def overwrite_slice(self, slc):
-        can_update = check_ownership(slc, raise_if_false=False)
-        if not can_update:
-            flash("You cannot overwrite [{}]".format(slc), "danger")
-        else:
-            session = db.session()
-            session.merge(slc)
-            session.commit()
-            msg = "Slice [{}] has been overwritten".format(slc.slice_name)
-            flash(msg, "info")
+        session = db.session()
+        session.merge(slc)
+        session.commit()
+        msg = "Slice [{}] has been overwritten".format(slc.slice_name)
+        flash(msg, "info")
 
     @api
     @has_access_api
