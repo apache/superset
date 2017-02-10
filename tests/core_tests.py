@@ -8,6 +8,7 @@ import csv
 import doctest
 import json
 import io
+import logging
 import random
 import unittest
 
@@ -160,8 +161,9 @@ class CoreTests(SupersetTestCase):
         for name, method, url in urls:
             logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
+        self.logout()
 
-    def test_slices_V2(self):
+    def test_slices_v2(self):
         # Add explore-v2-beta role to admin user
         # Test all slice urls as user with with explore-v2-beta role
         sm.add_role('explore-v2-beta')
@@ -179,8 +181,9 @@ class CoreTests(SupersetTestCase):
                 (slc.slice_name, 'slice_url', slc.slice_url),
             ]
         for name, method, url in urls:
-            print("[{name}]/[{method}]: {url}".format(**locals()))
+            logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             response = self.client.get(url)
+        self.logout()
 
     def test_dashboard(self):
         self.login(username='admin')
