@@ -42,6 +42,21 @@ class CoreTests(SupersetTestCase):
     def tearDown(self):
         db.session.query(models.Query).delete()
 
+    def test_login(self):
+        resp = self.get_resp(
+            '/login/',
+            data=dict(username='admin', password='general'))
+        self.assertIn('Welcome', resp)
+
+        resp = self.get_resp('/logout/', follow_redirects=True)
+        self.assertIn('User confirmation needed', resp)
+
+        resp = self.get_resp(
+            '/login/',
+            data=dict(username='admin', password='wrongPassword'))
+        self.assertNotIn('Welcome', resp)
+        self.assertIn('User confirmation needed', resp)
+
     def test_welcome(self):
         self.login()
         resp = self.client.get('/superset/welcome')
@@ -160,6 +175,17 @@ class CoreTests(SupersetTestCase):
         for name, method, url in urls:
             logging.info("[{name}]/[{method}]: {url}".format(**locals()))
             self.client.get(url)
+
+    def test_add_slice(self):
+        self.login(username='admin')
+
+        # Click on the + to add a slice
+        url = '/tablemodelview/list/'
+        resp = self.get_resp(url)
+
+        table = db.session.query(models.SqlaTable).first()
+        assert table.name in resp
+        assert '/superset/explore/table/{}'.format(table.id) in resp
 
     def test_slices_V2(self):
         # Add explore-v2-beta role to admin user
