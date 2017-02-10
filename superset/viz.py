@@ -1354,18 +1354,16 @@ class NVD3DualLineViz(NVD3Viz):
         series = df.to_dict('series')
         chart_data = []
         index_list = df.T.index.tolist()
-        for i in range(0, len(index_list)):
-            name = index_list[i]
-            ys = series[name]
-            if df[name].dtype.kind not in "biufc":
+        metrics = [
+            self.form_data.get('metric'),
+            self.form_data.get('metric_2')
+        ]
+        for i, m in enumerate(metrics):
+            ys = series[m]
+            if df[m].dtype.kind not in "biufc":
                 continue
             df[DTTM_ALIAS] = pd.to_datetime(df.index, utc=False)
-            if isinstance(name, string_types):
-                series_title = name
-            else:
-                name = ["{}".format(s) for s in name]
-                series_title = ", ".join(name[1:])
-
+            series_title = m
             d = {
                 "key": series_title,
                 "classed": classed,
