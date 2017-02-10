@@ -23,3 +23,7 @@
 table.table thead th.sorting:after, table.table thead th.sorting_asc:after, table.table thead th.sorting_desc:after {
     top: 0px;
 }
+
+.like-pre {
+  white-space: pre;
+}
