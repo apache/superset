@@ -1,0 +1,80 @@
+"""Code related with dealing with legacy / change management"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+from __future__ import unicode_literals
+
+from superset import frontend_config
+import re
+
+FORM_DATA_KEY_WHITELIST = frontend_config.get('fields', {}).keys() + [
+    'slice_id',
+]
+
+
+def cast_filter_data(form_data):
+    """Used by cast_form_data to parse the filters"""
+    flts = []
+    having_flts = []
+    fd = form_data
+    filter_pattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
+    for i in range(0, 10):
+        for prefix in ['flt', 'having']:
+            col_str = '{}_col_{}'.format(prefix, i)
+            op_str = '{}_op_{}'.format(prefix, i)
+            val_str = '{}_eq_{}'.format(prefix, i)
+            if col_str in fd and op_str in fd and val_str in fd \
+               and len(fd[val_str]) > 0:
+                f = {}
+                f['col'] = fd[col_str]
+                f['op'] = fd[op_str]
+                if prefix == 'flt':
+                    # transfer old strings in filter value to list
+                    splitted = filter_pattern.split(fd[val_str])[1::2]
+                    values = [types.replace("'", '').strip() for types in splitted]
+                    f['val'] = values
+                    flts.append(f)
+                if prefix == 'having':
+                    f['val'] = fd[val_str]
+                    having_flts.append(f)
+            if col_str in fd:
+                del fd[col_str]
+            if op_str in fd:
+                del fd[op_str]
+            if val_str in fd:
+                del fd[val_str]
+    fd['filters'] = flts
+    fd['having_filters'] = having_flts
+    return fd
+
+
+def cast_form_data(form_data):
+    """Translates old to new form_data"""
+    d = {}
+    fields = frontend_config.get('fields', {})
+    for k, v in form_data.items():
+        field_config = fields.get(k, {})
+        ft = field_config.get('type')
+        if ft == 'CheckboxField':
+            # bug in some urls with dups on bools
+            if isinstance(v, list):
+                v = 'y' in v
+            else:
+                v = True if v == 'true' or v is True else False
+        elif ft == 'TextField' and field_config.get('isInt'):
+            v = int(v) if v != '' else None
+        elif ft == 'TextField' and field_config.get('isFloat'):
+            v = float(v) if v != '' else None
+        elif ft == 'SelectField':
+            if field_config.get('multi') and not isinstance(v, list):
+                v = [v]
+
+        d[k] = v
+    d = cast_filter_data(d)
+    for k in d.keys():
+        if k not in FORM_DATA_KEY_WHITELIST:
+            print('Deleting: ' + k)
+            del d[k]
+    return d
+
+
