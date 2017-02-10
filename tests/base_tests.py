@@ -27,7 +27,7 @@ class SupersetTestCase(unittest.TestCase):
         if (
                         self.requires_examples and
                         not os.environ.get('SOLO_TEST') and
-                    not os.environ.get('examples_loaded')
+                        not os.environ.get('examples_loaded')
         ):
             logging.info("Loading examples")
             cli.load_examples(load_test_data=True)
@@ -275,4 +275,3 @@ class SupersetTestCase(unittest.TestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
-

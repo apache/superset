@@ -56,6 +56,7 @@ TEST_ROLE_2 = 'test_role2'
 DB_ACCESS_ROLE = 'db_access_role'
 SCHEMA_ACCESS_ROLE = 'schema_access_role'
 
+
 def create_access_request(session, ds_type, ds_name, role_name, user_name):
     ds_class = SourceRegistry.sources[ds_type]
     # TODO: generalize datasource names

@@ -1348,7 +1348,7 @@ class Superset(BaseSupersetView):
                 user = sm.get_user_by_id(r.created_by_fk)
                 if not datasource or \
                    self.datasource_access(datasource, user):
-                    # datasource doesnot exist anymore
+                    # datasource does not exist anymore
                     session.delete(r)
             session.commit()
         datasource_type = request.args.get('datasource_type')
@@ -2493,7 +2493,7 @@ class Superset(BaseSupersetView):
             return Response(
                 json.dumps({
                     'error': (
-                        "Data could not be retrived. You may want to "
+                        "Data could not be retrieved. You may want to "
                         "re-run the query."
                     )
                 }),
