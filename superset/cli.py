@@ -31,8 +31,8 @@ def init():
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
-    '-r', '--reloader', default=config.get("FLASK_USE_RELOAD"),
-    help="Specify the flask whether to use the auto-reloader")
+    '-n', '--no-reload', action='store_false', dest='no_reload', default=config.get("FLASK_USE_RELOAD"),
+    help="Don't use the reloader in debug mode")
 @manager.option(
     '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
     help="Specify the address to which to bind the web server")
@@ -45,7 +45,7 @@ def init():
 @manager.option(
     '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
     help="Specify the timeout (seconds) for the gunicorn web server")
-def runserver(debug, reloader, address, port, timeout, workers):
+def runserver(debug, no_reload, address, port, timeout, workers):
     """Starts a Superset web server"""
     debug = debug or config.get("DEBUG")
     if debug:
@@ -54,7 +54,7 @@ def runserver(debug, reloader, address, port, timeout, workers):
             port=int(port),
             threaded=True,
             debug=True,
-            use_reloader=(str(reloader) == 'True'))
+            use_reloader=no_reload)
     else:
         cmd = (
             "gunicorn "
@@ -121,13 +121,13 @@ def load_examples(load_test_data):
 @manager.option(
     '-d', '--datasource',
     help=(
-        "Specify which datasource name to load, if omitted, all "
-        "datasources will be refreshed"))
+            "Specify which datasource name to load, if omitted, all "
+            "datasources will be refreshed"))
 @manager.option(
     '-m', '--merge',
     help=(
-        "Specify using 'merge' property during operation. "
-        "Default value is False "))
+            "Specify using 'merge' property during operation. "
+            "Default value is False "))
 def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
