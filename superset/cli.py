@@ -31,7 +31,8 @@ def init():
     '-d', '--debug', action='store_true',
     help="Start the web server in debug mode")
 @manager.option(
-    '-n', '--no-reload', action='store_false', dest='no_reload', default=config.get("FLASK_USE_RELOAD"),
+    '-n', '--no-reload', action='store_false', dest='no_reload',
+    default=config.get("FLASK_USE_RELOAD"),
     help="Don't use the reloader in debug mode")
 @manager.option(
     '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
