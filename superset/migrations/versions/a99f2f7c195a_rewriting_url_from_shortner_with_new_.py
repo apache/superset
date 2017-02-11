@@ -55,7 +55,9 @@ def upgrade():
             split = url.url.split('/')
             d['datasource'] = split[5] + '__' + split[4]
             d = cast_form_data(d)
+            print('-='*10)
             print(url.url)
+            print('http://localhost:8088/r/' + str(url.id))
             pprint(d)
         #session.merge(slc)
         #session.commit()
@@ -65,4 +67,4 @@ def upgrade():
 def downgrade():
     pass
 
-upgrade()
+#upgrade()
