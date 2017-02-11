@@ -72,6 +72,9 @@ function tableVis(slice, payload) {
       if (c === 'timestamp') {
         val = timestampFormatter(val);
       }
+      if (typeof(val) === 'string') {
+        val = `<span class="like-pre">${val}</span>`;
+      }
       return {
         col: c,
         val,
