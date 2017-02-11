@@ -67,4 +67,4 @@ def upgrade():
 def downgrade():
     pass
 
-#upgrade()
+upgrade()
