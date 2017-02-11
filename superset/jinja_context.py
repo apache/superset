@@ -10,12 +10,10 @@ from jinja2.sandbox import SandboxedEnvironment
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import time
-import textwrap
 import uuid
 import random
 
-from superset import app
-from superset.utils import SupersetTemplateException
+from superset import app, db_engine_specs
 
 config = app.config
 BASE_CONTEXT = {
@@ -79,142 +77,19 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     """
     engine = 'presto'
 
-    @staticmethod
-    def _partition_query(
-            table_name, limit=0, order_by=None, filters=None):
-        """Returns a partition query
-
-        :param table_name: the name of the table to get partitions from
-        :type table_name: str
-        :param limit: the number of partitions to be returned
-        :type limit: int
-        :param order_by: a list of tuples of field name and a boolean
-            that determines if that field should be sorted in descending
-            order
-        :type order_by: list of (str, bool) tuples
-        :param filters: a list of filters to apply
-        :param filters: dict of field name and filter value combinations
-        """
-        limit_clause = "LIMIT {}".format(limit) if limit else ''
-        order_by_clause = ''
-        if order_by:
-            l = []
-            for field, desc in order_by:
-                l.append(field + ' DESC' if desc else '')
-            order_by_clause = 'ORDER BY ' + ', '.join(l)
-
-        where_clause = ''
-        if filters:
-            l = []
-            for field, value in filters.items():
-                l.append("{field} = '{value}'".format(**locals()))
-            where_clause = 'WHERE ' + ' AND '.join(l)
-
-        sql = textwrap.dedent("""\
-            SHOW PARTITIONS FROM {table_name}
-            {where_clause}
-            {order_by_clause}
-            {limit_clause}
-        """).format(**locals())
-        return sql
-
-    @staticmethod
-    def _schema_table(table_name, schema):
-        if '.' in table_name:
-            schema, table_name = table_name.split('.')
-        return table_name, schema
-
-    @staticmethod
-    def _latest_partition_from_df(df):
-        return df.to_records(index=False)[0][0]
-
     def latest_partition(self, table_name):
-        """Returns the latest (max) partition value for a table
-
-        :param table_name: the name of the table, can be just the table
-            name or a fully qualified table name as ``schema_name.table_name``
-        :type table_name: str
-        >>> latest_partition('foo_table')
-        '2018-01-01'
-        """
         table_name, schema = self._schema_table(table_name, self.schema)
-        indexes = self.database.get_indexes(table_name, schema)
-        if len(indexes[0]['column_names']) < 1:
-            raise SupersetTemplateException(
-                "The table should have one partitioned field")
-        elif len(indexes[0]['column_names']) > 1:
-            raise SupersetTemplateException(
-                "The table should have a single partitioned field "
-                "to use this function. You may want to use "
-                "`presto.latest_sub_partition`")
-        part_field = indexes[0]['column_names'][0]
-        sql = self._partition_query(table_name, 1, [(part_field, True)])
-        df = self.database.get_df(sql, schema)
-        return self._latest_partition_from_df(df)
+        return self.database.db_engine_spec.latest_partition(
+            table_name, schema, self.database)[1]
 
     def latest_sub_partition(self, table_name, **kwargs):
-        """Returns the latest (max) partition value for a table
-
-        A filtering criteria should be passed for all fields that are
-        partitioned except for the field to be returned. For example,
-        if a table is partitioned by (``ds``, ``event_type`` and
-        ``event_category``) and you want the latest ``ds``, you'll want
-        to provide a filter as keyword arguments for both
-        ``event_type`` and ``event_category`` as in
-        ``latest_sub_partition('my_table',
-            event_category='page', event_type='click')``
-
-        :param table_name: the name of the table, can be just the table
-            name or a fully qualified table name as ``schema_name.table_name``
-        :type table_name: str
-        :param kwargs: keyword arguments define the filtering criteria
-            on the partition list. There can be many of these.
-        :type kwargs: str
-        >>> latest_sub_partition('sub_partition_table', event_type='click')
-        '2018-01-01'
-        """
         table_name, schema = self._schema_table(table_name, self.schema)
-        indexes = self.database.get_indexes(table_name, schema)
-        part_fields = indexes[0]['column_names']
-        for k in kwargs.keys():
-            if k not in k in part_fields:
-                msg = "Field [{k}] is not part of the portioning key"
-                raise SupersetTemplateException(msg)
-        if len(kwargs.keys()) != len(part_fields) - 1:
-            msg = (
-                "A filter needs to be specified for {} out of the "
-                "{} fields."
-            ).format(len(part_fields)-1, len(part_fields))
-            raise SupersetTemplateException(msg)
-
-        for field in part_fields:
-            if field not in kwargs.keys():
-                field_to_return = field
-
-        sql = self._partition_query(
-            table_name, 1, [(field_to_return, True)], kwargs)
-        df = self.database.get_df(sql, schema)
-        if df.empty:
-            return ''
-        return df.to_dict()[field_to_return][0]
+        return self.database.db_engine_spec.latest_sub_partition(
+            table_name, schema, self.database, kwargs)
 
 
 class HiveTemplateProcessor(PrestoTemplateProcessor):
     engine = 'hive'
-
-    @staticmethod
-    def _latest_partition_from_df(df):
-        """Hive partitions look like ds={partition name}"""
-        return df.ix[:, 0].max().split('=')[1]
-
-    @staticmethod
-    def latest_sub_partition(self, table_name, **kwargs):
-        pass
-
-    @staticmethod
-    def _partition_query(
-            table_name, limit=0, order_by=None, filters=None):
-        return "SHOW PARTITIONS {table_name}".format(**locals())
 
 
 template_processors = {}

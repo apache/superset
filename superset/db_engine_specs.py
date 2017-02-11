@@ -17,15 +17,19 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
-from flask_babel import lazy_gettext as _
 from superset import utils
 
 import inspect
 import re
+import sqlparse
 import textwrap
 import time
 
 from superset import cache_util
+from sqlalchemy import select
+from sqlalchemy.sql import text
+from superset.utils import SupersetTemplateException
+from flask_babel import lazy_gettext as _
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -110,6 +114,35 @@ class BaseEngineSpec(object):
     @classmethod
     def patch(cls):
         pass
+
+    @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        return False
+
+    @classmethod
+    def select_star(cls, my_db, table_name, schema=None, limit=100,
+                    show_cols=False, indent=True):
+        fields = '*'
+        table = my_db.get_table(table_name, schema=schema)
+        if show_cols:
+            fields = [my_db.get_quoter()(c.name) for c in table.columns]
+        if schema:
+            full_table_name = schema + '.' + table_name
+        qry = select(fields)
+        if limit:
+            qry = qry.limit(limit)
+        partition_query = cls.where_latest_partition(
+            table_name, schema, my_db, qry, columns=table.columns)
+        # if not partition_query condition fails.
+        if partition_query == False:
+            qry = qry.select_from(text(full_table_name))
+        else:
+            qry = partition_query
+        sql = my_db.compile_sqla_query(qry)
+        if indent:
+            sql = sqlparse.format(sql, reindent=True)
+        return sql
 
 
 class PostgresEngineSpec(BaseEngineSpec):
@@ -240,27 +273,6 @@ class PrestoEngineSpec(BaseEngineSpec):
     def epoch_to_dttm(cls):
         return "from_unixtime({col})"
 
-    @staticmethod
-    def show_partition_pql(
-            table_name, schema_name=None, order_by=None, limit=100):
-        if schema_name:
-            table_name = schema_name + '.' + table_name
-        order_by = order_by or []
-        order_by_clause = ''
-        if order_by:
-            order_by_clause = "ORDER BY " + ', '.join(order_by) + " DESC"
-
-        limit_clause = ''
-        if limit:
-            limit_clause = "LIMIT {}".format(limit)
-
-        return textwrap.dedent("""\
-        SHOW PARTITIONS
-        FROM {table_name}
-        {order_by_clause}
-        {limit_clause}
-        """).format(**locals())
-
     @classmethod
     @cache_util.memoized_func(
         timeout=600,
@@ -289,16 +301,14 @@ class PrestoEngineSpec(BaseEngineSpec):
         if not indexes:
             return {}
         cols = indexes[0].get('column_names', [])
-        pql = cls.show_partition_pql(table_name, schema_name, cols)
-        df = database.get_df(pql, schema_name)
-        latest_part = df.to_dict(orient='records')[0] if not df.empty else None
-
-        partition_query = cls.show_partition_pql(table_name, schema_name, cols)
+        pql = cls._partition_query(table_name, schema_name, cols)
+        _, latest_part = cls.latest_partition(
+            table_name, schema_name, database)
         return {
             'partitions': {
                 'cols': cols,
                 'latest': latest_part,
-                'partitionQuery': partition_query,
+                'partitionQuery': pql,
             }
         }
 
@@ -321,7 +331,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
-            time.sleep(1)
+            time.sleep(2)
             polled = cursor.poll()
 
     @classmethod
@@ -337,8 +347,137 @@ class PrestoEngineSpec(BaseEngineSpec):
             )
         return utils.error_msg_from_exception(e)
 
+    @classmethod
+    def _partition_query(
+            cls, table_name, limit=0, order_by=None, filters=None):
+        """Returns a partition query
+
+        :param table_name: the name of the table to get partitions from
+        :type table_name: str
+        :param limit: the number of partitions to be returned
+        :type limit: int
+        :param order_by: a list of tuples of field name and a boolean
+            that determines if that field should be sorted in descending
+            order
+        :type order_by: list of (str, bool) tuples
+        :param filters: a list of filters to apply
+        :param filters: dict of field name and filter value combinations
+        """
+        limit_clause = "LIMIT {}".format(limit) if limit else ''
+        order_by_clause = ''
+        if order_by:
+            l = []
+            for field, desc in order_by:
+                l.append(field + ' DESC' if desc else '')
+            order_by_clause = 'ORDER BY ' + ', '.join(l)
+
+        where_clause = ''
+        if filters:
+            l = []
+            for field, value in filters.items():
+                l.append("{field} = '{value}'".format(**locals()))
+            where_clause = 'WHERE ' + ' AND '.join(l)
+
+        sql = textwrap.dedent("""\
+            SHOW PARTITIONS FROM {table_name}
+            {where_clause}
+            {order_by_clause}
+            {limit_clause}
+        """).format(**locals())
+        return sql
+
+    @classmethod
+    def _schema_table(cls, table_name, schema):
+        if '.' in table_name:
+            schema, table_name = table_name.split('.')
+        return table_name, schema
+
+    @classmethod
+    def _latest_partition_from_df(cls, df):
+        return df.to_records(index=False)[0][0]
+
+    @classmethod
+    def latest_partition(cls, table_name, schema, database):
+        """Returns col name and the latest (max) partition value for a table
+
+        :param table_name: the name of the table
+        :type table_name: str
+        :param schema: schema / database / namespace
+        :type schema: str
+        :param database: database query will be run against
+        :type database: models.Database
+
+        >>> latest_partition('foo_table')
+        '2018-01-01'
+        """
+        indexes = database.get_indexes(table_name, schema)
+        if len(indexes[0]['column_names']) < 1:
+            raise SupersetTemplateException(
+                "The table should have one partitioned field")
+        elif len(indexes[0]['column_names']) > 1:
+            raise SupersetTemplateException(
+                "The table should have a single partitioned field "
+                "to use this function. You may want to use "
+                "`presto.latest_sub_partition`")
+        part_field = indexes[0]['column_names'][0]
+        sql = cls._partition_query(table_name, 1, [(part_field, True)])
+        df = database.get_df(sql, schema)
+        return part_field, cls._latest_partition_from_df(df)
+
+    @classmethod
+    def latest_sub_partition(cls, table_name, schema, database,  **kwargs):
+        """Returns the latest (max) partition value for a table
+
+        A filtering criteria should be passed for all fields that are
+        partitioned except for the field to be returned. For example,
+        if a table is partitioned by (``ds``, ``event_type`` and
+        ``event_category``) and you want the latest ``ds``, you'll want
+        to provide a filter as keyword arguments for both
+        ``event_type`` and ``event_category`` as in
+        ``latest_sub_partition('my_table',
+            event_category='page', event_type='click')``
+
+        :param table_name: the name of the table, can be just the table
+            name or a fully qualified table name as ``schema_name.table_name``
+        :type table_name: str
+        :param schema: schema / database / namespace
+        :type schema: str
+        :param database: database query will be run against
+        :type database: models.Database
+
+        :param kwargs: keyword arguments define the filtering criteria
+            on the partition list. There can be many of these.
+        :type kwargs: str
+        >>> latest_sub_partition('sub_partition_table', event_type='click')
+        '2018-01-01'
+        """
+        indexes = database.get_indexes(table_name, schema)
+        part_fields = indexes[0]['column_names']
+        for k in kwargs.keys():
+            if k not in k in part_fields:
+                msg = "Field [{k}] is not part of the portioning key"
+                raise SupersetTemplateException(msg)
+        if len(kwargs.keys()) != len(part_fields) - 1:
+            msg = (
+                "A filter needs to be specified for {} out of the "
+                "{} fields."
+            ).format(len(part_fields)-1, len(part_fields))
+            raise SupersetTemplateException(msg)
+
+        for field in part_fields:
+            if field not in kwargs.keys():
+                field_to_return = field
+
+        sql = cls._partition_query(
+            table_name, 1, [(field_to_return, True)], kwargs)
+        df = database.get_df(sql, schema)
+        if df.empty:
+            return ''
+        return df.to_dict()[field_to_return][0]
+
 
 class HiveEngineSpec(PrestoEngineSpec):
+    """ Reuses PrestoEngineSpec functionality."""
     engine = 'hive'
 
     @classmethod
@@ -411,12 +550,36 @@ class HiveEngineSpec(PrestoEngineSpec):
         while polled.operationState in unfinished_states:
             resp = cursor.fetch_logs()
             if resp and resp.log:
-                progress = cls.progress(resp.log.splitlines())
+                progress = cls.progress(resp.log)
                 if progress > query.progress:
                     query.progress = progress
                 session.commit()
             time.sleep(2)
             polled = cursor.poll()
+
+    @classmethod
+    def where_latest_partition(
+            cls, table_name, schema, database, qry, columns=None):
+        col_name, value = cls.latest_partition(table_name, schema, database)
+        for c in columns:
+            if str(c.name) == str(col_name):
+                return qry.where(c == str(value))
+        return False
+
+    @classmethod
+    def latest_sub_partition(cls, table_name, **kwargs):
+        # TODO(bogdan): implement`
+        pass
+
+    @classmethod
+    def _latest_partition_from_df(cls, df):
+        """Hive partitions look like ds={partition name}"""
+        return df.ix[:, 0].max().split('=')[1]
+
+    @classmethod
+    def _partition_query(
+            cls, table_name, limit=0, order_by=None, filters=None):
+        return "SHOW PARTITIONS {table_name}".format(**locals())
 
 
 class MssqlEngineSpec(BaseEngineSpec):
