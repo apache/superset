@@ -106,10 +106,10 @@ class BaseViz(object):
                 timestamp_format = dttm_col.python_date_format
 
         # The datasource here can be different backend but the interface is common
-        self.results = self.datasource.query(**query_obj)
+        self.results = self.datasource.query(query_obj)
+        self.query = self.results.query
         self.status = self.results.status
         self.error_message = self.results.error_message
-        self.query = self.results.query
 
         df = self.results.df
         # Transform the timestamp we received from database to pandas supported

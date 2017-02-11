@@ -1265,8 +1265,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             con=engine
         )
 
-    def query(  # sqla
-            self, groupby, metrics,
+    def get_query_str(  # sqla
+            self, engine, qry_start_dttm,
+            groupby, metrics,
             granularity,
             from_dttm, to_dttm,
             filter=None,  # noqa
@@ -1289,7 +1290,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         cols = {col.column_name: col for col in self.columns}
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        qry_start_dttm = datetime.now()
 
         if not granularity and is_timeseries:
             raise Exception(_(
@@ -1443,13 +1443,18 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         qry = qry.select_from(tbl)
 
-        engine = self.database.get_sqla_engine()
         sql = "{}".format(
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
+        return sql
+
+    def query(self, query_obj):
+        qry_start_dttm = datetime.now()
+        engine = self.database.get_sqla_engine()
+        sql = self.get_query_str(engine, qry_start_dttm, **query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -2287,8 +2292,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         return df
 
-    def query(  # druid
-            self, groupby, metrics,
+    def get_query_str(  # druid
+            self, client, qry_start_dttm,
+            groupby, metrics,
             granularity,
             from_dttm, to_dttm,
             filter=None,  # noqa
@@ -2300,13 +2306,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, ):
+            columns=None, phase=2):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
         """
         # TODO refactor into using a TBD Query object
-        qry_start_dttm = datetime.now()
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -2402,7 +2407,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if having_filters:
             qry['having'] = having_filters
 
-        client = self.cluster.get_pydruid_client()
         orig_filters = filters
         if len(groupby) == 0:
             del qry['dimensions']
@@ -2441,6 +2445,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 query_str += json.dumps(
                     client.query_builder.last_query.query_dict, indent=2)
                 query_str += "\n"
+                if phase == 1:
+                    return query_str
                 query_str += (
                     "//\nPhase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
@@ -2480,15 +2486,23 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             client.groupby(**qry)
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
+        return query_str
+
+    def query(self, query_obj):
+        qry_start_dttm = datetime.now()
+        client = self.cluster.get_pydruid_client()
+        query_str = self.get_query_str(client, qry_start_dttm, **query_obj)
         df = client.export_pandas()
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
         df.columns = [
             DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
 
+        is_timeseries = query_obj['is_timeseries'] \
+            if 'is_timeseries' in query_obj else True
         if (
                 not is_timeseries and
-                granularity == "all" and
+                query_obj['granularity'] == "all" and
                 DTTM_ALIAS in df.columns):
             del df[DTTM_ALIAS]
 
@@ -2496,11 +2510,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         cols = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += [col for col in groupby if col in df.columns]
-        cols += [col for col in metrics if col in df.columns]
+        cols += [col for col in query_obj['groupby'] if col in df.columns]
+        cols += [col for col in query_obj['metrics'] if col in df.columns]
         df = df[cols]
 
-        time_offset = DruidDatasource.time_offset(granularity)
+        time_offset = DruidDatasource.time_offset(query_obj['granularity'])
 
         def increment_timestamp(ts):
             dt = utils.parse_human_datetime(ts).replace(

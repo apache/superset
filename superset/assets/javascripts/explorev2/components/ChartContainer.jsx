@@ -31,6 +31,8 @@ const propTypes = {
   slice: PropTypes.object.isRequired,
   table_name: PropTypes.string,
   viz_type: PropTypes.string.isRequired,
+  formData: PropTypes.object,
+  latestQueryFormData: PropTypes.object,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -226,13 +228,12 @@ class ChartContainer extends React.PureComponent {
                   status={CHART_STATUS_MAP[this.props.chartStatus]}
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
-                {this.state.mockSlice &&
-                  <ExploreActionButtons
-                    slice={this.state.mockSlice}
-                    canDownload={this.props.can_download}
-                    query={this.props.queryResponse.query}
-                  />
-                }
+                <ExploreActionButtons
+                  slice={this.state.mockSlice}
+                  canDownload={this.props.can_download}
+                  queryEndpoint={getExploreUrl(
+                    this.props.latestQueryFormData, this.props.datasource_type, 'query')}
+                />
               </div>
             </div>
           }
@@ -256,8 +257,8 @@ function mapStateToProps(state) {
     chartUpdateStartTime: state.chartUpdateStartTime,
     column_formats: state.datasource ? state.datasource.column_formats : null,
     containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
-    datasource_type: state.datasource_type,
     formData,
+    latestQueryFormData: state.latestQueryFormData,
     isStarred: state.isStarred,
     queryResponse: state.queryResponse,
     slice: state.slice,

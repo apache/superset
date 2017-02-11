@@ -88,6 +88,7 @@ export const exploreReducer = function (state, action) {
           chartUpdateStartTime: now(),
           triggerQuery: false,
           queryRequest: action.queryRequest,
+          latestQueryFormData: getFormDataFromFields(state.fields),
         });
     },
     [actions.CHART_UPDATE_STOPPED]() {
