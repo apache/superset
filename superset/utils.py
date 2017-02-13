@@ -26,12 +26,12 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.utils import formatdate
 from flask import flash, Markup, render_template, url_for, redirect, request
+from flask_appbuilder._compat import as_unicode
 from flask_appbuilder.const import (
     LOGMSG_ERR_SEC_ACCESS_DENIED,
     FLAMSG_ERR_SEC_ACCESS_DENIED,
     PERMISSION_PREFIX
 )
-from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
 from past.builtins import basestring
 from pydruid.utils.having import Having

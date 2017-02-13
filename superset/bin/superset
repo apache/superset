@@ -4,11 +4,28 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import logging
 import warnings
 from flask.exthook import ExtDeprecationWarning
 warnings.simplefilter('ignore', ExtDeprecationWarning)
 
+def set_verbosity(high=True):
+    """Sets the verbosity of the app
+
+    Main goal is to silence overly verbose external libs"""
+
+    if high:
+        # Shushing external lib logging
+        logging.getLogger('flask_appbuilder').setLevel(logging.INFO)
+        logging.getLogger('pyhive.presto').setLevel(logging.INFO)
+    else:
+        # Shushing external lib logging
+        logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
+        logging.getLogger('pyhive.presto').setLevel(logging.ERROR)
+
+set_verbosity(False)
 from superset.cli import manager
+
 
 if __name__ == "__main__":
     manager.run()

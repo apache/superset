@@ -269,7 +269,7 @@ try:
         imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
 
     from superset_config import *  # noqa
-    print('Loaded your LOCAL configuration')
+    print('Successfully Loaded your local `superset_config` configuration')
 except ImportError:
     pass
 

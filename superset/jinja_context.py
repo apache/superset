@@ -14,8 +14,10 @@ import textwrap
 import uuid
 import random
 
-from superset import app
+from superset.app import get_app
 from superset.utils import SupersetTemplateException
+
+app = get_app()
 
 config = app.config
 BASE_CONTEXT = {

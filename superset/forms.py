@@ -15,8 +15,9 @@ from wtforms import (
     BooleanField, IntegerField, HiddenField, DecimalField)
 from wtforms import validators, widgets
 
-from superset import app
+from superset.app import get_app
 
+app = get_app()
 config = app.config
 
 TIMESTAMP_CHOICES = [

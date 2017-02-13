@@ -6,7 +6,14 @@ from __future__ import unicode_literals
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import conf, db, models, sm, source_registry
+from superset import models, source_registry
+from superset.app import get_app
+
+app = get_app()
+conf = app.config
+db = app.extensions.get('sqlalchemy')
+appbuilder = app.extensions.get('appbuilder')
+sm = appbuilder.sm
 
 
 READ_ONLY_MODEL_VIEWS = {

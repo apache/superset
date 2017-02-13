@@ -14,8 +14,12 @@ import random
 import pandas as pd
 from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
-from superset import app, db, models, utils
+from superset.app import get_app
+from superset import app, models, utils
 from superset.security import get_or_create_main_db
+
+app = get_app()
+db = app.extensions.get('sqlalchemy')
 
 # Shortcuts
 DB = models.Database

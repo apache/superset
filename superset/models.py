@@ -54,8 +54,9 @@ from sqlalchemy_utils import EncryptedType
 
 from werkzeug.datastructures import ImmutableMultiDict
 
+from superset.app import get_app
 from superset import (
-    app, db, db_engine_specs, get_session, utils, sm, import_util
+    db_engine_specs, utils, import_util
 )
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
@@ -65,7 +66,11 @@ from superset.utils import (
     DTTM_ALIAS, QueryStatus,
 )
 
+app = get_app()
 config = app.config
+db = app.extensions.get('sqlalchemy')
+appbuilder = app.extensions.get('appbuilder')
+sm = appbuilder.sm
 
 
 class QueryResult(object):
@@ -1779,7 +1784,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                         'name': name,
                         'fieldNames': [self.column_name]})
                 ))
-        session = get_session()
+        session = db.get_session()
         new_metrics = []
         for metric in metrics:
             m = (
@@ -2157,7 +2162,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
     def sync_to_db(cls, name, cluster, merge):
         """Fetches metadata for that datasource and merges the Superset db"""
         logging.info("Syncing Druid datasource [{}]".format(name))
-        session = get_session()
+        session = db.get_session()
         datasource = session.query(cls).filter_by(datasource_name=name).first()
         if not datasource:
             datasource = cls(datasource_name=name)

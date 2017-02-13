@@ -13,8 +13,10 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, db, data, security
+from superset.app import get_app
+from superset import data, security, utils
 
+app = get_app()
 config = app.config
 
 manager = Manager(app)
@@ -67,8 +69,9 @@ def runserver(debug, address, port, timeout, workers):
 @manager.option(
     '-v', '--verbose', action='store_true',
     help="Show extra information")
-def version(verbose):
+def version(verbose=False):
     """Prints the current version number"""
+    utils.set_verbosity(verbose)
     s = (
         "\n-----------------------\n"
         "Superset {version}\n"

@@ -28,10 +28,13 @@ from werkzeug.datastructures import ImmutableMultiDict, MultiDict
 from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
-from superset import app, utils, cache
+from superset.app import get_app
+from superset import utils
 from superset.forms import FormFactory
 from superset.utils import flasher, DTTM_ALIAS
 
+app = get_app()
+cache = app.extensions.get('cache')
 config = app.config
 
 
