@@ -15,9 +15,11 @@ function exportFile(fileLocation, content) {
 
 function main() {
   const APP_DIR = path.resolve(__dirname, './');
-  const blob = {
-    fields,
-  };
+  const dir = APP_DIR + '/../dist/';
+  if (!fs.existsSync(dir)){
+    fs.mkdirSync(dir);
+  }
+  const blob = { fields };
   exportFile(APP_DIR + '/../dist/backendSync.json', JSON.stringify(blob, null, 2));
 }
 main();
