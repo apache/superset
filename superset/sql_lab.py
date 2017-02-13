@@ -108,6 +108,15 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         result_proxy = engine.execute(query.executed_sql, schema=query.schema)
     except Exception as e:
         logging.exception(e)
+        if hasattr(e, 'orig') \
+           and type(e.orig).__name__ == 'DatabaseError' \
+           and isinstance(e.orig[0], dict):
+            error_dict = e.orig[0]
+            e = '{} at {}: {}'.format(
+                error_dict['errorName'],
+                error_dict['errorLocation'],
+                error_dict['message']
+            )
         handle_error(utils.error_msg_from_exception(e))
 
     cursor = result_proxy.cursor
