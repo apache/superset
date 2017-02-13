@@ -34,6 +34,7 @@ export default function QueryAndSaveBtns(
     </Button>
   ) : (
     <Button
+      className="query"
       onClick={onQuery}
       bsStyle={qryButtonStyle}
     >

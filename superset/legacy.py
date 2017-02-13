@@ -68,6 +68,8 @@ def cast_form_data(form_data):
         elif ft == 'SelectField':
             if field_config.get('multi') and not isinstance(v, list):
                 v = [v]
+        if d.get('slice_id'):
+            d['slice_id'] = int(d['slice_id'])
 
         d[k] = v
     d = cast_filter_data(d)

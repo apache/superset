@@ -36,7 +36,7 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('calls onQuery when query button is clicked', () => {
-      const queryButton = wrapper.find('#query_button');
+      const queryButton = wrapper.find('.query');
       queryButton.simulate('click');
       expect(defaultProps.onQuery.called).to.eql(true);
     });

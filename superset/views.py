@@ -1599,6 +1599,8 @@ class Superset(BaseSupersetView):
         datasource_id = int(datasource_id)
         viz_type = form_data.get("viz_type")
         slice_id = form_data.get('slice_id')
+        from pprint import pprint
+        pprint(form_data)
         user_id = g.user.get_id() if g.user else None
 
         slc = None

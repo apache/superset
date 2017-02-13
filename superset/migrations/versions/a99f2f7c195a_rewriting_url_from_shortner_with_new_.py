@@ -12,6 +12,8 @@ down_revision = 'db0c65b146bd'
 
 from urlparse import parse_qsl
 from alembic import op
+import json
+from urllib import quote_plus
 from pprint import pprint
 import sqlalchemy as sa
 from superset import db
@@ -58,7 +60,9 @@ def upgrade():
             print('-='*10)
             print(url.url)
             print('http://localhost:8088/r/' + str(url.id))
+            newurl = '/'.join(split[:-1]) + '/?form_data=' + quote_plus(json.dumps(d))
             pprint(d)
+            print(newurl)
         #session.merge(slc)
         #session.commit()
     session.close()
