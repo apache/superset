@@ -87,7 +87,8 @@ class BaseSupersetView(BaseView):
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user):
+        if schema and utils.can_access(
+                sm, 'schema_access', schema_perm, g.user):
             return True
 
         datasources = SourceRegistry.query_datasources_by_name(
@@ -120,7 +121,8 @@ class BaseSupersetView(BaseView):
             return datasource_names
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm):
+        if schema and utils.can_access(
+                sm, 'schema_access', schema_perm, g.user):
             return datasource_names
 
         role_ids = set([role.id for role in g.user.roles])
