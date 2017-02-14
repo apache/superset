@@ -575,6 +575,11 @@ class FormFactory(object):
                 "description": _(
                     "Limits the number of time series that get displayed")
             }),
+            'others_category': (BetterBooleanField, {
+                "label": _("Others category"),
+                "default": True,
+                "description": _("Aggregate data outside of topN into a single category")
+            }),
             'timeseries_limit_metric': (SelectField, {
                 "label": _("Sort By"),
                 "choices": [('', '')] + datasource.metrics_combo,
