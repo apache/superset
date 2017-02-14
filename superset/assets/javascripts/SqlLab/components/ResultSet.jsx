@@ -190,7 +190,18 @@ class ResultSet extends React.PureComponent {
             {sql}
             <div className="ResultSet">
               <Table
-                data={data}
+                data={data.map(function (row) {
+                  const newRow = {};
+                  for (const k in row) {
+                    const val = row[k];
+                    if (typeof(val) === 'string') {
+                      newRow[k] = val;
+                    } else {
+                      newRow[k] = JSON.stringify(val);
+                    }
+                  }
+                  return newRow;
+                })}
                 columns={results.columns.map((col) => col.name)}
                 sortable
                 className="table table-condensed table-bordered"
