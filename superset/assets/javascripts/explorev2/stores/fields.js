@@ -26,11 +26,6 @@ export const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
-const MAP_DATASOURCE_TYPE_TO_EDIT_URL = {
-  table: '/tablemodelview/edit',
-  druid: '/druiddatasourcemodelview/edit',
-};
-
 export const fields = {
   datasource: {
     type: 'SelectField',
@@ -43,7 +38,7 @@ export const fields = {
       return {
         choices: datasources,
         isLoading: datasources.length === 0,
-        editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
+        editUrl: state.datasource ? state.datasource.edit_url : null,
       };
     },
     description: '',

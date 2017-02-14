@@ -16,7 +16,7 @@ function exportFile(fileLocation, content) {
 function main() {
   const APP_DIR = path.resolve(__dirname, './');
   const dir = APP_DIR + '/../dist/';
-  if (!fs.existsSync(dir)){
+  if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
   const blob = { fields };

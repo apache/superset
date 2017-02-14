@@ -109,7 +109,7 @@ export default class SelectField extends React.PureComponent {
       <div>
         {selectWrap}
         {this.props.editUrl &&
-          <a href={`${this.props.editUrl}/${this.props.value}`}>edit</a>
+          <a href={this.props.editUrl}>edit</a>
         }
       </div>
     );

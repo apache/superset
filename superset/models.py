@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import ast
 from collections import OrderedDict
 import functools
 import json
@@ -649,7 +648,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         })
 
 
-class Queryable(object):
+class Datasource(object):
 
     """A common interface to objects that are queryable (tables and datasources)"""
 
@@ -701,16 +700,17 @@ class Queryable(object):
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         d = {
-            'id': self.id,
-            'type': self.type,
-            'name': self.name,
-            'metrics_combo': self.metrics_combo,
-            'order_by_choices': order_by_choices,
-            'gb_cols': utils.choicify(self.groupby_column_names),
             'all_cols': utils.choicify(self.column_names),
-            'filterable_cols': utils.choicify(self.filterable_column_names),
-            'filter_select': self.filter_select_enabled,
             'column_formats': self.column_formats,
+            'edit_url' : self.url,
+            'filter_select': self.filter_select_enabled,
+            'filterable_cols': utils.choicify(self.filterable_column_names),
+            'gb_cols': utils.choicify(self.groupby_column_names),
+            'id': self.id,
+            'metrics_combo': self.metrics_combo,
+            'name': self.name,
+            'order_by_choices': order_by_choices,
+            'type': self.type,
         }
         if self.type == 'table':
             grains = self.database.grains() or []
@@ -1098,7 +1098,7 @@ class SqlMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
+class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
 
     """An ORM object for SqlAlchemy table references"""
 
@@ -1879,7 +1879,7 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
+class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
 
     """ORM object referencing Druid datasources (tables)"""
 
