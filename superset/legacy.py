@@ -61,11 +61,11 @@ def cast_form_data(form_data):
                 v = 'y' in v
             else:
                 v = True if v == 'true' or v is True else False
-        elif ft == 'TextField' and field_config.get('isInt'):
+        elif v and ft == 'TextField' and field_config.get('isInt'):
             v = int(v) if v != '' else None
-        elif ft == 'TextField' and field_config.get('isFloat'):
+        elif v and ft == 'TextField' and field_config.get('isFloat'):
             v = float(v) if v != '' else None
-        elif ft == 'SelectField':
+        elif v and ft == 'SelectField':
             if field_config.get('multi') and not isinstance(v, list):
                 v = [v]
         if d.get('slice_id'):
