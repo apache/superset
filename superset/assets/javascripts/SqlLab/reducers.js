@@ -151,7 +151,7 @@ export const sqlLabReducer = function (state, action) {
       return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
     [actions.STOP_QUERY]() {
-      return alterInObject(state, 'queries', action.query, { state: 'stopped' });
+      return alterInObject(state, 'queries', action.query, { state: 'stopped', results: [] });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
       const newResults = Object.assign({}, action.query.results);
@@ -162,6 +162,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       let rows;
       if (action.results.data) {
         rows = action.results.data.length;
@@ -178,6 +181,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
       return alterInObject(state, 'queries', action.query, alts);
     },
@@ -237,8 +243,9 @@ export const sqlLabReducer = function (state, action) {
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
         if (
-            !state.queries.hasOwnProperty(id) ||
-            state.queries[id].changedOn !== changedQuery.changedOn) {
+            state.queries[id].state !== 'stopped' &&
+            (!state.queries.hasOwnProperty(id) ||
+            state.queries[id].changedOn !== changedQuery.changedOn)) {
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }

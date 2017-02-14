@@ -141,6 +141,10 @@ class ResultSet extends React.PureComponent {
 
     let sql;
 
+    if (query.state === 'stopped') {
+      return <Alert bsStyle="warning">Query was stopped</Alert>;
+    }
+
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
