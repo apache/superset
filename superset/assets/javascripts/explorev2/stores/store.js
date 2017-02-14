@@ -69,7 +69,7 @@ export function applyDefaultFormData(form_data) {
   const fieldNames = getFieldNames(form_data.viz_type, datasourceType);
   const formData = {};
   fieldNames.forEach(k => {
-    if (form_data === undefined) {
+    if (form_data[k] === undefined) {
       if (typeof fields[k].default === 'function') {
         formData[k] = fields[k].default(fields[k]);
       } else {
