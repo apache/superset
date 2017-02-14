@@ -192,8 +192,7 @@ def json_error_response(msg, status=None, stacktrace=None):
         status=status, mimetype="application/json")
 
 
-def json_success(json_msg, status=None):
-    status = status if status else 200
+def json_success(json_msg, status=200):
     return Response(json_msg, status=status, mimetype="application/json")
 
 
@@ -1527,6 +1526,7 @@ class Superset(BaseSupersetView):
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
 
+
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
@@ -1564,10 +1564,12 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
-        if payload.get('status') == QueryStatus.FAILED:
-            return json_error_response(viz_obj.json_dumps(payload))
 
-        return json_success(viz_obj.json_dumps(payload))
+        status = 200
+        if payload.get('status') == QueryStatus.FAILED:
+            status = 400
+
+        return json_success(viz_obj.json_dumps(payload), status=status)
 
     @expose("/import_dashboards", methods=['GET', 'POST'])
     @log_this

@@ -248,11 +248,14 @@ class BaseViz(object):
             logging.info("Serving from cache")
 
         if not payload:
+            data = None
             is_cached = False
             cache_timeout = self.cache_timeout
             stacktrace = None
             try:
-                data = self.get_data()
+                df = self.get_df()
+                if not self.error_message:
+                    data = self.get_data(df)
             except Exception as e:
                 logging.exception(e)
                 if not self.error_message:
@@ -338,7 +341,7 @@ class BaseViz(object):
         df = self.datasource.values_for_column(**kwargs)
         return df[column].to_json()
 
-    def get_data(self):
+    def get_data(self, df):
         return []
 
     @property
@@ -373,8 +376,7 @@ class TableViz(BaseViz):
             d['orderby'] = [json.loads(t) for t in order_by_cols]
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         if (
                 self.form_data.get("granularity") == "all" and
                 DTTM_ALIAS in df):
@@ -419,8 +421,7 @@ class PivotTableViz(BaseViz):
         d['groupby'] = list(set(groupby) | set(columns))
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         if (
                 self.form_data.get("granularity") == "all" and
                 DTTM_ALIAS in df):
@@ -447,7 +448,7 @@ class MarkupViz(BaseViz):
     verbose_name = _("Markup")
     is_timeseries = False
 
-    def get_data(self):
+    def get_data(self, df):
         markup_type = self.form_data.get("markup_type")
         code = self.form_data.get("code", '')
         if markup_type == "markdown":
@@ -482,8 +483,7 @@ class WordCloudViz(BaseViz):
         d['groupby'] = [self.form_data.get('series')]
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         # Ordering the columns
         df = df[[self.form_data.get('series'), self.form_data.get('metric')]]
         # Labeling the columns for uniform json schema
@@ -510,8 +510,7 @@ class TreemapViz(BaseViz):
                       for l in df.index.levels[0]]
         return result
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         df = df.set_index(self.form_data.get("groupby"))
         chart_data = [{"name": metric, "children": self._nest(metric, df)}
                       for metric in df.columns]
@@ -528,8 +527,7 @@ class CalHeatmapViz(BaseViz):
         '<a href=https://github.com/wa0x6e/cal-heatmap>cal-heatmap</a>')
     is_timeseries = True
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         form_data = self.form_data
 
         df.columns = ["timestamp", "metric"]
@@ -586,10 +584,31 @@ class BoxPlotViz(NVD3Viz):
     sort_series = False
     is_timeseries = True
 
-    def get_df(self, query_obj=None):
-        form_data = self.form_data
-        df = super(BoxPlotViz, self).get_df(query_obj)
+    def to_series(self, df, classed='', title_suffix=''):
+        label_sep = " - "
+        chart_data = []
+        for index_value, row in zip(df.index, df.to_dict(orient="records")):
+            if isinstance(index_value, tuple):
+                index_value = label_sep.join(index_value)
+            boxes = defaultdict(dict)
+            for (label, key), value in row.items():
+                if key == "median":
+                    key = "Q2"
+                boxes[label][key] = value
+            for label, box in boxes.items():
+                if len(self.form_data.get("metrics")) > 1:
+                    # need to render data labels with metrics
+                    chart_label = label_sep.join([index_value, label])
+                else:
+                    chart_label = index_value
+                chart_data.append({
+                    "label": chart_label,
+                    "values": box,
+                })
+        return chart_data
 
+    def get_data(self, df):
+        form_data = self.form_data
         df = df.fillna(0)
 
         # conform to NVD3 names
@@ -641,33 +660,6 @@ class BoxPlotViz(NVD3Viz):
 
         aggregate = [Q1, np.median, Q3, whisker_high, whisker_low, outliers]
         df = df.groupby(form_data.get('groupby')).agg(aggregate)
-        return df
-
-    def to_series(self, df, classed='', title_suffix=''):
-        label_sep = " - "
-        chart_data = []
-        for index_value, row in zip(df.index, df.to_dict(orient="records")):
-            if isinstance(index_value, tuple):
-                index_value = label_sep.join(index_value)
-            boxes = defaultdict(dict)
-            for (label, key), value in row.items():
-                if key == "median":
-                    key = "Q2"
-                boxes[label][key] = value
-            for label, box in boxes.items():
-                if len(self.form_data.get("metrics")) > 1:
-                    # need to render data labels with metrics
-                    chart_label = label_sep.join([index_value, label])
-                else:
-                    chart_label = index_value
-                chart_data.append({
-                    "label": chart_label,
-                    "values": box,
-                })
-        return chart_data
-
-    def get_data(self):
-        df = self.get_df()
         chart_data = self.to_series(df)
         return chart_data
 
@@ -702,18 +694,13 @@ class BubbleViz(NVD3Viz):
             raise Exception("Pick a metric for x, y and size")
         return d
 
-    def get_df(self, query_obj=None):
-        df = super(BubbleViz, self).get_df(query_obj)
-        df = df.fillna(0)
+    def get_data(self, df):
         df['x'] = df[[self.x_metric]]
         df['y'] = df[[self.y_metric]]
         df['size'] = df[[self.z_metric]]
         df['shape'] = 'circle'
         df['group'] = df[[self.series]]
-        return df
 
-    def get_data(self):
-        df = self.get_df()
         series = defaultdict(list)
         for row in df.to_dict(orient='records'):
             series[row['group']].append(row)
@@ -759,14 +746,9 @@ class BulletViz(NVD3Viz):
             raise Exception("Pick a metric to display")
         return d
 
-    def get_df(self, query_obj=None):
-        df = super(BulletViz, self).get_df(query_obj)
+    def get_data(self, df):
         df = df.fillna(0)
         df['metric'] = df[[self.metric]]
-        return df
-
-    def get_data(self):
-        df = self.get_df()
         values = df['metric'].values
         return {
             'measures': values.tolist(),
@@ -797,9 +779,8 @@ class BigNumberViz(BaseViz):
         self.form_data['metric'] = metric
         return d
 
-    def get_data(self):
+    def get_data(self, df):
         form_data = self.form_data
-        df = self.get_df()
         df.sort_values(by=df.columns[0], inplace=True)
         compare_lag = form_data.get("compare_lag")
         return {
@@ -827,9 +808,8 @@ class BigNumberTotalViz(BaseViz):
         self.form_data['metric'] = metric
         return d
 
-    def get_data(self):
+    def get_data(self, df):
         form_data = self.form_data
-        df = self.get_df()
         df.sort_values(by=df.columns[0], inplace=True)
         return {
             'data': df.values.tolist(),
@@ -845,65 +825,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
     verbose_name = _("Time Series - Line Chart")
     sort_series = False
     is_timeseries = True
-
-    def get_df(self, query_obj=None):
-        form_data = self.form_data
-        df = super(NVD3TimeSeriesViz, self).get_df(query_obj)
-        df = df.fillna(0)
-        if form_data.get("granularity") == "all":
-            raise Exception("Pick a time granularity for your time series")
-
-
-        df = df.pivot_table(
-            index=DTTM_ALIAS,
-            columns=form_data.get('groupby'),
-            values=form_data.get('metrics'))
-
-        fm = form_data.get("resample_fillmethod")
-        if not fm:
-            fm = None
-        how = form_data.get("resample_how")
-        rule = form_data.get("resample_rule")
-        if how and rule:
-            df = df.resample(rule, how=how, fill_method=fm)
-            if not fm:
-                df = df.fillna(0)
-
-        if self.sort_series:
-            dfs = df.sum()
-            dfs.sort_values(ascending=False, inplace=True)
-            df = df[dfs.index]
-
-        if form_data.get("contribution"):
-            dft = df.T
-            df = (dft / dft.sum()).T
-
-        rolling_periods = form_data.get("rolling_periods")
-        rolling_type = form_data.get("rolling_type")
-
-        if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
-            if rolling_type == 'mean':
-                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
-            elif rolling_type == 'std':
-                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
-            elif rolling_type == 'sum':
-                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
-        elif rolling_type == 'cumsum':
-            df = df.cumsum()
-
-        num_period_compare = form_data.get("num_period_compare")
-        if num_period_compare:
-            num_period_compare = int(num_period_compare)
-            prt = form_data.get('period_ratio_type')
-            if prt and prt == 'growth':
-                df = (df / df.shift(num_period_compare)) - 1
-            elif prt and prt == 'value':
-                df = df - df.shift(num_period_compare)
-            else:
-                df = df / df.shift(num_period_compare)
-
-            df = df[num_period_compare:]
-        return df
 
     def to_series(self, df, classed='', title_suffix=''):
         cols = []
@@ -945,11 +866,65 @@ class NVD3TimeSeriesViz(NVD3Viz):
             chart_data.append(d)
         return chart_data
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
+        fd = self.form_data
+        df = df.fillna(0)
+        if fd.get("granularity") == "all":
+            raise Exception("Pick a time granularity for your time series")
+
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            columns=fd.get('groupby'),
+            values=fd.get('metrics'))
+
+        fm = fd.get("resample_fillmethod")
+        if not fm:
+            fm = None
+        how = fd.get("resample_how")
+        rule = fd.get("resample_rule")
+        if how and rule:
+            df = df.resample(rule, how=how, fill_method=fm)
+            if not fm:
+                df = df.fillna(0)
+
+        if self.sort_series:
+            dfs = df.sum()
+            dfs.sort_values(ascending=False, inplace=True)
+            df = df[dfs.index]
+
+        if fd.get("contribution"):
+            dft = df.T
+            df = (dft / dft.sum()).T
+
+        rolling_periods = fd.get("rolling_periods")
+        rolling_type = fd.get("rolling_type")
+
+        if rolling_type in ('mean', 'std', 'sum') and rolling_periods:
+            if rolling_type == 'mean':
+                df = pd.rolling_mean(df, int(rolling_periods), min_periods=0)
+            elif rolling_type == 'std':
+                df = pd.rolling_std(df, int(rolling_periods), min_periods=0)
+            elif rolling_type == 'sum':
+                df = pd.rolling_sum(df, int(rolling_periods), min_periods=0)
+        elif rolling_type == 'cumsum':
+            df = df.cumsum()
+
+        num_period_compare = fd.get("num_period_compare")
+        if num_period_compare:
+            num_period_compare = int(num_period_compare)
+            prt = fd.get('period_ratio_type')
+            if prt and prt == 'growth':
+                df = (df / df.shift(num_period_compare)) - 1
+            elif prt and prt == 'value':
+                df = df - df.shift(num_period_compare)
+            else:
+                df = df / df.shift(num_period_compare)
+
+            df = df[num_period_compare:]
+
         chart_data = self.to_series(df)
 
-        time_compare = self.form_data.get('time_compare')
+        time_compare = fd.get('time_compare')
         if time_compare:
             query_object = self.query_obj()
             delta = utils.parse_human_timedelta(time_compare)
@@ -975,28 +950,16 @@ class NVD3DualLineViz(NVD3Viz):
     sort_series = False
     is_timeseries = True
 
-    def get_df(self, query_obj=None):
-        if not query_obj:
-            query_obj = super(NVD3DualLineViz, self).query_obj()
-        metrics = [
-            self.form_data.get('metric'),
-            self.form_data.get('metric_2')
-        ]
-        query_obj['metrics'] = metrics
-        df = super(NVD3DualLineViz, self).get_df(query_obj)
-        df = df.fillna(0)
-        if self.form_data.get("granularity") == "all":
-            raise Exception("Pick a time granularity for your time series")
-
-        df = df.pivot_table(
-            index=DTTM_ALIAS,
-            values=metrics)
-
-        return df
-
     def query_obj(self):
         d = super(NVD3DualLineViz, self).query_obj()
-        if self.form_data.get('metric') == self.form_data.get('metric_2'):
+        m1 = self.form_data.get('metric')
+        m2 = self.form_data.get('metric_2')
+        d['metrics'] = [m1, m2]
+        if not m1:
+            raise Exception("Pick a metric for left axis!")
+        if not m2:
+            raise Exception("Pick a metric for right axis!")
+        if m1 == m2:
             raise Exception("Please choose different metrics"
                             " on left and right axis")
         return d
@@ -1013,7 +976,6 @@ class NVD3DualLineViz(NVD3Viz):
         df.columns = cols
         series = df.to_dict('series')
         chart_data = []
-        index_list = df.T.index.tolist()
         metrics = [
             self.form_data.get('metric'),
             self.form_data.get('metric_2')
@@ -1037,16 +999,19 @@ class NVD3DualLineViz(NVD3Viz):
             chart_data.append(d)
         return chart_data
 
-    def get_data(self):
-        form_data = self.form_data
-        metric = form_data.get('metric')
-        metric_2 = form_data.get('metric_2')
-        if not metric:
-            raise Exception("Pick a metric for left axis!")
-        if not metric_2:
-            raise Exception("Pick a metric for right axis!")
+    def get_data(self, df):
+        fd = self.form_data
+        df = df.fillna(0)
 
-        df = self.get_df()
+        if self.form_data.get("granularity") == "all":
+            raise Exception("Pick a time granularity for your time series")
+
+        metric = fd.get('metric')
+        metric_2 = fd.get('metric_2')
+        df = df.pivot_table(
+            index=DTTM_ALIAS,
+            values=[metric, metric_2])
+
         chart_data = self.to_series(df)
         return chart_data
 
@@ -1085,20 +1050,11 @@ class DistributionPieViz(NVD3Viz):
     verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
 
-    def query_obj(self):
-        d = super(DistributionPieViz, self).query_obj()
-        d['is_timeseries'] = False
-        return d
-
-    def get_df(self, query_obj=None):
-        df = super(DistributionPieViz, self).get_df(query_obj)
+    def get_data(self, df):
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
         df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
-        return df
-
-    def get_data(self):
         df = self.get_df()
         df = df.reset_index()
         df.columns = ['x', 'y']
@@ -1124,9 +1080,8 @@ class HistogramViz(BaseViz):
         d['columns'] = [numeric_column]
         return d
 
-    def get_data(self):
+    def get_data(self, df):
         """Returns the chart data"""
-        df = self.get_df()
         chart_data = df[df.columns[0]].values.tolist()
         return chart_data
 
@@ -1142,7 +1097,6 @@ class DistributionBarViz(DistributionPieViz):
     def query_obj(self):
         d = super(DistributionPieViz, self).query_obj()  # noqa
         fd = self.form_data
-        d['is_timeseries'] = False
         gb = fd.get('groupby') or []
         cols = fd.get('columns') or []
         d['groupby'] = set(gb + cols)
@@ -1154,8 +1108,7 @@ class DistributionBarViz(DistributionPieViz):
             raise Exception("Pick at least one field for [Series]")
         return d
 
-    def get_df(self, query_obj=None):
-        df = super(DistributionPieViz, self).get_df(query_obj)  # noqa
+    def get_data(self, df):
         fd = self.form_data
 
         row = df.groupby(self.groupby).sum()[self.metrics[0]].copy()
@@ -1169,11 +1122,9 @@ class DistributionBarViz(DistributionPieViz):
             pt = pt.fillna(0)
             pt = pt.T
             pt = (pt / pt.sum()).T
+        print(row.index)
         pt = pt.reindex(row.index)
-        return pt
-
-    def get_data(self):
-        df = self.get_df()
+        print(pt)
         chart_data = []
         for name, ys in df.iteritems():
             if df[name].dtype.kind not in "biufc":
@@ -1185,10 +1136,11 @@ class DistributionBarViz(DistributionPieViz):
             else:
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
+            print(series_title)
             d = {
                 "key": series_title,
                 "values": [
-                    {'x': str(i), 'y': v}
+                    {'x': row.index[i], 'y': v}
                     for i, v in ys.iteritems()]
             }
             chart_data.append(d)
@@ -1206,8 +1158,7 @@ class SunburstViz(BaseViz):
         'Kerry Rodden '
         '@<a href="https://bl.ocks.org/kerryrodden/7090426">bl.ocks.org</a>')
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
 
         # if m1 == m2 duplicate the metric column
         cols = self.form_data.get('groupby')
@@ -1246,8 +1197,7 @@ class SankeyViz(BaseViz):
             self.form_data['metric']]
         return qry
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         df.columns = ['source', 'target', 'value']
         recs = df.to_dict(orient='records')
 
@@ -1295,8 +1245,7 @@ class DirectedForceViz(BaseViz):
         qry['metrics'] = [self.form_data['metric']]
         return qry
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         df.columns = ['source', 'target', 'value']
         return df.to_dict(orient='records')
 
@@ -1317,9 +1266,8 @@ class WorldMapViz(BaseViz):
         qry['groupby'] = [self.form_data['entity']]
         return qry
 
-    def get_data(self):
+    def get_data(self, df):
         from superset.data import countries
-        df = self.get_df()
         cols = [self.form_data.get('entity')]
         metric = self.form_data.get('metric')
         secondary_metric = self.form_data.get('secondary_metric')
@@ -1369,7 +1317,7 @@ class FilterBoxViz(BaseViz):
             self.form_data['metric']]
         return qry
 
-    def get_data(self):
+    def get_data(self, df):
         qry = self.query_obj()
         filters = [g for g in self.form_data['groupby']]
         d = {}
@@ -1421,8 +1369,7 @@ class ParallelCoordinatesViz(BaseViz):
         d['groupby'] = [fd.get('series')]
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         return df.to_dict(orient="records")
 
 
@@ -1444,8 +1391,7 @@ class HeatmapViz(BaseViz):
         d['groupby'] = [fd.get('all_columns_x'), fd.get('all_columns_y')]
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         fd = self.form_data
         x = fd.get('all_columns_x')
         y = fd.get('all_columns_y')
@@ -1536,8 +1482,7 @@ class MapboxViz(BaseViz):
                     "[Longitude] and [Latitude] columns must be present in [Group By]")
         return d
 
-    def get_data(self):
-        df = self.get_df()
+    def get_data(self, df):
         fd = self.form_data
         label_col = fd.get('mapbox_label')
         custom_metric = label_col and len(label_col) >= 1

@@ -49,9 +49,8 @@ export function getFieldsState(state, form_data) {
       const choiceValues = field.choices.map(c => c[0]);
       if (field.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
         delete formData[k];
-      } else if (!field.multi && choiceValues.indexOf(formData[k]) < 0) {
-        // delete form_data[k];
-        // TODO what's not working here?
+      } else if (!field.multi && !field.freeForm && choiceValues.indexOf(formData[k]) < 0) {
+        delete formData[k];
       }
     }
 
@@ -66,14 +65,21 @@ export function getFieldsState(state, form_data) {
 
 export function applyDefaultFormData(form_data) {
   const datasourceType = form_data.datasource.split('__')[1];
-  const fieldNames = getFieldNames(form_data.viz_type, datasourceType);
+  const vizType = form_data.viz_type || 'table';
+  const viz = visTypes[vizType];
+  const fieldNames = getFieldNames(vizType, datasourceType);
+  const fieldOverrides = viz.fieldOverrides || {};
   const formData = {};
   fieldNames.forEach(k => {
+    const field = Object.assign({}, fields[k]);
+    if (fieldOverrides[k]) {
+      Object.assign(field, fieldOverrides[k]);
+    }
     if (form_data[k] === undefined) {
-      if (typeof fields[k].default === 'function') {
-        formData[k] = fields[k].default(fields[k]);
+      if (typeof field.default === 'function') {
+        formData[k] = field.default(fields[k]);
       } else {
-        formData[k] = fields[k].default;
+        formData[k] = field.default;
       }
     } else {
       formData[k] = form_data[k];
