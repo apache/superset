@@ -30,7 +30,7 @@ export default function QueryAndSaveBtns(
       onClick={onStop}
       bsStyle="warning"
     >
-      <i className="fa-stop-circle-o" /> Stop
+      <i className="fa fa-stop-circle-o" /> Stop
     </Button>
   ) : (
     <Button
