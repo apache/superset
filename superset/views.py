@@ -18,7 +18,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup, url_for)
+    g, request, redirect, flash, Response, render_template, Markup)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -213,9 +213,7 @@ def api(f):
 
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
-    if obj.owners and user in obj.owners:
-        return True
-    return False
+    return obj and obj.owners and user in obj.owners
 
 def check_ownership(obj, raise_if_false=True):
     """Meant to be used in `pre_update` hooks on models to enforce ownership
@@ -1553,7 +1551,10 @@ class Superset(BaseSupersetView):
             except Exception as e:
                 return json_error_response(e)
             return Response(
-                json.dumps({'query': query}),
+                json.dumps({
+                    'query': query,
+                    'language': viz_obj.datasource.query_language,
+                }),
                 status=200,
                 mimetype="application/json")
 

@@ -28,7 +28,7 @@ const propTypes = {
   containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
-  slice: PropTypes.object.isRequired,
+  slice: PropTypes.object,
   table_name: PropTypes.string,
   viz_type: PropTypes.string.isRequired,
   formData: PropTypes.object,

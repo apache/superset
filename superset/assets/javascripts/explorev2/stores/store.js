@@ -30,9 +30,11 @@ export function getFieldsState(state, form_data) {
 
   // Getting a list of active field names for the current viz
   const formData = Object.assign({}, form_data);
-  const fieldNames = getFieldNames(formData.viz_type, state.datasource.type);
+  const vizType = formData.viz_type || 'table';
 
-  const viz = visTypes[formData.viz_type];
+  const fieldNames = getFieldNames(vizType, state.datasource.type);
+
+  const viz = visTypes[vizType];
   const fieldOverrides = viz.fieldOverrides || {};
   const fieldsState = {};
   fieldNames.forEach((k) => {

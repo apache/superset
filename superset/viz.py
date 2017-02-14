@@ -30,7 +30,7 @@ from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache
-from superset.utils import flasher, DTTM_ALIAS
+from superset.utils import DTTM_ALIAS
 
 config = app.config
 
@@ -852,6 +852,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
         df = df.fillna(0)
         if form_data.get("granularity") == "all":
             raise Exception("Pick a time granularity for your time series")
+
 
         df = df.pivot_table(
             index=DTTM_ALIAS,

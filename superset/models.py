@@ -652,6 +652,9 @@ class Datasource(object):
 
     """A common interface to objects that are queryable (tables and datasources)"""
 
+    # Used to do code highlighting when displaying the query in the UI
+    query_language = None
+
     @property
     def column_names(self):
         return sorted([c.column_name for c in self.columns])
@@ -1103,6 +1106,7 @@ class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"
+    query_language = 'sql'
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
@@ -1884,6 +1888,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
     """ORM object referencing Druid datasources (tables)"""
 
     type = "druid"
+    query_langtage = "json"
 
     baselink = "druiddatasourcemodelview"
 
@@ -2493,6 +2498,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
         client = self.cluster.get_pydruid_client()
         query_str = self.get_query_str(client, qry_start_dttm, **query_obj)
         df = client.export_pandas()
+
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
         df.columns = [

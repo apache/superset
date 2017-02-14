@@ -75,7 +75,6 @@ def cast_form_data(form_data):
     d = cast_filter_data(d)
     for k in d.keys():
         if k not in FORM_DATA_KEY_WHITELIST:
-            print('Deleting: ' + k)
             del d[k]
     return d
 

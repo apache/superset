@@ -133,14 +133,14 @@ export function formatSelectOptionsForRange(start, end) {
   // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
   const options = [];
   for (let i = start; i <= end; i++) {
-    options.push([i.toString(), i.toString()]);
+    options.push([i, i.toString()]);
   }
   return options;
 }
 
 export function formatSelectOptions(options) {
   return options.map((opt) =>
-     [opt.toString(), opt.toString()]
+     [opt, opt.toString()]
   );
 }
 
