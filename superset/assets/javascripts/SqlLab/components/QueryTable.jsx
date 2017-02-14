@@ -18,12 +18,14 @@ const propTypes = {
   queries: React.PropTypes.array,
   onUserClicked: React.PropTypes.func,
   onDbClicked: React.PropTypes.func,
+  onDelete: React.PropTypes.func,
 };
 const defaultProps = {
   columns: ['started', 'duration', 'rows'],
   queries: [],
   onUserClicked: () => {},
   onDbClicked: () => {},
+  onDelete: () => {},
 };
 
 
@@ -71,6 +73,9 @@ class QueryTable extends React.PureComponent {
   }
   removeQuery(query) {
     this.props.actions.removeQuery(query);
+  }
+  favQuery(query) {
+    this.props.actions.favouriteQuery(query);
   }
   render() {
     const data = this.props.queries.map((query) => {
@@ -167,6 +172,15 @@ class QueryTable extends React.PureComponent {
           {errorTooltip}
         </div>
       );
+      q.delete = (
+        <button
+          className="btn btn-link btn-xs"
+          onClick={this.props.onDelete.bind(this, query)}
+        >
+          <i className="fa fa-trash" />Delete
+        </button>
+      );
+      const faveIcon = query.faved ? 'fa fa-heart' : 'fa fa-heart-o';
       q.actions = (
         <div style={{ width: '75px' }}>
           <Link
@@ -190,6 +204,11 @@ class QueryTable extends React.PureComponent {
             className="fa fa-trash m-r-3"
             tooltip="Remove query from log"
             onClick={this.removeQuery.bind(this, query)}
+          />
+          <Link
+            className={`${faveIcon} m-r-3`}
+            tooltip="Save query"
+            onClick={this.favQuery.bind(this, query)}
           />
         </div>
       );

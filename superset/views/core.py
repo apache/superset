@@ -1511,6 +1511,42 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
+    @expose("/fave_queries/", methods=['GET'])
+    def fave_queries(self):
+        qry = (
+            db.session.query(
+                models.Query,
+            )
+            .join(
+                models.FavStar,
+                sqla.and_(
+                    models.FavStar.user_id == int(g.user.id),
+                    models.FavStar.class_name == 'query',
+                    models.Query.client_id == models.FavStar.obj_id,
+                )
+            )
+            .order_by(
+                models.FavStar.dttm.desc()
+            )
+        )
+        queries = [q.to_dict() for q in qry.all()]
+        payload = []
+        for q in queries:
+            d = {
+                'id': q['id'],
+                'dbId': q['dbId'],
+                'db': q['db'],
+                'schema': q['schema'],
+                'sql': q['sql'],
+            }
+            payload.append(d)
+
+        return Response(
+            json.dumps(payload, default=utils.json_int_dttm_ser),
+            mimetype="application/json")
+
+    @api
+    @has_access_api
     @expose("/created_dashboards/<user_id>/", methods=['GET'])
     def created_dashboards(self, user_id):
         Dash = models.Dashboard  # noqa
@@ -2310,6 +2346,12 @@ appbuilder.add_link(
     'Query Search',
     href='/superset/sqllab#search',
     icon="fa-search",
+    category_icon="fa-flask",
+    category='SQL Lab')
+appbuilder.add_link(
+    'Saved Queries',
+    href='/superset/sqllab#faved',
+    icon="fa-heart",
     category_icon="fa-flask",
     category='SQL Lab')
 

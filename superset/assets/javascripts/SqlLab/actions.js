@@ -185,6 +185,20 @@ export function removeQuery(query) {
   return { type: REMOVE_QUERY, query };
 }
 
+export const FAVE_QUERY_SUCCESS = 'FAVE_QUERY_SUCCESS';
+export function faveQuerySuccess(query) {
+  return { type: FAVE_QUERY_SUCCESS, query };
+}
+
+const FAVEQUERY_BASE_URL = '/superset/favstar/query';
+export function favouriteQuery(query) {
+  return function (dispatch) {
+    const favAction = query.faved ? 'unselect' : 'select';
+    $.get(`${FAVEQUERY_BASE_URL}/${query.id}/${favAction}/`);
+    dispatch(faveQuerySuccess(query));
+  };
+}
+
 export function queryEditorSetDb(queryEditor, dbId) {
   return { type: QUERY_EDITOR_SETDB, queryEditor, dbId };
 }
