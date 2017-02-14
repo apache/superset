@@ -16,12 +16,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from flask_babel import lazy_gettext as _
 import inspect
 import textwrap
 import time
 
-from flask_babel import lazy_gettext as _
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -53,6 +54,33 @@ class BaseEngineSpec(object):
     @classmethod
     def convert_dttm(cls, target_type, dttm):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
+
+    @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns the dictionary {schema : [result_set_name]}.
+
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
+        """
+        schemas = db.inspector.get_schema_names()
+        result_sets = {}
+        all_result_sets = []
+        for schema in schemas:
+            if datasource_type == 'table':
+                result_sets[schema] = sorted(
+                    db.inspector.get_table_names(schema))
+            elif datasource_type == 'view':
+                result_sets[schema] = sorted(
+                    db.inspector.get_view_names(schema))
+            all_result_sets += [
+                '{}.{}'.format(schema, t) for t in result_sets[schema]]
+        if all_result_sets:
+            result_sets[""] = all_result_sets
+        return result_sets
 
     @classmethod
     def handle_cursor(cls, cursor, query, session):
@@ -220,6 +248,28 @@ class PrestoEngineSpec(BaseEngineSpec):
         {order_by_clause}
         {limit_clause}
         """).format(**locals())
+
+    @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type):
+        """Returns the dictionary {schema : [result_set_name]}.
+
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
+        """
+        result_set_df = db.get_df(
+            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
+               ORDER BY concat(table_schema, '.', table_name)""".format(
+                datasource_type.upper()), None)
+        result_sets = defaultdict(list)
+        for unused, row in result_set_df.iterrows():
+            result_sets[row['table_schema']].append(row['table_name'])
+            result_sets[""].append('{}.{}'.format(
+                row['table_schema'], row['table_name']))
+        return result_sets
 
     @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):

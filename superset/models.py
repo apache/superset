@@ -845,13 +845,19 @@ class Database(Model, AuditMixinNullable):
         return sqla.inspect(engine)
 
     def all_table_names(self, schema=None):
+        if not schema:
+            tables_dict = self.db_engine_spec.fetch_result_sets(self, 'table')
+            return tables_dict.get("", [])
         return sorted(self.inspector.get_table_names(schema))
 
     def all_view_names(self, schema=None):
+        if not schema:
+            views_dict = self.db_engine_spec.fetch_result_sets(self, 'view')
+            return views_dict.get("", [])
         views = []
         try:
             views = self.inspector.get_view_names(schema)
-        except Exception as e:
+        except Exception:
             pass
         return views
 

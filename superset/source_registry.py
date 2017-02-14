@@ -44,25 +44,14 @@ class SourceRegistry(object):
         return db_ds[0]
 
     @classmethod
-    def query_datasources_by_name(
-            cls, session, database, datasource_name, schema=None):
+    def query_datasources_by_permissions(cls, session, database, permissions):
         datasource_class = SourceRegistry.sources[database.type]
-        if database.type == 'table':
-            query = (
-                session.query(datasource_class)
-                .filter_by(database_id=database.id)
-                .filter_by(table_name=datasource_name))
-            if schema:
-                query = query.filter_by(schema=schema)
-            return query.all()
-        if database.type == 'druid':
-            return (
-                session.query(datasource_class)
-                .filter_by(cluster_name=database.id)
-                .filter_by(datasource_name=datasource_name)
-                .all()
-            )
-        return None
+        return (
+            session.query(datasource_class)
+            .filter_by(database_id=database.id)
+            .filter(datasource_class.perm.in_(permissions))
+            .all()
+        )
 
     @classmethod
     def get_eager_datasource(cls, session, datasource_type, datasource_id):

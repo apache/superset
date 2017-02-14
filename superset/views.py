@@ -36,8 +36,8 @@ from wtforms.validators import ValidationError
 
 import superset
 from superset import (
-    app, appbuilder, cache, db, models, sm, sql_lab, sql_parse,
-    results_backend, security, viz, utils,
+    appbuilder, cache, db, models, viz, utils, app,
+    sm, sql_lab, sql_parse, results_backend, security,
 )
 from superset.utils import has_access
 from superset.source_registry import SourceRegistry
@@ -83,12 +83,12 @@ class BaseSupersetView(BaseView):
 
     def datasource_access_by_name(
             self, database, datasource_name, schema=None):
-        if (self.database_access(database) or
-                self.all_datasource_access()):
+        if self.database_access(database) or self.all_datasource_access():
             return True
 
         schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(sm, 'schema_access', schema_perm, g.user):
+        if schema and utils.can_access(
+                sm, 'schema_access', schema_perm, g.user):
             return True
 
         datasources = SourceRegistry.query_datasources_by_name(
@@ -115,6 +115,31 @@ class BaseSupersetView(BaseView):
         return [
             t for t in superset_query.tables if not
             self.datasource_access_by_fullname(database, t, schema)]
+
+    def accessible_by_user(self, database, datasource_names, schema=None):
+        if self.database_access(database) or self.all_datasource_access():
+            return datasource_names
+
+        schema_perm = utils.get_schema_perm(database, schema)
+        if schema and utils.can_access(
+                sm, 'schema_access', schema_perm, g.user):
+            return datasource_names
+
+        role_ids = set([role.id for role in g.user.roles])
+        # TODO: cache user_perms or user_datasources
+        user_pvms = (
+            db.session.query(ab_models.PermissionView)
+            .join(ab_models.Permission)
+            .filter(ab_models.Permission.name == 'datasource_access')
+            .filter(ab_models.PermissionView.role.any(
+                ab_models.Role.id.in_(role_ids)))
+            .all()
+        )
+        user_perms = set([pvm.view_menu.name for pvm in user_pvms])
+        user_datasources = SourceRegistry.query_datasources_by_permissions(
+            db.session, database, user_perms)
+        full_names = set([d.full_name for d in user_datasources])
+        return [d for d in datasource_names if d in full_names]
 
 
 class ListWidgetWithCheckboxes(ListWidget):
@@ -165,6 +190,11 @@ def json_error_response(msg, status=None):
         json.dumps(data), status=status, mimetype="application/json")
 
 
+def json_success(json_msg, status=None):
+    status = status if status else 200
+    return Response(json_msg, status=status, mimetype="application/json")
+
+
 def api(f):
     """
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
@@ -175,13 +205,7 @@ def api(f):
             return f(self, *args, **kwargs)
         except Exception as e:
             logging.exception(e)
-            resp = Response(
-                json.dumps({
-                    'message': get_error_msg()
-                }),
-                status=500,
-                mimetype="application/json")
-            return resp
+            return json_error_response(get_error_msg())
 
     return functools.update_wrapper(wraps, f)
 
@@ -1459,28 +1483,18 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
 
         if not self.datasource_access(viz_obj.datasource):
-            return Response(
-                json.dumps(
-                    {'error': DATASOURCE_ACCESS_ERR}),
-                status=404,
-                mimetype="application/json")
+            return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
 
         payload = {}
-        status = 200
         try:
             payload = viz_obj.get_payload()
         except Exception as e:
             logging.exception(e)
-            status = 500
             return json_error_response(utils.error_msg_from_exception(e))
-
         if payload.get('status') == QueryStatus.FAILED:
-            status = 500
+            return json_error_response(viz_obj.json_dumps(payload))
 
-        return Response(
-            viz_obj.json_dumps(payload),
-            status=status,
-            mimetype="application/json")
+        return json_success(viz_obj.json_dumps(payload))
 
     @expose("/import_dashboards", methods=['GET', 'POST'])
     @log_this
@@ -1645,12 +1659,7 @@ class Superset(BaseSupersetView):
         except Exception as e:
             flash(str(e), "danger")
             return redirect(error_redirect)
-        status = 200
-        payload = obj.get_values_for_column(column)
-        return Response(
-            payload,
-            status=status,
-            mimetype="application/json")
+        return json_success(obj.get_values_for_column(column))
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_edit_perm):
@@ -1761,7 +1770,7 @@ class Superset(BaseSupersetView):
         if obj:
             setattr(obj, attr, value == 'true')
             db.session.commit()
-        return Response("OK", mimetype="application/json")
+        return json_success("OK")
 
     @api
     @has_access_api
@@ -1779,52 +1788,56 @@ class Superset(BaseSupersetView):
         )
         payload = {str(time.mktime(dt.timetuple())):
                    ccount for dt, ccount in qry if dt}
-        return Response(json.dumps(payload), mimetype="application/json")
+        return json_success(json.dumps(payload))
 
     @api
     @has_access_api
-    @expose("/all_tables/<db_id>")
-    def all_tables(self, db_id):
-        """Endpoint that returns all tables and views from the database"""
+    @expose("/schemas/<db_id>")
+    def schemas(self, db_id):
         database = (
             db.session
             .query(models.Database)
             .filter_by(id=db_id)
             .one()
         )
-        all_tables = []
-        all_views = []
-        schemas = database.all_schema_names()
-        for schema in schemas:
-            all_tables.extend(database.all_table_names(schema=schema))
-            all_views.extend(database.all_view_names(schema=schema))
-        if not schemas:
-            all_tables.extend(database.all_table_names())
-            all_views.extend(database.all_view_names())
-
         return Response(
-            json.dumps({"tables": all_tables, "views": all_views}),
+            json.dumps({'schemas': database.all_schema_names()}),
             mimetype="application/json")
 
     @api
     @has_access_api
-    @expose("/tables/<db_id>/<schema>")
-    def tables(self, db_id, schema):
+    @expose("/tables/<db_id>/<schema>/<substr>/")
+    def tables(self, db_id, schema, substr):
         """endpoint to power the calendar heatmap on the welcome page"""
-        schema = None if schema in ('null', 'undefined') else schema
-        database = (
-            db.session
-            .query(models.Database)
-            .filter_by(id=db_id)
-            .one()
-        )
-        tables = [t for t in database.all_table_names(schema) if
-                  self.datasource_access_by_name(database, t, schema=schema)]
-        views = [v for v in database.all_view_names(schema) if
-                 self.datasource_access_by_name(database, v, schema=schema)]
-        payload = {'tables': tables, 'views': views}
-        return Response(
-            json.dumps(payload), mimetype="application/json")
+        schema = utils.js_string_to_python(schema)
+        substr = utils.js_string_to_python(substr)
+        database = db.session.query(models.Database).filter_by(id=db_id).one()
+        table_names = self.accessible_by_user(
+            database, database.all_table_names(schema), schema)
+        view_names = self.accessible_by_user(
+            database, database.all_view_names(schema), schema)
+
+        if substr:
+            table_names = [tn for tn in table_names if substr in tn]
+            view_names = [vn for vn in view_names if substr in vn]
+
+        max_items = config.get('MAX_TABLE_NAMES') or len(table_names)
+        total_items = len(table_names) + len(view_names)
+        max_tables = len(table_names)
+        max_views = len(view_names)
+        if total_items and substr:
+            max_tables = max_items * len(table_names) // total_items
+            max_views = max_items * len(view_names) // total_items
+
+        table_options = [{'value': tn,  'label': tn}
+                         for tn in table_names[:max_tables]]
+        table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
+                              for vn in view_names[:max_views]])
+        payload = {
+            'tableLength': len(table_names) + len(view_names),
+            'options': table_options,
+        }
+        return json_success(json.dumps(payload))
 
     @api
     @has_access_api
@@ -1848,8 +1861,7 @@ class Superset(BaseSupersetView):
         session.commit()
         dash_json = dash.json_data
         session.close()
-        return Response(
-            dash_json, mimetype="application/json")
+        return json_success(dash_json)
 
     @api
     @has_access_api
@@ -1932,11 +1944,9 @@ class Superset(BaseSupersetView):
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
         except Exception as e:
-            return Response((
+            return json_error_response((
                 "Connection failed!\n\n"
-                "The error message returned was:\n{}").format(e),
-                status=500,
-                mimetype="application/json")
+                "The error message returned was:\n{}").format(e))
 
     @api
     @has_access_api
@@ -1980,9 +1990,8 @@ class Superset(BaseSupersetView):
                 'item_title': item_title,
                 'time': log.Log.dttm,
             })
-        return Response(
-            json.dumps(payload, default=utils.json_int_dttm_ser),
-            mimetype="application/json")
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2020,9 +2029,8 @@ class Superset(BaseSupersetView):
                 d['creator_url'] = '/superset/profile/{}/'.format(
                     user.username)
             payload.append(d)
-        return Response(
-            json.dumps(payload, default=utils.json_int_dttm_ser),
-            mimetype="application/json")
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2050,9 +2058,8 @@ class Superset(BaseSupersetView):
             'url': o.url,
             'dttm': o.changed_on,
         } for o in qry.all()]
-        return Response(
-            json.dumps(payload, default=utils.json_int_dttm_ser),
-            mimetype="application/json")
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2076,9 +2083,8 @@ class Superset(BaseSupersetView):
             'url': o.slice_url,
             'dttm': o.changed_on,
         } for o in qry.all()]
-        return Response(
-            json.dumps(payload, default=utils.json_int_dttm_ser),
-            mimetype="application/json")
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2116,9 +2122,8 @@ class Superset(BaseSupersetView):
                 d['creator_url'] = '/superset/profile/{}/'.format(
                     user.username)
             payload.append(d)
-        return Response(
-            json.dumps(payload, default=utils.json_int_dttm_ser),
-            mimetype="application/json")
+        return json_success(
+            json.dumps(payload, default=utils.json_int_dttm_ser))
 
     @api
     @has_access_api
@@ -2162,12 +2167,9 @@ class Superset(BaseSupersetView):
                 obj.get_json(force=True)
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
-        return Response(
-            json.dumps(
-                [{"slice_id": session.id, "slice_name": session.slice_name}
-                 for session in slices]),
-            status=200,
-            mimetype="application/json")
+        return json_success(json.dumps(
+            [{"slice_id": session.id, "slice_name": session.slice_name}
+             for session in slices]))
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
@@ -2195,9 +2197,7 @@ class Superset(BaseSupersetView):
         else:
             count = len(favs)
         session.commit()
-        return Response(
-            json.dumps({'count': count}),
-            mimetype="application/json")
+        return json_success(json.dumps({'count': count}))
 
     @has_access
     @expose("/dashboard/<dashboard_id>/")
@@ -2362,7 +2362,7 @@ class Superset(BaseSupersetView):
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
-        schema = None if schema in ('null', 'undefined') else schema
+        schema = utils.js_string_to_python(schema)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         cols = []
         indexes = []
@@ -2373,9 +2373,7 @@ class Superset(BaseSupersetView):
             primary_key = mydb.get_pk_constraint(table_name, schema)
             foreign_keys = mydb.get_foreign_keys(table_name, schema)
         except Exception as e:
-            return Response(
-                json.dumps({'error': utils.error_msg_from_exception(e)}),
-                mimetype="application/json")
+            return json_error_response(utils.error_msg_from_exception(e))
         keys = []
         if primary_key and primary_key.get('constrained_columns'):
             primary_key['column_names'] = primary_key.pop('constrained_columns')
@@ -2413,17 +2411,17 @@ class Superset(BaseSupersetView):
             'foreignKeys': foreign_keys,
             'indexes': keys,
         }
-        return Response(json.dumps(tbl), mimetype="application/json")
+        return json_success(json.dumps(tbl))
 
     @has_access
     @expose("/extra_table_metadata/<database_id>/<table_name>/<schema>/")
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
-        schema = None if schema in ('null', 'undefined') else schema
+        schema = utils.js_string_to_python(schema)
         mydb = db.session.query(models.Database).filter_by(id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
-        return Response(json.dumps(payload), mimetype="application/json")
+        return json_success(json.dumps(payload))
 
     @has_access
     @expose("/select_star/<database_id>/<table_name>/")
@@ -2470,35 +2468,27 @@ class Superset(BaseSupersetView):
             return json_error_response("Results backend isn't configured")
 
         blob = results_backend.get(key)
-        if blob:
-            query = (
-                db.session.query(models.Query)
-                .filter_by(results_key=key)
-                .one()
+        if not blob:
+            return json_error_response(
+                "Data could not be retrieved. "
+                "You may want to re-run the query.",
+                status=410
             )
-            rejected_tables = self.rejected_datasources(
-                query.sql, query.database, query.schema)
-            if rejected_tables:
-                return json_error_response(get_datasource_access_error_msg(
-                    '{}'.format(rejected_tables)))
-            payload = zlib.decompress(blob)
-            display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
-            if display_limit:
-                payload_json = json.loads(payload)
-                payload_json['data'] = payload_json['data'][:display_limit]
-            return Response(
-                json.dumps(payload_json, default=utils.json_iso_dttm_ser),
-                status=200, mimetype="application/json")
-        else:
-            return Response(
-                json.dumps({
-                    'error': (
-                        "Data could not be retrieved. You may want to "
-                        "re-run the query."
-                    )
-                }),
-                status=410,
-                mimetype="application/json")
+
+        query = db.session.query(models.Query).filter_by(results_key=key).one()
+        rejected_tables = self.rejected_datasources(
+            query.sql, query.database, query.schema)
+        if rejected_tables:
+            return json_error_response(get_datasource_access_error_msg(
+                '{}'.format(rejected_tables)))
+
+        payload = zlib.decompress(blob)
+        display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
+        if display_limit:
+            payload_json = json.loads(payload)
+            payload_json['data'] = payload_json['data'][:display_limit]
+        return json_success(
+            json.dumps(payload_json, default=utils.json_iso_dttm_ser))
 
     @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
@@ -2555,12 +2545,9 @@ class Superset(BaseSupersetView):
             sql_lab.get_sql_results.delay(
                 query_id, return_results=False,
                 store_results=not query.select_as_cta)
-            return Response(
-                json.dumps({'query': query.to_dict()},
-                           default=utils.json_int_dttm_ser,
-                           allow_nan=False),
-                status=202,  # Accepted
-                mimetype="application/json")
+            return json_success(json.dumps(
+                {'query': query.to_dict()}, default=utils.json_int_dttm_ser,
+                allow_nan=False), status=202)
 
         # Sync request.
         try:
@@ -2575,14 +2562,8 @@ class Superset(BaseSupersetView):
                 data = sql_lab.get_sql_results(query_id, return_results=True)
         except Exception as e:
             logging.exception(e)
-            return Response(
-                json.dumps({'error': "{}".format(e)}),
-                status=500,
-                mimetype="application/json")
-        return Response(
-            data,
-            status=200,
-            mimetype="application/json")
+            return json_error_response("{}".format(e))
+        return json_success(data)
 
     @has_access
     @expose("/csv/<client_id>")
@@ -2637,21 +2618,15 @@ class Superset(BaseSupersetView):
         # Check permission for datasource
         if not self.datasource_access(datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR)
-
-        return Response(
-            json.dumps(datasource.data),
-            mimetype="application/json"
-        )
+        return json_success(json.dumps(datasource.data))
 
     @has_access
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         """Get the updated queries."""
         if not g.user.get_id():
-            return Response(
-                json.dumps({'error': "Please login to access the queries."}),
-                status=403,
-                mimetype="application/json")
+            return json_error_response(
+                "Please login to access the queries.", status=403)
 
         # Unix time, milliseconds.
         last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
@@ -2668,10 +2643,8 @@ class Superset(BaseSupersetView):
             .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
-        return Response(
-            json.dumps(dict_queries, default=utils.json_int_dttm_ser),
-            status=200,
-            mimetype="application/json")
+        return json_success(
+            json.dumps(dict_queries, default=utils.json_int_dttm_ser))
 
     @has_access
     @expose("/search_queries")
