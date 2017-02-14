@@ -57,6 +57,7 @@ CSRF_ENABLED = True
 
 # Whether to run the web server in debug mode or not
 DEBUG = False
+FLASK_USE_RELOAD = True
 
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
