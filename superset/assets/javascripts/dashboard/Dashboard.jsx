@@ -165,9 +165,7 @@ export function dashboardContainer(dashboard) {
       }
     },
     effectiveExtraFilters(sliceId) {
-      // Summarized filter, not defined by sliceId
-      // returns k=field, v=array of values
-      const f = {};
+      const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
         // The slice is immune to dashboard fiterls
@@ -185,7 +183,11 @@ export function dashboardContainer(dashboard) {
       for (const filteringSliceId in this.filters) {
         for (const field in this.filters[filteringSliceId]) {
           if (!immuneToFields.includes(field)) {
-            f[field] = this.filters[filteringSliceId][field];
+            f.push({
+              col: field,
+              op: 'in',
+              val: this.filters[filteringSliceId][field],
+            });
           }
         }
       }

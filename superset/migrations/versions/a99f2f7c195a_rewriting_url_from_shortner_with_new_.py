@@ -57,18 +57,12 @@ def upgrade():
             split = url.url.split('/')
             d['datasource'] = split[5] + '__' + split[4]
             d = cast_form_data(d)
-            print('-='*10)
-            print(url.url)
-            print('http://localhost:8088/r/' + str(url.id))
             newurl = '/'.join(split[:-1]) + '/?form_data=' + quote_plus(json.dumps(d))
-            pprint(d)
-            print(newurl)
-        #session.merge(slc)
-        #session.commit()
+            url.url = newurl
+        session.merge(url)
+        session.commit()
     session.close()
 
 
 def downgrade():
     pass
-
-upgrade()

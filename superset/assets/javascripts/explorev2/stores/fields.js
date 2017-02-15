@@ -609,7 +609,7 @@ export const fields = {
     default: null,
     description: 'Metric assigned to the [X] axis',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.gb_cols : [],
+      choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
   },
 

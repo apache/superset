@@ -18,7 +18,6 @@ require('./main.css');
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
-
 const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
 

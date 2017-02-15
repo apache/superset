@@ -45,7 +45,7 @@ export function getFieldsState(state, form_data) {
     }
 
     // If the value is not valid anymore based on choices, clear it
-    if (field.choices && k !== 'datasource' && formData[k]) {
+    if (field.type === 'SelectField' && field.choices && k !== 'datasource' && formData[k]) {
       const choiceValues = field.choices.map(c => c[0]);
       if (field.multi && formData[k].length > 0 && choiceValues.indexOf(formData[k][0]) < 0) {
         delete formData[k];

@@ -36,7 +36,7 @@ def upgrade():
     for slc in session.query(Slice).all():
         d = json.loads(slc.params)
         d = cast_form_data(d)
-        slc.params = json.dumps(d)
+        slc.params = json.dumps(d, indent=2, sort_keys=True)
         session.merge(slc)
         session.commit()
     session.close()

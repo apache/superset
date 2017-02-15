@@ -80,9 +80,6 @@ def load_energy():
         params=textwrap.dedent("""\
         {
             "collapsed_fieldsets": "",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "groupby": [
                 "source",
                 "target"
@@ -108,9 +105,6 @@ def load_energy():
         {
             "charge": "-500",
             "collapsed_fieldsets": "",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "groupby": [
                 "source",
                 "target"
@@ -139,9 +133,6 @@ def load_energy():
             "all_columns_y": "target",
             "canvas_image_rendering": "pixelated",
             "collapsed_fieldsets": "",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "having": "",
             "linear_color_scheme": "blue_white_yellow",
             "metric": "sum__value",
@@ -206,7 +197,7 @@ def load_world_bank_health_n_pop():
         "country_fieldtype": "cca3",
         "secondary_metric": "sum__SP_POP_TOTL",
         "entity": "country_code",
-        "show_bubbles": "y",
+        "show_bubbles": True,
     }
 
     print("Creating slices")
@@ -275,16 +266,20 @@ def load_world_bank_health_n_pop():
                 since="2011-01-01",
                 until="2011-01-02",
                 series="region",
-                limit="0",
+                limit=0,
                 entity="country_name",
                 x="sum__SP_RUR_TOTL_ZS",
                 y="sum__SP_DYN_LE00_IN",
                 size="sum__SP_POP_TOTL",
                 max_bubble_size="50",
-                flt_col_1="country_code",
-                flt_op_1="not in",
-                flt_eq_1="TCA,MNP,DMA,MHL,MCO,SXM,CYM,TUV,IMY,KNA,ASM,ADO,AMA,PLW",
-                num_period_compare="10",)),
+                filters=[{
+                    "col": "country_code",
+                    "val": [
+                        "TCA", "MNP", "DMA", "MHL", "MCO", "SXM", "CYM",
+                        "TUV", "IMY", "KNA", "ASM", "ADO", "AMA", "PLW",
+                    ],
+                    "op": "not in"}],
+                )),
         Slice(
             slice_name="Rural Breakdown",
             viz_type='sunburst',
@@ -584,7 +579,6 @@ def load_birth_names():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "flt_op_1": "in",
         "limit": "25",
         "granularity": "ds",
         "groupby": [],
@@ -608,8 +602,12 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
-                flt_col_1='gender',
-                flt_eq_1="girl", row_limit=50)),
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['girl'],
+                }],
+                row_limit=50)),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -618,8 +616,11 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
-                flt_col_1='gender',
-                flt_eq_1="boy",
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['boy'],
+                }],
                 row_limit=50)),
         Slice(
             slice_name="Participants",
@@ -645,9 +646,14 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                flt_eq_1="other", viz_type="dist_bar",
+                filters=[{
+                    'col': 'state',
+                    'op': 'not in',
+                    'val': ['other'],
+                }],
+                viz_type="dist_bar",
                 metrics=['sum__sum_girls', 'sum__sum_boys'],
-                groupby=['state'], flt_op_1='not in', flt_col_1='state')),
+                groupby=['state'])),
         Slice(
             slice_name="Trends",
             viz_type='line',
@@ -656,7 +662,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
-                granularity='ds', rich_tooltip='y', show_legend='y')),
+                granularity='ds', rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name="Average and Sum Trends",
             viz_type='dual_line',
@@ -711,7 +717,11 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="big_number_total", granularity="ds",
-                flt_col_1='gender', flt_eq_1='girl',
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['girl'],
+                }],
                 subheader='total female participants')),
     ]
     for slc in slices:
@@ -836,7 +846,6 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "flt_op_1": "in",
         "granularity": "date",
         "groupby": [],
         "metric": 'sum__value',

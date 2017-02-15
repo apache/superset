@@ -326,7 +326,6 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     @property
     def form_data(self):
         form_data = json.loads(self.params)
-        form_data = cast_form_data(form_data)
         form_data['slice_id'] = self.id
         form_data['viz_type'] = self.viz_type
         form_data['datasource'] = (

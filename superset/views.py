@@ -1469,7 +1469,13 @@ class Superset(BaseSupersetView):
             form_data = request.form.get("form_data")
         if not form_data:
             form_data = '{}'
-        return json.loads(form_data)
+        d = json.loads(form_data)
+        extra_filters = request.args.get("extra_filters")
+        filters = d.get('filters', [])
+        if extra_filters:
+            extra_filters = json.loads(extra_filters)
+            d['filters'] = filters + extra_filters
+        return d
 
     def get_viz(
             self,
@@ -1599,11 +1605,10 @@ class Superset(BaseSupersetView):
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
         form_data = self.get_form_data()
+
         datasource_id = int(datasource_id)
         viz_type = form_data.get("viz_type")
         slice_id = form_data.get('slice_id')
-        from pprint import pprint
-        pprint(form_data)
         user_id = g.user.get_id() if g.user else None
 
         slc = None

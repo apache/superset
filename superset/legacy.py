@@ -72,7 +72,8 @@ def cast_form_data(form_data):
             d['slice_id'] = int(d['slice_id'])
 
         d[k] = v
-    d = cast_filter_data(d)
+    if 'filters' not in d:
+        d = cast_filter_data(d)
     for k in d.keys():
         if k not in FORM_DATA_KEY_WHITELIST:
             del d[k]
