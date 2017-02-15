@@ -224,7 +224,8 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
-            if (self.others_category is not None) & (self.others_category != 'None'):
+            if (self.others_category is not None) & \
+                    (self.others_category != 'None'):
                 top_n = int(self.others_category)
                 if (top_n > 0) & (len(df) > top_n):
                     df_head = df.head(top_n)
