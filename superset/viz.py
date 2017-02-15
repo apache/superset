@@ -1465,7 +1465,6 @@ class DistributionPieViz(NVD3Viz):
             'pie_label_type',
             ('donut', 'show_legend'),
             'labels_outside',
-            'row_limit',
             'others_category',
         )
     },)
