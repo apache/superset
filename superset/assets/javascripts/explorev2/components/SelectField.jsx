@@ -5,7 +5,6 @@ const propTypes = {
   choices: PropTypes.array,
   clearable: PropTypes.bool,
   description: PropTypes.string,
-  editUrl: PropTypes.string,
   freeForm: PropTypes.bool,
   isLoading: PropTypes.bool,
   label: PropTypes.string,
@@ -19,7 +18,6 @@ const defaultProps = {
   choices: [],
   clearable: true,
   description: null,
-  editUrl: null,
   freeForm: false,
   isLoading: false,
   label: null,
@@ -108,9 +106,6 @@ export default class SelectField extends React.PureComponent {
     return (
       <div>
         {selectWrap}
-        {this.props.editUrl &&
-          <a href={this.props.editUrl}>edit</a>
-        }
       </div>
     );
   }

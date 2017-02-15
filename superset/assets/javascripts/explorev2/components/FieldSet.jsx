@@ -28,6 +28,7 @@ const propTypes = {
   validators: PropTypes.array,
   validationErrors: PropTypes.array,
   renderTrigger: PropTypes.bool,
+  rightNode: PropTypes.node,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -77,6 +78,7 @@ export default class FieldSet extends React.PureComponent {
           description={this.props.description}
           renderTrigger={this.props.renderTrigger}
           validationErrors={this.props.validationErrors}
+          rightNode={this.props.rightNode}
         />
         <FieldType
           onChange={this.onChange}

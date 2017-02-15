@@ -1,4 +1,5 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
+import React from 'react';
 import visTypes from './visTypes';
 import * as v from '../validators';
 
@@ -38,7 +39,9 @@ export const fields = {
       return {
         choices: datasources,
         isLoading: datasources.length === 0,
-        editUrl: state.datasource ? state.datasource.edit_url : null,
+        rightNode: state.datasource ?
+          <a href={state.datasource.edit_url}>edit</a>
+          : null,
       };
     },
     description: '',
