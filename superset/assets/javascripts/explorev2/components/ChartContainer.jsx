@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Panel, Alert } from 'react-bootstrap';
+import { Panel, Alert, Collapse } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -40,6 +40,7 @@ class ChartContainer extends React.PureComponent {
     super(props);
     this.state = {
       selector: `#${props.containerId}`,
+      showStackTrace: false,
     };
   }
 
@@ -147,18 +148,37 @@ class ChartContainer extends React.PureComponent {
     return title;
   }
 
+  renderAlert() {
+    const msg = (
+      <div>
+        {this.props.alert}
+        <i
+          className="fa fa-close pull-right"
+          onClick={this.removeAlert.bind(this)}
+          style={{ cursor: 'pointer' }}
+        />
+      </div>);
+    return (
+      <div>
+        <Alert
+          bsStyle="warning"
+          onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
+        >
+          {msg}
+        </Alert>
+        {this.props.queryResponse && this.props.queryResponse.stacktrace &&
+          <Collapse in={this.state.showStackTrace}>
+            <pre>
+              {this.props.queryResponse.stacktrace}
+            </pre>
+          </Collapse>
+        }
+      </div>);
+  }
+
   renderChart() {
     if (this.props.alert) {
-      return (
-        <Alert bsStyle="warning">
-          {this.props.alert}
-          <i
-            className="fa fa-close pull-right"
-            onClick={this.removeAlert.bind(this)}
-            style={{ cursor: 'pointer' }}
-          />
-        </Alert>
-      );
+      return this.renderAlert();
     }
     const loading = this.props.chartStatus === 'loading';
     return (
