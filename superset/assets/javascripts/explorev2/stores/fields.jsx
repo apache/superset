@@ -1032,12 +1032,12 @@ export const fields = {
   point_radius: {
     type: 'SelectField',
     label: 'Point Radius',
-    default: null,
+    default: 'Auto',
     description: 'The radius of individual points (ones that are not in a cluster). ' +
                  'Either a numerical column or `Auto`, which scales the point based ' +
                  'on the largest cluster',
     mapStateToProps: (state) => ({
-      choices: [].concat(state.datasource.all_cols, [['Auto', 'Auto']]),
+      choices: [].concat([['Auto', 'Auto']], state.datasource.all_cols),
     }),
   },
 
