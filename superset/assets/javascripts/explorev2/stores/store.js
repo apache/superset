@@ -53,6 +53,11 @@ export function getFieldsState(state, form_data) {
         delete formData[k];
       }
     }
+    // Removing invalid filters that point to a now inexisting column
+    if (field.type === 'FilterField' && field.choices) {
+      const choiceValues = field.choices.map(c => c[0]);
+      formData[k] = field.value.filter(flt => choiceValues.indexOf(flt.col) > 0);
+    }
 
     if (typeof field.default === 'function') {
       field.default = field.default(field);
