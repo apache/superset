@@ -143,6 +143,22 @@ class DruidTests(SupersetTestCase):
         resp = self.get_json_resp(url)
         self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
+        # others category
+        url = (
+            '/superset/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
+            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
+            'include_search=false&metrics=count&groupby=dim1&'
+            'flt_col_0=dim1&groupby=dim2d&'
+            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
+            'action=&datasource_name=test_datasource&datasource_id={}&'
+            'datasource_type=druid&previous_viz_type=table&'
+            'force=true&others_category=1'.format(datasource_id, datasource_id))
+        resp = self.get_json_resp(url)
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
+        self.assertEqual(12345678, resp['data']['records'][0]['metric1'])
+        self.assertEqual("Others", resp['data']['records'][1]['dim1'])
+        self.assertEqual(12345678 / 2, resp['data']['records'][1]['metric1'])
+
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'
         self.login()
