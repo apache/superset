@@ -149,6 +149,19 @@ def refresh_druid(datasource, merge):
     session.commit()
 
 
+@manager.command
+def update_datasources_cache():
+    """Refresh sqllab datasources cache"""
+    from superset import models
+    for database in db.session.query(models.Database).all():
+        print('Fetching {} datasources ...'.format(database.name))
+        try:
+            database.all_table_names()
+            database.all_view_names()
+        except Exception as e:
+            print('{}'.format(e.message))
+
+
 @manager.option(
     '-w', '--workers', default=config.get("SUPERSET_CELERY_WORKERS", 32),
     help="Number of celery server workers to fire up")
