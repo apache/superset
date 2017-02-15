@@ -48,6 +48,7 @@ export default class DisplayQueryButton extends React.PureComponent {
         isButton
         triggerNode={<span>Query</span>}
         modalTitle="Query"
+        bsSize="large"
         beforeOpen={this.beforeOpen.bind(this)}
         modalBody={this.state.modalBody}
       />

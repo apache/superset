@@ -186,6 +186,7 @@ export const fields = {
   bar_stacked: {
     type: 'CheckboxField',
     label: 'Stacked Bars',
+    renderTrigger: true,
     default: false,
     description: null,
   },
@@ -202,6 +203,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Bar Values',
     default: false,
+    renderTrigger: true,
     description: 'Show the value on top of the bar',
   },
 
@@ -215,6 +217,7 @@ export const fields = {
   show_controls: {
     type: 'CheckboxField',
     label: 'Extra Controls',
+    renderTrigger: true,
     default: false,
     description: 'Whether to show extra controls or not. Extra controls ' +
                  'include things like making mulitBar charts stacked ' +
@@ -224,6 +227,7 @@ export const fields = {
   reduce_x_ticks: {
     type: 'CheckboxField',
     label: 'Reduce X ticks',
+    renderTrigger: true,
     default: false,
     description: 'Reduces the number of X axis ticks to be rendered. ' +
                  'If true, the x axis wont overflow and labels may be ' +
@@ -235,6 +239,7 @@ export const fields = {
   include_series: {
     type: 'CheckboxField',
     label: 'Include Series',
+    renderTrigger: true,
     default: false,
     description: 'Include series name as an axis',
   },
@@ -847,6 +852,7 @@ export const fields = {
   include_search: {
     type: 'CheckboxField',
     label: 'Search Box',
+    renderTrigger: true,
     default: false,
     description: 'Whether to include a client side search box',
   },
@@ -862,6 +868,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Show Bubbles',
     default: false,
+    renderTrigger: true,
     description: 'Whether to display bubbles on top of countries',
   },
 
