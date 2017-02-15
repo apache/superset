@@ -929,7 +929,7 @@ def load_random_time_series_data():
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
-        "metric": "epoch_ms",
+        "metric": "count",
         "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
@@ -1070,6 +1070,7 @@ def load_multiformat_time_series_data():
     print("Creating some slices")
     for i, col in enumerate(tbl.columns):
         slice_data = {
+            "metric": 'count',
             "granularity_sqla": col.column_name,
             "granularity": "day",
             "row_limit": config.get("ROW_LIMIT"),
