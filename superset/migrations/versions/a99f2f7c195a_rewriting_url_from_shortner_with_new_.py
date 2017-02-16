@@ -10,21 +10,21 @@ Create Date: 2017-02-08 14:16:34.948793
 revision = 'a99f2f7c195a'
 down_revision = 'db0c65b146bd'
 
-from urlparse import parse_qsl
 from alembic import op
 import json
-from urllib import quote_plus
-from pprint import pprint
+from urllib import quote_plus, parse
 import sqlalchemy as sa
 from superset import db
 from superset.legacy import cast_form_data
 from sqlalchemy.ext.declarative import declarative_base
+from future.standard_library import install_aliases
+install_aliases()
 
 Base = declarative_base()
 
 def parse_querystring(qs):
     d = {}
-    for k, v in parse_qsl(qs):
+    for k, v in parse.parse_qsl(qs):
         if not k in d:
             d[k] = v
         else:
