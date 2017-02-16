@@ -12,7 +12,9 @@ import numpy
 import pickle
 import re
 import textwrap
-import urllib
+from future.standard_library import install_aliases
+install_aliases()
+from urllib import parse
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
 
@@ -24,7 +26,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import subqueryload
 
 import sqlparse
-from dateutil.parser import parse
+from dateutil.parser import parse as dparse
 
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
@@ -338,7 +340,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         return (
             "/superset/explore/{obj.datasource_type}/"
             "{obj.datasource_id}/?form_data={params}".format(
-                obj=self, params=urllib.quote(json.dumps(self.form_data))))
+                obj=self, params=parse.quote(json.dumps(self.form_data))))
 
     @property
     def slice_id_url(self):
@@ -2055,7 +2057,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
         if not results:
             return
         max_time = results[0]['result']['maxTime']
-        max_time = parse(max_time)
+        max_time = dparse(max_time)
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
         # realtime segments, which triggered a bug (fixed in druid 0.8.2).
