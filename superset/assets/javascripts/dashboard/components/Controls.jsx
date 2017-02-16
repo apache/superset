@@ -18,7 +18,7 @@ class Controls extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = {
-      css: props.dashboard.css,
+      css: props.dashboard.css || '',
       cssTemplates: [],
     };
   }
