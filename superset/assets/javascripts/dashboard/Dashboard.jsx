@@ -13,7 +13,6 @@ import Header from './components/Header';
 
 require('bootstrap');
 require('../../stylesheets/dashboard.css');
-require('../superset-select2.js');
 
 export function getInitialState(dashboardData, context) {
   const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
@@ -83,9 +82,6 @@ function initDashboardView(dashboard) {
   );
   $('div.grid-container').css('visibility', 'visible');
 
-  $('.select2').select2({
-    dropdownAutoWidth: true,
-  });
   $('div.widget').click(function (e) {
     const $this = $(this);
     const $target = $(e.target);

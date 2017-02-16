@@ -112,7 +112,7 @@ export const exploreReducer = function (state, action) {
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.queryResponse.error,
+        chartAlert: action.queryResponse ? action.queryResponse.error : 'Network error.',
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
       });

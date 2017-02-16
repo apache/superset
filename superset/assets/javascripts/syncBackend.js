@@ -20,6 +20,6 @@ function main() {
     fs.mkdirSync(dir);
   }
   const blob = { fields };
-  exportFile(APP_DIR + '/../dist/backendSync.json', JSON.stringify(blob, null, 2));
+  exportFile(APP_DIR + '/../backendSync.json', JSON.stringify(blob, null, 2));
 }
 main();

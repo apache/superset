@@ -22,7 +22,7 @@ from superset import utils
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
 
-with open(APP_DIR + '/assets/dist/backendSync.json', 'r') as f:
+with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
     frontend_config = json.load(f)
 
 
