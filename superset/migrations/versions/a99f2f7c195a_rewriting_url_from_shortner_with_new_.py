@@ -47,7 +47,9 @@ def upgrade():
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    for url in session.query(Url).all():
+    urls = session.query(Url).all()
+    urls_len = len(urls)
+    for i, url in enumerate(urls):
         if (
                 '?form_data' not in url.url and
                 '?' in url.url and
@@ -59,8 +61,9 @@ def upgrade():
             d = cast_form_data(d)
             newurl = '/'.join(split[:-1]) + '/?form_data=' + parse.quote_plus(json.dumps(d))
             url.url = newurl
-        session.merge(url)
-        session.commit()
+            session.merge(url)
+            session.commit()
+        print('Updating url ({}/{})'.format(i, urls_len))
     session.close()
 
 
