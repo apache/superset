@@ -211,6 +211,9 @@ following commands. The `dev` flag will keep the npm script running and
 re-run it upon any changes within the assets directory.
 
 ```
+# Copies a conf file from the frontend to the backend
+npm run sync-backend
+
 # Compiles the production / optimized js & css
 npm run prod
 
