@@ -513,7 +513,7 @@ class TableViz(BaseViz):
             'default': [],
         },
     })
-    is_timeseries = False
+    is_timeseries = True
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()
