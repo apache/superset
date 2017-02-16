@@ -57,6 +57,7 @@ CSRF_ENABLED = True
 
 # Whether to run the web server in debug mode or not
 DEBUG = False
+FLASK_USE_RELOAD = True
 
 # Whether to show the stacktrace on 500 error
 SHOW_STACKTRACE = True
@@ -153,6 +154,7 @@ IMG_UPLOAD_URL = '/static/uploads/'
 
 CACHE_DEFAULT_TIMEOUT = None
 CACHE_CONFIG = {'CACHE_TYPE': 'null'}
+TABLE_NAMES_CACHE_CONFIG = {'CACHE_TYPE': 'null'}
 
 # CORS Options
 ENABLE_CORS = False
@@ -208,6 +210,9 @@ MAPBOX_API_KEY = ""
 # Maximum number of rows returned in the SQL editor
 SQL_MAX_ROW = 1000000
 DISPLAY_SQL_MAX_ROW = 1000
+
+# Maximum number of tables/views displayed in the dropdown window in SQL Lab.
+MAX_TABLE_NAMES = 3000
 
 # If defined, shows this text in an alert-warning box in the navbar
 # one example use case may be "STAGING" to make it clear that this is

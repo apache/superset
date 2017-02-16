@@ -8,7 +8,6 @@ import decimal
 import functools
 import json
 import logging
-import markdown as md
 import numpy
 import os
 import parsedatetime
@@ -33,6 +32,7 @@ from flask_appbuilder.const import (
 )
 from flask_appbuilder._compat import as_unicode
 from flask_babel import gettext as __
+import markdown as md
 from past.builtins import basestring
 from pydruid.utils.having import Having
 from sqlalchemy import event, exc
@@ -120,6 +120,10 @@ class memoized(object):  # noqa
     def __get__(self, obj, objtype):
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
+
+
+def js_string_to_python(item):
+    return None if item in ('null', 'undefined') else item
 
 
 class DimSelector(Having):

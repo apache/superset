@@ -30,8 +30,8 @@ class SqlEditorLeftBar extends React.PureComponent {
     };
   }
   componentWillMount() {
-    this.fetchSchemas();
-    this.fetchTables();
+    this.fetchSchemas(this.props.queryEditor.dbId);
+    this.fetchTables(this.props.queryEditor.dbId, this.props.queryEditor.schema);
   }
   onChange(db) {
     const val = (db) ? db.value : null;
@@ -58,21 +58,50 @@ class SqlEditorLeftBar extends React.PureComponent {
   resetState() {
     this.props.actions.resetState();
   }
-  fetchTables(dbId, schema) {
-    const actualDbId = dbId || this.props.queryEditor.dbId;
-    if (actualDbId) {
-      const actualSchema = schema || this.props.queryEditor.schema;
-      this.setState({ tableLoading: true });
-      this.setState({ tableOptions: [] });
-      const url = `/superset/tables/${actualDbId}/${actualSchema}`;
+  getTableNamesBySubStr(input) {
+    if (!this.props.queryEditor.dbId || !input) {
+      return Promise.resolve({ options: [] });
+    }
+    const url = `/superset/tables/${this.props.queryEditor.dbId}/\
+${this.props.queryEditor.schema}/${input}`;
+    return $.get(url).then((data) => ({ options: data.options }));
+  }
+  // TODO: move fetching methods to the actions.
+  fetchTables(dbId, schema, substr) {
+    if (dbId) {
+      this.setState({ tableLoading: true, tableOptions: [] });
+      const url = `/superset/tables/${dbId}/${schema}/${substr}/`;
       $.get(url, (data) => {
-        let tableOptions = data.tables.map((s) => ({ value: s, label: s }));
-        const views = data.views.map((s) => ({ value: s, label: '[view] ' + s }));
-        tableOptions = [...tableOptions, ...views];
-        this.setState({ tableOptions });
-        this.setState({ tableLoading: false });
+        this.setState({
+          tableLoading: false,
+          tableOptions: data.options,
+          tableLength: data.tableLength,
+        });
       });
     }
+  }
+  changeTable(tableOpt) {
+    if (!tableOpt) {
+      this.setState({ tableName: '' });
+      return;
+    }
+    const namePieces = tableOpt.value.split('.');
+    let tableName = namePieces[0];
+    let schemaName = this.props.queryEditor.schema;
+    if (namePieces.length === 1) {
+      this.setState({ tableName });
+    } else {
+      schemaName = namePieces[0];
+      tableName = namePieces[1];
+      this.setState({ tableName });
+      this.props.actions.queryEditorSetSchema(this.props.queryEditor, schemaName);
+      this.fetchTables(this.props.queryEditor.dbId, schemaName);
+    }
+    this.setState({ tableLoading: true });
+    // TODO: handle setting the tableLoading state depending on success or
+    //       failure of the addTable async call in the action.
+    this.props.actions.addTable(this.props.queryEditor, tableName, schemaName);
+    this.setState({ tableLoading: false });
   }
   changeSchema(schemaOpt) {
     const schema = (schemaOpt) ? schemaOpt.value : null;
@@ -95,14 +124,6 @@ class SqlEditorLeftBar extends React.PureComponent {
   closePopover(ref) {
     this.refs[ref].hide();
   }
-  changeTable(tableOpt) {
-    const tableName = tableOpt.value;
-    const qe = this.props.queryEditor;
-
-    this.setState({ tableLoading: true });
-    this.props.actions.addTable(qe, tableName);
-    this.setState({ tableLoading: false });
-  }
   render() {
     let networkAlert = null;
     if (!this.props.networkOn) {
@@ -118,6 +139,8 @@ class SqlEditorLeftBar extends React.PureComponent {
               dataEndpoint="/databaseasync/api/read?_flt_0_expose_in_sqllab=1"
               onChange={this.onChange.bind(this)}
               value={this.props.queryEditor.dbId}
+              databaseId={this.props.queryEditor.dbId}
+              actions={this.props.actions}
               valueRenderer={(o) => (
                 <div>
                   <span className="text-muted">Database:</span> {o.label}
@@ -126,8 +149,6 @@ class SqlEditorLeftBar extends React.PureComponent {
               mutator={this.dbMutator.bind(this)}
               placeholder="Select a database"
             />
-          </div>
-          <div className="m-t-5">
             <Select
               name="select-schema"
               placeholder={`Select a schema (${this.state.schemaOptions.length})`}
@@ -144,15 +165,29 @@ class SqlEditorLeftBar extends React.PureComponent {
             />
           </div>
           <div className="m-t-5">
-            <Select
-              name="select-table"
-              ref="selectTable"
-              isLoading={this.state.tableLoading}
-              placeholder={`Add a table (${this.state.tableOptions.length})`}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              options={this.state.tableOptions}
-            />
+            {this.props.queryEditor.schema &&
+              <Select
+                name="select-table"
+                ref="selectTable"
+                isLoading={this.state.tableLoading}
+                value={this.state.tableName}
+                placeholder={`Add a table (${this.state.tableOptions.length})`}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                options={this.state.tableOptions}
+              />
+            }
+            {!this.props.queryEditor.schema &&
+              <Select.Async
+                name="async-select-table"
+                ref="selectTable"
+                value={this.state.tableName}
+                placeholder={"Type to search ..."}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                loadOptions={this.getTableNamesBySubStr.bind(this)}
+              />
+            }
           </div>
           <hr />
           <div className="m-t-5">

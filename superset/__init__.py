@@ -29,6 +29,7 @@ if not app.debug:
     # In production mode, add log handler to sys.stderr.
     app.logger.addHandler(logging.StreamHandler())
     app.logger.setLevel(logging.INFO)
+logging.getLogger('pyhive.presto').setLevel(logging.INFO)
 
 db = SQLA(app)
 
@@ -36,6 +37,8 @@ db = SQLA(app)
 utils.pessimistic_connection_handling(db.engine.pool)
 
 cache = Cache(app, config=app.config.get('CACHE_CONFIG'))
+tables_cache = Cache(app, config=app.config.get('TABLE_NAMES_CACHE_CONFIG'))
+
 
 migrate = Migrate(app, db, directory=APP_DIR + "/migrations")
 
