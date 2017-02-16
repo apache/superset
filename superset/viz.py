@@ -92,6 +92,7 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
+        self.others_category = self.form_data.get('others_category') or None
 
     @classmethod
     def flat_form_fields(cls):
@@ -223,6 +224,17 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
+            if self.others_category is not None \
+                    and self.others_category != 'None':
+                top_n = int(self.others_category)
+                if 0 < top_n < len(df):
+                    df_head = df.head(top_n)
+                    df_tail = df.tail(len(df) - top_n)
+                    other_metrics_sum = ['Others']
+                    for metric in query_obj['metrics']:
+                        other_metrics_sum.append(df_tail[metric].sum())
+                    df_other = pd.DataFrame([other_metrics_sum], columns=df.columns)
+                    df = df_head.append(df_other, ignore_index=True)
         return df
 
     @property
@@ -1454,6 +1466,7 @@ class DistributionPieViz(NVD3Viz):
             'pie_label_type',
             ('donut', 'show_legend'),
             'labels_outside',
+            'others_category',
         )
     },)
 

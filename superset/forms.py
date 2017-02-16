@@ -575,6 +575,13 @@ class FormFactory(object):
                 "description": _(
                     "Limits the number of time series that get displayed")
             }),
+            'others_category': (FreeFormSelectField, {
+                "label": _('Others category'),
+                "default": None,
+                "choices": self.choicify(
+                    [None, 5, 10, 50, 100, 250, 500, 1000, 5000]),
+                "description": _("Aggregate data outside of topN into a single category")
+            }),
             'timeseries_limit_metric': (SelectField, {
                 "label": _("Sort By"),
                 "choices": [('', '')] + datasource.metrics_combo,
