@@ -10,6 +10,7 @@ const directedForceVis = function (slice, json) {
   const height = slice.height() - 25;
   const linkLength = json.form_data.link_length || 200;
   const charge = json.form_data.charge || -500;
+  const labels = json.form_data.graph_labels | 0;
 
   const links = json.data;
   const nodes = {};
@@ -46,6 +47,7 @@ const directedForceVis = function (slice, json) {
     }
 
     nodes[targetName].total += link.value;
+    nodes[targetName].color = link.color;
   });
 
   /* eslint-disable no-use-before-define */
@@ -124,11 +126,11 @@ const directedForceVis = function (slice, json) {
     .select('circle')
     .transition()
     .style('stroke-width', 5);
-
     d3.select(this)
     .select('text')
     .transition()
-    .style('font-size', 25);
+    .style('font-size', 25)
+    .style('opacity', 1);
   })
   .on('mouseleave', function () {
     d3.select(this)
@@ -138,7 +140,8 @@ const directedForceVis = function (slice, json) {
     d3.select(this)
     .select('text')
     .transition()
-    .style('font-size', 12);
+    .style('font-size', 12)
+    .style('opacity', labels);
   })
   .call(force.drag);
 
@@ -150,15 +153,21 @@ const directedForceVis = function (slice, json) {
   .domain(ext)
   .range([3, 30]);
 
+  const color = d3.scale.category20();
+
   node.append('circle')
   .attr('r', function (d) {
     return circleScale(Math.sqrt(d.total));
+  })
+  .style('fill', function (d) {
+    return color(d.color);
   });
 
   // add the text
   node.append('text')
   .attr('x', 6)
   .attr('dy', '.35em')
+  .style('opacity', labels)
   .text(function (d) {
     return d.name;
   });

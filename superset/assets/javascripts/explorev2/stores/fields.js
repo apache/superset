@@ -376,6 +376,23 @@ export const fields = {
                  'domain_granularity. Should be larger or equal to Time Grain',
   },
 
+  graph_color: {
+    type: 'SelectField',
+    label: 'Node Color',
+    default: [],
+    description: 'Choose a source node dimension to color the nodes.',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.all_cols : [],
+    }),
+  },
+
+  graph_labels: {
+    type: 'CheckboxField',
+    label: 'Node Lables',
+    default: true,
+    description: 'Display lables on all node?',
+  },
+
   link_length: {
     type: 'SelectField',
     freeForm: true,
