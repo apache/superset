@@ -65,7 +65,7 @@ export const fields = {
     multi: true,
     label: 'Metrics',
     validators: [v.nonEmpty],
-    default: field => field.choices !== null ? [field.choices[0][0]] : null,
+  default: field => field.choices && field.choices.length > 0 ? [field.choices[0][0]] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
