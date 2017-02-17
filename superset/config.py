@@ -267,16 +267,6 @@ ROBOT_PERMISSION_ROLES = ['Public', 'Gamma', 'Alpha', 'Admin', 'sql_lab']
 
 CONFIG_PATH_ENV_VAR = 'SUPERSET_CONFIG_PATH'
 
-try:
-    if CONFIG_PATH_ENV_VAR in os.environ:
-        # Explicitly import config module that is not in pythonpath; useful
-        # for case where app is being executed via pex.
-        imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
-
-    from superset_config import *  # noqa
-    print('Loaded your LOCAL configuration')
-except ImportError:
-    pass
 
 # smtp server configuration
 EMAIL_NOTIFICATIONS = False  # all the emails are sent using dryrun
@@ -290,3 +280,21 @@ SMTP_MAIL_FROM = 'superset@superset.com'
 
 if not CACHE_DEFAULT_TIMEOUT:
     CACHE_DEFAULT_TIMEOUT = CACHE_CONFIG.get('CACHE_DEFAULT_TIMEOUT')
+
+# Whether to bump the logging level to ERRROR on the flask_appbiulder package
+# Set to False if/when debugging FAB related issues like
+# permission management
+SILENCE_FAB = True
+
+try:
+    if CONFIG_PATH_ENV_VAR in os.environ:
+        # Explicitly import config module that is not in pythonpath; useful
+        # for case where app is being executed via pex.
+        imp.load_source('superset_config', os.environ[CONFIG_PATH_ENV_VAR])
+
+    from superset_config import *  # noqa
+    import superset_config
+    print('Loaded your LOCAL configuration at [{}]'.format(
+        superset_config.__file__))
+except ImportError:
+    pass
