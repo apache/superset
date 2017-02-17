@@ -448,6 +448,9 @@ class MarkupViz(BaseViz):
     verbose_name = _("Markup")
     is_timeseries = False
 
+    def get_df(self):
+        return True
+
     def get_data(self, df):
         markup_type = self.form_data.get("markup_type")
         code = self.form_data.get("code", '')
