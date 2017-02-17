@@ -1,13 +1,15 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Panel, Alert } from 'react-bootstrap';
+import { Panel, Alert, Collapse } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
-import ExploreActionButtons from '../../explore/components/ExploreActionButtons';
+import ExploreActionButtons from './ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
+import { getExploreUrl } from '../exploreUtils';
+import { getFormDataFromFields } from '../stores/store';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -17,20 +19,20 @@ const CHART_STATUS_MAP = {
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
-  can_download: PropTypes.bool.isRequired,
-  slice_id: PropTypes.string.isRequired,
-  slice_name: PropTypes.string.isRequired,
-  viz_type: PropTypes.string.isRequired,
-  height: PropTypes.string.isRequired,
-  containerId: PropTypes.string.isRequired,
-  query: PropTypes.string,
-  column_formats: PropTypes.object,
-  chartStatus: PropTypes.string,
-  isStarred: PropTypes.bool.isRequired,
-  chartUpdateStartTime: PropTypes.number.isRequired,
-  chartUpdateEndTime: PropTypes.number,
   alert: PropTypes.string,
+  can_download: PropTypes.bool.isRequired,
+  chartStatus: PropTypes.string,
+  chartUpdateEndTime: PropTypes.number,
+  chartUpdateStartTime: PropTypes.number.isRequired,
+  column_formats: PropTypes.object,
+  containerId: PropTypes.string.isRequired,
+  height: PropTypes.string.isRequired,
+  isStarred: PropTypes.bool.isRequired,
+  slice: PropTypes.object,
   table_name: PropTypes.string,
+  viz_type: PropTypes.string.isRequired,
+  formData: PropTypes.object,
+  latestQueryFormData: PropTypes.object,
 };
 
 class ChartContainer extends React.PureComponent {
@@ -38,14 +40,16 @@ class ChartContainer extends React.PureComponent {
     super(props);
     this.state = {
       selector: `#${props.containerId}`,
+      showStackTrace: false,
     };
   }
 
   renderViz() {
+    this.props.actions.renderTriggered();
     const mockSlice = this.getMockedSliceObject();
+    this.setState({ mockSlice });
     try {
       visMap[this.props.viz_type](mockSlice, this.props.queryResponse);
-      this.setState({ mockSlice });
     } catch (e) {
       this.props.actions.chartRenderingFailed(e);
     }
@@ -53,8 +57,13 @@ class ChartContainer extends React.PureComponent {
 
   componentDidUpdate(prevProps) {
     if (
-        prevProps.queryResponse !== this.props.queryResponse ||
-        prevProps.height !== this.props.height
+        (
+          prevProps.queryResponse !== this.props.queryResponse ||
+          prevProps.height !== this.props.height ||
+          this.props.triggerRender
+        ) && !this.props.queryResponse.error
+        && this.props.chartStatus !== 'failed'
+        && this.props.chartStatus !== 'stopped'
       ) {
       this.renderViz();
     }
@@ -62,10 +71,15 @@ class ChartContainer extends React.PureComponent {
 
   getMockedSliceObject() {
     const props = this.props;
+    const getHeight = () => {
+      const headerHeight = this.props.standalone ? 0 : 100;
+      return parseInt(props.height, 10) - headerHeight;
+    };
     return {
-      viewSqlQuery: props.query,
+      viewSqlQuery: this.props.queryResponse.query,
       containerId: props.containerId,
       selector: this.state.selector,
+      formData: this.props.formData,
       container: {
         html: (data) => {
           // this should be a callback to clear the contents of the slice container
@@ -77,7 +91,7 @@ class ChartContainer extends React.PureComponent {
           // should call callback to adjust height of chart
           $(this.state.selector).css(dim, size);
         },
-        height: () => parseInt(props.height, 10) - 100,
+        height: getHeight,
         show: () => { },
         get: (n) => ($(this.state.selector).get(n)),
         find: (classname) => ($(this.state.selector).find(classname)),
@@ -85,7 +99,7 @@ class ChartContainer extends React.PureComponent {
 
       width: () => this.chartContainerRef.getBoundingClientRect().width,
 
-      height: () => parseInt(props.height, 10) - 100,
+      height: getHeight,
 
       setFilter: () => {
         // set filter according to data in store
@@ -111,9 +125,10 @@ class ChartContainer extends React.PureComponent {
       },
 
       data: {
-        csv_endpoint: props.queryResponse.csv_endpoint,
-        json_endpoint: props.queryResponse.json_endpoint,
-        standalone_endpoint: props.queryResponse.standalone_endpoint,
+        csv_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'csv'),
+        json_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'json'),
+        standalone_endpoint: getExploreUrl(
+          this.props.formData, this.props.datasource_type, 'standalone'),
       },
 
     };
@@ -125,26 +140,45 @@ class ChartContainer extends React.PureComponent {
 
   renderChartTitle() {
     let title;
-    if (this.props.slice_name) {
-      title = this.props.slice_name;
+    if (this.props.slice) {
+      title = this.props.slice.slice_name;
     } else {
       title = `[${this.props.table_name}] - untitled`;
     }
     return title;
   }
 
+  renderAlert() {
+    const msg = (
+      <div>
+        {this.props.alert}
+        <i
+          className="fa fa-close pull-right"
+          onClick={this.removeAlert.bind(this)}
+          style={{ cursor: 'pointer' }}
+        />
+      </div>);
+    return (
+      <div>
+        <Alert
+          bsStyle="warning"
+          onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
+        >
+          {msg}
+        </Alert>
+        {this.props.queryResponse && this.props.queryResponse.stacktrace &&
+          <Collapse in={this.state.showStackTrace}>
+            <pre>
+              {this.props.queryResponse.stacktrace}
+            </pre>
+          </Collapse>
+        }
+      </div>);
+  }
+
   renderChart() {
     if (this.props.alert) {
-      return (
-        <Alert bsStyle="warning">
-          {this.props.alert}
-          <i
-            className="fa fa-close pull-right"
-            onClick={this.removeAlert.bind(this)}
-            style={{ cursor: 'pointer' }}
-          />
-        </Alert>
-      );
+      return this.renderAlert();
     }
     const loading = this.props.chartStatus === 'loading';
     return (
@@ -170,6 +204,9 @@ class ChartContainer extends React.PureComponent {
   }
 
   render() {
+    if (this.props.standalone) {
+      return this.renderChart();
+    }
     return (
       <div className="chart-container">
         <Panel
@@ -181,10 +218,10 @@ class ChartContainer extends React.PureComponent {
             >
               {this.renderChartTitle()}
 
-              {this.props.slice_id &&
+              {this.props.slice &&
                 <span>
                   <FaveStar
-                    sliceId={this.props.slice_id}
+                    sliceId={this.props.slice.slice_id}
                     actions={this.props.actions}
                     isStarred={this.props.isStarred}
                   />
@@ -195,7 +232,7 @@ class ChartContainer extends React.PureComponent {
                   >
                     <a
                       className="edit-desc-icon"
-                      href={`/slicemodelview/edit/${this.props.slice_id}`}
+                      href={`/slicemodelview/edit/${this.props.slice.slice_id}`}
                     >
                       <i className="fa fa-edit" />
                     </a>
@@ -208,16 +245,15 @@ class ChartContainer extends React.PureComponent {
                   startTime={this.props.chartUpdateStartTime}
                   endTime={this.props.chartUpdateEndTime}
                   isRunning={this.props.chartStatus === 'loading'}
-                  state={CHART_STATUS_MAP[this.props.chartStatus]}
+                  status={CHART_STATUS_MAP[this.props.chartStatus]}
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
-                {this.state.mockSlice &&
-                  <ExploreActionButtons
-                    slice={this.state.mockSlice}
-                    canDownload={this.props.can_download}
-                    query={this.props.queryResponse.query}
-                  />
-                }
+                <ExploreActionButtons
+                  slice={this.state.mockSlice}
+                  canDownload={this.props.can_download}
+                  queryEndpoint={getExploreUrl(
+                    this.props.latestQueryFormData, this.props.datasource_type, 'query')}
+                />
               </div>
             </div>
           }
@@ -232,21 +268,24 @@ class ChartContainer extends React.PureComponent {
 ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
+  const formData = getFormDataFromFields(state.fields);
   return {
-    containerId: `slice-container-${state.viz.form_data.slice_id}`,
-    slice_id: state.viz.form_data.slice_id,
-    slice_name: state.viz.form_data.slice_name,
-    viz_type: state.viz.form_data.viz_type,
-    can_download: state.can_download,
-    chartUpdateStartTime: state.chartUpdateStartTime,
-    chartUpdateEndTime: state.chartUpdateEndTime,
-    query: state.viz.query,
-    column_formats: state.viz.column_formats,
-    chartStatus: state.chartStatus,
-    isStarred: state.isStarred,
     alert: state.chartAlert,
-    table_name: state.viz.form_data.datasource_name,
+    can_download: state.can_download,
+    chartStatus: state.chartStatus,
+    chartUpdateEndTime: state.chartUpdateEndTime,
+    chartUpdateStartTime: state.chartUpdateStartTime,
+    column_formats: state.datasource ? state.datasource.column_formats : null,
+    containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
+    formData,
+    latestQueryFormData: state.latestQueryFormData,
+    isStarred: state.isStarred,
     queryResponse: state.queryResponse,
+    slice: state.slice,
+    standalone: state.standalone,
+    table_name: formData.datasource_name,
+    viz_type: formData.viz_type,
+    triggerRender: state.triggerRender,
   };
 }
 

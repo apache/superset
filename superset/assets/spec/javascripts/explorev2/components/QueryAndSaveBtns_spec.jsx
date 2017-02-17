@@ -4,7 +4,7 @@ import { expect } from 'chai';
 import { shallow } from 'enzyme';
 import sinon from 'sinon';
 
-import QueryAndSaveButtons from '../../../../javascripts/explore/components/QueryAndSaveBtns';
+import QueryAndSaveButtons from '../../../../javascripts/explorev2/components/QueryAndSaveBtns';
 import Button from '../../../../javascripts/components/Button';
 
 describe('QueryAndSaveButtons', () => {
@@ -36,7 +36,7 @@ describe('QueryAndSaveButtons', () => {
     });
 
     it('calls onQuery when query button is clicked', () => {
-      const queryButton = wrapper.find('#query_button');
+      const queryButton = wrapper.find('.query');
       queryButton.simulate('click');
       expect(defaultProps.onQuery.called).to.eql(true);
     });

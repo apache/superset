@@ -1,23 +1,26 @@
 /* eslint camelcase: 0 */
-import React from 'react';
+import React, { PropTypes } from 'react';
 import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import ChartContainer from './ChartContainer';
 import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
-import QueryAndSaveBtns from '../../explore/components/QueryAndSaveBtns';
-import { autoQueryFields } from '../stores/fields';
+import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
+import { getFormDataFromFields } from '../stores/store';
 
 const propTypes = {
-  form_data: React.PropTypes.object.isRequired,
-  actions: React.PropTypes.object.isRequired,
-  datasource_type: React.PropTypes.string.isRequired,
-  chartStatus: React.PropTypes.string.isRequired,
-  fields: React.PropTypes.object.isRequired,
+  actions: PropTypes.object.isRequired,
+  datasource_type: PropTypes.string.isRequired,
+  chartStatus: PropTypes.string.isRequired,
+  fields: PropTypes.object.isRequired,
+  forcedHeight: PropTypes.string,
+  form_data: PropTypes.object.isRequired,
+  standalone: PropTypes.bool.isRequired,
+  triggerQuery: PropTypes.bool.isRequired,
+  queryRequest: PropTypes.object,
 };
-
 
 class ExploreViewContainer extends React.Component {
   constructor(props) {
@@ -29,17 +32,23 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentDidMount() {
+    this.props.actions.fetchDatasources();
     window.addEventListener('resize', this.handleResize.bind(this));
-    this.runQuery();
   }
 
-  componentWillReceiveProps(nextProps) {
-    const refreshChart = Object.keys(nextProps.form_data).some((field) => (
-      nextProps.form_data[field] !== this.props.form_data[field]
-      && autoQueryFields.indexOf(field) !== -1)
-    );
-    if (refreshChart) {
-      this.onQuery();
+  componentWillReceiveProps(np) {
+    if (np.fields.viz_type.value !== this.props.fields.viz_type.value) {
+      this.props.actions.resetFields();
+      this.props.actions.triggerQuery();
+    }
+    if (np.fields.datasource.value !== this.props.fields.datasource.value) {
+      this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
+    }
+  }
+
+  componentDidUpdate() {
+    if (this.props.triggerQuery) {
+      this.runQuery();
     }
   }
 
@@ -48,19 +57,26 @@ class ExploreViewContainer extends React.Component {
   }
 
   onQuery() {
+    // remove alerts when query
+    this.props.actions.removeControlPanelAlert();
+    this.props.actions.removeChartAlert();
+
     this.runQuery();
     history.pushState(
       {},
       document.title,
-      getExploreUrl(this.props.form_data, this.props.datasource_type)
-    );
-    // remove alerts when query
-    this.props.actions.removeControlPanelAlert();
-    this.props.actions.removeChartAlert();
+      getExploreUrl(this.props.form_data));
+  }
+
+  onStop() {
+    this.props.actions.chartUpdateStopped(this.props.queryRequest);
   }
 
   getHeight() {
-    const navHeight = 90;
+    if (this.props.forcedHeight) {
+      return this.props.forcedHeight + 'px';
+    }
+    const navHeight = this.props.standalone ? 0 : 90;
     return `${window.innerHeight - navHeight}px`;
   }
 
@@ -101,8 +117,18 @@ class ExploreViewContainer extends React.Component {
     }
     return errorMessage;
   }
+  renderChartContainer() {
+    return (
+      <ChartContainer
+        actions={this.props.actions}
+        height={this.state.height}
+      />);
+  }
 
   render() {
+    if (this.props.standalone) {
+      return this.renderChartContainer();
+    }
     return (
       <div
         id="explore-container"
@@ -117,7 +143,6 @@ class ExploreViewContainer extends React.Component {
           onHide={this.toggleModal.bind(this)}
           actions={this.props.actions}
           form_data={this.props.form_data}
-          datasource_type={this.props.datasource_type}
         />
       }
         <div className="row">
@@ -126,7 +151,8 @@ class ExploreViewContainer extends React.Component {
               canAdd="True"
               onQuery={this.onQuery.bind(this)}
               onSave={this.toggleModal.bind(this)}
-              disabled={this.props.chartStatus === 'loading'}
+              onStop={this.onStop.bind(this)}
+              loading={this.props.chartStatus === 'loading'}
               errorMessage={this.renderErrorMessage()}
             />
             <br />
@@ -134,14 +160,10 @@ class ExploreViewContainer extends React.Component {
               actions={this.props.actions}
               form_data={this.props.form_data}
               datasource_type={this.props.datasource_type}
-              onQuery={this.onQuery.bind(this)}
             />
           </div>
           <div className="col-sm-8">
-            <ChartContainer
-              actions={this.props.actions}
-              height={this.state.height}
-            />
+            {this.renderChartContainer()}
           </div>
         </div>
       </div>
@@ -152,11 +174,16 @@ class ExploreViewContainer extends React.Component {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
+  const form_data = getFormDataFromFields(state.fields);
   return {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
     fields: state.fields,
-    form_data: state.viz.form_data,
+    form_data,
+    standalone: state.standalone,
+    triggerQuery: state.triggerQuery,
+    forcedHeight: state.forced_height,
+    queryRequest: state.queryRequest,
   };
 }
 

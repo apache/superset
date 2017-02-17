@@ -2,8 +2,8 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 import { shallow } from 'enzyme';
-
-import ExploreActionButtons from '../../../../javascripts/explore/components/ExploreActionButtons';
+import ExploreActionButtons from
+  '../../../../javascripts/explorev2/components/ExploreActionButtons';
 
 describe('ExploreActionButtons', () => {
   const defaultProps = {

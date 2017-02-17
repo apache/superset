@@ -1,17 +1,19 @@
 import React, { PropTypes } from 'react';
-import TextField from './TextField';
 import CheckboxField from './CheckboxField';
-import TextAreaField from './TextAreaField';
-import SelectField from './SelectField';
-import FilterField from './FilterField';
 import ControlHeader from './ControlHeader';
+import FilterField from './FilterField';
+import HiddenField from './HiddenField';
+import SelectField from './SelectField';
+import TextAreaField from './TextAreaField';
+import TextField from './TextField';
 
 const fieldMap = {
-  TextField,
   CheckboxField,
-  TextAreaField,
-  SelectField,
   FilterField,
+  HiddenField,
+  SelectField,
+  TextAreaField,
+  TextField,
 };
 const fieldTypes = Object.keys(fieldMap);
 
@@ -25,6 +27,8 @@ const propTypes = {
   places: PropTypes.number,
   validators: PropTypes.array,
   validationErrors: PropTypes.array,
+  renderTrigger: PropTypes.bool,
+  rightNode: PropTypes.node,
   value: PropTypes.oneOfType([
     PropTypes.string,
     PropTypes.number,
@@ -33,6 +37,7 @@ const propTypes = {
 };
 
 const defaultProps = {
+  renderTrigger: false,
   validators: [],
   validationErrors: [],
 };
@@ -65,12 +70,15 @@ export default class FieldSet extends React.PureComponent {
   }
   render() {
     const FieldType = fieldMap[this.props.type];
+    const divStyle = this.props.hidden ? { display: 'none' } : null;
     return (
-      <div>
+      <div style={divStyle}>
         <ControlHeader
           label={this.props.label}
           description={this.props.description}
+          renderTrigger={this.props.renderTrigger}
           validationErrors={this.props.validationErrors}
+          rightNode={this.props.rightNode}
         />
         <FieldType
           onChange={this.onChange}

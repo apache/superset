@@ -78,14 +78,22 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
-        resp = self.get_resp(slc.viz.json_endpoint)
+        json_endpoint = (
+            '/superset/explore_json/{}/{}?form_data={}'
+            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+        )
+        resp = self.get_resp(json_endpoint)
         assert '"Jennifer"' in resp
 
     def test_slice_csv_endpoint(self):
         self.login(username='admin')
         slc = self.get_slice("Girls", db.session)
 
-        resp = self.get_resp(slc.viz.csv_endpoint)
+        csv_endpoint = (
+            '/superset/explore_json/{}/{}?csv=true&form_data={}'
+            .format(slc.datasource_type, slc.datasource_id, json.dumps(slc.viz.form_data))
+        )
+        resp = self.get_resp(csv_endpoint)
         assert 'Jennifer,' in resp
 
     def test_admin_only_permissions(self):
@@ -122,24 +130,55 @@ class CoreTests(SupersetTestCase):
         db.session.commit()
         copy_name = "Test Sankey Save"
         tbl_id = self.table_ids.get('energy_usage')
+        new_slice_name = "Test Sankey Overwirte"
+
         url = (
-            "/superset/explore/table/{}/?viz_type=sankey&groupby=source&"
-            "groupby=target&metric=sum__value&row_limit=5000&where=&having=&"
-            "flt_col_0=source&flt_op_0=in&flt_eq_0=&slice_id={}&slice_name={}&"
-            "collapsed_fieldsets=&action={}&datasource_name=energy_usage&"
-            "datasource_id=1&datasource_type=table&previous_viz_type=sankey")
+            "/superset/explore/table/{}/?slice_name={}&"
+            "action={}&datasource_name=energy_usage&form_data={}")
 
-        # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id, copy_name, 'save'))
-        assert copy_name in resp
+        form_data = {
+            'viz_type': 'sankey',
+            'groupby': 'source',
+            'groupby': 'target',
+            'metric': 'sum__value',
+            'row_limit': 5000,
+            'slice_id': slice_id,
+        }
+        # Changing name and save as a new slice
+        resp = self.get_resp(
+            url.format(
+                tbl_id,
+                copy_name,
+                'saveas',
+                json.dumps(form_data)
+            )
+        )
+        slices = db.session.query(models.Slice) \
+            .filter_by(slice_name=copy_name).all()
+        assert len(slices) == 1
+        new_slice_id = slices[0].id
 
-        # Setting the name back to its original name
-        resp = self.get_resp(url.format(tbl_id, slice_id, slice_name, 'save'))
-        assert slice_name in resp
+        form_data = {
+            'viz_type': 'sankey',
+            'groupby': 'source',
+            'groupby': 'target',
+            'metric': 'sum__value',
+            'row_limit': 5000,
+            'slice_id': new_slice_id,
+        }
+        # Setting the name back to its original name by overwriting new slice
+        resp = self.get_resp(
+            url.format(
+                tbl_id,
+                new_slice_name,
+                'overwrite',
+                json.dumps(form_data)
+            )
+        )
+        slc = db.session.query(models.Slice).filter_by(id=new_slice_id).first()
+        assert slc.slice_name == new_slice_name
+        db.session.delete(slc)
 
-        # Doing a basic overwrite
-        assert 'Energy' in self.get_resp(
-            url.format(tbl_id, slice_id, copy_name, 'overwrite'))
 
     def test_filter_endpoint(self):
         self.login(username='admin')
@@ -168,8 +207,6 @@ class CoreTests(SupersetTestCase):
         for slc in db.session.query(Slc).all():
             urls += [
                 (slc.slice_name, 'slice_url', slc.slice_url),
-                (slc.slice_name, 'json_endpoint', slc.viz.json_endpoint),
-                (slc.slice_name, 'csv_endpoint', slc.viz.csv_endpoint),
                 (slc.slice_name, 'slice_id_url', slc.slice_id_url),
             ]
         for name, method, url in urls:
@@ -544,8 +581,7 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         url = (
             '/superset/fetch_datasource_metadata?'
-            'datasource_type=table&'
-            'datasource_id=1'
+            + 'datasourceKey=1__table'
         )
         resp = self.get_json_resp(url)
         keys = [

@@ -7,38 +7,50 @@ const propTypes = {
   canAdd: PropTypes.string.isRequired,
   onQuery: PropTypes.func.isRequired,
   onSave: PropTypes.func,
-  disabled: PropTypes.bool,
+  onStop: PropTypes.func,
+  loading: PropTypes.bool,
   errorMessage: PropTypes.string,
 };
 
 const defaultProps = {
+  onStop: () => {},
   onSave: () => {},
   disabled: false,
 };
 
-export default function QueryAndSaveBtns({ canAdd, onQuery, onSave, disabled, errorMessage }) {
+export default function QueryAndSaveBtns(
+  { canAdd, onQuery, onSave, onStop, loading, errorMessage }) {
   const saveClasses = classnames({
     'disabled disabledButton': canAdd !== 'True',
   });
   const qryButtonStyle = errorMessage ? 'danger' : 'primary';
-  const qryButtonDisabled = errorMessage ? true : disabled;
+  const saveButtonDisabled = errorMessage ? true : loading;
+  const qryOrStopButton = loading ? (
+    <Button
+      onClick={onStop}
+      bsStyle="warning"
+    >
+      <i className="fa fa-stop-circle-o" /> Stop
+    </Button>
+  ) : (
+    <Button
+      className="query"
+      onClick={onQuery}
+      bsStyle={qryButtonStyle}
+    >
+      <i className="fa fa-bolt" /> Query
+    </Button>
+  );
 
   return (
     <div>
       <ButtonGroup className="query-and-save">
-        <Button
-          id="query_button"
-          onClick={onQuery}
-          disabled={qryButtonDisabled}
-          bsStyle={qryButtonStyle}
-        >
-          <i className="fa fa-bolt" /> Query
-        </Button>
+        {qryOrStopButton}
         <Button
           className={saveClasses}
           data-target="#save_modal"
           data-toggle="modal"
-          disabled={qryButtonDisabled}
+          disabled={saveButtonDisabled}
           onClick={onSave}
         >
           <i className="fa fa-plus-circle"></i> Save as

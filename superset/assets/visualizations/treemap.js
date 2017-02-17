@@ -230,7 +230,7 @@ function treemap(slice, payload) {
   const width = slice.width();
   const height = slice.height() / payload.data.length;
   for (let i = 0, l = payload.data.length; i < l; i ++) {
-    _draw(payload.data[i], width, height, payload.form_data);
+    _draw(payload.data[i], width, height, slice.formData);
   }
 }
 

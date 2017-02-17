@@ -12,6 +12,7 @@ export const commonControlPanelSections = {
     fieldSetRows: [
       ['datasource'],
       ['viz_type'],
+      ['slice_id'],
     ],
   },
   sqlaTimeSeries: {
@@ -60,15 +61,13 @@ export const commonControlPanelSections = {
         'Leave the value field empty to filter empty strings or nulls' +
         'For filters with comma in values, wrap them in single quotes' +
         "as in <NY, 'Tahoe, CA', DC>",
-      prefix: 'flt',
       fieldSetRows: [['filters']],
     },
     {
       label: 'Result Filters',
       description: 'The filters to apply after post-aggregation.' +
         'Leave the value field empty to filter empty strings or nulls',
-      prefix: 'having',
-      fieldSetRows: [['filters']],
+      fieldSetRows: [['having_filters']],
     },
   ],
 };
@@ -250,8 +249,7 @@ const visTypes = {
         label: 'Options',
         fieldSetRows: [
           ['table_timestamp_format'],
-          ['row_limit'],
-          ['page_length'],
+          ['row_limit', 'page_length'],
           ['include_search', 'table_filter'],
         ],
       },
@@ -433,6 +431,7 @@ const visTypes = {
   },
 
   big_number_total: {
+    label: 'Big Number',
     controlPanelSections: [
       {
         label: null,
@@ -758,12 +757,11 @@ export function sectionsToRender(vizType, datasourceType) {
   const { datasourceAndVizType, sqlClause, filters } = commonControlPanelSections;
   const filtersToRender =
     datasourceType === 'table' ? filters[0] : filters;
-  const sections = [].concat(
+  return [].concat(
     datasourceAndVizType,
     timeSection,
     viz.controlPanelSections,
     sqlClause,
     filtersToRender
   );
-  return sections;
 }

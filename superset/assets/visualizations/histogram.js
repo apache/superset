@@ -126,7 +126,7 @@ function histogram(slice, payload) {
     .classed('minor', true);
   };
 
-  const numBins = Number(payload.form_data.link_length) || 10;
+  const numBins = Number(slice.formData.link_length) || 10;
   div.selectAll('*').remove();
   draw(payload.data, numBins);
 }

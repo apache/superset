@@ -96,7 +96,7 @@ function nvd3Vis(slice, payload) {
   }
 
   let width = slice.width();
-  const fd = payload.form_data;
+  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;
