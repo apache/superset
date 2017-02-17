@@ -57,7 +57,7 @@ def cast_form_data(form_data):
             if isinstance(v, list):
                 v = 'y' in v
             else:
-                v = True if v == 'true' or v is True else False
+                v = True if v in ('true', 'y') or v is True else False
         elif v and ft == 'TextField' and field_config.get('isInt'):
             v = int(v) if v != '' else None
         elif v and ft == 'TextField' and field_config.get('isFloat'):

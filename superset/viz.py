@@ -843,7 +843,6 @@ class NVD3TimeSeriesViz(NVD3Viz):
             ys = series[name]
             if df[name].dtype.kind not in "biufc":
                 continue
-            df[DTTM_ALIAS] = pd.to_datetime(df.index, utc=False)
             if isinstance(name, string_types):
                 series_title = name
             else:
@@ -860,7 +859,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
                 "classed": classed,
                 "values": [
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
-                    for ds in df[DTTM_ALIAS]
+                    for ds in df.index
                 ],
             }
             chart_data.append(d)
@@ -934,7 +933,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
             query_object['to_dttm'] -= delta
 
             df2 = self.get_df(query_object)
-            df2.index += delta
+            df2[DTTM_ALIAS] += delta
+            df2 = df2.pivot_table(
+                index=DTTM_ALIAS,
+                columns=fd.get('groupby'),
+                values=fd.get('metrics'))
             chart_data += self.to_series(
                 df2, classed='superset', title_suffix="---")
             chart_data = sorted(chart_data, key=lambda x: x['key'])
@@ -984,7 +987,6 @@ class NVD3DualLineViz(NVD3Viz):
             ys = series[m]
             if df[m].dtype.kind not in "biufc":
                 continue
-            df[DTTM_ALIAS] = pd.to_datetime(df.index, utc=False)
             series_title = m
             d = {
                 "key": series_title,
@@ -1121,12 +1123,10 @@ class DistributionBarViz(DistributionPieViz):
             pt = pt.fillna(0)
             pt = pt.T
             pt = (pt / pt.sum()).T
-        print(row.index)
         pt = pt.reindex(row.index)
-        print(pt)
         chart_data = []
         for name, ys in df.iteritems():
-            if df[name].dtype.kind not in "biufc":
+            if df[name].dtype.kind not in "biufc" or name in self.groupby:
                 continue
             if isinstance(name, string_types):
                 series_title = name
@@ -1135,11 +1135,10 @@ class DistributionBarViz(DistributionPieViz):
             else:
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
-            print(series_title)
             d = {
                 "key": series_title,
                 "values": [
-                    {'x': row.index[i], 'y': v}
+                    {'x': str(row.index[i]), 'y': v}
                     for i, v in ys.iteritems()]
             }
             chart_data.append(d)
