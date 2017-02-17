@@ -63,34 +63,6 @@ class BaseViz(object):
         self.status = None
         self.error_message = None
 
-    def get_filter_url(self):
-        """Returns the URL to retrieve column values used in the filter"""
-        data = self.orig_form_data.copy()
-        # Remove unchecked checkboxes because HTML is weird like that
-        ordered_data = MultiDict()
-        for key in sorted(data.keys()):
-            # if MultiDict is initialized with MD({key:[emptyarray]}),
-            # key is included in d.keys() but accessing it throws
-            try:
-                if data[key] is False:
-                    del data[key]
-                    continue
-            except IndexError:
-                pass
-
-            if isinstance(data, (MultiDict, ImmutableMultiDict)):
-                v = data.getlist(key)
-            else:
-                v = data.get(key)
-            if not isinstance(v, list):
-                v = [v]
-            for item in v:
-                ordered_data.add(key, item)
-        href = Href(
-            '/superset/filter/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
-        return href(ordered_data)
-
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
         if not query_obj:
@@ -268,7 +240,6 @@ class BaseViz(object):
                 'cache_timeout': cache_timeout,
                 'data': data,
                 'error': self.error_message,
-                'filter_endpoint': self.filter_endpoint,
                 'form_data': self.form_data,
                 'query': self.query,
                 'status': self.status,
@@ -303,7 +274,6 @@ class BaseViz(object):
         """This is the data object serialized to the js layer"""
         content = {
             'form_data': self.form_data,
-            'filter_endpoint': self.filter_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
             'filter_select_enabled': self.datasource.filter_select_enabled,
@@ -344,10 +314,6 @@ class BaseViz(object):
 
     def get_data(self, df):
         return []
-
-    @property
-    def filter_endpoint(self):
-        return self.get_filter_url()
 
     @property
     def json_data(self):
