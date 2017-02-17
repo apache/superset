@@ -996,7 +996,7 @@ class NVD3DualLineViz(NVD3Viz):
                 "classed": classed,
                 "values": [
                     {'x': ds, 'y': ys[ds] if ds in ys else None}
-                    for ds in df[DTTM_ALIAS]
+                    for ds in df.index
                 ],
                 "yAxis": i+1,
                 "type": "line"
