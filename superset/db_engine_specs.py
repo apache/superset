@@ -18,6 +18,8 @@ from __future__ import unicode_literals
 
 from collections import namedtuple, defaultdict
 from flask_babel import lazy_gettext as _
+from superset import utils
+
 import inspect
 import textwrap
 import time
@@ -90,6 +92,11 @@ class BaseEngineSpec(object):
         for handling the cursor and updating progress information in the
         query object"""
         pass
+
+    @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        return utils.error_msg_from_exception(e)
 
     @classmethod
     def sql_preprocessor(cls, sql):
@@ -311,6 +318,19 @@ class PrestoEngineSpec(BaseEngineSpec):
                     session.commit()
             time.sleep(1)
             polled = cursor.poll()
+
+    @classmethod
+    def extract_error_message(cls, e):
+        if hasattr(e, 'orig') \
+           and type(e.orig).__name__ == 'DatabaseError' \
+           and isinstance(e.orig[0], dict):
+            error_dict = e.orig[0]
+            e = '{} at {}: {}'.format(
+                error_dict['errorName'],
+                error_dict['errorLocation'],
+                error_dict['message']
+            )
+        return utils.error_msg_from_exception(e)
 
 
 class MssqlEngineSpec(BaseEngineSpec):
