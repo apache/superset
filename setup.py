@@ -37,20 +37,21 @@ setup(
         "A interactive data visualization platform build on SqlAlchemy "
         "and druid.io"),
     long_description=(
-        "a) A rich set of data visualizations, integrated from some of the best "
-        "visualization libraries\r\n"
+        "a) A rich set of data visualizations, integrated from some of "
+        "the best visualization libraries\r\n"
         "b) Create and share simple dashboards\r\n"
-        "c) An extensible, high-granularity security/permission model allowing "
-        "intricate rules on who can access individual features and the dataset\r\n"
+        "c) An extensible, high-granularity security/permission model "
+        "allowing intricate rules on who can access individual "
+        "features and the dataset\r\n"
         "d) Enterprise-ready authentication with integration with major "
-        "authentication providers (database, OpenID, LDAP, OAuth & REMOTE_USER "
-        "through Flask AppBuilder)\r\n"
-        "e) A simple semantic layer, allowing users to control how data sources "
-        "are displayed in the UI by defining which fields should show up in which "
-        "drop-down and which aggregation and function metrics are made "
-        "available to the user\r\n"
-        "f) Integration with most RDBMS through SqlAlchemy"
-        "Deep integration with Druid.io\r\n"),
+        "authentication providers (database, OpenID, LDAP, "
+        "OAuth & REMOTE_USER through Flask AppBuilder)\r\n"
+        "e) A simple semantic layer, allowing users to control how "
+        "data sources are displayed in the UI by defining which fields "
+        "should show up in which drop-down and which aggregation and "
+        "function metrics are made available to the user\r\n"
+        "f) Integration with most RDBMS through SqlAlchemy Deep "
+        "integration with Druid.io\r\n"),
     version=version_string,
     packages=find_packages(),
     include_package_data=True,
