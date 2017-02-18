@@ -1509,10 +1509,14 @@ class Superset(BaseSupersetView):
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
-    @api
-    @has_access_api
+    @has_access
     @expose("/fave_queries/", methods=['GET'])
     def fave_queries(self):
+        if not g.user.get_id():
+            return Response(
+                json.dumps({'error': "Please login to access the queries."}),
+                status=403,
+                mimetype="application/json")
         qry = (
             db.session.query(
                 models.Query,
@@ -1526,9 +1530,10 @@ class Superset(BaseSupersetView):
                 )
             )
             .order_by(
-                models.FavStar.dttm.desc()
+                models.FavStar.dttm.asc()
             )
         )
+
         queries = [q.to_dict() for q in qry.all()]
         payload = []
         for q in queries:

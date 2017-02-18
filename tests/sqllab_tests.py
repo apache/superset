@@ -194,6 +194,27 @@ class SqlLabTests(SupersetTestCase):
             self.assertLess(int(first_query_time), k['startDttm'])
             self.assertLess(k['startDttm'], int(second_query_time))
 
+    def test_fave_queries(self):
+        self.logout()
+        self.run_some_queries()
+        # Favourite a query
+        self.login('admin')
+        query = db.session.query(models.Query).first()
+        client_id = query.client_id
+        url = '/superset/favstar/query/{}/select/'.format(client_id)
+        resp = self.get_json_resp(url)
+        self.assertEqual(resp['count'], 1)
+
+        self.login('admin')
+        data = self.get_json_resp('/superset/fave_queries/')
+        self.assertEqual(len(data), 1)
+        url = '/superset/favstar/query/{}/unselect/'.format(client_id)
+        resp = self.get_resp(url)
+
+        data = self.get_json_resp('/superset/fave_queries/')
+        self.assertEqual(len(data), 0)
+
+
     def test_alias_duplicate(self):
         self.run_sql(
             "SELECT username as col, id as col, username FROM ab_user",
