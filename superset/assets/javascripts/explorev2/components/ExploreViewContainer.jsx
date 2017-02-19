@@ -82,7 +82,7 @@ class ExploreViewContainer extends React.Component {
 
 
   runQuery() {
-    this.props.actions.runQuery(this.props.form_data, this.props.datasource_type);
+    this.props.actions.runQuery(this.props.form_data);
   }
 
   handleResize() {
