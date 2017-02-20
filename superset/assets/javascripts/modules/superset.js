@@ -4,6 +4,8 @@ const utils = require('./utils');
 // vis sources
 /* eslint camel-case: 0 */
 import vizMap from '../../visualizations/main.js';
+import { getExploreUrl } from '../explorev2/exploreUtils';
+import { applyDefaultFormData } from '../explorev2/stores/store';
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -55,12 +57,14 @@ const px = function () {
   }
   const Slice = function (data, controller) {
     let timer;
-    const token = $('#' + data.token);
-    const containerId = data.token + '_con';
+    const token = $('#token_' + data.slice_id);
+    const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
-    const origJsonEndpoint = data.json_endpoint;
+    const formData = applyDefaultFormData(data.form_data);
+    const jsonEndpoint = getExploreUrl(formData, 'table', 'json');
+    const origJsonEndpoint = jsonEndpoint;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -70,12 +74,13 @@ const px = function () {
     let qrystr = '';
     slice = {
       data,
+      formData,
       container,
       containerId,
       selector,
       querystring() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         if (controller.type === 'dashboard') {
           parser.href = origJsonEndpoint;
           let flts = controller.effectiveExtraFilters(sliceId);
@@ -100,7 +105,7 @@ const px = function () {
       },
       jsonEndpoint() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         let endpoint = parser.pathname + this.querystring();
         if (endpoint.charAt(0) !== '/') {
           // Known issue for IE <= 11:
@@ -114,8 +119,11 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        const format = data.column_formats[col];
-        return utils.d3format(format, number);
+        if (data.column_formats) {
+          const format = data.column_formats[col];
+          return utils.d3format(format, number);
+        }
+        return utils.d3format('.3s', number);
       },
       /* eslint no-shadow: 0 */
       always(data) {
@@ -224,7 +232,7 @@ const px = function () {
         $('#timer').addClass('label-warning');
         $.getJSON(this.jsonEndpoint(), queryResponse => {
           try {
-            vizMap[data.form_data.viz_type](this, queryResponse);
+            vizMap[formData.viz_type](this, queryResponse);
             this.done(queryResponse);
           } catch (e) {
             this.error('An error occurred while rendering the visualization: ' + e);

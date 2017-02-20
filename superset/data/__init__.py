@@ -80,12 +80,6 @@ def load_energy():
         params=textwrap.dedent("""\
         {
             "collapsed_fieldsets": "",
-            "datasource_id": "3",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "groupby": [
                 "source",
                 "target"
@@ -111,12 +105,6 @@ def load_energy():
         {
             "charge": "-500",
             "collapsed_fieldsets": "",
-            "datasource_id": "1",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "groupby": [
                 "source",
                 "target"
@@ -145,12 +133,6 @@ def load_energy():
             "all_columns_y": "target",
             "canvas_image_rendering": "pixelated",
             "collapsed_fieldsets": "",
-            "datasource_id": "1",
-            "datasource_name": "energy_usage",
-            "datasource_type": "table",
-            "flt_col_0": "source",
-            "flt_eq_0": "",
-            "flt_op_0": "in",
             "having": "",
             "linear_color_scheme": "blue_white_yellow",
             "metric": "sum__value",
@@ -202,9 +184,6 @@ def load_world_bank_health_n_pop():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
-        "datasource_name": "birth_names",
-        "datasource_type": "table",
         "limit": "25",
         "granularity": "year",
         "groupby": [],
@@ -218,7 +197,7 @@ def load_world_bank_health_n_pop():
         "country_fieldtype": "cca3",
         "secondary_metric": "sum__SP_POP_TOTL",
         "entity": "country_code",
-        "show_bubbles": "y",
+        "show_bubbles": True,
     }
 
     print("Creating slices")
@@ -287,16 +266,20 @@ def load_world_bank_health_n_pop():
                 since="2011-01-01",
                 until="2011-01-02",
                 series="region",
-                limit="0",
+                limit=0,
                 entity="country_name",
                 x="sum__SP_RUR_TOTL_ZS",
                 y="sum__SP_DYN_LE00_IN",
                 size="sum__SP_POP_TOTL",
                 max_bubble_size="50",
-                flt_col_1="country_code",
-                flt_op_1="not in",
-                flt_eq_1="TCA,MNP,DMA,MHL,MCO,SXM,CYM,TUV,IMY,KNA,ASM,ADO,AMA,PLW",
-                num_period_compare="10",)),
+                filters=[{
+                    "col": "country_code",
+                    "val": [
+                        "TCA", "MNP", "DMA", "MHL", "MCO", "SXM", "CYM",
+                        "TUV", "IMY", "KNA", "ASM", "ADO", "AMA", "PLW",
+                    ],
+                    "op": "not in"}],
+                )),
         Slice(
             slice_name="Rural Breakdown",
             viz_type='sunburst',
@@ -596,10 +579,6 @@ def load_birth_names():
     defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
-        "datasource_id": "1",
-        "datasource_name": "birth_names",
-        "datasource_type": "table",
-        "flt_op_1": "in",
         "limit": "25",
         "granularity": "ds",
         "groupby": [],
@@ -623,8 +602,12 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
-                flt_col_1='gender',
-                flt_eq_1="girl", row_limit=50)),
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['girl'],
+                }],
+                row_limit=50)),
         Slice(
             slice_name="Boys",
             viz_type='table',
@@ -633,8 +616,11 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 groupby=['name'],
-                flt_col_1='gender',
-                flt_eq_1="boy",
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['boy'],
+                }],
                 row_limit=50)),
         Slice(
             slice_name="Participants",
@@ -660,9 +646,14 @@ def load_birth_names():
             datasource_id=tbl.id,
             params=get_slice_json(
                 defaults,
-                flt_eq_1="other", viz_type="dist_bar",
+                filters=[{
+                    'col': 'state',
+                    'op': 'not in',
+                    'val': ['other'],
+                }],
+                viz_type="dist_bar",
                 metrics=['sum__sum_girls', 'sum__sum_boys'],
-                groupby=['state'], flt_op_1='not in', flt_col_1='state')),
+                groupby=['state'])),
         Slice(
             slice_name="Trends",
             viz_type='line',
@@ -671,7 +662,7 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="line", groupby=['name'],
-                granularity='ds', rich_tooltip='y', show_legend='y')),
+                granularity='ds', rich_tooltip=True, show_legend=True)),
         Slice(
             slice_name="Average and Sum Trends",
             viz_type='dual_line',
@@ -726,7 +717,11 @@ def load_birth_names():
             params=get_slice_json(
                 defaults,
                 viz_type="big_number_total", granularity="ds",
-                flt_col_1='gender', flt_eq_1='girl',
+                filters=[{
+                    'col': 'gender',
+                    'op': 'in',
+                    'val': ['girl'],
+                }],
                 subheader='total female participants')),
     ]
     for slc in slices:
@@ -851,10 +846,6 @@ def load_unicode_test_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "3",
-        "datasource_name": "unicode_test",
-        "datasource_type": "table",
-        "flt_op_1": "in",
         "granularity": "date",
         "groupby": [],
         "metric": 'sum__value',
@@ -934,13 +925,11 @@ def load_random_time_series_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "6",
-        "datasource_name": "random_time_series",
-        "datasource_type": "table",
         "granularity": "day",
         "row_limit": config.get("ROW_LIMIT"),
         "since": "1 year ago",
         "until": "now",
+        "metric": "count",
         "where": "",
         "viz_type": "cal_heatmap",
         "domain_granularity": "month",
@@ -1002,9 +991,6 @@ def load_long_lat_data():
     tbl = obj
 
     slice_data = {
-        "datasource_id": "7",
-        "datasource_name": "long_lat",
-        "datasource_type": "table",
         "granularity": "day",
         "since": "2014-01-01",
         "until": "now",
@@ -1084,10 +1070,8 @@ def load_multiformat_time_series_data():
     print("Creating some slices")
     for i, col in enumerate(tbl.columns):
         slice_data = {
+            "metric": 'count',
             "granularity_sqla": col.column_name,
-            "datasource_id": "8",
-            "datasource_name": "multiformat_time_series",
-            "datasource_type": "table",
             "granularity": "day",
             "row_limit": config.get("ROW_LIMIT"),
             "since": "1 year ago",

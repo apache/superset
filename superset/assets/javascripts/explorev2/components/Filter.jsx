@@ -6,14 +6,15 @@ import SelectField from './SelectField';
 
 const propTypes = {
   choices: PropTypes.array,
-  opChoices: PropTypes.array,
   changeFilter: PropTypes.func,
   removeFilter: PropTypes.func,
   filter: PropTypes.object.isRequired,
   datasource: PropTypes.object,
+  having: PropTypes.bool,
 };
 
 const defaultProps = {
+  having: false,
   changeFilter: () => {},
   removeFilter: () => {},
   choices: [],
@@ -21,6 +22,11 @@ const defaultProps = {
 };
 
 export default class Filter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.opChoices = this.props.having ? ['==', '!=', '>', '<', '>=', '<=']
+      : ['in', 'not in'];
+  }
   fetchFilterValues(col) {
     if (!this.props.datasource) {
       return;
@@ -61,24 +67,27 @@ export default class Filter extends React.Component {
       if (!filter.choices) {
         this.fetchFilterValues(filter.col);
       }
+    }
+    if (this.props.having) {
+      // druid having filter
       return (
-        <SelectField
-          multi
-          freeForm
-          name="filter-value"
+        <input
+          type="text"
+          onChange={this.changeFilter.bind(this, 'val')}
           value={filter.value}
-          choices={filter.choices}
-          onChange={this.changeFilter.bind(this, 'value')}
+          className="form-control input-sm"
+          placeholder="Filter value"
         />
       );
     }
     return (
-      <input
-        type="text"
-        onChange={this.changeFilter.bind(this, 'value')}
-        value={filter.value}
-        className="form-control input-sm"
-        placeholder="Filter value"
+      <SelectField
+        multi
+        freeForm
+        name="filter-value"
+        value={filter.val}
+        choices={filter.choices || []}
+        onChange={this.changeFilter.bind(this, 'val')}
       />
     );
   }
@@ -102,7 +111,7 @@ export default class Filter extends React.Component {
             <Select
               id="select-op"
               placeholder="Select operator"
-              options={this.props.opChoices.map((o) => ({ value: o, label: o }))}
+              options={this.opChoices.map((o) => ({ value: o, label: o }))}
               value={filter.op}
               onChange={this.changeFilter.bind(this, 'op')}
             />

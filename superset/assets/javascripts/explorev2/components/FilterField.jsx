@@ -3,7 +3,7 @@ import { Button, Row, Col } from 'react-bootstrap';
 import Filter from './Filter';
 
 const propTypes = {
-  prefix: PropTypes.string,
+  name: PropTypes.string,
   choices: PropTypes.array,
   onChange: PropTypes.func,
   value: PropTypes.array,
@@ -11,25 +11,18 @@ const propTypes = {
 };
 
 const defaultProps = {
-  prefix: 'flt',
   choices: [],
   onChange: () => {},
   value: [],
 };
 
 export default class FilterField extends React.Component {
-  constructor(props) {
-    super(props);
-    this.opChoices = props.prefix === 'flt' ?
-      ['in', 'not in'] : ['==', '!=', '>', '<', '>=', '<='];
-  }
   addFilter() {
     const newFilters = Object.assign([], this.props.value);
     newFilters.push({
-      prefix: this.props.prefix,
       col: null,
       op: 'in',
-      value: this.props.datasource.filter_select ? [] : '',
+      val: this.props.datasource.filter_select ? [] : '',
     });
     this.props.onChange(newFilters);
   }
@@ -46,22 +39,19 @@ export default class FilterField extends React.Component {
   render() {
     const filters = [];
     this.props.value.forEach((filter, i) => {
-      // only display filters with current prefix
-      if (filter.prefix === this.props.prefix) {
-        const filterBox = (
-          <div key={i}>
-            <Filter
-              filter={filter}
-              choices={this.props.choices}
-              opChoices={this.opChoices}
-              datasource={this.props.datasource}
-              removeFilter={this.removeFilter.bind(this, i)}
-              changeFilter={this.changeFilter.bind(this, i)}
-            />
-          </div>
-        );
-        filters.push(filterBox);
-      }
+      const filterBox = (
+        <div key={i}>
+          <Filter
+            having={this.props.name === 'having_filters'}
+            filter={filter}
+            choices={this.props.choices}
+            datasource={this.props.datasource}
+            removeFilter={this.removeFilter.bind(this, i)}
+            changeFilter={this.changeFilter.bind(this, i)}
+          />
+        </div>
+      );
+      filters.push(filterBox);
     });
     return (
       <div>

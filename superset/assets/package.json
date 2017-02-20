@@ -1,6 +1,6 @@
 {
   "name": "superset",
-  "version": "0.15.4",
+  "version": "0.16.0",
   "description": "Superset is a data exploration platform designed to be visual, intuitive, and interactive.",
   "license": "Apache-2.0",
   "directories": {
@@ -13,7 +13,8 @@
     "dev": "NODE_ENV=dev webpack --watch --colors --progress --debug --output-pathinfo --devtool inline-source-map",
     "prod": "NODE_ENV=production node --max_old_space_size=4096 ./node_modules/webpack/bin/webpack.js -p --colors --progress",
     "build": "NODE_ENV=production webpack --colors --progress",
-    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx ."
+    "lint": "eslint --ignore-path=.eslintignore --ext .js,.jsx .",
+    "sync-backend": "babel-node --presets es2015 javascripts/syncBackend.js"
   },
   "repository": {
     "type": "git",
@@ -40,7 +41,7 @@
     "autobind-decorator": "^1.3.3",
     "bootstrap": "^3.3.6",
     "bootstrap-datepicker": "^1.6.0",
-    "brace": "^0.8.0",
+    "brace": "^0.9.1",
     "brfs": "^1.4.3",
     "cal-heatmap": "3.6.2",
     "classnames": "^2.2.5",
@@ -57,7 +58,6 @@
     "immutability-helper": "^2.0.0",
     "immutable": "^3.8.1",
     "jquery": "^2.2.1",
-    "jquery-ui": "1.10.5",
     "lodash.throttle": "^4.1.1",
     "mapbox-gl": "^0.26.0",
     "moment": "^2.14.1",
@@ -65,7 +65,7 @@
     "mustache": "^2.2.1",
     "nvd3": "1.8.5",
     "react": "^15.3.2",
-    "react-ace": "^3.4.1",
+    "react-ace": "^4.1.5",
     "react-bootstrap": "^0.30.3",
     "react-bootstrap-table": "^2.3.8",
     "react-dom": "^15.3.2",
@@ -73,21 +73,19 @@
     "react-gravatar": "^2.6.1",
     "react-grid-layout": "^0.13.1",
     "react-map-gl": "^1.7.0",
-    "react-redux": "^4.4.5",
+    "react-redux": "^5.0.2",
     "react-resizable": "^1.3.3",
     "react-select": "^1.0.0-rc.2",
-    "react-syntax-highlighter": "^2.3.0",
+    "react-syntax-highlighter": "^5.0.0",
     "reactable": "^0.14.0",
     "redux": "^3.5.2",
     "redux-localstorage": "^0.4.1",
     "redux-thunk": "^2.1.0",
-    "select2": "3.5",
-    "select2-bootstrap-css": "^1.4.6",
     "shortid": "^2.2.6",
     "style-loader": "^0.13.0",
     "supercluster": "https://github.com/georgeke/supercluster/tarball/ac3492737e7ce98e07af679623aad452373bbc40",
     "topojson": "^1.6.22",
-    "victory": "^0.12.1",
+    "victory": "^0.17.0",
     "viewport-mercator-project": "^2.1.0"
   },
   "devDependencies": {

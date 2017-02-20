@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import logging
 import os
+import json
 from logging.handlers import TimedRotatingFileHandler
 
 from flask import Flask, redirect
@@ -20,6 +21,10 @@ from superset import utils
 
 APP_DIR = os.path.dirname(__file__)
 CONFIG_MODULE = os.environ.get('SUPERSET_CONFIG', 'superset.config')
+
+with open(APP_DIR + '/static/assets/backendSync.json', 'r') as f:
+    frontend_config = json.load(f)
+
 
 app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)

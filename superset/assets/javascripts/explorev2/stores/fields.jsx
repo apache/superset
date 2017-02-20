@@ -1,4 +1,5 @@
 import { formatSelectOptionsForRange, formatSelectOptions } from '../../modules/utils';
+import React from 'react';
 import visTypes from './visTypes';
 import * as v from '../validators';
 
@@ -26,21 +27,23 @@ export const TIME_STAMP_OPTIONS = [
   ['%H:%M:%S', '%H:%M:%S | 01:32:10'],
 ];
 
-const MAP_DATASOURCE_TYPE_TO_EDIT_URL = {
-  table: '/tablemodelview/edit',
-  druid: '/druiddatasourcemodelview/edit',
-};
-
 export const fields = {
   datasource: {
     type: 'SelectField',
     label: 'Datasource',
+    isLoading: true,
     clearable: false,
     default: null,
-    mapStateToProps: (state) => ({
-      choices: state.datasources || [],
-      editUrl: MAP_DATASOURCE_TYPE_TO_EDIT_URL[state.datasource_type],
-    }),
+    mapStateToProps: (state) => {
+      const datasources = state.datasources || [];
+      return {
+        choices: datasources,
+        isLoading: datasources.length === 0,
+        rightNode: state.datasource ?
+          <a href={state.datasource.edit_url}>edit</a>
+          : null,
+      };
+    },
     description: '',
   },
 
@@ -62,10 +65,10 @@ export const fields = {
     multi: true,
     label: 'Metrics',
     validators: [v.nonEmpty],
+  default: field => field.choices && field.choices.length > 0 ? [field.choices[0][0]] : null,
     mapStateToProps: (state) => ({
       choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
-    default: [],
     description: 'One or many metrics to display',
   },
 
@@ -83,10 +86,11 @@ export const fields = {
   metric: {
     type: 'SelectField',
     label: 'Metric',
-    default: null,
+    clearable: false,
     description: 'Choose the metric',
+    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.metrics_combo : [],
+      choices: (state.datasource) ? state.datasource.metrics_combo : null,
     }),
   },
 
@@ -185,6 +189,7 @@ export const fields = {
   bar_stacked: {
     type: 'CheckboxField',
     label: 'Stacked Bars',
+    renderTrigger: true,
     default: false,
     description: null,
   },
@@ -192,6 +197,7 @@ export const fields = {
   show_markers: {
     type: 'CheckboxField',
     label: 'Show Markers',
+    renderTrigger: true,
     default: false,
     description: 'Show data points as circle markers on the lines',
   },
@@ -200,6 +206,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Bar Values',
     default: false,
+    renderTrigger: true,
     description: 'Show the value on top of the bar',
   },
 
@@ -213,6 +220,7 @@ export const fields = {
   show_controls: {
     type: 'CheckboxField',
     label: 'Extra Controls',
+    renderTrigger: true,
     default: false,
     description: 'Whether to show extra controls or not. Extra controls ' +
                  'include things like making mulitBar charts stacked ' +
@@ -222,6 +230,7 @@ export const fields = {
   reduce_x_ticks: {
     type: 'CheckboxField',
     label: 'Reduce X ticks',
+    renderTrigger: true,
     default: false,
     description: 'Reduces the number of X axis ticks to be rendered. ' +
                  'If true, the x axis wont overflow and labels may be ' +
@@ -233,6 +242,7 @@ export const fields = {
   include_series: {
     type: 'CheckboxField',
     label: 'Include Series',
+    renderTrigger: true,
     default: false,
     description: 'Include series name as an axis',
   },
@@ -276,7 +286,9 @@ export const fields = {
     type: 'SelectField',
     multi: true,
     label: 'Columns',
-    choices: [],
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.gb_cols : [],
+    }),
     default: [],
     description: 'One or many fields to pivot as columns',
   },
@@ -408,28 +420,28 @@ export const fields = {
   granularity_sqla: {
     type: 'SelectField',
     label: 'Time Column',
-    default: null,
+    default: field => field.choices && field.choices.length > 0 ? field.choices[0][0] : null,
     description: 'The time column for the visualization. Note that you ' +
                  'can define arbitrary expression that return a DATETIME ' +
                  'column in the table or. Also note that the ' +
                  'filter below is applied against this column or ' +
                  'expression',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.all_cols : [],
+      choices: (state.datasource) ? state.datasource.granularity_sqla : [],
     }),
   },
 
   time_grain_sqla: {
     type: 'SelectField',
     label: 'Time Grain',
-    default: 'Time Column',
+    default: field => field.choices && field.choices.length ? field.choices[0][0] : null,
     description: 'The time granularity for the visualization. This ' +
                  'applies a date transformation to alter ' +
                  'your time column and defines a new time granularity. ' +
                  'The options here are defined on a per database ' +
                  'engine basis in the Superset source code.',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.time_grain_sqla : [],
+      choices: (state.datasource) ? state.datasource.time_grain_sqla : null,
     }),
   },
 
@@ -605,7 +617,7 @@ export const fields = {
     default: null,
     description: 'Metric assigned to the [X] axis',
     mapStateToProps: (state) => ({
-      choices: (state.datasource) ? state.datasource.gb_cols : [],
+      choices: (state.datasource) ? state.datasource.metrics_combo : [],
     }),
   },
 
@@ -639,12 +651,14 @@ export const fields = {
   x_axis_label: {
     type: 'TextField',
     label: 'X Axis Label',
+    renderTrigger: true,
     default: '',
   },
 
   y_axis_label: {
     type: 'TextField',
     label: 'Y Axis Label',
+    renderTrigger: true,
     default: '',
   },
 
@@ -712,6 +726,7 @@ export const fields = {
     type: 'SelectField',
     freeForm: true,
     label: 'X axis format',
+    renderTrigger: true,
     default: 'smart_date',
     choices: TIME_STAMP_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -721,6 +736,7 @@ export const fields = {
     type: 'SelectField',
     freeForm: true,
     label: 'Y axis format',
+    renderTrigger: true,
     default: '.3s',
     choices: D3_TIME_FORMAT_OPTIONS,
     description: D3_FORMAT_DOCS,
@@ -754,6 +770,7 @@ export const fields = {
   line_interpolation: {
     type: 'SelectField',
     label: 'Line Style',
+    renderTrigger: true,
     choices: formatSelectOptions(['linear', 'basis', 'cardinal',
       'monotone', 'step-before', 'step-after']),
     default: 'linear',
@@ -782,6 +799,7 @@ export const fields = {
   pandas_aggfunc: {
     type: 'SelectField',
     label: 'Aggregation function',
+    clearable: false,
     choices: formatSelectOptions([
       'sum',
       'mean',
@@ -815,6 +833,7 @@ export const fields = {
   show_brush: {
     type: 'CheckboxField',
     label: 'Range Filter',
+    renderTrigger: true,
     default: false,
     description: 'Whether to display the time range interactive selector',
   },
@@ -836,6 +855,7 @@ export const fields = {
   include_search: {
     type: 'CheckboxField',
     label: 'Search Box',
+    renderTrigger: true,
     default: false,
     description: 'Whether to include a client side search box',
   },
@@ -851,12 +871,14 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Show Bubbles',
     default: false,
+    renderTrigger: true,
     description: 'Whether to display bubbles on top of countries',
   },
 
   show_legend: {
     type: 'CheckboxField',
     label: 'Legend',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the legend (toggles)',
   },
@@ -864,6 +886,7 @@ export const fields = {
   x_axis_showminmax: {
     type: 'CheckboxField',
     label: 'X bounds',
+    renderTrigger: true,
     default: true,
     description: 'Whether to display the min and max values of the X axis',
   },
@@ -871,6 +894,7 @@ export const fields = {
   rich_tooltip: {
     type: 'CheckboxField',
     label: 'Rich Tooltip',
+    renderTrigger: true,
     default: true,
     description: 'The rich tooltip shows a list of all series for that ' +
                  'point in time',
@@ -880,6 +904,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Y Axis Zero',
     default: false,
+    renderTrigger: true,
     description: 'Force the Y axis to start at 0 instead of the minimum value',
   },
 
@@ -887,6 +912,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'Y Log Scale',
     default: false,
+    renderTrigger: true,
     description: 'Use a log scale for the Y axis',
   },
 
@@ -894,6 +920,7 @@ export const fields = {
     type: 'CheckboxField',
     label: 'X Log Scale',
     default: false,
+    renderTrigger: true,
     description: 'Use a log scale for the X axis',
   },
 
@@ -1005,12 +1032,12 @@ export const fields = {
   point_radius: {
     type: 'SelectField',
     label: 'Point Radius',
-    default: null,
+    default: 'Auto',
     description: 'The radius of individual points (ones that are not in a cluster). ' +
                  'Either a numerical column or `Auto`, which scales the point based ' +
                  'on the largest cluster',
     mapStateToProps: (state) => ({
-      choices: state.fields.point_radius.choices,
+      choices: [].concat([['Auto', 'Auto']], state.datasource.all_cols),
     }),
   },
 
@@ -1133,34 +1160,24 @@ export const fields = {
       datasource: state.datasource,
     }),
   },
+
+  having_filters: {
+    type: 'FilterField',
+    label: '',
+    default: [],
+    description: '',
+    mapStateToProps: (state) => ({
+      choices: (state.datasource) ? state.datasource.metrics_combo
+        .concat(state.datasource.filterable_cols) : [],
+      datasource: state.datasource,
+    }),
+  },
+
+  slice_id: {
+    type: 'HiddenField',
+    label: 'Slice ID',
+    hidden: true,
+    description: 'The id of the active slice',
+  },
 };
 export default fields;
-
-// Control Panel fields that re-render chart without need for 'Query button'
-export const autoQueryFields = [
-  'datasource',
-  'viz_type',
-  'bar_stacked',
-  'show_markers',
-  'show_bar_value',
-  'order_bars',
-  'show_controls',
-  'reduce_x_ticks',
-  'include_series',
-  'pie_label_type',
-  'show_brush',
-  'include_search',
-  'show_bubbles',
-  'show_legend',
-  'x_axis_showminmax',
-  'rich_tooltip',
-  'y_axis_zero',
-  'y_log_scale',
-  'x_log_scale',
-  'donut',
-  'labels_outside',
-  'contribution',
-  'size',
-  'row_limit',
-  'max_bubble_size',
-];

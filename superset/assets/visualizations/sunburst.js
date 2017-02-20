@@ -341,8 +341,9 @@ function sunburstVis(slice, payload) {
       });
 
     let ext;
+    const fd = slice.formData;
 
-    if (rawData.form_data.metric !== rawData.form_data.secondary_metric) {
+    if (fd.metric !== fd.secondary_metric) {
       colorByCategory = false;
       ext = d3.extent(nodes, (d) => d.m2 / d.m1);
       colorScale = d3.scale.linear()

@@ -1,20 +1,20 @@
-/* eslint camel-case: 0 */
+/* eslint camelcase: 0 */
 import React, { PropTypes } from 'react';
 import $ from 'jquery';
 import { Modal, Alert, Button, Radio } from 'react-bootstrap';
 import Select from 'react-select';
 import { connect } from 'react-redux';
-import { getParamObject } from '../exploreUtils';
 
 const propTypes = {
-  can_edit: PropTypes.bool,
+  can_overwrite: PropTypes.bool,
   onHide: PropTypes.func.isRequired,
   actions: PropTypes.object.isRequired,
   form_data: PropTypes.object,
-  datasource_type: PropTypes.string.isRequired,
   user_id: PropTypes.string.isRequired,
   dashboards: PropTypes.array.isRequired,
   alert: PropTypes.string,
+  slice: PropTypes.object,
+  datasource: PropTypes.object,
 };
 
 class SaveModal extends React.Component {
@@ -26,7 +26,7 @@ class SaveModal extends React.Component {
       newSliceName: '',
       dashboards: [],
       alert: null,
-      action: 'overwrite',
+      action: 'saveas',
       addToDash: 'noSave',
     };
   }
@@ -58,13 +58,13 @@ class SaveModal extends React.Component {
   saveOrOverwrite(gotodash) {
     this.setState({ alert: null });
     this.props.actions.removeSaveModalAlert();
-    const params = getParamObject(
-      this.props.form_data, this.props.datasource_type, this.state.action === 'saveas');
     const sliceParams = {};
-    params.datasource_name = this.props.form_data.datasource_name;
 
     let sliceName = null;
     sliceParams.action = this.state.action;
+    if (this.props.slice.slice_id) {
+      sliceParams.slice_id = this.props.slice.slice_id;
+    }
     if (sliceParams.action === 'saveas') {
       sliceName = this.state.newSliceName;
       if (sliceName === '') {
@@ -73,7 +73,7 @@ class SaveModal extends React.Component {
       }
       sliceParams.slice_name = sliceName;
     } else {
-      sliceParams.slice_name = this.props.form_data.slice_name;
+      sliceParams.slice_name = this.props.slice.slice_name;
     }
 
     const addToDash = this.state.addToDash;
@@ -100,9 +100,13 @@ class SaveModal extends React.Component {
         dashboard = null;
     }
     sliceParams.goto_dash = gotodash;
-    const baseUrl = '/superset/explore/' +
-      `${this.props.datasource_type}/${this.props.form_data.datasource}/`;
-    const saveUrl = `${baseUrl}?${$.param(params, true)}&${$.param(sliceParams, true)}`;
+
+    const baseUrl = `/superset/explore/${this.props.datasource.type}/${this.props.datasource.id}/`;
+    sliceParams.datasource_name = this.props.datasource.name;
+
+    const saveUrl = `${baseUrl}?form_data=` +
+      `${encodeURIComponent(JSON.stringify(this.props.form_data))}` +
+      `&${$.param(sliceParams, true)}`;
     this.props.actions.saveSlice(saveUrl);
     this.props.onHide();
   }
@@ -136,11 +140,11 @@ class SaveModal extends React.Component {
             </Alert>
           }
           <Radio
-            disabled={!this.props.can_edit}
+            disabled={!this.props.can_overwrite}
             checked={this.state.action === 'overwrite'}
             onChange={this.changeAction.bind(this, 'overwrite')}
           >
-          {`Overwrite slice ${this.props.form_data.slice_name}`}
+          {`Overwrite slice ${this.props.slice.slice_name}`}
           </Radio>
 
           <Radio
@@ -223,7 +227,9 @@ SaveModal.propTypes = propTypes;
 
 function mapStateToProps(state) {
   return {
-    can_edit: state.can_edit,
+    datasource: state.datasource,
+    slice: state.slice,
+    can_overwrite: state.can_overwrite,
     user_id: state.user_id,
     dashboards: state.dashboards,
     alert: state.saveModalAlert,

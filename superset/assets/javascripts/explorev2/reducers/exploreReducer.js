@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { defaultFormData } from '../stores/store';
+import { getFieldsState, getFormDataFromFields } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
 
@@ -9,21 +9,43 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { isStarred: action.isStarred });
     },
 
-    [actions.FETCH_STARTED]() {
+    [actions.FETCH_DATASOURCE_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
 
-    [actions.FETCH_SUCCEEDED]() {
+    [actions.FETCH_DATASOURCE_SUCCEEDED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: false });
     },
 
-    [actions.FETCH_FAILED]() {
+    [actions.FETCH_DATASOURCE_FAILED]() {
       // todo(alanna) handle failure/error state
       return Object.assign({}, state,
         {
           isDatasourceMetaLoading: false,
           controlPanelAlert: action.error,
         });
+    },
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasource: action.datasource });
+    },
+    [actions.FETCH_DATASOURCES_STARTED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: true });
+    },
+
+    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: false });
+    },
+
+    [actions.FETCH_DATASOURCES_FAILED]() {
+      // todo(alanna) handle failure/error state
+      return Object.assign({}, state,
+        {
+          isDatasourcesLoading: false,
+          controlPanelAlert: action.error,
+        });
+    },
+    [actions.SET_DATASOURCES]() {
+      return Object.assign({}, state, { datasources: action.datasources });
     },
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
@@ -36,32 +58,17 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
-    [actions.SET_DATASOURCE]() {
-      return Object.assign({}, state, { datasource: action.datasource });
-    },
     [actions.SET_FIELD_VALUE]() {
-      let newFormData = Object.assign({}, state.viz.form_data);
-      if (action.fieldName === 'datasource') {
-        newFormData = defaultFormData(state.viz.form_data.viz_type, action.datasource_type);
-        newFormData.datasource_name = action.label;
-        newFormData.slice_id = state.viz.form_data.slice_id;
-        newFormData.slice_name = state.viz.form_data.slice_name;
-        newFormData.viz_type = state.viz.form_data.viz_type;
-      }
-      newFormData[action.fieldName] = action.value;
-
       const fields = Object.assign({}, state.fields);
-      const field = fields[action.fieldName];
+      const field = Object.assign({}, fields[action.fieldName]);
       field.value = action.value;
       field.validationErrors = action.validationErrors;
-      return Object.assign(
-        {},
-        state,
-        {
-          fields,
-          viz: Object.assign({}, state.viz, { form_data: newFormData }),
-        }
-      );
+      fields[action.fieldName] = field;
+      const changes = { fields };
+      if (field.renderTrigger) {
+        changes.triggerRender = true;
+      }
+      return Object.assign({}, state, changes);
     },
     [actions.CHART_UPDATE_SUCCEEDED]() {
       return Object.assign(
@@ -79,6 +86,16 @@ export const exploreReducer = function (state, action) {
           chartStatus: 'loading',
           chartUpdateEndTime: null,
           chartUpdateStartTime: now(),
+          triggerQuery: false,
+          queryRequest: action.queryRequest,
+          latestQueryFormData: getFormDataFromFields(state.fields),
+        });
+    },
+    [actions.CHART_UPDATE_STOPPED]() {
+      return Object.assign({}, state,
+        {
+          chartStatus: 'stopped',
+          chartAlert: 'Updating chart was stopped',
         });
     },
     [actions.CHART_RENDERING_FAILED]() {
@@ -87,10 +104,15 @@ export const exploreReducer = function (state, action) {
         chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
       });
     },
+    [actions.TRIGGER_QUERY]() {
+      return Object.assign({}, state, {
+        triggerQuery: true,
+      });
+    },
     [actions.CHART_UPDATE_FAILED]() {
       return Object.assign({}, state, {
         chartStatus: 'failed',
-        chartAlert: action.queryResponse.error,
+        chartAlert: action.queryResponse ? action.queryResponse.error : 'Network error.',
         chartUpdateEndTime: now(),
         queryResponse: action.queryResponse,
       });
@@ -113,6 +135,13 @@ export const exploreReducer = function (state, action) {
     },
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return Object.assign({}, state, { saveModalAlert: null });
+    },
+    [actions.RESET_FIELDS]() {
+      const fields = getFieldsState(state, getFormDataFromFields(state.fields));
+      return Object.assign({}, state, { fields });
+    },
+    [actions.RENDER_TRIGGERED]() {
+      return Object.assign({}, state, { triggerRender: false });
     },
   };
   if (action.type in actionHandlers) {

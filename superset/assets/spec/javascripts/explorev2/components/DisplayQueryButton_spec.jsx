@@ -2,7 +2,7 @@ import React from 'react';
 import { expect } from 'chai';
 import { describe, it } from 'mocha';
 
-import DisplayQueryButton from '../../../../javascripts/explore/components/DisplayQueryButton';
+import DisplayQueryButton from '../../../../javascripts/explorev2/components/DisplayQueryButton';
 
 describe('DisplayQueryButton', () => {
   const defaultProps = {

@@ -18,7 +18,7 @@ import functools
 import sqlalchemy as sqla
 
 from flask import (
-    g, request, redirect, flash, Response, render_template, Markup, url_for)
+    g, request, redirect, flash, Response, render_template, Markup)
 from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -32,7 +32,6 @@ from flask_babel import lazy_gettext as _
 
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
-from wtforms.validators import ValidationError
 
 import superset
 from superset import (
@@ -183,15 +182,17 @@ def get_error_msg():
     return error_msg
 
 
-def json_error_response(msg, status=None):
+def json_error_response(msg, status=None, stacktrace=None):
     data = {'error': msg}
+    if stacktrace:
+        data['stacktrace'] = stacktrace
     status = status if status else 500
     return Response(
-        json.dumps(data), status=status, mimetype="application/json")
+        json.dumps(data),
+        status=status, mimetype="application/json")
 
 
-def json_success(json_msg, status=None):
-    status = status if status else 200
+def json_success(json_msg, status=200):
     return Response(json_msg, status=status, mimetype="application/json")
 
 
@@ -209,6 +210,9 @@ def api(f):
 
     return functools.update_wrapper(wraps, f)
 
+def is_owner(obj, user):
+    """ Check if user is owner of the slice """
+    return obj and obj.owners and user in obj.owners
 
 def check_ownership(obj, raise_if_false=True):
     """Meant to be used in `pre_update` hooks on models to enforce ownership
@@ -355,7 +359,7 @@ def validate_json(form, field):  # noqa
         json.loads(field.data)
     except Exception as e:
         logging.exception(e)
-        raise ValidationError("json isn't valid")
+        raise Exception("json isn't valid")
 
 
 def generate_download_headers(extension):
@@ -1262,12 +1266,25 @@ class Superset(BaseSupersetView):
         role = sm.find_role(role_name)
         role.user = existing_users
         sm.get_session.commit()
-        return Response(json.dumps({
+        return self.json_response({
             'role': role_name,
             '# missing users': len(missing_users),
             '# granted': len(existing_users),
             'created_users': created_users,
-        }), status=201)
+        }, status=201)
+
+    def json_response(self, obj, status=200):
+        return Response(
+            json.dumps(obj, default=utils.json_int_dttm_ser),
+            status=status,
+            mimetype="application/json")
+
+    @has_access_api
+    @expose("/datasources/")
+    def datasources(self):
+        datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        return self.json_response(datasources)
 
     @has_access_api
     @expose("/override_role_permissions/", methods=['POST'])
@@ -1317,10 +1334,10 @@ class Superset(BaseSupersetView):
                 role.permissions.append(view_menu_perm)
                 granted_perms.append(view_menu_perm.view_menu.name)
         db.session.commit()
-        return Response(json.dumps({
+        return self.json_response({
             'granted': granted_perms,
             'requested': list(db_ds_names)
-        }), status=201)
+        }, status=201)
 
     @log_this
     @has_access
@@ -1446,6 +1463,20 @@ class Superset(BaseSupersetView):
         session.commit()
         return redirect('/accessrequestsmodelview/list/')
 
+    def get_form_data(self):
+        form_data = request.args.get("form_data")
+        if not form_data:
+            form_data = request.form.get("form_data")
+        if not form_data:
+            form_data = '{}'
+        d = json.loads(form_data)
+        extra_filters = request.args.get("extra_filters")
+        filters = d.get('filters', [])
+        if extra_filters:
+            extra_filters = json.loads(extra_filters)
+            d['filters'] = filters + extra_filters
+        return d
+
     def get_viz(
             self,
             slice_id=None,
@@ -1453,21 +1484,38 @@ class Superset(BaseSupersetView):
             datasource_type=None,
             datasource_id=None):
         if slice_id:
-            slc = db.session.query(models.Slice).filter_by(id=slice_id).one()
+            slc = (
+                db.session.query(models.Slice)
+                .filter_by(id=slice_id)
+                .one()
+            )
             return slc.get_viz()
         else:
-            viz_type = args.get('viz_type', 'table')
+            form_data=self.get_form_data()
+            viz_type = form_data.get('viz_type', 'table')
             datasource = SourceRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
             viz_obj = viz.viz_types[viz_type](
-                datasource, request.args if request.args else args)
+                datasource,
+                form_data=form_data,
+            )
             return viz_obj
 
     @has_access
     @expose("/slice/<slice_id>/")
     def slice(self, slice_id):
         viz_obj = self.get_viz(slice_id)
-        return redirect(viz_obj.get_url(**request.args))
+        endpoint = (
+            '/superset/explore/{}/{}?form_data={}'
+            .format(
+                viz_obj.datasource.type,
+                viz_obj.datasource.id,
+                json.dumps(viz_obj.form_data)
+            )
+        )
+        if request.args.get("standalone") == "true":
+            endpoint += '&standalone=true'
+        return redirect(endpoint)
 
     @log_this
     @has_access_api
@@ -1480,10 +1528,41 @@ class Superset(BaseSupersetView):
                 args=request.args)
         except Exception as e:
             logging.exception(e)
-            return json_error_response(utils.error_msg_from_exception(e))
+            return json_error_response(
+                utils.error_msg_from_exception(e),
+                stacktrace=traceback.format_exc())
+
 
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
+
+        if request.args.get("csv") == "true":
+            return Response(
+                viz_obj.get_csv(),
+                status=200,
+                headers=generate_download_headers("csv"),
+                mimetype="application/csv")
+
+        if request.args.get("query") == "true":
+            try:
+                query_obj = viz_obj.query_obj()
+                engine = viz_obj.datasource.database.get_sqla_engine() \
+                    if datasource_type == 'table' \
+                    else viz_obj.datasource.cluster.get_pydruid_client()
+                if datasource_type == 'druid':
+                    # only retrive first phase query for druid
+                    query_obj['phase'] = 1
+                query = viz_obj.datasource.get_query_str(
+                    engine, datetime.now(), **query_obj)
+            except Exception as e:
+                return json_error_response(e)
+            return Response(
+                json.dumps({
+                    'query': query,
+                    'language': viz_obj.datasource.query_language,
+                }),
+                status=200,
+                mimetype="application/json")
 
         payload = {}
         try:
@@ -1491,10 +1570,12 @@ class Superset(BaseSupersetView):
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))
-        if payload.get('status') == QueryStatus.FAILED:
-            return json_error_response(viz_obj.json_dumps(payload))
 
-        return json_success(viz_obj.json_dumps(payload))
+        status = 200
+        if payload.get('status') == QueryStatus.FAILED:
+            status = 400
+
+        return json_success(viz_obj.json_dumps(payload), status=status)
 
     @expose("/import_dashboards", methods=['GET', 'POST'])
     @log_this
@@ -1523,35 +1604,31 @@ class Superset(BaseSupersetView):
     @has_access
     @expose("/explore/<datasource_type>/<datasource_id>/")
     def explore(self, datasource_type, datasource_id):
-        viz_type = request.args.get("viz_type")
-        slice_id = request.args.get('slice_id')
-        slc = None
+        form_data = self.get_form_data()
+
+        datasource_id = int(datasource_id)
+        viz_type = form_data.get("viz_type")
+        slice_id = form_data.get('slice_id')
         user_id = g.user.get_id() if g.user else None
 
+        slc = None
         if slice_id:
             slc = db.session.query(models.Slice).filter_by(id=slice_id).first()
 
         error_redirect = '/slicemodelview/list/'
-        datasource_class = SourceRegistry.sources[datasource_type]
-        datasources = db.session.query(datasource_class).all()
-        datasources = sorted(datasources, key=lambda ds: ds.full_name)
+        datasource = (
+            db.session.query(SourceRegistry.sources[datasource_type])
+            .filter_by(id=datasource_id)
+            .one()
+        )
 
-        try:
-            viz_obj = self.get_viz(
-                datasource_type=datasource_type,
-                datasource_id=datasource_id,
-                args=request.args)
-        except Exception as e:
-            flash('{}'.format(e), "alert")
+        if not datasource:
+            flash(DATASOURCE_MISSING_ERR, "danger")
             return redirect(error_redirect)
 
-        if not viz_obj.datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
-            return redirect(error_redirect)
-
-        if not self.datasource_access(viz_obj.datasource):
+        if not self.datasource_access(datasource):
             flash(
-                __(get_datasource_access_error_msg(viz_obj.datasource.name)),
+                __(get_datasource_access_error_msg(datasource.name)),
                 "danger")
             return redirect(
                 'superset/request_access/?'
@@ -1559,65 +1636,49 @@ class Superset(BaseSupersetView):
                 'datasource_id={datasource_id}&'
                 ''.format(**locals()))
 
-        if not viz_type and viz_obj.datasource.default_endpoint:
-            return redirect(viz_obj.datasource.default_endpoint)
+        if not viz_type and datasource.default_endpoint:
+            return redirect(datasource.default_endpoint)
 
         # slc perms
         slice_add_perm = self.can_access('can_add', 'SliceModelView')
-        slice_edit_perm = check_ownership(slc, raise_if_false=False)
+        slice_overwrite_perm = is_owner(slc, g.user)
         slice_download_perm = self.can_access('can_download', 'SliceModelView')
 
         # handle save or overwrite
         action = request.args.get('action')
         if action in ('saveas', 'overwrite'):
             return self.save_or_overwrite_slice(
-                request.args, slc, slice_add_perm, slice_edit_perm)
+                request.args,
+                slc, slice_add_perm,
+                slice_overwrite_perm,
+                datasource_id,
+                datasource_type)
 
-        # find out if user is in explore v2 beta group
-        # and set flag `is_in_explore_v2_beta`
-        is_in_explore_v2_beta = sm.find_role('explore-v2-beta') in get_user_roles()
-
-        # handle different endpoints
-        if request.args.get("csv") == "true":
-            payload = viz_obj.get_csv()
-            return Response(
-                payload,
-                status=200,
-                headers=generate_download_headers("csv"),
-                mimetype="application/csv")
-        elif request.args.get("standalone") == "true":
-            return self.render_template("superset/standalone.html", viz=viz_obj, standalone_mode=True)
-        elif request.args.get("V2") == "true" or is_in_explore_v2_beta:
-            # bootstrap data for explore V2
-            bootstrap_data = {
-                "can_add": slice_add_perm,
-                "can_download": slice_download_perm,
-                "can_edit": slice_edit_perm,
-                # TODO: separate endpoint for fetching datasources
-                "datasources": [(d.id, d.full_name) for d in datasources],
-                "datasource_id": datasource_id,
-                "datasource_name": viz_obj.datasource.name,
-                "datasource_type": datasource_type,
-                "user_id": user_id,
-                "viz": json.loads(viz_obj.json_data),
-                "filter_select": viz_obj.datasource.filter_select_enabled
-            }
-            table_name = viz_obj.datasource.table_name \
-                if datasource_type == 'table' \
-                else viz_obj.datasource.datasource_name
-            return self.render_template(
-                "superset/explorev2.html",
-                bootstrap_data=json.dumps(bootstrap_data),
-                slice=slc,
-                table_name=table_name)
-        else:
-            return self.render_template(
-                "superset/explore.html",
-                viz=viz_obj, slice=slc, datasources=datasources,
-                can_add=slice_add_perm, can_edit=slice_edit_perm,
-                can_download=slice_download_perm,
-                userid=g.user.get_id() if g.user else ''
-            )
+        form_data['datasource'] = str(datasource_id) + '__' + datasource_type
+        standalone = request.args.get("standalone") == "true"
+        bootstrap_data = {
+            "can_add": slice_add_perm,
+            "can_download": slice_download_perm,
+            "can_overwrite": slice_overwrite_perm,
+            "datasource": datasource.data,
+            # TODO: separate endpoint for fetching datasources
+            "form_data": form_data,
+            "datasource_id": datasource_id,
+            "datasource_type": datasource_type,
+            "slice": slc.data if slc else None,
+            "standalone": standalone,
+            "user_id": user_id,
+            "forced_height": request.args.get('height'),
+        }
+        table_name = datasource.table_name \
+            if datasource_type == 'table' \
+            else datasource.datasource_name
+        return self.render_template(
+            "superset/explorev2.html",
+            bootstrap_data=json.dumps(bootstrap_data),
+            slice=slc,
+            standalone_mode=standalone,
+            table_name=table_name)
 
     @api
     @has_access_api
@@ -1662,44 +1723,28 @@ class Superset(BaseSupersetView):
         return json_success(obj.get_values_for_column(column))
 
     def save_or_overwrite_slice(
-            self, args, slc, slice_add_perm, slice_edit_perm):
+            self, args, slc, slice_add_perm, slice_overwrite_perm,
+            datasource_id, datasource_type):
         """Save or overwrite a slice"""
         slice_name = args.get('slice_name')
         action = args.get('action')
-
-        # TODO use form processing form wtforms
-        d = args.to_dict(flat=False)
-        del d['action']
-        if 'previous_viz_type' in d:
-            del d['previous_viz_type']
-
-        as_list = ('metrics', 'groupby', 'columns', 'all_columns',
-                   'mapbox_label', 'order_by_cols')
-        for k in d:
-            v = d.get(k)
-            if k in as_list and not isinstance(v, list):
-                d[k] = [v] if v else []
-            if k not in as_list and isinstance(v, list):
-                d[k] = v[0]
-
-        datasource_type = args.get('datasource_type')
-        datasource_id = args.get('datasource_id')
+        form_data = self.get_form_data()
 
         if action in ('saveas'):
-            if 'slice_id' in d:
-                d.pop('slice_id')  # don't save old slice_id
+            if 'slice_id' in form_data:
+                form_data.pop('slice_id')  # don't save old slice_id
             slc = models.Slice(owners=[g.user] if g.user else [])
 
-        slc.params = json.dumps(d, indent=4, sort_keys=True)
+        slc.params = json.dumps(form_data)
         slc.datasource_name = args.get('datasource_name')
-        slc.viz_type = args.get('viz_type')
+        slc.viz_type = form_data['viz_type']
         slc.datasource_type = datasource_type
         slc.datasource_id = datasource_id
         slc.slice_name = slice_name
 
         if action in ('saveas') and slice_add_perm:
             self.save_slice(slc)
-        elif action == 'overwrite' and slice_edit_perm:
+        elif action == 'overwrite' and slice_overwrite_perm:
             self.overwrite_slice(slc)
 
         # Adding slice to a dashboard if requested
@@ -1731,13 +1776,9 @@ class Superset(BaseSupersetView):
             db.session.commit()
 
         if request.args.get('goto_dash') == 'true':
-            if request.args.get('V2') == 'true':
-                return dash.url
-            return redirect(dash.url)
+            return dash.url
         else:
-            if request.args.get('V2') == 'true':
-                return slc.slice_url
-            return redirect(slc.slice_url)
+            return slc.slice_url
 
     def save_slice(self, slc):
         session = db.session()
@@ -1747,15 +1788,11 @@ class Superset(BaseSupersetView):
         flash(msg, "info")
 
     def overwrite_slice(self, slc):
-        can_update = check_ownership(slc, raise_if_false=False)
-        if not can_update:
-            flash("You cannot overwrite [{}]".format(slc), "danger")
-        else:
-            session = db.session()
-            session.merge(slc)
-            session.commit()
-            msg = "Slice [{}] has been overwritten".format(slc.slice_name)
-            flash(msg, "info")
+        session = db.session()
+        session.merge(slc)
+        session.commit()
+        msg = "Slice [{}] has been overwritten".format(slc.slice_name)
+        flash(msg, "info")
 
     @api
     @has_access_api
@@ -2603,11 +2640,12 @@ class Superset(BaseSupersetView):
     @expose("/fetch_datasource_metadata")
     @log_this
     def fetch_datasource_metadata(self):
-        datasource_type = request.args.get('datasource_type')
+        datasource_id, datasource_type = (
+            request.args.get('datasourceKey').split('__'))
         datasource_class = SourceRegistry.sources[datasource_type]
         datasource = (
             db.session.query(datasource_class)
-            .filter_by(id=request.args.get('datasource_id'))
+            .filter_by(id=int(datasource_id))
             .first()
         )
 

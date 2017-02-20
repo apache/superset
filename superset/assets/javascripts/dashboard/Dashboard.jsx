@@ -13,7 +13,6 @@ import Header from './components/Header';
 
 require('bootstrap');
 require('../../stylesheets/dashboard.css');
-require('../superset-select2.js');
 
 export function getInitialState(dashboardData, context) {
   const dashboard = Object.assign({ context }, utils.controllerInterface, dashboardData);
@@ -83,9 +82,6 @@ function initDashboardView(dashboard) {
   );
   $('div.grid-container').css('visibility', 'visible');
 
-  $('.select2').select2({
-    dropdownAutoWidth: true,
-  });
   $('div.widget').click(function (e) {
     const $this = $(this);
     const $target = $(e.target);
@@ -165,9 +161,7 @@ export function dashboardContainer(dashboard) {
       }
     },
     effectiveExtraFilters(sliceId) {
-      // Summarized filter, not defined by sliceId
-      // returns k=field, v=array of values
-      const f = {};
+      const f = [];
       const immuneSlices = this.metadata.filter_immune_slices || [];
       if (sliceId && immuneSlices.includes(sliceId)) {
         // The slice is immune to dashboard fiterls
@@ -185,7 +179,11 @@ export function dashboardContainer(dashboard) {
       for (const filteringSliceId in this.filters) {
         for (const field in this.filters[filteringSliceId]) {
           if (!immuneToFields.includes(field)) {
-            f[field] = this.filters[filteringSliceId][field];
+            f.push({
+              col: field,
+              op: 'in',
+              val: this.filters[filteringSliceId][field],
+            });
           }
         }
       }
