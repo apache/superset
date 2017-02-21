@@ -156,8 +156,8 @@ def update_datasources_cache():
     for database in db.session.query(models.Database).all():
         print('Fetching {} datasources ...'.format(database.name))
         try:
-            database.all_table_names()
-            database.all_view_names()
+            database.all_table_names(force=True)
+            database.all_view_names(force=True)
         except Exception as e:
             print('{}'.format(e.message))
 
