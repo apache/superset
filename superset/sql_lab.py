@@ -107,8 +107,12 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     query.executed_sql = executed_sql
     logging.info("Running query: \n{}".format(executed_sql))
     try:
-        cursor = engine.raw_connection().cursor()
-        cursor.execute(query.executed_sql, async=True)
+        conn = engine.raw_connection()
+        cursor = conn.cursor()
+        if db_engine_spec.async:
+            cursor.execute(query.executed_sql, async=True)
+        else:
+            cursor.execute(query.executed_sql)
     except Exception as e:
         logging.exception(e)
         handle_error(db_engine_spec.extract_error_message(e))
@@ -121,6 +125,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         data = cursor.fetchmany(query.limit)
     else:
         data = cursor.fetchall()
+    conn.close()
 
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
@@ -142,8 +147,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     payload = {
         'query_id': query.id,
         'status': query.status,
-        'data': cdf.data if cdf else [],
-        'columns': cdf.columns_dict if cdf else [],
+        'data': cdf.data if cdf.data else [],
+        'columns': cdf.columns_dict if cdf.columns_dict else {},
         'query': query.to_dict(),
     }
     print(payload)

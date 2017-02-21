@@ -17,6 +17,7 @@ pep8:
 ignore-paths:
     - docs
     - superset/migrations/env.py
+    - superset/db_engines/TCLIService/
 ignore-patterns:
     - ^example/doc_.*\.py$
     - (^|/)docs(/|$)

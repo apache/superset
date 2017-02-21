@@ -42,6 +42,7 @@ class LimitMethod(object):
 
 class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
+    async = False
     time_grains = tuple()
     limit_method = LimitMethod.FETCH_MANY
 
@@ -127,6 +128,7 @@ class BaseEngineSpec(object):
         table = my_db.get_table(table_name, schema=schema)
         if show_cols:
             fields = [my_db.get_quoter()(c.name) for c in table.columns]
+        full_table_name = table_name
         if schema:
             full_table_name = schema + '.' + table_name
         qry = select(fields)
@@ -135,7 +137,7 @@ class BaseEngineSpec(object):
         partition_query = cls.where_latest_partition(
             table_name, schema, my_db, qry, columns=table.columns)
         # if not partition_query condition fails.
-        if partition_query == False:
+        if partition_query == False:  # noqa
             qry = qry.select_from(text(full_table_name))
         else:
             qry = partition_query
@@ -231,6 +233,7 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
+    async = True
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -307,7 +310,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return {
             'partitions': {
                 'cols': cols,
-                'latest': latest_part,
+                'latest': [latest_part],
                 'partitionQuery': pql,
             }
         }
@@ -331,7 +334,7 @@ class PrestoEngineSpec(BaseEngineSpec):
                     if progress > query.progress:
                         query.progress = progress
                     session.commit()
-            time.sleep(2)
+            time.sleep(1)
             polled = cursor.poll()
 
     @classmethod
@@ -495,6 +498,13 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
 
     @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type, force=False):
+        return BaseEngineSpec.fetch_result_sets(db, datasource_type, force=force)
+
+    @classmethod
     def progress(cls, logs):
         # 17/02/07 19:36:38 INFO ql.Driver: Total jobs = 5
         jobs_stats_r = re.compile(
@@ -554,13 +564,17 @@ class HiveEngineSpec(PrestoEngineSpec):
                 if progress > query.progress:
                     query.progress = progress
                 session.commit()
-            time.sleep(2)
+            time.sleep(5)
             polled = cursor.poll()
 
     @classmethod
     def where_latest_partition(
             cls, table_name, schema, database, qry, columns=None):
-        col_name, value = cls.latest_partition(table_name, schema, database)
+        try:
+            col_name, value = cls.latest_partition(table_name, schema, database)
+        except Exception:
+            # table is not partitioned
+            return False
         for c in columns:
             if str(c.name) == str(col_name):
                 return qry.where(c == str(value))

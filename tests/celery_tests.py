@@ -190,7 +190,7 @@ class CeleryTestCase(SupersetTestCase):
             db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
-        self.assertEqual([], result2['columns'])
+        self.assertEqual({}, result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
@@ -205,7 +205,7 @@ class CeleryTestCase(SupersetTestCase):
             db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true',)
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
-        self.assertEqual([], result3['columns'])
+        self.assertEqual({}, result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
