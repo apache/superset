@@ -31,5 +31,6 @@ exclude_paths:
 - "superset/assets/vendor/"
 - "superset/assets/node_modules/"
 - "superset/assets/javascripts/dist/"
+- "superset/db_engines/TCLIService/"
 - "superset/migrations"
 - "docs/"
