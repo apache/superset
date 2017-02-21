@@ -231,7 +231,7 @@ class BaseViz(object):
         cache_key = self.cache_key
         payload = None
         force = force if force else self.form_data.get('force') == 'true'
-        if not force:
+        if not force and cache:
             payload = cache.get(cache_key)
 
         if payload:
@@ -280,17 +280,18 @@ class BaseViz(object):
             data = self.json_dumps(payload)
             if PY3:
                 data = bytes(data, 'utf-8')
-            try:
-                cache.set(
-                    cache_key,
-                    zlib.compress(data),
-                    timeout=cache_timeout)
-            except Exception as e:
-                # cache.set call can fail if the backend is down or if
-                # the key is too large or whatever other reasons
-                logging.warning("Could not cache key {}".format(cache_key))
-                logging.exception(e)
-                cache.delete(cache_key)
+            if cache:
+                try:
+                    cache.set(
+                        cache_key,
+                        zlib.compress(data),
+                        timeout=cache_timeout)
+                except Exception as e:
+                    # cache.set call can fail if the backend is down or if
+                    # the key is too large or whatever other reasons
+                    logging.warning("Could not cache key {}".format(cache_key))
+                    logging.exception(e)
+                    cache.delete(cache_key)
         payload['is_cached'] = is_cached
         return payload
 
