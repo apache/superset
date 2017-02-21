@@ -1,5 +1,5 @@
 import React, { PropTypes } from 'react';
-import Select, { Creatable } from 'react-select';
+import Select { Creatable } from 'react-select';
 
 const propTypes = {
   choices: PropTypes.array,
