@@ -14,7 +14,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class CheckboxField extends React.Component {
+export default class CheckboxControl extends React.Component {
   onToggle() {
     this.props.onChange(!this.props.value);
   }
@@ -28,5 +28,5 @@ export default class CheckboxField extends React.Component {
   }
 }
 
-CheckboxField.propTypes = propTypes;
-CheckboxField.defaultProps = defaultProps;
+CheckboxControl.propTypes = propTypes;
+CheckboxControl.defaultProps = defaultProps;

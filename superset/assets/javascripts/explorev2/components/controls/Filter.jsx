@@ -2,7 +2,7 @@ const $ = window.$ = require('jquery');
 import React, { PropTypes } from 'react';
 import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
-import SelectField from './SelectField';
+import SelectControl from './SelectControl';
 
 const propTypes = {
   choices: PropTypes.array,
@@ -45,7 +45,7 @@ export default class Filter extends React.Component {
       });
     }
   }
-  changeFilter(field, event) {
+  changeFilter(control, event) {
     let value = event;
     if (event && event.target) {
       value = event.target.value;
@@ -53,15 +53,15 @@ export default class Filter extends React.Component {
     if (event && event.value) {
       value = event.value;
     }
-    this.props.changeFilter(field, value);
-    if (field === 'col' && value !== null && this.props.datasource.filter_select) {
+    this.props.changeFilter(control, value);
+    if (control === 'col' && value !== null && this.props.datasource.filter_select) {
       this.fetchFilterValues(value);
     }
   }
   removeFilter(filter) {
     this.props.removeFilter(filter);
   }
-  renderFilterFormField(filter) {
+  renderFilterFormControl(filter) {
     const datasource = this.props.datasource;
     if (datasource && datasource.filter_select) {
       if (!filter.choices) {
@@ -81,7 +81,7 @@ export default class Filter extends React.Component {
       );
     }
     return (
-      <SelectField
+      <SelectControl
         multi
         freeForm
         name="filter-value"
@@ -117,7 +117,7 @@ export default class Filter extends React.Component {
             />
           </Col>
           <Col md={7}>
-            {this.renderFilterFormField(filter)}
+            {this.renderFilterFormControl(filter)}
           </Col>
           <Col md={2}>
             <Button

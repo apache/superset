@@ -13,12 +13,12 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class HiddenField extends React.PureComponent {
+export default class HiddenControl extends React.PureComponent {
   render() {
     // This wouldn't be necessary but might as well
     return <FormControl type="hidden" value={this.props.value} />;
   }
 }
 
-HiddenField.propTypes = propTypes;
-HiddenField.defaultProps = defaultProps;
+HiddenControl.propTypes = propTypes;
+HiddenControl.defaultProps = defaultProps;

@@ -7,7 +7,7 @@ import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
 import { now } from '../modules/dates';
 import { initEnhancer } from '../reduxUtils';
-import { getFieldsState, getFormDataFromFields } from './stores/store';
+import { getControlsState, getFormDataFromControls } from './stores/store';
 
 
 // jquery and bootstrap required to make bootstrap dropdown menu's work
@@ -18,7 +18,7 @@ require('./main.css');
 
 const exploreViewContainer = document.getElementById('js-explore-view-container');
 const bootstrapData = JSON.parse(exploreViewContainer.getAttribute('data-bootstrap'));
-const fields = getFieldsState(bootstrapData, bootstrapData.form_data);
+const controls = getControlsState(bootstrapData, bootstrapData.form_data);
 delete bootstrapData.form_data;
 
 import { exploreReducer } from './reducers/exploreReducer';
@@ -30,8 +30,8 @@ const bootstrappedState = Object.assign(
     chartUpdateEndTime: null,
     chartUpdateStartTime: now(),
     dashboards: [],
-    fields,
-    latestQueryFormData: getFormDataFromFields(fields),
+    controls,
+    latestQueryFormData: getFormDataFromControls(controls),
     filterColumnOpts: [],
     isDatasourceMetaLoading: false,
     isStarred: false,

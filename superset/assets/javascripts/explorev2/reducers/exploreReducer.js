@@ -1,5 +1,5 @@
 /* eslint camelcase: 0 */
-import { getFieldsState, getFormDataFromFields } from '../stores/store';
+import { getControlsState, getFormDataFromControls } from '../stores/store';
 import * as actions from '../actions/exploreActions';
 import { now } from '../../modules/dates';
 
@@ -59,13 +59,13 @@ export const exploreReducer = function (state, action) {
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
     [actions.SET_FIELD_VALUE]() {
-      const fields = Object.assign({}, state.fields);
-      const field = Object.assign({}, fields[action.fieldName]);
-      field.value = action.value;
-      field.validationErrors = action.validationErrors;
-      fields[action.fieldName] = field;
-      const changes = { fields };
-      if (field.renderTrigger) {
+      const controls = Object.assign({}, state.controls);
+      const control = Object.assign({}, controls[action.controlName]);
+      control.value = action.value;
+      control.validationErrors = action.validationErrors;
+      controls[action.controlName] = control;
+      const changes = { controls };
+      if (control.renderTrigger) {
         changes.triggerRender = true;
       }
       return Object.assign({}, state, changes);
@@ -88,7 +88,7 @@ export const exploreReducer = function (state, action) {
           chartUpdateStartTime: now(),
           triggerQuery: false,
           queryRequest: action.queryRequest,
-          latestQueryFormData: getFormDataFromFields(state.fields),
+          latestQueryFormData: getFormDataFromControls(state.controls),
         });
     },
     [actions.CHART_UPDATE_STOPPED]() {
@@ -137,8 +137,8 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { saveModalAlert: null });
     },
     [actions.RESET_FIELDS]() {
-      const fields = getFieldsState(state, getFormDataFromFields(state.fields));
-      return Object.assign({}, state, { fields });
+      const controls = getControlsState(state, getFormDataFromControls(state.controls));
+      return Object.assign({}, state, { controls });
     },
     [actions.RENDER_TRIGGERED]() {
       return Object.assign({}, state, { triggerRender: false });
