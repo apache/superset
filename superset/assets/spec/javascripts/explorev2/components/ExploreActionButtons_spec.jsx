@@ -8,11 +8,8 @@ import ExploreActionButtons from
 describe('ExploreActionButtons', () => {
   const defaultProps = {
     canDownload: 'True',
-    slice: {
-      data: {
-        csv_endpoint: '',
-        json_endpoint: '',
-      },
+    formData: {
+      datasource: '1__table'
     },
   };
 

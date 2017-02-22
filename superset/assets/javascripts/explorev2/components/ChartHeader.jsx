@@ -1,12 +1,15 @@
+import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Label, Panel } from 'react-bootstrap';
+import { Alert, Collapse, Label, Panel } from 'react-bootstrap';
+import visMap from '../../../visualizations/main';
+import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
 import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
+import { getExploreUrl } from '../exploreUtils';
 import { getFormDataFromControls } from '../stores/store';
-import Chart from './Chart';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -21,17 +24,18 @@ const propTypes = {
   chartStatus: PropTypes.string,
   chartUpdateEndTime: PropTypes.number,
   chartUpdateStartTime: PropTypes.number.isRequired,
-  datasource: PropTypes.object,
+  column_formats: PropTypes.object,
+  containerId: PropTypes.string.isRequired,
   height: PropTypes.string.isRequired,
   isStarred: PropTypes.bool.isRequired,
   slice: PropTypes.object,
   table_name: PropTypes.string,
+  viz_type: PropTypes.string.isRequired,
   formData: PropTypes.object,
   latestQueryFormData: PropTypes.object,
 };
 
 class ChartContainer extends React.PureComponent {
-<<<<<<< 8042ac876e80c08d72489287777cb1e9672b177a
   constructor(props) {
     super(props);
     this.state = {
@@ -97,16 +101,15 @@ class ChartContainer extends React.PureComponent {
 
       height: getHeight,
 
-      setFilter: () => {},
+      setFilter: () => {
+        // set filter according to data in store
+        // used in FilterBox.onChange()
+      },
 
       getFilters: () => (
         // return filter objects from viz.formData
         {}
       ),
-
-      addFilter: () => {},
-
-      removeFilter: () => {},
 
       done: () => {},
       clearError: () => {
@@ -134,8 +137,6 @@ class ChartContainer extends React.PureComponent {
   removeAlert() {
     this.props.actions.removeChartAlert();
   }
-=======
->>>>>>> Refactoring Chart in more components to allow for Dashboard embedding
 
   renderChartTitle() {
     let title;
@@ -147,6 +148,60 @@ class ChartContainer extends React.PureComponent {
     return title;
   }
 
+  renderAlert() {
+    const msg = (
+      <div>
+        {this.props.alert}
+        <i
+          className="fa fa-close pull-right"
+          onClick={this.removeAlert.bind(this)}
+          style={{ cursor: 'pointer' }}
+        />
+      </div>);
+    return (
+      <div>
+        <Alert
+          bsStyle="warning"
+          onClick={() => this.setState({ showStackTrace: !this.state.showStackTrace })}
+        >
+          {msg}
+        </Alert>
+        {this.props.queryResponse && this.props.queryResponse.stacktrace &&
+          <Collapse in={this.state.showStackTrace}>
+            <pre>
+              {this.props.queryResponse.stacktrace}
+            </pre>
+          </Collapse>
+        }
+      </div>);
+  }
+
+  renderChart() {
+    if (this.props.alert) {
+      return this.renderAlert();
+    }
+    const loading = this.props.chartStatus === 'loading';
+    return (
+      <div>
+        {loading &&
+          <img
+            alt="loading"
+            width="25"
+            src="/static/assets/images/loading.gif"
+            style={{ position: 'absolute' }}
+          />
+        }
+        <div
+          id={this.props.containerId}
+          ref={ref => { this.chartContainerRef = ref; }}
+          className={this.props.viz_type}
+          style={{
+            opacity: loading ? '0.25' : '1',
+          }}
+        />
+      </div>
+    );
+  }
   runQuery() {
     this.props.actions.runQuery(this.props.formData, true);
   }
@@ -155,8 +210,6 @@ class ChartContainer extends React.PureComponent {
     if (this.props.standalone) {
       return this.renderChart();
     }
-    const queryResponse = this.props.queryResponse;
-    const query = queryResponse && queryResponse.query ? queryResponse.query : null;
     return (
       <div className="chart-container">
         <Panel
@@ -214,25 +267,15 @@ class ChartContainer extends React.PureComponent {
                   style={{ fontSize: '10px', marginRight: '5px' }}
                 />
                 <ExploreActionButtons
-                  formData={this.props.latestQueryFormData}
+                  slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
+                  queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
                 />
               </div>
             </div>
           }
         >
-        {this.props.datasource &&
-          <Chart
-            actions={this.props.actions}
-            alert={this.props.alert}
-            chartStatus={this.props.chartStatus}
-            datasource={this.props.datasource}
-            height={this.props.height}
-            formData={this.props.formData}
-            queryResponse={this.props.queryResponse}
-            triggerRender={this.props.triggerRender}
-          />
-        }
+          {this.renderChart()}
         </Panel>
       </div>
     );
@@ -249,7 +292,8 @@ function mapStateToProps(state) {
     chartStatus: state.chartStatus,
     chartUpdateEndTime: state.chartUpdateEndTime,
     chartUpdateStartTime: state.chartUpdateStartTime,
-    datasource: state.datasource,
+    column_formats: state.datasource ? state.datasource.column_formats : null,
+    containerId: state.slice ? `slice-container-${state.slice.slice_id}` : 'slice-container',
     formData,
     latestQueryFormData: state.latestQueryFormData,
     isStarred: state.isStarred,
@@ -257,6 +301,7 @@ function mapStateToProps(state) {
     slice: state.slice,
     standalone: state.standalone,
     table_name: formData.datasource_name,
+    viz_type: formData.viz_type,
     triggerRender: state.triggerRender,
     datasourceType: state.datasource ? state.datasource.type : null,
   };

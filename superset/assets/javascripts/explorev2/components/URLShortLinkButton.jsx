@@ -1,11 +1,7 @@
-import React, { PropTypes } from 'react';
+import React from 'react';
 import { Popover, OverlayTrigger } from 'react-bootstrap';
 import CopyToClipboard from './../../components/CopyToClipboard';
 import { getShortUrl } from '../../../utils/common';
-
-const propTypes = {
-  slice: PropTypes.object.isRequired,
-};
 
 export default class URLShortLinkButton extends React.Component {
   constructor(props) {
@@ -58,5 +54,3 @@ export default class URLShortLinkButton extends React.Component {
     );
   }
 }
-
-URLShortLinkButton.propTypes = propTypes;
