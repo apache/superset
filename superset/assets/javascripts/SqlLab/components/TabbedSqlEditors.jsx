@@ -44,9 +44,23 @@ class TabbedSqlEditors extends React.PureComponent {
       if (urlId) {
         this.props.actions.popStoredQuery(urlId);
       } else {
+        let dbId = getParamFromQuery(queryString, 'dbid');
+        if (dbId) {
+          dbId = parseInt(dbId, 10);
+        } else {
+          const databases = this.props.databases;
+          const dbName = getParamFromQuery(queryString, 'dbname');
+          if (dbName) {
+            Object.keys(databases).forEach((db) => {
+              if (databases[db].database_name === dbName) {
+                dbId = databases[db].id;
+              }
+            });
+          }
+        }
         const newQueryEditor = {
           title: getParamFromQuery(queryString, 'title'),
-          dbId: getParamFromQuery(queryString, 'dbid'),
+          dbId,
           schema: getParamFromQuery(queryString, 'schema'),
           autorun: getParamFromQuery(queryString, 'autorun'),
           sql: getParamFromQuery(queryString, 'sql'),
