@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import React, { PropTypes } from 'react';
 import { connect } from 'react-redux';
-import { Panel, Alert, Collapse } from 'react-bootstrap';
+import { Alert, Collapse, Label, Panel } from 'react-bootstrap';
 import visMap from '../../../visualizations/main';
 import { d3format } from '../../modules/utils';
 import ExploreActionButtons from './ExploreActionButtons';
@@ -125,10 +125,10 @@ class ChartContainer extends React.PureComponent {
       },
 
       data: {
-        csv_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'csv'),
-        json_endpoint: getExploreUrl(this.props.formData, this.props.datasource_type, 'json'),
+        csv_endpoint: getExploreUrl(this.props.formData, 'csv'),
+        json_endpoint: getExploreUrl(this.props.formData, 'json'),
         standalone_endpoint: getExploreUrl(
-          this.props.formData, this.props.datasource_type, 'standalone'),
+          this.props.formData, 'standalone'),
       },
 
     };
@@ -202,6 +202,9 @@ class ChartContainer extends React.PureComponent {
       </div>
     );
   }
+  runQuery() {
+    this.props.actions.runQuery(this.props.formData, true);
+  }
 
   render() {
     if (this.props.standalone) {
@@ -241,6 +244,21 @@ class ChartContainer extends React.PureComponent {
               }
 
               <div className="pull-right">
+                {this.props.chartStatus === 'success' &&
+                 this.props.queryResponse &&
+                 this.props.queryResponse.is_cached &&
+                  <TooltipWrapper
+                    tooltip="Loaded from cache. Click to force refresh"
+                    label="cache-desc"
+                  >
+                    <Label
+                      style={{ fontSize: '10px', marginRight: '5px', cursor: 'pointer' }}
+                      onClick={this.runQuery.bind(this)}
+                    >
+                      cached
+                    </Label>
+                  </TooltipWrapper>
+                }
                 <Timer
                   startTime={this.props.chartUpdateStartTime}
                   endTime={this.props.chartUpdateEndTime}
@@ -251,8 +269,7 @@ class ChartContainer extends React.PureComponent {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
-                  queryEndpoint={getExploreUrl(
-                    this.props.latestQueryFormData, this.props.datasource_type, 'query')}
+                  queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
                 />
               </div>
             </div>
@@ -286,6 +303,7 @@ function mapStateToProps(state) {
     table_name: formData.datasource_name,
     viz_type: formData.viz_type,
     triggerRender: state.triggerRender,
+    datasourceType: state.datasource ? state.datasource.type : null,
   };
 }
 

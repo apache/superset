@@ -229,9 +229,9 @@ export function updateChartStatus(status) {
 }
 
 export const RUN_QUERY = 'RUN_QUERY';
-export function runQuery(formData, datasourceType) {
+export function runQuery(formData, force = false) {
   return function (dispatch) {
-    const url = getExploreUrl(formData, datasourceType, 'json');
+    const url = getExploreUrl(formData, 'json', force);
     const queryRequest = $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
     }).fail(function (err) {
