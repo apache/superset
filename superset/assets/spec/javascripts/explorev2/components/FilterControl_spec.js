@@ -5,8 +5,8 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import FilterField from '../../../../javascripts/explorev2/components/FilterField';
-import Filter from '../../../../javascripts/explorev2/components/Filter';
+import FilterControl from '../../../../javascripts/explorev2/components/controls/FilterControl';
+import Filter from '../../../../javascripts/explorev2/components/controls/Filter';
 
 const defaultProps = {
   choices: ['country_name'],
@@ -20,16 +20,16 @@ const defaultProps = {
   },
 };
 
-describe('FilterField', () => {
+describe('FilterControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<FilterField {...defaultProps} />);
+    wrapper = shallow(<FilterControl {...defaultProps} />);
   });
 
   it('renders Filters', () => {
     expect(
-      React.isValidElement(<FilterField {...defaultProps} />)
+      React.isValidElement(<FilterControl {...defaultProps} />)
     ).to.equal(true);
   });
 

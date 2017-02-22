@@ -5,18 +5,18 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import CheckboxField from '../../../../javascripts/explorev2/components/CheckboxField';
+import CheckboxControl from '../../../../javascripts/explorev2/components/controls/CheckboxControl';
 
 const defaultProps = {
   name: 'show_legend',
   onChange: sinon.spy(),
 };
 
-describe('CheckboxField', () => {
+describe('CheckboxControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<CheckboxField {...defaultProps} />);
+    wrapper = shallow(<CheckboxControl {...defaultProps} />);
   });
 
   it('renders a Checkbox', () => {

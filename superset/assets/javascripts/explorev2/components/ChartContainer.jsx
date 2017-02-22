@@ -9,7 +9,7 @@ import FaveStar from '../../components/FaveStar';
 import TooltipWrapper from '../../components/TooltipWrapper';
 import Timer from '../../components/Timer';
 import { getExploreUrl } from '../exploreUtils';
-import { getFormDataFromFields } from '../stores/store';
+import { getFormDataFromControls } from '../stores/store';
 
 const CHART_STATUS_MAP = {
   failed: 'danger',
@@ -285,7 +285,7 @@ class ChartContainer extends React.PureComponent {
 ChartContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const formData = getFormDataFromFields(state.fields);
+  const formData = getFormDataFromControls(state.controls);
   return {
     alert: state.chartAlert,
     can_download: state.can_download,

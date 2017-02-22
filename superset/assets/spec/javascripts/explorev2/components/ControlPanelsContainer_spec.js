@@ -3,7 +3,7 @@ import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
 import { Panel } from 'react-bootstrap';
-import { getFormDataFromFields, defaultFields }
+import { getFormDataFromControls, defaultControls }
   from '../../../../javascripts/explorev2/stores/store';
 import {
   ControlPanelsContainer,
@@ -12,8 +12,8 @@ import {
 const defaultProps = {
   datasource_type: 'table',
   actions: {},
-  fields: defaultFields,
-  form_data: getFormDataFromFields(defaultFields),
+  controls: defaultControls,
+  form_data: getFormDataFromControls(defaultControls),
   isDatasourceMetaLoading: false,
   exploreState: {},
 };
