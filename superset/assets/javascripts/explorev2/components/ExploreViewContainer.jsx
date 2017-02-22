@@ -8,13 +8,13 @@ import ControlPanelsContainer from './ControlPanelsContainer';
 import SaveModal from './SaveModal';
 import QueryAndSaveBtns from './QueryAndSaveBtns';
 import { getExploreUrl } from '../exploreUtils';
-import { getFormDataFromFields } from '../stores/store';
+import { getFormDataFromControls } from '../stores/store';
 
 const propTypes = {
   actions: PropTypes.object.isRequired,
   datasource_type: PropTypes.string.isRequired,
   chartStatus: PropTypes.string.isRequired,
-  fields: PropTypes.object.isRequired,
+  controls: PropTypes.object.isRequired,
   forcedHeight: PropTypes.string,
   form_data: PropTypes.object.isRequired,
   standalone: PropTypes.bool.isRequired,
@@ -37,11 +37,11 @@ class ExploreViewContainer extends React.Component {
   }
 
   componentWillReceiveProps(np) {
-    if (np.fields.viz_type.value !== this.props.fields.viz_type.value) {
-      this.props.actions.resetFields();
+    if (np.controls.viz_type.value !== this.props.controls.viz_type.value) {
+      this.props.actions.resetControls();
       this.props.actions.triggerQuery();
     }
-    if (np.fields.datasource.value !== this.props.fields.datasource.value) {
+    if (np.controls.datasource.value !== this.props.controls.datasource.value) {
       this.props.actions.fetchDatasourceMetadata(np.form_data.datasource, true);
     }
   }
@@ -82,7 +82,7 @@ class ExploreViewContainer extends React.Component {
 
 
   runQuery() {
-    this.props.actions.runQuery(this.props.form_data, this.props.datasource_type);
+    this.props.actions.runQuery(this.props.form_data);
   }
 
   handleResize() {
@@ -98,13 +98,13 @@ class ExploreViewContainer extends React.Component {
   renderErrorMessage() {
     // Returns an error message as a node if any errors are in the store
     const errors = [];
-    for (const fieldName in this.props.fields) {
-      const field = this.props.fields[fieldName];
-      if (field.validationErrors && field.validationErrors.length > 0) {
+    for (const controlName in this.props.controls) {
+      const control = this.props.controls[controlName];
+      if (control.validationErrors && control.validationErrors.length > 0) {
         errors.push(
-          <div key={fieldName}>
-            <strong>{`[ ${field.label} ] `}</strong>
-            {field.validationErrors.join('. ')}
+          <div key={controlName}>
+            <strong>{`[ ${control.label} ] `}</strong>
+            {control.validationErrors.join('. ')}
           </div>
         );
       }
@@ -174,11 +174,11 @@ class ExploreViewContainer extends React.Component {
 ExploreViewContainer.propTypes = propTypes;
 
 function mapStateToProps(state) {
-  const form_data = getFormDataFromFields(state.fields);
+  const form_data = getFormDataFromControls(state.controls);
   return {
     chartStatus: state.chartStatus,
     datasource_type: state.datasource_type,
-    fields: state.fields,
+    controls: state.controls,
     form_data,
     standalone: state.standalone,
     triggerQuery: state.triggerQuery,

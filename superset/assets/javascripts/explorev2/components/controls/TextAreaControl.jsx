@@ -16,7 +16,7 @@ const defaultProps = {
   value: '',
 };
 
-export default class TextAreaField extends React.Component {
+export default class TextAreaControl extends React.Component {
   onChange(event) {
     this.props.onChange(event.target.value);
   }
@@ -34,5 +34,5 @@ export default class TextAreaField extends React.Component {
   }
 }
 
-TextAreaField.propTypes = propTypes;
-TextAreaField.defaultProps = defaultProps;
+TextAreaControl.propTypes = propTypes;
+TextAreaControl.defaultProps = defaultProps;

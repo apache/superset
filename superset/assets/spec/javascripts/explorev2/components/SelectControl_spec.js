@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import SelectField from '../../../../javascripts/explorev2/components/SelectField';
+import SelectControl from '../../../../javascripts/explorev2/components/controls/SelectControl';
 
 const defaultProps = {
   choices: [[10, 10], [20, 20]],
@@ -14,11 +14,11 @@ const defaultProps = {
   onChange: sinon.spy(),
 };
 
-describe('SelectField', () => {
+describe('SelectControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<SelectField {...defaultProps} />);
+    wrapper = shallow(<SelectControl {...defaultProps} />);
   });
 
   it('renders a Select', () => {
@@ -32,7 +32,7 @@ describe('SelectField', () => {
   });
 
   it('renders a Creatable for freeform', () => {
-    wrapper = shallow(<SelectField {...defaultProps} freeForm />);
+    wrapper = shallow(<SelectControl {...defaultProps} freeForm />);
     expect(wrapper.find(Creatable)).to.have.lengthOf(1);
   });
 });

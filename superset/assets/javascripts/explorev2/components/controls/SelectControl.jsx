@@ -25,7 +25,7 @@ const defaultProps = {
   onChange: () => {},
 };
 
-export default class SelectField extends React.PureComponent {
+export default class SelectControl extends React.PureComponent {
   constructor(props) {
     super(props);
     this.state = { options: this.getOptions(props) };
@@ -111,5 +111,5 @@ export default class SelectField extends React.PureComponent {
   }
 }
 
-SelectField.propTypes = propTypes;
-SelectField.defaultProps = defaultProps;
+SelectControl.propTypes = propTypes;
+SelectControl.defaultProps = defaultProps;

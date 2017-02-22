@@ -61,7 +61,7 @@ class BaseEngineSpec(object):
     @cache_util.memoized_func(
         timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type):
+    def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
         Datasource_type can be 'table' or 'view'.
@@ -260,7 +260,7 @@ class PrestoEngineSpec(BaseEngineSpec):
     @cache_util.memoized_func(
         timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
-    def fetch_result_sets(cls, db, datasource_type):
+    def fetch_result_sets(cls, db, datasource_type, force=False):
         """Returns the dictionary {schema : [result_set_name]}.
 
         Datasource_type can be 'table' or 'view'.

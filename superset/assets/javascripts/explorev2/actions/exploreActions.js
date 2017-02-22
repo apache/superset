@@ -49,7 +49,7 @@ export function fetchDatasourcesFailed(error) {
 }
 
 export const RESET_FIELDS = 'RESET_FIELDS';
-export function resetFields() {
+export function resetControls() {
   return { type: RESET_FIELDS };
 }
 
@@ -68,7 +68,7 @@ export function fetchDatasourceMetadata(datasourceKey, alsoTriggerQuery = false)
       success: (data) => {
         dispatch(setDatasource(data));
         dispatch(fetchDatasourceSucceeded());
-        dispatch(resetFields());
+        dispatch(resetControls());
         if (alsoTriggerQuery) {
           dispatch(triggerQuery());
         }
@@ -126,8 +126,8 @@ export function saveFaveStar(sliceId, isStarred) {
 }
 
 export const SET_FIELD_VALUE = 'SET_FIELD_VALUE';
-export function setFieldValue(fieldName, value, validationErrors) {
-  return { type: SET_FIELD_VALUE, fieldName, value, validationErrors };
+export function setControlValue(controlName, value, validationErrors) {
+  return { type: SET_FIELD_VALUE, controlName, value, validationErrors };
 }
 
 export const CHART_UPDATE_STARTED = 'CHART_UPDATE_STARTED';
@@ -229,9 +229,9 @@ export function updateChartStatus(status) {
 }
 
 export const RUN_QUERY = 'RUN_QUERY';
-export function runQuery(formData, datasourceType) {
+export function runQuery(formData, force = false) {
   return function (dispatch) {
-    const url = getExploreUrl(formData, datasourceType, 'json');
+    const url = getExploreUrl(formData, 'json', force);
     const queryRequest = $.getJSON(url, function (queryResponse) {
       dispatch(chartUpdateSucceeded(queryResponse));
     }).fail(function (err) {

@@ -1,6 +1,6 @@
 import React, { PropTypes } from 'react';
 import { FormGroup, FormControl } from 'react-bootstrap';
-import * as v from '../validators';
+import * as v from '../../validators';
 
 const propTypes = {
   name: PropTypes.string.isRequired,
@@ -24,7 +24,7 @@ const defaultProps = {
   isFloat: false,
 };
 
-export default class TextField extends React.Component {
+export default class TextControl extends React.Component {
   constructor(props) {
     super(props);
     const value = props.value ? props.value.toString() : '';
@@ -69,5 +69,5 @@ export default class TextField extends React.Component {
   }
 }
 
-TextField.propTypes = propTypes;
-TextField.defaultProps = defaultProps;
+TextControl.propTypes = propTypes;
+TextControl.defaultProps = defaultProps;

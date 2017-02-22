@@ -16,7 +16,7 @@ const defaultProps = {
   value: [],
 };
 
-export default class FilterField extends React.Component {
+export default class FilterControl extends React.Component {
   addFilter() {
     const newFilters = Object.assign([], this.props.value);
     newFilters.push({
@@ -26,10 +26,10 @@ export default class FilterField extends React.Component {
     });
     this.props.onChange(newFilters);
   }
-  changeFilter(index, field, value) {
+  changeFilter(index, control, value) {
     const newFilters = Object.assign([], this.props.value);
     const modifiedFilter = Object.assign({}, newFilters[index]);
-    modifiedFilter[field] = value;
+    modifiedFilter[control] = value;
     newFilters.splice(index, 1, modifiedFilter);
     this.props.onChange(newFilters);
   }
@@ -72,5 +72,5 @@ export default class FilterField extends React.Component {
   }
 }
 
-FilterField.propTypes = propTypes;
-FilterField.defaultProps = defaultProps;
+FilterControl.propTypes = propTypes;
+FilterControl.defaultProps = defaultProps;

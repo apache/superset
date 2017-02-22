@@ -5,14 +5,14 @@ import { defaultState } from '../../../javascripts/explorev2/stores/store';
 import { exploreReducer } from '../../../javascripts/explorev2/reducers/exploreReducer';
 
 describe('reducers', () => {
-  it('sets correct field value given a key and value', () => {
+  it('sets correct control value given a key and value', () => {
     const newState = exploreReducer(
-      defaultState, actions.setFieldValue('x_axis_label', 'x', []));
-    expect(newState.fields.x_axis_label.value).to.equal('x');
+      defaultState, actions.setControlValue('x_axis_label', 'x', []));
+    expect(newState.controls.x_axis_label.value).to.equal('x');
   });
-  it('setFieldValue works as expected with a checkbox', () => {
+  it('setControlValue works as expected with a checkbox', () => {
     const newState = exploreReducer(defaultState,
-      actions.setFieldValue('show_legend', true, []));
-    expect(newState.fields.show_legend.value).to.equal(true);
+      actions.setControlValue('show_legend', true, []));
+    expect(newState.controls.show_legend.value).to.equal(true);
   });
 });

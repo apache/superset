@@ -1566,7 +1566,8 @@ class Superset(BaseSupersetView):
 
         payload = {}
         try:
-            payload = viz_obj.get_payload()
+            payload = viz_obj.get_payload(
+                force=request.args.get('force') == 'true')
         except Exception as e:
             logging.exception(e)
             return json_error_response(utils.error_msg_from_exception(e))

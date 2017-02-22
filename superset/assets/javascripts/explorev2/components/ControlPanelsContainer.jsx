@@ -6,33 +6,33 @@ import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
 import { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
-import FieldSetRow from './FieldSetRow';
-import FieldSet from './FieldSet';
-import fields from '../stores/fields';
+import ControlRow from './ControlRow';
+import Control from './Control';
+import controls from '../stores/controls';
 
 const propTypes = {
-  datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
-  fields: PropTypes.object.isRequired,
-  isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  form_data: PropTypes.object.isRequired,
-  y_axis_zero: PropTypes.any,
   alert: PropTypes.string,
+  datasource_type: PropTypes.string.isRequired,
   exploreState: PropTypes.object.isRequired,
+  controls: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
+  isDatasourceMetaLoading: PropTypes.bool.isRequired,
+  y_axis_zero: PropTypes.any,
 };
 
 class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
     this.removeAlert = this.removeAlert.bind(this);
-    this.getFieldData = this.getFieldData.bind(this);
+    this.getControlData = this.getControlData.bind(this);
   }
-  getFieldData(fieldName) {
-    const mapF = fields[fieldName].mapStateToProps;
+  getControlData(controlName) {
+    const mapF = controls[controlName].mapStateToProps;
     if (mapF) {
-      return Object.assign({}, this.props.fields[fieldName], mapF(this.props.exploreState));
+      return Object.assign({}, this.props.controls[controlName], mapF(this.props.exploreState));
     }
-    return this.props.fields[fieldName];
+    return this.props.controls[controlName];
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
@@ -60,17 +60,17 @@ class ControlPanelsContainer extends React.Component {
               label={section.label}
               tooltip={section.description}
             >
-              {section.fieldSetRows.map((fieldSets, i) => (
-                <FieldSetRow
-                  key={`fieldsetrow-${i}`}
-                  fields={fieldSets.map(fieldName => (
-                    <FieldSet
-                      name={fieldName}
-                      key={`field-${fieldName}`}
-                      value={this.props.form_data[fieldName]}
-                      validationErrors={this.props.fields[fieldName].validationErrors}
+              {section.controlSetRows.map((controlSets, i) => (
+                <ControlRow
+                  key={`controlsetrow-${i}`}
+                  controls={controlSets.map(controlName => (
+                    <Control
+                      name={controlName}
+                      key={`control-${controlName}`}
+                      value={this.props.form_data[controlName]}
+                      validationErrors={this.props.controls[controlName].validationErrors}
                       actions={this.props.actions}
-                      {...this.getFieldData(fieldName)}
+                      {...this.getControlData(controlName)}
                     />
                   ))}
                 />
@@ -89,7 +89,7 @@ function mapStateToProps(state) {
   return {
     alert: state.controlPanelAlert,
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    fields: state.fields,
+    controls: state.controls,
     exploreState: state,
   };
 }
