@@ -19,7 +19,7 @@ def memoized_func(timeout=5 * 60, key=view_cache_key):
             def wrapped_f(cls, *args, **kwargs):
                 cache_key = key(*args, **kwargs)
                 o = tables_cache.get(cache_key)
-                if o is not None:
+                if not kwargs['force'] and o is not None:
                     return o
                 o = f(cls, *args, **kwargs)
                 tables_cache.set(cache_key, o, timeout=timeout)
