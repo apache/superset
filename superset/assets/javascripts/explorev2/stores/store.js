@@ -56,7 +56,7 @@ export function getControlsState(state, form_data) {
     // Removing invalid filters that point to a now inexisting column
     if (control.type === 'FilterControl' && control.choices) {
       const choiceValues = control.choices.map(c => c[0]);
-      formData[k] = control.value.filter(flt => choiceValues.indexOf(flt.col) > 0);
+      formData[k] = formData[k].filter(flt => choiceValues.indexOf(flt.col) >= 0);
     }
 
     if (typeof control.default === 'function') {

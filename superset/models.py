@@ -87,9 +87,6 @@ class QueryResult(object):
         self.error_message = error_message
 
 
-FilterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
-
-
 def set_perm(mapper, connection, target):  # noqa
     if target.perm != target.get_perm():
         link_table = target.__table__
@@ -1390,11 +1387,10 @@ class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
                 continue
             col = flt['col']
             op = flt['op']
-            eq = ','.join(flt['val'])
+            eq = flt['val']
             col_obj = cols[col]
             if op in ('in', 'not in'):
-                splitted = FilterPattern.split(eq)[1::2]
-                values = [types.strip("'").strip('"') for types in splitted]
+                values = [types.strip("'").strip('"') for types in eq]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -2554,15 +2550,14 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             elif op in ('in', 'not in'):
                 fields = []
                 # Distinguish quoted values with regular value types
-                split = FilterPattern.split(eq)[1::2]
-                values = [types.replace("'", '') for types in split]
+                values = [types.replace("'", '') for types in eq]
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
-                else:
-                    cond = Dimension(col) == eq
+                elif len(values) == 1:
+                    cond = Dimension(col) == eq[0]
                 if op == 'not in':
                     cond = ~cond
             elif op == 'regex':
