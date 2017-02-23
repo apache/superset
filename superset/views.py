@@ -1846,7 +1846,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/tables/<db_id>/<schema>/<substr>/")
     def tables(self, db_id, schema, substr):
-        """endpoint to power the calendar heatmap on the welcome page"""
+        """Endpoint to fetch the list of tables for given database"""
         schema = utils.js_string_to_python(schema)
         substr = utils.js_string_to_python(substr)
         database = db.session.query(models.Database).filter_by(id=db_id).one()
