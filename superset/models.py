@@ -37,7 +37,9 @@ from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
 from pydruid.utils.filters import Dimension, Filter
-from pydruid.utils.postaggregator import Postaggregator
+from pydruid.utils.postaggregator import (
+    Postaggregator, Quantile, Quantiles, Field, Const, HyperUniqueCardinality,
+)
 from pydruid.utils.having import Aggregation
 from six import string_types
 
@@ -2354,9 +2356,30 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 all_metrics += conf.get('fieldNames', [])
                 if conf.get('type') == 'javascript':
                     post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=conf.get('name'),
-                        field_names=conf.get('fieldNames'),
-                        function=conf.get('function'))
+                        name=conf.get('name', ''),
+                        field_names=conf.get('fieldNames', []),
+                        function=conf.get('function', ''))
+                elif conf.get('type') == 'quantile':
+                    post_aggs[metric_name] = Quantile(
+                        conf.get('name', ''),
+                        conf.get('probability', ''),
+                    )
+                elif conf.get('type') == 'quantiles':
+                    post_aggs[metric_name] = Quantiles(
+                        conf.get('name', ''),
+                        conf.get('probabilities', ''),
+                    )
+                elif conf.get('type') == 'fieldAccess':
+                    post_aggs[metric_name] = Field(conf.get('name'), '')
+                elif conf.get('type') == 'constant':
+                    post_aggs[metric_name] = Const(
+                        conf.get('value'),
+                        output_name=conf.get('name', '')
+                    )
+                elif conf.get('type') == 'hyperUniqueCardinality':
+                    post_aggs[metric_name] = HyperUniqueCardinality(
+                        conf.get('name'), ''
+                    )
                 else:
                     post_aggs[metric_name] = Postaggregator(
                         conf.get('fn', "/"),
