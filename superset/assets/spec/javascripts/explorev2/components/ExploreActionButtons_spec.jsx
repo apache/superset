@@ -9,7 +9,7 @@ describe('ExploreActionButtons', () => {
   const defaultProps = {
     canDownload: 'True',
     formData: {
-      datasource: '1__table'
+      datasource: '1__table',
     },
   };
 
