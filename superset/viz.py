@@ -280,7 +280,7 @@ class BaseViz(object):
             data = self.json_dumps(payload)
             if PY3:
                 data = bytes(data, 'utf-8')
-            if cache:
+            if cache and self.status != utils.QueryStatus.FAILED:
                 try:
                     cache.set(
                         cache_key,
