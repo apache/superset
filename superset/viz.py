@@ -467,6 +467,10 @@ class SeparatorViz(MarkupViz):
     viz_type = "separator"
     verbose_name = _("Separator")
 
+    def get_data(self, df):
+        code = markdown(self.form_data.get("code", ''))
+        return dict(html=code)
+
 
 class WordCloudViz(BaseViz):
 
