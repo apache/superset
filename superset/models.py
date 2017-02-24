@@ -2467,6 +2467,20 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                         "direction": "descending",
                     }],
                 }
+
+                # rebuild dimensions for 1st query using real dimensions
+                # in order to make Druid dimension spec work with 2-phase
+                # time series queries
+                real_dimensions = []
+                for column_name in groupby:
+                    col = columns_dict.get(column_name)
+                    dim_spec = col.dimension_spec
+                    if dim_spec:
+                        real_dimensions.append(dim_spec['dimension'])
+                    else:
+                        real_dimensions.append(column_name)
+                pre_qry['dimensions'] = real_dimensions
+
                 client.groupby(**pre_qry)
                 query_str += "// Two phase query\n// Phase 1\n"
                 query_str += json.dumps(
@@ -2478,7 +2492,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                     "//\nPhase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
                 if df is not None and not df.empty:
-                    dims = qry['dimensions']
+                    dims = pre_qry['dimensions']
                     filters = []
                     for unused, row in df.iterrows():
                         fields = []
