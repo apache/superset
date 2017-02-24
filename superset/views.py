@@ -1465,13 +1465,18 @@ class Superset(BaseSupersetView):
         return redirect('/accessrequestsmodelview/list/')
 
     def get_form_data(self):
-        form_data = request.args.get("form_data")
-        if not form_data:
+        # get form data from url
+        if request.args.get("form_data"):
+            form_data = request.args.get("form_data")
+        elif request.form.get("form_data"):
             # Supporting POST as well as get
             form_data = request.form.get("form_data")
-        if form_data:
-            d = json.loads(form_data)
-        elif request.args.get("viz_type"):
+        else:
+            form_data = '{}'
+
+        d = json.loads(form_data)
+
+        if request.args.get("viz_type"):
             # Converting old URLs
             d = cast_form_data(request.args.to_dict())
 
