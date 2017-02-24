@@ -502,7 +502,8 @@ class HiveEngineSpec(PrestoEngineSpec):
         timeout=600,
         key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
     def fetch_result_sets(cls, db, datasource_type, force=False):
-        return BaseEngineSpec.fetch_result_sets(db, datasource_type, force=force)
+        return BaseEngineSpec.fetch_result_sets(
+            db, datasource_type, force=force)
 
     @classmethod
     def progress(cls, logs):
@@ -571,7 +572,8 @@ class HiveEngineSpec(PrestoEngineSpec):
     def where_latest_partition(
             cls, table_name, schema, database, qry, columns=None):
         try:
-            col_name, value = cls.latest_partition(table_name, schema, database)
+            col_name, value = cls.latest_partition(
+                table_name, schema, database)
         except Exception:
             # table is not partitioned
             return False
