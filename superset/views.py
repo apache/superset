@@ -1830,7 +1830,7 @@ class Superset(BaseSupersetView):
 
     @api
     @has_access_api
-    @expose("/schemas/<db_id>")
+    @expose("/schemas/<db_id>/")
     def schemas(self, db_id):
         database = (
             db.session
