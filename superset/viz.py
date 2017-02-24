@@ -1142,7 +1142,7 @@ class DistributionBarViz(DistributionPieViz):
             d = {
                 "key": series_title,
                 "values": [
-                    {'x': str(row.index[i]), 'y': v}
+                    {'x': str(i), 'y': v}
                     for i, v in ys.iteritems()]
             }
             chart_data.append(d)
