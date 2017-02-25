@@ -38,6 +38,7 @@ from superset import (
     appbuilder, cache, db, models, viz, utils, app,
     sm, sql_lab, sql_parse, results_backend, security,
 )
+from superset.legacy import cast_form_data
 from superset.utils import has_access
 from superset.source_registry import SourceRegistry
 from superset.models import DatasourceAccessRequest as DAR
@@ -1466,10 +1467,14 @@ class Superset(BaseSupersetView):
     def get_form_data(self):
         form_data = request.args.get("form_data")
         if not form_data:
+            # Supporting POST as well as get
             form_data = request.form.get("form_data")
-        if not form_data:
-            form_data = '{}'
-        d = json.loads(form_data)
+        if form_data:
+            d = json.loads(form_data)
+        elif request.args.get("viz_type"):
+            # Converting old URLs
+            d = cast_form_data(request.args.to_dict())
+
         extra_filters = request.args.get("extra_filters")
         filters = d.get('filters', [])
         if extra_filters:
