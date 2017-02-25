@@ -35,11 +35,11 @@ class UtilsTestCase(unittest.TestCase):
             json_iso_dttm_ser("this is not a date")
 
     def test_base_json_conv(self):
-        assert isinstance(base_json_conv(numpy.bool_(1)), bool) == True
-        assert isinstance(base_json_conv(numpy.int64(1)), int) == True
-        assert isinstance(base_json_conv(set([1])), list) == True
-        assert isinstance(base_json_conv(Decimal('1.0')), float) == True
-        assert isinstance(base_json_conv(uuid.uuid4()), str) == True
+        assert isinstance(base_json_conv(numpy.bool_(1)), bool) is True
+        assert isinstance(base_json_conv(numpy.int64(1)), int) is True
+        assert isinstance(base_json_conv(set([1])), list) is True
+        assert isinstance(base_json_conv(Decimal('1.0')), float) is True
+        assert isinstance(base_json_conv(uuid.uuid4()), str) is True
 
     @patch('superset.utils.datetime')
     def test_parse_human_timedelta(self, mock_now):

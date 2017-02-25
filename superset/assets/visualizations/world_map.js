@@ -11,7 +11,7 @@ function worldMapChart(slice, payload) {
 
   container.css('height', slice.height());
   div.selectAll('*').remove();
-  const fd = payload.form_data;
+  const fd = slice.formData;
   // Ignore XXX's to get better normalization
   let data = payload.data.filter((d) => (d.country && d.country !== 'XXX'));
 

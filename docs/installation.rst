@@ -4,8 +4,9 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
-Python 2.6 won't be supported.
+Superset is tested against Python ``2.7`` and Python ``3.4``.
+Airbnb currently uses 2.7.* in production. We do not plan on supporting
+Python ``2.6``.
 
 
 OS dependencies

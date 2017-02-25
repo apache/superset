@@ -16,7 +16,7 @@ function tableVis(slice, payload) {
   let timestampFormatter;
 
   const data = payload.data;
-  const fd = payload.form_data;
+  const fd = slice.formData;
   // Removing metrics (aggregates) that are strings
   const realMetrics = [];
   for (const k in data.records[0]) {
@@ -71,6 +71,9 @@ function tableVis(slice, payload) {
       let val = row[c];
       if (c === 'timestamp') {
         val = timestampFormatter(val);
+      }
+      if (typeof(val) === 'string') {
+        val = `<span class="like-pre">${val}</span>`;
       }
       return {
         col: c,

@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import ast
 from collections import OrderedDict
 import functools
 import json
@@ -12,8 +11,10 @@ import logging
 import numpy
 import pickle
 import re
-import six
 import textwrap
+from future.standard_library import install_aliases
+install_aliases()
+from urllib import parse
 from copy import deepcopy, copy
 from datetime import timedelta, datetime, date
 
@@ -25,7 +26,7 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm import subqueryload
 
 import sqlparse
-from dateutil.parser import parse
+from dateutil.parser import parse as dparse
 
 from flask import escape, g, Markup, request
 from flask_appbuilder import Model
@@ -36,7 +37,9 @@ from flask_babel import lazy_gettext as _
 from pydruid.client import PyDruid
 from pydruid.utils.aggregators import count
 from pydruid.utils.filters import Dimension, Filter
-from pydruid.utils.postaggregator import Postaggregator
+from pydruid.utils.postaggregator import (
+    Postaggregator, Quantile, Quantiles, Field, Const, HyperUniqueCardinality,
+)
 from pydruid.utils.having import Aggregation
 from six import string_types
 
@@ -53,11 +56,10 @@ from sqlalchemy.sql import table, literal_column, text, column
 from sqlalchemy.sql.expression import ColumnClause, TextAsFrom
 from sqlalchemy_utils import EncryptedType
 
-from werkzeug.datastructures import ImmutableMultiDict
-
 from superset import (
-    app, db, db_engine_specs, get_session, utils, sm, import_util
+    app, db, db_engine_specs, get_session, utils, sm, import_util,
 )
+from superset.legacy import cast_form_data
 from superset.source_registry import SourceRegistry
 from superset.viz import viz_types
 from superset.jinja_context import get_template_processor
@@ -85,9 +87,6 @@ class QueryResult(object):
         self.duration = duration
         self.status = status
         self.error_message = error_message
-
-
-FillterPattern = re.compile(r'''((?:[^,"']|"[^"]*"|'[^']*')+)''')
 
 
 def set_perm(mapper, connection, target):  # noqa
@@ -233,10 +232,10 @@ class CssTemplate(Model, AuditMixinNullable):
 
 
 slice_user = Table('slice_user', Model.metadata,
-    Column('id', Integer, primary_key=True),
-    Column('user_id', Integer, ForeignKey('ab_user.id')),
-    Column('slice_id', Integer, ForeignKey('slices.id'))
-)
+                   Column('id', Integer, primary_key=True),
+                   Column('user_id', Integer, ForeignKey('ab_user.id')),
+                   Column('slice_id', Integer, ForeignKey('slices.id'))
+                   )
 
 
 class Slice(Model, AuditMixinNullable, ImportMixin):
@@ -310,34 +309,37 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
         except Exception as e:
             logging.exception(e)
             d['error'] = str(e)
-        d['slice_id'] = self.id
-        d['slice_name'] = self.slice_name
-        d['description'] = self.description
-        d['slice_url'] = self.slice_url
-        d['edit_url'] = self.edit_url
-        d['description_markeddown'] = self.description_markeddown
-        return d
+        return {
+            'datasource': self.datasource_name,
+            'description': self.description,
+            'description_markeddown': self.description_markeddown,
+            'edit_url': self.edit_url,
+            'form_data': self.form_data,
+            'slice_id': self.id,
+            'slice_name': self.slice_name,
+            'slice_url': self.slice_url,
+        }
 
     @property
     def json_data(self):
         return json.dumps(self.data)
 
     @property
+    def form_data(self):
+        form_data = json.loads(self.params)
+        form_data['slice_id'] = self.id
+        form_data['viz_type'] = self.viz_type
+        form_data['datasource'] = (
+            str(self.datasource_id) + '__' + self.datasource_type)
+        return form_data
+
+    @property
     def slice_url(self):
         """Defines the url to access the slice"""
-        try:
-            slice_params = json.loads(self.params)
-        except Exception as e:
-            logging.exception(e)
-            slice_params = {}
-        slice_params['slice_id'] = self.id
-        slice_params['json'] = "false"
-        slice_params['slice_name'] = self.slice_name
-        from werkzeug.urls import Href
-        href = Href(
+        return (
             "/superset/explore/{obj.datasource_type}/"
-            "{obj.datasource_id}/".format(obj=self))
-        return href(slice_params)
+            "{obj.datasource_id}/?form_data={params}".format(
+                obj=self, params=parse.quote(json.dumps(self.form_data))))
 
     @property
     def slice_id_url(self):
@@ -365,21 +367,15 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
             url_params_multidict or self.params.
         :rtype: :py:class:viz.BaseViz
         """
-        slice_params = json.loads(self.params)  # {}
+        slice_params = json.loads(self.params)
         slice_params['slice_id'] = self.id
         slice_params['json'] = "false"
         slice_params['slice_name'] = self.slice_name
         slice_params['viz_type'] = self.viz_type if self.viz_type else "table"
-        if url_params_multidict:
-            slice_params.update(url_params_multidict)
-            to_del = [k for k in slice_params if k not in url_params_multidict]
-            for k in to_del:
-                del slice_params[k]
 
-        immutable_slice_params = ImmutableMultiDict(slice_params)
-        return viz_types[immutable_slice_params.get('viz_type')](
+        return viz_types[slice_params.get('viz_type')](
             self.datasource,
-            form_data=immutable_slice_params,
+            form_data=slice_params,
             slice_=self
         )
 
@@ -652,9 +648,12 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
         })
 
 
-class Queryable(object):
+class Datasource(object):
 
     """A common interface to objects that are queryable (tables and datasources)"""
+
+    # Used to do code highlighting when displaying the query in the UI
+    query_language = None
 
     @property
     def column_names(self):
@@ -688,32 +687,39 @@ class Queryable(object):
             return "/superset/explore/{obj.type}/{obj.id}/".format(obj=self)
 
     @property
+    def column_formats(self):
+        return {
+            m.metric_name: m.d3format
+            for m in self.metrics
+            if m.d3format
+        }
+
+    @property
     def data(self):
         """data representation of the datasource sent to the frontend"""
-        gb_cols = [(col, col) for col in self.groupby_column_names]
-        all_cols = [(c, c) for c in self.column_names]
-        filter_cols = [(c, c) for c in self.filterable_column_names]
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
             order_by_choices.append((json.dumps([s, False]), s + ' [desc]'))
 
         d = {
-            'id': self.id,
-            'type': self.type,
-            'name': self.name,
-            'metrics_combo': self.metrics_combo,
-            'order_by_choices': order_by_choices,
-            'gb_cols': gb_cols,
-            'all_cols': all_cols,
-            'filterable_cols': filter_cols,
+            'all_cols': utils.choicify(self.column_names),
+            'column_formats': self.column_formats,
+            'edit_url' : self.url,
             'filter_select': self.filter_select_enabled,
+            'filterable_cols': utils.choicify(self.filterable_column_names),
+            'gb_cols': utils.choicify(self.groupby_column_names),
+            'id': self.id,
+            'metrics_combo': self.metrics_combo,
+            'name': self.name,
+            'order_by_choices': order_by_choices,
+            'type': self.type,
         }
-        if (self.type == 'table'):
+        if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
                 grains = [(g.name, g.name) for g in grains]
-            d['granularity_sqla'] = [(c, c) for c in self.dttm_cols]
+            d['granularity_sqla'] = utils.choicify(self.dttm_cols)
             d['time_grain_sqla'] = grains
         return d
 
@@ -845,14 +851,22 @@ class Database(Model, AuditMixinNullable):
         engine = self.get_sqla_engine()
         return sqla.inspect(engine)
 
-    def all_table_names(self, schema=None):
+    def all_table_names(self, schema=None, force=False):
+        if not schema:
+            tables_dict = self.db_engine_spec.fetch_result_sets(
+                self, 'table', force=force)
+            return tables_dict.get("", [])
         return sorted(self.inspector.get_table_names(schema))
 
-    def all_view_names(self, schema=None):
+    def all_view_names(self, schema=None, force=False):
+        if not schema:
+            views_dict = self.db_engine_spec.fetch_result_sets(
+                self, 'view', force=force)
+            return views_dict.get("", [])
         views = []
         try:
             views = self.inspector.get_view_names(schema)
-        except Exception as e:
+        except Exception:
             pass
         return views
 
@@ -955,7 +969,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL',)
+    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL', 'NUMERIC')
     date_types = ('DATE', 'TIME')
     str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
@@ -969,7 +983,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         return self.column_name
 
     @property
-    def isnum(self):
+    def is_num(self):
         return any([t in self.type.upper() for t in self.num_types])
 
     @property
@@ -1089,11 +1103,12 @@ class SqlMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
+class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
 
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"
+    query_language = 'sql'
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)
@@ -1167,13 +1182,13 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
     @property
     def dttm_cols(self):
         l = [c.column_name for c in self.columns if c.is_dttm]
-        if self.main_dttm_col not in l:
+        if self.main_dttm_col and self.main_dttm_col not in l:
             l.append(self.main_dttm_col)
         return l
 
     @property
     def num_cols(self):
-        return [c.column_name for c in self.columns if c.isnum]
+        return [c.column_name for c in self.columns if c.is_num]
 
     @property
     def any_dttm_col(self):
@@ -1256,8 +1271,9 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
             con=engine
         )
 
-    def query(  # sqla
-            self, groupby, metrics,
+    def get_query_str(  # sqla
+            self, engine, qry_start_dttm,
+            groupby, metrics,
             granularity,
             from_dttm, to_dttm,
             filter=None,  # noqa
@@ -1280,7 +1296,6 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         cols = {col.column_name: col for col in self.columns}
         metrics_dict = {m.metric_name: m for m in self.metrics}
-        qry_start_dttm = datetime.now()
 
         if not granularity and is_timeseries:
             raise Exception(_(
@@ -1369,16 +1384,16 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         where_clause_and = []
         having_clause_and = []
-        for col, op, eq in filter:
+        for flt in filter:
+            if not all([flt.get(s) for s in ['col', 'op', 'val']]):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
             col_obj = cols[col]
             if op in ('in', 'not in'):
-                splitted = FillterPattern.split(eq)[1::2]
-                values = [types.strip() for types in splitted]
-                # attempt to get the values type if they are not in quotes
-                if not col_obj.is_string:
-                    values = [ast.literal_eval(v) for v in values]
-                else:
-                    values = [v.replace("'", '').strip() for v in values]
+                values = [types.strip("'").strip('"') for types in eq]
+                values = [utils.js_string_to_num(s) for s in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -1434,12 +1449,18 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
 
         qry = qry.select_from(tbl)
 
-        engine = self.database.get_sqla_engine()
         sql = "{}".format(
             qry.compile(
                 engine, compile_kwargs={"literal_binds": True},),
         )
+        logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
+        return sql
+
+    def query(self, query_obj):
+        qry_start_dttm = datetime.now()
+        engine = self.database.get_sqla_engine()
+        sql = self.get_query_str(engine, qry_start_dttm, **query_obj)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
@@ -1492,8 +1513,8 @@ class SqlaTable(Model, Queryable, AuditMixinNullable, ImportMixin):
                 dbcol = TableColumn(column_name=col.name, type=datatype)
                 dbcol.groupby = dbcol.is_string
                 dbcol.filterable = dbcol.is_string
-                dbcol.sum = dbcol.isnum
-                dbcol.avg = dbcol.isnum
+                dbcol.sum = dbcol.is_num
+                dbcol.avg = dbcol.is_num
                 dbcol.is_dttm = dbcol.is_time
 
             db.session.merge(self)
@@ -1686,7 +1707,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         return self.column_name
 
     @property
-    def isnum(self):
+    def is_num(self):
         return self.type in ('LONG', 'DOUBLE', 'FLOAT', 'INT')
 
     @property
@@ -1710,7 +1731,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         else:
             corrected_type = self.type
 
-        if self.sum and self.isnum:
+        if self.sum and self.is_num:
             mt = corrected_type.lower() + 'Sum'
             name = 'sum__' + self.column_name
             metrics.append(DruidMetric(
@@ -1721,7 +1742,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
 
-        if self.avg and self.isnum:
+        if self.avg and self.is_num:
             mt = corrected_type.lower() + 'Avg'
             name = 'avg__' + self.column_name
             metrics.append(DruidMetric(
@@ -1732,7 +1753,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
 
-        if self.min and self.isnum:
+        if self.min and self.is_num:
             mt = corrected_type.lower() + 'Min'
             name = 'min__' + self.column_name
             metrics.append(DruidMetric(
@@ -1742,7 +1763,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                 json=json.dumps({
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
-        if self.max and self.isnum:
+        if self.max and self.is_num:
             mt = corrected_type.lower() + 'Max'
             name = 'max__' + self.column_name
             metrics.append(DruidMetric(
@@ -1864,11 +1885,12 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
+class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
 
     """ORM object referencing Druid datasources (tables)"""
 
     type = "druid"
+    query_langtage = "json"
 
     baselink = "druiddatasourcemodelview"
 
@@ -1918,7 +1940,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
     @property
     def num_cols(self):
-        return [c.column_name for c in self.columns if c.isnum]
+        return [c.column_name for c in self.columns if c.is_num]
 
     @property
     def name(self):
@@ -1983,7 +2005,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
     def import_obj(cls, i_datasource, import_time=None):
         """Imports the datasource from the object to the database.
 
-         Metrics and columns and datasource will be overrided if exists.
+         Metrics and columns and datasource will be overridden if exists.
          This function can be used to import/export dashboards between multiple
          superset instances. Audit metadata isn't copies over.
         """
@@ -2036,10 +2058,10 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if not results:
             return
         max_time = results[0]['result']['maxTime']
-        max_time = parse(max_time)
+        max_time = dparse(max_time)
         # Query segmentMetadata for 7 days back. However, due to a bug,
         # we need to set this interval to more than 1 day ago to exclude
-        # realtime segments, which trigged a bug (fixed in druid 0.8.2).
+        # realtime segments, which triggered a bug (fixed in druid 0.8.2).
         # https://groups.google.com/forum/#!topic/druid-user/gVCqqspHqOQ
         lbound = (max_time - timedelta(days=7)).isoformat()
         rbound = max_time.isoformat()
@@ -2072,7 +2094,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 logging.exception(e)
         if segment_metadata:
             return segment_metadata[-1]['columns']
-
 
     def generate_metrics(self):
         for col in self.columns:
@@ -2255,7 +2276,7 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                           to_dttm,
                           limit=500):
         """Retrieve some values for the given column"""
-        # TODO: Use Lexicographic TopNMeticSpec onces supported by PyDruid
+        # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
         from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
         to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
 
@@ -2278,8 +2299,9 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
 
         return df
 
-    def query(  # druid
-            self, groupby, metrics,
+    def get_query_str(  # druid
+            self, client, qry_start_dttm,
+            groupby, metrics,
             granularity,
             from_dttm, to_dttm,
             filter=None,  # noqa
@@ -2291,13 +2313,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             orderby=None,
             extras=None,  # noqa
             select=None,  # noqa
-            columns=None, ):
+            columns=None, phase=2):
         """Runs a query against Druid and returns a dataframe.
 
         This query interface is common to SqlAlchemy and Druid
         """
         # TODO refactor into using a TBD Query object
-        qry_start_dttm = datetime.now()
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -2336,9 +2357,30 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 all_metrics += conf.get('fieldNames', [])
                 if conf.get('type') == 'javascript':
                     post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=conf.get('name'),
-                        field_names=conf.get('fieldNames'),
-                        function=conf.get('function'))
+                        name=conf.get('name', ''),
+                        field_names=conf.get('fieldNames', []),
+                        function=conf.get('function', ''))
+                elif conf.get('type') == 'quantile':
+                    post_aggs[metric_name] = Quantile(
+                        conf.get('name', ''),
+                        conf.get('probability', ''),
+                    )
+                elif conf.get('type') == 'quantiles':
+                    post_aggs[metric_name] = Quantiles(
+                        conf.get('name', ''),
+                        conf.get('probabilities', ''),
+                    )
+                elif conf.get('type') == 'fieldAccess':
+                    post_aggs[metric_name] = Field(conf.get('name'), '')
+                elif conf.get('type') == 'constant':
+                    post_aggs[metric_name] = Const(
+                        conf.get('value'),
+                        output_name=conf.get('name', '')
+                    )
+                elif conf.get('type') == 'hyperUniqueCardinality':
+                    post_aggs[metric_name] = HyperUniqueCardinality(
+                        conf.get('name'), ''
+                    )
                 else:
                     post_aggs[metric_name] = Postaggregator(
                         conf.get('fn', "/"),
@@ -2393,7 +2435,6 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         if having_filters:
             qry['having'] = having_filters
 
-        client = self.cluster.get_pydruid_client()
         orig_filters = filters
         if len(groupby) == 0:
             del qry['dimensions']
@@ -2432,6 +2473,8 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
                 query_str += json.dumps(
                     client.query_builder.last_query.query_dict, indent=2)
                 query_str += "\n"
+                if phase == 1:
+                    return query_str
                 query_str += (
                     "//\nPhase 2 (built based on phase one's results)\n")
                 df = client.export_pandas()
@@ -2471,15 +2514,24 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             client.groupby(**qry)
         query_str += json.dumps(
             client.query_builder.last_query.query_dict, indent=2)
+        return query_str
+
+    def query(self, query_obj):
+        qry_start_dttm = datetime.now()
+        client = self.cluster.get_pydruid_client()
+        query_str = self.get_query_str(client, qry_start_dttm, **query_obj)
         df = client.export_pandas()
+
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
         df.columns = [
             DTTM_ALIAS if c == 'timestamp' else c for c in df.columns]
 
+        is_timeseries = query_obj['is_timeseries'] \
+            if 'is_timeseries' in query_obj else True
         if (
                 not is_timeseries and
-                granularity == "all" and
+                query_obj['granularity'] == "all" and
                 DTTM_ALIAS in df.columns):
             del df[DTTM_ALIAS]
 
@@ -2487,11 +2539,11 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
         cols = []
         if DTTM_ALIAS in df.columns:
             cols += [DTTM_ALIAS]
-        cols += [col for col in groupby if col in df.columns]
-        cols += [col for col in metrics if col in df.columns]
+        cols += [col for col in query_obj['groupby'] if col in df.columns]
+        cols += [col for col in query_obj['metrics'] if col in df.columns]
         df = df[cols]
 
-        time_offset = DruidDatasource.time_offset(granularity)
+        time_offset = DruidDatasource.time_offset(query_obj['granularity'])
 
         def increment_timestamp(ts):
             dt = utils.parse_human_datetime(ts).replace(
@@ -2508,7 +2560,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
     @staticmethod
     def get_filters(raw_filters):
         filters = None
-        for col, op, eq in raw_filters:
+        for flt in raw_filters:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
             cond = None
             if op == '==':
                 cond = Dimension(col) == eq
@@ -2517,15 +2574,15 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             elif op in ('in', 'not in'):
                 fields = []
                 # Distinguish quoted values with regular value types
-                splitted = FillterPattern.split(eq)[1::2]
-                values = [types.replace("'", '') for types in splitted]
+                values = [types.replace("'", '') for types in eq]
+                values = [utils.js_string_to_num(s) for s in values]
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()
                         fields.append(Dimension(col) == s)
                     cond = Filter(type="or", fields=fields)
-                else:
-                    cond = Dimension(col) == eq
+                elif len(values) == 1:
+                    cond = Dimension(col) == eq[0]
                 if op == 'not in':
                     cond = ~cond
             elif op == 'regex':
@@ -2561,7 +2618,12 @@ class DruidDatasource(Model, AuditMixinNullable, Queryable, ImportMixin):
             '<=': '>'
         }
 
-        for col, op, eq in raw_filters:
+        for flt in raw_filters:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
             cond = None
             if op in ['==', '>', '<']:
                 cond = self._get_having_obj(col, op, eq)

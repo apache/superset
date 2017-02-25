@@ -92,7 +92,7 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
             order
         :type order_by: list of (str, bool) tuples
         :param filters: a list of filters to apply
-        :param filters: dict of field anme  and filter value combinations
+        :param filters: dict of field name and filter value combinations
         """
         limit_clause = "LIMIT {}".format(limit) if limit else ''
         order_by_clause = ''
@@ -173,7 +173,7 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
         part_fields = indexes[0]['column_names']
         for k in kwargs.keys():
             if k not in k in part_fields:
-                msg = "Field [{k}] is not part of the partionning key"
+                msg = "Field [{k}] is not part of the portioning key"
                 raise SupersetTemplateException(msg)
         if len(kwargs.keys()) != len(part_fields) - 1:
             msg = (

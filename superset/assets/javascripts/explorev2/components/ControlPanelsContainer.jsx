@@ -4,62 +4,38 @@ import { bindActionCreators } from 'redux';
 import * as actions from '../actions/exploreActions';
 import { connect } from 'react-redux';
 import { Panel, Alert } from 'react-bootstrap';
-import visTypes, { sectionsToRender } from '../stores/visTypes';
+import { sectionsToRender } from '../stores/visTypes';
 import ControlPanelSection from './ControlPanelSection';
-import FieldSetRow from './FieldSetRow';
-import FieldSet from './FieldSet';
+import ControlRow from './ControlRow';
+import Control from './Control';
+import controls from '../stores/controls';
 
 const propTypes = {
-  datasource_type: PropTypes.string.isRequired,
   actions: PropTypes.object.isRequired,
-  fields: PropTypes.object.isRequired,
-  isDatasourceMetaLoading: PropTypes.bool.isRequired,
-  form_data: PropTypes.object.isRequired,
-  y_axis_zero: PropTypes.any,
   alert: PropTypes.string,
+  datasource_type: PropTypes.string.isRequired,
   exploreState: PropTypes.object.isRequired,
+  controls: PropTypes.object.isRequired,
+  form_data: PropTypes.object.isRequired,
+  isDatasourceMetaLoading: PropTypes.bool.isRequired,
+  y_axis_zero: PropTypes.any,
 };
 
 class ControlPanelsContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.fieldOverrides = this.fieldOverrides.bind(this);
-    this.getFieldData = this.getFieldData.bind(this);
     this.removeAlert = this.removeAlert.bind(this);
+    this.getControlData = this.getControlData.bind(this);
   }
-  componentWillMount() {
-    const datasource_id = this.props.form_data.datasource;
-    const datasource_type = this.props.datasource_type;
-    if (datasource_id) {
-      this.props.actions.fetchDatasourceMetadata(datasource_id, datasource_type);
+  getControlData(controlName) {
+    const mapF = controls[controlName].mapStateToProps;
+    if (mapF) {
+      return Object.assign({}, this.props.controls[controlName], mapF(this.props.exploreState));
     }
-  }
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.form_data.datasource !== this.props.form_data.datasource) {
-      if (nextProps.form_data.datasource) {
-        this.props.actions.fetchDatasourceMetadata(
-          nextProps.form_data.datasource, nextProps.datasource_type);
-      }
-    }
-  }
-  getFieldData(fs) {
-    const fieldOverrides = this.fieldOverrides();
-    let fieldData = this.props.fields[fs] || {};
-    if (fieldOverrides.hasOwnProperty(fs)) {
-      const overrideData = fieldOverrides[fs];
-      fieldData = Object.assign({}, fieldData, overrideData);
-    }
-    if (fieldData.mapStateToProps) {
-      Object.assign(fieldData, fieldData.mapStateToProps(this.props.exploreState));
-    }
-    return fieldData;
+    return this.props.controls[controlName];
   }
   sectionsToRender() {
     return sectionsToRender(this.props.form_data.viz_type, this.props.datasource_type);
-  }
-  fieldOverrides() {
-    const viz = visTypes[this.props.form_data.viz_type];
-    return viz.fieldOverrides || {};
   }
   removeAlert() {
     this.props.actions.removeControlPanelAlert();
@@ -78,24 +54,23 @@ class ControlPanelsContainer extends React.Component {
               />
             </Alert>
           }
-          {!this.props.isDatasourceMetaLoading && this.sectionsToRender().map((section) => (
+          {this.sectionsToRender().map((section) => (
             <ControlPanelSection
               key={section.label}
               label={section.label}
               tooltip={section.description}
             >
-              {section.fieldSetRows.map((fieldSets, i) => (
-                <FieldSetRow
-                  key={`fieldsetrow-${i}`}
-                  fields={fieldSets.map(fieldName => (
-                    <FieldSet
-                      name={fieldName}
-                      key={`field-${fieldName}`}
-                      value={this.props.form_data[fieldName]}
-                      validationErrors={this.props.fields[fieldName].validationErrors}
+              {section.controlSetRows.map((controlSets, i) => (
+                <ControlRow
+                  key={`controlsetrow-${i}`}
+                  controls={controlSets.map(controlName => (
+                    <Control
+                      name={controlName}
+                      key={`control-${controlName}`}
+                      value={this.props.form_data[controlName]}
+                      validationErrors={this.props.controls[controlName].validationErrors}
                       actions={this.props.actions}
-                      prefix={section.prefix}
-                      {...this.getFieldData(fieldName)}
+                      {...this.getControlData(controlName)}
                     />
                   ))}
                 />
@@ -114,7 +89,7 @@ function mapStateToProps(state) {
   return {
     alert: state.controlPanelAlert,
     isDatasourceMetaLoading: state.isDatasourceMetaLoading,
-    fields: state.fields,
+    controls: state.controls,
     exploreState: state,
   };
 }

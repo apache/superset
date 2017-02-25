@@ -10,7 +10,7 @@ dt(window, $);
 
 module.exports = function (slice, payload) {
   const container = slice.container;
-  const fd = payload.form_data;
+  const fd = slice.formData;
   container.html(payload.data);
   if (fd.groupby.length === 1) {
     const height = container.height();
