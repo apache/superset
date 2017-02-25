@@ -1393,6 +1393,7 @@ class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
             col_obj = cols[col]
             if op in ('in', 'not in'):
                 values = [types.strip("'").strip('"') for types in eq]
+                values = [utils.js_string_to_num(s) for s in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -2574,6 +2575,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 fields = []
                 # Distinguish quoted values with regular value types
                 values = [types.replace("'", '') for types in eq]
+                values = [utils.js_string_to_num(s) for s in values]
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()
