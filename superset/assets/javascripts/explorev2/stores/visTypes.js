@@ -254,6 +254,12 @@ const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metrics: {
+        default: null,
+        validators: null,
+      },
+    },
   },
 
   markup: {
