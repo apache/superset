@@ -94,7 +94,7 @@ class CssEditor extends React.PureComponent {
                   width="100%"
                   editorProps={{ $blockScrolling: true }}
                   enableLiveAutocompletion
-                  value={this.state.css}
+                  value={this.state.css || ''}
                 />
               </div>
             </div>
