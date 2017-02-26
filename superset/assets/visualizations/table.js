@@ -19,9 +19,11 @@ function tableVis(slice, payload) {
   const fd = slice.formData;
   // Removing metrics (aggregates) that are strings
   const realMetrics = [];
-  for (const k in data.records[0]) {
-    if (fd.metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
-      realMetrics.push(k);
+  if (fd.metrics) {
+    for (const k in data.records[0]) {
+      if (fd.metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
+        realMetrics.push(k);
+      }
     }
   }
   const metrics = realMetrics;
