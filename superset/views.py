@@ -1478,7 +1478,7 @@ class Superset(BaseSupersetView):
 
         if request.args.get("viz_type"):
             # Converting old URLs
-            d = cast_form_data(request.args.to_dict())
+            d = cast_form_data(request.args)
 
         extra_filters = request.args.get("extra_filters")
         filters = d.get('filters', [])
