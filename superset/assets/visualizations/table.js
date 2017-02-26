@@ -19,14 +19,13 @@ function tableVis(slice, payload) {
   const fd = slice.formData;
   // Removing metrics (aggregates) that are strings
   const realMetrics = [];
-  if (fd.metrics) {
-    for (const k in data.records[0]) {
-      if (fd.metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
-        realMetrics.push(k);
-      }
+  let metrics = fd.metrics || [];
+  for (const k in data.records[0]) {
+    if (metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
+      realMetrics.push(k);
     }
   }
-  const metrics = realMetrics;
+  metrics = realMetrics;
 
   function col(c) {
     const arr = [];
@@ -145,8 +144,8 @@ function tableVis(slice, payload) {
   fixDataTableBodyHeight(
       container.find('.dataTables_wrapper'), height);
   // Sorting table by main column
-  if (fd.metrics.length > 0) {
-    const mainMetric = fd.metrics[0];
+  if (metrics.length > 0) {
+    const mainMetric = metrics[0];
     datatable.column(data.columns.indexOf(mainMetric)).order('desc').draw();
   }
   container.parents('.widget').find('.tooltip').remove();
