@@ -1,3 +1,0 @@
-[report]
-omit =
-    */superset/db_engines/TCLIService/**

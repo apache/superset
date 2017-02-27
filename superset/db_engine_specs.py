@@ -487,7 +487,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def patch(cls):
         from pyhive import hive
         from superset.db_engines import hive as patched_hive
-        from superset.db_engines.TCLIService import (
+        from pythrifthiveapi.TCLIService import (
             constants as patched_constants,
             ttypes as patched_ttypes,
             TCLIService as patched_TCLIService)
@@ -553,6 +553,7 @@ class HiveEngineSpec(PrestoEngineSpec):
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         from pyhive import hive
+        print("PATCHED TCLIService {}".format(hive.TCLIService.__file__))
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
