@@ -776,14 +776,24 @@ class Database(Model, AuditMixinNullable):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)
         params = extra.get('engine_params', {})
-        if self.backend == 'presto' and schema:
-            if '/' in url.database:
-                url.database = url.database.split('/')[0] + '/' + schema
-            else:
-                url.database += '/' + schema
-        elif schema:
-            url.database = schema
+        url.database = self.get_database_for_various_backend(url, schema)
         return create_engine(url, **params)
+
+    def get_database_for_various_backend(self, uri, default_database=None):
+        database = uri.database
+        if self.backend == 'presto' and default_database:
+            if '/' in database:
+                database = database.split('/')[0] + '/' + default_database
+            else:
+                database += '/' + default_database
+        # Postgres and Redshift use the concept of schema as a logical entity
+        # on top of the database, so the database should not be changed
+        # even if passed default_database
+        elif self.backend == 'redshift' or self.backend == 'postgresql':
+            pass
+        elif default_database:
+            database = default_database
+        return database
 
     def get_reserved_words(self):
         return self.get_sqla_engine().dialect.preparer.reserved_words
