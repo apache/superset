@@ -1400,8 +1400,8 @@ class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
             col = flt['col']
             op = flt['op']
             eq = flt['val']
-            col_obj = cols[col]
-            if op in ('in', 'not in'):
+            col_obj = cols.get(col)
+            if col_obj and op in ('in', 'not in'):
                 values = [types.strip("'").strip('"') for types in eq]
                 values = [utils.js_string_to_num(s) for s in values]
                 cond = col_obj.sqla_col.in_(values)
