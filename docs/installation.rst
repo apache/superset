@@ -31,7 +31,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
