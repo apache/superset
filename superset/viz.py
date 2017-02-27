@@ -363,24 +363,34 @@ class TableViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
+    def should_be_timeseries(self):
+        fd = self.form_data
+        # TODO handle datasource-type-specific code in datasource
+        return (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+
     def query_obj(self):
         d = super(TableViz, self).query_obj()
         fd = self.form_data
+
         if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
             raise Exception(
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both")
+
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+
+        d['is_timeseries'] = self.should_be_timeseries()
         return d
 
     def get_data(self, df):
-        if (
-                self.form_data.get("granularity") == "all" and
-                DTTM_ALIAS in df):
+        if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
         return dict(
