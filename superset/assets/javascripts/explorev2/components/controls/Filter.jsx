@@ -24,8 +24,10 @@ const defaultProps = {
 export default class Filter extends React.Component {
   constructor(props) {
     super(props);
+    const filterOps = props.datasource.type === 'table' ?
+      ['in', 'not in'] : ['==', '!=', 'in', 'not in', 'regex'];
     this.opChoices = this.props.having ? ['==', '!=', '>', '<', '>=', '<=']
-      : ['in', 'not in'];
+      : filterOps;
   }
   fetchFilterValues(col) {
     if (!this.props.datasource) {
