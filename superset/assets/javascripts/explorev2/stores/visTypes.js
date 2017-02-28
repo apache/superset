@@ -236,6 +236,7 @@ const visTypes = {
         description: 'Use this section if you want a query that aggregates',
         controlSetRows: [
           ['groupby', 'metrics'],
+          ['include_time'],
         ],
       },
       {
@@ -258,6 +259,9 @@ const visTypes = {
       metrics: {
         default: null,
         validators: null,
+      },
+      time_grain_sqla: {
+        default: null,
       },
     },
   },
