@@ -132,14 +132,13 @@ function sankeyVis(slice, payload) {
       })
       .on('drag', dragmove)
     );
-
+  const minRectHeight = 5;
   node.append('rect')
-    .attr('height', function (d) {
-      return d.dy;
-    })
+    .attr('height', d => d.dy > minRectHeight ? d.dy : minRectHeight)
     .attr('width', sankey.nodeWidth())
     .style('fill', function (d) {
-      d.color = category21(d.name.replace(/ .*/, ''));
+      const name = d.name || 'N/A';
+      d.color = category21(name.replace(/ .*/, ''));
       return d.color;
     })
     .style('stroke', function (d) {
