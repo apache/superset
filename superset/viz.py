@@ -366,10 +366,15 @@ class TableViz(BaseViz):
     def should_be_timeseries(self):
         fd = self.form_data
         # TODO handle datasource-type-specific code in datasource
-        return (
+        conditions_met = (
             (fd.get('granularity') and fd.get('granularity') != 'all') or
             (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
         )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(
+                "Pick a granularity in the Time section or "
+                "uncheck 'Include Time'")
+        return fd.get('include_time')
 
     def query_obj(self):
         d = super(TableViz, self).query_obj()

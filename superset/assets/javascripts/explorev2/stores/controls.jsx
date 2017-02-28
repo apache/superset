@@ -188,6 +188,13 @@ export const controls = {
                  'displaying the Y scale',
   },
 
+  include_time: {
+    type: 'CheckboxControl',
+    label: 'Include Time',
+    description: 'Whether to include the time granularity as defined in the time section',
+    default: false,
+  },
+
   bar_stacked: {
     type: 'CheckboxControl',
     label: 'Stacked Bars',
