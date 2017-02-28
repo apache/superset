@@ -50,6 +50,21 @@ export default class Filter extends React.Component {
       });
     }
   }
+  switchFilterValue(prevFilter, nextOp) {
+    const prevOp = prevFilter.op;
+    let newVal = null;
+    if (arrayFilterOps.indexOf(prevOp) !== -1
+        && strFilterOps.indexOf(nextOp) !== -1) {
+      // switch from array to string
+      newVal = this.props.filter.val.length > 0 ? this.props.filter.val[0] : '';
+    }
+    if (strFilterOps.indexOf(prevOp) !== -1
+        && arrayFilterOps.indexOf(nextOp) !== -1) {
+      // switch from string to array
+      newVal = this.props.filter.val === '' ? [] : [this.props.filter.val];
+    }
+    return newVal;
+  }
   changeFilter(control, event) {
     let value = event;
     if (event && event.target) {
@@ -59,15 +74,15 @@ export default class Filter extends React.Component {
       value = event.value;
     }
     if (control === 'op') {
-      if (arrayFilterOps.indexOf(this.props.filter.op) !== -1
-        && strFilterOps.indexOf(value) !== -1) {
-        this.props.changeFilter('val', this.props.filter.val[0]);
-      } else if (strFilterOps.indexOf(this.props.filter.op) !== -1
-        && arrayFilterOps.indexOf(value) !== -1) {
-        this.props.changeFilter('val', [this.props.filter.val]);
+      const newVal = this.switchFilterValue(this.props.filter, value);
+      if (newVal) {
+        this.props.changeFilter(['op', 'val'], [value, newVal]);
+      } else {
+        this.props.changeFilter(control, value);
       }
+    } else {
+      this.props.changeFilter(control, value);
     }
-    this.props.changeFilter(control, value);
     if (control === 'col' && value !== null && this.props.datasource.filter_select) {
       this.fetchFilterValues(value);
     }
@@ -82,7 +97,7 @@ export default class Filter extends React.Component {
         this.fetchFilterValues(filter.col);
       }
     }
-    if (this.props.having || strFilterOps.indexOf(filter.op) !== -1) {
+    if (strFilterOps.indexOf(filter.op) !== -1) {
       // druid having filter or regex/==/!= filters
       return (
         <input

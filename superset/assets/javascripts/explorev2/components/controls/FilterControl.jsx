@@ -29,7 +29,13 @@ export default class FilterControl extends React.Component {
   changeFilter(index, control, value) {
     const newFilters = Object.assign([], this.props.value);
     const modifiedFilter = Object.assign({}, newFilters[index]);
-    modifiedFilter[control] = value;
+    if (typeof control === 'string') {
+      modifiedFilter[control] = value;
+    } else {
+      control.forEach((c, i) => {
+        modifiedFilter[c] = value[i];
+      });
+    }
     newFilters.splice(index, 1, modifiedFilter);
     this.props.onChange(newFilters);
   }
