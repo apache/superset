@@ -2,6 +2,7 @@ import celery
 from datetime import datetime
 import json
 import logging
+import numpy as np
 import pandas as pd
 import sqlalchemy
 import uuid
@@ -109,10 +110,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     try:
         conn = engine.raw_connection()
         cursor = conn.cursor()
-        if db_engine_spec.async:
-            cursor.execute(query.executed_sql, async=True)
-        else:
-            cursor.execute(query.executed_sql)
+        cursor.execute(query.executed_sql,
+                       **db_engine_spec.cursor_execute_kwargs)
     except Exception as e:
         logging.exception(e)
         handle_error(db_engine_spec.extract_error_message(e))
@@ -121,16 +120,22 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     session.flush()
     db_engine_spec.handle_cursor(cursor, query, session)
 
-    if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
-        data = cursor.fetchmany(query.limit)
-    else:
-        data = cursor.fetchall()
-    conn.close()
+    try:
+        if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
+            data = cursor.fetchmany(query.limit)
+        else:
+            data = cursor.fetchall()
+        conn.close()
+    except Exception as e:
+        logging.exception(e)
+        handle_error(db_engine_spec.extract_error_message(e))
 
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)
-    cdf = dataframe.SupersetDataFrame(pd.DataFrame(data, columns=column_names))
+    df_data = np.array(data) if data else []
+    cdf = dataframe.SupersetDataFrame(pd.DataFrame(
+        df_data, columns=column_names))
 
     query.rows = cdf.size
     query.progress = 100
@@ -151,7 +156,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         'columns': cdf.columns_dict if cdf.columns_dict else {},
         'query': query.to_dict(),
     }
-    print(payload)
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)
 
     if store_results:

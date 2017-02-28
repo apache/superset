@@ -13,7 +13,7 @@ import time
 import uuid
 import random
 
-from superset import app, db_engine_specs
+from superset import app
 
 config = app.config
 BASE_CONTEXT = {

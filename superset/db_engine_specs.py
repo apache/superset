@@ -42,7 +42,7 @@ class LimitMethod(object):
 
 class BaseEngineSpec(object):
     engine = 'base'  # str as defined in sqlalchemy.engine.engine
-    async = False
+    cursor_execute_kwargs = {}
     time_grains = tuple()
     limit_method = LimitMethod.FETCH_MANY
 
@@ -233,7 +233,6 @@ class MySQLEngineSpec(BaseEngineSpec):
 
 class PrestoEngineSpec(BaseEngineSpec):
     engine = 'presto'
-    async = True
 
     time_grains = (
         Grain('Time Column', _('Time Column'), '{col}'),
@@ -480,8 +479,11 @@ class PrestoEngineSpec(BaseEngineSpec):
 
 
 class HiveEngineSpec(PrestoEngineSpec):
-    """ Reuses PrestoEngineSpec functionality."""
+
+    """Reuses PrestoEngineSpec functionality."""
+
     engine = 'hive'
+    cursor_execute_kwargs = {'async': True}
 
     @classmethod
     def patch(cls):

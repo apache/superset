@@ -239,8 +239,10 @@ class CeleryTestCase(SupersetTestCase):
             "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
             "WHERE name='Admin'", query1.executed_sql)
         self.assertEqual(sql_where, query1.sql)
-        if eng.name != 'sqlite':
+        if eng.name != 'sqlite' and eng.name != 'mysql':
             self.assertEqual(1, query1.rows)
+        else:
+            self.assertEqual(0, query1.rows)
         self.assertEqual(666, query1.limit)
         self.assertEqual(False, query1.limit_used)
         self.assertEqual(True, query1.select_as_cta)
