@@ -1403,8 +1403,7 @@ class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
             col_obj = cols.get(col)
             if col_obj and op in ('in', 'not in'):
                 values = [types.strip("'").strip('"') for types in eq]
-                if col_obj.is_num:
-                    values = [utils.js_string_to_num(s) for s in values]
+                values = [utils.js_string_to_num(s) for s in values]
                 cond = col_obj.sqla_col.in_(values)
                 if op == 'not in':
                     cond = ~cond
@@ -2568,7 +2567,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             query=query_str,
             duration=datetime.now() - qry_start_dttm)
 
-    def get_filters(self, raw_filters):
+    @staticmethod
+    def get_filters(raw_filters):
         filters = None
         for flt in raw_filters:
             if not all(f in flt for f in ['col', 'op', 'val']):
@@ -2577,11 +2577,6 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             op = flt['op']
             eq = flt['val']
             cond = None
-            if col in self.num_cols:
-                if op in ('in', 'not in'):
-                    eq = [utils.js_string_to_num(v) for v in eq]
-                else:
-                    eq = utils.js_string_to_num(eq)
             if op == '==':
                 cond = Dimension(col) == eq
             elif op == '!=':
@@ -2590,9 +2585,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 fields = []
                 # Distinguish quoted values with regular value types
                 values = [types.replace("'", '') for types in eq]
-                for val in eq:
-                    if col in self.num_cols:
-                        val = utils.js_string_to_num(val)
+                values = [utils.js_string_to_num(s) for s in values]
                 if len(values) > 1:
                     for s in values:
                         s = s.strip()

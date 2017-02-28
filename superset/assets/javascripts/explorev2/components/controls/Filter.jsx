@@ -4,9 +4,6 @@ import Select from 'react-select';
 import { Button, Row, Col } from 'react-bootstrap';
 import SelectControl from './SelectControl';
 
-const arrayFilterOps = ['in', 'not in'];
-const strFilterOps = ['==', '!=', '>', '<', '>=', '<=', 'regex'];
-
 const propTypes = {
   choices: PropTypes.array,
   changeFilter: PropTypes.func,
@@ -58,15 +55,6 @@ export default class Filter extends React.Component {
     if (event && event.value) {
       value = event.value;
     }
-    if (control === 'op') {
-      if (arrayFilterOps.indexOf(this.props.filter.op) !== -1
-        && strFilterOps.indexOf(value) !== -1) {
-        this.props.changeFilter('val', this.props.filter.val[0]);
-      } else if (strFilterOps.indexOf(this.props.filter.op) !== -1
-        && arrayFilterOps.indexOf(value) !== -1) {
-        this.props.changeFilter('val', [this.props.filter.val]);
-      }
-    }
     this.props.changeFilter(control, value);
     if (control === 'col' && value !== null && this.props.datasource.filter_select) {
       this.fetchFilterValues(value);
@@ -82,13 +70,13 @@ export default class Filter extends React.Component {
         this.fetchFilterValues(filter.col);
       }
     }
-    if (this.props.having || StrFilterOps.indexOf(filter.op) !== -1) {
-      // druid having filter or regex/==/!= filters
+    if (this.props.having) {
+      // druid having filter
       return (
         <input
           type="text"
           onChange={this.changeFilter.bind(this, 'val')}
-          value={filter.val}
+          value={filter.value}
           className="form-control input-sm"
           placeholder="Filter value"
         />
