@@ -182,23 +182,25 @@ class ChartContainer extends React.PureComponent {
     }
     const loading = this.props.chartStatus === 'loading';
     return (
-      <div>
-        {loading &&
-          <img
-            alt="loading"
-            width="25"
-            src="/static/assets/images/loading.gif"
-            style={{ position: 'absolute' }}
+      <div className="scrollbar-container">
+        <div className="scrollbar-horizontal">
+          {loading &&
+            <img
+              alt="loading"
+              width="25"
+              src="/static/assets/images/loading.gif"
+              style={{ position: 'absolute' }}
+            />
+          }
+          <div
+            id={this.props.containerId}
+            ref={ref => { this.chartContainerRef = ref; }}
+            className={this.props.viz_type}
+            style={{
+              opacity: loading ? '0.25' : '1',
+            }}
           />
-        }
-        <div
-          id={this.props.containerId}
-          ref={ref => { this.chartContainerRef = ref; }}
-          className={this.props.viz_type}
-          style={{
-            opacity: loading ? '0.25' : '1',
-          }}
-        />
+        </div>
       </div>
     );
   }
