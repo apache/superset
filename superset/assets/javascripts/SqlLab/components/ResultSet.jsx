@@ -56,16 +56,16 @@ class ResultSet extends React.PureComponent {
     // hack to get height of result set table so it can be fixed and scroll in place
     if (this.state.resultSetHeight === '0') {
       // calculate result set table height
-      const sqlEditorHeight = document.getElementById('brace-editor').getBoundingClientRect().height;
-      const sqlToolbar = document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
-      const tabsHeight = document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
-      const headerHeight = document.getElementsByTagName('header')[0].getBoundingClientRect().height;
+      const sqlEditorHeight = 192; //document.getElementById('brace-editor').getBoundingClientRect().height;
+      const sqlToolbar = 30; //document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
+      const tabsHeight = 88; //document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
+      const headerHeight = 59; //document.getElementsByTagName('header')[0].getBoundingClientRect().height;
 
       // this needs to be hardcoded since this element is in this component and has not mounted yet
       const resultsControlsHeight = 30;
 
       const sum = sqlEditorHeight + sqlToolbar + tabsHeight + resultsControlsHeight + headerHeight;
-      this.setState({ resultSetHeight: window.innerHeight - sum - 90});
+      this.setState({ resultSetHeight: window.innerHeight - sum - 95});
     }
   }
   getControls() {
