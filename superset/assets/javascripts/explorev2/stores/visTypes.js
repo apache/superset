@@ -78,7 +78,6 @@ const visTypes = {
     controlPanelSections: [
       {
         label: 'Chart Options',
-        description: 'tooltip text here',
         controlSetRows: [
           ['metrics'],
           ['groupby'],
