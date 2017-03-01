@@ -100,9 +100,6 @@ export default class Filter extends React.Component {
     // switching filter value between array/string when needed
     if (strFilterOps.indexOf(filter.op) !== -1) {
       // druid having filter or regex/==/!= filters
-      if (typeof filter.val !== 'string') {
-        this.props.changeFilter('val', filter.val.length > 0 ? filter.val[0] : '');
-      }
       return (
         <input
           type="text"
@@ -112,9 +109,6 @@ export default class Filter extends React.Component {
           placeholder="Filter value"
         />
       );
-    }
-    if (typeof filter.val === 'string') {
-      this.props.changeFilter('val', filter.val === '' ? [] : [filter.val]);
     }
     return (
       <SelectControl
