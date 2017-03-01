@@ -114,10 +114,9 @@ class AceEditorWrapper extends React.PureComponent {
         theme="github"
         onLoad={this.onEditorLoad.bind(this)}
         onBlur={this.onBlur.bind(this)}
-        minLines={8}
-        maxLines={30}
+        minLines={12}
+        maxLines={12}
         onChange={this.textChange.bind(this)}
-        height="200px"
         width="100%"
         editorProps={{ $blockScrolling: true }}
         enableLiveAutocompletion
