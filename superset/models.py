@@ -2579,6 +2579,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             cond = None
             if op in ('in', 'not in'):
                 eq = [types.replace("'", '').strip() for types in eq]
+            elif not isinstance(flt['val'], basestring):
+                eq = eq[0] if len(eq) > 0 else ''
             if col in self.num_cols:
                 if op in ('in', 'not in'):
                     eq = [utils.js_string_to_num(v) for v in eq]
