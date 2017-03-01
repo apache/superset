@@ -71,7 +71,7 @@ class SouthPane extends React.PureComponent {
           search
           query={latestQuery}
           actions={props.actions}
-          resultSetHeight={this.state.innerTabHeight}
+          height={this.state.innerTabHeight}
         />
       );
     } else {
@@ -90,7 +90,7 @@ class SouthPane extends React.PureComponent {
           csv={false}
           actions={props.actions}
           cache
-          resultSetHeight={this.state.innerTabHeight}
+          height={this.state.innerTabHeight}
         />
       </Tab>
     ));
