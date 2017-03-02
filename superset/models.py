@@ -1661,7 +1661,11 @@ class DruidCluster(Model, AuditMixinNullable):
         endpoint = (
             "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
         ).format(obj=self)
-        return json.loads(requests.get(endpoint).text)['version']
+        ver = json.loads(requests.get(endpoint).text)['version']
+        if ver is None:
+            return "0"
+        else:
+            return ver
 
     def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
