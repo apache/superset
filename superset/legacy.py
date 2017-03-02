@@ -74,7 +74,7 @@ def cast_form_data(form_data):
         d[k] = v
     if 'filters' not in d:
         d = cast_filter_data(d)
-    for k in d.keys():
+    for k in list(d.keys()):
         if k not in FORM_DATA_KEY_WHITELIST:
             del d[k]
     return d
