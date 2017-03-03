@@ -415,10 +415,13 @@ class TableViz(BaseViz):
                 groupby.append(DTTM_ALIAS)
                 df2[DTTM_ALIAS] += delta
 
-                df = pd.merge(df, df2, on=groupby, how='left', suffixes=('', '_r')).fillna(0)
+                df = pd.merge(df, df2, on=groupby, how='left',
+                              suffixes=('', '_r')).fillna(0)
                 for column in metrics:
-                    df['delta_' + column] = (df[column] - df[column + '_r']) / df[column + '_r']
-                    df['delta_' + column] = df['delta_' + column].map("{:.0%}".format)
+                    df['delta_' + column] = (df[column] - df[column + '_r'])\
+                                            / df[column + '_r']
+                    df['delta_' + column] = df['delta_' + column]\
+                        .map("{:.0%}".format)
                     df['full_' + column] = df[column].astype(str).str.cat(
                         df['delta_' + column].astype(str), sep='||', na_rep='0')
                     del df[column + '_r']

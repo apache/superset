@@ -262,7 +262,7 @@ const visTypes = {
         controlSetRows: [
           ['time_compare'],
         ],
-      }
+      },
     ],
     controlOverrides: {
       metrics: {
