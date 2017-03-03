@@ -10,11 +10,8 @@ import Filter from '../../../../javascripts/explorev2/components/controls/Filter
 import SelectControl from '../../../../javascripts/explorev2/components/controls/SelectControl';
 
 const defaultProps = {
-  choices: ['country_name'],
   changeFilter: sinon.spy(),
-  removeFilter: () => {
-    // noop
-  },
+  removeFilter: () => {},
   filter: {
     col: null,
     op: 'in',
@@ -22,8 +19,9 @@ const defaultProps = {
   },
   datasource: {
     id: 1,
-    type: 'table',
+    type: 'qtable',
     filter_select: false,
+    filterable_cols: ['col1', 'col2'],
   },
 };
 
@@ -44,7 +42,7 @@ describe('Filter', () => {
     expect(wrapper.find(Select)).to.have.lengthOf(2);
     expect(wrapper.find(Button)).to.have.lengthOf(1);
     expect(wrapper.find(SelectControl)).to.have.lengthOf(1);
-    expect(wrapper.find('#select-op').prop('options')).to.have.lengthOf(2);
+    expect(wrapper.find('#select-op').prop('options')).to.have.lengthOf(8);
   });
 
   it('renders five op choices for table datasource', () => {
@@ -53,16 +51,17 @@ describe('Filter', () => {
       id: 1,
       type: 'druid',
       filter_select: false,
+      filterable_cols: ['country_name'],
     };
     const druidWrapper = shallow(<Filter {...props} />);
-    expect(druidWrapper.find('#select-op').prop('options')).to.have.lengthOf(5);
+    expect(druidWrapper.find('#select-op').prop('options')).to.have.lengthOf(9);
   });
 
   it('renders six op choices for having filter', () => {
     const props = defaultProps;
     props.having = true;
     const havingWrapper = shallow(<Filter {...props} />);
-    expect(havingWrapper.find('#select-op').prop('options')).to.have.lengthOf(6);
+    expect(havingWrapper.find('#select-op').prop('options')).to.have.lengthOf(9);
   });
 
   it('calls changeFilter when select is changed', () => {

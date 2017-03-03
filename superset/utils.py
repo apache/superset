@@ -419,7 +419,7 @@ class timeout(object):
 def wrap_clause_in_parens(sql):
     """Wrap where/having clause with parenthesis if necessary"""
     if sql.strip():
-        sql = '({})'.format(sql)
+        sql = '({})'.format(sql).replace('%', '%%')
     return sa.text(sql)
 
 

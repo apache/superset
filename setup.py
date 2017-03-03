@@ -67,7 +67,6 @@ setup(
         'sqlparse==0.1.19',
         'thrift>=0.9.3',
         'thrift-sasl>=0.2.1',
-        'werkzeug==0.11.15',
     ],
     extras_require={
         'cors': ['Flask-Cors>=2.0.0'],
