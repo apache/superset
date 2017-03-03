@@ -212,13 +212,14 @@ class DruidCluster(Model, AuditMixinNullable, ImportMixin):
                     if datatype == 'hyperUnique' or datatype == 'thetaSketch':
                         col_obj.count_distinct = True
                     # Allow sum/min/max for long or double
-                    if datatype == 'LONG' or datatype == 'DOUBLE':
+                    if datatype == 'LONG' or datatype == 'DOUBLE' or datatype == 'FLOAT':
+                        col_obj.avg = True
                         col_obj.sum = True
                         col_obj.min = True
                         col_obj.max = True
                     col_obj.type = datatype
                     col_obj.datasource = datasource
-                datasource.generate_metrics_for(col_objs_list)
+                datasource.generate_metrics_for(col_objs_list, cluster.druid_version)
         session.commit()
 
     @property
@@ -272,7 +273,7 @@ class DruidColumn(Model, BaseColumn):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
 
-    def get_metrics(self):
+    def get_metrics(self, ver):
         metrics = {}
         metrics['count'] = DruidMetric(
             metric_name='count',
@@ -298,18 +299,38 @@ class DruidColumn(Model, BaseColumn):
             )
 
         if self.avg and self.is_num:
-            mt = corrected_type.lower() + 'Avg'
-            name = 'avg__' + self.column_name
-            metrics[name] = DruidMetric(
-                metric_name=name,
-                metric_type='avg',
-                verbose_name='AVG({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name}),
-            )
+            if ver > '0':
+                mt = corrected_type.lower() + 'Avg'
+                name = 'avg__' + self.column_name
+                metrics[name] = DruidMetric(
+                    metric_name=name,
+                    metric_type='avg',
+                    verbose_name='AVG({})'.format(self.column_name),
+                    json=json.dumps({
+                        'type': mt, 'name': name, 'fieldName': self.column_name}),
+                ))
+            else:
+                name = 'avg__' + self.column_name
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    metric_type='postagg',
+                    verbose_name='AVG({})'.format(self.column_name),
+                    json=json.dumps({
+                        'type': 'arithmetic',
+                        'name': name,
+                        'fn': '/',
+                        'fields': [
+                          { 'type': 'fieldAccess', 'fieldName': 'sum__' + self.column_name },
+                          { 'type': 'fieldAccess', 'fieldName': 'count' }
+                        ]
+                    })
+                ))
 
         if self.min and self.is_num:
-            mt = corrected_type.lower() + 'Min'
+            if ver > '0':
+                mt = corrected_type.lower() + 'Min'
+            else:
+                mt = 'min'
             name = 'min__' + self.column_name
             metrics[name] = DruidMetric(
                 metric_name=name,
@@ -319,7 +340,10 @@ class DruidColumn(Model, BaseColumn):
                     'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
         if self.max and self.is_num:
-            mt = corrected_type.lower() + 'Max'
+            if ver > '0':
+                mt = corrected_type.lower() + 'Max'
+            else:
+                mt = 'max'
             name = 'max__' + self.column_name
             metrics[name] = DruidMetric(
                 metric_name=name,
@@ -353,9 +377,9 @@ class DruidColumn(Model, BaseColumn):
                 )
         return metrics
 
-    def generate_metrics(self):
+    def generate_metrics(self, ver):
         """Generate metrics based on the column metadata"""
-        metrics = self.get_metrics()
+        metrics = self.get_metrics(ver)
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == self.datasource_id)
@@ -645,12 +669,12 @@ class DruidDatasource(Model, BaseDatasource):
             return segment_metadata[-1]['columns']
 
     def generate_metrics(self):
-        self.generate_metrics_for(self.columns)
+        self.generate_metrics_for(self.columns, self.cluster.druid_version)
 
-    def generate_metrics_for(self, columns):
+    def generate_metrics_for(self, columns, ver):
         metrics = {}
         for col in columns:
-            metrics.update(col.get_metrics())
+            metrics.update(col.get_metrics(ver))
         dbmetrics = (
             db.session.query(DruidMetric)
             .filter(DruidMetric.datasource_id == self.id)
