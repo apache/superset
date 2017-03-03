@@ -29,6 +29,14 @@ app = Flask(__name__)
 app.config.from_object(CONFIG_MODULE)
 conf = app.config
 
+for bp in conf.get('BLUEPRINTS'):
+    try:
+        print("Registering blueprint: '{}'".format(bp.name))
+        app.register_blueprint(bp)
+    except Exception as e:
+        print("blueprint registration failed")
+        logging.exception(e)
+
 if conf.get('SILENCE_FAB'):
     logging.getLogger('flask_appbuilder').setLevel(logging.ERROR)
 
