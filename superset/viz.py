@@ -395,6 +395,35 @@ class TableViz(BaseViz):
         return d
 
     def get_data(self, df):
+
+        time_compare = self.form_data.get('time_compare')
+        if time_compare:
+            fd = self.form_data
+            if not fd.get('include_time'):
+                raise Exception("check 'Include Time' before using 'Time Shift'")
+            query_object = self.query_obj()
+            df = self.get_df(query_object)
+
+            groupby = query_object['groupby']
+            metrics = query_object['metrics']
+            delta = utils.parse_human_timedelta(time_compare)
+            query_object['from_dttm'] -= delta
+            query_object['to_dttm'] -= delta
+
+            df2 = self.get_df(query_object)
+            if DTTM_ALIAS in df and DTTM_ALIAS in df2:
+                groupby.append(DTTM_ALIAS)
+                df2[DTTM_ALIAS] += delta
+
+                df = pd.merge(df, df2, on=groupby, how='left', suffixes=('', '_r')).fillna(0)
+                for column in metrics:
+                    df['delta_' + column] = (df[column] - df[column + '_r']) / df[column + '_r']
+                    df['delta_' + column] = df['delta_' + column].map("{:.0%}".format)
+                    df['full_' + column] = df[column].astype(str).str.cat(
+                        df['delta_' + column].astype(str), sep='||', na_rep='0')
+                    del df[column + '_r']
+                df = df.fillna(0)
+
         if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 

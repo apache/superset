@@ -254,6 +254,15 @@ const visTypes = {
           ['include_search', 'table_filter'],
         ],
       },
+      {
+        label: 'Advanced Analytics',
+        description: 'This section contains options ' +
+                   'that allow for advanced analytical post processing ' +
+                    'of query results',
+        controlSetRows: [
+          ['time_compare'],
+        ],
+      }
     ],
     controlOverrides: {
       metrics: {
