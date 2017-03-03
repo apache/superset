@@ -1148,8 +1148,8 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in df.iteritems():
-            if df[name].dtype.kind not in "biufc" or name in self.groupby:
+        for name, ys in pt.iteritems():
+            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
                 continue
             if isinstance(name, string_types):
                 series_title = name
@@ -1159,19 +1159,12 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
             values = []
-            for i, v in ys.iteritems():
-                idx = pt.index[i]
-                if isinstance(idx, (tuple, list)):
-                    idx = ', '.join([str(s) for s in idx])
-                else:
-                    idx = str(idx)
-                values.append({
-                    'x': idx,
-                    'y': v,
-                })
             d = {
                 "key": series_title,
-                "values": values,
+                "values": [
+                    {'x': i, 'y': v}
+                    for i, v in ys.iteritems()
+                ]
             }
             chart_data.append(d)
         return chart_data
