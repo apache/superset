@@ -93,8 +93,6 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
             db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
-    engine = database.get_sqla_engine(schema=query.schema)
-
     try:
         template_processor = get_template_processor(
             database=database, query=query)
@@ -107,28 +105,31 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
 
     query.executed_sql = executed_sql
     logging.info("Running query: \n{}".format(executed_sql))
+    engine = database.get_sqla_engine(schema=query.schema)
+    conn = engine.raw_connection()
+    cursor = conn.cursor()
     try:
-        conn = engine.raw_connection()
-        cursor = conn.cursor()
-        cursor.execute(query.executed_sql,
-                       **db_engine_spec.cursor_execute_kwargs)
+        cursor.execute(
+            query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
     except Exception as e:
         logging.exception(e)
+        conn.close()
         handle_error(db_engine_spec.extract_error_message(e))
 
     query.status = QueryStatus.RUNNING
     session.flush()
-    db_engine_spec.handle_cursor(cursor, query, session)
-
     try:
-        if db_engine_spec.limit_method == LimitMethod.FETCH_MANY:
-            data = cursor.fetchmany(query.limit)
-        else:
-            data = cursor.fetchall()
-        conn.close()
+        logging.info("Handling cursor")
+        db_engine_spec.handle_cursor(cursor, query, session)
+        logging.info("Fetching data: {}".format(query.to_dict()))
+        data = db_engine_spec.fetch_data(cursor, query.limit)
     except Exception as e:
         logging.exception(e)
+        conn.close()
         handle_error(db_engine_spec.extract_error_message(e))
+
+    conn.commit()
+    conn.close()
 
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])

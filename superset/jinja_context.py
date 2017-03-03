@@ -77,6 +77,12 @@ class PrestoTemplateProcessor(BaseTemplateProcessor):
     """
     engine = 'presto'
 
+    @staticmethod
+    def _schema_table(table_name, schema):
+        if '.' in table_name:
+            schema, table_name = table_name.split('.')
+        return table_name, schema
+
     def latest_partition(self, table_name):
         table_name, schema = self._schema_table(table_name, self.schema)
         return self.database.db_engine_spec.latest_partition(

@@ -47,6 +47,12 @@ class BaseEngineSpec(object):
     limit_method = LimitMethod.FETCH_MANY
 
     @classmethod
+    def fetch_data(cls, cursor, limit):
+        if cls.limit_method == LimitMethod.FETCH_MANY:
+            return cursor.fetchmany(limit)
+        return cursor.fetchall()
+
+    @classmethod
     def epoch_to_dttm(cls):
         raise NotImplementedError()
 
@@ -161,6 +167,14 @@ class PostgresEngineSpec(BaseEngineSpec):
         Grain("quarter", _('quarter'), "DATE_TRUNC('quarter', {col})"),
         Grain("year", _('year'), "DATE_TRUNC('year', {col})"),
     )
+
+    @classmethod
+    def fetch_data(cls, cursor, limit):
+        if not cursor.description:
+            return []
+        if cls.limit_method == LimitMethod.FETCH_MANY:
+            return cursor.fetchmany(limit)
+        return cursor.fetchall()
 
     @classmethod
     def epoch_to_dttm(cls):
@@ -304,12 +318,12 @@ class PrestoEngineSpec(BaseEngineSpec):
             return {}
         cols = indexes[0].get('column_names', [])
         pql = cls._partition_query(table_name, schema_name, cols)
-        _, latest_part = cls.latest_partition(
+        col_name, latest_part = cls.latest_partition(
             table_name, schema_name, database)
         return {
             'partitions': {
                 'cols': cols,
-                'latest': [latest_part],
+                'latest': {col_name: latest_part},
                 'partitionQuery': pql,
             }
         }
@@ -387,12 +401,6 @@ class PrestoEngineSpec(BaseEngineSpec):
             {limit_clause}
         """).format(**locals())
         return sql
-
-    @classmethod
-    def _schema_table(cls, table_name, schema):
-        if '.' in table_name:
-            schema, table_name = table_name.split('.')
-        return table_name, schema
 
     @classmethod
     def _latest_partition_from_df(cls, df):
