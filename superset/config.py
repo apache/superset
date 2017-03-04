@@ -286,6 +286,11 @@ if not CACHE_DEFAULT_TIMEOUT:
 # permission management
 SILENCE_FAB = True
 
+
+# Integrate external Blueprints to the app by passing them to your
+# configuration. These blueprints will get integrated in the app
+BLUEPRINTS = []
+
 try:
     if CONFIG_PATH_ENV_VAR in os.environ:
         # Explicitly import config module that is not in pythonpath; useful
