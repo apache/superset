@@ -101,10 +101,9 @@ class ChartContainer extends React.PureComponent {
 
       height: getHeight,
 
-      setFilter: () => {
-        // set filter according to data in store
-        // used in FilterBox.onChange()
-      },
+      setFilter: () => {},
+
+      addFilter: () => {},
 
       getFilters: () => (
         // return filter objects from viz.formData
