@@ -572,7 +572,7 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['entity'],
-          ['country_controltype'],
+          ['country_fieldtype'],
           ['metric'],
         ],
       },

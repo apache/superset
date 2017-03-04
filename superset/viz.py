@@ -1291,9 +1291,10 @@ class WorldMapViz(BaseViz):
 
     def get_data(self, df):
         from superset.data import countries
-        cols = [self.form_data.get('entity')]
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
+        fd = self.form_data
+        cols = [fd.get('entity')]
+        metric = fd.get('metric')
+        secondary_metric = fd.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1310,7 +1311,7 @@ class WorldMapViz(BaseViz):
             country = None
             if isinstance(row['country'], string_types):
                 country = countries.get(
-                    self.form_data.get('country_fieldtype'), row['country'])
+                    fd.get('country_fieldtype'), row['country'])
 
             if country:
                 row['country'] = country['cca3']

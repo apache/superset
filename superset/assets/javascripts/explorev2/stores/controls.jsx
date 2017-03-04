@@ -266,9 +266,9 @@ export const controls = {
     }),
   },
 
-  country_controltype: {
+  country_fieldtype: {
     type: 'SelectControl',
-    label: 'Country Control Type',
+    label: 'Country Field Type',
     default: 'cca2',
     choices: [
         ['name', 'Full name'],
