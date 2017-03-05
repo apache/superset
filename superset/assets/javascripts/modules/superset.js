@@ -55,7 +55,7 @@ const px = function () {
     })
     .tooltip();
   }
-  const Slice = function (data, controller) {
+  const Slice = function (data, datasource, controller) {
     let timer;
     const token = $('#token_' + data.slice_id);
     const containerId = 'con_' + data.slice_id;
@@ -74,6 +74,7 @@ const px = function () {
       formData,
       container,
       containerId,
+      datasource,
       selector,
       getWidgetHeader() {
         return this.container.parents('div.widget').find('.chart-header');
@@ -105,11 +106,11 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        if (data.column_formats) {
-          const format = data.column_formats[col];
-          return utils.d3format(format, number);
+        let format = '.3s';
+        if (this.datasource.column_formats[col]) {
+          format = this.datasource.column_formats[col];
         }
-        return utils.d3format('.3s', number);
+        return utils.d3format(format, number);
       },
       /* eslint no-shadow: 0 */
       always(data) {

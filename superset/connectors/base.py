@@ -45,6 +45,11 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
     metrics = []
 
     @property
+    def uid(self):
+        """Unique id across datasource types"""
+        return "{self.id}__{self.type}".format(**locals())
+
+    @property
     def column_names(self):
         return sorted([c.column_name for c in self.columns])
 

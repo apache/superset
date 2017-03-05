@@ -336,11 +336,11 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             '<a href="{self.url}">{title}</a>'.format(**locals()))
 
     @property
-    def json_data(self):
+    def data(self):
         positions = self.position_json
         if positions:
             positions = json.loads(positions)
-        d = {
+        return {
             'id': self.id,
             'metadata': self.params_dict,
             'css': self.css,
@@ -349,7 +349,6 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
             'slices': [slc.data for slc in self.slices],
             'position_json': positions,
         }
-        return json.dumps(d)
 
     @property
     def params(self):
