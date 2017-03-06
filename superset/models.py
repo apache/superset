@@ -2518,6 +2518,20 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
         query_str = self.get_query_str(client, qry_start_dttm, **query_obj)
         df = client.export_pandas()
 
+        def extract_histogram(client, df):
+            query = client.query_builder.last_query
+            if 'postAggregations' in query.query_dict:
+                for postagg in query.query_dict['postAggregations']:
+                    if postagg['type'] == 'quantiles':
+                        df[postagg['name']] = df[postagg['name']]\
+                            .apply(lambda x: json.dumps(x))
+                for agg in query.query_dict['aggregations']:
+                    if agg['type'] == 'approxHistogramFold':
+                        df[agg['name']] = df[agg['name']].\
+                            apply(lambda x: json.dumps(x))
+
+        extract_histogram(client, df)
+
         if df is None or df.size == 0:
             raise Exception(_("No data was returned."))
         df.columns = [
