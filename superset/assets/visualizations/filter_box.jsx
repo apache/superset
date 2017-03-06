@@ -35,7 +35,6 @@ class FilterBox extends React.Component {
     };
   }
   clickApply() {
-    console.log(this.state.selectedValues);
     this.props.onChange(Object.keys(this.state.selectedValues)[0], [], true, true);
     this.setState({ hasChanged: false });
   }
