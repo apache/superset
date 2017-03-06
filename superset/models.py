@@ -1936,10 +1936,6 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
     )
 
     @property
-    def database(self):
-        return self.cluster
-
-    @property
     def metrics_combo(self):
         return sorted(
             [(m.metric_name, m.verbose_name) for m in self.metrics],
