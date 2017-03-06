@@ -2388,6 +2388,19 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             if m.metric_name in all_metrics:
                 aggregations[m.metric_name] = m.json_obj
 
+        # if quantiles/quantile post-agg without select agg
+        for v in post_aggs.values():
+            if isinstance(v, Quantiles) or isinstance(v, Quantile):
+                if v.name not in aggregations:
+                    json_str = '{{\"type\": \"approxHistogramFold\",' \
+                               '\"name\": \"{}\",\"fieldName\": \"{}\"}}'\
+                        .format(v.name, v.name)
+                    try:
+                        obj = json.loads(json_str)
+                    except Exception:
+                        obj = {}
+                    aggregations[v.name] = obj
+
         rejected_metrics = [
             m.metric_name for m in self.metrics
             if m.is_restricted and
