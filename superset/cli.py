@@ -28,6 +28,48 @@ def init():
 
 
 @manager.option(
+    '-d', '--debug', action='store_true',
+    help="Start the web server in debug mode")
+@manager.option(
+    '-n', '--no-reload', action='store_false', dest='no_reload',
+    default=config.get("FLASK_USE_RELOAD"),
+    help="Don't use the reloader in debug mode")
+@manager.option(
+    '-a', '--address', default=config.get("SUPERSET_WEBSERVER_ADDRESS"),
+    help="Specify the address to which to bind the web server")
+@manager.option(
+    '-p', '--port', default=config.get("SUPERSET_WEBSERVER_PORT"),
+    help="Specify the port on which to run the web server")
+@manager.option(
+    '-w', '--workers', default=config.get("SUPERSET_WORKERS", 2),
+    help="Number of gunicorn web server workers to fire up")
+@manager.option(
+    '-t', '--timeout', default=config.get("SUPERSET_WEBSERVER_TIMEOUT"),
+    help="Specify the timeout (seconds) for the gunicorn web server")
+def runserver(debug, no_reload, address, port, timeout, workers):
+    """Starts a Superset web server"""
+    debug = debug or config.get("DEBUG")
+    if debug:
+        app.run(
+            host='0.0.0.0',
+            port=int(port),
+            threaded=True,
+            debug=True,
+            use_reloader=no_reload)
+    else:
+        cmd = (
+            "gunicorn "
+            "-w {workers} "
+            "--timeout {timeout} "
+            "-b {address}:{port} "
+            "--limit-request-line 0 "
+            "--limit-request-field_size 0 "
+            "superset:app").format(**locals())
+        print("Starting server with command: " + cmd)
+        Popen(cmd, shell=True).wait()
+
+
+@manager.option(
     '-v', '--verbose', action='store_true',
     help="Show extra information")
 def version(verbose):
@@ -80,15 +122,21 @@ def load_examples(load_test_data):
 @manager.option(
     '-d', '--datasource',
     help=(
-        "Specify which datasource name to load, if omitted, all "
-        "datasources will be refreshed"))
-def refresh_druid(datasource):
+            "Specify which datasource name to load, if omitted, all "
+            "datasources will be refreshed"))
+@manager.option(
+    '-m', '--merge',
+    help=(
+            "Specify using 'merge' property during operation. "
+            "Default value is False "))
+def refresh_druid(datasource, merge):
     """Refresh druid datasources"""
     session = db.session()
     from superset import models
     for cluster in session.query(models.DruidCluster).all():
         try:
-            cluster.refresh_datasources(datasource_name=datasource)
+            cluster.refresh_datasources(datasource_name=datasource,
+                                        merge_flag=merge)
         except Exception as e:
             print(
                 "Error while processing cluster '{}'\n{}".format(
@@ -102,7 +150,22 @@ def refresh_druid(datasource):
 
 
 @manager.command
-def worker():
+def update_datasources_cache():
+    """Refresh sqllab datasources cache"""
+    from superset import models
+    for database in db.session.query(models.Database).all():
+        print('Fetching {} datasources ...'.format(database.name))
+        try:
+            database.all_table_names(force=True)
+            database.all_view_names(force=True)
+        except Exception as e:
+            print('{}'.format(e.message))
+
+
+@manager.option(
+    '-w', '--workers', default=config.get("SUPERSET_CELERY_WORKERS", 32),
+    help="Number of celery server workers to fire up")
+def worker(workers):
     """Starts a Superset worker for async SQL query execution."""
     # celery -A tasks worker --loglevel=info
     print("Starting SQL Celery worker.")
@@ -116,5 +179,6 @@ def worker():
         'broker': config.get('CELERY_CONFIG').BROKER_URL,
         'loglevel': 'INFO',
         'traceback': True,
+        'concurrency': int(workers),
     }
     c_worker.run(**options)

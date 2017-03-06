@@ -1,6 +1,7 @@
-import { defaultFormData } from '../stores/store';
+/* eslint camelcase: 0 */
+import { getControlsState, getFormDataFromControls } from '../stores/store';
 import * as actions from '../actions/exploreActions';
-import { addToArr, removeFromArr, alterInArr } from '../../../utils/reducerUtils';
+import { now } from '../../modules/dates';
 
 export const exploreReducer = function (state, action) {
   const actionHandlers = {
@@ -8,15 +9,15 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state, { isStarred: action.isStarred });
     },
 
-    [actions.FETCH_STARTED]() {
+    [actions.FETCH_DATASOURCE_STARTED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: true });
     },
 
-    [actions.FETCH_SUCCEEDED]() {
+    [actions.FETCH_DATASOURCE_SUCCEEDED]() {
       return Object.assign({}, state, { isDatasourceMetaLoading: false });
     },
 
-    [actions.FETCH_FAILED]() {
+    [actions.FETCH_DATASOURCE_FAILED]() {
       // todo(alanna) handle failure/error state
       return Object.assign({}, state,
         {
@@ -24,10 +25,31 @@ export const exploreReducer = function (state, action) {
           controlPanelAlert: action.error,
         });
     },
+    [actions.SET_DATASOURCE]() {
+      return Object.assign({}, state, { datasource: action.datasource });
+    },
+    [actions.FETCH_DATASOURCES_STARTED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: true });
+    },
+
+    [actions.FETCH_DATASOURCES_SUCCEEDED]() {
+      return Object.assign({}, state, { isDatasourcesLoading: false });
+    },
+
+    [actions.FETCH_DATASOURCES_FAILED]() {
+      // todo(alanna) handle failure/error state
+      return Object.assign({}, state,
+        {
+          isDatasourcesLoading: false,
+          controlPanelAlert: action.error,
+        });
+    },
+    [actions.SET_DATASOURCES]() {
+      return Object.assign({}, state, { datasources: action.datasources });
+    },
     [actions.REMOVE_CONTROL_PANEL_ALERT]() {
       return Object.assign({}, state, { controlPanelAlert: null });
     },
-
     [actions.FETCH_DASHBOARDS_SUCCEEDED]() {
       return Object.assign({}, state, { dashboards: action.choices });
     },
@@ -36,104 +58,90 @@ export const exploreReducer = function (state, action) {
       return Object.assign({}, state,
         { saveModalAlert: `fetching dashboards failed for ${action.userId}` });
     },
-
-    [actions.SET_FIELD_OPTIONS]() {
-      const newState = Object.assign({}, state);
-      const optionsByFieldName = action.options;
-      const fieldNames = Object.keys(optionsByFieldName);
-
-      fieldNames.forEach((fieldName) => {
-        if (fieldName === 'filterable_cols') {
-          newState.filterColumnOpts = optionsByFieldName[fieldName];
-        } else {
-          newState.fields[fieldName].choices = optionsByFieldName[fieldName];
-        }
-      });
-      return Object.assign({}, state, newState);
-    },
-
-    [actions.SET_FILTER_COLUMN_OPTS]() {
-      return Object.assign({}, state, { filterColumnOpts: action.filterColumnOpts });
-    },
-    [actions.ADD_FILTER]() {
-      const newFormData = addToArr(state.viz.form_data, 'filters', action.filter);
-      const newState = Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-      return newState;
-    },
-    [actions.REMOVE_FILTER]() {
-      const newFormData = removeFromArr(state.viz.form_data, 'filters', action.filter);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-    },
-    [actions.CHANGE_FILTER]() {
-      const changes = {};
-      changes[action.field] = action.value;
-      const newFormData = alterInArr(
-        state.viz.form_data, 'filters', action.filter, changes);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
-    },
     [actions.SET_FIELD_VALUE]() {
-      const newFormData = action.key === 'datasource' ?
-        defaultFormData(state.viz.form_data.viz_type, action.datasource_type) :
-        Object.assign({}, state.viz.form_data);
-      if (action.key === 'datasource') {
-        newFormData.datasource_name = action.label;
-        newFormData.slice_id = state.viz.form_data.slice_id;
-        newFormData.slice_name = state.viz.form_data.slice_name;
-        newFormData.viz_type = state.viz.form_data.viz_type;
+      const controls = Object.assign({}, state.controls);
+      const control = Object.assign({}, controls[action.controlName]);
+      control.value = action.value;
+      control.validationErrors = action.validationErrors;
+      controls[action.controlName] = control;
+      const changes = { controls };
+      if (control.renderTrigger) {
+        changes.triggerRender = true;
       }
-      if (action.key === 'viz_type') {
-        newFormData.previous_viz_type = state.viz.form_data.viz_type;
-      }
-      newFormData[action.key] = action.value ? action.value : (!state.viz.form_data[action.key]);
-      return Object.assign(
-        {},
-        state,
-        { viz: Object.assign({}, state.viz, { form_data: newFormData }) }
-      );
+      return Object.assign({}, state, changes);
     },
-    [actions.UPDATE_CHART]() {
-      const vizUpdates = {
-        column_formats: action.viz.column_formats,
-        json_endpoint: action.viz.json_endpoint,
-        csv_endpoint: action.viz.csv_endpoint,
-        standalone_endpoint: action.viz.standalone_endpoint,
-        query: action.viz.query,
-        data: action.viz.data,
-      };
+    [actions.CHART_UPDATE_SUCCEEDED]() {
       return Object.assign(
         {},
         state,
         {
-          viz: Object.assign({}, state.viz, vizUpdates),
-          isChartLoading: false,
-        });
+          chartStatus: 'success',
+          queryResponse: action.queryResponse,
+        }
+      );
     },
     [actions.CHART_UPDATE_STARTED]() {
-      return Object.assign({}, state, { isChartLoading: true });
+      return Object.assign({}, state,
+        {
+          chartStatus: 'loading',
+          chartUpdateEndTime: null,
+          chartUpdateStartTime: now(),
+          triggerQuery: false,
+          queryRequest: action.queryRequest,
+          latestQueryFormData: getFormDataFromControls(state.controls),
+        });
+    },
+    [actions.CHART_UPDATE_STOPPED]() {
+      return Object.assign({}, state,
+        {
+          chartStatus: 'stopped',
+          chartAlert: 'Updating chart was stopped',
+        });
+    },
+    [actions.CHART_RENDERING_FAILED]() {
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: 'An error occurred while rendering the visualization: ' + action.error,
+      });
+    },
+    [actions.TRIGGER_QUERY]() {
+      return Object.assign({}, state, {
+        triggerQuery: true,
+      });
     },
     [actions.CHART_UPDATE_FAILED]() {
-      return Object.assign({}, state, { isChartLoading: false, chartAlert: action.error });
+      return Object.assign({}, state, {
+        chartStatus: 'failed',
+        chartAlert: action.queryResponse ? action.queryResponse.error : 'Network error.',
+        chartUpdateEndTime: now(),
+        queryResponse: action.queryResponse,
+      });
+    },
+    [actions.UPDATE_CHART_STATUS]() {
+      const newState = Object.assign({}, state, { chartStatus: action.status });
+      if (action.status === 'success' || action.status === 'failed') {
+        newState.chartUpdateEndTime = now();
+      }
+      return newState;
     },
     [actions.REMOVE_CHART_ALERT]() {
-      return Object.assign({}, state, { chartAlert: null });
+      if (state.chartAlert !== null) {
+        return Object.assign({}, state, { chartAlert: null });
+      }
+      return state;
     },
     [actions.SAVE_SLICE_FAILED]() {
       return Object.assign({}, state, { saveModalAlert: 'Failed to save slice' });
     },
     [actions.REMOVE_SAVE_MODAL_ALERT]() {
       return Object.assign({}, state, { saveModalAlert: null });
+    },
+    [actions.RESET_FIELDS]() {
+      const controls = getControlsState(state, getFormDataFromControls(state.controls));
+      return Object.assign({}, state, { controls });
+    },
+    [actions.RENDER_TRIGGERED]() {
+      return Object.assign({}, state, { triggerRender: false });
     },
   };
   if (action.type in actionHandlers) {

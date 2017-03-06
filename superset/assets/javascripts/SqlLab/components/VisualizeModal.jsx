@@ -4,6 +4,7 @@ import { Alert, Button, Col, Modal } from 'react-bootstrap';
 import Select from 'react-select';
 import { Table } from 'reactable';
 import shortid from 'shortid';
+import $ from 'jquery';
 
 const CHART_TYPES = [
   { value: 'dist_bar', label: 'Distribution - Bar Chart', requiresTime: false },
@@ -26,32 +27,42 @@ const defaultProps = {
 class VisualizeModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    const uniqueId = shortid.generate();
     this.state = {
       chartType: CHART_TYPES[0],
-      datasourceName: uniqueId,
+      datasourceName: this.datasourceName(),
       columns: {},
       hints: [],
     };
   }
-  componentWillMount() {
-    this.setStateFromProps();
-  }
   componentDidMount() {
     this.validate();
   }
-  setStateFromProps() {
+  componentWillReceiveProps(nextProps) {
+    this.setStateFromProps(nextProps);
+  }
+  setStateFromProps(props) {
     if (
-        !this.props.query ||
-        !this.props.query.results ||
-        !this.props.query.results.columns) {
+        !props.query ||
+        !props.query.results ||
+        !props.query.results.columns) {
       return;
     }
     const columns = {};
-    this.props.query.results.columns.forEach((col) => {
+    props.query.results.columns.forEach((col) => {
       columns[col.name] = col;
     });
     this.setState({ columns });
+  }
+  datasourceName() {
+    const { query } = this.props;
+    const uniqueId = shortid.generate();
+    let datasourceName = uniqueId;
+    if (query) {
+      datasourceName = query.user ? `${query.user}-` : '';
+      datasourceName += query.db ? `${query.db}-` : '';
+      datasourceName += `${query.tab}-${uniqueId}`;
+    }
+    return datasourceName;
   }
   validate() {
     const hints = [];
@@ -102,10 +113,20 @@ class VisualizeModal extends React.PureComponent {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
-      sql: this.props.query.sql,
+      sql: this.props.query.executedSql,
       dbId: this.props.query.dbId,
     };
-    window.open('/superset/sqllab_viz/?data=' + JSON.stringify(vizOptions));
+    $.ajax({
+      type: 'POST',
+      url: '/superset/sqllab_viz/',
+      async: false,
+      data: {
+        data: JSON.stringify(vizOptions),
+      },
+      success: (url) => {
+        window.open(url);
+      },
+    });
   }
   changeDatasourceName(event) {
     this.setState({ datasourceName: event.target.value });
@@ -125,8 +146,16 @@ class VisualizeModal extends React.PureComponent {
     this.setState({ columns }, this.validate);
   }
   render() {
-    if (!(this.props.query)) {
-      return <div />;
+    if (!(this.props.query) || !(this.props.query.results) || !(this.props.query.results.columns)) {
+      return (
+        <div className="VisualizeModal">
+          <Modal show={this.props.show} onHide={this.props.onHide}>
+            <Modal.Body>
+              No results available for this query
+            </Modal.Body>
+          </Modal>
+        </div>
+      );
     }
     const tableData = this.props.query.results.columns.map((col) => ({
       column: col.name,

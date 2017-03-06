@@ -1,7 +1,5 @@
 import React from 'react';
 import {
-  Button,
-  ButtonGroup,
   Col,
   FormGroup,
   InputGroup,
@@ -14,11 +12,14 @@ import {
   Collapse,
 } from 'react-bootstrap';
 
-import SouthPane from './SouthPane';
-import Timer from './Timer';
+import Button from '../../components/Button';
 
+import SouthPane from './SouthPane';
+import Timer from '../../components/Timer';
 import SqlEditorLeftBar from './SqlEditorLeftBar';
 import AceEditorWrapper from './AceEditorWrapper';
+import { STATE_BSSTYLE_MAP } from '../constants.js';
+import RunQueryActionButton from './RunQueryActionButton';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -74,7 +75,7 @@ class SqlEditor extends React.PureComponent {
       sqlEditorId: qe.id,
       tab: qe.title,
       schema: qe.schema,
-      tempTableName: this.state.ctas,
+      tempTableName: ctas ? this.state.ctas : '',
       runAsync,
       ctas,
     };
@@ -102,62 +103,6 @@ class SqlEditor extends React.PureComponent {
   }
 
   render() {
-    let runButtons = [];
-    let runText = 'Run Query';
-    let btnStyle = 'primary';
-    if (this.props.queryEditor.selectedText) {
-      runText = 'Run Selection';
-      btnStyle = 'warning';
-    }
-    if (this.props.database && this.props.database.allow_run_sync) {
-      runButtons.push(
-        <Button
-          bsSize="small"
-          bsStyle={btnStyle}
-          style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this, false)}
-          disabled={!(this.props.queryEditor.dbId)}
-          key="run-btn"
-        >
-          <i className="fa fa-table" /> {runText}
-        </Button>
-      );
-    }
-    if (this.props.database && this.props.database.allow_run_async) {
-      runButtons.push(
-        <Button
-          bsSize="small"
-          bsStyle={btnStyle}
-          style={{ width: '100px' }}
-          onClick={this.runQuery.bind(this, true)}
-          disabled={!(this.props.queryEditor.dbId)}
-          key="run-async-btn"
-        >
-          <i className="fa fa-table" /> Run Async
-        </Button>
-      );
-    }
-    runButtons = (
-      <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
-        {runButtons}
-      </ButtonGroup>
-    );
-    if (
-        this.props.latestQuery &&
-        ['running', 'pending'].indexOf(this.props.latestQuery.state) > -1) {
-      runButtons = (
-        <ButtonGroup bsSize="small" className="inline m-r-5 pull-left">
-          <Button
-            bsStyle="primary"
-            bsSize="small"
-            style={{ width: '100px' }}
-            onClick={this.stopQuery.bind(this)}
-          >
-            <a className="fa fa-stop" /> Stop
-          </Button>
-        </ButtonGroup>
-      );
-    }
     let limitWarning = null;
     if (this.props.latestQuery && this.props.latestQuery.limit_reached) {
       const tooltip = (
@@ -175,6 +120,7 @@ class SqlEditor extends React.PureComponent {
     }
     let ctasControls;
     if (this.props.database && this.props.database.allow_ctas) {
+      const ctasToolTip = 'Create table as with query results';
       ctasControls = (
         <FormGroup>
           <InputGroup>
@@ -190,6 +136,7 @@ class SqlEditor extends React.PureComponent {
                 bsSize="small"
                 disabled={this.state.ctas.length === 0}
                 onClick={this.createTableAs.bind(this)}
+                tooltip={ctasToolTip}
               >
                 <i className="fa fa-table" /> CTAS
               </Button>
@@ -202,13 +149,27 @@ class SqlEditor extends React.PureComponent {
       <div className="sql-toolbar clearfix">
         <div className="pull-left">
           <Form inline>
-            {runButtons}
+            <RunQueryActionButton
+              allowAsync={this.props.database && this.props.database.allow_run_async}
+              dbId={this.props.queryEditor.dbId}
+              queryState={this.props.latestQuery && this.props.latestQuery.state}
+              runQuery={this.runQuery.bind(this)}
+              selectedText={this.props.queryEditor.selectedText}
+              stopQuery={this.stopQuery.bind(this)}
+            />
             {ctasControls}
           </Form>
         </div>
         <div className="pull-right">
           {limitWarning}
-          <Timer query={this.props.latestQuery} />
+          {this.props.latestQuery &&
+            <Timer
+              startTime={this.props.latestQuery.startDttm}
+              endTime={this.props.latestQuery.endDttm}
+              state={STATE_BSSTYLE_MAP[this.props.latestQuery.state]}
+              isRunning={this.props.latestQuery.state === 'running'}
+            />
+          }
         </div>
       </div>
     );

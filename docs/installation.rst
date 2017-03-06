@@ -4,8 +4,9 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
-Python 2.6 won't be supported.
+Superset is tested against Python ``2.7`` and Python ``3.4``.
+Airbnb currently uses 2.7.* in production. We do not plan on supporting
+Python ``2.6``.
 
 
 OS dependencies
@@ -30,7 +31,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
@@ -80,7 +81,7 @@ Follow these few simple steps to install Superset.::
     # Install superset
     pip install superset
 
-    # Create an admin user
+    # Create an admin user (you will be prompted to set username, first and last name before setting a password)
     fabmanager create-admin --app superset
 
     # Initialize the database
@@ -92,8 +93,8 @@ Follow these few simple steps to install Superset.::
     # Create default roles and permissions
     superset init
 
-    # Start the web server on port 8088
-    superset runserver -p 8088
+    # Start the web server on port 8088, use -p to bind to another port
+    superset runserver
 
     # To start a development web server, use the -d switch
     # superset runserver -d
@@ -304,6 +305,30 @@ The following keys in `superset_config.py` can be specified to configure CORS:
 * ``ENABLE_CORS``: Must be set to True in order to enable CORS
 * ``CORS_OPTIONS``: options passed to Flask-CORS (`documentation <http://flask-cors.corydolphin.com/en/latest/api.html#extension>`)
 
+
+MIDDLEWARE
+----------
+
+Superset allows you to add your own middleware. To add your own middleware, update the ``ADDITIONAL_MIDDLEWARE`` key in
+your `superset_config.py`. ``ADDITIONAL_MIDDLEWARE`` should be a list of your additional middleware classes.
+
+For example, to use AUTH_REMOTE_USER from behind a proxy server like nginx, you have to add a simple middleware class to
+add the value of ``HTTP_X_PROXY_REMOTE_USER`` (or any other custom header from the proxy) to Gunicorn's ``REMOTE_USER``
+environment variable: ::
+
+    class RemoteUserMiddleware(object):
+        def __init__(self, app):
+            self.app = app
+        def __call__(self, environ, start_response):
+            user = environ.pop('HTTP_X_PROXY_REMOTE_USER', None)
+            environ['REMOTE_USER'] = user
+            return self.app(environ, start_response)
+
+    ADDITIONAL_MIDDLEWARE = [RemoteUserMiddleware, ]
+
+*Adapted from http://flask.pocoo.org/snippets/69/*
+
+
 Upgrading
 ---------
 
@@ -349,6 +374,31 @@ your environment.::
     # assuming $SUPERSET_HOME as the root of the repo
     cd $SUPERSET_HOME/superset/assets
     npm install
-    npm run prod
+    npm run build
     cd $SUPERSET_HOME
     python setup.py install
+
+
+Blueprints
+----------
+
+`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+Superset allows you to specify an array of Blueprints
+an array of Blueprints in your ``superset_config`` module. Here's
+an example on how this can work with a simple Blueprint. By doing
+so, you can expect Superset to serve a page that says "OK"
+at the ``/simple_page`` url. This can allow you to run other things such
+as custom data visualization applications alongside Superset, on the
+same server.
+
+..code ::
+
+    from flask import Blueprint
+    simple_page = Blueprint('simple_page', __name__,
+                                    template_folder='templates')
+    @simple_page.route('/', defaults={'page': 'index'})
+    @simple_page.route('/<page>')
+    def show(page):
+        return "Ok"
+
+    BLUEPRINTS = [simple_page]

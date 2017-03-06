@@ -11,7 +11,7 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, models, appbuilder, sm
+from superset import app, cli, db, models, appbuilder, security, sm
 from superset.security import sync_role_definitions
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
@@ -27,7 +27,7 @@ class SupersetTestCase(unittest.TestCase):
         if (
                         self.requires_examples and
                         not os.environ.get('SOLO_TEST') and
-                    not os.environ.get('examples_loaded')
+                        not os.environ.get('examples_loaded')
         ):
             logging.info("Loading examples")
             cli.load_examples(load_test_data=True)
@@ -40,11 +40,16 @@ class SupersetTestCase(unittest.TestCase):
         self.client = app.test_client()
         self.maxDiff = None
 
-        gamma_sqllab = sm.add_role("gamma_sqllab")
+        gamma_sqllab_role = sm.add_role("gamma_sqllab")
         for perm in sm.find_role('Gamma').permissions:
-            sm.add_permission_role(gamma_sqllab, perm)
+            sm.add_permission_role(gamma_sqllab_role, perm)
+        db_perm = self.get_main_database(sm.get_session).perm
+        security.merge_perm(sm, 'database_access', db_perm)
+        db_pvm = sm.find_permission_view_menu(
+            view_menu_name=db_perm, permission_name='database_access')
+        gamma_sqllab_role.permissions.append(db_pvm)
         for perm in sm.find_role('sql_lab').permissions:
-            sm.add_permission_role(gamma_sqllab, perm)
+            sm.add_permission_role(gamma_sqllab_role, perm)
 
         admin = appbuilder.sm.find_user('admin')
         if not admin:
@@ -60,12 +65,18 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Gamma'),
                 password='general')
 
-        gamma_sqllab = appbuilder.sm.find_user('gamma_sqllab')
-        if not gamma_sqllab:
-            gamma_sqllab = appbuilder.sm.add_user(
-                'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
-                appbuilder.sm.find_role('gamma_sqllab'),
+        gamma2 = appbuilder.sm.find_user('gamma2')
+        if not gamma2:
+            appbuilder.sm.add_user(
+                'gamma2', 'gamma2', 'user', 'gamma2@fab.org',
+                appbuilder.sm.find_role('Gamma'),
                 password='general')
+
+        gamma_sqllab_user = appbuilder.sm.find_user('gamma_sqllab')
+        if not gamma_sqllab_user:
+            appbuilder.sm.add_user(
+                'gamma_sqllab', 'gamma_sqllab', 'user', 'gamma_sqllab@fab.org',
+                gamma_sqllab_role, password='general')
 
         alpha = appbuilder.sm.find_user('alpha')
         if not alpha:
@@ -73,6 +84,7 @@ class SupersetTestCase(unittest.TestCase):
                 'alpha', 'alpha', 'user', 'alpha@fab.org',
                 appbuilder.sm.find_role('Alpha'),
                 password='general')
+        sm.get_session.commit()
 
         # create druid cluster and druid datasources
         session = db.session
@@ -94,6 +106,10 @@ class SupersetTestCase(unittest.TestCase):
             )
             session.add(druid_datasource2)
             session.commit()
+
+    def get_table(self, table_id):
+        return db.session.query(models.SqlaTable).filter_by(
+            id=table_id).first()
 
     def get_or_create(self, cls, criteria, session):
         obj = session.query(cls).filter_by(**criteria).first()
@@ -259,8 +275,3 @@ class SupersetTestCase(unittest.TestCase):
         self.assertIn(('can_fave_slices', 'Superset'), gamma_perm_set)
         self.assertIn(('can_save_dash', 'Superset'), gamma_perm_set)
         self.assertIn(('can_slice', 'Superset'), gamma_perm_set)
-        self.assertIn(('can_update_explore', 'Superset'), gamma_perm_set)
-
-
-
-

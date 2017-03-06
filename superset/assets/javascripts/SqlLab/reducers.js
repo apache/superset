@@ -4,27 +4,29 @@ import { now } from '../modules/dates';
 import { addToObject, alterInObject, alterInArr, removeFromArr, getFromArr, addToArr }
   from '../reduxUtils.js';
 
-export const defaultQueryEditor = {
-  id: shortid.generate(),
-  title: 'Untitled Query',
-  sql: 'SELECT *\nFROM\nWHERE',
-  selectedText: null,
-  latestQueryId: null,
-  autorun: false,
-  dbId: null,
-};
+export function getInitialState(defaultDbId) {
+  const defaultQueryEditor = {
+    id: shortid.generate(),
+    title: 'Untitled Query',
+    sql: 'SELECT *\nFROM\nWHERE',
+    selectedText: null,
+    latestQueryId: null,
+    autorun: false,
+    dbId: defaultDbId,
+  };
 
-export const initialState = {
-  alerts: [],
-  networkOn: true,
-  queries: {},
-  databases: {},
-  queryEditors: [defaultQueryEditor],
-  tabHistory: [defaultQueryEditor.id],
-  tables: [],
-  queriesLastUpdate: 0,
-  activeSouthPaneTab: 'Results',
-};
+  return {
+    alerts: [],
+    networkOn: true,
+    queries: {},
+    databases: {},
+    queryEditors: [defaultQueryEditor],
+    tabHistory: [defaultQueryEditor.id],
+    tables: [],
+    queriesLastUpdate: 0,
+    activeSouthPaneTab: 'Results',
+  };
+}
 
 export const sqlLabReducer = function (state, action) {
   const actionHandlers = {
@@ -70,7 +72,7 @@ export const sqlLabReducer = function (state, action) {
       return Object.assign({}, state, { queries: newQueries });
     },
     [actions.RESET_STATE]() {
-      return Object.assign({}, initialState);
+      return Object.assign({}, getInitialState());
     },
     [actions.MERGE_TABLE]() {
       const at = Object.assign({}, action.table);
@@ -134,8 +136,10 @@ export const sqlLabReducer = function (state, action) {
       let newState = Object.assign({}, state);
       if (action.query.sqlEditorId) {
         const qe = getFromArr(state.queryEditors, action.query.sqlEditorId);
-        if (qe.latestQueryId) {
-          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: null });
+        if (qe.latestQueryId && state.queries[qe.latestQueryId]) {
+          const newResults = Object.assign(
+            {}, state.queries[qe.latestQueryId].results, { data: [], query: null });
+          const q = Object.assign({}, state.queries[qe.latestQueryId], { results: newResults });
           const queries = Object.assign({}, state.queries, { [q.id]: q });
           newState = Object.assign({}, state, { queries });
         }
@@ -147,7 +151,7 @@ export const sqlLabReducer = function (state, action) {
       return alterInArr(newState, 'queryEditors', sqlEditor, { latestQueryId: action.query.id });
     },
     [actions.STOP_QUERY]() {
-      return alterInObject(state, 'queries', action.query, { state: 'stopped' });
+      return alterInObject(state, 'queries', action.query, { state: 'stopped', results: [] });
     },
     [actions.CLEAR_QUERY_RESULTS]() {
       const newResults = Object.assign({}, action.query.results);
@@ -158,6 +162,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, { state: 'fetching' });
     },
     [actions.QUERY_SUCCESS]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       let rows;
       if (action.results.data) {
         rows = action.results.data.length;
@@ -174,6 +181,9 @@ export const sqlLabReducer = function (state, action) {
       return alterInObject(state, 'queries', action.query, alts);
     },
     [actions.QUERY_FAILED]() {
+      if (action.query.state === 'stopped') {
+        return state;
+      }
       const alts = { state: 'failed', errorMessage: action.msg, endDttm: now() };
       return alterInObject(state, 'queries', action.query, alts);
     },
@@ -232,9 +242,9 @@ export const sqlLabReducer = function (state, action) {
       let change = false;
       for (const id in action.alteredQueries) {
         const changedQuery = action.alteredQueries[id];
-        if (
-            !state.queries.hasOwnProperty(id) ||
-            state.queries[id].changedOn !== changedQuery.changedOn) {
+        if (!state.queries.hasOwnProperty(id) ||
+            (state.queries[id].changedOn !== changedQuery.changedOn &&
+            state.queries[id].state !== 'stopped')) {
           newQueries[id] = Object.assign({}, state.queries[id], changedQuery);
           change = true;
         }

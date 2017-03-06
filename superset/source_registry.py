@@ -20,7 +20,7 @@ class SourceRegistry(object):
         return (
             session.query(cls.sources[datasource_type])
             .filter_by(id=datasource_id)
-            .one()
+            .first()
         )
 
     @classmethod
@@ -36,45 +36,33 @@ class SourceRegistry(object):
                                schema, database_name):
         datasource_class = SourceRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
-        db_ds = [d for d in datasources if d.database.name == database_name and
+
+        # Filter datasoures that don't have database.
+        db_ds = [d for d in datasources if d.database and
+                 d.database.name == database_name and
                  d.name == datasource_name and schema == schema]
         return db_ds[0]
 
     @classmethod
-    def query_datasources_by_name(
-            cls, session, database, datasource_name, schema=None):
+    def query_datasources_by_permissions(cls, session, database, permissions):
         datasource_class = SourceRegistry.sources[database.type]
-        if database.type == 'table':
-            query = (
-                session.query(datasource_class)
-                .filter_by(database_id=database.id)
-                .filter_by(table_name=datasource_name))
-            if schema:
-                query = query.filter_by(schema=schema)
-            return query.all()
-        if database.type == 'druid':
-            return (
-                session.query(datasource_class)
-                .filter_by(cluster_name=database.id)
-                .filter_by(datasource_name=datasource_name)
-                .all()
-            )
-        return None
+        return (
+            session.query(datasource_class)
+            .filter_by(database_id=database.id)
+            .filter(datasource_class.perm.in_(permissions))
+            .all()
+        )
 
     @classmethod
     def get_eager_datasource(cls, session, datasource_type, datasource_id):
         """Returns datasource with columns and metrics."""
         datasource_class = SourceRegistry.sources[datasource_type]
-        if datasource_type == 'table':
-            return (
-                session.query(datasource_class)
-                .options(
-                    subqueryload(datasource_class.columns),
-                    subqueryload(datasource_class.metrics)
-                )
-                .filter_by(id=datasource_id)
-                .one()
+        return (
+            session.query(datasource_class)
+            .options(
+                subqueryload(datasource_class.columns),
+                subqueryload(datasource_class.metrics)
             )
-        # TODO: support druid datasources.
-        return session.query(datasource_class).filter_by(
-            id=datasource_id).first()
+            .filter_by(id=datasource_id)
+            .one()
+        )

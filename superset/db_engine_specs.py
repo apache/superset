@@ -16,12 +16,15 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from collections import namedtuple
+from collections import namedtuple, defaultdict
+from flask_babel import lazy_gettext as _
+from superset import utils
+
 import inspect
 import textwrap
 import time
 
-from flask_babel import lazy_gettext as _
+from superset import cache_util
 
 Grain = namedtuple('Grain', 'name label function')
 
@@ -55,6 +58,33 @@ class BaseEngineSpec(object):
         return "'{}'".format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
 
     @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type, force=False):
+        """Returns the dictionary {schema : [result_set_name]}.
+
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
+        """
+        schemas = db.inspector.get_schema_names()
+        result_sets = {}
+        all_result_sets = []
+        for schema in schemas:
+            if datasource_type == 'table':
+                result_sets[schema] = sorted(
+                    db.inspector.get_table_names(schema))
+            elif datasource_type == 'view':
+                result_sets[schema] = sorted(
+                    db.inspector.get_view_names(schema))
+            all_result_sets += [
+                '{}.{}'.format(schema, t) for t in result_sets[schema]]
+        if all_result_sets:
+            result_sets[""] = all_result_sets
+        return result_sets
+
+    @classmethod
     def handle_cursor(cls, cursor, query, session):
         """Handle a live cursor between the execute and fetchall calls
 
@@ -62,6 +92,11 @@ class BaseEngineSpec(object):
         for handling the cursor and updating progress information in the
         query object"""
         pass
+
+    @classmethod
+    def extract_error_message(cls, e):
+        """Extract error message for queries"""
+        return utils.error_msg_from_exception(e)
 
     @classmethod
     def sql_preprocessor(cls, sql):
@@ -139,6 +174,9 @@ class MySQLEngineSpec(BaseEngineSpec):
               "+ INTERVAL QUARTER({col}) QUARTER - INTERVAL 1 QUARTER"),
         Grain("year", _('year'), "DATE(DATE_SUB({col}, "
               "INTERVAL DAYOFYEAR({col}) - 1 DAY))"),
+        Grain("week_start_monday", _('week_start_monday'),
+              "DATE(DATE_SUB({col}, "
+              "INTERVAL DAYOFWEEK(DATE_SUB({col}, INTERVAL 1 DAY)) - 1 DAY))"),
     )
 
     @classmethod
@@ -219,6 +257,28 @@ class PrestoEngineSpec(BaseEngineSpec):
         """).format(**locals())
 
     @classmethod
+    @cache_util.memoized_func(
+        timeout=600,
+        key=lambda *args, **kwargs: 'db:{}:{}'.format(args[0].id, args[1]))
+    def fetch_result_sets(cls, db, datasource_type, force=False):
+        """Returns the dictionary {schema : [result_set_name]}.
+
+        Datasource_type can be 'table' or 'view'.
+        Empty schema corresponds to the list of full names of the all
+        tables or views: <schema>.<result_set_name>.
+        """
+        result_set_df = db.get_df(
+            """SELECT table_schema, table_name FROM INFORMATION_SCHEMA.{}S
+               ORDER BY concat(table_schema, '.', table_name)""".format(
+                datasource_type.upper()), None)
+        result_sets = defaultdict(list)
+        for unused, row in result_set_df.iterrows():
+            result_sets[row['table_schema']].append(row['table_name'])
+            result_sets[""].append('{}.{}'.format(
+                row['table_schema'], row['table_name']))
+        return result_sets
+
+    @classmethod
     def extra_table_metadata(cls, database, table_name, schema_name):
         indexes = database.get_indexes(table_name, schema_name)
         if not indexes:
@@ -258,6 +318,19 @@ class PrestoEngineSpec(BaseEngineSpec):
                     session.commit()
             time.sleep(1)
             polled = cursor.poll()
+
+    @classmethod
+    def extract_error_message(cls, e):
+        if hasattr(e, 'orig') \
+           and type(e.orig).__name__ == 'DatabaseError' \
+           and isinstance(e.orig[0], dict):
+            error_dict = e.orig[0]
+            e = '{} at {}: {}'.format(
+                error_dict['errorName'],
+                error_dict['errorLocation'],
+                error_dict['message']
+            )
+        return utils.error_msg_from_exception(e)
 
 
 class MssqlEngineSpec(BaseEngineSpec):

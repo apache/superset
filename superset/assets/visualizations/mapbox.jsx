@@ -4,7 +4,7 @@ import d3 from 'd3';
 import React from 'react';
 import ReactDOM from 'react-dom';
 import MapGL from 'react-map-gl';
-import ScatterPlotOverlay from 'react-map-gl/src/overlays/scatterplot.react.js';
+import ScatterPlotOverlay from 'react-map-gl/dist/overlays/scatterplot.react.js';
 import Immutable from 'immutable';
 import supercluster from 'supercluster';
 import ViewportMercator from 'viewport-mercator-project';
@@ -273,84 +273,68 @@ MapboxViz.propTypes = {
   viewportZoom: React.PropTypes.number,
 };
 
-function mapbox(slice) {
+function mapbox(slice, json) {
+  const div = d3.select(slice.selector);
   const DEFAULT_POINT_RADIUS = 60;
   const DEFAULT_MAX_ZOOM = 16;
-  const div = d3.select(slice.selector);
   let clusterer;
 
-  const render = function () {
-    d3.json(slice.jsonEndpoint(), function (error, json) {
-      if (error !== null) {
-        slice.error(error.responseText);
-        return;
+  // Validate mapbox color
+  const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
+  if (rgb === null) {
+    slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
+    return;
+  }
+
+  const aggName = json.data.aggregatorName;
+  let reducer;
+
+  if (aggName === 'sum' || !json.data.customMetric) {
+    reducer = function (a, b) {
+      return a + b;
+    };
+  } else if (aggName === 'min') {
+    reducer = Math.min;
+  } else if (aggName === 'max') {
+    reducer = Math.max;
+  } else {
+    reducer = function (a, b) {
+      if (a instanceof Array) {
+        if (b instanceof Array) {
+          return a.concat(b);
+        }
+        a.push(b);
+        return a;
       }
-
-      // Validate mapbox color
-      const rgb = /^rgb\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})\)$/.exec(json.data.color);
-      if (rgb === null) {
-        slice.error('Color field must be of form \'rgb(%d, %d, %d)\'');
-        return;
+      if (b instanceof Array) {
+        b.push(a);
+        return b;
       }
+      return [a, b];
+    };
+  }
 
-      const aggName = json.data.aggregatorName;
-      let reducer;
+  clusterer = supercluster({
+    radius: json.data.clusteringRadius,
+    maxZoom: DEFAULT_MAX_ZOOM,
+    metricKey: 'metric',
+    metricReducer: reducer,
+  });
+  clusterer.load(json.data.geoJSON.features);
 
-      if (aggName === 'sum' || !json.data.customMetric) {
-        reducer = function (a, b) {
-          return a + b;
-        };
-      } else if (aggName === 'min') {
-        reducer = Math.min;
-      } else if (aggName === 'max') {
-        reducer = Math.max;
-      } else {
-        reducer = function (a, b) {
-          if (a instanceof Array) {
-            if (b instanceof Array) {
-              return a.concat(b);
-            }
-            a.push(b);
-            return a;
-          }
-          if (b instanceof Array) {
-            b.push(a);
-            return b;
-          }
-          return [a, b];
-        };
-      }
-
-      clusterer = supercluster({
-        radius: json.data.clusteringRadius,
-        maxZoom: DEFAULT_MAX_ZOOM,
-        metricKey: 'metric',
-        metricReducer: reducer,
-      });
-      clusterer.load(json.data.geoJSON.features);
-
-      div.selectAll('*').remove();
-      ReactDOM.render(
-        <MapboxViz
-          {...json.data}
-          rgb={rgb}
-          sliceHeight={slice.height()}
-          sliceWidth={slice.width()}
-          clusterer={clusterer}
-          pointRadius={DEFAULT_POINT_RADIUS}
-          aggregatorName={aggName}
-        />,
-        div.node()
-      );
-
-      slice.done(json);
-    });
-  };
-
-  return {
-    render,
-    resize() {},
-  };
+  div.selectAll('*').remove();
+  ReactDOM.render(
+    <MapboxViz
+      {...json.data}
+      rgb={rgb}
+      sliceHeight={slice.height()}
+      sliceWidth={slice.width()}
+      clusterer={clusterer}
+      pointRadius={DEFAULT_POINT_RADIUS}
+      aggregatorName={aggName}
+    />,
+    div.node()
+  );
 }
 
 module.exports = mapbox;

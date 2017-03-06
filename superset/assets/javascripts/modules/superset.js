@@ -4,6 +4,8 @@ const utils = require('./utils');
 // vis sources
 /* eslint camel-case: 0 */
 import vizMap from '../../visualizations/main.js';
+import { getExploreUrl } from '../explorev2/exploreUtils';
+import { applyDefaultFormData } from '../explorev2/stores/store';
 
 /* eslint wrap-iife: 0*/
 const px = function () {
@@ -55,12 +57,14 @@ const px = function () {
   }
   const Slice = function (data, controller) {
     let timer;
-    const token = $('#' + data.token);
-    const containerId = data.token + '_con';
+    const token = $('#token_' + data.slice_id);
+    const containerId = 'con_' + data.slice_id;
     const selector = '#' + containerId;
     const container = $(selector);
     const sliceId = data.slice_id;
-    const origJsonEndpoint = data.json_endpoint;
+    const formData = applyDefaultFormData(data.form_data);
+    const jsonEndpoint = getExploreUrl(formData, 'json');
+    const origJsonEndpoint = jsonEndpoint;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
@@ -68,19 +72,15 @@ const px = function () {
       $('#timer').text(num.toFixed(2) + ' sec');
     };
     let qrystr = '';
-    const always = function () {
-      // Private f, runs after done and error
-      clearInterval(timer);
-      $('#timer').removeClass('btn-warning');
-    };
     slice = {
       data,
+      formData,
       container,
       containerId,
       selector,
       querystring() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         if (controller.type === 'dashboard') {
           parser.href = origJsonEndpoint;
           let flts = controller.effectiveExtraFilters(sliceId);
@@ -105,8 +105,13 @@ const px = function () {
       },
       jsonEndpoint() {
         const parser = document.createElement('a');
-        parser.href = data.json_endpoint;
+        parser.href = jsonEndpoint;
         let endpoint = parser.pathname + this.querystring();
+        if (endpoint.charAt(0) !== '/') {
+          // Known issue for IE <= 11:
+          // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
+          endpoint = '/' + endpoint;
+        }
         endpoint += '&json=true';
         endpoint += '&force=' + this.force;
         return endpoint;
@@ -114,10 +119,20 @@ const px = function () {
       d3format(col, number) {
         // uses the utils memoized d3format function and formats based on
         // column level defined preferences
-        const format = data.column_formats[col];
-        return utils.d3format(format, number);
+        if (data.column_formats) {
+          const format = data.column_formats[col];
+          return utils.d3format(format, number);
+        }
+        return utils.d3format('.3s', number);
       },
       /* eslint no-shadow: 0 */
+      always(data) {
+        clearInterval(timer);
+        $('#timer').removeClass('btn-warning');
+        if (data && data.query) {
+          slice.viewSqlQuery = data.query;
+        }
+      },
       done(payload) {
         Object.assign(data, payload);
 
@@ -126,14 +141,10 @@ const px = function () {
         container.fadeTo(0.5, 1);
         container.show();
 
-        if (data !== undefined) {
-          slice.viewSqlQuery = data.query;
-        }
-
-        $('#timer').removeClass('label-warning label-danger');
         $('#timer').addClass('label-success');
+        $('#timer').removeClass('label-warning label-danger');
         $('.query-and-save button').removeAttr('disabled');
-        always(data);
+        this.always(data);
         controller.done(this);
       },
       getErrorMsg(xhr) {
@@ -156,8 +167,9 @@ const px = function () {
         token.find('img.loading').hide();
         container.fadeTo(0.5, 1);
         let errHtml = '';
+        let o;
         try {
-          const o = JSON.parse(msg);
+          o = JSON.parse(msg);
           if (o.error) {
             errorMsg = o.error;
           }
@@ -176,7 +188,7 @@ const px = function () {
         $('span.query').removeClass('disabled');
         $('#timer').addClass('btn-danger');
         $('.query-and-save button').removeAttr('disabled');
-        always(data);
+        this.always(o);
         controller.error(this);
       },
       clearError() {
@@ -218,14 +230,19 @@ const px = function () {
         timer = setInterval(stopwatch, 10);
         $('#timer').removeClass('label-danger label-success');
         $('#timer').addClass('label-warning');
-        this.viz.render();
+        $.getJSON(this.jsonEndpoint(), queryResponse => {
+          try {
+            vizMap[formData.viz_type](this, queryResponse);
+            this.done(queryResponse);
+          } catch (e) {
+            this.error('An error occurred while rendering the visualization: ' + e);
+          }
+        }).fail(err => {
+          this.error(err.responseText, err);
+        });
       },
       resize() {
-        token.find('img.loading').show();
-        container.fadeTo(0.5, 0.25);
-        container.css('height', this.height());
-        this.viz.render();
-        this.viz.resize();
+        this.render();
       },
       addFilter(col, vals) {
         controller.addFilter(sliceId, col, vals);
@@ -243,7 +260,6 @@ const px = function () {
         controller.removeFilter(sliceId, col, vals);
       },
     };
-    slice.viz = vizMap[data.form_data.viz_type](slice);
     return slice;
   };
   // Export public functions

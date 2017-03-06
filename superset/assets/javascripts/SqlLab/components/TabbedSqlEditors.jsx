@@ -4,9 +4,9 @@ import { connect } from 'react-redux';
 import { bindActionCreators } from 'redux';
 import * as Actions from '../actions';
 import SqlEditor from './SqlEditor';
-import { getParamFromQuery } from '../../../utils/common';
 import CopyQueryTabUrl from './CopyQueryTabUrl';
 import { areArraysShallowEqual } from '../../reduxUtils';
+import { getParamFromQuery } from '../../../utils/common';
 
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
@@ -28,33 +28,52 @@ let queryCount = 1;
 class TabbedSqlEditors extends React.PureComponent {
   constructor(props) {
     super(props);
-    const uri = window.location.toString();
-    const search = window.location.search;
-    const cleanUri = search ? uri.substring(0, uri.indexOf('?')) : uri;
-    const query = search.substring(1);
+    const sqlLabUrl = '/superset/sqllab';
     this.state = {
-      uri,
-      cleanUri,
-      query,
+      sqlLabUrl,
       queriesArray: [],
       dataPreviewQueries: [],
       hideLeftBar: false,
     };
   }
-  componentWillMount() {
-    if (this.state.query) {
-      queryCount++;
-      const queryEditorProps = {
-        title: getParamFromQuery(this.state.query, 'title'),
-        dbId: parseInt(getParamFromQuery(this.state.query, 'dbid'), 10),
-        schema: getParamFromQuery(this.state.query, 'schema'),
-        autorun: getParamFromQuery(this.state.query, 'autorun'),
-        sql: getParamFromQuery(this.state.query, 'sql'),
-      };
-      this.props.actions.addQueryEditor(queryEditorProps);
-      // Clean the url in browser history
-      window.history.replaceState({}, document.title, this.state.cleanUri);
+  componentDidMount() {
+    const search = window.location.search;
+    if (search) {
+      const queryString = search.substring(1);
+      const urlId = getParamFromQuery(queryString, 'id');
+      if (urlId) {
+        this.props.actions.popStoredQuery(urlId);
+      } else {
+        let dbId = getParamFromQuery(queryString, 'dbid');
+        if (dbId) {
+          dbId = parseInt(dbId, 10);
+        } else {
+          const databases = this.props.databases;
+          const dbName = getParamFromQuery(queryString, 'dbname');
+          if (dbName) {
+            Object.keys(databases).forEach((db) => {
+              if (databases[db].database_name === dbName) {
+                dbId = databases[db].id;
+              }
+            });
+          }
+        }
+        const newQueryEditor = {
+          title: getParamFromQuery(queryString, 'title'),
+          dbId,
+          schema: getParamFromQuery(queryString, 'schema'),
+          autorun: getParamFromQuery(queryString, 'autorun'),
+          sql: getParamFromQuery(queryString, 'sql'),
+        };
+        this.props.actions.addQueryEditor(newQueryEditor);
+      }
+      this.popNewTab();
     }
+  }
+  popNewTab() {
+    queryCount++;
+    // Clean the url in browser history
+    window.history.replaceState({}, document.title, this.state.sqlLabUrl);
   }
   componentWillReceiveProps(nextProps) {
     const nextActiveQeId = nextProps.tabHistory[nextProps.tabHistory.length - 1];
@@ -101,7 +120,9 @@ class TabbedSqlEditors extends React.PureComponent {
     const activeQueryEditor = this.activeQueryEditor();
     const qe = {
       title: `Untitled Query ${queryCount}`,
-      dbId: (activeQueryEditor) ? activeQueryEditor.dbId : null,
+      dbId: (activeQueryEditor && activeQueryEditor.dbId) ?
+        activeQueryEditor.dbId :
+        this.props.defaultDbId,
       schema: (activeQueryEditor) ? activeQueryEditor.schema : null,
       autorun: false,
       sql: 'SELECT ...',
@@ -150,9 +171,7 @@ class TabbedSqlEditors extends React.PureComponent {
               <i className="fa fa-i-cursor" /> rename tab
             </MenuItem>
             {qe &&
-              <MenuItem eventKey="3">
-                <i className="fa fa-clipboard" /> <CopyQueryTabUrl queryEditor={qe} />
-              </MenuItem>
+              <CopyQueryTabUrl queryEditor={qe} />
             }
             <MenuItem eventKey="4" onClick={this.toggleLeftBar.bind(this)}>
               <i className="fa fa-cogs" />
@@ -218,6 +237,7 @@ function mapStateToProps(state) {
     tabHistory: state.tabHistory,
     networkOn: state.networkOn,
     tables: state.tables,
+    defaultDbId: state.defaultDbId,
   };
 }
 function mapDispatchToProps(dispatch) {

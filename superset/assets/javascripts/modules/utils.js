@@ -133,14 +133,14 @@ export function formatSelectOptionsForRange(start, end) {
   // returns [[1,1], [2,2], [3,3], [4,4], [5,5]]
   const options = [];
   for (let i = start; i <= end; i++) {
-    options.push([i.toString(), i.toString()]);
+    options.push([i, i.toString()]);
   }
   return options;
 }
 
 export function formatSelectOptions(options) {
   return options.map((opt) =>
-     [opt.toString(), opt.toString()]
+     [opt, opt.toString()]
   );
 }
 
@@ -158,4 +158,29 @@ export function getAjaxErrorMsg(error) {
   const respJSON = error.responseJSON;
   return (respJSON && respJSON.message) ? respJSON.message :
           error.responseText;
+}
+
+export function customizeToolTip(chart, xAxisFormatter, yAxisFormatters) {
+  chart.useInteractiveGuideline(true);
+  chart.interactiveLayer.tooltip.contentGenerator(function (d) {
+    const tooltipTitle = xAxisFormatter(d.value);
+    let tooltip = '';
+
+    tooltip += "<table><thead><tr><td colspan='3'>"
+      + `<strong class='x-value'>${tooltipTitle}</strong>`
+      + '</td></tr></thead><tbody>';
+
+    d.series.forEach((series, i) => {
+      const yAxisFormatter = yAxisFormatters[i];
+      const value = yAxisFormatter(series.value);
+      tooltip += "<tr><td class='legend-color-guide'>"
+        + `<div style="background-color: ${series.color};"></div></td>`
+        + `<td class='key'>${series.key}</td>`
+        + `<td class='value'>${value}</td></tr>`;
+    });
+
+    tooltip += '</tbody></table>';
+
+    return tooltip;
+  });
 }

@@ -5,7 +5,7 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import TextAreaField from '../../../../javascripts/explorev2/components/TextAreaField';
+import TextAreaControl from '../../../../javascripts/explorev2/components/controls/TextAreaControl';
 
 const defaultProps = {
   name: 'x_axis_label',
@@ -13,11 +13,11 @@ const defaultProps = {
   onChange: sinon.spy(),
 };
 
-describe('SelectField', () => {
+describe('SelectControl', () => {
   let wrapper;
 
   beforeEach(() => {
-    wrapper = shallow(<TextAreaField {...defaultProps} />);
+    wrapper = shallow(<TextAreaControl {...defaultProps} />);
   });
 
   it('renders a FormControl', () => {
@@ -27,6 +27,6 @@ describe('SelectField', () => {
   it('calls onChange when toggled', () => {
     const select = wrapper.find(FormControl);
     select.simulate('change', { target: { value: 'x' } });
-    expect(defaultProps.onChange.calledWith('x_axis_label', 'x')).to.be.true;
+    expect(defaultProps.onChange.calledWith('x')).to.be.true;
   });
 });

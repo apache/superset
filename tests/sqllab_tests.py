@@ -9,7 +9,7 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from superset import db, models, utils, appbuilder, sm
+from superset import db, models, utils, appbuilder, security, sm
 from .base_tests import SupersetTestCase
 
 
@@ -20,7 +20,6 @@ class SqlLabTests(SupersetTestCase):
         super(SqlLabTests, self).__init__(*args, **kwargs)
 
     def run_some_queries(self):
-        self.logout()
         db.session.query(models.Query).delete()
         db.session.commit()
         self.run_sql(
@@ -85,6 +84,7 @@ class SqlLabTests(SupersetTestCase):
 
         # Not logged in, should error out
         resp = self.client.get('/superset/queries/0')
+        # Redirects to the login page
         self.assertEquals(403, resp.status_code)
 
         # Admin sees queries
@@ -93,15 +93,15 @@ class SqlLabTests(SupersetTestCase):
         self.assertEquals(2, len(data))
 
         # Run 2 more queries
-        self.run_sql("SELECT * FROM ab_user1", client_id='client_id_4')
-        self.run_sql("SELECT * FROM ab_user2", client_id='client_id_5')
+        self.run_sql("SELECT * FROM ab_user LIMIT 1", client_id='client_id_4')
+        self.run_sql("SELECT * FROM ab_user LIMIT 2", client_id='client_id_5')
         self.login('admin')
         data = self.get_json_resp('/superset/queries/0')
         self.assertEquals(4, len(data))
 
         now = datetime.now() + timedelta(days=1)
         query = db.session.query(models.Query).filter_by(
-            sql='SELECT * FROM ab_user1').first()
+            sql='SELECT * FROM ab_user LIMIT 1').first()
         query.changed_on = now
         db.session.commit()
 
@@ -112,6 +112,7 @@ class SqlLabTests(SupersetTestCase):
 
         self.logout()
         resp = self.client.get('/superset/queries/0')
+        # Redirects to the login page
         self.assertEquals(403, resp.status_code)
 
     def test_search_query_on_db_id(self):
@@ -120,7 +121,7 @@ class SqlLabTests(SupersetTestCase):
         # Test search queries on database Id
         data = self.get_json_resp('/superset/search_queries?database_id=1')
         self.assertEquals(3, len(data))
-        db_ids = [data[k]['dbId'] for k in data]
+        db_ids = [k['dbId'] for k in data]
         self.assertEquals([1, 1, 1], db_ids)
 
         resp = self.get_resp('/superset/search_queries?database_id=-1')
@@ -132,18 +133,19 @@ class SqlLabTests(SupersetTestCase):
         self.login('admin')
 
         # Test search queries on user Id
-        user = appbuilder.sm.find_user('admin')
+        user_id = appbuilder.sm.find_user('admin').id
         data = self.get_json_resp(
-            '/superset/search_queries?user_id={}'.format(user.id))
+            '/superset/search_queries?user_id={}'.format(user_id))
         self.assertEquals(2, len(data))
-        user_ids = {data[k]['userId'] for k in data}
-        self.assertEquals(set([user.id]), user_ids)
+        user_ids = {k['userId'] for k in data}
+        self.assertEquals(set([user_id]), user_ids)
 
-        user = appbuilder.sm.find_user('gamma_sqllab')
-        resp = self.get_resp('/superset/search_queries?user_id={}'.format(user.id))
+        user_id = appbuilder.sm.find_user('gamma_sqllab').id
+        resp = self.get_resp(
+            '/superset/search_queries?user_id={}'.format(user_id))
         data = json.loads(resp)
         self.assertEquals(1, len(data))
-        self.assertEquals(list(data.values())[0]['userId'] , user.id)
+        self.assertEquals(data[0]['userId'] , user_id)
 
     def test_search_query_on_status(self):
         self.run_some_queries()
@@ -152,13 +154,13 @@ class SqlLabTests(SupersetTestCase):
         resp = self.get_resp('/superset/search_queries?status=success')
         data = json.loads(resp)
         self.assertEquals(2, len(data))
-        states = [data[k]['state'] for k in data]
+        states = [k['state'] for k in data]
         self.assertEquals(['success', 'success'], states)
 
         resp = self.get_resp('/superset/search_queries?status=failed')
         data = json.loads(resp)
         self.assertEquals(1, len(data))
-        self.assertEquals(list(data.values())[0]['state'], 'failed')
+        self.assertEquals(data[0]['state'], 'failed')
 
     def test_search_query_on_text(self):
         self.run_some_queries()
@@ -166,7 +168,7 @@ class SqlLabTests(SupersetTestCase):
         url = '/superset/search_queries?search_text=permission'
         data = self.get_json_resp(url)
         self.assertEquals(1, len(data))
-        self.assertIn('permission', list(data.values())[0]['sql'])
+        self.assertIn('permission', data[0]['sql'])
 
     def test_search_query_on_time(self):
         self.run_some_queries()
@@ -186,9 +188,9 @@ class SqlLabTests(SupersetTestCase):
         resp = self.get_resp('/superset/search_queries?'+'&'.join(params))
         data = json.loads(resp)
         self.assertEquals(2, len(data))
-        for _, v in data.items():
-            self.assertLess(int(first_query_time), v['startDttm'])
-            self.assertLess(v['startDttm'], int(second_query_time))
+        for k in data:
+            self.assertLess(int(first_query_time), k['startDttm'])
+            self.assertLess(k['startDttm'], int(second_query_time))
 
     def test_alias_duplicate(self):
         self.run_sql(

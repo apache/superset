@@ -6,6 +6,7 @@ const vizMap = {
   big_number_total: require('./big_number.js'),
   box_plot: require('./nvd3_vis.js'),
   bubble: require('./nvd3_vis.js'),
+  bullet: require('./nvd3_vis.js'),
   cal_heatmap: require('./cal_heatmap.js'),
   compare: require('./nvd3_vis.js'),
   directed_force: require('./directed_force.js'),
@@ -28,5 +29,6 @@ const vizMap = {
   treemap: require('./treemap.js'),
   word_cloud: require('./word_cloud.js'),
   world_map: require('./world_map.js'),
+  dual_line: require('./nvd3_vis.js'),
 };
 export default vizMap;

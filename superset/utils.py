@@ -4,25 +4,40 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from builtins import object
-from datetime import date, datetime
 import decimal
 import functools
 import json
 import logging
-import pytz
 import numpy
+import os
+import parsedatetime
+import pytz
+import smtplib
+import sqlalchemy as sa
 import signal
 import uuid
 
-from sqlalchemy import event, exc
-import parsedatetime
-import sqlalchemy as sa
+from builtins import object
+from datetime import date, datetime, time
 from dateutil.parser import parse
-from flask import flash, Markup
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from email.utils import formatdate
+from flask import flash, Markup, render_template, url_for, redirect, request
+from flask_appbuilder.const import (
+    LOGMSG_ERR_SEC_ACCESS_DENIED,
+    FLAMSG_ERR_SEC_ACCESS_DENIED,
+    PERMISSION_PREFIX
+)
+from flask_cache import Cache
+from flask_appbuilder._compat import as_unicode
+from flask_babel import gettext as __
 import markdown as md
-from sqlalchemy.types import TypeDecorator, TEXT
+from past.builtins import basestring
 from pydruid.utils.having import Having
+from sqlalchemy import event, exc
+from sqlalchemy.types import TypeDecorator, TEXT
 
 logging.getLogger('MARKDOWN').setLevel(logging.INFO)
 
@@ -55,13 +70,13 @@ class SupersetTemplateException(SupersetException):
     pass
 
 
-def can_access(security_manager, permission_name, view_name):
+def can_access(sm, permission_name, view_name, user):
     """Protecting from has_access failing from missing perms/view"""
-    try:
-        return security_manager.has_access(permission_name, view_name)
-    except:
-        pass
-    return False
+    return (
+        sm.is_item_public(permission_name, view_name) or
+        (not user.is_anonymous() and
+         sm._has_view_access(user, permission_name, view_name))
+    )
 
 
 def flasher(msg, severity=None):
@@ -107,6 +122,18 @@ class memoized(object):  # noqa
         """Support instance methods."""
         return functools.partial(self.__call__, obj)
 
+
+def js_string_to_python(item):
+    return None if item in ('null', 'undefined') else item
+
+def js_string_to_num(item):
+    if item.isdigit():
+        return int(item)
+    s = item
+    try:
+        s = float(item)
+    except ValueError:
+        return s
 
 class DimSelector(Having):
     def __init__(self, **args):
@@ -216,6 +243,8 @@ def base_json_conv(obj):
 
     if isinstance(obj, numpy.int64):
         return int(obj)
+    elif isinstance(obj, numpy.bool_):
+        return bool(obj)
     elif isinstance(obj, set):
         return list(obj)
     elif isinstance(obj, decimal.Decimal):
@@ -238,6 +267,8 @@ def json_iso_dttm_ser(obj):
     if isinstance(obj, datetime):
         obj = obj.isoformat()
     elif isinstance(obj, date):
+        obj = obj.isoformat()
+    elif isinstance(obj, time):
         obj = obj.isoformat()
     else:
         raise TypeError(
@@ -271,6 +302,10 @@ def json_int_dttm_ser(obj):
             "Unserializable object {} of type {}".format(obj, type(obj))
         )
     return obj
+
+
+def json_dumps_w_dates(payload):
+    return json.dumps(payload, default=json_int_dttm_ser)
 
 
 def error_msg_from_exception(e):
@@ -307,8 +342,8 @@ def markdown(s, markup_wrap=False):
     return s
 
 
-def readfile(filepath):
-    with open(filepath) as f:
+def readfile(file_path):
+    with open(file_path) as f:
         content = f.read()
     return content
 
@@ -333,7 +368,6 @@ def get_datasource_full_name(database_name, datasource_name, schema=None):
 def get_schema_perm(database, schema):
     if schema:
         return "[{}].[{}]".format(database, schema)
-    return database.perm
 
 
 def validate_json(obj):
@@ -402,3 +436,147 @@ def pessimistic_connection_handling(target):
         except:
             raise exc.DisconnectionError()
         cursor.close()
+
+
+class QueryStatus:
+
+    """Enum-type class for query statuses"""
+
+    CANCELLED = 'cancelled'
+    FAILED = 'failed'
+    PENDING = 'pending'
+    RUNNING = 'running'
+    SCHEDULED = 'scheduled'
+    SUCCESS = 'success'
+    TIMED_OUT = 'timed_out'
+
+
+def notify_user_about_perm_udate(
+        granter, user, role, datasource, tpl_name, config):
+    msg = render_template(tpl_name, granter=granter, user=user, role=role,
+                          datasource=datasource)
+    logging.info(msg)
+    subject = __('[Superset] Access to the datasource %(name)s was granted',
+                 name=datasource.full_name)
+    send_email_smtp(user.email, subject, msg, config, bcc=granter.email,
+                    dryrun=not config.get('EMAIL_NOTIFICATIONS'))
+
+
+def send_email_smtp(to, subject, html_content, config, files=None,
+                    dryrun=False, cc=None, bcc=None, mime_subtype='mixed'):
+    """
+    Send an email with html content, eg:
+    send_email_smtp(
+        'test@example.com', 'foo', '<b>Foo</b> bar',['/dev/null'], dryrun=True)
+    """
+    smtp_mail_from = config.get('SMTP_MAIL_FROM')
+
+    to = get_email_address_list(to)
+
+    msg = MIMEMultipart(mime_subtype)
+    msg['Subject'] = subject
+    msg['From'] = smtp_mail_from
+    msg['To'] = ", ".join(to)
+    recipients = to
+    if cc:
+        cc = get_email_address_list(cc)
+        msg['CC'] = ", ".join(cc)
+        recipients = recipients + cc
+
+    if bcc:
+        # don't add bcc in header
+        bcc = get_email_address_list(bcc)
+        recipients = recipients + bcc
+
+    msg['Date'] = formatdate(localtime=True)
+    mime_text = MIMEText(html_content, 'html')
+    msg.attach(mime_text)
+
+    for fname in files or []:
+        basename = os.path.basename(fname)
+        with open(fname, "rb") as f:
+            msg.attach(MIMEApplication(
+                f.read(),
+                Content_Disposition='attachment; filename="%s"' % basename,
+                Name=basename
+            ))
+
+    send_MIME_email(smtp_mail_from, recipients, msg, config, dryrun=dryrun)
+
+
+def send_MIME_email(e_from, e_to, mime_msg, config, dryrun=False):
+    SMTP_HOST = config.get('SMTP_HOST')
+    SMTP_PORT = config.get('SMTP_PORT')
+    SMTP_USER = config.get('SMTP_USER')
+    SMTP_PASSWORD = config.get('SMTP_PASSWORD')
+    SMTP_STARTTLS = config.get('SMTP_STARTTLS')
+    SMTP_SSL = config.get('SMTP_SSL')
+
+    if not dryrun:
+        s = smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) if SMTP_SSL else \
+            smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        if SMTP_STARTTLS:
+            s.starttls()
+        if SMTP_USER and SMTP_PASSWORD:
+            s.login(SMTP_USER, SMTP_PASSWORD)
+        logging.info("Sent an alert email to " + str(e_to))
+        s.sendmail(e_from, e_to, mime_msg.as_string())
+        s.quit()
+    else:
+        logging.info('Dryrun enabled, email notification content is below:')
+        logging.info(mime_msg.as_string())
+
+
+def get_email_address_list(address_string):
+    if isinstance(address_string, basestring):
+        if ',' in address_string:
+            address_string = address_string.split(',')
+        elif ';' in address_string:
+            address_string = address_string.split(';')
+        else:
+            address_string = [address_string]
+    return address_string
+
+
+def has_access(f):
+    """
+        Use this decorator to enable granular security permissions to your
+        methods. Permissions will be associated to a role, and roles are
+        associated to users.
+
+        By default the permission's name is the methods name.
+
+        Forked from the flask_appbuilder.security.decorators
+        TODO(bkyryliuk): contribute it back to FAB
+    """
+    if hasattr(f, '_permission_name'):
+        permission_str = f._permission_name
+    else:
+        permission_str = f.__name__
+
+    def wraps(self, *args, **kwargs):
+        permission_str = PERMISSION_PREFIX + f._permission_name
+        if self.appbuilder.sm.has_access(
+                permission_str, self.__class__.__name__):
+            return f(self, *args, **kwargs)
+        else:
+            logging.warning(LOGMSG_ERR_SEC_ACCESS_DENIED.format(
+                permission_str, self.__class__.__name__))
+            flash(as_unicode(FLAMSG_ERR_SEC_ACCESS_DENIED), "danger")
+        # adds next arg to forward to the original path once user is logged in.
+        return redirect(url_for(
+            self.appbuilder.sm.auth_view.__class__.__name__ + ".login",
+            next=request.path))
+    f._permission_name = permission_str
+    return functools.update_wrapper(wraps, f)
+
+
+def choicify(values):
+    """Takes an iterable and makes an iterable of tuples with it"""
+    return [(v, v) for v in values]
+
+
+def setup_cache(app, cache_config):
+    """Setup the flask-cache on a flask app"""
+    if cache_config and cache_config.get('CACHE_TYPE') != 'null':
+        return Cache(app, config=cache_config)
