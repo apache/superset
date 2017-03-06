@@ -110,6 +110,10 @@ class ChartContainer extends React.PureComponent {
         {}
       ),
 
+      addFilter: () => {},
+
+      removeFilter: () => {},
+
       done: () => {},
       clearError: () => {
         // no need to do anything here since Alert is closable

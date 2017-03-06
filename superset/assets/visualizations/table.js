@@ -68,18 +68,24 @@ function tableVis(slice, payload) {
     .enter()
     .append('tr')
     .selectAll('td')
-    .data((row) => data.columns.map((c) => {
-      let val = row[c];
+    .data(row => data.columns.map(c => {
+      const val = row[c];
+      let html;
+      const isMetric = metrics.indexOf(c) >= 0;
       if (c === 'timestamp') {
-        val = timestampFormatter(val);
+        html = timestampFormatter(val);
       }
       if (typeof(val) === 'string') {
-        val = `<span class="like-pre">${val}</span>`;
+        html = `<span class="like-pre">${val}</span>`;
+      }
+      if (isMetric) {
+        html = slice.d3format(c, val);
       }
       return {
         col: c,
         val,
-        isMetric: metrics.indexOf(c) >= 0,
+        html,
+        isMetric,
       };
     }))
     .enter()
@@ -118,12 +124,7 @@ function tableVis(slice, payload) {
     .style('cursor', function (d) {
       return (!d.isMetric) ? 'pointer' : '';
     })
-    .html((d) => {
-      if (d.isMetric) {
-        return slice.d3format(d.col, d.val);
-      }
-      return d.val;
-    });
+    .html(d => d.html ? d.html : d.val);
   const height = slice.height();
   let paging = false;
   let pageLength;
