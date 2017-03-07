@@ -16,7 +16,7 @@ from superset import (
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-QueryStatus = models.QueryStatus
+from superset.utils import QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 

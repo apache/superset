@@ -178,7 +178,10 @@ DRUID_DATA_SOURCE_BLACKLIST = []
 # --------------------------------------------------
 # Modules, datasources and middleware to be registered
 # --------------------------------------------------
-DEFAULT_MODULE_DS_MAP = {'superset.models': ['DruidDatasource', 'SqlaTable']}
+DEFAULT_MODULE_DS_MAP = {
+    'superset.connectors.druid.models': ['DruidDatasource'],
+    'superset.connectors.sqla.models': ['SqlaTable'],
+}
 ADDITIONAL_MODULE_DS_MAP = {}
 ADDITIONAL_MIDDLEWARE = []
 

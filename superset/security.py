@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 import logging
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import conf, db, models, sm, source_registry
+from superset import conf, db, sm
+from superset.models import core as models
+from superset.connectors.connector_registry import ConnectorRegistry
 
 
 READ_ONLY_MODEL_VIEWS = {
@@ -155,7 +157,7 @@ def create_custom_permissions():
 
 def create_missing_datasource_perms(view_menu_set):
     logging.info("Creating missing datasource permissions.")
-    datasources = source_registry.SourceRegistry.get_all_datasources(
+    datasources = ConnectorRegistry.get_all_datasources(
         db.session)
     for datasource in datasources:
         if datasource and datasource.perm not in view_menu_set:
