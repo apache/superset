@@ -103,8 +103,6 @@ class ChartContainer extends React.PureComponent {
 
       setFilter: () => {},
 
-      addFilter: () => {},
-
       getFilters: () => (
         // return filter objects from viz.formData
         {}
