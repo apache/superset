@@ -830,20 +830,9 @@ class Database(Model, AuditMixinNullable):
             self, table_name, schema=None, limit=100, show_cols=False,
             indent=True):
         """Generates a ``select *`` statement in the proper dialect"""
-        quote = self.get_quoter()
-        fields = '*'
-        table = self.get_table(table_name, schema=schema)
-        if show_cols:
-            fields = [quote(c.name) for c in table.columns]
-        if schema:
-            table_name = schema + '.' + table_name
-        qry = select(fields).select_from(text(table_name))
-        if limit:
-            qry = qry.limit(limit)
-        sql = self.compile_sqla_query(qry)
-        if indent:
-            sql = sqlparse.format(sql, reindent=True)
-        return sql
+        return self.db_engine_spec.select_star(
+            self, table_name, schema=schema, limit=limit, show_cols=show_cols,
+            indent=indent)
 
     def wrap_sql_limit(self, sql, limit=1000):
         qry = (
