@@ -317,7 +317,10 @@ class PrestoEngineSpec(BaseEngineSpec):
         if not indexes:
             return {}
         cols = indexes[0].get('column_names', [])
-        pql = cls._partition_query(table_name, schema_name, cols)
+        full_table_name = table_name
+        if schema_name and '.' not in table_name:
+            full_table_name = "{}.{}".format(schema_name, table_name)
+        pql = cls._partition_query(full_table_name)
         col_name, latest_part = cls.latest_partition(
             table_name, schema_name, database)
         return {
