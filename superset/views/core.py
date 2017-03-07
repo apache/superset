@@ -1031,11 +1031,8 @@ class Superset(BaseSupersetView):
             data = pickle.load(f)
             # TODO: import DRUID datasources
             for table in data['datasources']:
-                if table.type == 'table':
-                    models.SqlaTable.import_obj(table, import_time=current_tt)
-                else:
-                    models.DruidDatasource.import_obj(
-                        table, import_time=current_tt)
+                ds_class = ConnectorRegistry.sources.get(table.type)
+                ds_class.import_obj(table, import_time=current_tt)
             db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
@@ -1138,8 +1135,7 @@ class Superset(BaseSupersetView):
         """
         # TODO: Cache endpoint by user, datasource and column
         error_redirect = '/slicemodelview/list/'
-        datasource_class = models.SqlaTable \
-            if datasource_type == "table" else models.DruidDatasource
+        datasource_class = ConnectorRegistry.sources[datasource_type]
 
         datasource = db.session.query(
             datasource_class).filter_by(id=datasource_id).first()
@@ -1627,12 +1623,13 @@ class Superset(BaseSupersetView):
                 return json_error_response(__(
                     "Slice %(id)s not found", id=slice_id), status=404)
         elif table_name and db_name:
+            SqlaTable = ConnectorRegistry.sources['table']
             table = (
-                session.query(models.SqlaTable)
+                session.query(SqlaTable)
                 .join(models.Database)
                 .filter(
                     models.Database.database_name == db_name or
-                    models.SqlaTable.table_name == table_name)
+                    SqlaTable.table_name == table_name)
             ).first()
             if not table:
                 return json_error_response(__(
@@ -1642,9 +1639,9 @@ class Superset(BaseSupersetView):
                 datasource_id=table.id,
                 datasource_type=table.type).all()
 
-        for slice in slices:
+        for slc in slices:
             try:
-                obj = slice.get_viz()
+                obj = slc.get_viz()
                 obj.get_json(force=True)
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
@@ -1755,12 +1752,13 @@ class Superset(BaseSupersetView):
         cluster_name = payload['cluster']
 
         user = sm.find_user(username=user_name)
+        DruidCluster = ConnectorRegistry.sources['druid']
         if not user:
             err_msg = __("Can't find User '%(name)s', please ask your admin "
                          "to create one.", name=user_name)
             logging.error(err_msg)
             return json_error_response(err_msg)
-        cluster = db.session.query(models.DruidCluster).filter_by(
+        cluster = db.session.query(DruidCluster).filter_by(
             cluster_name=cluster_name).first()
         if not cluster:
             err_msg = __("Can't find DruidCluster with cluster_name = "
@@ -1782,13 +1780,14 @@ class Superset(BaseSupersetView):
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
         viz_type = data.get('chartType')
+        SqlaTable = ConnectorRegistry.sources['table']
         table = (
-            db.session.query(models.SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
             .first()
         )
         if not table:
-            table = models.SqlaTable(table_name=table_name)
+            table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
@@ -2173,7 +2172,8 @@ class Superset(BaseSupersetView):
     def refresh_datasources(self):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
-        for cluster in session.query(models.DruidCluster).all():
+        DruidCluster = ConnectorRegistry.sources['druid']
+        for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()
