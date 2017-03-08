@@ -78,7 +78,6 @@ class DruidTests(SupersetTestCase):
         instance.time_boundary.return_value = [
             {'result': {'maxTime': '2016-01-01'}}]
         instance.segment_metadata.return_value = SEGMENT_METADATA
-        print(PyDruid())
 
         cluster = (
             db.session
@@ -137,7 +136,6 @@ class DruidTests(SupersetTestCase):
                 datasource_id, json.dumps(form_data))
         )
         resp = self.get_json_resp(url)
-        print(resp)
         self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
         form_data = {
@@ -200,7 +198,6 @@ class DruidTests(SupersetTestCase):
         }
         def check():
             resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
-            print(resp)
             druid_ds = (
                 db.session
                 .query(DruidDatasource)
