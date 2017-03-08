@@ -729,7 +729,8 @@ class CsvToDatabaseView(SimpleFormView):
                   skipinitialspace, skiprows, nrows, skip_blank_lines, parse_dates, infer_datetime_format,
                   dayfirst, thousands, decimal, quotechar, escapechar, comment, encoding, error_bad_lines):
         # Use Pandas to parse csv file to a dataframe
-        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
+        # str(config['SUPERSET_WEBSERVER_PORT'])
+        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + '8088' \
                       + url_for('uploaded_file', filename=filepath_or_buffer)
         # Expose this to api so can specify each field
         df = pandas.read_csv(filepath_or_buffer=upload_path,

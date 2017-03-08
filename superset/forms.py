@@ -1162,8 +1162,8 @@ class FormFactory(object):
 
 class CsvToDatabaseForm(DynamicForm):
     # These are the fields exposed by Pandas read_csv()
-    csv_file = FileField(_('CSV File'), description=_('Select a CSV file to be uploaded to a database.'),
-                         validators=[FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])
+    csv_file = FileField(_('CSV File'), description=_('Select a CSV file to be uploaded to a database.'), 
+                         validators=[FileRequired(), FileAllowed(['csv'], _('CSV Files Only!'))])     
     sep = StringField(_('Delimiter'), description=_('Delimiter used by CSV file (for whitespace use \s+).'),
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
     header = IntegerField(_('Header Row'), description=_('Row containing the headers to use as column names (0 is '
@@ -1176,7 +1176,7 @@ class CsvToDatabaseForm(DynamicForm):
                                                               'empty if no index column.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     squeeze = BetterBooleanField(_('Squeeze'), description=_('Parse the data as a series (specify this option if the '
-                                                             'data contains only one column.'))
+                                                             'data contains only one column.)'))
     prefix = StringField(_('Prefix'), description=_('Prefix to add to column numbers when no header '
                                                     '(e.g. "X" for "X0, X1").'),
                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])

@@ -13,7 +13,7 @@ import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
+from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab, app
 from superset.views import DatabaseView
 
 from .base_tests import SupersetTestCase
@@ -531,6 +531,37 @@ class CoreTests(SupersetTestCase):
         data = self.get_json_resp('/superset/fave_dashboards/{}/'.format(userid))
         self.assertNotIn('message', data)
 
+    def test_import_csv(self):
+        self.login(username='admin')
+        config = app.config
+
+        test_file = open('testCSV1.csv', 'rb')
+        form_data = {'csv_file': test_file,
+            'sep': ',',
+            'name': 'TestName123',
+            'con': config['SQLALCHEMY_DATABASE_URI'],
+            'if_exists': 'append',
+            'index_label': 'test_label'}
+
+        url = '/databaseview/list/'
+        add_datasource_page = self.get_resp(url)
+        assert 'Add CSV Table to Database' in add_datasource_page
+
+        url = '/csvtodatabaseview/form'
+        form_get = self.get_resp(url)
+        assert 'CSV to Database configuration' in form_get
+
+        form_post = self.get_resp(url, data = form_data)
+        assert 'CSV file "testCSV1.csv" uploaded to table' in form_post
+
+        # Validations
+            # headrow >= 0
+            # nrows >= 0
+        
+        # Features
+            # replace --> append
+            # Fixing port bug
+            # Allow for GB file csv
 
 if __name__ == '__main__':
     unittest.main()
