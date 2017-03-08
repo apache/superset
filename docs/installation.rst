@@ -4,8 +4,9 @@ Installation & Configuration
 Getting Started
 ---------------
 
-Superset is tested using Python 2.7 and Python 3.4+. Python 3 is the recommended version,
-Python 2.6 won't be supported.
+Superset is tested against Python ``2.7`` and Python ``3.4``.
+Airbnb currently uses 2.7.* in production. We do not plan on supporting
+Python ``2.6``.
 
 
 OS dependencies
@@ -30,7 +31,7 @@ For **Fedora** and **RHEL-derivatives**, the following command will ensure
 that the required dependencies are installed: ::
 
     sudo yum upgrade python-setuptools
-    sudo yum install gcc libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
+    sudo yum install gcc gcc-c++ libffi-devel python-devel python-pip python-wheel openssl-devel libsasl2-devel openldap-devel
 
 **OSX**, system python is not recommended. brew's python also ships with pip  ::
 
@@ -376,3 +377,28 @@ your environment.::
     npm run build
     cd $SUPERSET_HOME
     python setup.py install
+
+
+Blueprints
+----------
+
+`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+Superset allows you to specify an array of Blueprints
+an array of Blueprints in your ``superset_config`` module. Here's
+an example on how this can work with a simple Blueprint. By doing
+so, you can expect Superset to serve a page that says "OK"
+at the ``/simple_page`` url. This can allow you to run other things such
+as custom data visualization applications alongside Superset, on the
+same server.
+
+..code ::
+
+    from flask import Blueprint
+    simple_page = Blueprint('simple_page', __name__,
+                                    template_folder='templates')
+    @simple_page.route('/', defaults={'page': 'index'})
+    @simple_page.route('/<page>')
+    def show(page):
+        return "Ok"
+
+    BLUEPRINTS = [simple_page]

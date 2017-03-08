@@ -1,13 +1,19 @@
 // JS
+import $ from 'jquery';
 import { category21 } from '../javascripts/modules/colors';
 import { timeFormatFactory, formatDate } from '../javascripts/modules/dates';
+import { customizeToolTip } from '../javascripts/modules/utils';
+import throttle from 'lodash.throttle';
+
 const d3 = require('d3');
 const nv = require('nvd3');
+import { TIME_STAMP_OPTIONS } from '../javascripts/explorev2/stores/controls';
 
 // CSS
 require('../node_modules/nvd3/build/nv.d3.min.css');
 require('./nvd3_vis.css');
 
+const timeStampFormats = TIME_STAMP_OPTIONS.map(opt => opt[0]);
 const minBarWidth = 15;
 const animationTime = 1000;
 
@@ -53,9 +59,23 @@ const addTotalBarValues = function (chart, data, stacked) {
     });
 };
 
+function hideTooltips() {
+  $('.nvtooltip').css({ opacity: 0 });
+}
+
+function getMaxLabelSize(container, axisClass, widthOrHeight) {
+  // axis class = .nv-y2  // second y axis on dual line chart
+  // axis class = .nv-x  // x axis on time series line chart
+  const labelEls = container.find(`.${axisClass} .tick text`);
+  const labelDimensions = labelEls.map(i => labelEls[i].getBoundingClientRect()[widthOrHeight]);
+  const max = Math.max.apply(Math, labelDimensions);
+  return max;
+}
+
 function nvd3Vis(slice, payload) {
   let chart;
   let colorKey = 'key';
+  const isExplore = $('#explore-container').length === 1;
 
   slice.container.html('');
   slice.clearError();
@@ -76,7 +96,7 @@ function nvd3Vis(slice, payload) {
   }
 
   let width = slice.width();
-  const fd = payload.form_data;
+  const fd = slice.formData;
 
   const barchartWidth = function () {
     let bars;
@@ -290,6 +310,12 @@ function nvd3Vis(slice, payload) {
       chart.xAxis.tickFormat(xAxisFormatter);
     }
 
+    const isTimeSeries = timeStampFormats.indexOf(fd.x_axis_format) > -1;
+    // if x axis format is a date format, rotate label 90 degrees
+    if (isTimeSeries) {
+      chart.xAxis.rotateLabels(45);
+    }
+
     if (chart.hasOwnProperty('x2Axis')) {
       chart.x2Axis.tickFormat(xAxisFormatter);
       height += 30;
@@ -345,10 +371,12 @@ function nvd3Vis(slice, payload) {
       svg = d3.select(slice.selector).append('svg');
     }
     if (vizType === 'dual_line') {
-      chart.yAxis1.tickFormat(d3.format(fd.y_axis_format));
-      chart.yAxis2.tickFormat(d3.format(fd.y_axis_2_format));
+      const yAxisFormatter1 = d3.format(fd.y_axis_format);
+      const yAxisFormatter2 = d3.format(fd.y_axis_2_format);
+      chart.yAxis1.tickFormat(yAxisFormatter1);
+      chart.yAxis2.tickFormat(yAxisFormatter2);
+      customizeToolTip(chart, xAxisFormatter, [yAxisFormatter1, yAxisFormatter2]);
       chart.showLegend(true);
-      chart.margin({ right: 50 });
     }
     svg
     .datum(payload.data)
@@ -362,11 +390,52 @@ function nvd3Vis(slice, payload) {
       .style('stroke-opacity', 1)
       .style('fill-opacity', 1);
     }
+
+    // Hack to adjust margins to accommodate long axis tick labels.
+    // - has to be done only after the chart has been rendered once
+    // - measure the width or height of the labels
+    // ---- (x axis labels are rotated 45 degrees so we use height),
+    // - adjust margins based on these measures and render again
+    if (isTimeSeries && vizType !== 'bar') {
+      const maxXAxisLabelHeight = getMaxLabelSize(slice.container, 'nv-x', 'height');
+      const marginPad = isExplore ? width * 0.01 : width * 0.03;
+      const chartMargins = {
+        bottom: maxXAxisLabelHeight + marginPad,
+        right: maxXAxisLabelHeight + marginPad,
+      };
+
+      if (vizType === 'dual_line') {
+        const maxYAxis2LabelWidth = getMaxLabelSize(slice.container, 'nv-y2', 'width');
+        // use y axis width if it's wider than axis width/height
+        if (maxYAxis2LabelWidth > maxXAxisLabelHeight) {
+          chartMargins.right = maxYAxis2LabelWidth + marginPad;
+        }
+      }
+
+      // apply margins
+      chart.margin(chartMargins);
+
+      // render chart
+      svg
+      .datum(payload.data)
+      .transition().duration(500)
+      .attr('height', height)
+      .attr('width', width)
+      .call(chart);
+    }
+
+    // on scroll, hide tooltips. throttle to only 4x/second.
+    $(window).scroll(throttle(hideTooltips, 250));
+
     return chart;
   };
 
-  const graph = drawGraph();
-  nv.addGraph(graph);
+  // hide tooltips before rendering chart, if the chart is being re-rendered sometimes
+  // there are left over tooltips in the dom,
+  // this will clear them before rendering the chart again.
+  hideTooltips();
+
+  nv.addGraph(drawGraph);
 }
 
 module.exports = nvd3Vis;

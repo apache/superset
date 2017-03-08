@@ -170,27 +170,25 @@ class CeleryTestCase(SupersetTestCase):
             ' '.join(updated_multi_line_query.split())
         )
 
-    def test_run_sync_query(self):
+    def test_run_sync_query_dont_exist(self):
         main_db = self.get_main_database(db.session)
-        eng = main_db.get_sqla_engine()
-        perm_name = 'can_sql_json'
-
         db_id = main_db.id
-        # Case 1.
-        # Table doesn't exist.
         sql_dont_exist = 'SELECT name FROM table_dont_exist'
         result1 = self.run_sql(db_id, sql_dont_exist, "1", cta='true')
         self.assertTrue('error' in result1)
 
-        # Case 2.
-        # Table and DB exists, CTA call to the backend.
+    def test_run_sync_query_cta(self):
+        main_db = self.get_main_database(db.session)
+        db_id = main_db.id
+        eng = main_db.get_sqla_engine()
+        perm_name = 'can_sql_json'
         sql_where = (
             "SELECT name FROM ab_permission WHERE name='{}'".format(perm_name))
         result2 = self.run_sql(
             db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
-        self.assertEqual([], result2['columns'])
+        self.assertEqual({}, result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
@@ -198,14 +196,15 @@ class CeleryTestCase(SupersetTestCase):
         data2 = df2.to_dict(orient='records')
         self.assertEqual([{'name': perm_name}], data2)
 
-        # Case 3.
-        # Table and DB exists, CTA call to the backend, no data.
+    def test_run_sync_query_cta_no_data(self):
+        main_db = self.get_main_database(db.session)
+        db_id = main_db.id
         sql_empty_result = 'SELECT * FROM ab_user WHERE id=666'
         result3 = self.run_sql(
-            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true',)
+            db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
-        self.assertEqual([], result3['columns'])
+        self.assertEqual({}, result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
@@ -213,38 +212,31 @@ class CeleryTestCase(SupersetTestCase):
     def test_run_async_query(self):
         main_db = self.get_main_database(db.session)
         eng = main_db.get_sqla_engine()
-
-        # Schedule queries
-
-        # Case 1.
-        # Table and DB exists, async CTA call to the backend.
         sql_where = "SELECT name FROM ab_role WHERE name='Admin'"
-        result1 = self.run_sql(
+        result = self.run_sql(
             main_db.id, sql_where, "4", async='true', tmp_table='tmp_async_1',
             cta='true')
-        assert result1['query']['state'] in (
+        assert result['query']['state'] in (
             QueryStatus.PENDING, QueryStatus.RUNNING, QueryStatus.SUCCESS)
 
         time.sleep(1)
 
-        # Case 1.
-        query1 = self.get_query_by_id(result1['query']['serverId'])
-        df1 = pd.read_sql_query(query1.select_sql, con=eng)
-        self.assertEqual(QueryStatus.SUCCESS, query1.status)
-        self.assertEqual([{'name': 'Admin'}], df1.to_dict(orient='records'))
-        self.assertEqual(QueryStatus.SUCCESS, query1.status)
-        self.assertTrue("FROM tmp_async_1" in query1.select_sql)
-        self.assertTrue("LIMIT 666" in query1.select_sql)
+        query = self.get_query_by_id(result['query']['serverId'])
+        df = pd.read_sql_query(query.select_sql, con=eng)
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertEqual([{'name': 'Admin'}], df.to_dict(orient='records'))
+        self.assertEqual(QueryStatus.SUCCESS, query.status)
+        self.assertTrue("FROM tmp_async_1" in query.select_sql)
+        self.assertTrue("LIMIT 666" in query.select_sql)
         self.assertEqual(
             "CREATE TABLE tmp_async_1 AS \nSELECT name FROM ab_role "
-            "WHERE name='Admin'", query1.executed_sql)
-        self.assertEqual(sql_where, query1.sql)
-        if eng.name != 'sqlite':
-            self.assertEqual(1, query1.rows)
-        self.assertEqual(666, query1.limit)
-        self.assertEqual(False, query1.limit_used)
-        self.assertEqual(True, query1.select_as_cta)
-        self.assertEqual(True, query1.select_as_cta_used)
+            "WHERE name='Admin'", query.executed_sql)
+        self.assertEqual(sql_where, query.sql)
+        self.assertEqual(0, query.rows)
+        self.assertEqual(666, query.limit)
+        self.assertEqual(False, query.limit_used)
+        self.assertEqual(True, query.select_as_cta)
+        self.assertEqual(True, query.select_as_cta_used)
 
     def test_get_columns_dict(self):
         main_db = self.get_main_database(db.session)

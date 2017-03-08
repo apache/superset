@@ -14,6 +14,7 @@ Organizations
  - [Digit Game Studios] (https://www.digitgaming.com/)
  - [Brilliant.org] (https://brilliant.org/)
  - [Qunar] (https://www.qunar.com/)
+ - [Udemy] (https://www.udemy.com/)
 
 Projects
 ----------

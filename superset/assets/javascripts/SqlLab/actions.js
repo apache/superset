@@ -213,9 +213,9 @@ export function mergeTable(table, query) {
   return { type: MERGE_TABLE, table, query };
 }
 
-export function addTable(query, tableName) {
+export function addTable(query, tableName, schemaName) {
   return function (dispatch) {
-    let url = `/superset/table/${query.dbId}/${tableName}/${query.schema}/`;
+    let url = `/superset/table/${query.dbId}/${tableName}/${schemaName}/`;
     $.get(url, (data) => {
       const dataPreviewQuery = {
         id: shortid.generate(),
@@ -232,7 +232,7 @@ export function addTable(query, tableName) {
         Object.assign(data, {
           dbId: query.dbId,
           queryEditorId: query.id,
-          schema: query.schema,
+          schema: schemaName,
           expanded: true,
         }), dataPreviewQuery)
       );
@@ -248,12 +248,12 @@ export function addTable(query, tableName) {
       );
     });
 
-    url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${query.schema}/`;
+    url = `/superset/extra_table_metadata/${query.dbId}/${tableName}/${schemaName}/`;
     $.get(url, (data) => {
       const table = {
         dbId: query.dbId,
         queryEditorId: query.id,
-        schema: query.schema,
+        schema: schemaName,
         name: tableName,
       };
       Object.assign(table, data);
@@ -297,4 +297,24 @@ export function removeTable(table) {
 
 export function refreshQueries(alteredQueries) {
   return { type: REFRESH_QUERIES, alteredQueries };
+}
+
+export function popStoredQuery(urlId) {
+  return function (dispatch) {
+    $.ajax({
+      type: 'GET',
+      url: `/kv/${urlId}`,
+      success: (data) => {
+        const newQuery = JSON.parse(data);
+        const queryEditorProps = {
+          title: newQuery.title ? newQuery.title : 'shared query',
+          dbId: newQuery.dbId ? parseInt(newQuery.dbId, 10) : null,
+          schema: newQuery.schema ? newQuery.schema : null,
+          autorun: newQuery.autorun ? newQuery.autorun : false,
+          sql: newQuery.sql ? newQuery.sql : 'SELECT ...',
+        };
+        dispatch(addQueryEditor(queryEditorProps));
+      },
+    });
+  };
 }

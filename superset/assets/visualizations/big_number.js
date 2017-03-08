@@ -7,8 +7,7 @@ function bigNumberVis(slice, payload) {
   const div = d3.select(slice.selector);
   // Define the percentage bounds that define color from red to green
   div.html(''); // reset
-
-  const fd = payload.form_data;
+  const fd = slice.formData;
   const json = payload.data;
 
   const f = d3.format(fd.y_axis_format);

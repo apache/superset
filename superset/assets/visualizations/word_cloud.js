@@ -6,11 +6,12 @@ import { category21 } from '../javascripts/modules/colors';
 function wordCloudChart(slice, payload) {
   const chart = d3.select(slice.selector);
   const data = payload.data;
+  const fd = slice.formData;
   const range = [
-    payload.form_data.size_from,
-    payload.form_data.size_to,
+    fd.size_from,
+    fd.size_to,
   ];
-  const rotation = payload.form_data.rotation;
+  const rotation = fd.rotation;
   let fRotation;
   if (rotation === 'square') {
     fRotation = () => ~~(Math.random() * 2) * 90;

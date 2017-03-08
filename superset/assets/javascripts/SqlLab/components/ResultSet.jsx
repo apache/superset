@@ -46,6 +46,10 @@ class ResultSet extends React.PureComponent {
         this.clearQueryResults(nextProps.query)
       );
     }
+    if (nextProps.query.resultsKey
+      && nextProps.query.resultsKey !== this.props.query.resultsKey) {
+      this.fetchResults(nextProps.query);
+    }
   }
   getControls() {
     if (this.props.search || this.props.visualize || this.props.csv) {
@@ -137,6 +141,10 @@ class ResultSet extends React.PureComponent {
 
     let sql;
 
+    if (query.state === 'stopped') {
+      return <Alert bsStyle="warning">Query was stopped</Alert>;
+    }
+
     if (this.props.showSql) {
       sql = <HighlightedSql sql={query.sql} />;
     }
@@ -186,7 +194,18 @@ class ResultSet extends React.PureComponent {
             {sql}
             <div className="ResultSet">
               <Table
-                data={data}
+                data={data.map(function (row) {
+                  const newRow = {};
+                  for (const k in row) {
+                    const val = row[k];
+                    if (typeof(val) === 'string') {
+                      newRow[k] = val;
+                    } else {
+                      newRow[k] = JSON.stringify(val);
+                    }
+                  }
+                  return newRow;
+                })}
                 columns={results.columns.map((col) => col.name)}
                 sortable
                 className="table table-condensed table-bordered"
@@ -195,16 +214,6 @@ class ResultSet extends React.PureComponent {
                 hideFilterInput
               />
             </div>
-          </div>
-        );
-      } else if (query.resultsKey) {
-        return (
-          <div>
-            <Alert bsStyle="warning">This query was run asynchronously &nbsp;
-              <Button bsSize="sm" onClick={this.fetchResults.bind(this, query)}>
-                Fetch results
-              </Button>
-            </Alert>
           </div>
         );
       }

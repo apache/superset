@@ -6,7 +6,8 @@ import sinon from 'sinon';
 import { expect } from 'chai';
 import { describe, it, beforeEach } from 'mocha';
 import { shallow } from 'enzyme';
-import Filter from '../../../../javascripts/explorev2/components/Filter';
+import Filter from '../../../../javascripts/explorev2/components/controls/Filter';
+import SelectControl from '../../../../javascripts/explorev2/components/controls/SelectControl';
 
 const defaultProps = {
   choices: ['country_name'],
@@ -16,8 +17,6 @@ const defaultProps = {
     // noop
   },
   filter: {
-    id: 1,
-    prefix: 'flt',
     col: null,
     op: 'in',
     value: '',
@@ -45,7 +44,7 @@ describe('Filter', () => {
   it('renders two selects, one button and one input', () => {
     expect(wrapper.find(Select)).to.have.lengthOf(2);
     expect(wrapper.find(Button)).to.have.lengthOf(1);
-    expect(wrapper.find('input')).to.have.lengthOf(1);
+    expect(wrapper.find(SelectControl)).to.have.lengthOf(1);
   });
 
   it('calls changeFilter when select is changed', () => {
@@ -53,8 +52,8 @@ describe('Filter', () => {
     selectCol.simulate('change', { value: 'col' });
     const selectOp = wrapper.find('#select-op');
     selectOp.simulate('change', { value: 'in' });
-    const input = wrapper.find('input');
-    input.simulate('change', { target: { value: 'x' } });
+    const selectVal = wrapper.find(SelectControl);
+    selectVal.simulate('change', { value: 'x' });
     expect(defaultProps.changeFilter).to.have.property('callCount', 3);
   });
 });

@@ -10,7 +10,7 @@ import ModalTrigger from '../../components/ModalTrigger';
 import HighlightedSql from './HighlightedSql';
 import { STATE_BSSTYLE_MAP } from '../constants';
 import { fDuration } from '../../modules/dates';
-import { getLink } from '../../../utils/common';
+import { storeQuery } from '../../../utils/common';
 
 const propTypes = {
   columns: React.PropTypes.array,
@@ -38,10 +38,17 @@ class QueryTable extends React.PureComponent {
       activeQuery: null,
     };
   }
-  getQueryLink(dbId, sql) {
-    const params = ['dbid=' + dbId, 'sql=' + sql, 'title=Untitled Query'];
-    const link = getLink(this.state.cleanUri, params);
-    return encodeURI(link);
+  callback(url) {
+    window.open(url);
+  }
+  openQuery(dbId, schema, sql) {
+    const newQuery = {
+      dbId,
+      title: 'Untitled Query',
+      schema,
+      sql,
+    };
+    storeQuery(newQuery, this.callback);
   }
   hideVisualizeModal() {
     this.setState({ showVisualizeModal: false });
@@ -98,12 +105,12 @@ class QueryTable extends React.PureComponent {
       q.started = moment(q.startDttm).format('HH:mm:ss');
       q.querylink = (
         <div style={{ width: '100px' }}>
-          <a
-            href={this.getQueryLink(q.dbId, q.sql)}
-            className="btn btn-primary btn-xs"
+          <button
+            className="btn btn-link btn-xs"
+            onClick={this.openQuery.bind(this, q.dbId, q.schema, q.sql)}
           >
             <i className="fa fa-external-link" />Open in SQL Editor
-          </a>
+          </button>
         </div>
       );
       q.sql = (
@@ -133,7 +140,7 @@ class QueryTable extends React.PureComponent {
       } else {
         // if query was run using ctas and force_ctas_schema was set
         // tempTable will have the schema
-        const schemaUsed = q.ctas && q.tempTable.includes('.') ? '' : q.schema;
+        const schemaUsed = q.ctas && q.tempTable && q.tempTable.includes('.') ? '' : q.schema;
         q.output = [schemaUsed, q.tempTable].filter((v) => (v)).join('.');
       }
       q.progress = (

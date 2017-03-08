@@ -27,10 +27,9 @@ const defaultProps = {
 class VisualizeModal extends React.PureComponent {
   constructor(props) {
     super(props);
-    const uniqueId = shortid.generate();
     this.state = {
       chartType: CHART_TYPES[0],
-      datasourceName: uniqueId,
+      datasourceName: this.datasourceName(),
       columns: {},
       hints: [],
     };
@@ -53,6 +52,17 @@ class VisualizeModal extends React.PureComponent {
       columns[col.name] = col;
     });
     this.setState({ columns });
+  }
+  datasourceName() {
+    const { query } = this.props;
+    const uniqueId = shortid.generate();
+    let datasourceName = uniqueId;
+    if (query) {
+      datasourceName = query.user ? `${query.user}-` : '';
+      datasourceName += query.db ? `${query.db}-` : '';
+      datasourceName += `${query.tab}-${uniqueId}`;
+    }
+    return datasourceName;
   }
   validate() {
     const hints = [];
@@ -103,7 +113,7 @@ class VisualizeModal extends React.PureComponent {
       chartType: this.state.chartType.value,
       datasourceName: this.state.datasourceName,
       columns: this.state.columns,
-      sql: this.props.query.sql,
+      sql: this.props.query.executedSql,
       dbId: this.props.query.dbId,
     };
     $.ajax({

@@ -24,7 +24,7 @@ class Header extends React.PureComponent {
             <span is class="favstar" class_name="Dashboard" obj_id={dashboard.id} />
           </h1>
         </div>
-        <div className="pull-right">
+        <div className="pull-right" style={{ marginTop: '35px' }}>
         {!this.props.dashboard.context.standalone_mode &&
           <Controls dashboard={dashboard} />
         }

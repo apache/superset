@@ -1,6 +1,6 @@
 /* Reusable validator functions used in controls definitions
  *
- * validator functions receive the v and the configuration of the field
+ * validator functions receive the v and the configuration of the control
  * as arguments and return something that evals to false if v is valid,
  * and an error message if not valid.
  * */

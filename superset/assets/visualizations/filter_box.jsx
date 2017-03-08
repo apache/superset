@@ -6,12 +6,14 @@ import ReactDOM from 'react-dom';
 
 import Select from 'react-select';
 import '../stylesheets/react-select/select.less';
+import { Button } from 'react-bootstrap';
 
 import './filter_box.css';
 import { TIME_CHOICES } from './constants.js';
 
 const propTypes = {
   origSelectedValues: React.PropTypes.object,
+  instantFiltering: React.PropTypes.bool,
   filtersChoices: React.PropTypes.object,
   onChange: React.PropTypes.func,
   showDateFilter: React.PropTypes.bool,
@@ -21,6 +23,7 @@ const defaultProps = {
   origSelectedValues: {},
   onChange: () => {},
   showDateFilter: false,
+  instantFiltering: true,
 };
 
 class FilterBox extends React.Component {
@@ -28,7 +31,12 @@ class FilterBox extends React.Component {
     super(props);
     this.state = {
       selectedValues: props.origSelectedValues,
+      hasChanged: false,
     };
+  }
+  clickApply() {
+    this.props.onChange(Object.keys(this.state.selectedValues)[0], [], true, true);
+    this.setState({ hasChanged: false });
   }
   changeFilter(filter, options) {
     let vals = null;
@@ -41,8 +49,8 @@ class FilterBox extends React.Component {
     }
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[filter] = vals;
-    this.setState({ selectedValues });
-    this.props.onChange(filter, vals);
+    this.setState({ selectedValues, hasChanged: true });
+    this.props.onChange(filter, vals, false, !this.props.instantFiltering);
   }
   render() {
     let dateFilter;
@@ -101,6 +109,16 @@ class FilterBox extends React.Component {
       <div>
         {dateFilter}
         {filters}
+        {this.props.instantFiltering &&
+          <Button
+            bsSize="small"
+            bsStyle="primary"
+            onClick={this.clickApply.bind(this)}
+            disabled={!this.state.hasChanged}
+          >
+            Apply
+          </Button>
+        }
       </div>
     );
   }
@@ -113,21 +131,21 @@ function filterBox(slice, payload) {
   d3token.selectAll('*').remove();
 
   // filter box should ignore the dashboard's filters
-  // TODO FUCK
   // const url = slice.jsonEndpoint({ extraFilters: false });
-  const fd = payload.form_data;
+  const fd = slice.formData;
   const filtersChoices = {};
   // Making sure the ordering of the fields matches the setting in the
   // dropdown as it may have been shuffled while serialized to json
-  payload.form_data.groupby.forEach((f) => {
+  fd.groupby.forEach((f) => {
     filtersChoices[f] = payload.data[f];
   });
   ReactDOM.render(
     <FilterBox
       filtersChoices={filtersChoices}
-      onChange={slice.setFilter}
+      onChange={slice.addFilter}
       showDateFilter={fd.date_filter}
       origSelectedValues={slice.getFilters() || {}}
+      instantFiltering={fd.instant_filtering}
     />,
     document.getElementById(slice.containerId)
   );

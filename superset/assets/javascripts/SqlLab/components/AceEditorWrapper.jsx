@@ -8,6 +8,22 @@ import { areArraysShallowEqual } from '../../reduxUtils';
 
 const langTools = ace.acequire('ace/ext/language_tools');
 
+const keywords = (
+  'SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|AND|OR|GROUP|BY|ORDER|LIMIT|OFFSET|HAVING|AS|CASE|' +
+  'WHEN|ELSE|END|TYPE|LEFT|RIGHT|JOIN|ON|OUTER|DESC|ASC|UNION|CREATE|TABLE|PRIMARY|KEY|IF|' +
+  'FOREIGN|NOT|REFERENCES|DEFAULT|NULL|INNER|CROSS|NATURAL|DATABASE|DROP|GRANT'
+);
+
+const dataTypes = (
+  'INT|NUMERIC|DECIMAL|DATE|VARCHAR|CHAR|BIGINT|FLOAT|DOUBLE|BIT|BINARY|TEXT|SET|TIMESTAMP|' +
+  'MONEY|REAL|NUMBER|INTEGER'
+);
+
+const sqlKeywords = [].concat(keywords.split('|'), dataTypes.split('|'));
+const sqlWords = sqlKeywords.map(s => ({
+  name: s, value: s, score: 60, meta: 'sql',
+}));
+
 const propTypes = {
   actions: React.PropTypes.object.isRequired,
   onBlur: React.PropTypes.func,
@@ -80,14 +96,14 @@ class AceEditorWrapper extends React.PureComponent {
     });
     words = words.concat(Object.keys(columns).map(col => (
       { name: col, value: col, score: 50, meta: 'column' }
-    )));
+    )), sqlWords);
 
     this.setState({ words }, () => {
       const completer = {
         getCompletions: this.getCompletions.bind(this),
       };
       if (langTools) {
-        langTools.setCompleters([completer, langTools.keyWordCompleter]);
+        langTools.setCompleters([completer]);
       }
     });
   }

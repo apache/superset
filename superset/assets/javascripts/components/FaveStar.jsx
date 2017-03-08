@@ -3,7 +3,7 @@ import cx from 'classnames';
 import TooltipWrapper from './TooltipWrapper';
 
 const propTypes = {
-  sliceId: PropTypes.string.isRequired,
+  sliceId: PropTypes.number.isRequired,
   actions: PropTypes.object.isRequired,
   isStarred: PropTypes.bool.isRequired,
 };
