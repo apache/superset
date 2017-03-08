@@ -132,6 +132,8 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
+        df.index = pd.Index(pd.to_datetime(df.index)).\
+            tz_localize('UTC').tz_convert(config.get("DRUID_TZ"))
         return df
 
     def get_extra_filters(self):

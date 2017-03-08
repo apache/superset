@@ -278,9 +278,11 @@ def json_iso_dttm_ser(obj):
 
 
 def datetime_to_epoch(dttm):
-    if dttm.tzinfo:
-        epoch_with_tz = pytz.utc.localize(EPOCH)
-        return (dttm - epoch_with_tz).total_seconds() * 1000
+    dttm_tzinfo = dttm.tzinfo
+    if dttm_tzinfo:
+        timezone = dttm_tzinfo._filename.split('zoneinfo/')[1]
+        return (dttm.tz_convert(timezone) - pytz.timezone(timezone)
+                .localize(EPOCH)).total_seconds() * 1000
     return (dttm - EPOCH).total_seconds() * 1000
 
 
