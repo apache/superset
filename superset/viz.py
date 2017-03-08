@@ -132,8 +132,6 @@ class BaseViz(object):
                     df[DTTM_ALIAS] += timedelta(hours=self.datasource.offset)
             df.replace([np.inf, -np.inf], np.nan)
             df = df.fillna(0)
-        df.index = pd.Index(pd.to_datetime(df.index)).\
-            tz_localize('UTC').tz_convert(config.get("DRUID_TZ"))
         return df
 
     def get_extra_filters(self):
@@ -852,6 +850,7 @@ class NVD3TimeSeriesViz(NVD3Viz):
     is_timeseries = True
 
     def to_series(self, df, classed='', title_suffix=''):
+        df_timezone(df)
         cols = []
         for col in df.columns:
             if col == '':
@@ -993,6 +992,7 @@ class NVD3DualLineViz(NVD3Viz):
         return d
 
     def to_series(self, df, classed=''):
+        df_timezone(df)
         cols = []
         for col in df.columns:
             if col == '':
@@ -1565,6 +1565,10 @@ class MapboxViz(BaseViz):
             "color": fd.get("mapbox_color"),
         }
 
+
+def df_timezone(df):
+    df.index = pd.Index(pd.to_datetime(df.index)).tz_localize('UTC') \
+        .tz_convert(config.get("DRUID_TZ"))
 
 viz_types_list = [
     TableViz,
