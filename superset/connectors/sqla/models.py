@@ -20,7 +20,7 @@ from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 
 from superset import db, utils, import_util
-from superset.connectors.base import Datasource
+from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
 from superset.utils import (
     wrap_clause_in_parens,
     DTTM_ALIAS, QueryStatus
@@ -28,61 +28,30 @@ from superset.utils import (
 from superset.models.helpers import QueryResult
 from superset.models.core import Database
 from superset.jinja_context import get_template_processor
-from superset.models.helpers import AuditMixinNullable, ImportMixin, set_perm
+from superset.models.helpers import set_perm
 
 
-class TableColumn(Model, AuditMixinNullable, ImportMixin):
+class TableColumn(Model, BaseColumn):
 
     """ORM object for table columns, each table can have multiple columns"""
 
     __tablename__ = 'table_columns'
-    id = Column(Integer, primary_key=True)
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable',
         backref=backref('columns', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
-    column_name = Column(String(255))
-    verbose_name = Column(String(1024))
     is_dttm = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    type = Column(String(32), default='')
-    groupby = Column(Boolean, default=False)
-    count_distinct = Column(Boolean, default=False)
-    sum = Column(Boolean, default=False)
-    avg = Column(Boolean, default=False)
-    max = Column(Boolean, default=False)
-    min = Column(Boolean, default=False)
-    filterable = Column(Boolean, default=False)
     expression = Column(Text, default='')
-    description = Column(Text, default='')
     python_date_format = Column(String(255))
     database_expression = Column(String(255))
 
-    num_types = ('DOUBLE', 'FLOAT', 'INT', 'BIGINT', 'LONG', 'REAL', 'NUMERIC')
-    date_types = ('DATE', 'TIME')
-    str_types = ('VARCHAR', 'STRING', 'CHAR')
     export_fields = (
         'table_id', 'column_name', 'verbose_name', 'is_dttm', 'is_active',
         'type', 'groupby', 'count_distinct', 'sum', 'avg', 'max', 'min',
         'filterable', 'expression', 'description', 'python_date_format',
         'database_expression'
     )
-
-    def __repr__(self):
-        return self.column_name
-
-    @property
-    def is_num(self):
-        return any([t in self.type.upper() for t in self.num_types])
-
-    @property
-    def is_time(self):
-        return any([t in self.type.upper() for t in self.date_types])
-
-    @property
-    def is_string(self):
-        return any([t in self.type.upper() for t in self.str_types])
 
     @property
     def sqla_col(self):
@@ -149,24 +118,17 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
             return s or "'{}'".format(dttm.strftime(tf))
 
 
-class SqlMetric(Model, AuditMixinNullable, ImportMixin):
+class SqlMetric(Model, BaseMetric):
 
     """ORM object for metrics, each table can have multiple metrics"""
 
     __tablename__ = 'sql_metrics'
-    id = Column(Integer, primary_key=True)
-    metric_name = Column(String(512))
-    verbose_name = Column(String(1024))
-    metric_type = Column(String(32))
     table_id = Column(Integer, ForeignKey('tables.id'))
     table = relationship(
         'SqlaTable',
         backref=backref('metrics', cascade='all, delete-orphan'),
         foreign_keys=[table_id])
     expression = Column(Text)
-    description = Column(Text)
-    is_restricted = Column(Boolean, default=False, nullable=True)
-    d3format = Column(String(128))
 
     export_fields = (
         'metric_name', 'verbose_name', 'metric_type', 'table_id', 'expression',
@@ -193,12 +155,13 @@ class SqlMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class SqlaTable(Model, Datasource, AuditMixinNullable, ImportMixin):
+class SqlaTable(Model, BaseDatasource):
 
     """An ORM object for SqlAlchemy table references"""
 
     type = "table"
     query_language = 'sql'
+    metric_class = SqlMetric
 
     __tablename__ = 'tables'
     id = Column(Integer, primary_key=True)

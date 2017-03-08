@@ -1752,7 +1752,8 @@ class Superset(BaseSupersetView):
         cluster_name = payload['cluster']
 
         user = sm.find_user(username=user_name)
-        DruidCluster = ConnectorRegistry.sources['druid']
+        DruidDatasource = ConnectorRegistry.sources['druid']
+        DruidCluster = DruidDatasource.cluster_class
         if not user:
             err_msg = __("Can't find User '%(name)s', please ask your admin "
                          "to create one.", name=user_name)
@@ -1766,7 +1767,7 @@ class Superset(BaseSupersetView):
             logging.error(err_msg)
             return json_error_response(err_msg)
         try:
-            models.DruidDatasource.sync_to_db_from_config(
+            DruidDatasource.sync_to_db_from_config(
                 druid_config, user, cluster)
         except Exception as e:
             logging.exception(utils.error_msg_from_exception(e))

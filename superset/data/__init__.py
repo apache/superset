@@ -25,7 +25,7 @@ DB = models.Database
 Slice = models.Slice
 Dash = models.Dashboard
 
-TBL = ConnectorRegistry.sources['sqla']
+TBL = ConnectorRegistry.sources['table']
 
 config = app.config
 

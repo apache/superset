@@ -10,7 +10,6 @@ import logging
 import numpy
 import pickle
 import re
-import sqlparse
 import textwrap
 from future.standard_library import install_aliases
 from copy import copy

@@ -11,7 +11,7 @@ from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import appbuilder, config, db, utils, sm, sql_parse
+from superset import appbuilder, conf, db, utils, sm, sql_parse
 from superset.connectors.connector_registry import ConnectorRegistry
 
 
@@ -21,7 +21,7 @@ def get_datasource_exist_error_mgs(full_name):
 
 def get_user_roles():
     if g.user.is_anonymous():
-        public_role = config.get('AUTH_ROLE_PUBLIC')
+        public_role = conf.get('AUTH_ROLE_PUBLIC')
         return [appbuilder.sm.find_role(public_role)] if public_role else []
     return g.user.roles
 

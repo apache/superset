@@ -9,7 +9,9 @@ import json
 import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
-from superset import db, models, utils, appbuilder, security, sm
+from superset import db, utils, appbuilder, sm
+from superset.models import core as models
+
 from .base_tests import SupersetTestCase
 
 

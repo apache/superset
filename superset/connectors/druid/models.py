@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from six import string_types
 
 import requests
+import sqlalchemy as sa
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, Text, Boolean,
     DateTime,
@@ -27,13 +28,14 @@ from flask_appbuilder import Model
 
 from flask_babel import lazy_gettext as _
 
-from superset import config, db, import_util, utils, sm, get_session
+from superset import conf, db, import_util, utils, sm, get_session
 from superset.utils import (
     flasher, MetricPermException, DimSelector, DTTM_ALIAS
 )
-from superset.connectors.base import Datasource
-from superset.models.helpers import (
-    AuditMixinNullable, ImportMixin, QueryResult)
+from superset.connectors.base import BaseDatasource, BaseColumn, BaseMetric
+from superset.models.helpers import AuditMixinNullable, QueryResult, set_perm
+
+DRUID_TZ = conf.get("DRUID_TZ")
 
 
 class JavascriptPostAggregator(Postaggregator):
@@ -95,7 +97,7 @@ class DruidCluster(Model, AuditMixinNullable):
         """
         self.druid_version = self.get_druid_version()
         for datasource in self.get_datasources():
-            if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
+            if datasource not in conf.get('DRUID_DATA_SOURCE_BLACKLIST', []):
                 if not datasource_name or datasource_name == datasource:
                     DruidDatasource.sync_to_db(datasource, self, merge_flag)
 
@@ -108,11 +110,11 @@ class DruidCluster(Model, AuditMixinNullable):
         return self.cluster_name
 
 
-class DruidColumn(Model, AuditMixinNullable, ImportMixin):
+class DruidColumn(Model, BaseColumn):
     """ORM model for storing Druid datasource column metadata"""
 
     __tablename__ = 'columns'
-    id = Column(Integer, primary_key=True)
+
     datasource_name = Column(
         String(255),
         ForeignKey('datasources.datasource_name'))
@@ -121,17 +123,6 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         'DruidDatasource',
         backref=backref('columns', cascade='all, delete-orphan'),
         enable_typechecks=False)
-    column_name = Column(String(255))
-    is_active = Column(Boolean, default=True)
-    type = Column(String(32))
-    groupby = Column(Boolean, default=False)
-    count_distinct = Column(Boolean, default=False)
-    sum = Column(Boolean, default=False)
-    avg = Column(Boolean, default=False)
-    max = Column(Boolean, default=False)
-    min = Column(Boolean, default=False)
-    filterable = Column(Boolean, default=False)
-    description = Column(Text)
     dimension_spec_json = Column(Text)
 
     export_fields = (
@@ -142,10 +133,6 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
 
     def __repr__(self):
         return self.column_name
-
-    @property
-    def is_num(self):
-        return self.type in ('LONG', 'DOUBLE', 'FLOAT', 'INT')
 
     @property
     def dimension_spec(self):
@@ -260,15 +247,11 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_column, lookup_obj)
 
 
-class DruidMetric(Model, AuditMixinNullable, ImportMixin):
+class DruidMetric(Model, BaseMetric):
 
     """ORM object referencing Druid metrics for a datasource"""
 
     __tablename__ = 'metrics'
-    id = Column(Integer, primary_key=True)
-    metric_name = Column(String(512))
-    verbose_name = Column(String(1024))
-    metric_type = Column(String(32))
     datasource_name = Column(
         String(255),
         ForeignKey('datasources.datasource_name'))
@@ -278,9 +261,6 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         backref=backref('metrics', cascade='all, delete-orphan'),
         enable_typechecks=False)
     json = Column(Text)
-    description = Column(Text)
-    is_restricted = Column(Boolean, default=False, nullable=True)
-    d3format = Column(String(128))
 
     def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
@@ -289,7 +269,7 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         """
         self.druid_version = self.get_druid_version()
         for datasource in self.get_datasources():
-            if datasource not in config.get('DRUID_DATA_SOURCE_BLACKLIST'):
+            if datasource not in conf.get('DRUID_DATA_SOURCE_BLACKLIST'):
                 if not datasource_name or datasource_name == datasource:
                     DruidDatasource.sync_to_db(datasource, self, merge_flag)
     export_fields = (
@@ -322,12 +302,14 @@ class DruidMetric(Model, AuditMixinNullable, ImportMixin):
         return import_util.import_simple_obj(db.session, i_metric, lookup_obj)
 
 
-class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
+class DruidDatasource(Model, BaseDatasource):
 
     """ORM object referencing Druid datasources (tables)"""
 
     type = "druid"
     query_langtage = "json"
+    metric_class = DruidMetric
+    cluster_class = DruidCluster
 
     baselink = "druiddatasourcemodelview"
 
@@ -381,7 +363,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
 
     @property
     def schema(self):
-        name_pieces = self.datasource_name.split('.')
+        ds_name = self.datasource_name or ''
+        name_pieces = ds_name.split('.')
         if len(name_pieces) > 1:
             return name_pieces[0]
         else:
@@ -506,7 +489,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 datasource=self.datasource_name,
                 intervals=lbound + '/' + rbound,
                 merge=self.merge_flag,
-                analysisTypes=config.get('DRUID_ANALYSIS_TYPES'))
+                analysisTypes=conf.get('DRUID_ANALYSIS_TYPES'))
         except Exception as e:
             logging.warning("Failed first attempt to get latest segment")
             logging.exception(e)
@@ -521,7 +504,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                     datasource=self.datasource_name,
                     intervals=lbound + '/' + rbound,
                     merge=self.merge_flag,
-                    analysisTypes=config.get('DRUID_ANALYSIS_TYPES'))
+                    analysisTypes=conf.get('DRUID_ANALYSIS_TYPES'))
             except Exception as e:
                 logging.warning("Failed 2nd attempt to get latest segment")
                 logging.exception(e)
@@ -537,13 +520,14 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
         """Merges the ds config from druid_config into one stored in the db."""
         session = db.session()
         datasource = (
-            session.query(DruidDatasource)
+            session.query(cls)
             .filter_by(
                 datasource_name=druid_config['name'])
-        ).first()
+            .first()
+        )
         # Create a new datasource.
         if not datasource:
-            datasource = DruidDatasource(
+            datasource = cls(
                 datasource_name=druid_config['name'],
                 cluster=cluster,
                 owner=user,
@@ -559,7 +543,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 .filter_by(
                     datasource_name=druid_config['name'],
                     column_name=dim)
-            ).first()
+                .first()
+            )
             if not col_obj:
                 col_obj = DruidColumn(
                     datasource_name=druid_config['name'],
@@ -568,7 +553,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                     filterable=True,
                     # TODO: fetch type from Hive.
                     type="STRING",
-                    datasource=datasource
+                    datasource=datasource,
                 )
                 session.add(col_obj)
         # Import Druid metrics
@@ -710,8 +695,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                           limit=500):
         """Retrieve some values for the given column"""
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
-        from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
-        to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
+        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
 
         qry = dict(
             datasource=self.datasource_name,
@@ -758,8 +743,8 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
         inner_to_dttm = inner_to_dttm or to_dttm
 
         # add tzinfo to native datetime with config
-        from_dttm = from_dttm.replace(tzinfo=config.get("DRUID_TZ"))
-        to_dttm = to_dttm.replace(tzinfo=config.get("DRUID_TZ"))
+        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
+        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
         timezone = from_dttm.tzname()
 
         query_str = ""
@@ -785,40 +770,40 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             if metric.metric_type != 'postagg':
                 all_metrics.append(metric_name)
             else:
-                conf = metric.json_obj
-                all_metrics += recursive_get_fields(conf)
-                all_metrics += conf.get('fieldNames', [])
-                if conf.get('type') == 'javascript':
+                mconf = metric.json_obj
+                all_metrics += recursive_get_fields(mconf)
+                all_metrics += mconf.get('fieldNames', [])
+                if mconf.get('type') == 'javascript':
                     post_aggs[metric_name] = JavascriptPostAggregator(
-                        name=conf.get('name', ''),
-                        field_names=conf.get('fieldNames', []),
-                        function=conf.get('function', ''))
-                elif conf.get('type') == 'quantile':
+                        name=mconf.get('name', ''),
+                        field_names=mconf.get('fieldNames', []),
+                        function=mconf.get('function', ''))
+                elif mconf.get('type') == 'quantile':
                     post_aggs[metric_name] = Quantile(
-                        conf.get('name', ''),
-                        conf.get('probability', ''),
+                        mconf.get('name', ''),
+                        mconf.get('probability', ''),
                     )
-                elif conf.get('type') == 'quantiles':
+                elif mconf.get('type') == 'quantiles':
                     post_aggs[metric_name] = Quantiles(
-                        conf.get('name', ''),
-                        conf.get('probabilities', ''),
+                        mconf.get('name', ''),
+                        mconf.get('probabilities', ''),
                     )
-                elif conf.get('type') == 'fieldAccess':
-                    post_aggs[metric_name] = Field(conf.get('name'), '')
-                elif conf.get('type') == 'constant':
+                elif mconf.get('type') == 'fieldAccess':
+                    post_aggs[metric_name] = Field(mconf.get('name'), '')
+                elif mconf.get('type') == 'constant':
                     post_aggs[metric_name] = Const(
-                        conf.get('value'),
-                        output_name=conf.get('name', '')
+                        mconf.get('value'),
+                        output_name=mconf.get('name', '')
                     )
-                elif conf.get('type') == 'hyperUniqueCardinality':
+                elif mconf.get('type') == 'hyperUniqueCardinality':
                     post_aggs[metric_name] = HyperUniqueCardinality(
-                        conf.get('name'), ''
+                        mconf.get('name'), ''
                     )
                 else:
                     post_aggs[metric_name] = Postaggregator(
-                        conf.get('fn', "/"),
-                        conf.get('fields', []),
-                        conf.get('name', ''))
+                        mconf.get('fn', "/"),
+                        mconf.get('fields', []),
+                        mconf.get('name', ''))
 
         aggregations = OrderedDict()
         for m in self.metrics:
@@ -980,7 +965,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
 
         def increment_timestamp(ts):
             dt = utils.parse_human_datetime(ts).replace(
-                tzinfo=config.get("DRUID_TZ"))
+                tzinfo=DRUID_TZ)
             return dt + timedelta(milliseconds=time_offset)
         if DTTM_ALIAS in df.columns and time_offset:
             df[DTTM_ALIAS] = df[DTTM_ALIAS].apply(increment_timestamp)
@@ -1046,3 +1031,32 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
             cond = Aggregation(col) < eq
 
         return cond
+
+    def get_having_filters(self, raw_filters):
+        filters = None
+        reversed_op_map = {
+            '!=': '==',
+            '>=': '<',
+            '<=': '>'
+        }
+
+        for flt in raw_filters:
+            if not all(f in flt for f in ['col', 'op', 'val']):
+                continue
+            col = flt['col']
+            op = flt['op']
+            eq = flt['val']
+            cond = None
+            if op in ['==', '>', '<']:
+                cond = self._get_having_obj(col, op, eq)
+            elif op in reversed_op_map:
+                cond = ~self._get_having_obj(col, reversed_op_map[op], eq)
+
+            if filters:
+                filters = filters & cond
+            else:
+                filters = cond
+        return filters
+
+sa.event.listen(DruidDatasource, 'after_insert', set_perm)
+sa.event.listen(DruidDatasource, 'after_update', set_perm)

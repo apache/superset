@@ -12,13 +12,13 @@ import unittest
 
 import pandas as pd
 
-from superset import app, appbuilder, cli, db, models, dataframe
+from superset import app, appbuilder, cli, db, dataframe
+from superset.models import core as models
+from superset.models.helpers import QueryStatus
 from superset.security import sync_role_definitions
 from superset.sql_parse import SupersetQuery
 
 from .base_tests import SupersetTestCase
-
-QueryStatus = models.QueryStatus
 
 BASE_DIR = app.config.get('BASE_DIR')
 
