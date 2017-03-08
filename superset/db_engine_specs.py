@@ -509,6 +509,7 @@ class HiveEngineSpec(PrestoEngineSpec):
         hive.constants = patched_constants
         hive.ttypes = patched_ttypes
         hive.Cursor.fetch_logs = patched_hive.fetch_logs
+        hive.Connectio.__init__ = patched_hive.__init__
 
     @classmethod
     @cache_util.memoized_func(
