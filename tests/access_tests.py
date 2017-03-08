@@ -9,9 +9,9 @@ import mock
 import unittest
 
 from superset import db, models, sm, security
-from superset.connector_registry import ConnectorRegistry
 
 from superset.models import core as models
+from superset.connectors.connector_registry import ConnectorRegistry
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.druid.models import DruidDatasource
 

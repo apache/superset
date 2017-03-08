@@ -160,7 +160,7 @@ class SupersetTestCase(unittest.TestCase):
             table_name=name).first()
 
     def get_druid_ds_by_name(self, name):
-        return db.session.query(models.DruidDatasource).filter_by(
+        return db.session.query(DruidDatasource).filter_by(
             datasource_name=name).first()
 
     def get_resp(
