@@ -308,7 +308,7 @@ class Dashboard(Model, AuditMixinNullable, ImportMixin):
     @property
     def table_names(self):
         return ", ".join(
-            {"{}".format(s.datasource.name) for s in self.slices})
+            {"{}".format(s.datasource.full_name) for s in self.slices})
 
     @property
     def url(self):
