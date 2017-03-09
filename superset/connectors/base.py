@@ -56,7 +56,7 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     @property
     def data(self):
-        """data representation of the datasource sent to the frontend"""
+        """Data representation of the datasource sent to the frontend"""
         order_by_choices = []
         for s in sorted(self.column_names):
             order_by_choices.append((json.dumps([s, True]), s + ' [asc]'))
@@ -75,6 +75,8 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
             'order_by_choices': order_by_choices,
             'type': self.type,
         }
+
+        # TODO move this block to SqlaTable.data
         if self.type == 'table':
             grains = self.database.grains() or []
             if grains:
