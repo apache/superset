@@ -666,7 +666,7 @@ class CsvToDatabaseView(SimpleFormView):
         form.name.data = None
         form.con.data = config['SQLALCHEMY_DATABASE_URI']
         form.schema.data = None
-        form.if_exists.data = 'replace'
+        form.if_exists.data = 'append'
         form.index.data = None
         form.index_label.data = None
         form.chunksize.data = None
