@@ -52,3 +52,8 @@ class UtilsTestCase(unittest.TestCase):
         blob = zlib_compress(json_str)
         got_str = zlib_uncompress_to_string(blob)
         self.assertEquals(json_str, got_str)
+
+        byte_str = b"""{"test": 1}"""
+        blob = zlib_compress(byte_str)
+        got_str = zlib_uncompress_to_string(blob)
+        self.assertEquals(json_str, got_str)

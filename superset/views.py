@@ -12,7 +12,6 @@ import re
 import sys
 import time
 import traceback
-import zlib
 
 import functools
 import sqlalchemy as sqla
