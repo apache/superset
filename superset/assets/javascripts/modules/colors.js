@@ -1,8 +1,9 @@
 import $ from 'jquery';
+import { bnbPluginColors, category21Plugin, colorScalerPluginFactory } from '../../../plugins/javascripts/colors.js';
 const d3 = require('d3');
 
 // Color related utility functions go in this object
-export const bnbColors = [
+export const bnbColors = bnbPluginColors || [
   '#ff5a5f', // rausch
   '#7b0051', // hackb
   '#007A87', // kazan
@@ -48,7 +49,7 @@ const spectrums = {
   ],
 };
 
-export const category21 = (function () {
+export const category21 = category21Plugin || (function () {
   // Color factory
   const seen = {};
   return function (s) {
@@ -66,7 +67,7 @@ export const category21 = (function () {
   };
 }());
 
-export const colorScalerFactory = function (colors, data, accessor) {
+export const colorScalerFactory = colorScalerPluginFactory || function (colors, data, accessor) {
   // Returns a linear scaler our of an array of color
   if (!Array.isArray(colors)) {
     /* eslint no-param-reassign: 0 */

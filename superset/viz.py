@@ -1597,5 +1597,7 @@ viz_types_list = [
     SeparatorViz,
 ]
 
-viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list
+from superset.plugins.viz import *
+
+viz_types = OrderedDict([(v.viz_type, v) for v in viz_types_list + viz_types_plugins_list
                          if v.viz_type not in config.get('VIZ_TYPE_BLACKLIST')])
