@@ -53,6 +53,7 @@
     "datamaps": "^0.5.8",
     "datatables-bootstrap3-plugin": "^0.5.0",
     "datatables.net-bs": "^1.10.12",
+    "fixed-data-table": "^0.6.3",
     "font-awesome": "^4.6.3",
     "gridster": "^0.5.6",
     "immutability-helper": "^2.0.0",

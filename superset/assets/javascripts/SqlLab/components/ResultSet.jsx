@@ -1,10 +1,10 @@
 import React from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
-import { Table } from 'reactable';
 import shortid from 'shortid';
-
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
+
+import FilterTable from '../../components/FilterTable';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -209,26 +209,10 @@ class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <div className="ResultSet" style={{height: `${this.state.resultSetHeight}px`}}>
-              <Table
-                data={data.map(function (row) {
-                  const newRow = {};
-                  for (const k in row) {
-                    const val = row[k];
-                    if (typeof(val) === 'string') {
-                      newRow[k] = val;
-                    } else {
-                      newRow[k] = JSON.stringify(val);
-                    }
-                  }
-                  return newRow;
-                })}
-                columns={results.columns.map((col) => col.name)}
-                sortable
-                className="table table-condensed table-bordered"
-                filterBy={this.state.searchText}
-                filterable={results.columns.map((c) => c.name)}
-                hideFilterInput
+            <div className="ResultSet">
+              <FilterTable
+                height={this.state.resultSetHeight}
+                data={data}
               />
             </div>
           </div>
@@ -253,3 +237,24 @@ ResultSet.propTypes = propTypes;
 ResultSet.defaultProps = defaultProps;
 
 export default ResultSet;
+
+              // <Table
+              //   data={data.map(function (row) {
+              //     const newRow = {};
+              //     for (const k in row) {
+              //       const val = row[k];
+              //       if (typeof(val) === 'string') {
+              //         newRow[k] = val;
+              //       } else {
+              //         newRow[k] = JSON.stringify(val);
+              //       }
+              //     }
+              //     return newRow;
+              //   })}
+              //   columns={results.columns.map((col) => col.name)}
+              //   sortable
+              //   className="table table-condensed table-bordered"
+              //   filterBy={this.state.searchText}
+              //   filterable={results.columns.map((c) => c.name)}
+              //   hideFilterInput
+              // />
