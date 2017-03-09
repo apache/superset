@@ -772,6 +772,7 @@ class Database(Model, AuditMixinNullable):
         conn.password = password_mask if conn.password else None
         self.sqlalchemy_uri = str(conn)  # hides the password
 
+    @utils.memoized
     def get_sqla_engine(self, schema=None):
         extra = self.get_extra()
         url = make_url(self.sqlalchemy_uri_decrypted)

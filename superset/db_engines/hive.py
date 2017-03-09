@@ -1,5 +1,11 @@
 from pyhive import hive
 from pythrifthiveapi.TCLIService import ttypes
+from pythrifthiveapi.TCLIService import TCLIService
+
+import contextlib
+import thrift.protocol.TBinaryProtocol
+import thrift.transport.TSocket
+import thrift.transport.TTransport
 
 
 # TODO: contribute back to pyhive.
@@ -39,3 +45,40 @@ def fetch_logs(self, max_rows=1024,
             if not new_logs:
                 break
         return logs
+
+
+# Connection init
+def __init__(self, host, port=10000, username=None, database='default', auth='NONE',
+             configuration=None):
+    """Connect to HiveServer2
+
+    :param auth: The value of hive.server2.authentication used by HiveServer2
+    """
+    socket = thrift.transport.TSocket.TSocket(host, port)
+    configuration = configuration or {}
+    self._transport = thrift.transport.TTransport.TBufferedTransport(socket)
+    protocol = thrift.protocol.TBinaryProtocol.TBinaryProtocol(self._transport)
+    self._client = TCLIService.Client(protocol)
+    protocol_version = ttypes.TProtocolVersion.HIVE_CLI_SERVICE_PROTOCOL_V6
+
+    try:
+        self._transport.open()
+        open_session_req = ttypes.TOpenSessionReq(
+            client_protocol=protocol_version,
+            configuration=configuration,
+        )
+        # fixes working with multiple engines
+        self._transport.close()
+        self._transport.open()
+        response = self._client.OpenSession(open_session_req)
+        hive._check_status(response)
+        assert response.sessionHandle is not None, "Expected a session from OpenSession"
+        self._sessionHandle = response.sessionHandle
+        assert response.serverProtocolVersion == protocol_version, \
+            "Unable to handle protocol version {}".format(response.serverProtocolVersion)
+        with contextlib.closing(self.cursor()) as cursor:
+            cursor.execute('USE `{}`'.format(database))
+    except Exception as e:
+        self._transport.close()
+        raise e
+
