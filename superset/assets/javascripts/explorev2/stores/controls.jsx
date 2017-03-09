@@ -266,9 +266,9 @@ export const controls = {
     }),
   },
 
-  country_controltype: {
+  country_fieldtype: {
     type: 'SelectControl',
-    label: 'Country Control Type',
+    label: 'Country Field Type',
     default: 'cca2',
     choices: [
         ['name', 'Full name'],
@@ -838,6 +838,17 @@ export const controls = {
     label: 'Font Size To',
     default: '150',
     description: 'Font size for the biggest value in the list',
+  },
+
+  instant_filtering: {
+    type: 'CheckboxControl',
+    label: 'Instant Filtering',
+    renderTrigger: true,
+    default: true,
+    description: (
+      'Whether to apply filters as they change, or wait for' +
+      'users to hit an [Apply] button'
+    ),
   },
 
   show_brush: {

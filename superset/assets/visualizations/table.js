@@ -17,15 +17,10 @@ function tableVis(slice, payload) {
 
   const data = payload.data;
   const fd = slice.formData;
+
   // Removing metrics (aggregates) that are strings
-  const realMetrics = [];
   let metrics = fd.metrics || [];
-  for (const k in data.records[0]) {
-    if (metrics.indexOf(k) > -1 && !isNaN(data.records[0][k])) {
-      realMetrics.push(k);
-    }
-  }
-  metrics = realMetrics;
+  metrics = metrics.filter(m => !isNaN(data.records[0][m]));
 
   function col(c) {
     const arr = [];
@@ -68,18 +63,24 @@ function tableVis(slice, payload) {
     .enter()
     .append('tr')
     .selectAll('td')
-    .data((row) => data.columns.map((c) => {
-      let val = row[c];
+    .data(row => data.columns.map(c => {
+      const val = row[c];
+      let html;
+      const isMetric = metrics.indexOf(c) >= 0;
       if (c === 'timestamp') {
-        val = timestampFormatter(val);
+        html = timestampFormatter(val);
       }
       if (typeof(val) === 'string') {
-        val = `<span class="like-pre">${val}</span>`;
+        html = `<span class="like-pre">${val}</span>`;
+      }
+      if (isMetric) {
+        html = slice.d3format(c, val);
       }
       return {
         col: c,
         val,
-        isMetric: metrics.indexOf(c) >= 0,
+        html,
+        isMetric,
       };
     }))
     .enter()
@@ -118,12 +119,7 @@ function tableVis(slice, payload) {
     .style('cursor', function (d) {
       return (!d.isMetric) ? 'pointer' : '';
     })
-    .html((d) => {
-      if (d.isMetric) {
-        return slice.d3format(d.col, d.val);
-      }
-      return d.val;
-    });
+    .html(d => d.html ? d.html : d.val);
   const height = slice.height();
   let paging = false;
   let pageLength;

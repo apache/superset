@@ -244,11 +244,11 @@ const px = function () {
       resize() {
         this.render();
       },
-      addFilter(col, vals) {
-        controller.addFilter(sliceId, col, vals);
+      addFilter(col, vals, merge = true, refresh = true) {
+        controller.addFilter(sliceId, col, vals, merge, refresh);
       },
-      setFilter(col, vals) {
-        controller.setFilter(sliceId, col, vals);
+      setFilter(col, vals, refresh = true) {
+        controller.setFilter(sliceId, col, vals, refresh);
       },
       getFilters() {
         return controller.filters[sliceId];

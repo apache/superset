@@ -2477,20 +2477,9 @@ class Superset(BaseSupersetView):
     def select_star(self, database_id, table_name):
         mydb = db.session.query(
             models.Database).filter_by(id=database_id).first()
-        quote = mydb.get_quoter()
-        t = mydb.get_table(table_name)
-
-        # Prevent exposing column fields to users that cannot access DB.
-        if not self.datasource_access(t.perm):
-            flash(get_datasource_access_error_msg(t.name), 'danger')
-            return redirect("/tablemodelview/list/")
-
-        fields = ", ".join(
-            [quote(c.name) for c in t.columns] or "*")
-        s = "SELECT\n{}\nFROM {}".format(fields, table_name)
         return self.render_template(
             "superset/ajah.html",
-            content=s
+            content=mydb.select_star(table_name, show_cols=True)
         )
 
     @expose("/theme/")

@@ -377,3 +377,28 @@ your environment.::
     npm run build
     cd $SUPERSET_HOME
     python setup.py install
+
+
+Blueprints
+----------
+
+`Blueprints are Flask's reusable apps <http://flask.pocoo.org/docs/0.12/blueprints/>`_.
+Superset allows you to specify an array of Blueprints
+an array of Blueprints in your ``superset_config`` module. Here's
+an example on how this can work with a simple Blueprint. By doing
+so, you can expect Superset to serve a page that says "OK"
+at the ``/simple_page`` url. This can allow you to run other things such
+as custom data visualization applications alongside Superset, on the
+same server.
+
+..code ::
+
+    from flask import Blueprint
+    simple_page = Blueprint('simple_page', __name__,
+                                    template_folder='templates')
+    @simple_page.route('/', defaults={'page': 'index'})
+    @simple_page.route('/<page>')
+    def show(page):
+        return "Ok"
+
+    BLUEPRINTS = [simple_page]

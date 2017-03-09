@@ -78,7 +78,6 @@ const visTypes = {
     controlPanelSections: [
       {
         label: 'Chart Options',
-        description: 'tooltip text here',
         controlSetRows: [
           ['metrics'],
           ['groupby'],
@@ -573,7 +572,7 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['entity'],
-          ['country_controltype'],
+          ['country_fieldtype'],
           ['metric'],
         ],
       },
@@ -608,7 +607,7 @@ const visTypes = {
       {
         label: null,
         controlSetRows: [
-          ['date_filter'],
+          ['date_filter', 'instant_filtering'],
           ['groupby'],
           ['metric'],
         ],
