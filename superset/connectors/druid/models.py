@@ -299,7 +299,7 @@ class DruidColumn(Model, BaseColumn):
             )
 
         if self.avg and self.is_num:
-            if ver > '0':
+            if ver >= '0.7.':
                 mt = corrected_type.lower() + 'Avg'
                 name = 'avg__' + self.column_name
                 metrics[name] = DruidMetric(
@@ -327,7 +327,7 @@ class DruidColumn(Model, BaseColumn):
                 ))
 
         if self.min and self.is_num:
-            if ver > '0':
+            if ver >= '0.7.':
                 mt = corrected_type.lower() + 'Min'
             else:
                 mt = 'min'
@@ -340,7 +340,7 @@ class DruidColumn(Model, BaseColumn):
                     'type': mt, 'name': name, 'fieldName': self.column_name}),
             )
         if self.max and self.is_num:
-            if ver > '0':
+            if ver >= '0.7.':
                 mt = corrected_type.lower() + 'Max'
             else:
                 mt = 'max'
