@@ -188,7 +188,7 @@ class CeleryTestCase(SupersetTestCase):
             db_id, sql_where, "2", tmp_table='tmp_table_2', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result2['query']['state'])
         self.assertEqual([], result2['data'])
-        self.assertEqual({}, result2['columns'])
+        self.assertEqual([], result2['columns'])
         query2 = self.get_query_by_id(result2['query']['serverId'])
 
         # Check the data in the tmp table.
@@ -204,7 +204,7 @@ class CeleryTestCase(SupersetTestCase):
             db_id, sql_empty_result, "3", tmp_table='tmp_table_3', cta='true')
         self.assertEqual(QueryStatus.SUCCESS, result3['query']['state'])
         self.assertEqual([], result3['data'])
-        self.assertEqual({}, result3['columns'])
+        self.assertEqual([], result3['columns'])
 
         query3 = self.get_query_by_id(result3['query']['serverId'])
         self.assertEqual(QueryStatus.SUCCESS, query3.status)
@@ -238,7 +238,7 @@ class CeleryTestCase(SupersetTestCase):
         self.assertEqual(True, query.select_as_cta)
         self.assertEqual(True, query.select_as_cta_used)
 
-    def test_get_columns_dict(self):
+    def test_get_columns(self):
         main_db = self.get_main_database(db.session)
         df = main_db.get_df("SELECT * FROM multiformat_time_series", None)
         cdf = dataframe.SupersetDataFrame(df)
@@ -260,7 +260,7 @@ class CeleryTestCase(SupersetTestCase):
                   'is_dim': False},
                  {'is_date': False, 'type': 'object',
                   'name': 'string3', 'is_dim': True}]
-                , cdf.columns_dict
+                , cdf.columns
             )
         else:
             self.assertEqual(
@@ -280,7 +280,7 @@ class CeleryTestCase(SupersetTestCase):
                   'is_dim': False},
                  {'is_date': False, 'type': 'object',
                   'name': 'string3', 'is_dim': True}]
-                , cdf.columns_dict
+                , cdf.columns
             )
 
 

@@ -155,7 +155,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         'query_id': query.id,
         'status': query.status,
         'data': cdf.data if cdf.data else [],
-        'columns': cdf.columns_dict if cdf.columns_dict else {},
+        'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     }
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)

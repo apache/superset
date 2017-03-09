@@ -31,7 +31,7 @@ class SupersetDataFrame(object):
         return self.__df.to_dict(orient='records')
 
     @property
-    def columns_dict(self):
+    def columns(self):
         """Provides metadata about columns for data visualization.
 
         :return: dict, with the fields name, type, is_date, is_dim and agg.
@@ -69,7 +69,6 @@ class SupersetDataFrame(object):
             if not column['agg']:
                 column.pop('agg', None)
             columns.append(column)
-
         return columns
 
 
