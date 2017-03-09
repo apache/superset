@@ -1006,7 +1006,7 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         col = self.sqla_col.label('__time')
         return and_(
             col >= text(self.dttm_sql_literal(start_dttm)),
-            col <= text(self.dttm_sql_literal(end_dttm)),
+            col < text(self.dttm_sql_literal(end_dttm)),
         )
 
     def get_timestamp_expression(self, time_grain):
@@ -1044,18 +1044,23 @@ class TableColumn(Model, AuditMixinNullable, ImportMixin):
         If database_expression is not empty, the internal dttm
         will be parsed as the sql sentence for the database to convert
         """
+        # default to seconds for the numeric type
 
         tf = self.python_date_format or '%Y-%m-%d %H:%M:%S.%f'
+        # Some defaults.
+        if self.is_num and not self.python_date_format:
+            tf = 'epoch_s'
+        if self.column_name in ('d', 'ds') and not self.python_date_format:
+            tf = '%Y-%m-%d'
+
         if self.database_expression:
-            return self.database_expression.format(dttm.strftime('%Y-%m-%d %H:%M:%S'))
-        elif tf == 'epoch_s':
+            return self.database_expression.format(dttm.strftime(tf))
+        if tf == 'epoch_s':
             return str((dttm - datetime(1970, 1, 1)).total_seconds())
-        elif tf == 'epoch_ms':
+        if tf == 'epoch_ms':
             return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
-        else:
-            s = self.table.database.db_engine_spec.convert_dttm(
-                self.type, dttm)
-            return s or "'{}'".format(dttm.strftime(tf))
+        s = self.table.database.db_engine_spec.convert_dttm(self.type, dttm)
+        return s or "'{}'".format(dttm.strftime(tf))
 
 
 class SqlMetric(Model, AuditMixinNullable, ImportMixin):
