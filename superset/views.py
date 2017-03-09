@@ -669,7 +669,7 @@ class CsvToDatabaseView(SimpleFormView):
         form.if_exists.data = 'append'
         form.index.data = None
         form.index_label.data = None
-        form.chunksize.data = None
+        form.chunksize.data = 100000
 
     def form_post(self, form):
         # post process form
@@ -706,7 +706,8 @@ class CsvToDatabaseView(SimpleFormView):
                             escapechar=form.escapechar.data,
                             comment=form.comment.data,
                             encoding=form.encoding.data,
-                            error_bad_lines=form.error_bad_lines.data)
+                            error_bad_lines=form.error_bad_lines.data,
+                            chunksize=form.chunksize.data)
 
         # Use Pandas to convert superset dataframe to database
         self.df_to_db(df=df,
@@ -727,13 +728,13 @@ class CsvToDatabaseView(SimpleFormView):
     @staticmethod
     def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, prefix, mangle_dupe_cols,
                   skipinitialspace, skiprows, nrows, skip_blank_lines, parse_dates, infer_datetime_format,
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment, encoding, error_bad_lines):
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment, encoding, error_bad_lines, chunksize):
         # Use Pandas to parse csv file to a dataframe
         # str(config['SUPERSET_WEBSERVER_PORT'])
         upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + '8088' \
                       + url_for('uploaded_file', filename=filepath_or_buffer)
         # Expose this to api so can specify each field
-        df = pandas.read_csv(filepath_or_buffer=upload_path,
+        chunks = pandas.read_csv(filepath_or_buffer=upload_path,
                              sep=sep,
                              header=header,
                              names=names,
@@ -755,7 +756,10 @@ class CsvToDatabaseView(SimpleFormView):
                              comment=comment,
                              encoding=encoding,
                              error_bad_lines=error_bad_lines,
-                             )
+                             chunksize=chunksize)
+
+        df = pandas.DataFrame()
+        df = pandas.concat(chunk for chunk in chunks)
         return df
 
     @staticmethod

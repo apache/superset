@@ -1229,6 +1229,6 @@ class CsvToDatabaseForm(DynamicForm):
     index_label = StringField(_('Column Label(s)'), description=_('Column label for index column(s). If None is given '
                                                                   'and Dataframe Index is True, Index Names are used.'),
                               validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
-    chunksize = IntegerField(_('Chunksize'), description=_('If not None, rows will be written in batches of this size '
-                                                           'at a time. If None, all rows will be written at once.'),
+    chunksize = IntegerField(_('Chunksize'), description=_('If empty, all rows will be written at once. Otherwise, '
+                                                           'rows will be written in batches of this many rows at a time.'),
                              validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
