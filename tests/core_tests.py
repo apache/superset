@@ -554,12 +554,7 @@ class CoreTests(SupersetTestCase):
         form_post = self.get_resp(url, data = form_data)
         assert 'CSV file "testCSV1.csv" uploaded to table' in form_post
 
-        # Validations
-            # headrow >= 0
-            # nrows >= 0
-        
         # Features
-            # replace --> append
             # Fixing port bug
             # Allow for GB file csv
 

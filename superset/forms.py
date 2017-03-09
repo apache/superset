@@ -20,7 +20,7 @@ from wtforms import (
     Form, SelectMultipleField, SelectField, TextField, TextAreaField,
     BooleanField, IntegerField, HiddenField, DecimalField, StringField)
 from wtforms import validators, widgets
-from wtforms.validators import DataRequired, Optional
+from wtforms.validators import DataRequired, Optional, NumberRange
 
 from superset import app
 
@@ -1168,13 +1168,13 @@ class CsvToDatabaseForm(DynamicForm):
                       validators=[DataRequired()], widget=BS3TextFieldWidget())
     header = IntegerField(_('Header Row'), description=_('Row containing the headers to use as column names (0 is '
                                                          'first line of data). Leave empty if there is no header row.'),
-                          validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+                          validators=[Optional(), NumberRange(0, 1E+20)], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     names = StringField(_('Column Names'), description=_('List of comma-separated column names to use if header row '
                                                          'not specified above. Leave empty if header field populated.'),
                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     index_col = IntegerField(_('Index Column'), description=_('Column to use as the row labels of the dataframe. Leave '
                                                               'empty if no index column.'),
-                             validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+                             validators=[Optional(), NumberRange(0, 1E+20)], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     squeeze = BetterBooleanField(_('Squeeze'), description=_('Parse the data as a series (specify this option if the '
                                                              'data contains only one column.)'))
     prefix = StringField(_('Prefix'), description=_('Prefix to add to column numbers when no header '
@@ -1184,9 +1184,9 @@ class CsvToDatabaseForm(DynamicForm):
                                                                                        '"X.0, X.1".'))
     skipinitialspace = BetterBooleanField(_('Skip Initial Space'), description=_('Skip spaces after delimiter.'))
     skiprows = IntegerField(_('Skip Rows'), description=_('Number of rows to skip at start of file.'),
-                            validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+                            validators=[Optional(), NumberRange(0, 1E+20)], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     nrows = IntegerField(_('Rows to Read'), description=_('Number of rows of file to read.'),
-                         validators=[Optional()], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
+                         validators=[Optional(), NumberRange(0, 1E+20)], widget=BS3TextFieldWidget(), filters=[lambda x: x or None])
     skip_blank_lines = BetterBooleanField(_('Skip Blank Lines'), description=_('Skip blank lines rather than '
                                                                                'interpreting them as NaN values.'))
     parse_dates = BetterBooleanField(_('Parse Dates'), description=_('Parse date values.'))
