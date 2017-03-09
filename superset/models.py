@@ -1650,7 +1650,11 @@ class DruidCluster(Model, AuditMixinNullable):
         endpoint = (
             "http://{obj.coordinator_host}:{obj.coordinator_port}/status"
         ).format(obj=self)
-        return json.loads(requests.get(endpoint).text)['version']
+        ver = json.loads(requests.get(endpoint).text)['version']
+        if ver is None:
+            return "0"
+        else:
+            return ver
 
     def refresh_datasources(self, datasource_name=None, merge_flag=False):
         """Refresh metadata of all datasources in the cluster
@@ -1715,7 +1719,7 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
         if self.dimension_spec_json:
             return json.loads(self.dimension_spec_json)
 
-    def generate_metrics(self):
+    def generate_metrics(self, ver):
         """Generate metrics based on the column metadata"""
         M = DruidMetric  # noqa
         metrics = []
@@ -1743,18 +1747,42 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
             ))
 
         if self.avg and self.is_num:
-            mt = corrected_type.lower() + 'Avg'
-            name = 'avg__' + self.column_name
-            metrics.append(DruidMetric(
-                metric_name=name,
-                metric_type='avg',
-                verbose_name='AVG({})'.format(self.column_name),
-                json=json.dumps({
-                    'type': mt, 'name': name, 'fieldName': self.column_name})
-            ))
+            if ver >= '0.7.':
+                mt = corrected_type.lower() + 'Avg'
+                name = 'avg__' + self.column_name
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    metric_type='avg',
+                    verbose_name='AVG({})'.format(self.column_name),
+                    json=json.dumps({
+                        'type': mt,
+                        'name': name,
+                        'fieldName': self.column_name})
+                ))
+            else:
+                name = 'avg__' + self.column_name
+                metrics.append(DruidMetric(
+                    metric_name=name,
+                    metric_type='postagg',
+                    verbose_name='AVG({})'.format(self.column_name),
+                    json=json.dumps({
+                        'type': 'arithmetic',
+                        'name': name,
+                        'fn': '/',
+                        'fields': [
+                            {'type': 'fieldAccess',
+                             'fieldName': 'sum__' + self.column_name},
+                            {'type': 'fieldAccess',
+                             'fieldName': 'count'}
+                        ]
+                    })
+                ))
 
         if self.min and self.is_num:
-            mt = corrected_type.lower() + 'Min'
+            if ver >= '0.7.':
+                mt = corrected_type.lower() + 'Min'
+            else:
+                mt = 'min'
             name = 'min__' + self.column_name
             metrics.append(DruidMetric(
                 metric_name=name,
@@ -1764,7 +1792,10 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     'type': mt, 'name': name, 'fieldName': self.column_name})
             ))
         if self.max and self.is_num:
-            mt = corrected_type.lower() + 'Max'
+            if ver >= '0.7.':
+                mt = corrected_type.lower() + 'Max'
+            else:
+                mt = 'max'
             name = 'max__' + self.column_name
             metrics.append(DruidMetric(
                 metric_name=name,
@@ -2093,7 +2124,7 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
 
     def generate_metrics(self):
         for col in self.columns:
-            col.generate_metrics()
+            col.generate_metrics(self.cluster.druid_version)
 
     @classmethod
     def sync_to_db_from_config(cls, druid_config, user, cluster):
@@ -2207,9 +2238,14 @@ class DruidDatasource(Model, AuditMixinNullable, Datasource, ImportMixin):
                 col_obj.count_distinct = True
             if col_obj:
                 col_obj.type = cols[col]['type']
+            if datatype != "STRING":
+                col_obj.avg = "1"
+                col_obj.min = "1"
+                col_obj.max = "1"
+                col_obj.sum = "1"
             session.flush()
             col_obj.datasource = datasource
-            col_obj.generate_metrics()
+            col_obj.generate_metrics(cluster.druid_version)
             session.flush()
 
     @staticmethod
