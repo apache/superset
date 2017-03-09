@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import sqlalchemy
 import uuid
+import zlib
 
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
@@ -88,8 +89,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         executed_sql = superset_query.as_create_table(query.tmp_table_name)
         query.select_as_cta_used = True
     elif (
-            query.limit and superset_query.is_select() and
-            db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
+                    query.limit and superset_query.is_select() and
+                    db_engine_spec.limit_method == LimitMethod.WRAP_SQL):
         executed_sql = database.wrap_sql_limit(executed_sql, query.limit)
         query.limit_used = True
     try:
@@ -161,7 +162,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     if store_results:
         key = '{}'.format(uuid.uuid4())
         logging.info("Storing results in results backend, key: {}".format(key))
-        results_backend.set(key, utils.zlib_compress(payload))
+        results_backend.set(key, zlib.compress(payload))
         query.results_key = key
 
     session.flush()
