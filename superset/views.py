@@ -2519,7 +2519,7 @@ class Superset(BaseSupersetView):
             return json_error_response(get_datasource_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = zlib.decompress(blob)
+        payload = utils.zlib_uncompress_to_string(blob)
         display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
         if display_limit:
             payload_json = json.loads(payload)
@@ -2622,7 +2622,7 @@ class Superset(BaseSupersetView):
         if results_backend and query.results_key:
             blob = results_backend.get(query.results_key)
         if blob:
-            json_payload = zlib.decompress(blob)
+            json_payload = utils.zlib_uncompress_to_string(blob)
             obj = json.loads(json_payload)
             df = pd.DataFrame.from_records(obj['data'])
             csv = df.to_csv(index=False, encoding='utf-8')

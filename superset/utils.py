@@ -582,3 +582,44 @@ def setup_cache(app, cache_config):
     """Setup the flask-cache on a flask app"""
     if cache_config and cache_config.get('CACHE_TYPE') != 'null':
         return Cache(app, config=cache_config)
+
+
+def zlib_compress(data):
+    """
+    compress things in a py2/3 safe fashion
+
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    """
+
+    if PY3K:
+        if isinstance(data, str):
+            return zlib.compress(bytes(data, "utf-8"))
+        else:
+            return zlib.compress(data)
+    else:
+        return zlib.compress(data)
+
+
+def zlib_uncompress_to_string(blob):
+    """
+    uncompress things to a string in a py2/3 safe fashion
+    >>> json_str = '{"test": 1}'
+    >>> blob = zlib_compress(json_str)
+    >>> got_str = zlib_uncompress_to_string(blob)
+    >>> got_str == json_str
+    True
+    """
+
+    if PY3K:
+        decompressed = ""
+        if isinstance(blob, bytes):
+            decompressed = zlib.decompress(blob)
+        else:
+            decompressed = zlib.decompress(bytes(blob, "utf-8"))
+
+        if isinstance(decompressed, str):
+            return decompressed
+        return decompressed.decode("utf-8")
+    else:
+        return zlib.decompress(blob)
