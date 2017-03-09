@@ -1766,7 +1766,9 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                     metric_type='avg',
                     verbose_name='AVG({})'.format(self.column_name),
                     json=json.dumps({
-                        'type': mt, 'name': name, 'fieldName': self.column_name})
+                        'type': mt,
+                        'name': name,
+                        'fieldName': self.column_name})
                 ))
             else:
                 name = 'avg__' + self.column_name
@@ -1779,8 +1781,10 @@ class DruidColumn(Model, AuditMixinNullable, ImportMixin):
                         'name': name,
                         'fn': '/',
                         'fields': [
-                          { 'type': 'fieldAccess', 'fieldName': 'sum__' + self.column_name },
-                          { 'type': 'fieldAccess', 'fieldName': 'count' }
+                            {'type': 'fieldAccess',
+                             'fieldName': 'sum__' + self.column_name},
+                            {'type': 'fieldAccess',
+                             'fieldName': 'count'}
                         ]
                     })
                 ))
