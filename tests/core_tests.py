@@ -535,13 +535,14 @@ class CoreTests(SupersetTestCase):
         self.login(username='admin')
         config = app.config
 
-        test_file = open('testCSV1.csv', 'rb')
+        test_file = open('tests/testCSV.csv', 'rb')
         form_data = {'csv_file': test_file,
             'sep': ',',
             'name': 'TestName123',
             'con': config['SQLALCHEMY_DATABASE_URI'],
             'if_exists': 'append',
-            'index_label': 'test_label'}
+            'index_label': 'test_label',
+            'chunksize': 1}
 
         url = '/databaseview/list/'
         add_datasource_page = self.get_resp(url)
@@ -551,12 +552,11 @@ class CoreTests(SupersetTestCase):
         form_get = self.get_resp(url)
         assert 'CSV to Database configuration' in form_get
 
+        self.login(username='admin')
         form_post = self.get_resp(url, data = form_data)
-        assert 'CSV file "testCSV1.csv" uploaded to table' in form_post
+        assert 'CSV file "tests_testCSV.csv" uploaded to table' in form_post
 
-        # Features
-            # Fixing port bug
-            # Allow for GB file csv
+        # Fix port bug
 
 if __name__ == '__main__':
     unittest.main()
