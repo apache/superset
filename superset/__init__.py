@@ -13,9 +13,9 @@ from flask import Flask, redirect
 from flask_appbuilder import SQLA, AppBuilder, IndexView
 from flask_appbuilder.baseviews import expose
 from flask_migrate import Migrate
-from superset.source_registry import SourceRegistry
+from superset.connectors.connector_registry import ConnectorRegistry
 from werkzeug.contrib.fixers import ProxyFix
-from superset import utils
+from superset import utils, config  # noqa
 
 
 APP_DIR = os.path.dirname(__file__)
@@ -104,6 +104,6 @@ results_backend = app.config.get("RESULTS_BACKEND")
 # Registering sources
 module_datasource_map = app.config.get("DEFAULT_MODULE_DS_MAP")
 module_datasource_map.update(app.config.get("ADDITIONAL_MODULE_DS_MAP"))
-SourceRegistry.register_sources(module_datasource_map)
+ConnectorRegistry.register_sources(module_datasource_map)
 
-from superset import views, config  # noqa
+from superset import views  # noqa

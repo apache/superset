@@ -1,7 +1,7 @@
 from sqlalchemy.orm import subqueryload
 
 
-class SourceRegistry(object):
+class ConnectorRegistry(object):
     """ Central Registry for all available datasource engines"""
 
     sources = {}
@@ -26,15 +26,15 @@ class SourceRegistry(object):
     @classmethod
     def get_all_datasources(cls, session):
         datasources = []
-        for source_type in SourceRegistry.sources:
+        for source_type in ConnectorRegistry.sources:
             datasources.extend(
-                session.query(SourceRegistry.sources[source_type]).all())
+                session.query(ConnectorRegistry.sources[source_type]).all())
         return datasources
 
     @classmethod
     def get_datasource_by_name(cls, session, datasource_type, datasource_name,
                                schema, database_name):
-        datasource_class = SourceRegistry.sources[datasource_type]
+        datasource_class = ConnectorRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
 
         # Filter datasoures that don't have database.
@@ -45,7 +45,7 @@ class SourceRegistry(object):
 
     @classmethod
     def query_datasources_by_permissions(cls, session, database, permissions):
-        datasource_class = SourceRegistry.sources[database.type]
+        datasource_class = ConnectorRegistry.sources[database.type]
         return (
             session.query(datasource_class)
             .filter_by(database_id=database.id)
@@ -56,7 +56,7 @@ class SourceRegistry(object):
     @classmethod
     def get_eager_datasource(cls, session, datasource_type, datasource_id):
         """Returns datasource with columns and metrics."""
-        datasource_class = SourceRegistry.sources[datasource_type]
+        datasource_class = ConnectorRegistry.sources[datasource_type]
         return (
             session.query(datasource_class)
             .options(

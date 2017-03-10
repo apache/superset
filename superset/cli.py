@@ -13,7 +13,7 @@ from subprocess import Popen
 from flask_migrate import MigrateCommand
 from flask_script import Manager
 
-from superset import app, db, data, security
+from superset import app, db, security
 
 config = app.config
 
@@ -89,6 +89,7 @@ def version(verbose):
     help="Load additional test data")
 def load_examples(load_test_data):
     """Loads a set of Slices and Dashboards and a supporting dataset """
+    from superset import data
     print("Loading examples into {}".format(db))
 
     data.load_css_templates()

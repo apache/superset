@@ -19,12 +19,10 @@ import sqlalchemy as sqla
 
 from flask import (
     g, request, redirect, flash, Response, render_template, Markup)
-from flask_appbuilder import ModelView, CompactCRUDMixin, BaseView, expose
+from flask_appbuilder import expose
 from flask_appbuilder.actions import action
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.decorators import has_access_api
-from flask_appbuilder.widgets import ListWidget
-from flask_appbuilder.models.sqla.filters import BaseFilter
 from flask_appbuilder.security.sqla import models as ab_models
 
 from flask_babel import gettext as __
@@ -33,120 +31,26 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import create_engine
 from werkzeug.routing import BaseConverter
 
-import superset
 from superset import (
-    appbuilder, cache, db, models, viz, utils, app,
-    sm, sql_lab, sql_parse, results_backend, security,
+    appbuilder, cache, db, viz, utils, app,
+    sm, sql_lab, results_backend, security,
 )
 from superset.legacy import cast_form_data
 from superset.utils import has_access
-from superset.source_registry import SourceRegistry
-from superset.models import DatasourceAccessRequest as DAR
+from superset.connectors.connector_registry import ConnectorRegistry
+import superset.models.core as models
 from superset.sql_parse import SupersetQuery
+
+from .base import (
+    SupersetModelView, BaseSupersetView, DeleteMixin,
+    SupersetFilter, get_user_roles
+)
 
 config = app.config
 log_this = models.Log.log_this
 can_access = utils.can_access
 QueryStatus = models.QueryStatus
-
-
-class BaseSupersetView(BaseView):
-    def can_access(self, permission_name, view_name, user=None):
-        if not user:
-            user = g.user
-        return utils.can_access(
-            appbuilder.sm, permission_name, view_name, user)
-
-    def all_datasource_access(self, user=None):
-        return self.can_access(
-            "all_datasource_access", "all_datasource_access", user=user)
-
-    def database_access(self, database, user=None):
-        return (
-            self.can_access(
-                "all_database_access", "all_database_access", user=user) or
-            self.can_access("database_access", database.perm, user=user)
-        )
-
-    def schema_access(self, datasource, user=None):
-        return (
-            self.database_access(datasource.database, user=user) or
-            self.all_datasource_access(user=user) or
-            self.can_access("schema_access", datasource.schema_perm, user=user)
-        )
-
-    def datasource_access(self, datasource, user=None):
-        return (
-            self.schema_access(datasource, user=user) or
-            self.can_access("datasource_access", datasource.perm, user=user)
-        )
-
-    def datasource_access_by_name(
-            self, database, datasource_name, schema=None):
-        if self.database_access(database) or self.all_datasource_access():
-            return True
-
-        schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
-            return True
-
-        datasources = SourceRegistry.query_datasources_by_name(
-            db.session, database, datasource_name, schema=schema)
-        for datasource in datasources:
-            if self.can_access("datasource_access", datasource.perm):
-                return True
-        return False
-
-    def datasource_access_by_fullname(
-            self, database, full_table_name, schema):
-        table_name_pieces = full_table_name.split(".")
-        if len(table_name_pieces) == 2:
-            table_schema = table_name_pieces[0]
-            table_name = table_name_pieces[1]
-        else:
-            table_schema = schema
-            table_name = table_name_pieces[0]
-        return self.datasource_access_by_name(
-            database, table_name, schema=table_schema)
-
-    def rejected_datasources(self, sql, database, schema):
-        superset_query = sql_parse.SupersetQuery(sql)
-        return [
-            t for t in superset_query.tables if not
-            self.datasource_access_by_fullname(database, t, schema)]
-
-    def accessible_by_user(self, database, datasource_names, schema=None):
-        if self.database_access(database) or self.all_datasource_access():
-            return datasource_names
-
-        schema_perm = utils.get_schema_perm(database, schema)
-        if schema and utils.can_access(
-                sm, 'schema_access', schema_perm, g.user):
-            return datasource_names
-
-        role_ids = set([role.id for role in g.user.roles])
-        # TODO: cache user_perms or user_datasources
-        user_pvms = (
-            db.session.query(ab_models.PermissionView)
-            .join(ab_models.Permission)
-            .filter(ab_models.Permission.name == 'datasource_access')
-            .filter(ab_models.PermissionView.role.any(
-                ab_models.Role.id.in_(role_ids)))
-            .all()
-        )
-        user_perms = set([pvm.view_menu.name for pvm in user_pvms])
-        user_datasources = SourceRegistry.query_datasources_by_permissions(
-            db.session, database, user_perms)
-        full_names = set([d.full_name for d in user_datasources])
-        return [d for d in datasource_names if d in full_names]
-
-
-class ListWidgetWithCheckboxes(ListWidget):
-    """An alternative to list view that renders Boolean fields as checkboxes
-
-    Works in conjunction with the `checkbox` view."""
-    template = 'superset/fab_overrides/list_with_checkboxes.html'
+DAR = models.DatasourceAccessRequest
 
 
 ALL_DATASOURCE_ACCESS_ERR = __(
@@ -166,10 +70,6 @@ def get_database_access_error_msg(database_name):
 def get_datasource_access_error_msg(datasource_name):
     return __("This endpoint requires the datasource %(name)s, database or "
               "`all_datasource_access` permission", name=datasource_name)
-
-
-def get_datasource_exist_error_mgs(full_name):
-    return __("Datasource %(name)s already exists", name=full_name)
 
 
 def get_error_msg():
@@ -211,9 +111,11 @@ def api(f):
 
     return functools.update_wrapper(wraps, f)
 
+
 def is_owner(obj, user):
     """ Check if user is owner of the slice """
     return obj and obj.owners and user in obj.owners
+
 
 def check_ownership(obj, raise_if_false=True):
     """Meant to be used in `pre_update` hooks on models to enforce ownership
@@ -257,68 +159,6 @@ def check_ownership(obj, raise_if_false=True):
         return False
 
 
-def get_user_roles():
-    if g.user.is_anonymous():
-        public_role = config.get('AUTH_ROLE_PUBLIC')
-        return [appbuilder.sm.find_role(public_role)] if public_role else []
-    return g.user.roles
-
-
-class SupersetFilter(BaseFilter):
-
-    """Add utility function to make BaseFilter easy and fast
-
-    These utility function exist in the SecurityManager, but would do
-    a database round trip at every check. Here we cache the role objects
-    to be able to make multiple checks but query the db only once
-    """
-
-    def get_user_roles(self):
-        return get_user_roles()
-
-    def get_all_permissions(self):
-        """Returns a set of tuples with the perm name and view menu name"""
-        perms = set()
-        for role in get_user_roles():
-            for perm_view in role.permissions:
-                t = (perm_view.permission.name, perm_view.view_menu.name)
-                perms.add(t)
-        return perms
-
-    def has_role(self, role_name_or_list):
-        """Whether the user has this role name"""
-        if not isinstance(role_name_or_list, list):
-            role_name_or_list = [role_name_or_list]
-        return any(
-            [r.name in role_name_or_list for r in self.get_user_roles()])
-
-    def has_perm(self, permission_name, view_menu_name):
-        """Whether the user has this perm"""
-        return (permission_name, view_menu_name) in self.get_all_permissions()
-
-    def get_view_menus(self, permission_name):
-        """Returns the details of view_menus for a perm name"""
-        vm = set()
-        for perm_name, vm_name in self.get_all_permissions():
-            if perm_name == permission_name:
-                vm.add(vm_name)
-        return vm
-
-    def has_all_datasource_access(self):
-        return (
-            self.has_role(['Admin', 'Alpha']) or
-            self.has_perm('all_datasource_access', 'all_datasource_access'))
-
-
-class DatasourceFilter(SupersetFilter):
-    def apply(self, query, func):  # noqa
-        if self.has_all_datasource_access():
-            return query
-        perms = self.get_view_menus('datasource_access')
-        # TODO(bogdan): add `schema_access` support here
-        return query.filter(self.model.perm.in_(perms))
-
-
 class SliceFilter(SupersetFilter):
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
@@ -355,14 +195,6 @@ class DashboardFilter(SupersetFilter):
         return query
 
 
-def validate_json(form, field):  # noqa
-    try:
-        json.loads(field.data)
-    except Exception as e:
-        logging.exception(e)
-        raise Exception("json isn't valid")
-
-
 def generate_download_headers(extension):
     filename = datetime.now().strftime("%Y%m%d_%H%M%S")
     content_disp = "attachment; filename={}.{}".format(filename, extension)
@@ -370,206 +202,6 @@ def generate_download_headers(extension):
         "Content-Disposition": content_disp,
     }
     return headers
-
-
-class DeleteMixin(object):
-    @action(
-        "muldelete", "Delete", "Delete all Really?", "fa-trash", single=False)
-    def muldelete(self, items):
-        self.datamodel.delete_all(items)
-        self.update_redirect()
-        return redirect(self.get_redirect())
-
-
-class SupersetModelView(ModelView):
-    page_size = 500
-
-
-class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.TableColumn)
-    can_delete = False
-    list_widget = ListWidgetWithCheckboxes
-    edit_columns = [
-        'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
-        'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
-        'is_dttm', 'python_date_format', 'database_expression']
-    add_columns = edit_columns
-    list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max', 'is_dttm']
-    page_size = 500
-    description_columns = {
-        'is_dttm': (_(
-            "Whether to make this column available as a "
-            "[Time Granularity] option, column has to be DATETIME or "
-            "DATETIME-like")),
-        'expression': utils.markdown(
-            "a valid SQL expression as supported by the underlying backend. "
-            "Example: `substr(name, 1, 1)`", True),
-        'python_date_format': utils.markdown(Markup(
-            "The pattern of timestamp format, use "
-            "<a href='https://docs.python.org/2/library/"
-            "datetime.html#strftime-strptime-behavior'>"
-            "python datetime string pattern</a> "
-            "expression. If time is stored in epoch "
-            "format, put `epoch_s` or `epoch_ms`. Leave `Database Expression` "
-            "below empty if timestamp is stored in "
-            "String or Integer(epoch) type"), True),
-        'database_expression': utils.markdown(
-            "The database expression to cast internal datetime "
-            "constants to database date/timestamp type according to the DBAPI. "
-            "The expression should follow the pattern of "
-            "%Y-%m-%d %H:%M:%S, based on different DBAPI. "
-            "The string should be a python string formatter \n"
-            "`Ex: TO_DATE('{}', 'YYYY-MM-DD HH24:MI:SS')` for Oracle"
-            "Superset uses default expression based on DB URI if this "
-            "field is blank.", True),
-    }
-    label_columns = {
-        'column_name': _("Column"),
-        'verbose_name': _("Verbose Name"),
-        'description': _("Description"),
-        'groupby': _("Groupable"),
-        'filterable': _("Filterable"),
-        'table': _("Table"),
-        'count_distinct': _("Count Distinct"),
-        'sum': _("Sum"),
-        'min': _("Min"),
-        'max': _("Max"),
-        'expression': _("Expression"),
-        'is_dttm': _("Is temporal"),
-        'python_date_format': _("Datetime Format"),
-        'database_expression': _("Database Expression")
-    }
-appbuilder.add_view_no_menu(TableColumnInlineView)
-
-
-class DruidColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.DruidColumn)
-    edit_columns = [
-        'column_name', 'description', 'dimension_spec_json', 'datasource',
-        'groupby', 'count_distinct', 'sum', 'min', 'max']
-    add_columns = edit_columns
-    list_columns = [
-        'column_name', 'type', 'groupby', 'filterable', 'count_distinct',
-        'sum', 'min', 'max']
-    can_delete = False
-    page_size = 500
-    label_columns = {
-        'column_name': _("Column"),
-        'type': _("Type"),
-        'datasource': _("Datasource"),
-        'groupby': _("Groupable"),
-        'filterable': _("Filterable"),
-        'count_distinct': _("Count Distinct"),
-        'sum': _("Sum"),
-        'min': _("Min"),
-        'max': _("Max"),
-    }
-    description_columns = {
-        'dimension_spec_json': utils.markdown(
-            "this field can be used to specify  "
-            "a `dimensionSpec` as documented [here]"
-            "(http://druid.io/docs/latest/querying/dimensionspecs.html). "
-            "Make sure to input valid JSON and that the "
-            "`outputName` matches the `column_name` defined "
-            "above.",
-            True),
-    }
-
-    def post_update(self, col):
-        col.generate_metrics()
-        utils.validate_json(col.dimension_spec_json)
-
-    def post_add(self, col):
-        self.post_update(col)
-
-appbuilder.add_view_no_menu(DruidColumnInlineView)
-
-
-class SqlMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.SqlMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
-    edit_columns = [
-        'metric_name', 'description', 'verbose_name', 'metric_type',
-        'expression', 'table', 'd3format', 'is_restricted']
-    description_columns = {
-        'expression': utils.markdown(
-            "a valid SQL expression as supported by the underlying backend. "
-            "Example: `count(DISTINCT userid)`", True),
-        'is_restricted': _("Whether the access to this metric is restricted "
-                           "to certain roles. Only roles with the permission "
-                           "'metric access on XXX (the name of this metric)' "
-                           "are allowed to access this metric"),
-        'd3format': utils.markdown(
-            "d3 formatting string as defined [here]"
-            "(https://github.com/d3/d3-format/blob/master/README.md#format). "
-            "For instance, this default formatting applies in the Table "
-            "visualization and allow for different metric to use different "
-            "formats", True
-        ),
-    }
-    add_columns = edit_columns
-    page_size = 500
-    label_columns = {
-        'metric_name': _("Metric"),
-        'description': _("Description"),
-        'verbose_name': _("Verbose Name"),
-        'metric_type': _("Type"),
-        'expression': _("SQL Expression"),
-        'table': _("Table"),
-    }
-
-    def post_add(self, metric):
-        if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
-
-    def post_update(self, metric):
-        if metric.is_restricted:
-            security.merge_perm(sm, 'metric_access', metric.get_perm())
-
-appbuilder.add_view_no_menu(SqlMetricInlineView)
-
-
-class DruidMetricInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
-    datamodel = SQLAInterface(models.DruidMetric)
-    list_columns = ['metric_name', 'verbose_name', 'metric_type']
-    edit_columns = [
-        'metric_name', 'description', 'verbose_name', 'metric_type', 'json',
-        'datasource', 'd3format', 'is_restricted']
-    add_columns = edit_columns
-    page_size = 500
-    validators_columns = {
-        'json': [validate_json],
-    }
-    description_columns = {
-        'metric_type': utils.markdown(
-            "use `postagg` as the metric type if you are defining a "
-            "[Druid Post Aggregation]"
-            "(http://druid.io/docs/latest/querying/post-aggregations.html)",
-            True),
-        'is_restricted': _("Whether the access to this metric is restricted "
-                           "to certain roles. Only roles with the permission "
-                           "'metric access on XXX (the name of this metric)' "
-                           "are allowed to access this metric"),
-    }
-    label_columns = {
-        'metric_name': _("Metric"),
-        'description': _("Description"),
-        'verbose_name': _("Verbose Name"),
-        'metric_type': _("Type"),
-        'json': _("JSON"),
-        'datasource': _("Druid Datasource"),
-    }
-
-    def post_add(self, metric):
-        utils.init_metrics_perm(superset, [metric])
-
-    def post_update(self, metric):
-        utils.init_metrics_perm(superset, [metric])
-
-
-appbuilder.add_view_no_menu(DruidMetricInlineView)
 
 
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
@@ -692,99 +324,6 @@ class DatabaseTablesAsync(DatabaseView):
 appbuilder.add_view_no_menu(DatabaseTablesAsync)
 
 
-class TableModelView(SupersetModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.SqlaTable)
-    list_columns = [
-        'link', 'database', 'is_featured',
-        'changed_by_', 'changed_on_']
-    order_columns = [
-        'link', 'database', 'is_featured', 'changed_on_']
-    add_columns = ['database', 'schema', 'table_name']
-    edit_columns = [
-        'table_name', 'sql', 'is_featured', 'filter_select_enabled',
-        'database', 'schema',
-        'description', 'owner',
-        'main_dttm_col', 'default_endpoint', 'offset', 'cache_timeout']
-    show_columns = edit_columns + ['perm']
-    related_views = [TableColumnInlineView, SqlMetricInlineView]
-    base_order = ('changed_on', 'desc')
-    description_columns = {
-        'offset': _("Timezone offset (in hours) for this datasource"),
-        'table_name': _(
-            "Name of the table that exists in the source database"),
-        'schema': _(
-            "Schema, as used only in some databases like Postgres, Redshift "
-            "and DB2"),
-        'description': Markup(
-            "Supports <a href='https://daringfireball.net/projects/markdown/'>"
-            "markdown</a>"),
-        'sql': _(
-            "This fields acts a Superset view, meaning that Superset will "
-            "run a query against this string as a subquery."
-        ),
-    }
-    base_filters = [['id', DatasourceFilter, lambda: []]]
-    label_columns = {
-        'link': _("Table"),
-        'changed_by_': _("Changed By"),
-        'database': _("Database"),
-        'changed_on_': _("Last Changed"),
-        'is_featured': _("Is Featured"),
-        'filter_select_enabled': _("Enable Filter Select"),
-        'schema': _("Schema"),
-        'default_endpoint': _("Default Endpoint"),
-        'offset': _("Offset"),
-        'cache_timeout': _("Cache Timeout"),
-    }
-
-    def pre_add(self, table):
-        number_of_existing_tables = db.session.query(
-            sqla.func.count('*')).filter(
-            models.SqlaTable.table_name == table.table_name,
-            models.SqlaTable.schema == table.schema,
-            models.SqlaTable.database_id == table.database.id
-        ).scalar()
-        # table object is already added to the session
-        if number_of_existing_tables > 1:
-            raise Exception(get_datasource_exist_error_mgs(table.full_name))
-
-        # Fail before adding if the table can't be found
-        try:
-            table.get_sqla_table_object()
-        except Exception as e:
-            logging.exception(e)
-            raise Exception(
-                "Table [{}] could not be found, "
-                "please double check your "
-                "database connection, schema, and "
-                "table name".format(table.name))
-
-    def post_add(self, table):
-        table.fetch_metadata()
-        security.merge_perm(sm, 'datasource_access', table.get_perm())
-        if table.schema:
-            security.merge_perm(sm, 'schema_access', table.schema_perm)
-
-        flash(_(
-            "The table was created. As part of this two phase configuration "
-            "process, you should now click the edit button by "
-            "the new table to configure it."),
-            "info")
-
-    def post_update(self, table):
-        self.post_add(table)
-
-appbuilder.add_view(
-    TableModelView,
-    "Tables",
-    label=__("Tables"),
-    category="Sources",
-    category_label=__("Sources"),
-    icon='fa-table',)
-
-appbuilder.add_separator("Sources")
-
-
 class AccessRequestsModelView(SupersetModelView, DeleteMixin):
     datamodel = SQLAInterface(DAR)
     list_columns = [
@@ -808,43 +347,6 @@ appbuilder.add_view(
     category="Security",
     category_label=__("Security"),
     icon='fa-table',)
-
-
-class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.DruidCluster)
-    add_columns = [
-        'cluster_name',
-        'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
-        'broker_host', 'broker_port', 'broker_endpoint', 'cache_timeout',
-    ]
-    edit_columns = add_columns
-    list_columns = ['cluster_name', 'metadata_last_refreshed']
-    label_columns = {
-        'cluster_name': _("Cluster"),
-        'coordinator_host': _("Coordinator Host"),
-        'coordinator_port': _("Coordinator Port"),
-        'coordinator_endpoint': _("Coordinator Endpoint"),
-        'broker_host': _("Broker Host"),
-        'broker_port': _("Broker Port"),
-        'broker_endpoint': _("Broker Endpoint"),
-    }
-
-    def pre_add(self, cluster):
-        security.merge_perm(sm, 'database_access', cluster.perm)
-
-    def pre_update(self, cluster):
-        self.pre_add(cluster)
-
-
-if config['DRUID_IS_ACTIVE']:
-    appbuilder.add_view(
-        DruidClusterModelView,
-        name="Druid Clusters",
-        label=__("Druid Clusters"),
-        icon="fa-cubes",
-        category="Sources",
-        category_label=__("Sources"),
-        category_icon='fa-database',)
 
 
 class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
@@ -903,9 +405,9 @@ class SliceModelView(SupersetModelView, DeleteMixin):  # noqa
         if not widget:
             return redirect(self.get_redirect())
 
-        sources = SourceRegistry.sources
+        sources = ConnectorRegistry.sources
         for source in sources:
-            ds = db.session.query(SourceRegistry.sources[source]).first()
+            ds = db.session.query(ConnectorRegistry.sources[source]).first()
             if ds is not None:
                 url = "/{}/list/".format(ds.baselink)
                 msg = _("Click on a {} link to create a Slice".format(source))
@@ -1078,74 +580,6 @@ appbuilder.add_view(
     icon="fa-search")
 
 
-class DruidDatasourceModelView(SupersetModelView, DeleteMixin):  # noqa
-    datamodel = SQLAInterface(models.DruidDatasource)
-    list_widget = ListWidgetWithCheckboxes
-    list_columns = [
-        'datasource_link', 'cluster', 'changed_by_', 'changed_on_', 'offset']
-    order_columns = [
-        'datasource_link', 'changed_on_', 'offset']
-    related_views = [DruidColumnInlineView, DruidMetricInlineView]
-    edit_columns = [
-        'datasource_name', 'cluster', 'description', 'owner',
-        'is_featured', 'is_hidden', 'filter_select_enabled',
-        'default_endpoint', 'offset', 'cache_timeout']
-    add_columns = edit_columns
-    show_columns = add_columns + ['perm']
-    page_size = 500
-    base_order = ('datasource_name', 'asc')
-    description_columns = {
-        'offset': _("Timezone offset (in hours) for this datasource"),
-        'description': Markup(
-            "Supports <a href='"
-            "https://daringfireball.net/projects/markdown/'>markdown</a>"),
-    }
-    base_filters = [['id', DatasourceFilter, lambda: []]]
-    label_columns = {
-        'datasource_link': _("Data Source"),
-        'cluster': _("Cluster"),
-        'description': _("Description"),
-        'owner': _("Owner"),
-        'is_featured': _("Is Featured"),
-        'is_hidden': _("Is Hidden"),
-        'filter_select_enabled': _("Enable Filter Select"),
-        'default_endpoint': _("Default Endpoint"),
-        'offset': _("Time Offset"),
-        'cache_timeout': _("Cache Timeout"),
-    }
-
-    def pre_add(self, datasource):
-        number_of_existing_datasources = db.session.query(
-            sqla.func.count('*')).filter(
-            models.DruidDatasource.datasource_name ==
-                datasource.datasource_name,
-            models.DruidDatasource.cluster_name == datasource.cluster.id
-        ).scalar()
-
-        # table object is already added to the session
-        if number_of_existing_datasources > 1:
-            raise Exception(get_datasource_exist_error_mgs(
-                datasource.full_name))
-
-    def post_add(self, datasource):
-        datasource.generate_metrics()
-        security.merge_perm(sm, 'datasource_access', datasource.get_perm())
-        if datasource.schema:
-            security.merge_perm(sm, 'schema_access', datasource.schema_perm)
-
-    def post_update(self, datasource):
-        self.post_add(datasource)
-
-if config['DRUID_IS_ACTIVE']:
-    appbuilder.add_view(
-        DruidDatasourceModelView,
-        "Druid Datasources",
-        label=__("Druid Datasources"),
-        category="Sources",
-        category_label=__("Sources"),
-        icon="fa-cube")
-
-
 @app.route('/health')
 def health():
     return "OK"
@@ -1283,7 +717,7 @@ class Superset(BaseSupersetView):
     @has_access_api
     @expose("/datasources/")
     def datasources(self):
-        datasources = SourceRegistry.get_all_datasources(db.session)
+        datasources = ConnectorRegistry.get_all_datasources(db.session)
         datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
         return self.json_response(datasources)
 
@@ -1318,7 +752,7 @@ class Superset(BaseSupersetView):
                         dbs['name'], ds_name, schema=schema['name'])
                     db_ds_names.add(fullname)
 
-        existing_datasources = SourceRegistry.get_all_datasources(db.session)
+        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
         datasources = [
             d for d in existing_datasources if d.full_name in db_ds_names]
         role = sm.find_role(role_name)
@@ -1356,7 +790,7 @@ class Superset(BaseSupersetView):
         datasource_id = request.args.get('datasource_id')
         datasource_type = request.args.get('datasource_type')
         if datasource_id:
-            ds_class = SourceRegistry.sources.get(datasource_type)
+            ds_class = ConnectorRegistry.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class)
                 .filter_by(id=int(datasource_id))
@@ -1385,7 +819,7 @@ class Superset(BaseSupersetView):
     def approve(self):
         def clean_fulfilled_requests(session):
             for r in session.query(DAR).all():
-                datasource = SourceRegistry.get_datasource(
+                datasource = ConnectorRegistry.get_datasource(
                     r.datasource_type, r.datasource_id, session)
                 user = sm.get_user_by_id(r.created_by_fk)
                 if not datasource or \
@@ -1400,7 +834,7 @@ class Superset(BaseSupersetView):
         role_to_extend = request.args.get('role_to_extend')
 
         session = db.session
-        datasource = SourceRegistry.get_datasource(
+        datasource = ConnectorRegistry.get_datasource(
             datasource_type, datasource_id, session)
 
         if not datasource:
@@ -1501,9 +935,9 @@ class Superset(BaseSupersetView):
             )
             return slc.get_viz()
         else:
-            form_data=self.get_form_data()
+            form_data = self.get_form_data()
             viz_type = form_data.get('viz_type', 'table')
-            datasource = SourceRegistry.get_datasource(
+            datasource = ConnectorRegistry.get_datasource(
                 datasource_type, datasource_id, db.session)
             viz_obj = viz.viz_types[viz_type](
                 datasource,
@@ -1541,7 +975,6 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 utils.error_msg_from_exception(e),
                 stacktrace=traceback.format_exc())
-
 
         if not self.datasource_access(viz_obj.datasource):
             return json_error_response(DATASOURCE_ACCESS_ERR, status=404)
@@ -1598,11 +1031,8 @@ class Superset(BaseSupersetView):
             data = pickle.load(f)
             # TODO: import DRUID datasources
             for table in data['datasources']:
-                if table.type == 'table':
-                    models.SqlaTable.import_obj(table, import_time=current_tt)
-                else:
-                    models.DruidDatasource.import_obj(
-                        table, import_time=current_tt)
+                ds_class = ConnectorRegistry.sources.get(table.type)
+                ds_class.import_obj(table, import_time=current_tt)
             db.session.commit()
             for dashboard in data['dashboards']:
                 models.Dashboard.import_obj(
@@ -1628,7 +1058,7 @@ class Superset(BaseSupersetView):
 
         error_redirect = '/slicemodelview/list/'
         datasource = (
-            db.session.query(SourceRegistry.sources[datasource_type])
+            db.session.query(ConnectorRegistry.sources[datasource_type])
             .filter_by(id=datasource_id)
             .one()
         )
@@ -1705,8 +1135,7 @@ class Superset(BaseSupersetView):
         """
         # TODO: Cache endpoint by user, datasource and column
         error_redirect = '/slicemodelview/list/'
-        datasource_class = models.SqlaTable \
-            if datasource_type == "table" else models.DruidDatasource
+        datasource_class = ConnectorRegistry.sources[datasource_type]
 
         datasource = db.session.query(
             datasource_class).filter_by(id=datasource_id).first()
@@ -2194,12 +1623,13 @@ class Superset(BaseSupersetView):
                 return json_error_response(__(
                     "Slice %(id)s not found", id=slice_id), status=404)
         elif table_name and db_name:
+            SqlaTable = ConnectorRegistry.sources['table']
             table = (
-                session.query(models.SqlaTable)
+                session.query(SqlaTable)
                 .join(models.Database)
                 .filter(
                     models.Database.database_name == db_name or
-                    models.SqlaTable.table_name == table_name)
+                    SqlaTable.table_name == table_name)
             ).first()
             if not table:
                 return json_error_response(__(
@@ -2209,15 +1639,15 @@ class Superset(BaseSupersetView):
                 datasource_id=table.id,
                 datasource_type=table.type).all()
 
-        for slice in slices:
+        for slc in slices:
             try:
-                obj = slice.get_viz()
+                obj = slc.get_viz()
                 obj.get_json(force=True)
             except Exception as e:
                 return json_error_response(utils.error_msg_from_exception(e))
         return json_success(json.dumps(
-            [{"slice_id": session.id, "slice_name": session.slice_name}
-             for session in slices]))
+            [{"slice_id": slc.id, "slice_name": slc.slice_name}
+             for slc in slices]))
 
     @expose("/favstar/<class_name>/<obj_id>/<action>/")
     def favstar(self, class_name, obj_id, action):
@@ -2322,12 +1752,14 @@ class Superset(BaseSupersetView):
         cluster_name = payload['cluster']
 
         user = sm.find_user(username=user_name)
+        DruidDatasource = ConnectorRegistry.sources['druid']
+        DruidCluster = DruidDatasource.cluster_class
         if not user:
             err_msg = __("Can't find User '%(name)s', please ask your admin "
                          "to create one.", name=user_name)
             logging.error(err_msg)
             return json_error_response(err_msg)
-        cluster = db.session.query(models.DruidCluster).filter_by(
+        cluster = db.session.query(DruidCluster).filter_by(
             cluster_name=cluster_name).first()
         if not cluster:
             err_msg = __("Can't find DruidCluster with cluster_name = "
@@ -2335,7 +1767,7 @@ class Superset(BaseSupersetView):
             logging.error(err_msg)
             return json_error_response(err_msg)
         try:
-            models.DruidDatasource.sync_to_db_from_config(
+            DruidDatasource.sync_to_db_from_config(
                 druid_config, user, cluster)
         except Exception as e:
             logging.exception(utils.error_msg_from_exception(e))
@@ -2349,13 +1781,14 @@ class Superset(BaseSupersetView):
         data = json.loads(request.form.get('data'))
         table_name = data.get('datasourceName')
         viz_type = data.get('chartType')
+        SqlaTable = ConnectorRegistry.sources['table']
         table = (
-            db.session.query(models.SqlaTable)
+            db.session.query(SqlaTable)
             .filter_by(table_name=table_name)
             .first()
         )
         if not table:
-            table = models.SqlaTable(table_name=table_name)
+            table = SqlaTable(table_name=table_name)
         table.database_id = data.get('dbId')
         q = SupersetQuery(data.get('sql'))
         table.sql = q.stripped()
@@ -2642,7 +2075,7 @@ class Superset(BaseSupersetView):
     def fetch_datasource_metadata(self):
         datasource_id, datasource_type = (
             request.args.get('datasourceKey').split('__'))
-        datasource_class = SourceRegistry.sources[datasource_type]
+        datasource_class = ConnectorRegistry.sources[datasource_type]
         datasource = (
             db.session.query(datasource_class)
             .filter_by(id=int(datasource_id))
@@ -2740,7 +2173,8 @@ class Superset(BaseSupersetView):
     def refresh_datasources(self):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
-        for cluster in session.query(models.DruidCluster).all():
+        DruidCluster = ConnectorRegistry.sources['druid']
+        for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
             try:
                 cluster.refresh_datasources()

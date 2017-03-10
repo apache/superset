@@ -11,8 +11,11 @@ import unittest
 
 from flask_appbuilder.security.sqla import models as ab_models
 
-from superset import app, cli, db, models, appbuilder, security, sm
+from superset import app, cli, db, appbuilder, security, sm
+from superset.models import core as models
 from superset.security import sync_role_definitions
+from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
 
 os.environ['SUPERSET_CONFIG'] = 'tests.superset_test_config'
 
@@ -85,30 +88,34 @@ class SupersetTestCase(unittest.TestCase):
                 appbuilder.sm.find_role('Alpha'),
                 password='general')
         sm.get_session.commit()
-
         # create druid cluster and druid datasources
         session = db.session
-        cluster = session.query(models.DruidCluster).filter_by(
-            cluster_name="druid_test").first()
+        cluster = (
+            session.query(DruidCluster)
+            .filter_by(cluster_name="druid_test")
+            .first()
+        )
         if not cluster:
-            cluster = models.DruidCluster(cluster_name="druid_test")
+            cluster = DruidCluster(cluster_name="druid_test")
             session.add(cluster)
             session.commit()
 
-            druid_datasource1 = models.DruidDatasource(
+            druid_datasource1 = DruidDatasource(
                 datasource_name='druid_ds_1',
                 cluster_name='druid_test'
             )
             session.add(druid_datasource1)
-            druid_datasource2 = models.DruidDatasource(
+            druid_datasource2 = DruidDatasource(
                 datasource_name='druid_ds_2',
                 cluster_name='druid_test'
             )
             session.add(druid_datasource2)
             session.commit()
 
+
+
     def get_table(self, table_id):
-        return db.session.query(models.SqlaTable).filter_by(
+        return db.session.query(SqlaTable).filter_by(
             id=table_id).first()
 
     def get_or_create(self, cls, criteria, session):
@@ -149,11 +156,11 @@ class SupersetTestCase(unittest.TestCase):
         return slc
 
     def get_table_by_name(self, name):
-        return db.session.query(models.SqlaTable).filter_by(
+        return db.session.query(SqlaTable).filter_by(
             table_name=name).first()
 
     def get_druid_ds_by_name(self, name):
-        return db.session.query(models.DruidDatasource).filter_by(
+        return db.session.query(DruidDatasource).filter_by(
             datasource_name=name).first()
 
     def get_resp(
