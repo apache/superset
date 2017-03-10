@@ -193,7 +193,7 @@ class SqliteEngineSpec(BaseEngineSpec):
         Grain("week", _('week'),
               "DATE({col}, -strftime('%w', {col}) || ' days')"),
         Grain("month", _('month'),
-              "DATE({col}, -strftime('%d', {col}) || ' days')"),
+              "DATE({col}, -strftime('%d', {col}) || ' days', '+1 day')"),
     )
 
     @classmethod
