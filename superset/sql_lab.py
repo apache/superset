@@ -132,6 +132,13 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     conn.commit()
     conn.close()
 
+    if query.status == utils.QueryStatus.STOPPED:
+        return json.dumps({
+            'query_id': query.id,
+            'status': query.status,
+            'query': query.to_dict(),
+        }, default=utils.json_iso_dttm_ser)
+
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)

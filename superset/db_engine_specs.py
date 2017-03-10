@@ -29,6 +29,7 @@ from superset import cache_util
 from sqlalchemy import select
 from sqlalchemy.sql import text
 from superset.utils import SupersetTemplateException
+from superset.utils import QueryStatus
 from flask_babel import lazy_gettext as _
 
 Grain = namedtuple('Grain', 'name label function')
@@ -273,6 +274,12 @@ class PrestoEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
+    def patch(cls):
+        from pyhive import presto
+        from superset.db_engines import presto as patched_presto
+        presto.Cursor.cancel = patched_presto.cancel
+
+    @classmethod
     def sql_preprocessor(cls, sql):
         return sql.replace('%', '%%')
 
@@ -342,6 +349,12 @@ class PrestoEngineSpec(BaseEngineSpec):
         while polled:
             # Update the object and wait for the kill signal.
             stats = polled.get('stats', {})
+
+            query = session.query(type(query)).filter_by(id=query.id).one()
+            if query.status == QueryStatus.STOPPED:
+                cursor.cancel()
+                break
+
             if stats:
                 completed_splits = float(stats.get('completedSplits'))
                 total_splits = float(stats.get('totalSplits'))
@@ -566,13 +579,17 @@ class HiveEngineSpec(PrestoEngineSpec):
     def handle_cursor(cls, cursor, query, session):
         """Updates progress information"""
         from pyhive import hive
-        print("PATCHED TCLIService {}".format(hive.TCLIService.__file__))
         unfinished_states = (
             hive.ttypes.TOperationState.INITIALIZED_STATE,
             hive.ttypes.TOperationState.RUNNING_STATE,
         )
         polled = cursor.poll()
         while polled.operationState in unfinished_states:
+            query = session.query(type(query)).filter_by(id=query.id)
+            if query.status == QueryStatus.STOPPED:
+                cursor.cancel()
+                break
+
             resp = cursor.fetch_logs()
             if resp and resp.log:
                 progress = cls.progress(resp.log)

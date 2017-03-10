@@ -1961,6 +1961,20 @@ class Superset(BaseSupersetView):
             json.dumps(payload_json, default=utils.json_iso_dttm_ser))
 
     @has_access_api
+    @expose("/stop_query/", methods=['POST'])
+    @log_this
+    def stop_query(self):
+        client_id = request.form.get('client_id')
+        query = db.session.query(models.Query).filter_by(
+            client_id=client_id).one()
+        if query.user_id != g.user.id:
+            return json_error_response(
+                "Only original author can stop the query.")
+        query.status = utils.QueryStatus.STOPPED
+        db.session.commit()
+        return Response(201)
+
+    @has_access_api
     @expose("/sql_json/", methods=['POST', 'GET'])
     @log_this
     def sql_json(self):
