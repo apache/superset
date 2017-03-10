@@ -2057,7 +2057,8 @@ class Superset(BaseSupersetView):
         if blob:
             json_payload = zlib.decompress(blob)
             obj = json.loads(json_payload)
-            df = pd.DataFrame.from_records(obj['data'])
+            columns = [c['name'] for c in obj['columns']]
+            df = pd.DataFrame.from_records(obj['data'], columns=columns)
             csv = df.to_csv(index=False, encoding='utf-8')
         else:
             sql = query.select_sql or query.executed_sql
