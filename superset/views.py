@@ -720,7 +720,7 @@ class CsvToDatabaseView(SimpleFormView):
                       chunksize=form.chunksize.data)
 
         # Go back to welcome page / splash screen
-        message = _('CSV file "{0}" uploaded to table "{1}" in ' +
+        message = _('CSV file "{0}" uploaded to table "{1}" in '
             'database "{2}"'.format(filename, form.name.data, form.con.data))
         flash(message, 'info')
         redirect('/databaseview/list')
