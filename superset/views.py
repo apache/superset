@@ -2766,6 +2766,7 @@ class Superset(BaseSupersetView):
             error_msg=get_error_msg(),
         ), 500
 
+    @has_access
     @expose("/welcome")
     def welcome(self):
         """Personalized welcome page"""
