@@ -1945,6 +1945,48 @@ class Superset(BaseSupersetView):
         md['expanded_slices'] = data['expanded_slices']
         dashboard.json_metadata = json.dumps(md, indent=4)
 
+    @has_access
+    @expose("/slices/list/", methods=['GET'])
+    def slices_view(self):
+        """Retrieve all slices information"""
+        session = db.session()
+        slices = (session.query(models.Slice))
+        slice_id = request.args.get('slice_id')
+        slice_name = request.args.get('slice_name')
+        datasource_id = request.args.get('datasource_id')
+        datasource_name = request.args.get('datasource_name')
+        viz_type = request.args.get('viz_type')
+        owner = request.args.get('owner')
+
+        if slice_id:
+            slices = slices.filter(models.Slice.id == slice_id)
+        if slice_name:
+            slices = slices.filter(
+                models.Slice.slice_name.like('%{}%'.format(slice_name)))
+        if datasource_id:
+            slices = slices.filter(models.Slice.datasource_id == datasource_id)
+        if datasource_name:
+            slices = slices.filter(
+                models.Slice.datasource_name
+                .like('{%{}%}'.format(datasource_name))
+            )
+        if viz_type:
+            slices = slices.filter(models.Slice.viz_type == viz_type)
+        if owner:
+            slices = slices.filter(models.Slice.owners.any(username=owner))
+        payload = [{
+            'id': s.id,
+            'slice_name': s.slice_name,
+            'datasource_id': s.datasource_id,
+            'datasource_name': s.datasource.name,
+            'viz_type': s.viz_type,
+            'owners': [o.username for o in s.owners],
+            'slice_url': s.slice_url,
+            'edit_url': s.edit_url,
+            'slice_id_url': s.slice_id_url,
+        } for s in slices.all()]
+        return Response(json.dumps(payload))
+
     @api
     @has_access_api
     @expose("/add_slices/<dashboard_id>/", methods=['POST'])
