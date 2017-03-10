@@ -720,43 +720,44 @@ class CsvToDatabaseView(SimpleFormView):
                       chunksize=form.chunksize.data)
 
         # Go back to welcome page / splash screen
-        message = _('CSV file "{0}" uploaded to table "{1}" in database "{2}"'.format(filename,
-                                                                                      form.name.data, form.con.data))
+        message = _('CSV file "{0}" uploaded to table "{1}" in ' +
+            'database "{2}"'.format(filename, form.name.data, form.con.data))
         flash(message, 'info')
         redirect('/databaseview/list')
 
     @staticmethod
-    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, prefix, mangle_dupe_cols,
-                  skipinitialspace, skiprows, nrows, skip_blank_lines, parse_dates, infer_datetime_format,
-                  dayfirst, thousands, decimal, quotechar, escapechar, comment, encoding, error_bad_lines, chunksize):
+    def csv_to_df(filepath_or_buffer, sep, header, names, index_col, squeeze, 
+                  prefix, mangle_dupe_cols, skipinitialspace, skiprows, nrows, 
+                  skip_blank_lines, parse_dates, infer_datetime_format, 
+                  dayfirst, thousands, decimal, quotechar, escapechar, comment, 
+                  encoding, error_bad_lines, chunksize):
         # Use Pandas to parse csv file to a dataframe
-        # str(config['SUPERSET_WEBSERVER_PORT'])
-        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + '8088' \
+        upload_path = 'http://' + config['SUPERSET_WEBSERVER_ADDRESS'] + ':' + str(config['SUPERSET_WEBSERVER_PORT']) \
                       + url_for('uploaded_file', filename=filepath_or_buffer)
         # Expose this to api so can specify each field
         chunks = pandas.read_csv(filepath_or_buffer=upload_path,
-                             sep=sep,
-                             header=header,
-                             names=names,
-                             index_col=index_col,
-                             squeeze=squeeze,
-                             prefix=prefix,
-                             mangle_dupe_cols=mangle_dupe_cols,
-                             skipinitialspace=skipinitialspace,
-                             skiprows=skiprows,
-                             nrows=nrows,
-                             skip_blank_lines=skip_blank_lines,
-                             parse_dates=parse_dates,
-                             infer_datetime_format=infer_datetime_format,
-                             dayfirst=dayfirst,
-                             thousands=thousands,
-                             decimal=decimal,
-                             quotechar=quotechar,
-                             escapechar=escapechar,
-                             comment=comment,
-                             encoding=encoding,
-                             error_bad_lines=error_bad_lines,
-                             chunksize=chunksize)
+                                 sep=sep,
+                                 header=header,
+                                 names=names,
+                                 index_col=index_col,
+                                 squeeze=squeeze,
+                                 prefix=prefix,
+                                 mangle_dupe_cols=mangle_dupe_cols,
+                                 skipinitialspace=skipinitialspace,
+                                 skiprows=skiprows,
+                                 nrows=nrows,
+                                 skip_blank_lines=skip_blank_lines,
+                                 parse_dates=parse_dates,
+                                 infer_datetime_format=infer_datetime_format,
+                                 dayfirst=dayfirst,
+                                 thousands=thousands,
+                                 decimal=decimal,
+                                 quotechar=quotechar,
+                                 escapechar=escapechar,
+                                 comment=comment,
+                                 encoding=encoding,
+                                 error_bad_lines=error_bad_lines,
+                                 chunksize=chunksize)
 
         df = pandas.DataFrame()
         df = pandas.concat(chunk for chunk in chunks)
