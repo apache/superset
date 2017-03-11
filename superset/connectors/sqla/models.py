@@ -340,8 +340,15 @@ class SqlaTable(Model, BaseDatasource):
             extras=None,
             columns=None):
         """Querying any sqla table from this common interface"""
+        template_kwargs = {
+            'from_dttm': from_dttm,
+            'groupby': groupby,
+            'metrics': metrics,
+            'row_limit': row_limit,
+            'to_dttm': to_dttm,
+        }
         template_processor = get_template_processor(
-            table=self, database=self.database)
+            table=self, database=self.database, **template_kwargs)
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -430,7 +437,8 @@ class SqlaTable(Model, BaseDatasource):
 
         # Supporting arbitrary SQL statements in place of tables
         if self.sql:
-            tbl = TextAsFrom(sa.text(self.sql), []).alias('expr_qry')
+            from_sql = template_processor.process_template(self.sql)
+            tbl = TextAsFrom(sa.text(from_sql), []).alias('expr_qry')
 
         if not columns:
             qry = qry.group_by(*groupby_exprs)
