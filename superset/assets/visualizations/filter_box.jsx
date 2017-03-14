@@ -50,7 +50,7 @@ class FilterBox extends React.Component {
     const selectedValues = Object.assign({}, this.state.selectedValues);
     selectedValues[filter] = vals;
     this.setState({ selectedValues, hasChanged: true });
-    this.props.onChange(filter, vals, false, !this.props.instantFiltering);
+    this.props.onChange(filter, vals, false, this.props.instantFiltering);
   }
   render() {
     let dateFilter;
@@ -63,7 +63,7 @@ class FilterBox extends React.Component {
         }
         const options = choices.map((s) => ({ value: s, label: s }));
         return (
-          <div className="m-b-5">
+          <div className="m-b-5" key={field}>
             {field.replace('__', '')}
             <Select.Creatable
               options={options}
@@ -109,7 +109,7 @@ class FilterBox extends React.Component {
       <div>
         {dateFilter}
         {filters}
-        {this.props.instantFiltering &&
+        {!this.props.instantFiltering &&
           <Button
             bsSize="small"
             bsStyle="primary"
