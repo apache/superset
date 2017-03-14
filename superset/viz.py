@@ -144,6 +144,10 @@ class BaseViz(object):
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
+
+        # extra_filters are temporary/contextual filters that are external
+        # to the slice definition. We use those for dynamic interactive
+        # filters like the ones emitted by the "Filter Box" visualization
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -153,6 +157,10 @@ class BaseViz(object):
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
 
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or form_data.get("since", "1 year ago")
         )
