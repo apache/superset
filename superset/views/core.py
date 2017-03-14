@@ -12,7 +12,6 @@ import re
 import sys
 import time
 import traceback
-import zlib
 
 import functools
 import sqlalchemy as sqla
@@ -40,7 +39,7 @@ from superset.utils import has_access
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.sql_parse import SupersetQuery
-
+from superset.connectors.sqla.models import TableColumn, SqlMetric
 from .base import (
     SupersetModelView, BaseSupersetView, DeleteMixin,
     SupersetFilter, get_user_roles
@@ -102,6 +101,7 @@ def api(f):
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
     return the response in the JSON format
     """
+
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
@@ -130,7 +130,7 @@ def check_ownership(obj, raise_if_false=True):
         return False
 
     security_exception = utils.SupersetSecurityException(
-              "You don't have the rights to alter [{}]".format(obj))
+        "You don't have the rights to alter [{}]".format(obj))
 
     if g.user.is_anonymous():
         if raise_if_false:
@@ -160,6 +160,7 @@ def check_ownership(obj, raise_if_false=True):
 
 
 class SliceFilter(SupersetFilter):
+
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query
@@ -718,7 +719,8 @@ class Superset(BaseSupersetView):
     @expose("/datasources/")
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        datasources = [(str(o.id) + '__' + o.type, repr(o))
+                       for o in datasources]
         return self.json_response(datasources)
 
     @has_access_api
@@ -752,7 +754,8 @@ class Superset(BaseSupersetView):
                         dbs['name'], ds_name, schema=schema['name'])
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = ConnectorRegistry.get_all_datasources(
+            db.session)
         datasources = [
             d for d in existing_datasources if d.full_name in db_ds_names]
         role = sm.find_role(role_name)
@@ -762,8 +765,8 @@ class Superset(BaseSupersetView):
         granted_perms = []
         for datasource in datasources:
             view_menu_perm = sm.find_permission_view_menu(
-                    view_menu_name=datasource.perm,
-                    permission_name='datasource_access')
+                view_menu_name=datasource.perm,
+                permission_name='datasource_access')
             # prevent creating empty permissions
             if view_menu_perm and view_menu_perm.view_menu:
                 role.permissions.append(view_menu_perm)
@@ -823,7 +826,7 @@ class Superset(BaseSupersetView):
                     r.datasource_type, r.datasource_id, session)
                 user = sm.get_user_by_id(r.created_by_fk)
                 if not datasource or \
-                   self.datasource_access(datasource, user):
+                        self.datasource_access(datasource, user):
                     # datasource does not exist anymore
                     session.delete(r)
             session.commit()
@@ -1300,7 +1303,7 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(table_names) // total_items
             max_views = max_items * len(view_names) // total_items
 
-        table_options = [{'value': tn,  'label': tn}
+        table_options = [{'value': tn, 'label': tn}
                          for tn in table_names[:max_tables]]
         table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
                               for vn in view_names[:max_views]])
@@ -1357,7 +1360,8 @@ class Superset(BaseSupersetView):
         slice_ids = [int(d['slice_id']) for d in positions]
         dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
-        dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+        dashboard.position_json = json.dumps(
+            positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
 
@@ -1792,7 +1796,7 @@ class Superset(BaseSupersetView):
         metrics = []
         for column_name, config in data.get('columns').items():
             is_dim = config.get('is_dim', False)
-            col = models.TableColumn(
+            col = TableColumn(
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
@@ -1804,18 +1808,18 @@ class Superset(BaseSupersetView):
             agg = config.get('agg')
             if agg:
                 if agg == 'count_distinct':
-                    metrics.append(models.SqlMetric(
+                    metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
                         expression="COUNT(DISTINCT {column_name})"
                         .format(**locals()),
                     ))
                 else:
-                    metrics.append(models.SqlMetric(
+                    metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
                         expression="{agg}({column_name})".format(**locals()),
                     ))
         if not metrics:
-            metrics.append(models.SqlMetric(
+            metrics.append(SqlMetric(
                 metric_name="count".format(**locals()),
                 expression="count(*)".format(**locals()),
             ))
@@ -1831,14 +1835,17 @@ class Superset(BaseSupersetView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items() if v])
-        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
+        return '/superset/explore/table/{table.id}/?{params}'.format(
+            **locals())
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(
+            models.Database).filter_by(
+            id=database_id).one()
         cols = []
         indexes = []
         t = mydb.get_columns(table_name, schema)
@@ -1851,7 +1858,8 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         keys = []
         if primary_key and primary_key.get('constrained_columns'):
-            primary_key['column_names'] = primary_key.pop('constrained_columns')
+            primary_key['column_names'] = primary_key.pop(
+                'constrained_columns')
             primary_key['type'] = 'pk'
             keys += [primary_key]
         for fk in foreign_keys:
@@ -1893,7 +1901,9 @@ class Superset(BaseSupersetView):
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(
+            models.Database).filter_by(
+            id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
         return json_success(json.dumps(payload))
@@ -1946,7 +1956,7 @@ class Superset(BaseSupersetView):
             return json_error_response(get_datasource_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = zlib.decompress(blob)
+        payload = utils.zlib_uncompress_to_string(blob)
         display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
         if display_limit:
             payload_json = json.loads(payload)
@@ -2057,13 +2067,15 @@ class Superset(BaseSupersetView):
         rejected_tables = self.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
+            flash(
+                get_datasource_access_error_msg(
+                    '{}'.format(rejected_tables)))
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
             blob = results_backend.get(query.results_key)
         if blob:
-            json_payload = zlib.decompress(blob)
+            json_payload = utils.zlib_uncompress_to_string(blob)
             obj = json.loads(json_payload)
             columns = [c['name'] for c in obj['columns']]
             df = pd.DataFrame.from_records(obj['data'], columns=columns)
@@ -2109,10 +2121,12 @@ class Superset(BaseSupersetView):
                 "Please login to access the queries.", status=403)
 
         # Unix time, milliseconds.
-        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
+        last_updated_ms_int = int(
+            float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
+        last_updated_dt = utils.EPOCH + \
+            timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
             db.session.query(models.Query)
@@ -2236,7 +2250,8 @@ class Superset(BaseSupersetView):
                 perms.add(
                     (perm.permission.name, perm.view_menu.name)
                 )
-                if perm.permission.name in ('datasource_access', 'database_access'):
+                if perm.permission.name in (
+                        'datasource_access', 'database_access'):
                     permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
@@ -2333,6 +2348,7 @@ def apply_caching(response):
 # ---------------------------------------------------------------------
 # Redirecting URL from previous names
 class RegexConverter(BaseConverter):
+
     def __init__(self, url_map, *items):
         super(RegexConverter, self).__init__(url_map)
         self.regex = items[0]
