@@ -39,7 +39,7 @@ from superset.utils import has_access
 from superset.connectors.connector_registry import ConnectorRegistry
 import superset.models.core as models
 from superset.sql_parse import SupersetQuery
-
+from superset.connectors.sqla.models import TableColumn, SqlMetric
 from .base import (
     SupersetModelView, BaseSupersetView, DeleteMixin,
     SupersetFilter, get_user_roles
@@ -1791,7 +1791,7 @@ class Superset(BaseSupersetView):
         metrics = []
         for column_name, config in data.get('columns').items():
             is_dim = config.get('is_dim', False)
-            col = models.TableColumn(
+            col = TableColumn(
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
@@ -1803,18 +1803,18 @@ class Superset(BaseSupersetView):
             agg = config.get('agg')
             if agg:
                 if agg == 'count_distinct':
-                    metrics.append(models.SqlMetric(
+                    metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
                         expression="COUNT(DISTINCT {column_name})"
                             .format(**locals()),
                             ))
                 else:
-                    metrics.append(models.SqlMetric(
+                    metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
                         expression="{agg}({column_name})".format(**locals()),
                     ))
         if not metrics:
-            metrics.append(models.SqlMetric(
+            metrics.append(SqlMetric(
                 metric_name="count".format(**locals()),
                 expression="count(*)".format(**locals()),
             ))
