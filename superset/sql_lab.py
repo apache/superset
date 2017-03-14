@@ -142,7 +142,16 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)
-    df_data = np.array(data) if data else []
+
+    df_data = []
+    try:
+        df_data = np.array(data) if data else []
+    except ValueError as e:
+        logging.exception(e)
+        conn.close()
+        handle_error("Error converting result to internal dataframe (note: "
+            "columns that are arrays of maps are currently not supported): {}".format(e))
+
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
         df_data, columns=column_names))
 
