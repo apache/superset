@@ -16,13 +16,8 @@ class FaveQueries extends React.PureComponent {
   }
 
   deleteQuery(query) {
-    $.ajax({
-      type: 'GET',
-      url: `/superset/favstar/query/${query.id}/unselect/`,
-      success: () => {
-        this.fetchFaveQueries();
-      },
-    });
+    this.props.actions.favouriteQuery(query, false);
+    this.fetchFaveQueries();
   }
   fetchFaveQueries() {
     this.setState({ fetching: true });

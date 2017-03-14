@@ -186,16 +186,16 @@ export function removeQuery(query) {
 }
 
 export const FAVE_QUERY_SUCCESS = 'FAVE_QUERY_SUCCESS';
-export function faveQuerySuccess(query) {
-  return { type: FAVE_QUERY_SUCCESS, query };
+export function faveQuerySuccess(query, fave) {
+  return { type: FAVE_QUERY_SUCCESS, query, fave };
 }
 
 const FAVEQUERY_BASE_URL = '/superset/favstar/query';
-export function favouriteQuery(query) {
+export function favouriteQuery(query, fave) {
   return function (dispatch) {
-    const favAction = query.faved ? 'unselect' : 'select';
+    const favAction = fave ? 'select' : 'unselect';
     $.get(`${FAVEQUERY_BASE_URL}/${query.id}/${favAction}/`);
-    dispatch(faveQuerySuccess(query));
+    dispatch(faveQuerySuccess(query, fave));
   };
 }
 

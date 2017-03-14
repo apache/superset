@@ -1526,7 +1526,7 @@ class Superset(BaseSupersetView):
                 sqla.and_(
                     models.FavStar.user_id == int(g.user.id),
                     models.FavStar.class_name == 'query',
-                    models.Query.client_id == models.FavStar.obj_id,
+                    models.Query.id == models.FavStar.obj_id,
                 )
             )
             .order_by(
@@ -1696,6 +1696,13 @@ class Superset(BaseSupersetView):
         session = db.session()
         FavStar = models.FavStar  # noqa
         count = 0
+        if class_name == 'query':
+            query = session.query(models.Query).filter_by(
+                client_id=obj_id).first()
+            if not query:
+                return json_error_response(
+                    json.dumps({'error': 'No query was found!'}))
+            obj_id = query.id
         favs = session.query(FavStar).filter_by(
             class_name=class_name, obj_id=obj_id,
             user_id=g.user.get_id()).all()

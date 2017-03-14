@@ -75,7 +75,7 @@ class QueryTable extends React.PureComponent {
     this.props.actions.removeQuery(query);
   }
   favQuery(query) {
-    this.props.actions.favouriteQuery(query);
+    this.props.actions.favouriteQuery(query, !query.faved);
   }
   render() {
     const data = this.props.queries.map((query) => {
