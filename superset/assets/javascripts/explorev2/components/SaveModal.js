@@ -141,6 +141,7 @@ class SaveModal extends React.Component {
           }
           {this.props.slice &&
             <Radio
+              id="overwrite-radio"
               disabled={!this.props.can_overwrite}
               checked={this.state.action === 'overwrite'}
               onChange={this.changeAction.bind(this, 'overwrite')}
@@ -150,6 +151,7 @@ class SaveModal extends React.Component {
           }
 
           <Radio
+            id="saveas-radio"
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}
