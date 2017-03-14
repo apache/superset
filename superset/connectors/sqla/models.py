@@ -517,7 +517,6 @@ class SqlaTable(Model, BaseDatasource):
         )
         logging.info(sql)
         sql = sqlparse.format(sql, reindent=True)
-        sql = self.database.db_engine_spec.sql_preprocessor(sql)
         return sql
 
     def query(self, query_obj):
