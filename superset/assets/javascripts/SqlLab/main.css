@@ -237,6 +237,42 @@ div.tablePopover:hover {
     padding-bottom: 3px;
     padding-top: 3px;
 }
+// .ResultSet {
+//     overflow: auto;
+//     border-bottom: 1px solid #ccc;
+// }
+// .ResultSet table {
+//     margin-bottom: 0px;
+// }
+// .ResultSet table tr.last {
+//     border-bottom: none;
+// }
+
+.table-fixed-header {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+}
+
+.table-fixed-header thead {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  border-bottom: 1px solid #ccc;
+}
+.table-fixed-header tbody {
+  display: block;
+  width: 100%;
+  overflow: auto;
+}
+.table-fixed-header th, .table-fixed-header td {
+  padding: .5em 1em;
+  text-align: left;
+  vertical-align: top;
+  border-left: 1px solid #ccc;
+}
 
 .ace_editor {
   border: 1px solid #ccc;
