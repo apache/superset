@@ -119,7 +119,8 @@ class BaseViz(object):
         # parsing logic.
         if df is None or df.empty:
             self.status = utils.QueryStatus.FAILED
-            self.error_message = "No data."
+            if not self.error_message:
+                self.error_message = "No data."
             return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
