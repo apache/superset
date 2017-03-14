@@ -553,6 +553,20 @@ class CoreTests(SupersetTestCase):
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
 
+    def test_get_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb, foo='bar')
+        rendered = tp.process_template(s)
+        self.assertEqual("bar", rendered)
+
+    def test_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(s, foo='bar')
+        self.assertEqual("bar", rendered)
+
     def test_templated_sql_json(self):
         self.login('admin')
         sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}' as test"

@@ -44,7 +44,7 @@ class BaseTemplateProcessor(object):
     """
     engine = None
 
-    def __init__(self, database=None, query=None, table=None):
+    def __init__(self, database=None, query=None, table=None, **kwargs):
         self.database = database
         self.query = query
         self.schema = None
@@ -53,12 +53,13 @@ class BaseTemplateProcessor(object):
         elif table:
             self.schema = table.schema
         self.context = {}
+        self.context.update(kwargs)
         self.context.update(BASE_CONTEXT)
         if self.engine:
             self.context[self.engine] = self
         self.env = SandboxedEnvironment()
 
-    def process_template(self, sql):
+    def process_template(self, sql, **kwargs):
         """Processes a sql template
 
         >>> sql = "SELECT '{{ datetime(2017, 1, 1).isoformat() }}'"
@@ -66,7 +67,8 @@ class BaseTemplateProcessor(object):
         "SELECT '2017-01-01T00:00:00'"
         """
         template = self.env.from_string(sql)
-        return template.render(self.context)
+        kwargs.update(self.context)
+        return template.render(kwargs)
 
 
 class PrestoTemplateProcessor(BaseTemplateProcessor):
@@ -106,6 +108,6 @@ for k in keys:
         template_processors[o.engine] = o
 
 
-def get_template_processor(database, table=None, query=None):
+def get_template_processor(database, table=None, query=None, **kwargs):
     TP = template_processors.get(database.backend, BaseTemplateProcessor)
-    return TP(database=database, table=table, query=query)
+    return TP(database=database, table=table, query=query, **kwargs)
