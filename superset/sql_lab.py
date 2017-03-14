@@ -148,7 +148,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         logging.exception(e)
         conn.close()
         handle_error("Error converting result to internal data-frame (note: "
-                     "columns that are arrays are currently not supported): %s".format(e))
+                     "columns that are arrays are currently not supported): {}".format(e))
 
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
         df_data, columns=column_names))
