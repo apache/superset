@@ -11,7 +11,8 @@ import unittest
 from mock import Mock, patch
 
 from superset import db, sm, security
-from superset.models import DruidCluster, DruidDatasource
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset.connectors.druid.models import PyDruid
 
 from .base_tests import SupersetTestCase
 
@@ -70,7 +71,7 @@ class DruidTests(SupersetTestCase):
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('superset.models.PyDruid')
+    @patch('superset.connectors.druid.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -197,8 +198,12 @@ class DruidTests(SupersetTestCase):
         }
         def check():
             resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
-            druid_ds = db.session.query(DruidDatasource).filter_by(
-                datasource_name="test_click").first()
+            druid_ds = (
+                db.session
+                .query(DruidDatasource)
+                .filter_by(datasource_name="test_click")
+                .one()
+            )
             col_names = set([c.column_name for c in druid_ds.columns])
             assert {"affiliate_id", "campaign", "first_seen"} == col_names
             metric_names = {m.metric_name for m in druid_ds.metrics}
@@ -224,7 +229,7 @@ class DruidTests(SupersetTestCase):
         }
         resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
         druid_ds = db.session.query(DruidDatasource).filter_by(
-            datasource_name="test_click").first()
+            datasource_name="test_click").one()
         # columns and metrics are not deleted if config is changed as
         # user could define his own dimensions / metrics and want to keep them
         assert set([c.column_name for c in druid_ds.columns]) == set(

@@ -9,7 +9,11 @@ import mock
 import unittest
 
 from superset import db, models, sm, security
-from superset.source_registry import SourceRegistry
+
+from superset.models import core as models
+from superset.connectors.connector_registry import ConnectorRegistry
+from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.druid.models import DruidDatasource
 
 from .base_tests import SupersetTestCase
 
@@ -58,7 +62,7 @@ SCHEMA_ACCESS_ROLE = 'schema_access_role'
 
 
 def create_access_request(session, ds_type, ds_name, role_name, user_name):
-    ds_class = SourceRegistry.sources[ds_type]
+    ds_class = ConnectorRegistry.sources[ds_type]
     # TODO: generalize datasource names
     if ds_type == 'table':
         ds = session.query(ds_class).filter(
@@ -293,7 +297,7 @@ class RequestAccessTests(SupersetTestCase):
         access_request2 = create_access_request(
             session, 'table', 'wb_health_population', TEST_ROLE_2, 'gamma2')
         ds_1_id = access_request1.datasource_id
-        ds = session.query(models.SqlaTable).filter_by(
+        ds = session.query(SqlaTable).filter_by(
             table_name='wb_health_population').first()
 
 
@@ -314,7 +318,7 @@ class RequestAccessTests(SupersetTestCase):
         gamma_user = sm.find_user(username='gamma')
         gamma_user.roles.remove(sm.find_role(SCHEMA_ACCESS_ROLE))
 
-        ds = session.query(models.SqlaTable).filter_by(
+        ds = session.query(SqlaTable).filter_by(
             table_name='wb_health_population').first()
         ds.schema = None
 
@@ -441,7 +445,7 @@ class RequestAccessTests(SupersetTestCase):
 
         # Request table access, there are no roles have this table.
 
-        table1 = session.query(models.SqlaTable).filter_by(
+        table1 = session.query(SqlaTable).filter_by(
             table_name='random_time_series').first()
         table_1_id = table1.id
 
@@ -454,7 +458,7 @@ class RequestAccessTests(SupersetTestCase):
 
         # Request access, roles exist that contains the table.
         # add table to the existing roles
-        table3 = session.query(models.SqlaTable).filter_by(
+        table3 = session.query(SqlaTable).filter_by(
             table_name='energy_usage').first()
         table_3_id = table3.id
         table3_perm = table3.perm
@@ -479,7 +483,7 @@ class RequestAccessTests(SupersetTestCase):
                          '<ul><li>{}</li></ul>'.format(approve_link_3))
 
         # Request druid access, there are no roles have this table.
-        druid_ds_4 = session.query(models.DruidDatasource).filter_by(
+        druid_ds_4 = session.query(DruidDatasource).filter_by(
             datasource_name='druid_ds_1').first()
         druid_ds_4_id = druid_ds_4.id
 
@@ -493,7 +497,7 @@ class RequestAccessTests(SupersetTestCase):
 
         # Case 5. Roles exist that contains the druid datasource.
         # add druid ds to the existing roles
-        druid_ds_5 = session.query(models.DruidDatasource).filter_by(
+        druid_ds_5 = session.query(DruidDatasource).filter_by(
             datasource_name='druid_ds_2').first()
         druid_ds_5_id = druid_ds_5.id
         druid_ds_5_perm = druid_ds_5.perm

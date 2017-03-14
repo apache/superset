@@ -2,7 +2,7 @@ import unittest
 
 from sqlalchemy.engine.url import make_url
 
-from superset.models import Database
+from superset.models.core import Database
 
 
 class DatabaseModelTestCase(unittest.TestCase):

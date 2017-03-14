@@ -14,14 +14,18 @@ import random
 import pandas as pd
 from sqlalchemy import String, DateTime, Date, Float, BigInteger
 
-from superset import app, db, models, utils
+from superset import app, db, utils
+from superset.models import core as models
 from superset.security import get_or_create_main_db
+
+from superset.connectors.connector_registry import ConnectorRegistry
 
 # Shortcuts
 DB = models.Database
 Slice = models.Slice
-TBL = models.SqlaTable
 Dash = models.Dashboard
+
+TBL = ConnectorRegistry.sources['table']
 
 config = app.config
 

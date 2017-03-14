@@ -11,11 +11,12 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import sessionmaker
 
 from superset import (
-    app, db, models, utils, dataframe, results_backend)
+    app, db, utils, dataframe, results_backend)
+from superset.models import core as models
 from superset.sql_parse import SupersetQuery
 from superset.db_engine_specs import LimitMethod
 from superset.jinja_context import get_template_processor
-QueryStatus = models.QueryStatus
+from superset.utils import QueryStatus
 
 celery_app = celery.Celery(config_source=app.config.get('CELERY_CONFIG'))
 
@@ -130,6 +131,13 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     conn.commit()
     conn.close()
 
+    if query.status == utils.QueryStatus.STOPPED:
+        return json.dumps({
+            'query_id': query.id,
+            'status': query.status,
+            'query': query.to_dict(),
+        }, default=utils.json_iso_dttm_ser)
+
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)
@@ -153,7 +161,7 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
         'query_id': query.id,
         'status': query.status,
         'data': cdf.data if cdf.data else [],
-        'columns': cdf.columns_dict if cdf.columns_dict else {},
+        'columns': cdf.columns if cdf.columns else [],
         'query': query.to_dict(),
     }
     payload = json.dumps(payload, default=utils.json_iso_dttm_ser)

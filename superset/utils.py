@@ -440,11 +440,11 @@ def pessimistic_connection_handling(target):
         cursor.close()
 
 
-class QueryStatus:
+class QueryStatus(object):
 
     """Enum-type class for query statuses"""
 
-    CANCELLED = 'cancelled'
+    STOPPED = 'stopped'
     FAILED = 'failed'
     PENDING = 'pending'
     RUNNING = 'running'
