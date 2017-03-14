@@ -63,36 +63,18 @@ const px = function () {
     const container = $(selector);
     const sliceId = data.slice_id;
     const formData = applyDefaultFormData(data.form_data);
-    const jsonEndpoint = getExploreUrl(formData, 'json');
-    const origJsonEndpoint = jsonEndpoint;
     let dttm = 0;
     const stopwatch = function () {
       dttm += 10;
       const num = dttm / 1000;
       $('#timer').text(num.toFixed(2) + ' sec');
     };
-    let qrystr = '';
     slice = {
       data,
       formData,
       container,
       containerId,
       selector,
-      querystring() {
-        const parser = document.createElement('a');
-        parser.href = jsonEndpoint;
-        if (controller.type === 'dashboard') {
-          parser.href = origJsonEndpoint;
-          let flts = controller.effectiveExtraFilters(sliceId);
-          flts = encodeURIComponent(JSON.stringify(flts));
-          qrystr = parser.search + '&extra_filters=' + flts;
-        } else if ($('#query').length === 0) {
-          qrystr = parser.search;
-        } else {
-          qrystr = '?' + $('#query').serialize();
-        }
-        return qrystr;
-      },
       getWidgetHeader() {
         return this.container.parents('div.widget').find('.chart-header');
       },
@@ -104,16 +86,20 @@ const px = function () {
         return Mustache.render(s, context);
       },
       jsonEndpoint() {
-        const parser = document.createElement('a');
-        parser.href = jsonEndpoint;
-        let endpoint = parser.pathname + this.querystring();
+        return this.endpoint('json');
+      },
+      endpoint(endpointType = 'json') {
+        const formDataExtra = Object.assign({}, formData);
+        const flts = controller.effectiveExtraFilters(sliceId);
+        if (flts) {
+          formDataExtra.extra_filters = flts;
+        }
+        let endpoint = getExploreUrl(formDataExtra, endpointType, this.force);
         if (endpoint.charAt(0) !== '/') {
           // Known issue for IE <= 11:
           // https://connect.microsoft.com/IE/feedbackdetail/view/1002846/pathname-incorrect-for-out-of-document-elements
           endpoint = '/' + endpoint;
         }
-        endpoint += '&json=true';
-        endpoint += '&force=' + this.force;
         return endpoint;
       },
       d3format(col, number) {

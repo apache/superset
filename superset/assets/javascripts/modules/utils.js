@@ -109,7 +109,11 @@ export function d3format(format, number) {
   if (!(format in formatters)) {
     formatters[format] = d3.format(format);
   }
-  return formatters[format](number);
+  try {
+    return formatters[format](number);
+  } catch (e) {
+    return 'ERR';
+  }
 }
 
 // Slice objects interact with their context through objects that implement
