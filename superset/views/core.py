@@ -101,6 +101,7 @@ def api(f):
     A decorator to label an endpoint as an API. Catches uncaught exceptions and
     return the response in the JSON format
     """
+
     def wraps(self, *args, **kwargs):
         try:
             return f(self, *args, **kwargs)
@@ -142,15 +143,15 @@ def check_ownership(obj, raise_if_false=True):
     orig_obj = session.query(obj.__class__).filter_by(id=obj.id).first()
     owner_names = (user.username for user in orig_obj.owners)
     if (
-                    hasattr(orig_obj, 'created_by') and
-                    orig_obj.created_by and
-                    orig_obj.created_by.username == g.user.username):
+            hasattr(orig_obj, 'created_by') and
+            orig_obj.created_by and
+            orig_obj.created_by.username == g.user.username):
         return True
     if (
-                        hasattr(orig_obj, 'owners') and
-                        g.user and
-                    hasattr(g.user, 'username') and
-                    g.user.username in owner_names):
+            hasattr(orig_obj, 'owners') and
+            g.user and
+            hasattr(g.user, 'username') and
+            g.user.username in owner_names):
         return True
     if raise_if_false:
         raise security_exception
@@ -159,6 +160,7 @@ def check_ownership(obj, raise_if_false=True):
 
 
 class SliceFilter(SupersetFilter):
+
     def apply(self, query, func):  # noqa
         if self.has_all_datasource_access():
             return query
@@ -180,15 +182,15 @@ class DashboardFilter(SupersetFilter):
         datasource_perms = self.get_view_menus('datasource_access')
         slice_ids_qry = (
             db.session
-                .query(Slice.id)
-                .filter(Slice.perm.in_(datasource_perms))
+            .query(Slice.id)
+            .filter(Slice.perm.in_(datasource_perms))
         )
         query = query.filter(
             Dash.id.in_(
                 db.session.query(Dash.id)
-                    .distinct()
-                    .join(Dash.slices)
-                    .filter(Slice.id.in_(slice_ids_qry))
+                .distinct()
+                .join(Dash.slices)
+                .filter(Slice.id.in_(slice_ids_qry))
             )
         )
         return query
@@ -717,7 +719,8 @@ class Superset(BaseSupersetView):
     @expose("/datasources/")
     def datasources(self):
         datasources = ConnectorRegistry.get_all_datasources(db.session)
-        datasources = [(str(o.id) + '__' + o.type, repr(o)) for o in datasources]
+        datasources = [(str(o.id) + '__' + o.type, repr(o))
+                       for o in datasources]
         return self.json_response(datasources)
 
     @has_access_api
@@ -751,7 +754,8 @@ class Superset(BaseSupersetView):
                         dbs['name'], ds_name, schema=schema['name'])
                     db_ds_names.add(fullname)
 
-        existing_datasources = ConnectorRegistry.get_all_datasources(db.session)
+        existing_datasources = ConnectorRegistry.get_all_datasources(
+            db.session)
         datasources = [
             d for d in existing_datasources if d.full_name in db_ds_names]
         role = sm.find_role(role_name)
@@ -782,8 +786,8 @@ class Superset(BaseSupersetView):
         if dashboard_id:
             dash = (
                 db.session.query(models.Dashboard)
-                    .filter_by(id=int(dashboard_id))
-                    .one()
+                .filter_by(id=int(dashboard_id))
+                .one()
             )
             datasources |= dash.datasources
         datasource_id = request.args.get('datasource_id')
@@ -792,8 +796,8 @@ class Superset(BaseSupersetView):
             ds_class = ConnectorRegistry.sources.get(datasource_type)
             datasource = (
                 db.session.query(ds_class)
-                    .filter_by(id=int(datasource_id))
-                    .one()
+                .filter_by(id=int(datasource_id))
+                .one()
             )
             datasources.add(datasource)
         if request.args.get('action') == 'go':
@@ -847,11 +851,11 @@ class Superset(BaseSupersetView):
 
         requests = (
             session.query(DAR)
-                .filter(
+            .filter(
                 DAR.datasource_id == datasource_id,
                 DAR.datasource_type == datasource_type,
                 DAR.created_by_fk == requested_by.id)
-                .all()
+            .all()
         )
 
         if not requests:
@@ -923,8 +927,8 @@ class Superset(BaseSupersetView):
         if slice_id:
             slc = (
                 db.session.query(models.Slice)
-                    .filter_by(id=slice_id)
-                    .one()
+                .filter_by(id=slice_id)
+                .one()
             )
             return slc.get_viz()
         else:
@@ -944,7 +948,7 @@ class Superset(BaseSupersetView):
         viz_obj = self.get_viz(slice_id)
         endpoint = (
             '/superset/explore/{}/{}?form_data={}'
-                .format(
+            .format(
                 viz_obj.datasource.type,
                 viz_obj.datasource.id,
                 json.dumps(viz_obj.form_data)
@@ -1052,8 +1056,8 @@ class Superset(BaseSupersetView):
         error_redirect = '/slicemodelview/list/'
         datasource = (
             db.session.query(ConnectorRegistry.sources[datasource_type])
-                .filter_by(id=datasource_id)
-                .one()
+            .filter_by(id=datasource_id)
+            .one()
         )
 
         if not datasource:
@@ -1185,8 +1189,8 @@ class Superset(BaseSupersetView):
         if request.args.get('add_to_dash') == 'existing':
             dash = (
                 db.session.query(models.Dashboard)
-                    .filter_by(id=int(request.args.get('save_to_dashboard_id')))
-                    .one()
+                .filter_by(id=int(request.args.get('save_to_dashboard_id')))
+                .one()
             )
             flash(
                 "Slice [{}] was added to dashboard [{}]".format(
@@ -1250,14 +1254,14 @@ class Superset(BaseSupersetView):
         Log = models.Log  # noqa
         qry = (
             db.session
-                .query(
+            .query(
                 Log.dt,
                 sqla.func.count())
-                .group_by(Log.dt)
-                .all()
+            .group_by(Log.dt)
+            .all()
         )
         payload = {str(time.mktime(dt.timetuple())):
-                       ccount for dt, ccount in qry if dt}
+                   ccount for dt, ccount in qry if dt}
         return json_success(json.dumps(payload))
 
     @api
@@ -1266,9 +1270,9 @@ class Superset(BaseSupersetView):
     def schemas(self, db_id):
         database = (
             db.session
-                .query(models.Database)
-                .filter_by(id=db_id)
-                .one()
+            .query(models.Database)
+            .filter_by(id=db_id)
+            .one()
         )
         return Response(
             json.dumps({'schemas': database.all_schema_names()}),
@@ -1299,7 +1303,7 @@ class Superset(BaseSupersetView):
             max_tables = max_items * len(table_names) // total_items
             max_views = max_items * len(view_names) // total_items
 
-        table_options = [{'value': tn,  'label': tn}
+        table_options = [{'value': tn, 'label': tn}
                          for tn in table_names[:max_tables]]
         table_options.extend([{'value': vn, 'label': '[view] {}'.format(vn)}
                               for vn in view_names[:max_views]])
@@ -1356,7 +1360,8 @@ class Superset(BaseSupersetView):
         slice_ids = [int(d['slice_id']) for d in positions]
         dashboard.slices = [o for o in dashboard.slices if o.id in slice_ids]
         positions = sorted(data['positions'], key=lambda x: int(x['slice_id']))
-        dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+        dashboard.position_json = json.dumps(
+            positions, indent=4, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data['css']
 
@@ -1397,9 +1402,9 @@ class Superset(BaseSupersetView):
             if db_name:
                 database = (
                     db.session
-                        .query(models.Database)
-                        .filter_by(database_name=db_name)
-                        .first()
+                    .query(models.Database)
+                    .filter_by(database_name=db_name)
+                    .first()
                 )
                 if database and uri == database.safe_sqlalchemy_uri():
                     # the password-masked uri was passed
@@ -1407,16 +1412,16 @@ class Superset(BaseSupersetView):
                     uri = database.sqlalchemy_uri_decrypted
             connect_args = (
                 request.json
-                    .get('extras', {})
-                    .get('engine_params', {})
-                    .get('connect_args', {}))
+                .get('extras', {})
+                .get('engine_params', {})
+                .get('connect_args', {}))
             engine = create_engine(uri, connect_args=connect_args)
             engine.connect()
             return json.dumps(engine.table_names(), indent=4)
         except Exception as e:
             return json_error_response((
-                                           "Connection failed!\n\n"
-                                           "The error message returned was:\n{}").format(e))
+                "Connection failed!\n\n"
+                "The error message returned was:\n{}").format(e))
 
     @api
     @has_access_api
@@ -1426,22 +1431,22 @@ class Superset(BaseSupersetView):
         M = models  # noqa
         qry = (
             db.session.query(M.Log, M.Dashboard, M.Slice)
-                .outerjoin(
+            .outerjoin(
                 M.Dashboard,
                 M.Dashboard.id == M.Log.dashboard_id
             )
-                .outerjoin(
+            .outerjoin(
                 M.Slice,
                 M.Slice.id == M.Log.slice_id
             )
-                .filter(
+            .filter(
                 sqla.and_(
                     ~M.Log.action.in_(('queries', 'shortner', 'sql_json')),
                     M.Log.user_id == user_id,
-                    )
+                )
             )
-                .order_by(M.Log.dttm.desc())
-                .limit(1000)
+            .order_by(M.Log.dttm.desc())
+            .limit(1000)
         )
         payload = []
         for log in qry.all():
@@ -1472,15 +1477,15 @@ class Superset(BaseSupersetView):
                 models.Dashboard,
                 models.FavStar.dttm,
             )
-                .join(
+            .join(
                 models.FavStar,
                 sqla.and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'Dashboard',
                     models.Dashboard.id == models.FavStar.obj_id,
-                    )
+                )
             )
-                .order_by(
+            .order_by(
                 models.FavStar.dttm.desc()
             )
         )
@@ -1511,23 +1516,23 @@ class Superset(BaseSupersetView):
             db.session.query(
                 Dash,
             )
-                .filter(
+            .filter(
                 sqla.or_(
                     Dash.created_by_fk == user_id,
                     Dash.changed_by_fk == user_id,
-                    )
+                )
             )
-                .order_by(
+            .order_by(
                 Dash.changed_on.desc()
             )
         )
         payload = [{
-                       'id': o.id,
-                       'dashboard': o.dashboard_link(),
-                       'title': o.dashboard_title,
-                       'url': o.url,
-                       'dttm': o.changed_on,
-                   } for o in qry.all()]
+            'id': o.id,
+            'dashboard': o.dashboard_link(),
+            'title': o.dashboard_title,
+            'url': o.url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1539,20 +1544,20 @@ class Superset(BaseSupersetView):
         Slice = models.Slice  # noqa
         qry = (
             db.session.query(Slice)
-                .filter(
+            .filter(
                 sqla.or_(
                     Slice.created_by_fk == user_id,
                     Slice.changed_by_fk == user_id,
-                    )
+                )
             )
-                .order_by(Slice.changed_on.desc())
+            .order_by(Slice.changed_on.desc())
         )
         payload = [{
-                       'id': o.id,
-                       'title': o.slice_name,
-                       'url': o.slice_url,
-                       'dttm': o.changed_on,
-                   } for o in qry.all()]
+            'id': o.id,
+            'title': o.slice_name,
+            'url': o.slice_url,
+            'dttm': o.changed_on,
+        } for o in qry.all()]
         return json_success(
             json.dumps(payload, default=utils.json_int_dttm_ser))
 
@@ -1566,15 +1571,15 @@ class Superset(BaseSupersetView):
                 models.Slice,
                 models.FavStar.dttm,
             )
-                .join(
+            .join(
                 models.FavStar,
                 sqla.and_(
                     models.FavStar.user_id == int(user_id),
                     models.FavStar.class_name == 'slice',
                     models.Slice.id == models.FavStar.obj_id,
-                    )
+                )
             )
-                .order_by(
+            .order_by(
                 models.FavStar.dttm.desc()
             )
         )
@@ -1619,8 +1624,8 @@ class Superset(BaseSupersetView):
             SqlaTable = ConnectorRegistry.sources['table']
             table = (
                 session.query(SqlaTable)
-                    .join(models.Database)
-                    .filter(
+                .join(models.Database)
+                .filter(
                     models.Database.database_name == db_name or
                     SqlaTable.table_name == table_name)
             ).first()
@@ -1777,8 +1782,8 @@ class Superset(BaseSupersetView):
         SqlaTable = ConnectorRegistry.sources['table']
         table = (
             db.session.query(SqlaTable)
-                .filter_by(table_name=table_name)
-                .first()
+            .filter_by(table_name=table_name)
+            .first()
         )
         if not table:
             table = SqlaTable(table_name=table_name)
@@ -1806,8 +1811,8 @@ class Superset(BaseSupersetView):
                     metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
                         expression="COUNT(DISTINCT {column_name})"
-                            .format(**locals()),
-                            ))
+                        .format(**locals()),
+                    ))
                 else:
                     metrics.append(SqlMetric(
                         metric_name="{agg}__{column_name}".format(**locals()),
@@ -1830,14 +1835,17 @@ class Superset(BaseSupersetView):
             'limit': '0',
         }
         params = "&".join([k + '=' + v for k, v in params.items() if v])
-        return '/superset/explore/table/{table.id}/?{params}'.format(**locals())
+        return '/superset/explore/table/{table.id}/?{params}'.format(
+            **locals())
 
     @has_access
     @expose("/table/<database_id>/<table_name>/<schema>/")
     @log_this
     def table(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(
+            models.Database).filter_by(
+            id=database_id).one()
         cols = []
         indexes = []
         t = mydb.get_columns(table_name, schema)
@@ -1850,7 +1858,8 @@ class Superset(BaseSupersetView):
             return json_error_response(utils.error_msg_from_exception(e))
         keys = []
         if primary_key and primary_key.get('constrained_columns'):
-            primary_key['column_names'] = primary_key.pop('constrained_columns')
+            primary_key['column_names'] = primary_key.pop(
+                'constrained_columns')
             primary_key['type'] = 'pk'
             keys += [primary_key]
         for fk in foreign_keys:
@@ -1874,7 +1883,7 @@ class Superset(BaseSupersetView):
                 'keys': [
                     k for k in keys
                     if col['name'] in k.get('column_names')
-                    ],
+                ],
             })
         tbl = {
             'name': table_name,
@@ -1892,7 +1901,9 @@ class Superset(BaseSupersetView):
     @log_this
     def extra_table_metadata(self, database_id, table_name, schema):
         schema = utils.js_string_to_python(schema)
-        mydb = db.session.query(models.Database).filter_by(id=database_id).one()
+        mydb = db.session.query(
+            models.Database).filter_by(
+            id=database_id).one()
         payload = mydb.db_engine_spec.extra_table_metadata(
             mydb, table_name, schema)
         return json_success(json.dumps(payload))
@@ -2032,9 +2043,9 @@ class Superset(BaseSupersetView):
             with utils.timeout(
                     seconds=SQLLAB_TIMEOUT,
                     error_message=(
-                            "The query exceeded the {SQLLAB_TIMEOUT} seconds "
-                            "timeout. You may want to run your query as a "
-                            "`CREATE TABLE AS` to prevent timeouts."
+                        "The query exceeded the {SQLLAB_TIMEOUT} seconds "
+                        "timeout. You may want to run your query as a "
+                        "`CREATE TABLE AS` to prevent timeouts."
                     ).format(**locals())):
                 data = sql_lab.get_sql_results(query_id, return_results=True)
         except Exception as e:
@@ -2049,14 +2060,16 @@ class Superset(BaseSupersetView):
         """Download the query results as csv."""
         query = (
             db.session.query(models.Query)
-                .filter_by(client_id=client_id)
-                .one()
+            .filter_by(client_id=client_id)
+            .one()
         )
 
         rejected_tables = self.rejected_datasources(
             query.sql, query.database, query.schema)
         if rejected_tables:
-            flash(get_datasource_access_error_msg('{}'.format(rejected_tables)))
+            flash(
+                get_datasource_access_error_msg(
+                    '{}'.format(rejected_tables)))
             return redirect('/')
         blob = None
         if results_backend and query.results_key:
@@ -2086,8 +2099,8 @@ class Superset(BaseSupersetView):
         datasource_class = ConnectorRegistry.sources[datasource_type]
         datasource = (
             db.session.query(datasource_class)
-                .filter_by(id=int(datasource_id))
-                .first()
+            .filter_by(id=int(datasource_id))
+            .first()
         )
 
         # Check if datasource exists
@@ -2108,18 +2121,20 @@ class Superset(BaseSupersetView):
                 "Please login to access the queries.", status=403)
 
         # Unix time, milliseconds.
-        last_updated_ms_int = int(float(last_updated_ms)) if last_updated_ms else 0
+        last_updated_ms_int = int(
+            float(last_updated_ms)) if last_updated_ms else 0
 
         # UTC date time, same that is stored in the DB.
-        last_updated_dt = utils.EPOCH + timedelta(seconds=last_updated_ms_int / 1000)
+        last_updated_dt = utils.EPOCH + \
+            timedelta(seconds=last_updated_ms_int / 1000)
 
         sql_queries = (
             db.session.query(models.Query)
-                .filter(
+            .filter(
                 models.Query.user_id == g.user.get_id(),
                 models.Query.changed_on >= last_updated_dt,
-                )
-                .all()
+            )
+            .all()
         )
         dict_queries = {q.client_id: q.to_dict() for q in sql_queries}
         return json_success(
@@ -2165,8 +2180,8 @@ class Superset(BaseSupersetView):
         query_limit = config.get('QUERY_SEARCH_LIMIT', 1000)
         sql_queries = (
             query.order_by(models.Query.start_time.asc())
-                .limit(query_limit)
-                .all()
+            .limit(query_limit)
+            .all()
         )
 
         dict_queries = [q.to_dict() for q in sql_queries]
@@ -2223,8 +2238,8 @@ class Superset(BaseSupersetView):
             username = g.user.username
         user = (
             db.session.query(ab_models.User)
-                .filter_by(username=username)
-                .one()
+            .filter_by(username=username)
+            .one()
         )
         roles = {}
         from collections import defaultdict
@@ -2235,12 +2250,13 @@ class Superset(BaseSupersetView):
                 perms.add(
                     (perm.permission.name, perm.view_menu.name)
                 )
-                if perm.permission.name in ('datasource_access', 'database_access'):
+                if perm.permission.name in (
+                        'datasource_access', 'database_access'):
                     permissions[perm.permission.name].add(perm.view_menu.name)
             roles[role.name] = [
                 [perm.permission.name, perm.view_menu.name]
                 for perm in role.permissions
-                ]
+            ]
         payload = {
             'user': {
                 'username': user.username,
@@ -2332,6 +2348,7 @@ def apply_caching(response):
 # ---------------------------------------------------------------------
 # Redirecting URL from previous names
 class RegexConverter(BaseConverter):
+
     def __init__(self, url_map, *items):
         super(RegexConverter, self).__init__(url_map)
         self.regex = items[0]
