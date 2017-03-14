@@ -136,16 +136,18 @@ class BaseViz(object):
         return df
 
     def get_extra_filters(self):
-        extra_filters = self.form_data.get('extra_filters')
-        if not extra_filters:
-            return {}
-        return json.loads(extra_filters)
+        extra_filters = self.form_data.get('extra_filters', [])
+        return {f['col']: f['val'] for f in extra_filters}
 
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
+
+        # extra_filters are temporary/contextual filters that are external
+        # to the slice definition. We use those for dynamic interactive
+        # filters like the ones emitted by the "Filter Box" visualization
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -154,13 +156,20 @@ class BaseViz(object):
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
+
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or form_data.get("since", "1 year ago")
         )
+
         from_dttm = utils.parse_human_datetime(since)
         now = datetime.now()
         if from_dttm > now:
             from_dttm = now - (from_dttm - now)
+
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
@@ -179,15 +188,14 @@ class BaseViz(object):
         filters = form_data['filters'] if 'filters' in form_data \
                 else []
         for col, vals in self.get_extra_filters().items():
-            if not (col and vals):
+            if not (col and vals) or col.startswith('__'):
                 continue
             elif col in self.datasource.filterable_column_names:
                 # Quote values with comma to avoid conflict
-                vals = ["'{}'".format(x) if "," in x else x for x in vals]
                 filters += [{
                     'col': col,
                     'op': 'in',
-                    'val': ",".join(vals),
+                    'val': vals,
                 }]
         d = {
             'granularity': granularity,
