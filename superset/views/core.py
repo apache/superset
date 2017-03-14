@@ -1951,7 +1951,7 @@ class Superset(BaseSupersetView):
             return json_error_response(get_datasource_access_error_msg(
                 '{}'.format(rejected_tables)))
 
-        payload = utils.(blob)
+        payload = utils.zlib_uncompress_to_string(blob)
         display_limit = app.config.get('DISPLAY_SQL_MAX_ROW', None)
         if display_limit:
             payload_json = json.loads(payload)
