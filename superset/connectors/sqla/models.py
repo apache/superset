@@ -172,6 +172,7 @@ class SqlaTable(Model, BaseDatasource):
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
     is_featured = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=False)
+    fetch_values_predicate = Column(String(1000))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship('User', backref='tables', foreign_keys=[user_id])
     database = relationship(
@@ -285,33 +286,25 @@ class SqlaTable(Model, BaseDatasource):
             if col_name == col.column_name:
                 return col
 
-    def values_for_column(self,
-                          column_name,
-                          from_dttm,
-                          to_dttm,
-                          limit=500):
+    def values_for_column(self, column_name, limit=10000):
         """Runs query against sqla to retrieve some
         sample values for the given column.
         """
-        granularity = self.main_dttm_col
-
         cols = {col.column_name: col for col in self.columns}
         target_col = cols[column_name]
 
         tbl = table(self.table_name)
-        qry = sa.select([target_col.sqla_col])
-        qry = qry.select_from(tbl)
-        qry = qry.distinct(column_name)
-        qry = qry.limit(limit)
+        qry = (
+            select([target_col.sqla_col])
+            .select_from(tbl)
+            .distinct(column_name)
+        )
+        if limit:
+            qry = qry.limit(limit)
 
-        if granularity:
-            dttm_col = cols[granularity]
-            timestamp = dttm_col.sqla_col.label('timestamp')
-            time_filter = [
-                timestamp >= text(dttm_col.dttm_sql_literal(from_dttm)),
-                timestamp <= text(dttm_col.dttm_sql_literal(to_dttm)),
-            ]
-            qry = qry.where(and_(*time_filter))
+        if self.fetch_values_predicate:
+            tp = self.get_template_processor()
+            qry = qry.where(tp.process_template(self.fetch_values_predicate))
 
         engine = self.database.get_sqla_engine()
         sql = "{}".format(
@@ -319,10 +312,15 @@ class SqlaTable(Model, BaseDatasource):
                 engine, compile_kwargs={"literal_binds": True}, ),
         )
 
-        return pd.read_sql_query(
+        df = pd.read_sql_query(
             sql=sql,
             con=engine
         )
+        return [row[0] for row in df.to_records(index=False)]
+
+    def get_template_processor(self, **kwargs):
+        return get_template_processor(
+            table=self, database=self.database, **kwargs)
 
     def get_query_str(  # sqla
             self, engine, qry_start_dttm,
@@ -340,6 +338,7 @@ class SqlaTable(Model, BaseDatasource):
             extras=None,
             columns=None):
         """Querying any sqla table from this common interface"""
+
         template_kwargs = {
             'from_dttm': from_dttm,
             'groupby': groupby,
@@ -347,8 +346,7 @@ class SqlaTable(Model, BaseDatasource):
             'row_limit': row_limit,
             'to_dttm': to_dttm,
         }
-        template_processor = get_template_processor(
-            table=self, database=self.database, **template_kwargs)
+        template_processor = self.get_template_processor(**template_kwargs)
 
         # For backward compatibility
         if granularity not in self.dttm_cols:
@@ -452,14 +450,30 @@ class SqlaTable(Model, BaseDatasource):
             op = flt['op']
             eq = flt['val']
             col_obj = cols.get(col)
-            if col_obj and op in ('in', 'not in'):
-                values = [types.strip("'").strip('"') for types in eq]
-                if col_obj.is_num:
-                    values = [utils.js_string_to_num(s) for s in values]
-                cond = col_obj.sqla_col.in_(values)
-                if op == 'not in':
-                    cond = ~cond
-                where_clause_and.append(cond)
+            if col_obj:
+                if op in ('in', 'not in'):
+                    values = [types.strip("'").strip('"') for types in eq]
+                    if col_obj.is_num:
+                        values = [utils.js_string_to_num(s) for s in values]
+                    cond = col_obj.sqla_col.in_(values)
+                    if op == 'not in':
+                        cond = ~cond
+                    where_clause_and.append(cond)
+                elif op == '==':
+                    where_clause_and.append(col_obj.sqla_col == eq)
+                elif op == '!=':
+                    where_clause_and.append(col_obj.sqla_col != eq)
+                elif op == '>':
+                    where_clause_and.append(col_obj.sqla_col > eq)
+                elif op == '<':
+                    where_clause_and.append(col_obj.sqla_col < eq)
+                elif op == '>=':
+                    where_clause_and.append(col_obj.sqla_col >= eq)
+                elif op == '<=':
+                    where_clause_and.append(col_obj.sqla_col <= eq)
+                elif op == 'LIKE':
+                    where_clause_and.append(
+                        col_obj.sqla_col.like(eq.replace('%', '%%')))
         if extras:
             where = extras.get('where')
             if where:
