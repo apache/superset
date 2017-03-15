@@ -1090,7 +1090,11 @@ class DistributionPieViz(NVD3Viz):
             index=self.groupby,
             values=[self.metrics[0]])
         df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
-        df = df.reset_index()
+        # print('bbbbbbbbbbbbbefore reset index:')
+        # print(df.columns)
+        # df = df.reset_index()
+        # print('aaaaaaaaaaaaafter reset index:')
+        # print(df.columns)
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
