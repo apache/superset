@@ -1084,7 +1084,7 @@ class DistributionPieViz(NVD3Viz):
     verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
 
-    def get_data(self, df): 
+    def get_data(self, df):
         df = self.get_df()
         df = df.pivot_table(
             index=self.groupby,
