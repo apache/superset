@@ -2,7 +2,6 @@ import celery
 from datetime import datetime
 import json
 import logging
-import numpy as np
 import pandas as pd
 import sqlalchemy
 import uuid
@@ -142,9 +141,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     column_names = (
         [col[0] for col in cursor.description] if cursor.description else [])
     column_names = dedup(column_names)
-    df_data = np.array(data) if data else []
     cdf = dataframe.SupersetDataFrame(pd.DataFrame(
-        df_data, columns=column_names))
+        list(data), columns=column_names))
 
     query.rows = cdf.size
     query.progress = 100
