@@ -1084,13 +1084,13 @@ class DistributionPieViz(NVD3Viz):
     verbose_name = _("Distribution - NVD3 - Pie Chart")
     is_timeseries = False
 
-    def get_data(self, df):
+    def get_data(self, df): 
         df = self.get_df()
-        # df = df.pivot_table(
-        #     index=self.groupby,
-        #     values=[self.metrics[0]])
-        # df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
-        # df = df.reset_index()
+        df = df.pivot_table(
+            index=self.groupby,
+            values=[self.metrics[0]])
+        df.sort_values(by=self.metrics[0], ascending=False, inplace=True)
+        df = df.reset_index()
         df.columns = ['x', 'y']
         return df.to_dict(orient="records")
 
