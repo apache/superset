@@ -117,15 +117,24 @@ class BaseColumn(AuditMixinNullable, ImportMixin):
 
     @property
     def is_num(self):
-        return any([t in self.type.upper() for t in self.num_types])
+        return (
+            self.type and
+            any([t in self.type.upper() for t in self.num_types])
+        )
 
     @property
     def is_time(self):
-        return any([t in self.type.upper() for t in self.date_types])
+        return (
+            self.type and
+            any([t in self.type.upper() for t in self.date_types])
+        )
 
     @property
     def is_string(self):
-        return any([t in self.type.upper() for t in self.str_types])
+        return (
+            self.type and
+            any([t in self.type.upper() for t in self.str_types])
+        )
 
 
 class BaseMetric(AuditMixinNullable, ImportMixin):
