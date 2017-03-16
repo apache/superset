@@ -1168,12 +1168,19 @@ class DistributionBarViz(DistributionPieViz):
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
             values = []
+            for i, v in ys.iteritems():
+                x = i
+                if isinstance(x, (tuple, list)):
+                    x = ', '.join([str(s) for s in x])
+                else:
+                    x = str(x)
+                values.append({
+                    'x': x,
+                    'y': v,
+                })
             d = {
                 "key": series_title,
-                "values": [
-                    {'x': i, 'y': v}
-                    for i, v in ys.iteritems()
-                ]
+                "values": values,
             }
             chart_data.append(d)
         return chart_data
