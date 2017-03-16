@@ -1,10 +1,10 @@
 import React from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
-import { Table, Thead, Tbody, Th, Tr, Td } from 'reactable';
 import shortid from 'shortid';
 
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
+import FilterTable from '../../components/FilterTable';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -146,42 +146,7 @@ class ResultSet extends React.PureComponent {
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
   }
-  formatTableData(data) {
-    const formattedData = data.map((row) => {
-      const newRow = {};
-      for (const k in row) {
-        const val = row[k];
-        if (typeof(val) === 'string') {
-          newRow[k] = val;
-        } else {
-          newRow[k] = JSON.stringify(val);
-        }
-      }
-      return newRow;
-    });
-    return formattedData;
-  }
-  renderDataColumns(row) {
-    const columns = [];
-    for (const colName in row) {
-      columns.push({
-        name: colName,
-        value: row[colName],
-      });
-    }
-    return columns.map((col) => {
-      console.log('col', col)
-      return (
-        <Td
-          column={'col.name'}
-          style={{ width: '100px' }}
-          label={'col.value'}
-        >
-          {col.value}
-        </Td>
-      );
-    });
-  }
+
   render() {
     const query = this.props.query;
     const results = query.results;
@@ -246,37 +211,12 @@ class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <div className="ResultSet">
-
-              <Table
-                data={this.formatTableData(data)}
-                className="table table-condensed table-bordered table-fixed-header"
-              >
-                <Thead>
-                  {results.columns.map((col) => {
-                    return (
-                      <Th
-                        column={col.name}
-                        style={{ width: '100px' }}
-                        role="button"
-                        key={col.name}
-                      >
-                        <strong>{col.name}</strong>
-                      </Th>
-                    );
-                  })}
-                </Thead>
-
-                {this.formatTableData(data).map((row) => {
-                  return (
-                    <Tr>
-                      {this.renderDataColumns(row)}
-                    </Tr>
-                  );
-                })}
-              </Table>
-
-
+            <div className="ResultSet" ref={(ref) => { this.resultSetDiv = ref; }}>
+              <FilterTable
+                data={data}
+                height={this.state.resultSetHeight}
+                columns={results.columns}
+              />
             </div>
           </div>
         );
