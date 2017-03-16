@@ -1792,7 +1792,9 @@ class Superset(BaseSupersetView):
         metrics = []
         for column_name, config in data.get('columns').items():
             is_dim = config.get('is_dim', False)
-            col = models.TableColumn(
+            SqlaTable = ConnectorRegistry.sources['table']
+            TableColumn = SqlaTable.column_cls
+            col = TableColumn(
                 column_name=column_name,
                 filterable=is_dim,
                 groupby=is_dim,
