@@ -1,7 +1,8 @@
 import json
 
-from sqlalchemy import Column, Integer, String, Text, Boolean
-
+from sqlalchemy import (
+    Column, Integer, String, Text, Boolean,
+)
 from superset import utils
 from superset.models.helpers import AuditMixinNullable, ImportMixin
 
@@ -12,8 +13,22 @@ class BaseDatasource(AuditMixinNullable, ImportMixin):
 
     __tablename__ = None  # {connector_name}_datasource
 
+    column_class = None  # link to derivative of BaseColumn
+    metric_class = None  # link to derivative of BaseMetric
+
     # Used to do code highlighting when displaying the query in the UI
     query_language = None
+
+    # Columns
+    id = Column(Integer, primary_key=True)
+    description = Column(Text)
+    default_endpoint = Column(Text)
+    is_featured = Column(Boolean, default=False)
+    filter_select_enabled = Column(Boolean, default=False)
+    offset = Column(Integer, default=0)
+    cache_timeout = Column(Integer)
+    params = Column(String(1000))
+    perm = Column(String(1000))
 
     @property
     def column_names(self):

@@ -162,33 +162,26 @@ class SqlaTable(Model, BaseDatasource):
     type = "table"
     query_language = 'sql'
     metric_class = SqlMetric
+    column_class = TableColumn
 
     __tablename__ = 'tables'
-    id = Column(Integer, primary_key=True)
     table_name = Column(String(250))
     main_dttm_col = Column(String(250))
-    description = Column(Text)
-    default_endpoint = Column(Text)
     database_id = Column(Integer, ForeignKey('dbs.id'), nullable=False)
-    is_featured = Column(Boolean, default=False)
-    filter_select_enabled = Column(Boolean, default=False)
     fetch_values_predicate = Column(String(1000))
     user_id = Column(Integer, ForeignKey('ab_user.id'))
-    owner = relationship('User', backref='tables', foreign_keys=[user_id])
+    owner = relationship(
+        'User',
+        backref='tables',
+        foreign_keys=[user_id])
     database = relationship(
         'Database',
         backref=backref('tables', cascade='all, delete-orphan'),
         foreign_keys=[database_id])
-    offset = Column(Integer, default=0)
-    cache_timeout = Column(Integer)
     schema = Column(String(255))
     sql = Column(Text)
-    params = Column(Text)
-    perm = Column(String(1000))
 
     baselink = "tablemodelview"
-    column_cls = TableColumn
-    metric_cls = SqlMetric
     export_fields = (
         'table_name', 'main_dttm_col', 'description', 'default_endpoint',
         'database_id', 'is_featured', 'offset', 'cache_timeout', 'schema',
