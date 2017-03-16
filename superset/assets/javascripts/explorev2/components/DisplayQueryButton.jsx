@@ -6,6 +6,7 @@ import { github } from 'react-syntax-highlighter/dist/styles';
 const $ = window.$ = require('jquery');
 
 const propTypes = {
+  query: PropTypes.string,
   queryEndpoint: PropTypes.string.isRequired,
 };
 
@@ -25,22 +26,29 @@ export default class DisplayQueryButton extends React.PureComponent {
           src="/static/assets/images/loading.gif"
         />),
     });
-    $.ajax({
-      type: 'GET',
-      url: this.props.queryEndpoint,
-      success: (data) => {
-        const modalBody = data.language ?
-          <SyntaxHighlighter language={data.language} style={github}>
-            {data.query}
-          </SyntaxHighlighter>
-          :
-          <pre>{data.query}</pre>;
-        this.setState({ modalBody });
-      },
-      error(data) {
-        this.setState({ modalBody: (<pre>{data.error}</pre>) });
-      },
-    });
+    if (this.props.query) {
+      const modalBody = (
+        <pre>{this.props.query}</pre>
+      );
+      this.setState({ modalBody });
+    } else {
+      $.ajax({
+        type: 'GET',
+        url: this.props.queryEndpoint,
+        success: (data) => {
+          const modalBody = data.language ?
+            <SyntaxHighlighter language={data.language} style={github}>
+              {data.query}
+            </SyntaxHighlighter>
+            :
+            <pre>{data.query}</pre>;
+          this.setState({ modalBody });
+        },
+        error(data) {
+          this.setState({ modalBody: (<pre>{data.error}</pre>) });
+        },
+      });
+    }
   }
   render() {
     return (

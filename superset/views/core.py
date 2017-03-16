@@ -2184,7 +2184,8 @@ class Superset(BaseSupersetView):
     def refresh_datasources(self):
         """endpoint that refreshes druid datasources metadata"""
         session = db.session()
-        DruidCluster = ConnectorRegistry.sources['druid']
+        DruidDatasource = ConnectorRegistry.sources['druid']
+        DruidCluster = DruidDatasource.cluster_class
         for cluster in session.query(DruidCluster).all():
             cluster_name = cluster.cluster_name
             try:
