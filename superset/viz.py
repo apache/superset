@@ -119,7 +119,8 @@ class BaseViz(object):
         # parsing logic.
         if df is None or df.empty:
             self.status = utils.QueryStatus.FAILED
-            self.error_message = "No data."
+            if not self.error_message:
+                self.error_message = "No data."
             return pd.DataFrame()
         else:
             if DTTM_ALIAS in df.columns:
@@ -135,16 +136,18 @@ class BaseViz(object):
         return df
 
     def get_extra_filters(self):
-        extra_filters = self.form_data.get('extra_filters')
-        if not extra_filters:
-            return {}
-        return json.loads(extra_filters)
+        extra_filters = self.form_data.get('extra_filters', [])
+        return {f['col']: f['val'] for f in extra_filters}
 
     def query_obj(self):
         """Building a query object"""
         form_data = self.form_data
         groupby = form_data.get("groupby") or []
         metrics = form_data.get("metrics") or ['count']
+
+        # extra_filters are temporary/contextual filters that are external
+        # to the slice definition. We use those for dynamic interactive
+        # filters like the ones emitted by the "Filter Box" visualization
         extra_filters = self.get_extra_filters()
         granularity = (
             form_data.get("granularity") or form_data.get("granularity_sqla")
@@ -153,13 +156,20 @@ class BaseViz(object):
         timeseries_limit_metric = form_data.get("timeseries_limit_metric")
         row_limit = int(
             form_data.get("row_limit") or config.get("ROW_LIMIT"))
+
+        # __form and __to are special extra_filters that target time
+        # boundaries. The rest of extra_filters are simple
+        # [column_name in list_of_values]. `__` prefix is there to avoid
+        # potential conflicts with column that would be named `from` or `to`
         since = (
             extra_filters.get('__from') or form_data.get("since", "1 year ago")
         )
+
         from_dttm = utils.parse_human_datetime(since)
         now = datetime.now()
         if from_dttm > now:
             from_dttm = now - (from_dttm - now)
+
         until = extra_filters.get('__to') or form_data.get("until", "now")
         to_dttm = utils.parse_human_datetime(until)
         if from_dttm > to_dttm:
@@ -178,15 +188,14 @@ class BaseViz(object):
         filters = form_data['filters'] if 'filters' in form_data \
                 else []
         for col, vals in self.get_extra_filters().items():
-            if not (col and vals):
+            if not (col and vals) or col.startswith('__'):
                 continue
             elif col in self.datasource.filterable_column_names:
                 # Quote values with comma to avoid conflict
-                vals = ["'{}'".format(x) if "," in x else x for x in vals]
                 filters += [{
                     'col': col,
                     'op': 'in',
-                    'val': ",".join(vals),
+                    'val': vals,
                 }]
         d = {
             'granularity': granularity,
@@ -280,7 +289,7 @@ class BaseViz(object):
             data = self.json_dumps(payload)
             if PY3:
                 data = bytes(data, 'utf-8')
-            if cache:
+            if cache and self.status != utils.QueryStatus.FAILED:
                 try:
                     cache.set(
                         cache_key,
@@ -363,24 +372,39 @@ class TableViz(BaseViz):
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
 
+    def should_be_timeseries(self):
+        fd = self.form_data
+        # TODO handle datasource-type-specific code in datasource
+        conditions_met = (
+            (fd.get('granularity') and fd.get('granularity') != 'all') or
+            (fd.get('granularity_sqla') and fd.get('time_grain_sqla'))
+        )
+        if fd.get('include_time') and not conditions_met:
+            raise Exception(
+                "Pick a granularity in the Time section or "
+                "uncheck 'Include Time'")
+        return fd.get('include_time')
+
     def query_obj(self):
         d = super(TableViz, self).query_obj()
         fd = self.form_data
+
         if fd.get('all_columns') and (fd.get('groupby') or fd.get('metrics')):
             raise Exception(
                 "Choose either fields to [Group By] and [Metrics] or "
                 "[Columns], not both")
+
         if fd.get('all_columns'):
             d['columns'] = fd.get('all_columns')
             d['groupby'] = []
             order_by_cols = fd.get('order_by_cols') or []
             d['orderby'] = [json.loads(t) for t in order_by_cols]
+
+        d['is_timeseries'] = self.should_be_timeseries()
         return d
 
     def get_data(self, df):
-        if (
-                self.form_data.get("granularity") == "all" and
-                DTTM_ALIAS in df):
+        if not self.should_be_timeseries() and DTTM_ALIAS in df:
             del df[DTTM_ALIAS]
 
         return dict(
@@ -466,6 +490,10 @@ class SeparatorViz(MarkupViz):
 
     viz_type = "separator"
     verbose_name = _("Separator")
+
+    def get_data(self, df):
+        code = markdown(self.form_data.get("code", ''))
+        return dict(html=code)
 
 
 class WordCloudViz(BaseViz):
@@ -1129,8 +1157,8 @@ class DistributionBarViz(DistributionPieViz):
             pt = (pt / pt.sum()).T
         pt = pt.reindex(row.index)
         chart_data = []
-        for name, ys in df.iteritems():
-            if df[name].dtype.kind not in "biufc" or name in self.groupby:
+        for name, ys in pt.iteritems():
+            if pt[name].dtype.kind not in "biufc" or name in self.groupby:
                 continue
             if isinstance(name, string_types):
                 series_title = name
@@ -1139,11 +1167,13 @@ class DistributionBarViz(DistributionPieViz):
             else:
                 l = [str(s) for s in name[1:]]
                 series_title = ", ".join(l)
+            values = []
             d = {
                 "key": series_title,
                 "values": [
-                    {'x': str(row.index[i]), 'y': v}
-                    for i, v in ys.iteritems()]
+                    {'x': i, 'y': v}
+                    for i, v in ys.iteritems()
+                ]
             }
             chart_data.append(d)
         return chart_data
@@ -1270,9 +1300,10 @@ class WorldMapViz(BaseViz):
 
     def get_data(self, df):
         from superset.data import countries
-        cols = [self.form_data.get('entity')]
-        metric = self.form_data.get('metric')
-        secondary_metric = self.form_data.get('secondary_metric')
+        fd = self.form_data
+        cols = [fd.get('entity')]
+        metric = fd.get('metric')
+        secondary_metric = fd.get('secondary_metric')
         if metric == secondary_metric:
             ndf = df[cols]
             # df[metric] will be a DataFrame
@@ -1289,7 +1320,7 @@ class WorldMapViz(BaseViz):
             country = None
             if isinstance(row['country'], string_types):
                 country = countries.get(
-                    self.form_data.get('country_fieldtype'), row['country'])
+                    fd.get('country_fieldtype'), row['country'])
 
             if country:
                 row['country'] = country['cca3']

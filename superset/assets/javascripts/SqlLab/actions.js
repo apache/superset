@@ -142,6 +142,24 @@ export function runQuery(query) {
   };
 }
 
+export function postStopQuery(query) {
+  return function (dispatch) {
+    const stopQueryUrl = '/superset/stop_query/';
+    const stopQueryRequestData = { client_id: query.id };
+    $.ajax({
+      type: 'POST',
+      dataType: 'json',
+      url: stopQueryUrl,
+      data: stopQueryRequestData,
+      success() {
+        if (!query.runAsync) {
+          dispatch(stopQuery(query));
+        }
+      },
+    });
+  };
+}
+
 export function setDatabases(databases) {
   return { type: SET_DATABASES, databases };
 }

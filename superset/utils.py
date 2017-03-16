@@ -126,6 +126,14 @@ class memoized(object):  # noqa
 def js_string_to_python(item):
     return None if item in ('null', 'undefined') else item
 
+def js_string_to_num(item):
+    if item.isdigit():
+        return int(item)
+    s = item
+    try:
+        s = float(item)
+    except ValueError:
+        return s
 
 class DimSelector(Having):
     def __init__(self, **args):
@@ -430,11 +438,11 @@ def pessimistic_connection_handling(target):
         cursor.close()
 
 
-class QueryStatus:
+class QueryStatus(object):
 
     """Enum-type class for query statuses"""
 
-    CANCELLED = 'cancelled'
+    STOPPED = 'stopped'
     FAILED = 'failed'
     PENDING = 'pending'
     RUNNING = 'running'

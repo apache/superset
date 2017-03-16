@@ -10,7 +10,11 @@ import json
 import pickle
 import unittest
 
-from superset import db, models
+from superset import db
+from superset.models import core as models
+from superset.connectors.druid.models import (
+    DruidDatasource, DruidColumn, DruidMetric)
+from superset.connectors.sqla.models import SqlaTable, TableColumn, SqlMetric
 
 from .base_tests import SupersetTestCase
 
@@ -31,10 +35,10 @@ class ImportExportTests(SupersetTestCase):
         for dash in session.query(models.Dashboard):
             if 'remote_id' in dash.params_dict:
                 session.delete(dash)
-        for table in session.query(models.SqlaTable):
+        for table in session.query(SqlaTable):
             if 'remote_id' in table.params_dict:
                 session.delete(table)
-        for datasource in session.query(models.DruidDatasource):
+        for datasource in session.query(DruidDatasource):
             if 'remote_id' in datasource.params_dict:
                 session.delete(datasource)
         session.commit()
@@ -90,7 +94,7 @@ class ImportExportTests(SupersetTestCase):
     def create_table(
             self, name, schema='', id=0, cols_names=[], metric_names=[]):
         params = {'remote_id': id, 'database_name': 'main'}
-        table = models.SqlaTable(
+        table = SqlaTable(
             id=id,
             schema=schema,
             table_name=name,
@@ -98,15 +102,15 @@ class ImportExportTests(SupersetTestCase):
         )
         for col_name in cols_names:
             table.columns.append(
-                models.TableColumn(column_name=col_name))
+                TableColumn(column_name=col_name))
         for metric_name in metric_names:
-            table.metrics.append(models.SqlMetric(metric_name=metric_name))
+            table.metrics.append(SqlMetric(metric_name=metric_name))
         return table
 
     def create_druid_datasource(
             self, name, id=0, cols_names=[], metric_names=[]):
         params = {'remote_id': id, 'database_name': 'druid_test'}
-        datasource = models.DruidDatasource(
+        datasource = DruidDatasource(
             id=id,
             datasource_name=name,
             cluster_name='druid_test',
@@ -114,9 +118,9 @@ class ImportExportTests(SupersetTestCase):
         )
         for col_name in cols_names:
             datasource.columns.append(
-                models.DruidColumn(column_name=col_name))
+                DruidColumn(column_name=col_name))
         for metric_name in metric_names:
-            datasource.metrics.append(models.DruidMetric(
+            datasource.metrics.append(DruidMetric(
                 metric_name=metric_name))
         return datasource
 
@@ -136,11 +140,11 @@ class ImportExportTests(SupersetTestCase):
             slug=dash_slug).first()
 
     def get_datasource(self, datasource_id):
-        return db.session.query(models.DruidDatasource).filter_by(
+        return db.session.query(DruidDatasource).filter_by(
             id=datasource_id).first()
 
     def get_table_by_name(self, name):
-        return db.session.query(models.SqlaTable).filter_by(
+        return db.session.query(SqlaTable).filter_by(
             table_name=name).first()
 
     def assert_dash_equals(self, expected_dash, actual_dash,
@@ -392,7 +396,7 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_table_no_metadata(self):
         table = self.create_table('pure_table', id=10001)
-        imported_id = models.SqlaTable.import_obj(table, import_time=1989)
+        imported_id = SqlaTable.import_obj(table, import_time=1989)
         imported = self.get_table(imported_id)
         self.assert_table_equals(table, imported)
 
@@ -400,7 +404,7 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             'table_1_col_1_met', id=10002,
             cols_names=["col1"], metric_names=["metric1"])
-        imported_id = models.SqlaTable.import_obj(table, import_time=1990)
+        imported_id = SqlaTable.import_obj(table, import_time=1990)
         imported = self.get_table(imported_id)
         self.assert_table_equals(table, imported)
         self.assertEquals(
@@ -411,7 +415,7 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             'table_2_col_2_met', id=10003, cols_names=['c1', 'c2'],
             metric_names=['m1', 'm2'])
-        imported_id = models.SqlaTable.import_obj(table, import_time=1991)
+        imported_id = SqlaTable.import_obj(table, import_time=1991)
 
         imported = self.get_table(imported_id)
         self.assert_table_equals(table, imported)
@@ -420,12 +424,12 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             'table_override', id=10003, cols_names=['col1'],
             metric_names=['m1'])
-        imported_id = models.SqlaTable.import_obj(table, import_time=1991)
+        imported_id = SqlaTable.import_obj(table, import_time=1991)
 
         table_over = self.create_table(
             'table_override', id=10003, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_over_id = models.SqlaTable.import_obj(
+        imported_over_id = SqlaTable.import_obj(
             table_over, import_time=1992)
 
         imported_over = self.get_table(imported_over_id)
@@ -439,12 +443,12 @@ class ImportExportTests(SupersetTestCase):
         table = self.create_table(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_id = models.SqlaTable.import_obj(table, import_time=1993)
+        imported_id = SqlaTable.import_obj(table, import_time=1993)
 
         copy_table = self.create_table(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_id_copy = models.SqlaTable.import_obj(
+        imported_id_copy = SqlaTable.import_obj(
             copy_table, import_time=1994)
 
         self.assertEquals(imported_id, imported_id_copy)
@@ -452,7 +456,7 @@ class ImportExportTests(SupersetTestCase):
 
     def test_import_druid_no_metadata(self):
         datasource = self.create_druid_datasource('pure_druid', id=10001)
-        imported_id = models.DruidDatasource.import_obj(
+        imported_id = DruidDatasource.import_obj(
             datasource, import_time=1989)
         imported = self.get_datasource(imported_id)
         self.assert_datasource_equals(datasource, imported)
@@ -461,7 +465,7 @@ class ImportExportTests(SupersetTestCase):
         datasource = self.create_druid_datasource(
             'druid_1_col_1_met', id=10002,
             cols_names=["col1"], metric_names=["metric1"])
-        imported_id = models.DruidDatasource.import_obj(
+        imported_id = DruidDatasource.import_obj(
             datasource, import_time=1990)
         imported = self.get_datasource(imported_id)
         self.assert_datasource_equals(datasource, imported)
@@ -474,7 +478,7 @@ class ImportExportTests(SupersetTestCase):
         datasource = self.create_druid_datasource(
             'druid_2_col_2_met', id=10003, cols_names=['c1', 'c2'],
             metric_names=['m1', 'm2'])
-        imported_id = models.DruidDatasource.import_obj(
+        imported_id = DruidDatasource.import_obj(
             datasource, import_time=1991)
         imported = self.get_datasource(imported_id)
         self.assert_datasource_equals(datasource, imported)
@@ -483,14 +487,14 @@ class ImportExportTests(SupersetTestCase):
         datasource = self.create_druid_datasource(
             'druid_override', id=10003, cols_names=['col1'],
             metric_names=['m1'])
-        imported_id = models.DruidDatasource.import_obj(
+        imported_id = DruidDatasource.import_obj(
             datasource, import_time=1991)
 
         table_over = self.create_druid_datasource(
             'druid_override', id=10003,
             cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_over_id = models.DruidDatasource.import_obj(
+        imported_over_id = DruidDatasource.import_obj(
             table_over, import_time=1992)
 
         imported_over = self.get_datasource(imported_over_id)
@@ -504,13 +508,13 @@ class ImportExportTests(SupersetTestCase):
         datasource = self.create_druid_datasource(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_id = models.DruidDatasource.import_obj(
+        imported_id = DruidDatasource.import_obj(
             datasource, import_time=1993)
 
         copy_datasource = self.create_druid_datasource(
             'copy_cat', id=10004, cols_names=['new_col1', 'col2', 'col3'],
             metric_names=['new_metric1'])
-        imported_id_copy = models.DruidDatasource.import_obj(
+        imported_id_copy = DruidDatasource.import_obj(
             copy_datasource, import_time=1994)
 
         self.assertEquals(imported_id, imported_id_copy)

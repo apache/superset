@@ -101,15 +101,16 @@ class ChartContainer extends React.PureComponent {
 
       height: getHeight,
 
-      setFilter: () => {
-        // set filter according to data in store
-        // used in FilterBox.onChange()
-      },
+      setFilter: () => {},
 
       getFilters: () => (
         // return filter objects from viz.formData
         {}
       ),
+
+      addFilter: () => {},
+
+      removeFilter: () => {},
 
       done: () => {},
       clearError: () => {
@@ -210,6 +211,8 @@ class ChartContainer extends React.PureComponent {
     if (this.props.standalone) {
       return this.renderChart();
     }
+    const queryResponse = this.props.queryResponse;
+    const query = queryResponse && queryResponse.query ? queryResponse.query : null;
     return (
       <div className="chart-container">
         <Panel
@@ -269,6 +272,7 @@ class ChartContainer extends React.PureComponent {
                 <ExploreActionButtons
                   slice={this.state.mockSlice}
                   canDownload={this.props.can_download}
+                  query={query}
                   queryEndpoint={getExploreUrl(this.props.latestQueryFormData, 'query')}
                 />
               </div>

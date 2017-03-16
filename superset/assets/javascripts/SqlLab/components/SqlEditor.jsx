@@ -83,7 +83,7 @@ class SqlEditor extends React.PureComponent {
     this.props.actions.setActiveSouthPaneTab('Results');
   }
   stopQuery() {
-    this.props.actions.stopQuery(this.props.latestQuery);
+    this.props.actions.postStopQuery(this.props.latestQuery);
   }
   createTableAs() {
     this.startQuery(true, true);

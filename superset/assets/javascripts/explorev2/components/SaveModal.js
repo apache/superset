@@ -26,7 +26,7 @@ class SaveModal extends React.Component {
       newSliceName: '',
       dashboards: [],
       alert: null,
-      action: 'saveas',
+      action: props.can_overwrite ? 'overwrite' : 'saveas',
       addToDash: 'noSave',
     };
   }
@@ -62,7 +62,7 @@ class SaveModal extends React.Component {
 
     let sliceName = null;
     sliceParams.action = this.state.action;
-    if (this.props.slice.slice_id) {
+    if (this.props.slice && this.props.slice.slice_id) {
       sliceParams.slice_id = this.props.slice.slice_id;
     }
     if (sliceParams.action === 'saveas') {
@@ -139,15 +139,19 @@ class SaveModal extends React.Component {
               />
             </Alert>
           }
-          <Radio
-            disabled={!this.props.can_overwrite}
-            checked={this.state.action === 'overwrite'}
-            onChange={this.changeAction.bind(this, 'overwrite')}
-          >
-          {`Overwrite slice ${this.props.slice.slice_name}`}
-          </Radio>
+          {this.props.slice &&
+            <Radio
+              id="overwrite-radio"
+              disabled={!this.props.can_overwrite}
+              checked={this.state.action === 'overwrite'}
+              onChange={this.changeAction.bind(this, 'overwrite')}
+            >
+            {`Overwrite slice ${this.props.slice.slice_name}`}
+            </Radio>
+          }
 
           <Radio
+            id="saveas-radio"
             inline
             checked={this.state.action === 'saveas'}
             onChange={this.changeAction.bind(this, 'saveas')}

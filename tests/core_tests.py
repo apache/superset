@@ -7,17 +7,19 @@ from __future__ import unicode_literals
 import csv
 import doctest
 import json
+import logging
 import io
 import random
 import unittest
 
 from flask import escape
 
-from superset import db, models, utils, appbuilder, sm, jinja_context, sql_lab
-from superset.views import DatabaseView
+from superset import db, utils, appbuilder, sm, jinja_context, sql_lab
+from superset.models import core as models
+from superset.views.core import DatabaseView
+from superset.connectors.sqla.models import SqlaTable
 
 from .base_tests import SupersetTestCase
-import logging
 
 
 class CoreTests(SupersetTestCase):
@@ -31,7 +33,7 @@ class CoreTests(SupersetTestCase):
     def setUpClass(cls):
         cls.table_ids = {tbl.table_name: tbl.id for tbl in (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .all()
         )}
 
@@ -186,7 +188,7 @@ class CoreTests(SupersetTestCase):
         slice_id = self.get_slice(slice_name, db.session).id
         db.session.commit()
         tbl_id = self.table_ids.get('energy_usage')
-        table = db.session.query(models.SqlaTable).filter(models.SqlaTable.id == tbl_id)
+        table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
         url = (
             "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
@@ -220,7 +222,7 @@ class CoreTests(SupersetTestCase):
         url = '/tablemodelview/list/'
         resp = self.get_resp(url)
 
-        table = db.session.query(models.SqlaTable).first()
+        table = db.session.query(SqlaTable).first()
         assert table.name in resp
         assert '/superset/explore/table/{}'.format(table.id) in resp
 
@@ -459,7 +461,7 @@ class CoreTests(SupersetTestCase):
     def test_public_user_dashboard_access(self):
         table = (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .filter_by(table_name='birth_names')
             .one()
         )
@@ -494,7 +496,7 @@ class CoreTests(SupersetTestCase):
         self.logout()
         table = (
             db.session
-            .query(models.SqlaTable)
+            .query(SqlaTable)
             .filter_by(table_name='birth_names')
             .one()
         )
@@ -550,6 +552,20 @@ class CoreTests(SupersetTestCase):
         tp = jinja_context.get_template_processor(database=maindb)
         rendered = tp.process_template(sql)
         self.assertEqual("SELECT '2017-01-01T00:00:00'", rendered)
+
+    def test_get_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb, foo='bar')
+        rendered = tp.process_template(s)
+        self.assertEqual("bar", rendered)
+
+    def test_template_kwarg(self):
+        maindb = self.get_main_database(db.session)
+        s = "{{ foo }}"
+        tp = jinja_context.get_template_processor(database=maindb)
+        rendered = tp.process_template(s, foo='bar')
+        self.assertEqual("bar", rendered)
 
     def test_templated_sql_json(self):
         self.login('admin')

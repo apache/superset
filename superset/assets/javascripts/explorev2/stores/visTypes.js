@@ -78,7 +78,6 @@ const visTypes = {
     controlPanelSections: [
       {
         label: 'Chart Options',
-        description: 'tooltip text here',
         controlSetRows: [
           ['metrics'],
           ['groupby'],
@@ -236,6 +235,7 @@ const visTypes = {
         description: 'Use this section if you want a query that aggregates',
         controlSetRows: [
           ['groupby', 'metrics'],
+          ['include_time'],
         ],
       },
       {
@@ -254,6 +254,15 @@ const visTypes = {
         ],
       },
     ],
+    controlOverrides: {
+      metrics: {
+        default: null,
+        validators: null,
+      },
+      time_grain_sqla: {
+        default: null,
+      },
+    },
   },
 
   markup: {
@@ -563,7 +572,7 @@ const visTypes = {
         label: null,
         controlSetRows: [
           ['entity'],
-          ['country_controltype'],
+          ['country_fieldtype'],
           ['metric'],
         ],
       },
@@ -598,7 +607,7 @@ const visTypes = {
       {
         label: null,
         controlSetRows: [
-          ['date_filter'],
+          ['date_filter', 'instant_filtering'],
           ['groupby'],
           ['metric'],
         ],
