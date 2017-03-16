@@ -329,7 +329,7 @@ class PrestoEngineSpec(BaseEngineSpec):
             full_table_name = "{}.{}".format(schema_name, table_name)
         pql = cls._partition_query(full_table_name)
         col_name, latest_part = cls.latest_partition(
-            table_name, schema_name, database)
+            table_name, schema_name, database, show_first=True)
         return {
             'partitions': {
                 'cols': cols,
@@ -423,7 +423,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         return df.to_records(index=False)[0][0]
 
     @classmethod
-    def latest_partition(cls, table_name, schema, database):
+    def latest_partition(cls, table_name, schema, database, show_first=False):
         """Returns col name and the latest (max) partition value for a table
 
         :param table_name: the name of the table
@@ -432,6 +432,9 @@ class PrestoEngineSpec(BaseEngineSpec):
         :type schema: str
         :param database: database query will be run against
         :type database: models.Database
+        :param show_first: displays the value for the first partitioning key
+          if there are many partitioning keys
+        :type show_first: bool
 
         >>> latest_partition('foo_table')
         '2018-01-01'
@@ -440,7 +443,7 @@ class PrestoEngineSpec(BaseEngineSpec):
         if len(indexes[0]['column_names']) < 1:
             raise SupersetTemplateException(
                 "The table should have one partitioned field")
-        elif len(indexes[0]['column_names']) > 1:
+        elif not show_first and len(indexes[0]['column_names']) > 1:
             raise SupersetTemplateException(
                 "The table should have a single partitioned field "
                 "to use this function. You may want to use "
