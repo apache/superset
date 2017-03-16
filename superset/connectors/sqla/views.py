@@ -22,7 +22,8 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
     can_delete = False
     list_widget = ListWidgetWithCheckboxes
     edit_columns = [
-        'column_name', 'verbose_name', 'description', 'groupby', 'filterable',
+        'column_name', 'verbose_name', 'description',
+        'type', 'groupby', 'filterable',
         'table', 'count_distinct', 'sum', 'min', 'max', 'expression',
         'is_dttm', 'python_date_format', 'database_expression']
     add_columns = edit_columns
@@ -31,10 +32,15 @@ class TableColumnInlineView(CompactCRUDMixin, SupersetModelView):  # noqa
         'sum', 'min', 'max', 'is_dttm']
     page_size = 500
     description_columns = {
-        'is_dttm': (_(
+        'is_dttm': _(
             "Whether to make this column available as a "
             "[Time Granularity] option, column has to be DATETIME or "
-            "DATETIME-like")),
+            "DATETIME-like"),
+        'type': _(
+            "The data type that was inferred by the database. "
+            "It may be necessary to input a type manually for "
+            "expression-defined columns in some cases. In most case "
+            "users should not need to alter this."),
         'expression': utils.markdown(
             "a valid SQL expression as supported by the underlying backend. "
             "Example: `substr(name, 1, 1)`", True),
