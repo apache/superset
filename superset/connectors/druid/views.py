@@ -103,9 +103,9 @@ appbuilder.add_view_no_menu(DruidMetricInlineView)
 class DruidClusterModelView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.DruidCluster)
     add_columns = [
-        'cluster_name',
-        'coordinator_host', 'coordinator_port', 'coordinator_endpoint',
-        'broker_host', 'broker_port', 'broker_endpoint', 'cache_timeout',
+        'verbose_name', 'coordinator_host', 'coordinator_port',
+        'coordinator_endpoint', 'broker_host', 'broker_port',
+        'broker_endpoint', 'cache_timeout', 'cluster_name',
     ]
     edit_columns = add_columns
     list_columns = ['cluster_name', 'metadata_last_refreshed']

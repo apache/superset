@@ -11,18 +11,21 @@ revision = 'db527d8c4c78'
 down_revision = 'b318dfe5fb6c'
 
 from alembic import op
+import logging
 import sqlalchemy as sa
 
 
 def upgrade():
     op.add_column('clusters', sa.Column('verbose_name', sa.String(length=250), nullable=True))
-    op.create_unique_constraint(None, 'clusters', ['verbose_name'])
     op.add_column('dbs', sa.Column('verbose_name', sa.String(length=250), nullable=True))
-    op.create_unique_constraint(None, 'dbs', ['verbose_name'])
+
+    try:
+        op.create_unique_constraint(None, 'dbs', ['verbose_name'])
+        op.create_unique_constraint(None, 'clusters', ['verbose_name'])
+    except Exception as e:
+        logging.exception(e)
 
 
 def downgrade():
-    op.drop_constraint(None, 'dbs', type_='unique')
     op.drop_column('dbs', 'verbose_name')
-    op.drop_constraint(None, 'clusters', type_='unique')
     op.drop_column('clusters', 'verbose_name')

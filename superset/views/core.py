@@ -207,8 +207,8 @@ def generate_download_headers(extension):
 class DatabaseView(SupersetModelView, DeleteMixin):  # noqa
     datamodel = SQLAInterface(models.Database)
     list_columns = [
-        'database_name', 'backend', 'allow_run_sync', 'allow_run_async',
-        'allow_dml', 'creator', 'changed_on_']
+        'verbose_name', 'backend', 'allow_run_sync', 'allow_run_async',
+        'allow_dml', 'creator', 'changed_on_', 'database_name']
     add_columns = [
         'database_name', 'sqlalchemy_uri', 'cache_timeout', 'extra',
         'expose_in_sqllab', 'allow_run_sync', 'allow_run_async',
