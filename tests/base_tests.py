@@ -112,8 +112,6 @@ class SupersetTestCase(unittest.TestCase):
             session.add(druid_datasource2)
             session.commit()
 
-
-
     def get_table(self, table_id):
         return db.session.query(SqlaTable).filter_by(
             id=table_id).first()

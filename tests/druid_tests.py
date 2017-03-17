@@ -98,7 +98,7 @@ class DruidTests(SupersetTestCase):
             metadata_last_refreshed=datetime.now())
 
         db.session.add(cluster)
-        cluster.get_datasources = Mock(return_value=['test_datasource'])
+        cluster.get_datasources = Mock(return_value=['druid_test'])
         cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()
         cluster.refresh_datasources(merge_flag=True)
@@ -117,7 +117,7 @@ class DruidTests(SupersetTestCase):
 
         resp = self.get_resp('/superset/explore/druid/{}/'.format(
             datasource_id))
-        self.assertIn("test_datasource", resp)
+        self.assertIn("druid_test", resp)
         form_data = {
             'viz_type': 'table',
             'granularity': 'one+day',

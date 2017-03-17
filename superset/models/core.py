@@ -714,8 +714,7 @@ class Database(Model, AuditMixinNullable):
         return '/superset/sql/{}/'.format(self.id)
 
     def get_perm(self):
-        return (
-            "[{obj.database_name}].(id:{obj.id})").format(obj=self)
+        return self.unique_name
 
 sqla.event.listen(Database, 'after_insert', set_perm)
 sqla.event.listen(Database, 'after_update', set_perm)

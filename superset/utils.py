@@ -126,6 +126,7 @@ class memoized(object):  # noqa
 def js_string_to_python(item):
     return None if item in ('null', 'undefined') else item
 
+
 def js_string_to_num(item):
     if item.isdigit():
         return int(item)
@@ -361,13 +362,13 @@ def generic_find_constraint_name(table, columns, referenced, db):
 
 def get_datasource_full_name(database_name, datasource_name, schema=None):
     if not schema:
-        return "[{}].[{}]".format(database_name, datasource_name)
-    return "[{}].[{}].[{}]".format(database_name, schema, datasource_name)
+        return "{}.{}".format(database_name, datasource_name)
+    return "{}.{}.{}".format(database_name, schema, datasource_name)
 
 
 def get_schema_perm(database, schema):
     if schema:
-        return "[{}].[{}]".format(database, schema)
+        return "{}.{}".format(database.perm, schema)
 
 
 def validate_json(obj):

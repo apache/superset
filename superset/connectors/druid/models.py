@@ -105,7 +105,7 @@ class DruidCluster(Model, AuditMixinNullable):
 
     @property
     def perm(self):
-        return "[{obj.cluster_name}].(id:{obj.id})".format(obj=self)
+        return self.cluster_name
 
     @property
     def name(self):
@@ -113,7 +113,7 @@ class DruidCluster(Model, AuditMixinNullable):
 
     @property
     def unique_name(self):
-        return self.verbose_name if self.verbose_name else self.cluster_name
+        return self.cluster_name
 
 
 class DruidColumn(Model, BaseColumn):
@@ -293,11 +293,7 @@ class DruidMetric(Model, BaseMetric):
 
     @property
     def perm(self):
-        return (
-            "{parent_name}.[{obj.metric_name}](id:{obj.id})"
-        ).format(obj=self,
-                 parent_name=self.datasource.full_name
-                 ) if self.datasource else None
+        return "{}.{}".format(self.datasource.perm, self.metric_name)
 
     @classmethod
     def import_obj(cls, i_metric):
@@ -382,9 +378,11 @@ class DruidDatasource(Model, BaseDatasource):
         return utils.get_schema_perm(self.cluster, self.schema)
 
     def get_perm(self):
-        return (
-            "[{obj.cluster_name}].[{obj.datasource_name}]"
-            "(id:{obj.id})").format(obj=self)
+        cluster = self.cluster
+        if not cluster:
+            cluster = db.session.query(DruidCluster).filter_by(
+                cluster_name=self.cluster_name).one()
+        return "{}.{}".format(cluster.perm, self.name)
 
     @property
     def link(self):
