@@ -190,14 +190,19 @@ class CoreTests(SupersetTestCase):
         tbl_id = self.table_ids.get('energy_usage')
         table = db.session.query(SqlaTable).filter(SqlaTable.id == tbl_id)
         table.filter_select_enabled = True
+        form_data = {
+            'viz_type': 'sankey',
+            'groupby': 'source',
+            'groupby': 'target',
+            'metric': 'sum__value',
+            'row_limit': 5000,
+            'slice_id': slice_id,
+        }
         url = (
-            "/superset/filter/table/{}/target/?viz_type=sankey&groupby=source"
-            "&metric=sum__value&flt_col_0=source&flt_op_0=in&flt_eq_0=&"
-            "slice_id={}&datasource_name=energy_usage&"
-            "datasource_id=1&datasource_type=table")
+            "/superset/filter/table/{}/target/?form_data={}")
 
         # Changing name
-        resp = self.get_resp(url.format(tbl_id, slice_id))
+        resp = self.get_resp(url.format(tbl_id, json.dumps(form_data)))
         assert len(resp) > 0
         assert 'Carbon Dioxide' in resp
 
