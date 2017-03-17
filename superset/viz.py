@@ -1085,7 +1085,6 @@ class DistributionPieViz(NVD3Viz):
     is_timeseries = False
 
     def get_data(self, df):
-        df = self.get_df()
         df = df.pivot_table(
             index=self.groupby,
             values=[self.metrics[0]])
