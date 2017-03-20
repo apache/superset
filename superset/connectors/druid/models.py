@@ -57,6 +57,8 @@ class DruidCluster(Model, AuditMixinNullable):
     type = "druid"
 
     id = Column(Integer, primary_key=True)
+    verbose_name = Column(String(250), unique=True)
+    # short unique name, used in permissions
     cluster_name = Column(String(250), unique=True)
     coordinator_host = Column(String(255))
     coordinator_port = Column(Integer)
@@ -69,7 +71,7 @@ class DruidCluster(Model, AuditMixinNullable):
     cache_timeout = Column(Integer)
 
     def __repr__(self):
-        return self.cluster_name
+        return self.verbose_name if self.verbose_name else self.cluster_name
 
     def get_pydruid_client(self):
         cli = PyDruid(
@@ -107,7 +109,11 @@ class DruidCluster(Model, AuditMixinNullable):
 
     @property
     def name(self):
-        return self.cluster_name
+        return self.verbose_name if self.verbose_name else self.cluster_name
+
+    @property
+    def unique_name(self):
+        return self.verbose_name if self.verbose_name else self.cluster_name
 
 
 class DruidColumn(Model, BaseColumn):

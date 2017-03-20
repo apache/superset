@@ -505,6 +505,8 @@ class Database(Model, AuditMixinNullable):
     type = "table"
 
     id = Column(Integer, primary_key=True)
+    verbose_name = Column(String(250), unique=True)
+    # short unique name, used in permissions
     database_name = Column(String(250), unique=True)
     sqlalchemy_uri = Column(String(1024))
     password = Column(EncryptedType(String(1024), config.get('SECRET_KEY')))
@@ -525,10 +527,14 @@ class Database(Model, AuditMixinNullable):
     perm = Column(String(1000))
 
     def __repr__(self):
-        return self.database_name
+        return self.verbose_name if self.verbose_name else self.database_name
 
     @property
     def name(self):
+        return self.verbose_name if self.verbose_name else self.database_name
+
+    @property
+    def unique_name(self):
         return self.database_name
 
     @property
