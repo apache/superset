@@ -109,6 +109,8 @@ def get_sql_results(self, query_id, return_results=True, store_results=False):
     conn = engine.raw_connection()
     cursor = conn.cursor()
     try:
+        print(query.executed_sql)
+        logging.info(query.executed_sql)
         cursor.execute(
             query.executed_sql, **db_engine_spec.cursor_execute_kwargs)
     except Exception as e:
