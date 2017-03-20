@@ -214,7 +214,11 @@ class SqlaTable(Model, BaseDatasource):
         return utils.get_schema_perm(self.database, self.schema)
 
     def get_perm(self):
-        return "{}.{}".format(self.database.perm, self.name)
+        database = self.database
+        if not database:
+            database = db.session.query(Database).filter_by(
+                id=self.database_id).one()
+        return "{}.{}".format(database.perm, self.name)
 
     @property
     def name(self):

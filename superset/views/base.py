@@ -67,8 +67,9 @@ class BaseSupersetView(BaseView):
                 sm, 'schema_access', schema_perm, g.user):
             return True
 
-        datasources = ConnectorRegistry.query_datasources_by_name(
-            db.session, database, datasource_name, schema=schema)
+        # Checking among duplicated datasources.
+        datasources = ConnectorRegistry.get_datasources_by_name(
+            db.session, database.type, datasource_name, schema, database.name)
         for datasource in datasources:
             if self.can_access("datasource_access", datasource.perm):
                 return True
