@@ -69,6 +69,7 @@ class DruidCluster(Model, AuditMixinNullable):
     broker_endpoint = Column(String(255), default='druid/v2')
     metadata_last_refreshed = Column(DateTime)
     cache_timeout = Column(Integer)
+    perm = Column(String(1000))
 
     def __repr__(self):
         return self.verbose_name if self.verbose_name else self.cluster_name
@@ -103,9 +104,8 @@ class DruidCluster(Model, AuditMixinNullable):
                 if not datasource_name or datasource_name == datasource:
                     DruidDatasource.sync_to_db(datasource, self, merge_flag)
 
-    @property
-    def perm(self):
-        return self.cluster_name
+    def get_perm(self):
+        return '{}.{}'.format(self.type, self.unique_name)
 
     @property
     def name(self):
@@ -253,6 +253,11 @@ class DruidColumn(Model, BaseColumn):
         return import_util.import_simple_obj(db.session, i_column, lookup_obj)
 
 
+sa.event.listen(DruidCluster, 'after_insert', set_perm)
+sa.event.listen(DruidCluster, 'after_update', set_perm)
+
+
+
 class DruidMetric(Model, BaseMetric):
 
     """ORM object referencing Druid metrics for a datasource"""
@@ -379,6 +384,7 @@ class DruidDatasource(Model, BaseDatasource):
 
     def get_perm(self):
         cluster = self.cluster
+        logging.info('looking for the {}'.format(self.cluster_name))
         if not cluster:
             cluster = db.session.query(DruidCluster).filter_by(
                 cluster_name=self.cluster_name).one()

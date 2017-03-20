@@ -101,6 +101,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
     params = Column(Text)
     description = Column(Text)
     cache_timeout = Column(Integer)
+    # TODO: remove perm as slice datasource may be switched.
     perm = Column(String(1000))
     owners = relationship("User", secondary=slice_user)
 
@@ -128,8 +129,7 @@ class Slice(Model, AuditMixinNullable, ImportMixin):
 
     @renders('datasource_name')
     def datasource_link(self):
-        datasource = self.datasource
-        if datasource:
+        if self.datasource:
             return self.datasource.link
 
     @property
@@ -714,7 +714,7 @@ class Database(Model, AuditMixinNullable):
         return '/superset/sql/{}/'.format(self.id)
 
     def get_perm(self):
-        return self.unique_name
+        return '{}.{}'.format(self.type, self.unique_name)
 
 sqla.event.listen(Database, 'after_insert', set_perm)
 sqla.event.listen(Database, 'after_update', set_perm)

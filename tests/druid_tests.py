@@ -98,6 +98,15 @@ class DruidTests(SupersetTestCase):
             metadata_last_refreshed=datetime.now())
 
         db.session.add(cluster)
+        db.session.commit()
+
+        druid_datasource = DruidDatasource(
+            datasource_name='druid_test',
+            cluster_name='test_cluster'
+        )
+        db.session.add(druid_datasource)
+        db.session.commit()
+
         cluster.get_datasources = Mock(return_value=['druid_test'])
         cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()

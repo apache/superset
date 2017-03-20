@@ -32,8 +32,10 @@ class ConnectorRegistry(object):
         return datasources
 
     @classmethod
-    def get_datasource_by_name(cls, session, datasource_type, datasource_name,
-                               schema, database_name):
+    def get_datasources_by_name(
+            cls, session, datasource_type, datasource_name, schema,
+            database_name
+    ):
         datasource_class = ConnectorRegistry.sources[datasource_type]
         datasources = session.query(datasource_class).all()
 
@@ -41,7 +43,18 @@ class ConnectorRegistry(object):
         db_ds = [d for d in datasources if d.database and
                  d.database.name == database_name and
                  d.name == datasource_name and schema == schema]
-        return db_ds[0]
+        return db_ds
+
+
+    @classmethod
+    def get_datasource_by_name(
+            cls, session, datasource_type, datasource_name, schema,
+            database_name
+    ):
+        return cls.get_datasources_by_name(
+            session, datasource_type, datasource_name, schema,
+            database_name
+        )[0]
 
     @classmethod
     def query_datasources_by_permissions(cls, session, database, permissions):
