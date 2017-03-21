@@ -45,7 +45,6 @@ class BaseViz(object):
     is_timeseries = False
 
     def __init__(self, datasource, form_data, slice_=None):
-        self.orig_form_data = form_data
         if not datasource:
             raise Exception("Viz is missing a datasource")
         self.datasource = datasource
@@ -62,34 +61,6 @@ class BaseViz(object):
 
         self.status = None
         self.error_message = None
-
-    def get_filter_url(self):
-        """Returns the URL to retrieve column values used in the filter"""
-        data = self.orig_form_data.copy()
-        # Remove unchecked checkboxes because HTML is weird like that
-        ordered_data = MultiDict()
-        for key in sorted(data.keys()):
-            # if MultiDict is initialized with MD({key:[emptyarray]}),
-            # key is included in d.keys() but accessing it throws
-            try:
-                if data[key] is False:
-                    del data[key]
-                    continue
-            except IndexError:
-                pass
-
-            if isinstance(data, (MultiDict, ImmutableMultiDict)):
-                v = data.getlist(key)
-            else:
-                v = data.get(key)
-            if not isinstance(v, list):
-                v = [v]
-            for item in v:
-                ordered_data.add(key, item)
-        href = Href(
-            '/superset/filter/{self.datasource.type}/'
-            '{self.datasource.id}/'.format(**locals()))
-        return href(ordered_data)
 
     def get_df(self, query_obj=None):
         """Returns a pandas dataframe based on the query object"""
@@ -277,7 +248,6 @@ class BaseViz(object):
                 'cache_timeout': cache_timeout,
                 'data': data,
                 'error': self.error_message,
-                'filter_endpoint': self.filter_endpoint,
                 'form_data': self.form_data,
                 'query': self.query,
                 'status': self.status,
@@ -312,7 +282,6 @@ class BaseViz(object):
         """This is the data object serialized to the js layer"""
         content = {
             'form_data': self.form_data,
-            'filter_endpoint': self.filter_endpoint,
             'token': self.token,
             'viz_name': self.viz_type,
             'filter_select_enabled': self.datasource.filter_select_enabled,
@@ -324,39 +293,8 @@ class BaseViz(object):
         include_index = not isinstance(df.index, pd.RangeIndex)
         return df.to_csv(index=include_index, encoding="utf-8")
 
-    def get_values_for_column(self, column):
-        """
-        Retrieves values for a column to be used by the filter dropdown.
-
-        :param column: column name
-        :return: JSON containing the some values for a column
-        """
-        form_data = self.form_data
-
-        since = form_data.get("since", "1 year ago")
-        from_dttm = utils.parse_human_datetime(since)
-        now = datetime.now()
-        if from_dttm > now:
-            from_dttm = now - (from_dttm - now)
-        until = form_data.get("until", "now")
-        to_dttm = utils.parse_human_datetime(until)
-        if from_dttm > to_dttm:
-            raise Exception("From date cannot be larger than to date")
-
-        kwargs = dict(
-            column_name=column,
-            from_dttm=from_dttm,
-            to_dttm=to_dttm,
-        )
-        df = self.datasource.values_for_column(**kwargs)
-        return df[column].to_json()
-
     def get_data(self, df):
         return []
-
-    @property
-    def filter_endpoint(self):
-        return self.get_filter_url()
 
     @property
     def json_data(self):

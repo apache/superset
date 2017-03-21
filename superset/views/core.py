@@ -1128,33 +1128,17 @@ class Superset(BaseSupersetView):
         :return:
         """
         # TODO: Cache endpoint by user, datasource and column
-        error_redirect = '/slicemodelview/list/'
         datasource_class = ConnectorRegistry.sources[datasource_type]
-
         datasource = db.session.query(
             datasource_class).filter_by(id=datasource_id).first()
 
         if not datasource:
-            flash(DATASOURCE_MISSING_ERR, "alert")
             return json_error_response(DATASOURCE_MISSING_ERR)
         if not self.datasource_access(datasource):
-            flash(get_datasource_access_error_msg(datasource.name), "danger")
             return json_error_response(DATASOURCE_ACCESS_ERR)
 
-        viz_type = request.args.get("viz_type")
-        if not viz_type and datasource.default_endpoint:
-            return redirect(datasource.default_endpoint)
-        if not viz_type:
-            viz_type = "table"
-        try:
-            obj = viz.viz_types[viz_type](
-                datasource,
-                form_data=request.args,
-                slice_=None)
-        except Exception as e:
-            flash(str(e), "danger")
-            return redirect(error_redirect)
-        return json_success(obj.get_values_for_column(column))
+        payload = json.dumps(datasource.values_for_column(column))
+        return json_success(payload)
 
     def save_or_overwrite_slice(
             self, args, slc, slice_add_perm, slice_overwrite_perm,

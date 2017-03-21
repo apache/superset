@@ -326,6 +326,7 @@ class DruidDatasource(Model, BaseDatasource):
     is_hidden = Column(Boolean, default=False)
     filter_select_enabled = Column(Boolean, default=False)
     description = Column(Text)
+    fetch_values_from = Column(String(100))
     default_endpoint = Column(Text)
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
@@ -696,18 +697,18 @@ class DruidDatasource(Model, BaseDatasource):
 
     def values_for_column(self,
                           column_name,
-                          from_dttm,
-                          to_dttm,
-                          limit=500):
+                          limit=10000):
         """Retrieve some values for the given column"""
         # TODO: Use Lexicographic TopNMetricSpec once supported by PyDruid
-        from_dttm = from_dttm.replace(tzinfo=DRUID_TZ)
-        to_dttm = to_dttm.replace(tzinfo=DRUID_TZ)
+        if self.fetch_values_from:
+            from_dttm = utils.parse_human_datetime(self.fetch_values_from)
+        else:
+            from_dttm = datetime(1970, 1, 1)
 
         qry = dict(
             datasource=self.datasource_name,
             granularity="all",
-            intervals=from_dttm.isoformat() + '/' + to_dttm.isoformat(),
+            intervals=from_dttm.isoformat() + '/' + datetime.now().isoformat(),
             aggregations=dict(count=count("count")),
             dimension=column_name,
             metric="count",
@@ -718,10 +719,7 @@ class DruidDatasource(Model, BaseDatasource):
         client.topn(**qry)
         df = client.export_pandas()
 
-        if df is None or df.size == 0:
-            raise Exception(_("No data was returned."))
-
-        return df
+        return [row[0] for row in df.to_records(index=False)]
 
     def get_query_str(  # noqa / druid
             self, client, qry_start_dttm,
@@ -1015,6 +1013,14 @@ class DruidDatasource(Model, BaseDatasource):
                     cond = ~cond
             elif op == 'regex':
                 cond = Filter(type="regex", pattern=eq, dimension=col)
+            elif op == '>=':
+                cond = Dimension(col) >= eq
+            elif op == '<=':
+                cond = Dimension(col) <= eq
+            elif op == '>':
+                cond = Dimension(col) > eq
+            elif op == '<':
+                cond = Dimension(col) < eq
             if filters:
                 filters = Filter(type="and", fields=[
                     cond,
