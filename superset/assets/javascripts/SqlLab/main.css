@@ -238,6 +238,32 @@ div.tablePopover:hover {
     padding-top: 3px;
 }
 
+.table-fixed-header {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+}
+
+.table-fixed-header thead {
+  display: block;
+  width: 100%;
+  overflow: auto;
+  border-bottom: 1px solid #ccc;
+}
+.table-fixed-header tbody {
+  display: block;
+  width: 100%;
+  overflow: auto;
+}
+.table-fixed-header th, .table-fixed-header td {
+  padding: .5em 1em;
+  text-align: left;
+  vertical-align: top;
+  border-left: 1px solid #ccc;
+}
+
 .ace_editor {
   border: 1px solid #ccc;
   margin: 0px 0px 10px 0px;
@@ -293,4 +319,168 @@ a.Link {
 }
 .tooltip-inner {
     max-width: 500px;
+}
+
+
+
+
+
+.ResultSet {
+    overflow: auto;
+}
+
+
+/* Collection default theme */
+
+.ReactVirtualized__Collection {
+}
+
+.ReactVirtualized__Collection__innerScrollContainer {
+}
+
+/* Grid default theme */
+
+.ReactVirtualized__Grid {
+}
+
+.ReactVirtualized__Grid__innerScrollContainer {
+}
+
+/* Table default theme */
+
+.ReactVirtualized__Table {
+}
+
+.ReactVirtualized__Table__Grid {
+}
+
+.ReactVirtualized__Table__headerRow {
+  font-weight: 700;
+  text-transform: uppercase;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.ReactVirtualized__Table__row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.ReactVirtualized__Table__headerTruncatedText {
+  display: inline-block;
+  max-width: 100%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.ReactVirtualized__Table__headerColumn,
+.ReactVirtualized__Table__rowColumn {
+  margin-right: 10px;
+  min-width: 0px;
+}
+.ReactVirtualized__Table__rowColumn {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ReactVirtualized__Table__headerColumn:first-of-type,
+.ReactVirtualized__Table__rowColumn:first-of-type {
+  margin-left: 10px;
+}
+.ReactVirtualized__Table__sortableHeaderColumn {
+  cursor: pointer;
+}
+
+.ReactVirtualized__Table__sortableHeaderIconContainer {
+  display: flex;
+  align-items: center;
+}
+.ReactVirtualized__Table__sortableHeaderIcon {
+  flex: 0 0 24px;
+  height: 1em;
+  width: 1em;
+  fill: currentColor;
+}
+
+/* List default theme */
+
+.ReactVirtualized__List {
+}
+
+
+
+
+
+
+.GridRow {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: row;
+}
+.GridColumn {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+.LeftSideGridContainer {
+  flex: 0 0 50px;
+}
+
+.BodyGrid {
+  width: 100%;
+  border: 1px solid #e0e0e0;
+}
+
+.evenRow,
+.oddRow {
+  border-bottom: 1px solid #e0e0e0;
+}
+.oddRow {
+  background-color: #fafafa;
+}
+
+.cell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0.5em 1em;
+}
+.cell {
+  border-right: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.uniformSizeCell {
+  padding: 0.5rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.tableRow {
+  border-bottom: 1px solid #eee;
+}
+.tableColumn {
+  padding: 5px 15px 5px 0;
+}
+
+.Tab {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 6px;
+  outline: none;
+  background: #eee;
+  margin: 4px;
+  cursor: pointer;
+}
+
+.ActiveTab {
+  background-color: #4db6ac;
+  border: 1px solid #3ca59b;
+  color: rgba(255, 255, 255, 0.8);
+  cursor: default;
 }

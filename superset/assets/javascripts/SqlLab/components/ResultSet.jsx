@@ -1,10 +1,10 @@
 import React from 'react';
 import { Alert, Button, ButtonGroup, ProgressBar } from 'react-bootstrap';
-import { Table } from 'reactable';
 import shortid from 'shortid';
 
 import VisualizeModal from './VisualizeModal';
 import HighlightedSql from './HighlightedSql';
+import FilterTable from '../../components/FilterTable';
 
 const propTypes = {
   actions: React.PropTypes.object,
@@ -34,6 +34,7 @@ class ResultSet extends React.PureComponent {
       searchText: '',
       showModal: false,
       data: [],
+      resultSetHeight: '0',
     };
   }
   componentWillReceiveProps(nextProps) {
@@ -49,6 +50,22 @@ class ResultSet extends React.PureComponent {
     if (nextProps.query.resultsKey
       && nextProps.query.resultsKey !== this.props.query.resultsKey) {
       this.fetchResults(nextProps.query);
+    }
+  }
+  componentWillMount() {
+    // hack to get height of result set table so it can be fixed and scroll in place
+    if (this.state.resultSetHeight === '0') {
+      // calculate result set table height
+      const sqlEditorHeight = 192; //document.getElementById('brace-editor').getBoundingClientRect().height;
+      const sqlToolbar = 30; //document.getElementById('js-sql-toolbar').getBoundingClientRect().height;
+      const tabsHeight = 88; //document.getElementsByClassName('nav-tabs')[0].getBoundingClientRect().height * 2;
+      const headerHeight = 59; //document.getElementsByTagName('header')[0].getBoundingClientRect().height;
+
+      // this needs to be hardcoded since this element is in this component and has not mounted yet
+      const resultsControlsHeight = 30;
+
+      const sum = sqlEditorHeight + sqlToolbar + tabsHeight + resultsControlsHeight + headerHeight;
+      this.setState({ resultSetHeight: window.innerHeight - sum - 95});
     }
   }
   getControls() {
@@ -129,6 +146,7 @@ class ResultSet extends React.PureComponent {
   reFetchQueryResults(query) {
     this.props.actions.reFetchQueryResults(query);
   }
+
   render() {
     const query = this.props.query;
     const results = query.results;
@@ -183,6 +201,7 @@ class ResultSet extends React.PureComponent {
         </div>);
     } else if (query.state === 'success') {
       if (results && data && data.length > 0) {
+        console.log('results.columns', results.columns)
         return (
           <div>
             <VisualizeModal
@@ -192,26 +211,11 @@ class ResultSet extends React.PureComponent {
             />
             {this.getControls.bind(this)()}
             {sql}
-            <div className="ResultSet">
-              <Table
-                data={data.map(function (row) {
-                  const newRow = {};
-                  for (const k in row) {
-                    const val = row[k];
-                    if (typeof(val) === 'string') {
-                      newRow[k] = val;
-                    } else {
-                      newRow[k] = JSON.stringify(val);
-                    }
-                  }
-                  return newRow;
-                })}
-                columns={results.columns.map((col) => col.name)}
-                sortable
-                className="table table-condensed table-bordered"
-                filterBy={this.state.searchText}
-                filterable={results.columns.map((c) => c.name)}
-                hideFilterInput
+            <div className="ResultSet" ref={(ref) => { this.resultSetDiv = ref; }}>
+              <FilterTable
+                data={data}
+                height={this.state.resultSetHeight}
+                columns={results.columns}
               />
             </div>
           </div>
