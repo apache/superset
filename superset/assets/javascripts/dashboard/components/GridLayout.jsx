@@ -98,7 +98,7 @@ class GridLayout extends React.Component {
             id={'slice_' + slice.slice_id}
             key={slice.slice_id}
             data-slice-id={slice.slice_id}
-            className={`widget ${slice.form_data.viz_type}`}
+            className="widget"
           >
             <SliceCell
               slice={slice}
