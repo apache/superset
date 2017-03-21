@@ -1,0 +1,23 @@
+{% extends "superset/basic.html" %}
+
+{% block title %}
+  {% if slc %}
+    [slice] {{ slc.slice_name }}
+  {% else %}
+    [explore] {{ table_name }}
+  {% endif %}
+{% endblock %}
+
+{% block body %}
+  <div
+    id="js-explore-view-container"
+    data-bootstrap="{{ bootstrap_data }}"
+  ></div>
+{% endblock %}
+
+{% block tail_js %}
+  {{ super() }}
+  {% with filename="explorev2" %}
+    {% include "superset/partials/_script_tag.html" %}
+  {% endwith %}
+{% endblock %}

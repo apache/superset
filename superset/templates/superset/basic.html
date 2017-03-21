@@ -1,0 +1,63 @@
+<html>
+  <head>
+    <title>
+      {% block title %}
+        {% if title %}
+          {{ title }}
+        {% elif appbuilder and appbuilder.app_name %}
+          {{ appbuilder.app_name }}
+        {% endif %}
+      {% endblock %}
+    </title>
+    {% block head_meta %}{% endblock %}
+    {% block head_css %}
+      <link rel="stylesheet" type="text/css" href="/static/assets/node_modules/font-awesome/css/font-awesome.min.css" />
+      <link rel="stylesheet" type="text/css" href="/static/assets/stylesheets/superset.css" />
+      <link rel="stylesheet" type="text/css" href="/static/appbuilder/css/flags/flags16.css" />
+      <link rel="icon" type="image/png" href="/static/assets/images/favicon.png">
+    {% endblock %}
+    {% block head_js %}
+      {% with filename="css-theme" %}
+        {% include "superset/partials/_script_tag.html" %}
+      {% endwith %}
+    {% endblock %}
+  </head>
+
+  <body>
+    {% block navbar %}
+      {% if not standalone_mode %}
+        <header class="top" role="header">
+          {% include 'appbuilder/navbar.html' %}
+        </header>
+      {% endif %}
+    {% endblock %}
+
+    {% block body %}
+      {% include 'superset/flash_wrapper.html' %}
+      <div id="app" data-bootstrap="{{ bootstrap_data }}" >
+        <img src="/static/assets/images/loading.gif" style="width: 50px; margin: 10px;">
+      </div>
+    {% endblock %}
+
+    <!-- Modal for misc messages / alerts  -->
+    <div class="misc-modal modal fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title"></h4>
+          </div>
+          <div class="modal-body">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% block tail_js %}
+    {% endblock %}
+  </body>
+</html>

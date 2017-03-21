@@ -1,0 +1,1847 @@
+# Italian translations for Superset.
+# Copyright (C) 2016 ORGANIZATION
+# This file is distributed under the same license as the Superset project.
+# Maxime Beauchemin <maximebeauchemin @ gmail.com>, 2016.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PROJECT VERSION\n"
+"Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
+"POT-Creation-Date: 2016-07-01 17:17+0800\n"
+"PO-Revision-Date: 2016-05-19 16:43+0200\n"
+"Last-Translator: Riccardo Magliocchetti "
+"<riccardo.magliocchetti@gmail.com>\n"
+"Language: it\n"
+"Language-Team: it <LL@li.org>\n"
+"Plural-Forms: nplurals=2; plural=(n != 1)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.3.4\n"
+
+#: superset/forms.py:140
+msgid "Viz"
+msgstr ""
+
+#: superset/forms.py:143
+msgid "The type of visualization to display"
+msgstr ""
+
+#: superset/forms.py:146
+msgid "Metrics"
+msgstr ""
+
+#: superset/forms.py:149 superset/forms.py:154
+msgid "One or many metrics to display"
+msgstr ""
+
+#: superset/forms.py:152
+msgid "Ordering"
+msgstr ""
+
+#: superset/forms.py:157 superset/views.py:294 superset/views.py:334
+msgid "Metric"
+msgstr ""
+
+#: superset/forms.py:160
+msgid "Choose the metric"
+msgstr ""
+
+#: superset/forms.py:163
+msgid "Chart Style"
+msgstr ""
+
+#: superset/forms.py:165
+msgid "stack"
+msgstr ""
+
+#: superset/forms.py:166
+msgid "stream"
+msgstr ""
+
+#: superset/forms.py:167
+msgid "expand"
+msgstr ""
+
+#: superset/forms.py:173
+msgid "Color Scheme"
+msgstr ""
+
+#: superset/forms.py:175
+msgid "fire"
+msgstr ""
+
+#: superset/forms.py:176
+msgid "blue_white_yellow"
+msgstr ""
+
+#: superset/forms.py:177
+msgid "white_black"
+msgstr ""
+
+#: superset/forms.py:178
+msgid "black_white"
+msgstr ""
+
+#: superset/forms.py:184
+msgid "Normalize Across"
+msgstr ""
+
+#: superset/forms.py:186
+msgid "heatmap"
+msgstr ""
+
+#: superset/forms.py:187
+msgid "x"
+msgstr ""
+
+#: superset/forms.py:188
+msgid "y"
+msgstr ""
+
+#: superset/forms.py:191
+msgid ""
+"Color will be rendered based on a ratio of the cell against the sum of "
+"across this criteria"
+msgstr ""
+
+#: superset/forms.py:197
+msgid "Color Scale"
+msgstr ""
+
+#: superset/forms.py:199
+msgid "series"
+msgstr ""
+
+#: superset/forms.py:200
+msgid "overall"
+msgstr ""
+
+#: superset/forms.py:201
+msgid "change"
+msgstr ""
+
+#: superset/forms.py:204
+msgid "Defines how the color are attributed."
+msgstr ""
+
+#: superset/forms.py:207
+msgid "Rendering"
+msgstr ""
+
+#: superset/forms.py:209
+msgid "pixelated (Sharp)"
+msgstr ""
+
+#: superset/forms.py:210
+msgid "auto (Smooth)"
+msgstr ""
+
+#: superset/forms.py:213
+msgid ""
+"image-rendering CSS attribute of the canvas object that defines how the "
+"browser scales up the image"
+msgstr ""
+
+#: superset/forms.py:218
+msgid "XScale Interval"
+msgstr ""
+
+#: superset/forms.py:221
+msgid "Number of step to take between ticks when printing the x scale"
+msgstr ""
+
+#: superset/forms.py:226
+msgid "YScale Interval"
+msgstr ""
+
+#: superset/forms.py:229
+msgid "Number of step to take between ticks when printing the y scale"
+msgstr ""
+
+#: superset/forms.py:234
+msgid "Stacked Bars"
+msgstr ""
+
+#: superset/forms.py:239
+msgid "Extra Controls"
+msgstr ""
+
+#: superset/forms.py:241
+msgid ""
+"Whether to show extra controls or not. Extra controls include things like"
+" making mulitBar charts stacked or side by side."
+msgstr ""
+
+#: superset/forms.py:247
+msgid "Reduce X ticks"
+msgstr ""
+
+#: superset/forms.py:249
+msgid ""
+"Reduces the number of X axis ticks to be rendered. If true, the x axis "
+"wont overflow and labels may be missing. If false, a minimum width will "
+"be applied to columns and the width may overflow into an horizontal "
+"scroll."
+msgstr ""
+
+#: superset/forms.py:257
+msgid "Include Series"
+msgstr ""
+
+#: superset/forms.py:259
+msgid "Include series name as an axis"
+msgstr ""
+
+#: superset/forms.py:262
+msgid "Color Metric"
+msgstr ""
+
+#: superset/forms.py:265
+msgid "A metric to use for color"
+msgstr ""
+
+#: superset/forms.py:268
+msgid "Country Field Type"
+msgstr ""
+
+#: superset/forms.py:271
+msgid "Full name"
+msgstr ""
+
+#: superset/forms.py:272
+msgid "code International Olympic Committee (cioc)"
+msgstr ""
+
+#: superset/forms.py:273
+msgid "code ISO 3166-1 alpha-2 (cca2)"
+msgstr ""
+
+#: superset/forms.py:274
+msgid "code ISO 3166-1 alpha-3 (cca3)"
+msgstr ""
+
+#: superset/forms.py:276
+msgid ""
+"The country code standard that Superset should expect to find in the "
+"[country] column"
+msgstr ""
+
+#: superset/forms.py:281
+msgid "Group by"
+msgstr ""
+
+#: superset/forms.py:283
+msgid "One or many fields to group by"
+msgstr ""
+
+#: superset/forms.py:286 superset/forms.py:291
+msgid "Columns"
+msgstr ""
+
+#: superset/forms.py:288
+msgid "One or many fields to pivot as columns"
+msgstr ""
+
+#: superset/forms.py:293 superset/forms.py:298 superset/forms.py:303
+msgid "Columns to display"
+msgstr ""
+
+#: superset/forms.py:296
+msgid "X"
+msgstr ""
+
+#: superset/forms.py:301
+msgid "Y"
+msgstr ""
+
+#: superset/forms.py:306
+msgid "Origin"
+msgstr ""
+
+#: superset/forms.py:308
+msgid "default"
+msgstr ""
+
+#: superset/forms.py:309 superset/forms.py:467
+msgid "now"
+msgstr ""
+
+#: superset/forms.py:312
+msgid ""
+"Defines the origin where time buckets start, accepts natural dates as in "
+"'now', 'sunday' or '1970-01-01'"
+msgstr ""
+
+#: superset/forms.py:317
+msgid "Bottom Margin"
+msgstr ""
+
+#: superset/forms.py:320
+msgid "Bottom marging, in pixels, allowing for more room for axis labels"
+msgstr ""
+
+#: superset/forms.py:325
+msgid "Time Granularity"
+msgstr ""
+
+#: superset/forms.py:328
+msgid "all"
+msgstr ""
+
+#: superset/forms.py:329
+msgid "5 seconds"
+msgstr ""
+
+#: superset/forms.py:330
+msgid "30 seconds"
+msgstr ""
+
+#: superset/forms.py:331
+msgid "1 minute"
+msgstr ""
+
+#: superset/forms.py:332
+msgid "5 minutes"
+msgstr ""
+
+#: superset/forms.py:333
+msgid "1 hour"
+msgstr ""
+
+#: superset/forms.py:334
+msgid "6 hour"
+msgstr ""
+
+#: superset/forms.py:335
+msgid "1 day"
+msgstr ""
+
+#: superset/forms.py:336
+msgid "7 days"
+msgstr ""
+
+#: superset/forms.py:338
+msgid ""
+"The time granularity for the visualization. Note that you can type and "
+"use simple natural language as in '10 seconds', '1 day' or '56 weeks'"
+msgstr ""
+
+#: superset/forms.py:344
+msgid "Domain"
+msgstr ""
+
+#: superset/forms.py:347 superset/forms.py:361 superset/models.py:417
+#: superset/models.py:435
+msgid "hour"
+msgstr ""
+
+#: superset/forms.py:348 superset/forms.py:362 superset/models.py:419
+#: superset/models.py:427 superset/models.py:436
+msgid "day"
+msgstr ""
+
+#: superset/forms.py:349 superset/forms.py:363 superset/models.py:407
+#: superset/models.py:420 superset/models.py:428 superset/models.py:437
+msgid "week"
+msgstr ""
+
+#: superset/forms.py:350 superset/forms.py:364 superset/models.py:408
+#: superset/models.py:422 superset/models.py:429 superset/models.py:438
+msgid "month"
+msgstr ""
+
+#: superset/forms.py:351 superset/models.py:439
+msgid "year"
+msgstr ""
+
+#: superset/forms.py:353
+msgid "The time unit used for the grouping of blocks"
+msgstr ""
+
+#: superset/forms.py:357
+msgid "Subdomain"
+msgstr ""
+
+#: superset/forms.py:360 superset/forms.py:701
+msgid "min"
+msgstr ""
+
+#: superset/forms.py:366
+msgid ""
+"The time unit for each block. Should be a smaller unit than "
+"domain_granularity. Should be larger or equal to Time Grain"
+msgstr ""
+
+#: superset/forms.py:371
+msgid "Link Length"
+msgstr ""
+
+#: superset/forms.py:383
+msgid "Link length in the force layout"
+msgstr ""
+
+#: superset/forms.py:386
+msgid "Charge"
+msgstr ""
+
+#: superset/forms.py:400
+msgid "Charge in the force layout"
+msgstr ""
+
+#: superset/forms.py:403 superset/models.py:406 superset/models.py:416
+#: superset/models.py:426 superset/models.py:432
+msgid "Time Column"
+msgstr ""
+
+#: superset/forms.py:406
+msgid ""
+"The time column for the visualization. Note that you can define arbitrary"
+" expression that return a DATETIME column in the table editor. Also note "
+"that the filter below is applied against this column or expression"
+msgstr ""
+
+#: superset/forms.py:414
+msgid "Resample Rule"
+msgstr ""
+
+#: superset/forms.py:417
+msgid "1T"
+msgstr ""
+
+#: superset/forms.py:418
+msgid "1H"
+msgstr ""
+
+#: superset/forms.py:419
+msgid "1D"
+msgstr ""
+
+#: superset/forms.py:420
+msgid "7D"
+msgstr ""
+
+#: superset/forms.py:421
+msgid "1M"
+msgstr ""
+
+#: superset/forms.py:422
+msgid "1AS"
+msgstr ""
+
+#: superset/forms.py:424
+msgid "Pandas resample rule"
+msgstr ""
+
+#: superset/forms.py:427
+msgid "Resample How"
+msgstr ""
+
+#: superset/forms.py:431 superset/forms.py:700
+msgid "mean"
+msgstr ""
+
+#: superset/forms.py:432 superset/forms.py:699
+msgid "sum"
+msgstr ""
+
+#: superset/forms.py:433 superset/forms.py:703
+msgid "median"
+msgstr ""
+
+#: superset/forms.py:435
+msgid "Pandas resample how"
+msgstr ""
+
+#: superset/forms.py:438
+msgid "Resample Fill Method"
+msgstr ""
+
+#: superset/forms.py:442
+msgid "ffill"
+msgstr ""
+
+#: superset/forms.py:443
+msgid "bfill"
+msgstr ""
+
+#: superset/forms.py:445
+msgid "Pandas resample fill method"
+msgstr ""
+
+#: superset/forms.py:448
+msgid "Since"
+msgstr ""
+
+#: superset/forms.py:451
+msgid "1 hour ago"
+msgstr ""
+
+#: superset/forms.py:452
+msgid "12 hours ago"
+msgstr ""
+
+#: superset/forms.py:453 superset/forms.py:468
+msgid "1 day ago"
+msgstr ""
+
+#: superset/forms.py:454 superset/forms.py:469
+msgid "7 days ago"
+msgstr ""
+
+#: superset/forms.py:455 superset/forms.py:470
+msgid "28 days ago"
+msgstr ""
+
+#: superset/forms.py:456 superset/forms.py:471
+msgid "90 days ago"
+msgstr ""
+
+#: superset/forms.py:457 superset/forms.py:472
+msgid "1 year ago"
+msgstr ""
+
+#: superset/forms.py:459
+msgid ""
+"Timestamp from filter. This supports free form typing and natural "
+"language as in '1 day ago', '28 days' or '3 years'"
+msgstr ""
+
+#: superset/forms.py:464
+msgid "Until"
+msgstr ""
+
+#: superset/forms.py:476
+msgid "Max Bubble Size"
+msgstr ""
+
+#: superset/forms.py:489
+msgid "Whisker/outlier options"
+msgstr ""
+
+#: superset/forms.py:491
+msgid "Determines how whiskers and outliers are calculated."
+msgstr ""
+
+#: superset/forms.py:494
+msgid "Tukey"
+msgstr ""
+
+#: superset/forms.py:495
+msgid "Min/max (no outliers)"
+msgstr ""
+
+#: superset/forms.py:496
+msgid "2/98 percentiles"
+msgstr ""
+
+#: superset/forms.py:497
+msgid "9/91 percentiles"
+msgstr ""
+
+#: superset/forms.py:501
+msgid "Ratio"
+msgstr ""
+
+#: superset/forms.py:503
+msgid "Target aspect ratio for treemap tiles."
+msgstr ""
+
+#: superset/forms.py:506 superset/viz.py:856 superset/viz.py:905
+msgid "Number format"
+msgstr ""
+
+#: superset/forms.py:516
+msgid ""
+"D3 format syntax for numbers https: //github.com/mbostock/\n"
+"d3/wiki/Formatting"
+msgstr ""
+
+#: superset/forms.py:521
+msgid "Row limit"
+msgstr ""
+
+#: superset/forms.py:527
+msgid "Series limit"
+msgstr ""
+
+#: superset/forms.py:530
+msgid "Limits the number of time series that get displayed"
+msgstr ""
+
+#: superset/forms.py:534
+msgid "Rolling"
+msgstr ""
+
+#: superset/forms.py:537
+msgid ""
+"Defines a rolling window function to apply, works along with the "
+"[Periods] text box"
+msgstr ""
+
+#: superset/forms.py:542
+msgid "Periods"
+msgstr ""
+
+#: superset/forms.py:544
+msgid ""
+"Defines the size of the rolling window function, relative to the time "
+"granularity selected"
+msgstr ""
+
+#: superset/forms.py:549 superset/viz.py:1192
+msgid "Series"
+msgstr ""
+
+#: superset/forms.py:552
+msgid ""
+"Defines the grouping of entities. Each serie is shown as a specific color"
+" on the chart and has a legend toggle"
+msgstr ""
+
+#: superset/forms.py:558
+msgid "Entity"
+msgstr ""
+
+#: superset/forms.py:561
+msgid "This define the element to be plotted on the chart"
+msgstr ""
+
+#: superset/forms.py:564
+msgid "X Axis"
+msgstr ""
+
+#: superset/forms.py:567
+msgid "Metric assigned to the [X] axis"
+msgstr ""
+
+#: superset/forms.py:570
+msgid "Y Axis"
+msgstr ""
+
+#: superset/forms.py:573
+msgid "Metric assigned to the [Y] axis"
+msgstr ""
+
+#: superset/forms.py:576
+msgid "Bubble Size"
+msgstr ""
+
+#: superset/forms.py:581
+msgid "URL"
+msgstr ""
+
+#: superset/forms.py:582
+msgid ""
+"The URL, this field is templated, so you can integrate {{ width }} and/or"
+" {{ height }} in your URL string."
+msgstr ""
+
+#: superset/forms.py:589
+msgid "X Axis Label"
+msgstr ""
+
+#: superset/forms.py:593
+msgid "Y Axis Label"
+msgstr ""
+
+#: superset/forms.py:597
+msgid "Custom WHERE clause"
+msgstr ""
+
+#: superset/forms.py:599
+msgid ""
+"The text in this box gets included in your query's WHERE clause, as an "
+"AND to other criteria. You can include complex expression, parenthesis "
+"and anything else supported by the backend it is directed towards."
+msgstr ""
+
+#: superset/forms.py:606
+msgid "Custom HAVING clause"
+msgstr ""
+
+#: superset/forms.py:608
+msgid ""
+"The text in this box gets included in your query's HAVING clause, as an "
+"AND to other criteria. You can include complex expression, parenthesis "
+"and anything else supported by the backend it is directed towards."
+msgstr ""
+
+#: superset/forms.py:615
+msgid "Comparison Period Lag"
+msgstr ""
+
+#: superset/forms.py:616
+msgid "Based on granularity, number of time periods to compare against"
+msgstr ""
+
+#: superset/forms.py:621
+msgid "Comparison suffix"
+msgstr ""
+
+#: superset/forms.py:622
+msgid "Suffix to apply after the percentage display"
+msgstr ""
+
+#: superset/forms.py:625
+msgid "Table Timestamp Format"
+msgstr ""
+
+#: superset/forms.py:628
+msgid "Timestamp Format"
+msgstr ""
+
+#: superset/forms.py:631
+msgid "Series Height"
+msgstr ""
+
+#: superset/forms.py:634
+msgid "Pixel height of each series"
+msgstr ""
+
+#: superset/forms.py:637
+msgid "X axis format"
+msgstr ""
+
+#: superset/forms.py:640 superset/forms.py:655
+msgid ""
+"D3 format syntax for y axis https: //github.com/mbostock/\n"
+"d3/wiki/Formatting"
+msgstr ""
+
+#: superset/forms.py:645
+msgid "Y axis format"
+msgstr ""
+
+#: superset/forms.py:660
+msgid "Markup Type"
+msgstr ""
+
+#: superset/forms.py:662
+msgid "markdown"
+msgstr ""
+
+#: superset/forms.py:663
+msgid "html"
+msgstr ""
+
+#: superset/forms.py:666
+msgid "Pick your favorite markup language"
+msgstr ""
+
+#: superset/forms.py:669
+msgid "Rotation"
+msgstr ""
+
+#: superset/forms.py:671
+msgid "random"
+msgstr ""
+
+#: superset/forms.py:672
+msgid "flat"
+msgstr ""
+
+#: superset/forms.py:673
+msgid "square"
+msgstr ""
+
+#: superset/forms.py:676
+msgid "Rotation to apply to words in the cloud"
+msgstr ""
+
+#: superset/forms.py:679
+msgid "Line Style"
+msgstr ""
+
+#: superset/forms.py:681
+msgid "linear"
+msgstr ""
+
+#: superset/forms.py:682
+msgid "basis"
+msgstr ""
+
+#: superset/forms.py:683
+msgid "cardinal"
+msgstr ""
+
+#: superset/forms.py:684
+msgid "monotone"
+msgstr ""
+
+#: superset/forms.py:685
+msgid "step-before"
+msgstr ""
+
+#: superset/forms.py:686
+msgid "step-after"
+msgstr ""
+
+#: superset/forms.py:689
+msgid "Line interpolation as defined by d3.js"
+msgstr ""
+
+#: superset/forms.py:692
+msgid "Code"
+msgstr ""
+
+#: superset/forms.py:693
+msgid "Put your code here"
+msgstr ""
+
+#: superset/forms.py:697
+msgid "Aggregation function"
+msgstr ""
+
+#: superset/forms.py:702
+msgid "max"
+msgstr ""
+
+#: superset/forms.py:704
+msgid "stdev"
+msgstr ""
+
+#: superset/forms.py:705
+msgid "var"
+msgstr ""
+
+#: superset/forms.py:708
+msgid ""
+"Aggregate function to apply when pivoting and computing the total rows "
+"and columns"
+msgstr ""
+
+#: superset/forms.py:713
+msgid "Font Size From"
+msgstr ""
+
+#: superset/forms.py:715
+msgid "Font size for the smallest value in the list"
+msgstr ""
+
+#: superset/forms.py:718
+msgid "Font Size To"
+msgstr ""
+
+#: superset/forms.py:720
+msgid "Font size for the biggest value in the list"
+msgstr ""
+
+#: superset/forms.py:723
+msgid "Range Filter"
+msgstr ""
+
+#: superset/forms.py:725
+msgid "Whether to display the time range interactive selector"
+msgstr ""
+
+#: superset/forms.py:729
+msgid "Data Table"
+msgstr ""
+
+#: superset/forms.py:731
+msgid "Whether to display the interactive data table"
+msgstr ""
+
+#: superset/forms.py:734
+msgid "Search Box"
+msgstr ""
+
+#: superset/forms.py:736
+msgid "Whether to include a client side search box"
+msgstr ""
+
+#: superset/forms.py:740
+msgid "Show Bubbles"
+msgstr ""
+
+#: superset/forms.py:742
+msgid "Whether to display bubbles on top of countries"
+msgstr ""
+
+#: superset/forms.py:746
+msgid "Legend"
+msgstr ""
+
+#: superset/forms.py:748
+msgid "Whether to display the legend (toggles)"
+msgstr ""
+
+#: superset/forms.py:751
+msgid "X bounds"
+msgstr ""
+
+#: superset/forms.py:753
+msgid "Whether to display the min and max values of the X axis"
+msgstr ""
+
+#: superset/forms.py:757
+msgid "Rich Tooltip"
+msgstr ""
+
+#: superset/forms.py:759
+msgid "The rich tooltip shows a list of all series for that point in time"
+msgstr ""
+
+#: superset/forms.py:764
+msgid "Y Axis Zero"
+msgstr ""
+
+#: superset/forms.py:766
+msgid "Force the Y axis to start at 0 instead of the minimum value"
+msgstr ""
+
+#: superset/forms.py:771
+msgid "Y Log"
+msgstr ""
+
+#: superset/forms.py:773
+msgid "Use a log scale for the Y axis"
+msgstr ""
+
+#: superset/forms.py:776
+msgid "X Log"
+msgstr ""
+
+#: superset/forms.py:778
+msgid "Use a log scale for the X axis"
+msgstr ""
+
+#: superset/forms.py:781
+msgid "Donut"
+msgstr ""
+
+#: superset/forms.py:783
+msgid "Do you want a donut or a pie?"
+msgstr ""
+
+#: superset/forms.py:786
+msgid "Contribution"
+msgstr ""
+
+#: superset/forms.py:788
+msgid "Compute the contribution to the total"
+msgstr ""
+
+#: superset/forms.py:791
+msgid "Period Ratio"
+msgstr ""
+
+#: superset/forms.py:794
+msgid ""
+"[integer] Number of period to compare against, this is relative to the "
+"granularity selected"
+msgstr ""
+
+#: superset/forms.py:799
+msgid "Time Shift"
+msgstr ""
+
+#: superset/forms.py:801
+msgid ""
+"Overlay a timeseries from a relative time period. Expects relative time "
+"delta in natural language (example:  24 hours, 7 days, 56 weeks, 365 days"
+msgstr ""
+
+#: superset/forms.py:808
+msgid "Subheader"
+msgstr ""
+
+#: superset/forms.py:809
+msgid "Description text that shows up below your Big Number"
+msgstr ""
+
+#: superset/forms.py:816
+msgid ""
+"'count' is COUNT(*) if a group by is used. Numerical columns will be "
+"aggregated with the aggregator. Non-numerical columns will be used to "
+"label points. Leave empty to get a count of points in each cluster."
+msgstr ""
+
+#: superset/forms.py:832
+msgid "Base layer map style"
+msgstr ""
+
+#: superset/forms.py:835
+msgid "Clustering Radius"
+msgstr ""
+
+#: superset/forms.py:848
+msgid ""
+"The radius (in pixels) the algorithm uses to define a cluster. Choose 0 "
+"to turn off clustering, but beware that a large number of points (>1000) "
+"will cause lag."
+msgstr ""
+
+#: superset/forms.py:854
+msgid "Point Radius"
+msgstr ""
+
+#: superset/forms.py:857
+msgid ""
+"The radius of individual points (ones that are not in a cluster). Either "
+"a numerical column or 'Auto', which scales the point based on the largest"
+" cluster"
+msgstr ""
+
+#: superset/forms.py:863
+msgid "Point Radius Unit"
+msgstr ""
+
+#: superset/forms.py:870
+msgid "The unit of measure for the specified point radius"
+msgstr ""
+
+#: superset/forms.py:873
+msgid "Opacity"
+msgstr ""
+
+#: superset/forms.py:875
+msgid "Opacity of all clusters, points, and labels. Between 0 and 1."
+msgstr ""
+
+#: superset/forms.py:880
+msgid "Zoom"
+msgstr ""
+
+#: superset/forms.py:883
+msgid "Zoom level of the map"
+msgstr ""
+
+#: superset/forms.py:887
+msgid "Default latitude"
+msgstr ""
+
+#: superset/forms.py:889
+msgid "Latitude of default viewport"
+msgstr ""
+
+#: superset/forms.py:893
+msgid "Default longitude"
+msgstr ""
+
+#: superset/forms.py:895
+msgid "Longitude of default viewport"
+msgstr ""
+
+#: superset/forms.py:899
+msgid "Live render"
+msgstr ""
+
+#: superset/forms.py:901
+msgid "Points and clusters will update as viewport is being changed"
+msgstr ""
+
+#: superset/forms.py:905
+msgid "RGB Color"
+msgstr ""
+
+#: superset/forms.py:915
+msgid "The color for points and clusters in RGB"
+msgstr ""
+
+#: superset/forms.py:978
+msgid "SQL"
+msgstr ""
+
+#: superset/forms.py:980
+msgid "This section exposes ways to include snippets of SQL in your query"
+msgstr ""
+
+#: superset/forms.py:991
+msgid "Time Grain"
+msgstr ""
+
+#: superset/forms.py:994
+msgid ""
+"The time granularity for the visualization. This applies a date "
+"transformation to alter your time column and defines a new time "
+"granularity.The options here are defined on a per database engine basis "
+"in the Superset source code"
+msgstr ""
+
+#: superset/forms.py:1027 superset/forms.py:1031
+msgid "Filter 1"
+msgstr ""
+
+#: superset/forms.py:1036
+msgid "Super"
+msgstr ""
+
+#: superset/forms.py:1040
+msgid "Time"
+msgstr ""
+
+#: superset/forms.py:1045
+msgid "Time related form attributes"
+msgstr ""
+
+#: superset/models.py:409
+msgid "quarter"
+msgstr ""
+
+#: superset/models.py:410
+msgid "week_ending_saturday"
+msgstr ""
+
+#: superset/models.py:412
+msgid "week_start_sunday"
+msgstr ""
+
+#: superset/models.py:433
+msgid "second"
+msgstr ""
+
+#: superset/models.py:434
+msgid "minute"
+msgstr ""
+
+#: superset/models.py:620
+msgid ""
+"Datetime column not provided as part table configuration and is required "
+"by this type of chart"
+msgstr ""
+
+#: superset/models.py:1328
+msgid "No data was returned."
+msgstr ""
+
+#: superset/views.py:203
+msgid ""
+"Whether to make this column available as a [Time Granularity] option, "
+"column has to be DATETIME or DATETIME-like"
+msgstr ""
+
+#: superset/views.py:230 superset/views.py:259
+msgid "Column"
+msgstr ""
+
+#: superset/views.py:231 superset/views.py:296 superset/views.py:336
+msgid "Verbose Name"
+msgstr ""
+
+#: superset/views.py:232 superset/views.py:295 superset/views.py:335
+#: superset/views.py:537 superset/views.py:691
+msgid "Description"
+msgstr ""
+
+#: superset/views.py:233 superset/views.py:262
+msgid "Groupable"
+msgstr ""
+
+#: superset/views.py:234 superset/views.py:263
+msgid "Filterable"
+msgstr ""
+
+#: superset/views.py:235 superset/views.py:299 superset/views.py:433
+#: superset/views.py:543
+msgid "Table"
+msgstr ""
+
+#: superset/views.py:236 superset/views.py:264
+msgid "Count Distinct"
+msgstr ""
+
+#: superset/views.py:237 superset/views.py:265
+msgid "Sum"
+msgstr ""
+
+#: superset/views.py:238 superset/views.py:266
+msgid "Min"
+msgstr ""
+
+#: superset/views.py:239 superset/views.py:267
+msgid "Max"
+msgstr ""
+
+#: superset/views.py:240
+msgid "Expression"
+msgstr ""
+
+#: superset/views.py:241
+msgid "Is temporal"
+msgstr ""
+
+#: superset/views.py:242
+msgid "Datetime Format"
+msgstr ""
+
+#: superset/views.py:243
+msgid "Database Expression"
+msgstr ""
+
+#: superset/views.py:260 superset/views.py:297 superset/views.py:337
+#: superset/views.py:568
+msgid "Type"
+msgstr ""
+
+#: superset/views.py:261 superset/views.py:536
+msgid "Datasource"
+msgstr ""
+
+#: superset/views.py:286 superset/views.py:328
+msgid ""
+"Whether the access to this metric is restricted to certain roles. Only "
+"roles with the permission 'metric access on XXX (the name of this "
+"metric)' are allowed to access this metric"
+msgstr ""
+
+#: superset/views.py:298
+msgid "SQL Expression"
+msgstr ""
+
+#: superset/views.py:338 superset/views.py:656
+msgid "JSON"
+msgstr ""
+
+#: superset/views.py:339
+msgid "Druid Datasource"
+msgstr ""
+
+#: superset/views.py:378 superset/views.py:435
+msgid "Database"
+msgstr ""
+
+#: superset/views.py:379
+msgid "SQL link"
+msgstr ""
+
+#: superset/views.py:380 superset/views.py:534 superset/views.py:610
+msgid "Creator"
+msgstr ""
+
+#: superset/views.py:381 superset/views.py:436
+msgid "Last Changed"
+msgstr ""
+
+#: superset/views.py:382
+msgid "SQLAlchemy URI"
+msgstr ""
+
+#: superset/views.py:383 superset/views.py:442 superset/views.py:533
+#: superset/views.py:697
+msgid "Cache Timeout"
+msgstr ""
+
+#: superset/views.py:384
+msgid "Extra"
+msgstr ""
+
+#: superset/views.py:434
+msgid "Changed By"
+msgstr ""
+
+#: superset/views.py:437
+msgid "SQL Editor"
+msgstr ""
+
+#: superset/views.py:438 superset/views.py:693
+msgid "Is Featured"
+msgstr ""
+
+#: superset/views.py:439
+msgid "Schema"
+msgstr ""
+
+#: superset/views.py:440 superset/views.py:695
+msgid "Default Endpoint"
+msgstr ""
+
+#: superset/views.py:441
+msgid "Offset"
+msgstr ""
+
+#: superset/views.py:482 superset/views.py:690
+msgid "Cluster"
+msgstr ""
+
+#: superset/views.py:483
+msgid "Coordinator Host"
+msgstr ""
+
+#: superset/views.py:484
+msgid "Coordinator Port"
+msgstr ""
+
+#: superset/views.py:485
+msgid "Coordinator Endpoint"
+msgstr ""
+
+#: superset/views.py:486
+msgid "Broker Host"
+msgstr ""
+
+#: superset/views.py:487
+msgid "Broker Port"
+msgstr ""
+
+#: superset/views.py:488
+msgid "Broker Endpoint"
+msgstr ""
+
+#: superset/views.py:522
+msgid ""
+"These parameters are generated dynamically when clicking the save or "
+"overwrite button in the explore view. This JSON object is exposed here "
+"for reference and for power users who may want to alter specific "
+"parameters."
+msgstr ""
+
+#: superset/views.py:527
+msgid "Duration (in seconds) of the caching timeout for this slice."
+msgstr ""
+
+#: superset/templates/superset/welcome.html:26 superset/views.py:535
+msgid "Dashboards"
+msgstr ""
+
+#: superset/views.py:538
+msgid "Last Modified"
+msgstr ""
+
+#: superset/views.py:539 superset/views.py:609
+msgid "Owners"
+msgstr ""
+
+#: superset/views.py:540
+msgid "Parameters"
+msgstr ""
+
+#: superset/views.py:541 superset/views.py:569
+msgid "Slice"
+msgstr ""
+
+#: superset/views.py:542
+msgid "Name"
+msgstr ""
+
+#: superset/views.py:544 superset/views.py:570
+msgid "Visualization Type"
+msgstr ""
+
+#: superset/views.py:586
+msgid ""
+"This json object describes the positioning of the widgets in the "
+"dashboard. It is dynamically generated when adjusting the widgets size "
+"and positions by using drag & drop in the dashboard view"
+msgstr ""
+
+#: superset/views.py:591
+msgid ""
+"The css for individual dashboards can be altered here, or in the "
+"dashboard view where changes are immediately visible"
+msgstr ""
+
+#: superset/views.py:595
+msgid "To get a readable URL for your dashboard"
+msgstr ""
+
+#: superset/views.py:596
+msgid ""
+"This JSON object is generated dynamically when clicking the save or "
+"overwrite button in the dashboard view. It is exposed here for reference "
+"and for power users who may want to alter specific parameters."
+msgstr ""
+
+#: superset/views.py:601
+msgid "Owners is a list of users who can alter the dashboard."
+msgstr ""
+
+#: superset/views.py:605
+msgid "Dashboard"
+msgstr ""
+
+#: superset/views.py:606
+msgid "Title"
+msgstr ""
+
+#: superset/views.py:607
+msgid "Slug"
+msgstr ""
+
+#: superset/views.py:608
+msgid "Slices"
+msgstr ""
+
+#: superset/views.py:611
+msgid "Modified"
+msgstr ""
+
+#: superset/views.py:612
+msgid "Position JSON"
+msgstr ""
+
+#: superset/views.py:613
+msgid "CSS"
+msgstr ""
+
+#: superset/views.py:614
+msgid "JSON Metadata"
+msgstr ""
+
+#: superset/views.py:615
+msgid "Underlying Tables"
+msgstr ""
+
+#: superset/views.py:653
+msgid "User"
+msgstr ""
+
+#: superset/views.py:654
+msgid "Action"
+msgstr ""
+
+#: superset/views.py:655
+msgid "dttm"
+msgstr ""
+
+#: superset/views.py:683
+msgid "Timezone offset (in hours) for this datasource"
+msgstr ""
+
+#: superset/views.py:689
+msgid "Data Source"
+msgstr ""
+
+#: superset/views.py:692
+msgid "Owner"
+msgstr ""
+
+#: superset/views.py:694
+msgid "Is Hidden"
+msgstr ""
+
+#: superset/views.py:696
+msgid "Time Offset"
+msgstr ""
+
+#: superset/views.py:1176
+msgid "This view requires the `all_datasource_access` permission"
+msgstr ""
+
+#: superset/views.py:1249
+msgid "Refresh Druid Metadata"
+msgstr ""
+
+#: superset/viz.py:367
+msgid "Table View"
+msgstr ""
+
+#: superset/viz.py:370
+msgid "GROUP BY"
+msgstr ""
+
+#: superset/viz.py:371
+msgid "Use this section if you want a query that aggregates"
+msgstr ""
+
+#: superset/viz.py:374
+msgid "NOT GROUPED BY"
+msgstr ""
+
+#: superset/viz.py:375
+msgid "Use this section if you want to query atomic rows"
+msgstr ""
+
+#: superset/viz.py:378
+msgid "Options"
+msgstr ""
+
+#: superset/viz.py:429
+msgid "Pivot Table"
+msgstr ""
+
+#: superset/viz.py:491
+msgid "Markup"
+msgstr ""
+
+#: superset/viz.py:519
+msgid "Word Cloud"
+msgstr ""
+
+#: superset/viz.py:551
+msgid "Treemap"
+msgstr ""
+
+#: superset/viz.py:561 superset/viz.py:676 superset/viz.py:783 superset/viz.py:948
+#: superset/viz.py:1093 superset/viz.py:1122 superset/viz.py:1177
+#: superset/viz.py:1682
+msgid "Chart Options"
+msgstr ""
+
+#: superset/viz.py:595
+msgid "Calendar Heatmap"
+msgstr ""
+
+#: superset/viz.py:666
+msgid "Box Plot"
+msgstr ""
+
+#: superset/viz.py:773
+msgid "Bubble Chart"
+msgstr ""
+
+#: superset/viz.py:842
+msgid "Big Number with Trendline"
+msgstr ""
+
+#: superset/viz.py:892
+msgid "Big Number"
+msgstr ""
+
+#: superset/viz.py:938
+msgid "Time Series - Line Chart"
+msgstr ""
+
+#: superset/viz.py:958
+msgid "Advanced Analytics"
+msgstr ""
+
+#: superset/viz.py:959
+msgid ""
+"This section contains options that allow for advanced analytical post "
+"processing of query results"
+msgstr ""
+
+#: superset/viz.py:1091
+msgid "Time Series - Bar Chart"
+msgstr ""
+
+#: superset/viz.py:1111
+msgid "Time Series - Percent Change"
+msgstr ""
+
+#: superset/viz.py:1119
+msgid "Time Series - Stacked"
+msgstr ""
+
+#: superset/viz.py:1138
+msgid "Distribution - NVD3 - Pie Chart"
+msgstr ""
+
+#: superset/viz.py:1174
+msgid "Distribution - Bar Chart"
+msgstr ""
+
+#: superset/viz.py:1195
+msgid "Breakdowns"
+msgstr ""
+
+#: superset/viz.py:1196
+msgid "Defines how each series is broken down"
+msgstr ""
+
+#: superset/viz.py:1261
+msgid "Sunburst"
+msgstr ""
+
+#: superset/viz.py:1276
+msgid "Primary Metric"
+msgstr ""
+
+#: superset/viz.py:1277
+msgid "The primary metric is used to define the arc segment sizes"
+msgstr ""
+
+#: superset/viz.py:1282
+msgid "Secondary Metric"
+msgstr ""
+
+#: superset/viz.py:1283
+msgid ""
+"This secondary metric is used to define the color as a ratio against the "
+"primary metric. If the two metrics match, color is mapped level groups"
+msgstr ""
+
+#: superset/viz.py:1289
+msgid "Hierarchy"
+msgstr ""
+
+#: superset/viz.py:1290
+msgid "This defines the level of the hierarchy"
+msgstr ""
+
+#: superset/viz.py:1327
+msgid "Sankey"
+msgstr ""
+
+#: superset/viz.py:1340 superset/viz.py:1410
+msgid "Source / Target"
+msgstr ""
+
+#: superset/viz.py:1341 superset/viz.py:1411
+msgid "Choose a source and a target"
+msgstr ""
+
+#: superset/viz.py:1391
+msgid "Directed Force Layout"
+msgstr ""
+
+#: superset/viz.py:1402
+msgid "Force Layout"
+msgstr ""
+
+#: superset/viz.py:1433
+msgid "World Map"
+msgstr ""
+
+#: superset/viz.py:1444
+msgid "Bubbles"
+msgstr ""
+
+#: superset/viz.py:1453
+msgid "Country Field"
+msgstr ""
+
+#: superset/viz.py:1454
+msgid "3 letter code of the country"
+msgstr ""
+
+#: superset/viz.py:1457
+msgid "Metric for color"
+msgstr ""
+
+#: superset/viz.py:1458
+msgid "Metric that defines the color of the country"
+msgstr ""
+
+#: superset/viz.py:1461
+msgid "Bubble size"
+msgstr ""
+
+#: superset/viz.py:1462
+msgid "Metric that defines the size of the bubble"
+msgstr ""
+
+#: superset/templates/superset/explore.html:147 superset/viz.py:1507
+msgid "Filters"
+msgstr ""
+
+#: superset/viz.py:1519
+msgid "Filter fields"
+msgstr ""
+
+#: superset/viz.py:1520
+msgid "The fields you want to filter on"
+msgstr ""
+
+#: superset/viz.py:1555
+msgid "iFrame"
+msgstr ""
+
+#: superset/viz.py:1573
+msgid "Parallel Coordinates"
+msgstr ""
+
+#: superset/viz.py:1609
+msgid "Heatmap"
+msgstr ""
+
+#: superset/viz.py:1622
+msgid "Heatmap Options"
+msgstr ""
+
+#: superset/viz.py:1677
+msgid "Horizon Charts"
+msgstr ""
+
+#: superset/viz.py:1693
+msgid "Mapbox"
+msgstr ""
+
+#: superset/viz.py:1707
+msgid "Points"
+msgstr ""
+
+#: superset/viz.py:1713
+msgid "Labelling"
+msgstr ""
+
+#: superset/viz.py:1719
+msgid "Visual Tweaks"
+msgstr ""
+
+#: superset/viz.py:1726
+msgid "Viewport"
+msgstr ""
+
+#: superset/viz.py:1736
+msgid "Longitude"
+msgstr ""
+
+#: superset/viz.py:1737
+msgid "Column containing longitude data"
+msgstr ""
+
+#: superset/viz.py:1740
+msgid "Latitude"
+msgstr ""
+
+#: superset/viz.py:1741
+msgid "Column containing latitude data"
+msgstr ""
+
+#: superset/viz.py:1744
+msgid "Cluster label aggregator"
+msgstr ""
+
+#: superset/viz.py:1745
+msgid ""
+"Aggregate function applied to the list of points in each cluster to "
+"produce the cluster label."
+msgstr ""
+
+#: superset/viz.py:1750
+msgid "Tooltip"
+msgstr ""
+
+#: superset/viz.py:1751
+msgid "Show a tooltip when hovering over points and clusters describing the label"
+msgstr ""
+
+#: superset/viz.py:1756
+msgid ""
+"One or many fields to group by. If grouping, latitude and longitude "
+"columns must be present."
+msgstr ""
+
+#: superset/templates/appbuilder/navbar_right.html:36
+msgid "Profile"
+msgstr ""
+
+#: superset/templates/appbuilder/navbar_right.html:37
+msgid "Logout"
+msgstr ""
+
+#: superset/templates/appbuilder/navbar_right.html:42
+msgid "Login"
+msgstr ""
+
+#: superset/templates/superset/explore.html:34
+#: superset/templates/superset/explore.html:241
+msgid "Query"
+msgstr ""
+
+#: superset/templates/superset/explore.html:43
+#: superset/templates/superset/explore.html:306
+msgid "Save"
+msgstr ""
+
+#: superset/templates/superset/explore.html:72
+msgid "Force refresh"
+msgstr ""
+
+#: superset/templates/superset/explore.html:77
+msgid "Short URL"
+msgstr ""
+
+#: superset/templates/superset/explore.html:79
+msgid "Generate an embeddable iframe"
+msgstr ""
+
+#: superset/templates/superset/explore.html:82
+msgid "Export to .json"
+msgstr ""
+
+#: superset/templates/superset/explore.html:86
+msgid "Export to .csv format"
+msgstr ""
+
+#: superset/templates/superset/explore.html:92
+msgid "Query timer"
+msgstr ""
+
+#: superset/templates/superset/explore.html:94
+msgid "0 sec"
+msgstr ""
+
+#: superset/templates/superset/explore.html:100
+msgid "View database query"
+msgstr ""
+
+#: superset/templates/superset/explore.html:101
+msgid "query"
+msgstr ""
+
+#: superset/templates/superset/explore.html:150
+msgid "Filters are defined using comma delimited strings as in 'US,FR,Other'"
+msgstr ""
+
+#: superset/templates/superset/explore.html:168
+msgid "Add filter"
+msgstr ""
+
+#: superset/templates/superset/explore.html:247
+#: superset/templates/superset/explore.html:265
+msgid "Close"
+msgstr ""
+
+#: superset/templates/superset/explore.html:259
+msgid "Datasource Description"
+msgstr ""
+
+#: superset/templates/superset/explore.html:277
+msgid "Save a Slice"
+msgstr ""
+
+#: superset/templates/superset/explore.html:309
+msgid "Save & go to dashboard"
+msgstr ""
+
+#: superset/templates/superset/explore.html:312
+msgid "Cancel"
+msgstr ""
+
+#: superset/templates/superset/sql.html:12
+msgid "Run!"
+msgstr ""
+
+#: superset/templates/superset/sql.html:13
+msgid "Create View"
+msgstr ""
+
+#: superset/templates/superset/welcome.html:8
+#: superset/templates/superset/welcome.html:14
+msgid "Welcome!"
+msgstr ""
+
+#: superset/templates/superset/models/database/macros.html:4
+msgid "Test Connection"
+msgstr ""
+
+#~ msgid "Databases"
+#~ msgstr ""
+
+#~ msgid "Sources"
+#~ msgstr ""
+
+#~ msgid "Tables"
+#~ msgstr ""
+
+#~ msgid "Druid Clusters"
+#~ msgstr ""
+
+#~ msgid "Action Log"
+#~ msgstr ""
+
+#~ msgid "Security"
+#~ msgstr ""
+
+#~ msgid "Druid Datasources"
+#~ msgstr ""
+
+#~ msgid "CSS Templates"
+#~ msgstr ""
+
+#~ msgid "Documentation"
+#~ msgstr ""
+
+#~ msgid "Standalone version, use to embed anywhere"
+#~ msgstr ""
+
+#~ msgid "Overwrite"
+#~ msgstr ""
+
+#~ msgid "Save as"
+#~ msgstr ""
+

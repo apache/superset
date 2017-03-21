@@ -1,14 +1,25 @@
 Security
 ========
-Security in Caravel is handled by Flask AppBuilder (FAB). FAB is a
+Security in Superset is handled by Flask AppBuilder (FAB). FAB is a
 "Simple and rapid application development framework, built on top of Flask.".
 FAB provides authentication, user management, permissions and roles.
 
 
 Provided Roles
 --------------
-Caravel ships with 3 roles that are handled by Caravel itself. You can
-assume that these 3 roles will stay up-to-date as Caravel evolves.
+Superset ships with a set of roles that are handled by Superset itself.
+You can assume that these roles will stay up-to-date as Superset evolves.
+Even though it's possible for ``Admin`` usrs to do so, it is not recommended
+that you alter these roles in any way by removing
+or adding permissions to them as these roles will be re-synchronized to
+their original values as you run your next ``superset init`` command.
+
+Since it's not recommended to alter the roles described here, it's right
+to assume that your security strategy should be to compose user access based
+on these base roles and roles that you create. For instance you could
+create a role ``Financial Analyst`` that would be made of set of permissions
+to a set of data sources (tables) and/or databases. Users would then be
+granted ``Gamma``, ``Financial Analyst``, and perhaps ``sql_lab``.
 
 Admin
 """""
@@ -32,6 +43,12 @@ mostly content consumers, though they can create slices and dashboards.
 
 Also note that when Gamma users look at the dashboards and slices list view,
 they will only see the objects that they have access to.
+
+sql_lab
+"""""""
+The ``sql_lab`` role grants access to SQL Lab. Note that while ``Admin``
+users have access to all databases by default, both ``Alpha`` and ``Gamma``
+users need to be given access on a per database basis.
 
 
 Managing Gamma per data source access
@@ -59,17 +76,17 @@ Customizing
 The permissions exposed by FAB are very granular and allow for a great level
 of customization. FAB creates many permissions automagically for each model
 that is create (can_add, can_delete, can_show, can_edit, ...) as well as for
-each view. On top of that, Caravel can expose more granular permissions like
+each view. On top of that, Superset can expose more granular permissions like
 ``all_datasource_access``.
 
 We do not recommend altering the 3 base roles as there
-are a set of assumptions that Caravel build upon. It is possible though for
+are a set of assumptions that Superset build upon. It is possible though for
 you to create your own roles, and union them to existing ones.
 
 Permissions
 """""""""""
 
-Roles are composed of a set of permissions, and Caravel has many categories
+Roles are composed of a set of permissions, and Superset has many categories
 of permissions. Here are the different categories of permissions:
 
 - **Model & action**: models are entities like ``Dashboard``,

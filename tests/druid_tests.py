@@ -1,4 +1,4 @@
-"""Unit tests for Caravel"""
+"""Unit tests for Superset"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -10,10 +10,11 @@ import unittest
 
 from mock import Mock, patch
 
-from caravel import db, sm, utils
-from caravel.models import DruidCluster, DruidDatasource
+from superset import db, sm, security
+from superset.connectors.druid.models import DruidCluster, DruidDatasource
+from superset.connectors.druid.models import PyDruid
 
-from .base_tests import CaravelTestCase
+from .base_tests import SupersetTestCase
 
 
 SEGMENT_METADATA = [{
@@ -48,29 +49,29 @@ GB_RESULT_SET = [
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'Canada',
-      "sum__num": 12345678,
+      "dim1": 'Canada',
+      "metric1": 12345678,
     }
   },
   {
     "version": "v1",
     "timestamp": "2012-01-01T00:00:00.000Z",
     "event": {
-      "name": 'USA',
-      "sum__num": 12345678 / 2,
+      "dim1": 'USA',
+      "metric1": 12345678 / 2,
     }
   },
 ]
 
 
-class DruidTests(CaravelTestCase):
+class DruidTests(SupersetTestCase):
 
     """Testing interactions with Druid"""
 
     def __init__(self, *args, **kwargs):
         super(DruidTests, self).__init__(*args, **kwargs)
 
-    @patch('caravel.models.PyDruid')
+    @patch('superset.connectors.druid.models.PyDruid')
     def test_client(self, PyDruid):
         self.login(username='admin')
         instance = PyDruid.return_value
@@ -100,6 +101,7 @@ class DruidTests(CaravelTestCase):
         cluster.get_datasources = Mock(return_value=['test_datasource'])
         cluster.get_druid_version = Mock(return_value='0.9.1')
         cluster.refresh_datasources()
+        cluster.refresh_datasources(merge_flag=True)
         datasource_id = cluster.datasources[0].id
         db.session.commit()
 
@@ -113,20 +115,48 @@ class DruidTests(CaravelTestCase):
         instance.query_dict = {}
         instance.query_builder.last_query.query_dict = {}
 
-        resp = self.client.get('/caravel/explore/druid/{}/'.format(
+        resp = self.get_resp('/superset/explore/druid/{}/'.format(
             datasource_id))
-        assert "[test_cluster].[test_datasource]" in resp.data.decode('utf-8')
-
+        self.assertIn("test_datasource", resp)
+        form_data = {
+            'viz_type': 'table',
+            'granularity': 'one+day',
+            'druid_time_origin': '',
+            'since': '7+days+ago',
+            'until': 'now',
+            'row_limit': 5000,
+            'include_search': 'false',
+            'metrics': ['count'],
+            'groupby': ['dim1'],
+            'force': 'true',
+        }
+        # One groupby
         url = (
-            '/caravel/explore_json/druid/{}/?viz_type=table&granularity=one+day&'
-            'druid_time_origin=&since=7+days+ago&until=now&row_limit=5000&'
-            'include_search=false&metrics=count&groupby=name&flt_col_0=dim1&'
-            'flt_op_0=in&flt_eq_0=&slice_id=&slice_name=&collapsed_fieldsets=&'
-            'action=&datasource_name=test_datasource&datasource_id={}&'
-            'datasource_type=druid&previous_viz_type=table&'
-            'force=true'.format(datasource_id, datasource_id))
-        resp = self.get_resp(url)
-        assert "Canada" in resp
+            '/superset/explore_json/druid/{}/?form_data={}'.format(
+                datasource_id, json.dumps(form_data))
+        )
+        resp = self.get_json_resp(url)
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
+
+        form_data = {
+            'viz_type': 'table',
+            'granularity': 'one+day',
+            'druid_time_origin': '',
+            'since': '7+days+ago',
+            'until': 'now',
+            'row_limit': 5000,
+            'include_search': 'false',
+            'metrics': ['count'],
+            'groupby': ['dim1', 'dim2d'],
+            'force': 'true',
+        }
+        # two groupby
+        url = (
+            '/superset/explore_json/druid/{}/?form_data={}'.format(
+                datasource_id, json.dumps(form_data))
+        )
+        resp = self.get_json_resp(url)
+        self.assertEqual("Canada", resp['data']['records'][0]['dim1'])
 
     def test_druid_sync_from_config(self):
         CLUSTER_NAME = 'new_druid'
@@ -167,9 +197,13 @@ class DruidTests(CaravelTestCase):
             }
         }
         def check():
-            resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
-            druid_ds = db.session.query(DruidDatasource).filter_by(
-                datasource_name="test_click").first()
+            resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
+            druid_ds = (
+                db.session
+                .query(DruidDatasource)
+                .filter_by(datasource_name="test_click")
+                .one()
+            )
             col_names = set([c.column_name for c in druid_ds.columns])
             assert {"affiliate_id", "campaign", "first_seen"} == col_names
             metric_names = {m.metric_name for m in druid_ds.metrics}
@@ -180,7 +214,7 @@ class DruidTests(CaravelTestCase):
         # checking twice to make sure a second sync yields the same results
         check()
 
-        # datasource exists, add new metrics and dimentions
+        # datasource exists, add new metrics and dimensions
         cfg = {
             "user": "admin",
             "cluster": CLUSTER_NAME,
@@ -193,9 +227,9 @@ class DruidTests(CaravelTestCase):
                 ],
             }
         }
-        resp = self.client.post('/caravel/sync_druid/', data=json.dumps(cfg))
+        resp = self.client.post('/superset/sync_druid/', data=json.dumps(cfg))
         druid_ds = db.session.query(DruidDatasource).filter_by(
-            datasource_name="test_click").first()
+            datasource_name="test_click").one()
         # columns and metrics are not deleted if config is changed as
         # user could define his own dimensions / metrics and want to keep them
         assert set([c.column_name for c in druid_ds.columns]) == set(
@@ -226,21 +260,21 @@ class DruidTests(CaravelTestCase):
             db.session)
         no_gamma_ds.cluster = cluster
         db.session.merge(no_gamma_ds)
-
-        utils.merge_perm(sm, 'datasource_access', gamma_ds.perm)
-        utils.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
-
         db.session.commit()
 
-        perm = sm.find_permission_view_menu('datasource_access', gamma_ds.perm)
+        security.merge_perm(sm, 'datasource_access', gamma_ds.perm)
+        security.merge_perm(sm, 'datasource_access', no_gamma_ds.perm)
+
+        perm = sm.find_permission_view_menu(
+            'datasource_access', gamma_ds.get_perm())
         sm.add_permission_role(sm.find_role('Gamma'), perm)
-        db.session.commit()
+        sm.get_session.commit()
 
         self.login(username='gamma')
         url = '/druiddatasourcemodelview/list/'
         resp = self.get_resp(url)
-        assert 'datasource_for_gamma' in resp
-        assert 'datasource_not_for_gamma' not in resp
+        self.assertIn('datasource_for_gamma', resp)
+        self.assertNotIn('datasource_not_for_gamma', resp)
 
 
 if __name__ == '__main__':

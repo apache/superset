@@ -1,0 +1,9 @@
+**/*{.,-}min.js
+**/*.sh
+coverage/**
+dist/*
+images/*
+node_modules/*
+node_modules*/*
+stylesheets/*
+vendor/*
