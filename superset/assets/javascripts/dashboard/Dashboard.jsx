@@ -263,7 +263,7 @@ export function dashboardContainer(dashboard) {
       this.sliceObjects.forEach(slice => {
         if (slice.data.slice_id !== sliceId && immune.indexOf(slice.data.slice_id) === -1) {
           slice.render();
-          const sliceSeletor = $(`#${slice.data.token}-cell`);
+          const sliceSeletor = $(`#${slice.data.slice_id}-cell`);
           sliceSeletor.addClass('slice-cell-highlight');
           setTimeout(function () {
             sliceSeletor.removeClass('slice-cell-highlight');
