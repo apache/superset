@@ -146,7 +146,7 @@ class SqlEditor extends React.PureComponent {
       );
     }
     const editorBottomBar = (
-      <div className="sql-toolbar clearfix">
+      <div className="sql-toolbar clearfix" id="js-sql-toolbar">
         <div className="pull-left">
           <Form inline>
             <RunQueryActionButton
@@ -196,25 +196,21 @@ class SqlEditor extends React.PureComponent {
             </Col>
           </Collapse>
           <Col md={this.props.hideLeftBar ? 12 : 9}>
-            <div className="scrollbar-container">
-              <div className="scrollbar-content">
-                <AceEditorWrapper
-                  actions={this.props.actions}
-                  onBlur={this.setQueryEditorSql.bind(this)}
-                  queryEditor={this.props.queryEditor}
-                  onAltEnter={this.runQuery.bind(this)}
-                  sql={this.props.queryEditor.sql}
-                  tables={this.props.tables}
-                />
-                {editorBottomBar}
-                <br />
-                <SouthPane
-                  editorQueries={this.props.editorQueries}
-                  dataPreviewQueries={this.props.dataPreviewQueries}
-                  actions={this.props.actions}
-                />
-              </div>
-            </div>
+            <AceEditorWrapper
+              actions={this.props.actions}
+              onBlur={this.setQueryEditorSql.bind(this)}
+              queryEditor={this.props.queryEditor}
+              onAltEnter={this.runQuery.bind(this)}
+              sql={this.props.queryEditor.sql}
+              tables={this.props.tables}
+            />
+            {editorBottomBar}
+            <br />
+            <SouthPane
+              editorQueries={this.props.editorQueries}
+              dataPreviewQueries={this.props.dataPreviewQueries}
+              actions={this.props.actions}
+            />
           </Col>
         </Row>
       </div>
