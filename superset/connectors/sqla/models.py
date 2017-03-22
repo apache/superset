@@ -200,7 +200,7 @@ class SqlaTable(Model, BaseDatasource):
             name='_customer_location_uc'),)
 
     def __repr__(self):
-        return self.name
+        return self.full_name
 
     @property
     def description_markeddown(self):

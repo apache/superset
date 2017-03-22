@@ -410,7 +410,7 @@ class DruidDatasource(Model, BaseDatasource):
         }
 
     def __repr__(self):
-        return self.datasource_name
+        return self.full_name
 
     @renders('datasource_name')
     def datasource_link(self):
