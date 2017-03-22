@@ -722,7 +722,7 @@ class DruidDatasource(Model, BaseDatasource):
         return [row[0] for row in df.to_records(index=False)]
 
     def get_query_str(  # noqa / druid
-            self, client, qry_start_dttm,
+            self,
             groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -741,6 +741,7 @@ class DruidDatasource(Model, BaseDatasource):
         This query interface is common to SqlAlchemy and Druid
         """
         # TODO refactor into using a TBD Query object
+        client = self.cluster.get_pydruid_client()
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm

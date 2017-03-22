@@ -117,7 +117,7 @@ class BaseEngineSpec(object):
 
         For example Presto needs to double `%` characters
         """
-        return sql
+        return sql#.replace('%', '%')
 
     @classmethod
     def patch(cls):
@@ -278,10 +278,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         from pyhive import presto
         from superset.db_engines import presto as patched_presto
         presto.Cursor.cancel = patched_presto.cancel
-
-    @classmethod
-    def sql_preprocessor(cls, sql):
-        return sql.replace('%', '%%')
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):
