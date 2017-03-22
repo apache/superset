@@ -1,9 +1,14 @@
 const $ = window.$ = require('jquery');
 import React from 'react';
-import Select from 'react-select';
 import { Label, Button } from 'react-bootstrap';
 import TableElement from './TableElement';
 import AsyncSelect from '../../components/AsyncSelect';
+import Select from 'react-virtualized-select';
+import createFilterOptions from 'react-select-fast-filter-options';
+
+import 'react-select/dist/react-select.css';
+import 'react-virtualized/styles.css';
+import 'react-virtualized-select/styles.css';
 
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
@@ -129,6 +134,8 @@ ${this.props.queryEditor.schema}/${input}`;
       networkAlert = <p><Label bsStyle="danger">OFFLINE</Label></p>;
     }
     const shouldShowReset = window.location.search === '?reset=1';
+    const options = this.state.tableOptions;
+    const filterOptions = createFilterOptions({ options });
     return (
       <div className="scrollbar-container">
         <div className="clearfix sql-toolbar scrollbar-content">
@@ -148,6 +155,8 @@ ${this.props.queryEditor.schema}/${input}`;
               mutator={this.dbMutator.bind(this)}
               placeholder="Select a database"
             />
+          </div>
+          <div className="m-t-5">
             <Select
               name="select-schema"
               placeholder={`Select a schema (${this.state.schemaOptions.length})`}
@@ -164,29 +173,17 @@ ${this.props.queryEditor.schema}/${input}`;
             />
           </div>
           <div className="m-t-5">
-            {this.props.queryEditor.schema &&
-              <Select
-                name="select-table"
-                ref="selectTable"
-                isLoading={this.state.tableLoading}
-                value={this.state.tableName}
-                placeholder={`Add a table (${this.state.tableOptions.length})`}
-                autosize={false}
-                onChange={this.changeTable.bind(this)}
-                options={this.state.tableOptions}
-              />
-            }
-            {!this.props.queryEditor.schema &&
-              <Select.Async
-                name="async-select-table"
-                ref="selectTable"
-                value={this.state.tableName}
-                placeholder={"Type to search ..."}
-                autosize={false}
-                onChange={this.changeTable.bind(this)}
-                loadOptions={this.getTableNamesBySubStr.bind(this)}
-              />
-            }
+            <Select
+              name="select-table"
+              ref="selectTable"
+              isLoading={this.state.tableLoading}
+              value={this.state.tableName}
+              placeholder={`Add a table (${this.state.tableOptions.length})`}
+              autosize={false}
+              onChange={this.changeTable.bind(this)}
+              filterOptions={filterOptions}
+              options={this.state.tableOptions}
+            />
           </div>
           <hr />
           <div className="m-t-5">
