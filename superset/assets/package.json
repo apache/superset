@@ -66,6 +66,7 @@
     "nvd3": "1.8.5",
     "react": "^15.3.2",
     "react-ace": "^4.1.5",
+    "react-addons-shallow-compare": "^15.4.2",
     "react-bootstrap": "^0.30.3",
     "react-bootstrap-table": "^2.3.8",
     "react-dom": "^15.3.2",
