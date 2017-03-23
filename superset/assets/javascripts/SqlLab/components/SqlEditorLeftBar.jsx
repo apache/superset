@@ -67,8 +67,8 @@ class SqlEditorLeftBar extends React.PureComponent {
     if (!this.props.queryEditor.dbId || !input) {
       return Promise.resolve({ options: [] });
     }
-    const url = `/superset/tables/${this.props.queryEditor.dbId}/\
-${this.props.queryEditor.schema}/${input}`;
+    const url = `/superset/tables/${this.props.queryEditor.dbId}/` +
+                `${this.props.queryEditor.schema}/${input}`;
     return $.get(url).then((data) => ({ options: data.options }));
   }
   // TODO: move fetching methods to the actions.
@@ -173,17 +173,31 @@ ${this.props.queryEditor.schema}/${input}`;
             />
           </div>
           <div className="m-t-5">
-            <Select
-              name="select-table"
-              ref="selectTable"
-              isLoading={this.state.tableLoading}
-              value={this.state.tableName}
-              placeholder={`Add a table (${this.state.tableOptions.length})`}
-              autosize={false}
-              onChange={this.changeTable.bind(this)}
-              filterOptions={filterOptions}
-              options={this.state.tableOptions}
-            />
+            {this.props.queryEditor.schema &&
+              <Select
+                name="select-table"
+                ref="selectTable"
+                isLoading={this.state.tableLoading}
+                value={this.state.tableName}
+                placeholder={`Add a table (${this.state.tableOptions.length})`}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                filterOptions={filterOptions}
+                options={this.state.tableOptions}
+              />
+            }
+            {!this.props.queryEditor.schema &&
+              <Select
+                async
+                name="async-select-table"
+                ref="selectTable"
+                value={this.state.tableName}
+                placeholder={"Type to search ..."}
+                autosize={false}
+                onChange={this.changeTable.bind(this)}
+                loadOptions={this.getTableNamesBySubStr.bind(this)}
+              />
+            }
           </div>
           <hr />
           <div className="m-t-5">
