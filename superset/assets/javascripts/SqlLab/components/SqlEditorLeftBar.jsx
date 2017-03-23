@@ -6,10 +6,6 @@ import AsyncSelect from '../../components/AsyncSelect';
 import Select from 'react-virtualized-select';
 import createFilterOptions from 'react-select-fast-filter-options';
 
-import 'react-select/dist/react-select.css';
-import 'react-virtualized/styles.css';
-import 'react-virtualized-select/styles.css';
-
 const propTypes = {
   queryEditor: React.PropTypes.object.isRequired,
   tables: React.PropTypes.array,
