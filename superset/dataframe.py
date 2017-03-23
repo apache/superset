@@ -114,7 +114,7 @@ class SupersetDataFrame(object):
             }
 
             if column['type'] in ('OBJECT', None):
-                v = sample[col][0]
+                v = sample[col].iloc[0] if not sample[col].empty else None
                 if isinstance(v, basestring):
                     column['type'] = 'STRING'
                 elif isinstance(v, int):
