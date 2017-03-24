@@ -27,6 +27,7 @@ class SupersetDataFrame(object):
         'b': 'BOOL',  # boolean
         'i': 'INT',  # (signed) integer
         'u': 'INT',  # unsigned integer
+        'l': 'INT',  # 64bit integer
         'f': 'FLOAT',  # floating-point
         'c': 'FLOAT',  # complex-floating point
         'm': None,  # timedelta
@@ -129,7 +130,7 @@ class SupersetDataFrame(object):
                 if (
                         column['type'] == 'STRING' and
                         self.datetime_conversion_rate(sample[col]) >
-                            INFER_COL_TYPES_THRESHOLD):
+                        INFER_COL_TYPES_THRESHOLD):
                     column.update({
                         'is_date': True,
                         'is_dim': False,
