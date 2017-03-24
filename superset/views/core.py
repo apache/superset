@@ -2087,7 +2087,6 @@ class Superset(BaseSupersetView):
             return json_error_response(DATASOURCE_ACCESS_ERR)
         return json_success(json.dumps(datasource.data))
 
-    @has_access
     @expose("/queries/<last_updated_ms>")
     def queries(self, last_updated_ms):
         """Get the updated queries."""
