@@ -26,7 +26,6 @@ const propTypes = {
   height: React.PropTypes.string.isRequired,
   database: React.PropTypes.object,
   latestQuery: React.PropTypes.object,
-  networkOn: React.PropTypes.bool,
   tables: React.PropTypes.array.isRequired,
   editorQueries: React.PropTypes.array.isRequired,
   dataPreviewQueries: React.PropTypes.array.isRequired,
@@ -35,7 +34,6 @@ const propTypes = {
 };
 
 const defaultProps = {
-  networkOn: true,
   database: null,
   latestQuery: null,
   hideLeftBar: false,
@@ -190,7 +188,6 @@ class SqlEditor extends React.PureComponent {
                 style={{ height: this.props.height }}
                 queryEditor={this.props.queryEditor}
                 tables={this.props.tables}
-                networkOn={this.props.networkOn}
                 actions={this.props.actions}
               />
             </Col>

@@ -15,12 +15,10 @@ const propTypes = {
   queryEditors: React.PropTypes.array,
   tabHistory: React.PropTypes.array.isRequired,
   tables: React.PropTypes.array.isRequired,
-  networkOn: React.PropTypes.bool,
   editorHeight: React.PropTypes.string.isRequired,
 };
 const defaultProps = {
   queryEditors: [],
-  networkOn: true,
 };
 
 let queryCount = 1;
@@ -199,7 +197,6 @@ class TabbedSqlEditors extends React.PureComponent {
                   latestQuery={latestQuery}
                   database={database}
                   actions={this.props.actions}
-                  networkOn={this.props.networkOn}
                   hideLeftBar={this.state.hideLeftBar}
                 />
               }
@@ -235,7 +232,6 @@ function mapStateToProps(state) {
     queryEditors: state.queryEditors,
     queries: state.queries,
     tabHistory: state.tabHistory,
-    networkOn: state.networkOn,
     tables: state.tables,
     defaultDbId: state.defaultDbId,
   };

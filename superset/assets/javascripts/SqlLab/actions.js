@@ -24,7 +24,6 @@ export const SET_ACTIVE_SOUTHPANE_TAB = 'SET_ACTIVE_SOUTHPANE_TAB';
 export const ADD_ALERT = 'ADD_ALERT';
 export const REMOVE_ALERT = 'REMOVE_ALERT';
 export const REFRESH_QUERIES = 'REFRESH_QUERIES';
-export const SET_NETWORK_STATUS = 'SET_NETWORK_STATUS';
 export const RUN_QUERY = 'RUN_QUERY';
 export const START_QUERY = 'START_QUERY';
 export const STOP_QUERY = 'STOP_QUERY';
