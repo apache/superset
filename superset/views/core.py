@@ -1781,6 +1781,7 @@ class Superset(BaseSupersetView):
                 filterable=is_dim,
                 groupby=is_dim,
                 is_dttm=config.get('is_date', False),
+                type=config.get('type', False),
             )
             cols.append(col)
             if is_dim:

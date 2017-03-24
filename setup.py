@@ -51,6 +51,7 @@ setup(
         'flask-script==2.0.5',
         'flask-sqlalchemy==2.0',
         'flask-testing==0.6.1',
+        'future>=0.16.0, <0.17',
         'humanize==0.5.1',
         'gunicorn==19.6.0',
         'markdown==2.6.8',
