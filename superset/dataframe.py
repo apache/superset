@@ -123,6 +123,8 @@ class SupersetDataFrame(object):
                     column['type'] = 'FLOAT'
                 elif isinstance(v, (datetime, date)):
                     column['type'] = 'DATETIME'
+                    column['is_date'] = True
+                    column['is_dim'] = False
                 # check if encoded datetime
                 if (
                         column['type'] == 'STRING' and

@@ -9,6 +9,7 @@ import os
 import subprocess
 import time
 import unittest
+from past.builtins import basestring
 
 import pandas as pd
 
@@ -280,7 +281,7 @@ class CeleryTestCase(SupersetTestCase):
             )
         else:
             self.assertEqual(self.dictify_list_of_dicts([
-                {'is_date': True, 'type': 'STRING', 'name': 'ds',
+                {'is_date': True, 'type': 'DATETIME', 'name': 'ds',
                     'is_dim': False},
                 {'is_date': True, 'type': 'DATETIME',
                     'name': 'ds2', 'is_dim': False},
