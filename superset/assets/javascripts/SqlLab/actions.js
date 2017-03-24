@@ -172,10 +172,6 @@ export function cloneQueryToNewTab(query) {
   return { type: CLONE_QUERY_TO_NEW_TAB, query };
 }
 
-export function setNetworkStatus(networkOn) {
-  return { type: SET_NETWORK_STATUS, networkOn };
-}
-
 export function addAlert(alert) {
   const o = Object.assign({}, alert);
   o.id = shortid.generate();
