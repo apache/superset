@@ -246,9 +246,9 @@ class CeleryTestCase(SupersetTestCase):
             return o
         return {str_if_basestring(k): str_if_basestring(d[k]) for k in d}
 
-    @staticmethod
-    def dictify_list_of_dicts(l, k):
-        return {str(o[k]): self.de_unicode_dict(o) for o in l}
+    @classmethod
+    def dictify_list_of_dicts(cls, l, k):
+        return {str(o[k]): cls.de_unicode_dict(o) for o in l}
 
     def test_get_columns(self):
         main_db = self.get_main_database(db.session)
@@ -270,11 +270,11 @@ class CeleryTestCase(SupersetTestCase):
                     'name': 'epoch_s', 'is_dim': False},
                 {'is_date': True, 'type': 'STRING', 'name': 'string0',
                     'is_dim': False},
-                {'is_date': False, 'type': 'OBJECT',
+                {'is_date': False, 'type': 'STRING',
                     'name': 'string1', 'is_dim': True},
                 {'is_date': True, 'type': 'STRING', 'name': 'string2',
                     'is_dim': False},
-                {'is_date': False, 'type': 'OBJECT',
+                {'is_date': False, 'type': 'STRING',
                     'name': 'string3', 'is_dim': True}], 'name')
                 , cols
             )
@@ -290,11 +290,11 @@ class CeleryTestCase(SupersetTestCase):
                     'name': 'epoch_s', 'is_dim': False},
                 {'is_date': True, 'type': 'STRING', 'name': 'string0',
                     'is_dim': False},
-                {'is_date': False, 'type': 'OBJECT',
+                {'is_date': False, 'type': 'STRING',
                     'name': 'string1', 'is_dim': True},
                 {'is_date': True, 'type': 'STRING', 'name': 'string2',
                     'is_dim': False},
-                {'is_date': False, 'type': 'OBJECT',
+                {'is_date': False, 'type': 'STRING',
                     'name': 'string3', 'is_dim': True}], 'name')
                 , cols
             )

@@ -104,11 +104,11 @@ class SupersetDataFrame(object):
         if sample_size:
             sample = self.__df.sample(sample_size)
         for col in self.__df.dtypes.keys():
-            db_type = self.db_type(self.__df.dtypes[col])
+            col_db_type = self.db_type(self.__df.dtypes[col])
             column = {
                 'name': col,
                 'agg': self.agg_func(self.__df.dtypes[col], col),
-                'type': db_type,
+                'type': col_db_type,
                 'is_date': self.is_date(self.__df.dtypes[col]),
                 'is_dim': self.is_dimension(self.__df.dtypes[col], col),
             }
@@ -124,8 +124,10 @@ class SupersetDataFrame(object):
                 elif isinstance(v, (datetime, date)):
                     column['type'] = 'DATETIME'
                 # check if encoded datetime
-                if (self.datetime_conversion_rate(sample[col]) >
-                        INFER_COL_TYPES_THRESHOLD):
+                if (
+                        column['type'] == 'STRING' and
+                        self.datetime_conversion_rate(sample[col]) >
+                            INFER_COL_TYPES_THRESHOLD):
                     column.update({
                         'is_date': True,
                         'is_dim': False,
