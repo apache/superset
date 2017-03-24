@@ -117,7 +117,7 @@ class BaseEngineSpec(object):
 
         For example Presto needs to double `%` characters
         """
-        return sql#.replace('%', '%')
+        return sql
 
     @classmethod
     def patch(cls):
