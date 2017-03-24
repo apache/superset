@@ -280,10 +280,6 @@ class PrestoEngineSpec(BaseEngineSpec):
         presto.Cursor.cancel = patched_presto.cancel
 
     @classmethod
-    def sql_preprocessor(cls, sql):
-        return sql.replace('%', '%%')
-
-    @classmethod
     def convert_dttm(cls, target_type, dttm):
         tt = target_type.upper()
         if tt == 'DATE':

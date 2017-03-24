@@ -322,8 +322,16 @@ class SqlaTable(Model, BaseDatasource):
         return get_template_processor(
             table=self, database=self.database, **kwargs)
 
-    def get_query_str(  # sqla
-            self, engine, qry_start_dttm,
+    def get_query_str(self, **kwargs):
+        qry = self.get_sqla_query(**kwargs)
+        sql = str(qry.compile(kwargs['engine']))
+        logging.info(sql)
+        sql = sqlparse.format(sql, reindent=True)
+        sql = self.database.db_engine_spec.sql_preprocessor(sql)
+        return sql
+
+    def get_sqla_query(  # sqla
+            self,
             groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -472,8 +480,7 @@ class SqlaTable(Model, BaseDatasource):
                 elif op == '<=':
                     where_clause_and.append(col_obj.sqla_col <= eq)
                 elif op == 'LIKE':
-                    where_clause_and.append(
-                        col_obj.sqla_col.like(eq.replace('%', '%%')))
+                    where_clause_and.append(col_obj.sqla_col.like(eq))
         if extras:
             where = extras.get('where')
             if where:
@@ -523,25 +530,18 @@ class SqlaTable(Model, BaseDatasource):
 
             tbl = tbl.join(subq.alias(), and_(*on_clause))
 
-        qry = qry.select_from(tbl)
-
-        sql = "{}".format(
-            qry.compile(
-                engine, compile_kwargs={"literal_binds": True},),
-        )
-        logging.info(sql)
-        sql = sqlparse.format(sql, reindent=True)
-        return sql
+        return qry.select_from(tbl)
 
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         engine = self.database.get_sqla_engine()
-        sql = self.get_query_str(engine, qry_start_dttm, **query_obj)
+        qry = self.get_sqla_query(**query_obj)
+        sql = str(qry)
         status = QueryStatus.SUCCESS
         error_message = None
         df = None
         try:
-            df = pd.read_sql_query(sql, con=engine)
+            df = pd.read_sql_query(qry, con=engine)
         except Exception as e:
             status = QueryStatus.FAILED
             error_message = str(e)
