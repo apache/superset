@@ -114,7 +114,7 @@ class TableColumn(Model, BaseColumn):
             return str((dttm - datetime(1970, 1, 1)).total_seconds() * 1000.0)
         else:
             s = self.table.database.db_engine_spec.convert_dttm(
-                self.type, dttm)
+                self.type or '', dttm)
             return s or "'{}'".format(dttm.strftime(tf))
 
 
