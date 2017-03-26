@@ -1214,11 +1214,8 @@ class Superset(BaseSupersetView):
     @expose("/checkbox/<model_view>/<id_>/<attr>/<value>", methods=['GET'])
     def checkbox(self, model_view, id_, attr, value):
         """endpoint for checking/unchecking any boolean in a sqla model"""
-        views = sys.modules[__name__]
-        model_view_cls = getattr(views, model_view)
-        model = model_view_cls.datamodel.obj
-
-        obj = db.session.query(model).filter_by(id=id_).first()
+        Col = ConnectorRegistry.sources['table'].column_cls
+        obj = db.session.query(Col).filter_by(id=id_).first()
         if obj:
             setattr(obj, attr, value == 'true')
             db.session.commit()
