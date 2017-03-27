@@ -90,7 +90,7 @@ function tableVis(slice, payload) {
         const perc = Math.round((d.val / maxes[d.col]) * 100);
         return (
           `linear-gradient(to right, lightgrey, lightgrey ${perc}%, ` +
-          `rgba(0,0,0,0) ${perc}%`
+          `rgba(0,0,0,0) ${perc}%)`
         );
       }
       return null;
