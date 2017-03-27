@@ -25,8 +25,6 @@ from flask_babel import lazy_gettext as _
 from markdown import markdown
 import simplejson as json
 from six import string_types, PY3
-from werkzeug.datastructures import ImmutableMultiDict, MultiDict
-from werkzeug.urls import Href
 from dateutil import relativedelta as rdelta
 
 from superset import app, utils, cache
