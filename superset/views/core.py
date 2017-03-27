@@ -9,7 +9,6 @@ import logging
 import pandas as pd
 import pickle
 import re
-import sys
 import time
 import traceback
 import zlib
