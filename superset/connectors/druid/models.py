@@ -312,38 +312,29 @@ class DruidDatasource(Model, BaseDatasource):
 
     """ORM object referencing Druid datasources (tables)"""
 
+    __tablename__ = 'datasources'
+
     type = "druid"
     query_langtage = "json"
-    metric_class = DruidMetric
     cluster_class = DruidCluster
+    metric_class = DruidMetric
+    column_class = DruidColumn
 
     baselink = "druiddatasourcemodelview"
 
-    __tablename__ = 'datasources'
-    id = Column(Integer, primary_key=True)
+    # Columns
     datasource_name = Column(String(255), unique=True)
-    is_featured = Column(Boolean, default=False)
     is_hidden = Column(Boolean, default=False)
-    filter_select_enabled = Column(Boolean, default=False)
-    description = Column(Text)
     fetch_values_from = Column(String(100))
-    default_endpoint = Column(Text)
+    cluster_name = Column(
+        String(250), ForeignKey('clusters.cluster_name'))
+    cluster = relationship(
+        'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
     user_id = Column(Integer, ForeignKey('ab_user.id'))
     owner = relationship(
         'User',
         backref=backref('datasources', cascade='all, delete-orphan'),
         foreign_keys=[user_id])
-    cluster_name = Column(
-        String(250), ForeignKey('clusters.cluster_name'))
-    cluster = relationship(
-        'DruidCluster', backref='datasources', foreign_keys=[cluster_name])
-    offset = Column(Integer, default=0)
-    cache_timeout = Column(Integer)
-    params = Column(String(1000))
-    perm = Column(String(1000))
-
-    metric_cls = DruidMetric
-    column_cls = DruidColumn
 
     export_fields = (
         'datasource_name', 'is_hidden', 'description', 'default_endpoint',
@@ -722,7 +713,7 @@ class DruidDatasource(Model, BaseDatasource):
         return [row[0] for row in df.to_records(index=False)]
 
     def get_query_str(  # noqa / druid
-            self, client, qry_start_dttm,
+            self,
             groupby, metrics,
             granularity,
             from_dttm, to_dttm,
@@ -741,6 +732,7 @@ class DruidDatasource(Model, BaseDatasource):
         This query interface is common to SqlAlchemy and Druid
         """
         # TODO refactor into using a TBD Query object
+        client = self.cluster.get_pydruid_client()
         if not is_timeseries:
             granularity = 'all'
         inner_from_dttm = inner_from_dttm or from_dttm
@@ -941,7 +933,7 @@ class DruidDatasource(Model, BaseDatasource):
     def query(self, query_obj):
         qry_start_dttm = datetime.now()
         client = self.cluster.get_pydruid_client()
-        query_str = self.get_query_str(client, qry_start_dttm, **query_obj)
+        query_str = self.get_query_str(**query_obj)
         df = client.export_pandas()
 
         if df is None or df.size == 0:
