@@ -140,6 +140,8 @@ ${this.props.queryEditor.schema}/${input}`;
               mutator={this.dbMutator.bind(this)}
               placeholder="Select a database"
             />
+          </div>
+          <div className="m-t-5">
             <Select
               name="select-schema"
               placeholder={`Select a schema (${this.state.schemaOptions.length})`}
