@@ -20,7 +20,7 @@ const bootstrapData = JSON.parse(appContainer.getAttribute('data-bootstrap'));
 const state = Object.assign({}, getInitialState(bootstrapData.defaultDbId), bootstrapData);
 
 let store = createStore(
-  sqlLabReducer, state, compose(applyMiddleware(thunkMiddleware), initEnhancer(false)));
+  sqlLabReducer, state, compose(applyMiddleware(thunkMiddleware), initEnhancer()));
 
 // jquery hack to highlight the navbar menu
 $('a:contains("SQL Lab")').parent().addClass('active');
