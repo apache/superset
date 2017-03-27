@@ -15,16 +15,11 @@ class QueryAutoRefresh extends React.PureComponent {
     this.stopTimer();
   }
   shouldCheckForQueries() {
-    // if there are started or pending queries, this method should return true
+    // if there are started or running queries, this method should return true
     const { queries } = this.props;
     const queryKeys = Object.keys(queries);
-    /* eslint consistent-return: 0 */
-    const pendingOrStartedQueries = queryKeys.forEach((key) => {
-      if (queries[key].state === 'running' || queries[key].state === 'started') {
-        return true;
-      }
-    });
-    return pendingOrStartedQueries;
+    const queriesAsArray = queryKeys.map(key => queries[key]);
+    return queriesAsArray.some(q => q.state === 'running' || q.state === 'started');
   }
   startTimer() {
     if (!(this.timer)) {
